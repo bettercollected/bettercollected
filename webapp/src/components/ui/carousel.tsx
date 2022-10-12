@@ -7,15 +7,29 @@
  */
 
 import {Carousel} from 'react-responsive-carousel';
+import PropTypes, {any} from "prop-types";
+import Image from "next/image";
 
-export default function LocalCarousel(ImagesArray: Array<any>) {
+function LocalCarousel({ ImagesArray }:any) {
     return (
-        <Carousel autoPlay={true} showThumbs={false} interval={2000}>
-            {ImagesArray.map((image, index) => (
-                <div key={index} className={"h-screen"}>
-                    <img src={image.src} alt={image.name}/>
-                </div>
-            ))}
-        </Carousel>
+        <div className="min-h-screen md:h-auto md:w-3/5">
+            <Carousel autoPlay={true} showThumbs={false} interval={2000}>
+                {ImagesArray.map((image:any, index:number) => (
+                    <div key={index} className={"h-screen"}>
+                        <Image src={image} alt={image.name}/>
+                    </div>
+                ))}
+            </Carousel>
+        </div>
     )
 }
+
+LocalCarousel.propTypes = {
+    ImagesArray: PropTypes.arrayOf(any)
+}
+
+LocalCarousel.defaultProps = {
+    ImagesArray: []
+}
+
+export default LocalCarousel;

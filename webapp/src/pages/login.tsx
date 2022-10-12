@@ -9,12 +9,6 @@ import LocalCarousel from "@app/components/ui/carousel";
 export default function Login(props: any) {
     const {t} = useTranslation();
 
-    const renderCarousel = () => (
-        <div className="min-h-screen md:h-auto md:w-3/5">
-            {LocalCarousel([img1, img2, img3])}
-        </div>
-    );
-
     const renderLoginForm = () => (
         <div className="flex items-center justify-center p-6 sm:p-12 md:w-1/2">
             <div className="w-full">
@@ -76,7 +70,7 @@ export default function Login(props: any) {
         <div className="flex items-center min-h-screen bg-gray-50">
             <div className="flex-1 min-h-screen min-w-screen bg-white rounded-lg shadow-xl">
                 <div className="flex flex-col min-h-screen md:flex-row">
-                    {renderCarousel()}
+                    <LocalCarousel ImagesArray={[img1,img2,img3]}/>
                     {renderLoginForm()}
                 </div>
             </div>
