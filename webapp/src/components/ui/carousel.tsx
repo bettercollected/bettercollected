@@ -6,16 +6,16 @@
  * Organization: Sireto Technology
  */
 
-import { Carousel } from 'react-responsive-carousel';
+import {Carousel} from 'react-responsive-carousel';
 
-export default function LocalCarousel(ImagesArray:Array<any>){
-    return(
+export default function LocalCarousel(ImagesArray: Array<any>) {
+    return (
         <Carousel autoPlay={true} showThumbs={false} interval={2000}>
-            {ImagesArray.map((image,index) => (
+            {ImagesArray.map((image, index) => (
                 <div key={index} className={"h-screen"}>
-                <img src={image.src} alt={image.name}/>
+                    <img src={image.src} alt={image.name}/>
                 </div>
-                ))}
+            ))}
         </Carousel>
     )
 }
