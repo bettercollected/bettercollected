@@ -3,7 +3,7 @@ import createEmotionCache from "@app/configs/createEmotionCache";
 import {ThemeProvider} from "next-themes";
 import {CacheProvider} from '@emotion/react';
 import MuiThemeProvider from "@app/layouts/_mui-theme-provider";
-import {GlobalStyles} from "@mui/material";
+import {GlobalStyles, StyledEngineProvider} from "@mui/material";
 import {globalStyles} from "@app/configs/muiTheme";
 import { NextSeo } from 'next-seo';
 
@@ -27,6 +27,7 @@ function MyApp({Component, pageProps}: AppProps) {
     let imageUrl = globalConstants.socialPreview.image;
 
     return (
+        <StyledEngineProvider injectFirst>
         <ThemeProvider attribute={"class"} enableSystem={false} defaultTheme={"light"}>
             <CacheProvider value={clientSideEmotionCache}>
                 <MuiThemeProvider>
@@ -62,6 +63,7 @@ function MyApp({Component, pageProps}: AppProps) {
                 </MuiThemeProvider>
             </CacheProvider>
         </ThemeProvider>
+        </StyledEngineProvider>
     )
 }
 

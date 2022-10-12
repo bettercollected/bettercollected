@@ -1,4 +1,12 @@
 @tailwind base;
+
+@layer base{
+  :hover {
+    border-width: 0;
+    border-style: solid;
+    border-color: #4441d6;
+  }
+}
 @tailwind components;
 @tailwind utilities;
 
