@@ -1,4 +1,7 @@
 {
   "EMAIL": "Email",
-  "EMAIL_ADDRESS": "E-mailadres"
+  "EMAIL_ADDRESS": "E-mailadres",
+  "LOGIN": "Inloggen",
+  "LOGIN_TITLE_SLOGAN": "Maak deel uit van de grotere gemeenschap door je aan te melden.",
+  "OR": "Of"
 }

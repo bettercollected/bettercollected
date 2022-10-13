@@ -1,4 +1,7 @@
 {
   "EMAIL": "Email",
-  "EMAIL_ADDRESS": "Email Address"
+  "EMAIL_ADDRESS": "Email Address",
+  "LOGIN": "Login",
+  "LOGIN_TITLE_SLOGAN": "Be a part of the greater community by signing in.",
+  "OR": "Or"
 }
