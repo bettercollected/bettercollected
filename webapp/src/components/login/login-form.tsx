@@ -90,7 +90,9 @@ export default function LoginForm() {
       <div className="w-full">
         {renderHeader()}
         <div className={"mb-6"}>
-          <div className={"font-semibold text-2xl"}>{t("LOGIN")}</div>
+          <div className={"font-normal text-2xl"}>
+            {t("LOGIN").toUpperCase()}
+          </div>
           <p className={"text-gray-500"}>{t("LOGIN_TITLE_SLOGAN")}</p>
         </div>
 
