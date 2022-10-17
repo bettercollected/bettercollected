@@ -1,5 +1,8 @@
 import HeadingRenderer from "@app/components/ui/HeadingRenderer";
 import { useTranslation } from "next-i18next";
+import FormRenderer from "@app/components/ui/FormRenderer";
+import { useState } from "react";
+import FormInput from "@app/components/ui/FormInput";
 
 /**
  * Created By: Rupan Chaulagain
@@ -11,6 +14,23 @@ import { useTranslation } from "next-i18next";
 
 export default function ContactUs() {
   const { t } = useTranslation();
+
+  const [formFields, setFormFields] = useState({
+    fullname: "",
+    email: "",
+    message: "",
+  });
+
+  //TODO api call
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    console.log("submit:", formFields);
+  };
+
+  const handleAllFieldChanges = (id: string, value: any) => {
+    setFormFields({ ...formFields, [id]: value });
+  };
+
   return (
     <>
       <HeadingRenderer description={t("CONTACT_US_DESCRIPTION")}>
@@ -25,59 +45,36 @@ export default function ContactUs() {
               alt="img"
             />
           </div>
-          <div className={"flex justify-center p-6"}>
-            <form>
-              <div className={"mb-4"}>
-                <div className={"flex flex-col mb-3"}>
-                  <label
-                    className={"block text-gray-700 text-sm font-normal mb-2"}
-                    htmlFor={"fullname"}
-                  >
-                    Your Name
-                  </label>
-                  <input
-                    className="border text-gray-900 text-sm rounded-lg w-full p-2.5"
-                    id={"fullname"}
-                    type="text"
-                    placeholder="Your full name"
-                  />
-                </div>
 
-                <div className={"flex flex-col mb-3"}>
-                  <label
-                    className={"block text-gray-700 text-sm font-normal mb-2"}
-                    htmlFor={"email"}
-                  >
-                    Email address
-                  </label>
-                  <input
-                    className="border text-gray-900 text-sm rounded-lg w-full p-2.5"
-                    id={"email"}
-                    type="text"
-                    placeholder="Enter your email"
-                  />
-                </div>
-                <div className={"flex flex-col mb-3"}>
-                  <label
-                    className={"block text-gray-700 text-sm font-normal mb-2"}
-                    htmlFor={"message"}
-                  >
-                    Message
-                  </label>
-                  <textarea
-                    id={"message"}
-                    className="resize rounded-md border"
-                  ></textarea>
-                </div>
-                <button
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                  type="submit"
-                >
-                  Send Message
-                </button>
-              </div>
-            </form>
-          </div>
+          <FormRenderer handleSubmit={handleSubmit}>
+            <FormInput
+              label={"Your Name"}
+              placeholder={"Your full name"}
+              id={"fullname"}
+              handleChange={handleAllFieldChanges}
+            />
+            <FormInput
+              label={"Email Address"}
+              placeholder={"Enter your email address"}
+              id={"email"}
+              handleChange={handleAllFieldChanges}
+            />
+            <div className={"flex flex-col mb-3"}>
+              <label
+                className={"block text-gray-700 text-sm font-normal mb-2"}
+                htmlFor={"message"}
+              >
+                Message
+              </label>
+              <textarea
+                id={"message"}
+                className="resize rounded-md border"
+                onChange={(e) =>
+                  handleAllFieldChanges(e.currentTarget.id, e.target.value)
+                }
+              ></textarea>
+            </div>
+          </FormRenderer>
         </div>
       </div>
     </>
