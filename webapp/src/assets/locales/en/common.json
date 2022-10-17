@@ -1,8 +1,11 @@
 {
+  "EARLY_ACCESS": "Get early access!",
   "EMAIL": "Email",
   "EMAIL_ADDRESS": "Email Address",
   "LOGIN": "Login",
   "LOGIN_TITLE_SLOGAN": "Be a part of the greater community by signing in.",
   "OR": "Or",
-  "SLOGAN": "Better collected is a platform that enables form creators to open a portal for their form submitters to see their collected data and let them exercise their data rights."
+  "SLOGAN": "Better collected enables form creators to open a portal for their form submitters to see their collected data and let them exercise their data rights.",
+  "JOIN_WAITLIST": "Join Waitlist",
+  "CONTACT_US_DESCRIPTION": "Any questions or Remarks? Just write us a message!"
 }

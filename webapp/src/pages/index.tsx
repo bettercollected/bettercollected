@@ -2,13 +2,19 @@ import type { NextPage } from "next";
 import Navbar from "@app/components/landingpage/Navbar";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import Banner from "@app/components/landingpage/Banner";
+import Features from "@app/components/landingpage/Features";
+import WaitlistForm from "@app/components/landingpage/WaitlistForm";
+import ContactUs from "@app/components/landingpage/ContactUs";
 
 const Home: NextPage = () => {
   return (
     <>
-      <div>
-        <Navbar />
+      <Navbar />
+      <div className={"p-48 pt-5 mb-40"}>
         <Banner />
+        <WaitlistForm />
+        <Features />
+        <ContactUs />
       </div>
     </>
   );

@@ -6,37 +6,37 @@
  * Organization: Sireto Technology
  */
 
-import {PaletteOptions, createTheme, css} from '@mui/material/styles';
+import { PaletteOptions, createTheme, css } from "@mui/material/styles";
 
-export type AllowedTheme = NonNullable<PaletteOptions['mode']>;
+export type AllowedTheme = NonNullable<PaletteOptions["mode"]>;
 
 export const lightTheme = createTheme({
-    palette: {
-        primary: {main: '#ffa500'},
-        secondary: {main: '#f04444'},
-        mode: 'light'
-    }
+  palette: {
+    primary: { main: "#007AFF" },
+    secondary: { main: "#f04444" },
+    mode: "light",
+  },
 });
 
 export const darkTheme = createTheme({
-    palette: {
-        primary: { main: '#ffa500' },
-        secondary: { main: '#f04444' },
-        mode: 'dark'
-    }
+  palette: {
+    primary: { main: "#ffa500" },
+    secondary: { main: "#f04444" },
+    mode: "dark",
+  },
 });
 
 export const globalStyles = css`
-    :root {
-        body {
-            background-color: #fff;
-            color: #121212;
-        }
+  :root {
+    body {
+      background-color: #fff;
+      color: #121212;
     }
-    [data-theme='dark'] {
-        body {
-            background-color: #121212;
-            color: #fff;
-        }
+  }
+  [data-theme="dark"] {
+    body {
+      background-color: #121212;
+      color: #fff;
     }
+  }
 `;

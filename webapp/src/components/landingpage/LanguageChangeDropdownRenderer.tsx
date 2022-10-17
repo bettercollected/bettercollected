@@ -3,6 +3,7 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import Box from "@mui/material/Box";
 
 /**
  * Created By: Rupan Chaulagain
@@ -26,17 +27,21 @@ export default function LanguageChangeDropdownRenderer() {
   };
 
   return (
-    <FormControl>
-      <Select
-        value={language}
-        onChange={(event) => handleLanguageChange(event.target.value as string)}
-      >
-        {router.locales?.map((locale) => (
-          <MenuItem key={locale} value={locale.toLowerCase()}>
-            {locale.toUpperCase()}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
+    <Box>
+      <FormControl>
+        <Select
+          value={language}
+          onChange={(event) =>
+            handleLanguageChange(event.target.value as string)
+          }
+        >
+          {router.locales?.map((locale) => (
+            <MenuItem key={locale} value={locale.toLowerCase()}>
+              {locale.toUpperCase()}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    </Box>
   );
 }
