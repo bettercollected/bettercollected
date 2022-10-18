@@ -34,7 +34,7 @@ export default function ContactUs() {
   return (
     <>
       <HeadingRenderer description={t("CONTACT_US_DESCRIPTION")}>
-        Contact Us
+        {t('CONTACT_US')}
       </HeadingRenderer>
       <div className={"flex mx-auto rounded-md shadow-md"}>
         <div className={"flex flex-col md:flex-row"}>

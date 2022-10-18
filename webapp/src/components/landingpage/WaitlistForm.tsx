@@ -13,9 +13,12 @@ import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import FormRenderer from "@app/components/ui/FormRenderer";
 import FormInput from "@app/components/ui/FormInput";
+import DialogRenderer from "@app/components/ui/DialogRenderer";
 
 export default function WaitlistForm() {
   const { t } = useTranslation();
+
+  const [openDialog, setOpenDialog] = useState(false);
 
   const [formFields, setFormFields] = useState({
     firstname: "",
@@ -23,11 +26,28 @@ export default function WaitlistForm() {
     email: "",
   });
 
-  //TODO api call
-  const handleSubmit = (e: any) => {
+  const handleSubmit = async (e:any) => {
     e.preventDefault();
-    console.log("submit:", formFields);
-  };
+    const bodyContent = {
+      "first_name": formFields.firstname,
+      "last_name": formFields.lastname,
+      "email": formFields.email
+    }
+
+    try {
+      const res = await fetch(`http://localhost:8000/users/waitlist`, {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bodyContent),
+      });
+      setOpenDialog(true)
+    }catch (e:any) {
+      alert("Something went wrong!")
+    }
+  }
 
   const handleAllFieldChanges = (id: string, value: any) => {
     setFormFields({ ...formFields, [id]: value });
@@ -49,8 +69,11 @@ export default function WaitlistForm() {
     </>
   );
 
+  const closeDialog = () => setOpenDialog(false);
+
   return (
     <div id={"waitlist"}>
+      {openDialog && <DialogRenderer title={"Confirmation"} description={"Message is sent successfully"} handleClose={closeDialog}/>}
       <LandingPageContainer>
         <div>
           <Image src={BannerImage} alt={"Forms"} />

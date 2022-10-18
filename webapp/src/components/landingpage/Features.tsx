@@ -5,7 +5,6 @@
  * Project: formintegratorwebapp
  * Organization: Sireto Technology
  */
-import LandingPageContainer from "@app/containers/landingpage/LandingPageContainer";
 import Image from "next/image";
 import cardImage from "@app/assets/card.svg";
 import FeaturesContainer from "@app/containers/landingpage/FeaturesContainer";

@@ -10,8 +10,10 @@ const Home: NextPage = () => {
   return (
     <>
       <Navbar />
-      <div className={"p-48 pt-5 mb-40"}>
+      <div className={"min-h-screen box-border p-48 pb-0 pt-5"}>
         <Banner />
+      </div>
+      <div className={"p-48 pt-5 mb-40"}>
         <WaitlistForm />
         <Features />
         <ContactUs />
