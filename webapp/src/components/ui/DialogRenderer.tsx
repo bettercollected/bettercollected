@@ -23,7 +23,7 @@ export default function DialogRenderer(props:any) {
             aria-describedby="alert-dialog-description"
         >
             <DialogTitle id="alert-dialog-title" className={"flex justify-between items-center"}>
-                <h2>{title}</h2>
+                {title}
                 <CloseOutlinedIcon onClick={handleClose} className={"cursor-pointer text-gray-500"}/>
             </DialogTitle>
             <DialogContent>
