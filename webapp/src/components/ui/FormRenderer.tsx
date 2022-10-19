@@ -6,6 +6,7 @@
  * Organization: Sireto Technology
  */
 import {useTranslation} from "next-i18next";
+import ButtonRenderer from "@app/components/ui/ButtonRenderer";
 
 export default function FormRenderer(props: any) {
     const {t} = useTranslation();
@@ -13,13 +14,7 @@ export default function FormRenderer(props: any) {
     return (
         <form className={"rounded-md mb-4 p-6"} onSubmit={handleSubmit}>
             {props.children}
-            <button
-                disabled={shouldButtonDisable}
-                className="bg-[#007AFF] hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                type="submit"
-            >
-                {t("SUBMIT")}
-            </button>
+            <ButtonRenderer disabled={shouldButtonDisable}>{t('SUBMIT')}</ButtonRenderer>
         </form>
     );
 }
