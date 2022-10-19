@@ -10,10 +10,11 @@ import cardImage from "@app/assets/card.svg";
 import FeaturesContainer from "@app/containers/landingpage/FeaturesContainer";
 import HeadingRenderer from "@app/components/ui/HeadingRenderer";
 import diagram from '@app/assets/Diagram.svg';
+import LandingPageSectionContainer from "@app/components/landingpage/LandingPageSectionContainer";
 
 export default function Features() {
     return (
-        <>
+        <div className={"w-[1350px] m-auto flex flex-col"} id={"features"}>
             <HeadingRenderer>Features</HeadingRenderer>
             <div className={"flex justify-center items-center"}>
                 <Image src={diagram} width={"700"} height={"700"}/>
@@ -94,6 +95,6 @@ export default function Features() {
                     </p>
                 </div>
             </FeaturesContainer>
-        </>
+        </div>
     );
 }

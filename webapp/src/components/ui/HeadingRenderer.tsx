@@ -9,17 +9,15 @@
 export default function HeadingRenderer(props: any) {
   return (
     <>
-      <div
-        className={`text-[#007AFF] text-4xl font-bold text-center ${
-          !!props.description ? "mb-1" : "mb-1"
-        }`}
+      <h2
+        className={`text-[#007AFF] text-4xl font-bold text-center mb-1`}
       >
         {props.children}
-      </div>
+      </h2>
       {!!props.description ? (
-        <div className={"text-gray-500 font-normal text-xl text-center mb-20"}>
+        <p className={"text-gray-500 font-normal text-xl text-center mb-16"}>
           {props.description}
-        </div>
+        </p>
       ) : null}
     </>
   );

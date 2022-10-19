@@ -1,17 +1,15 @@
 import HeadingRenderer from "@app/components/ui/HeadingRenderer";
 import PaymentCardRenderer from "@app/components/landingpage/PaymentCardRenderer";
 import {useTranslation} from "next-i18next";
+import LandingPageSectionContainer from "@app/components/landingpage/LandingPageSectionContainer";
 
 const basicFeatures = ["Individual configuration","No setup, or hidden fees","Team size: 1 developer", "Basic support: 6 months","Free updates: 6 months"];
 const proFeatures = ["Individual configuration","No setup, or hidden fees","Team size: 3 developer", "Basic support: 12 months","Free updates: Forever"];
 const ultroProFeatures = ["Individual configuration","No setup, or hidden fees","Team size: 5 developer", "Basic support: Forever","Free updates: Forever   "];
 
 export default function Payment() {
-    const {t} = useTranslation();
-    const arrayTemp = t("CONTACT_US")
-    console.log(arrayTemp)
     return (
-        <div className="py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-6">
+        <LandingPageSectionContainer sectionId={"payment"}>
             <HeadingRenderer
                 description={"Here at Flowbite we focus on markets where technology, innovation, and capital can unlock long-term value and drive economic growth."}>
                 Ready to get started?
@@ -35,6 +33,6 @@ export default function Payment() {
                                      amount={"$7"}
                                      plan={"yearly"}/>
             </div>
-        </div>
+        </LandingPageSectionContainer>
     );
 }

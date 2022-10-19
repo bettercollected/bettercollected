@@ -14,11 +14,9 @@ const Home: NextPage = () => {
             <Navbar/>
             <Banner/>
             <WaitlistForm/>
-            <div className={"p-48 pt-5"}>
-                <Features/>
-                <TimelineContainer/>
-                <Payment/>
-            </div>
+            <Features/>
+            <TimelineContainer/>
+            <Payment/>
             <ContactUs/>
         </>
     );

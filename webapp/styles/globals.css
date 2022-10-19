@@ -27,6 +27,10 @@ a {
   box-sizing: border-box;
 }
 
+.landing-section-container{
+  min-height: calc(100vh - 70px);
+}
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;

@@ -19,11 +19,12 @@ import CodeOutlinedIcon from '@mui/icons-material/CodeOutlined';
 import DnsOutlinedIcon from '@mui/icons-material/DnsOutlined';
 
 import {Typography} from "@mui/material";
+import LandingPageSectionContainer from "@app/components/landingpage/LandingPageSectionContainer";
 
 
 export default function TimelineContainer() {
     return (
-        <div className={"mb-6"}>
+        <LandingPageSectionContainer sectionId={"timeline"}>
             <HeadingRenderer>Timeline</HeadingRenderer>
             <Timeline position={"alternate"}>
                 <TimelineItemRenderer time={"2022-07-01"} title={"Setup Project"}
@@ -35,7 +36,7 @@ export default function TimelineContainer() {
                                       description={"Endpoint for the waitlist"}
                                       icon={<DnsOutlinedIcon className={"text-green"}/>}/>
             </Timeline>
-        </div>
+        </LandingPageSectionContainer>
     )
 }
 

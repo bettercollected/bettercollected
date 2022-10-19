@@ -5,6 +5,7 @@ import {useState} from "react";
 import FormInput from "@app/components/ui/FormInput";
 import ContactImage from '@app/assets/contact_us.svg';
 import Image from 'next/image';
+import LandingPageSectionContainer from "@app/components/landingpage/LandingPageSectionContainer";
 
 /**
  * Created By: Rupan Chaulagain
@@ -34,7 +35,7 @@ export default function ContactUs() {
     };
 
     return (
-        <div className={"m-2 p-52 pb-5 pt-5 mb-3"}>
+        <LandingPageSectionContainer sectionId={"contact"}>
             <HeadingRenderer description={t("CONTACT_US_DESCRIPTION")}>
                 {t('CONTACT_US')}
             </HeadingRenderer>
@@ -44,8 +45,8 @@ export default function ContactUs() {
                 </div>
 
                 <div className={"flex-shrink-0 flex-grow-0 basis-[50%]"}>
-                    <h2 className={"text-roboto text-3xl text-center"}>Enter your information</h2>
-                    <FormRenderer handleSubmit={handleSubmit}>
+                    <FormRenderer handleSubmit={handleSubmit} >
+                        <h2 className={"text-roboto text-3xl text-center"}>Enter your information</h2>
                         <FormInput
                             label={"Your Name"}
                             placeholder={"Your full name"}
@@ -76,6 +77,6 @@ export default function ContactUs() {
                     </FormRenderer>
                 </div>
             </div>
-        </div>
+        </LandingPageSectionContainer>
     );
 }
