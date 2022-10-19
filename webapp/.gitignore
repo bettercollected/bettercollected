@@ -11,6 +11,12 @@
 # next.js
 /.next/
 /out/
+/public/background-1.png
+/public/background-2.png
+/public/background-3.png
+/public/background-4.png
+/public/background-5.png
+/public/background-6.png
 
 # production
 /build

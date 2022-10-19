@@ -16,7 +16,7 @@ export default function ButtonRenderer(props: any) {
             }
             onClick={onClick}
         >
-            {props.children}
+            <span className={"z-2"}>{props.children}</span>
         </button>
     );
 }

@@ -21,17 +21,17 @@ export default function Banner() {
     const router = useRouter();
 
     return (
-        <div className={"bg-[#f5faff]"}>
+        <div className={"bg-[url('/background-7.svg')] bg-no-repeat bg-cover"}>
             <LandingPageSectionContainer sectionId={"banner"}>
                 <FlexRowContainer>
                     <div className={"w-1/2 pt-16"}>
-                        <div className={"font-semibold text-6xl font-roboto mb-3"}>
-                            Work with your favorite form builders.
+                        <div className={"font-bold text-7xl font-roboto mb-3"}>
+                            {t('SLOGAN_TITLE')}
                         </div>
                         <div className={" font-roboto font-display text-gray-400 text-2xl mb-6"}>
-                            {t("SLOGAN")}
+                            {t("SLOGAN_DESCRIPTION")}
                         </div>
-                        <ButtonRenderer onClick={() => router.push("#waitlist")}>
+                        <ButtonRenderer buttonId={"button-wait-list"} onClick={() => router.push("#waitlist")}>
                             <p>{t("JOIN_WAITLIST")}</p>
                         </ButtonRenderer>
                     </div>

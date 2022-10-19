@@ -80,7 +80,6 @@ export default function WaitlistForm() {
     }
 
     return (
-
         <LandingPageSectionContainer sectionId={"waitlist"}>
             {openDialog && <DialogRenderer title={"Confirmation"} description={"Message is sent successfully"}
                                            handleClose={closeDialog}/>}

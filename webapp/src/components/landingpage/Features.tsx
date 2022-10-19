@@ -19,14 +19,14 @@ export default function Features() {
             <div className={"flex justify-center items-center"}>
                 <Image src={diagram} width={"700"} height={"700"}/>
             </div>
-            <FeaturesContainer>
+            <FeaturesContainer backgroundColor={"#f5faff"}>
                 <div>
                     <Image
                         alt={"features"}
                         src={cardImage}
                         className={"md:h-auto object-cover md:w-48"}
-                        width={"400"}
-                        height={"300"}
+                        width={"200"}
+                        height={"200"}
                     />
                 </div>
                 <div className="ml-6 mr-6 flex flex-col">
@@ -40,14 +40,14 @@ export default function Features() {
                 </div>
             </FeaturesContainer>
 
-            <FeaturesContainer invert={true}>
+            <FeaturesContainer backgroundColor={"#f6fef9"} invert={true}>
                 <div>
                     <Image
                         alt={"features"}
                         src={cardImage}
                         className={"md:h-auto object-cover md:w-48"}
-                        width={"400"}
-                        height={"300"}
+                        width={"200"}
+                        height={"200"}
                     />
                 </div>
                 <div className="ml-6 mr-6 flex flex-col">
@@ -59,14 +59,14 @@ export default function Features() {
                 </div>
             </FeaturesContainer>
 
-            <FeaturesContainer invert={false}>
+            <FeaturesContainer backgroundColor={"#f5fecd"} invert={false}>
                 <div>
                     <Image
                         alt={"features"}
                         src={cardImage}
                         className={"md:h-auto object-cover md:w-48"}
-                        width={"400"}
-                        height={"300"}
+                        width={"200"}
+                        height={"200"}
                     />
                 </div>
                 <div className="ml-6 mr-6 flex flex-col">
@@ -77,14 +77,14 @@ export default function Features() {
                     </p>
                 </div>
             </FeaturesContainer>
-            <FeaturesContainer invert={true}>
+            <FeaturesContainer backgroundColor={"#fff6f5"} invert={true}>
                 <div>
                     <Image
                         alt={"features"}
                         src={cardImage}
                         className={"md:h-auto object-cover md:w-48"}
-                        width={"400"}
-                        height={"300"}
+                        width={"200"}
+                        height={"200"}
                     />
                 </div>
                 <div className="ml-6 mr-6 flex flex-col">

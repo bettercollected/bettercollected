@@ -15,7 +15,7 @@ const Home: NextPage = () => {
             <Banner/>
             <WaitlistForm/>
             <Features/>
-            <TimelineContainer/>
+            {/*<TimelineContainer/>*/}
             <Payment/>
             <ContactUs/>
         </>

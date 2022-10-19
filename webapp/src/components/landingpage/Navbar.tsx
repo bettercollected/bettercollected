@@ -18,8 +18,9 @@ import {useRouter} from "next/router";
 export default function Navbar() {
     const {t} = useTranslation();
     const router = useRouter();
+    // bg-[#f5faff]
     return (
-        <div className={"sticky top-0 z-50 h-[70px] bg-[#f5faff]"}>
+        <div className={"sticky top-0 z-50 h-[70px]"}>
             <div className={"p-2 pl-20 pr-20 flex justify-between"}>
                 <div className={"flex items-center"}>
                     <div className={"font-bold text-2xl font-roboto tracking-widest"}>
