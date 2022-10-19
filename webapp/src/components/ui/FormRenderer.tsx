@@ -11,7 +11,7 @@ export default function FormRenderer(props: any) {
     const {t} = useTranslation();
     const {handleSubmit, shouldButtonDisable} = props;
     return (
-        <form className={"rounded-md mb-4 p-6"} onSubmit={handleSubmit}>
+        <form className={"rounded-md mb-4 p-6 w-full"} onSubmit={handleSubmit}>
             {props.children}
             <button
                 disabled={shouldButtonDisable}
