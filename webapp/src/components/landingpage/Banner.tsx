@@ -4,6 +4,7 @@ import Image from "next/image";
 import BannerImage from "@app/assets/BannerImage.svg";
 import LandingPageContainer from "@app/containers/landingpage/LandingPageContainer";
 import ButtonRenderer from "@app/components/ui/ButtonRenderer";
+import {useRouter} from "next/router";
 
 /**
  * Created By: Rupan Chaulagain
@@ -16,23 +17,25 @@ import ButtonRenderer from "@app/components/ui/ButtonRenderer";
 export default function Banner() {
     const {t} = useTranslation();
 
+    const router = useRouter();
+
     return (
-        <div className={"bg-[#F5F2FD]"}>
+        <div className={"bg-[#f5faff]"}>
             <div className={"min-h-screen box-border p-52 pb-0 pt-5"}>
                 <LandingPageContainer>
                     <div className={"w-1/2 pt-40"}>
-                        <div className={"font-semibold text-7xl font-roboto mb-3"}>
+                        <div className={"font-semibold text-6xl font-roboto mb-3"}>
                             Work with your favorite form builders.
                         </div>
                         <div
                             className={
-                                "font-medium font-roboto font-display text-gray-400 text-2xl mb-3"
+                                " font-roboto font-display text-gray-400 text-2xl mb-6"
                             }
                         >
                             {t("SLOGAN")}
                         </div>
-                        <ButtonRenderer>
-                            <a href={"#waitlist"}>{t("JOIN_WAITLIST")}</a>
+                        <ButtonRenderer onClick={() => router.push("#waitlist")}>
+                            <p>{t("JOIN_WAITLIST")}</p>
                         </ButtonRenderer>
                     </div>
                     <div>

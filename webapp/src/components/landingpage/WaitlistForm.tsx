@@ -55,12 +55,12 @@ export default function WaitlistForm() {
 
     const renderFormDescription = () => (
         <>
-            <div className={"font-semibold text-2xl text-blue-500 mb-3"}>
+            <div className={"font-semibold text-3xl text-blue-500 mb-2"}>
                 Get early access!
             </div>
             <div
                 className={
-                    "font-medium font-roboto font-display text-gray-400 text-xl mb-3"
+                    "font-medium font-roboto font-display text-gray-400 text-xl mb-5"
                 }
             >
                 Be one of the first to create a profile and claim a basic plan for{" "}
@@ -77,7 +77,8 @@ export default function WaitlistForm() {
     }
 
     return (
-        <div id={"waitlist"}>
+
+        <div id={"waitlist"} className={"m-2 p-52 pb-5 pt-5 mb-3"}>
             {openDialog && <DialogRenderer title={"Confirmation"} description={"Message is sent successfully"}
                                            handleClose={closeDialog}/>}
             <LandingPageContainer>

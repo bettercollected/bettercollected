@@ -13,8 +13,8 @@ const Home: NextPage = () => {
         <>
             <Navbar/>
             <Banner/>
+            <WaitlistForm/>
             <div className={"p-48 pt-5 mb-40"}>
-                <WaitlistForm/>
                 <Features/>
                 <TimelineContainer/>
                 <Payment/>

@@ -5,6 +5,7 @@ import {useTranslation} from "next-i18next";
 import LanguageChangeDropdownRenderer from "@app/components/landingpage/LanguageChangeDropdownRenderer";
 import ThemeSwitcher from "@app/components/settings/theme-switcher";
 import ButtonRenderer from "@app/components/ui/ButtonRenderer";
+import {useRouter} from "next/router";
 
 /**
  * Created By: Rupan Chaulagain
@@ -16,8 +17,9 @@ import ButtonRenderer from "@app/components/ui/ButtonRenderer";
 
 export default function Navbar() {
     const {t} = useTranslation();
+    const router = useRouter();
     return (
-        <div className={"sticky top-0 z-50 bg-[#F5F2FD]"}>
+        <div className={"sticky top-0 z-50 bg-[#f5faff]"}>
             <div className={"p-2 pl-20 pr-20 flex justify-between"}>
                 <div className={"flex items-center"}>
                     <div className={"font-bold text-2xl font-roboto tracking-widest"}>
@@ -27,8 +29,8 @@ export default function Navbar() {
                 <div className={"flex items-center gap-6"}>
                     <LanguageChangeDropdownRenderer/>
                     {/*<ThemeSwitcher />*/}
-                    <ButtonRenderer>
-                        <a href={"#waitlist"}>{t("JOIN_WAITLIST")}</a>
+                    <ButtonRenderer onClick={() => router.push("#waitlist")}>
+                        <p>{t("JOIN_WAITLIST")}</p>
                     </ButtonRenderer>
                 </div>
             </div>

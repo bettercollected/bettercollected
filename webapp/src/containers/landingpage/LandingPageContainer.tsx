@@ -11,7 +11,7 @@ export default function LandingPageContainer(props: any) {
   return (
     <div className={"mb-24"}>
       {!!props.title ? <HeadingRenderer>{props.title}</HeadingRenderer> : null}
-      <div className={"flex justify-between"}>{props.children}</div>
+      <div className={"flex justify-between items-center"}>{props.children}</div>
     </div>
   );
 }

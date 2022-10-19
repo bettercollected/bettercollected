@@ -11,7 +11,7 @@ export default function HeadingRenderer(props: any) {
     <>
       <div
         className={`text-[#007AFF] text-4xl font-bold text-center ${
-          !!props.description ? "mb-1" : "mb-20"
+          !!props.description ? "mb-1" : "mb-1"
         }`}
       >
         {props.children}

@@ -11,7 +11,7 @@ export default function ButtonRenderer(props: any) {
     return (
         <button
             className={
-                "border-solid border-[1px] p-3 text-white rounded-md bg-[#006FE8]"
+                "border-solid border-[1px] p-3 pl-8 pr-8 text-white rounded-md bg-[#007AFF]"
             }
             onClick={onClick}
         >
