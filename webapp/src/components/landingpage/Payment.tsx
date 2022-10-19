@@ -1,20 +1,12 @@
-/**
- * Created By: Rupan Chaulagain
- * Date: 2022-10-18
- * Time: 13:14
- * Project: formintegratorwebapp
- * Organization: Sireto Technology
- */
+import HeadingRenderer from "@app/components/ui/HeadingRenderer";
 
 export default function Payment(){
     return(
         <div className="py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-6">
             {/* --------Header--------- */}
-            <div className="mx-auto max-w-screen-md text-center mb-8 lg:mb-12">
-                <h2 className="mb-4 text-4xl tracking-tight font-bold text-primary">Ready to get started?</h2>
-                <p className="mb-5 font-light text-gray sm:text-xl ">Here at Flowbite we focus on markets where
-                    technology, innovation, and capital can unlock long-term value and drive economic growth.</p>
-            </div>
+            <HeadingRenderer description={"Here at Flowbite we focus on markets where technology, innovation, and capital can unlock long-term value and drive economic growth."}>
+                Ready to get started?
+            </HeadingRenderer>
             {/* ---------Card container---------- */}
             <div className="space-y-8 lg:grid lg:grid-cols-3 sm:gap-6 xl:gap-10 lg:space-y-0">
                 {/* ------------------card 1----------------------- */}
@@ -90,8 +82,9 @@ export default function Payment(){
                             <span>Free updates: <span className="font-semibold">6 months</span></span>
                         </li>
                     </ul>
-
                 </div>
+
+
                 {/* ------------------card 2----------------------- */}
                 <div className="flex flex-col p-6 mx-auto max-w-lg text-start text-white bg-dark rounded-3xl shadow-lg">
                     <div className="flex justify-start item-baseline ">
@@ -240,8 +233,6 @@ export default function Payment(){
                         </li>
                     </ul>
                 </div>
-
-
             </div>
         </div>
     );
