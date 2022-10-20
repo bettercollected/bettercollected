@@ -8,6 +8,7 @@ import ContactUs from "@app/components/landingpage/ContactUs";
 import TimelineContainer from "@app/components/landingpage/TimelineContainer";
 import Payment from "@app/components/landingpage/Payment";
 import Head from "next/head";
+import Footer from "@app/components/landingpage/Footer";
 
 const Home: NextPage = () => {
     return (
@@ -17,11 +18,12 @@ const Home: NextPage = () => {
             </Head>
             <Navbar/>
             <Banner/>
-            <WaitlistForm/>
+            {/*<WaitlistForm/>*/}
             <Features/>
             {/*<TimelineContainer/>*/}
             <Payment/>
             <ContactUs/>
+            <Footer/>
         </>
     );
 };

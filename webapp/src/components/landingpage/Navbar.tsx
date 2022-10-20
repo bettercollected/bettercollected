@@ -18,7 +18,6 @@ import {useRouter} from "next/router";
 export default function Navbar() {
     const {t} = useTranslation();
     const router = useRouter();
-    // bg-[#f5faff]
     return (
         <div className={"sticky top-0 z-50 h-[70px]"}>
             <div className={"p-2 pl-20 pr-20 flex justify-between"}>
