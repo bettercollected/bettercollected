@@ -13,9 +13,6 @@ import Footer from "@app/components/landingpage/Footer";
 const Home: NextPage = () => {
     return (
         <>
-            <Head>
-                <title>BetterCollected|Landing</title>
-            </Head>
             <Navbar/>
             <Banner/>
             {/*<WaitlistForm/>*/}

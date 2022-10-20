@@ -9,7 +9,7 @@
 export default function LandingPageSectionContainer(props:any) {
     const {sectionId} = props;
     return (
-        <div id={sectionId} className={"landing-section-container h-screen w-[1350px] m-auto flex flex-col justify-center"}>
+        <div id={sectionId} className={"landing-section-container p-12 h-screen lg:w-[1350px] lg:m-auto flex flex-col justify-center"}>
             {props.children}
         </div>
     );

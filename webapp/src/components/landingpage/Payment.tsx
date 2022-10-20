@@ -5,7 +5,11 @@ import LandingPageSectionContainer from "@app/components/landingpage/LandingPage
 
 const basicFeatures = ["Individual configuration","No setup, or hidden fees","Team size: 1 developer", "Basic support: 6 months","Free updates: 6 months"];
 const proFeatures = ["Individual configuration","No setup, or hidden fees","Team size: 3 developer", "Basic support: 12 months","Free updates: Forever"];
-const ultroProFeatures = ["Individual configuration","No setup, or hidden fees","Team size: 5 developer", "Basic support: Forever","Free updates: Forever   "];
+const ultroProFeatures = ["Individual configuration","No setup, or hidden fees","Team size: 5 developer", "Basic support: Forever","Free updates: Forever"];
+
+enum plans {
+    BASIC,PRO,ULTRA_PRO
+}
 
 export default function Payment() {
     return (
@@ -14,16 +18,18 @@ export default function Payment() {
                 description={"Here at Flowbite we focus on markets where technology, innovation, and capital can unlock long-term value and drive economic growth."}>
                 Ready to get started?
             </HeadingRenderer>
-            <div className="space-y-8 lg:grid lg:grid-cols-3 sm:gap-6 xl:gap-10 lg:space-y-0">
+            <div className="lg:grid lg:grid-cols-3 sm:gap-6 xl:gap-10 lg:space-y-0">
                 <PaymentCardRenderer title={"Starter"}
                                      description={"Best option for personal use only"}
                                      amount={"$9"}
                                      features={basicFeatures}
+                                     type={plans.BASIC}
                                      buttonTitle={"Try 7 days for free"}
                                      plan={"monthly"}/>
                 <PaymentCardRenderer title={"Pro"}
                                      description={"Best option for personal use & for your next project."}
                                      amount={"$5"}
+                                     type={plans.PRO}
                                      plan={"monthly"}
                                      features={proFeatures}
                                      recommended={true}/>
@@ -31,6 +37,7 @@ export default function Payment() {
                                      description={"Best option for a professional"}
                                      features={ultroProFeatures}
                                      amount={"$7"}
+                                     type={plans.ULTRA_PRO}
                                      plan={"yearly"}/>
             </div>
         </LandingPageSectionContainer>

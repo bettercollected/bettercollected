@@ -21,14 +21,14 @@ export default function Banner() {
     const router = useRouter();
 
     return (
-        <div className={"bg-[url('/background-7.svg')] bg-no-repeat bg-center bg-cover"}>
+        <div className={"sm:bg-white lg:bg-[url('/background-7.svg')] lg:bg-no-repeat lg:bg-cover"}>
             <LandingPageSectionContainer sectionId={"banner"}>
                 <FlexRowContainer>
-                    <div className={"w-1/2 pt-16"}>
-                        <div className={"font-bold text-7xl font-roboto mb-3"}>
+                    <div className={"w-full md:w-full lg:w-1/2 pt-16"}>
+                        <div className={"font-bold text-4xl md:text-5xl lg:text-7xl font-roboto mb-3"}>
                             {t('SLOGAN_TITLE')}
                         </div>
-                        <div className={" font-roboto font-display text-gray-400 text-2xl mb-6"}>
+                        <div className={"font-roboto font-display text-gray-400 text-2xl mb-6"}>
                             {t("SLOGAN_DESCRIPTION")}
                         </div>
                         <ButtonRenderer buttonId={"button-wait-list"} onClick={() => router.push("#waitlist")}>

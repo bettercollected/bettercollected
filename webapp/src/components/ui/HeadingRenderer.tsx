@@ -10,7 +10,7 @@ export default function HeadingRenderer(props: any) {
   return (
     <>
       <h2
-        className={`text-[#007AFF] text-4xl font-bold text-center mb-1`}
+        className={`text-[#007AFF] text-4xl font-bold lg:text-center mb-1`}
       >
         {props.children}
       </h2>

@@ -20,7 +20,7 @@ export default function Navbar() {
     const router = useRouter();
     return (
         <div className={"sticky top-0 z-50 h-[70px]"}>
-            <div className={"p-2 pl-20 pr-20 flex justify-between"}>
+            <div className={"p-4 md:pl-20 md:pr-20 flex justify-between"}>
                 <div className={"flex items-center"}>
                     <div className={"font-bold text-2xl font-roboto tracking-widest"}>
                         Better<span className={"text-[#007AFF] tracking-widest"}>Collected.</span>
