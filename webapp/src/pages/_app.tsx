@@ -4,10 +4,11 @@ import {ThemeProvider} from "next-themes";
 import {CacheProvider, css} from "@emotion/react";
 import MuiThemeProvider from "@app/layouts/_mui-theme-provider";
 import {GlobalStyles, StyledEngineProvider} from "@mui/material";
-import {globalStyles} from "@app/configs/muiTheme";
 import {NextSeo} from "next-seo";
 
 import ReactGA from "react-ga4";
+import CookieConsent from "react-cookie-consent";
+
 
 import {appWithTranslation} from "next-i18next";
 
@@ -19,6 +20,7 @@ import environments from "@app/configs/environments";
 
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 import "../../styles/globals.css";
+import {useRouter} from "next/router";
 
 ReactGA.initialize(environments.GA_MEASUREMENT_ID);
 ReactGA.send("pageview");
@@ -31,8 +33,21 @@ function MyApp({Component, pageProps}: AppProps) {
     let url = globalConstants.socialPreview.url;
     let imageUrl = globalConstants.socialPreview.image;
 
+    const router = useRouter();
+
     return (
         <StyledEngineProvider injectFirst>
+            <CookieConsent
+                location="bottom"
+                buttonText="I understand"
+                cookieName="BetterCookie"
+                style={{background: "#007AFF"}}
+                buttonStyle={{color: "#4e503b", fontSize: "13px", borderRadius:"3px"}}
+                expires={150}
+            >
+                This website uses cookies to enhance the user experience.{" "}
+                <p className={"cursor-pointer mt-2 text-white hover:text-gray-300"} onClick={()=> router.push('https://www.termsfeed.com/blog/cookies/')}>What are cookies?</p>
+            </CookieConsent>
             <ThemeProvider
                 attribute={"class"}
                 enableSystem={false}
