@@ -7,10 +7,14 @@ import WaitlistForm from "@app/components/landingpage/WaitlistForm";
 import ContactUs from "@app/components/landingpage/ContactUs";
 import TimelineContainer from "@app/components/landingpage/TimelineContainer";
 import Payment from "@app/components/landingpage/Payment";
+import Head from "next/head";
 
 const Home: NextPage = () => {
     return (
         <>
+            <Head>
+                <title>BetterCollected|Landing</title>
+            </Head>
             <Navbar/>
             <Banner/>
             <WaitlistForm/>

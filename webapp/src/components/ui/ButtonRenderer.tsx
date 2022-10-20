@@ -12,7 +12,7 @@ export default function ButtonRenderer(props: any) {
         <button
             disabled={!!props.disabled}
             className={
-                "p-4 pl-8 pr-8 text-white rounded-md bg-[#007AFF]"
+                "p-4 pt-2 pb-2 text-white rounded-md bg-[#007AFF]"
             }
             onClick={onClick}
         >

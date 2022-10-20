@@ -23,6 +23,7 @@ const environments = {
   //build-time configs
   BASE_DEPLOY_PATH: process.env.BASE_DEPLOY_PATH ?? "",
   COMPANY_NAME: process.env.COMPANY_NAME ?? "Better Collected",
+  GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "",
   //internal configs
   IS_IN_PRODUCTION_MODE,
 };

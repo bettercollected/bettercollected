@@ -6,6 +6,7 @@ import LocalCarousel from "@app/components/ui/carousel";
 import LoginForm from "@app/components/login/login-form";
 import {useEffect} from "react";
 import {useRouter} from "next/router";
+import Head from "next/head";
 
 export default function LoginContainer(props: any) {
 
@@ -18,6 +19,9 @@ export default function LoginContainer(props: any) {
 
     return (
         <div className="flex items-center min-h-screen bg-gray-50">
+            <Head>
+                <title>Login</title>
+            </Head>
             <div className="flex-1 min-h-screen min-w-screen bg-white rounded-lg shadow-xl">
                 <div className="flex flex-col min-h-screen md:flex-row">
                     <LocalCarousel ImagesArray={[img1, img2, img3]}/>
