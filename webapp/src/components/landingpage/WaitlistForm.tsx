@@ -15,6 +15,7 @@ import FormRenderer from "@app/components/ui/FormRenderer";
 import FormInput from "@app/components/ui/FormInput";
 import DialogRenderer from "@app/components/ui/DialogRenderer";
 import LandingPageSectionContainer from "@app/components/landingpage/LandingPageSectionContainer";
+import HeadingRenderer from "@app/components/ui/HeadingRenderer";
 
 export default function WaitlistForm() {
     const {t} = useTranslation();
@@ -81,6 +82,7 @@ export default function WaitlistForm() {
 
     return (
         <LandingPageSectionContainer sectionId={"waitlist"}>
+            <HeadingRenderer>Waitlist</HeadingRenderer>
             {openDialog && <DialogRenderer title={"Confirmation"} description={"Message is sent successfully"}
                                            handleClose={closeDialog}/>}
             <FlexRowContainer>

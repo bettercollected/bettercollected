@@ -15,7 +15,7 @@ export default function FeaturesContainer(props: any) {
       <div
         className={`flex ${
           inverted ? "flex-row-reverse" : "flex-row"
-        } justify-between mb-24 p-8 shadow-md bg-[${props.backgroundColor}]`}
+        } justify-between mb-24 p-8 justify-between`}
       >
         {props.children}
       </div>

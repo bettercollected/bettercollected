@@ -3,7 +3,7 @@ import {useTranslation} from "next-i18next";
 import FormRenderer from "@app/components/ui/FormRenderer";
 import {useState} from "react";
 import FormInput from "@app/components/ui/FormInput";
-import ContactImage from '@app/assets/contact_us.svg';
+import ContactImage from '../../../public/contact_us.svg';
 import Image from 'next/image';
 import LandingPageSectionContainer from "@app/components/landingpage/LandingPageSectionContainer";
 
@@ -40,8 +40,8 @@ export default function ContactUs() {
                 {t('CONTACT_US')}
             </HeadingRenderer>
             <div className={"flex items-center shadow-md"}>
-                <div>
-                    <Image src={ContactImage} alt={"Contact us"}/>
+                <div className={"h-full w-full p-4 bg-[url('/contact_us.svg')] bg-no-repeat bg-center bg-cover"}>
+                    <h2 className={"text-white font-semibold text-2xl text-center"}>Leave us a message!</h2>
                 </div>
 
                 <div className={"flex-shrink-0 flex-grow-0 basis-[50%]"}>

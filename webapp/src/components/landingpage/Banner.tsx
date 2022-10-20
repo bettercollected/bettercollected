@@ -21,7 +21,7 @@ export default function Banner() {
     const router = useRouter();
 
     return (
-        <div className={"bg-[url('/background-7.svg')] bg-no-repeat bg-cover"}>
+        <div className={"bg-[url('/background-7.svg')] bg-no-repeat bg-center bg-cover"}>
             <LandingPageSectionContainer sectionId={"banner"}>
                 <FlexRowContainer>
                     <div className={"w-1/2 pt-16"}>
