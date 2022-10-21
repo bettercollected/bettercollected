@@ -15,7 +15,7 @@ export default function Payment() {
     return (
         <LandingPageSectionContainer sectionId={"payment"}>
             <HeadingRenderer
-                description={"Here at Flowbite we focus on markets where technology, innovation, and capital can unlock long-term value and drive economic growth."}>
+                description={"Here at Better collected, we focus on markets where technology, innovation, and capital can unlock long-term value and drive economic growth."}>
                 Ready to get started?
             </HeadingRenderer>
             <div className="lg:grid lg:grid-cols-3 sm:gap-6 xl:gap-10 lg:space-y-0">

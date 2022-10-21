@@ -19,17 +19,17 @@ export default function Navbar() {
     const {t} = useTranslation();
     const router = useRouter();
     return (
-        <div className={"sticky top-0 z-50 h-[70px]"}>
-            <div className={"p-4 md:pl-20 md:pr-20 flex justify-between"}>
+        <div className={"sticky bg-white shadow-md top-0 opacity-80 z-50 h-[70px]"}>
+            <div className={"p-4 md:pl-20 md:pr-20 flex items-center justify-between"}>
                 <div className={"flex items-center"}>
-                    <div className={"font-bold text-2xl font-roboto tracking-widest"}>
+                    <div className={"font-bold text-sm md:text-xl lg:text-2xl font-roboto tracking-widest"}>
                         Better<span className={"text-[#007AFF] tracking-widest"}>Collected.</span>
                     </div>
                 </div>
                 <div className={"flex items-center justify-between md:gap-6"}>
                     <LanguageChangeDropdownRenderer/>
                     {/*<ThemeSwitcher />*/}
-                    <ButtonRenderer onClick={() => router.push("#waitlist")}>
+                    <ButtonRenderer onClick={() => router.push("#banner")}>
                         <p>{t("JOIN_WAITLIST")}</p>
                     </ButtonRenderer>
                 </div>

@@ -15,7 +15,7 @@ export default function HeadingRenderer(props: any) {
         {props.children}
       </h2>
       {!!props.description ? (
-        <p className={"text-gray-500 font-normal text-xl text-center mb-16"}>
+        <p className={"text-gray-500 font-normal text-xl lg:text-center mb-16"}>
           {props.description}
         </p>
       ) : null}

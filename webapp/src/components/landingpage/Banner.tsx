@@ -37,7 +37,8 @@ export default function Banner() {
                             <p>{t("JOIN_WAITLIST")}</p>
                         </ButtonRenderer>
                     </div>
-                    {dimension.width <= 640 ? <></> : <div><Image src={BannerImage} className={"rounded-lg"} alt={"Forms"}/></div>}
+                    {/*{dimension.width <= 640 ? <></> : <div><Image src={BannerImage} className={"rounded-lg"} alt={"Forms"}/></div>}*/}
+                    <div><Image src={BannerImage} className={"rounded-lg"} alt={"Forms"}/></div>
                 </FlexRowContainer>
             </LandingPageSectionContainer>
         </div>

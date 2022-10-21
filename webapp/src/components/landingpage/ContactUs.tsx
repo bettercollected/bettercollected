@@ -6,6 +6,7 @@ import FormInput from "@app/components/ui/FormInput";
 import ContactImage from '../../../public/contact_us.svg';
 import Image from 'next/image';
 import LandingPageSectionContainer from "@app/components/landingpage/LandingPageSectionContainer";
+import useDimension from "@app/hooks/useDimension";
 
 /**
  * Created By: Rupan Chaulagain
@@ -18,11 +19,14 @@ import LandingPageSectionContainer from "@app/components/landingpage/LandingPage
 export default function ContactUs() {
     const {t} = useTranslation();
 
+    const dimensions = useDimension();
+
     const [formFields, setFormFields] = useState({
         fullname: "",
         email: "",
         message: "",
     });
+
 
     //TODO api call
     const handleSubmit = (e: any) => {
@@ -39,14 +43,15 @@ export default function ContactUs() {
             <HeadingRenderer description={t("CONTACT_US_DESCRIPTION")}>
                 {t('CONTACT_US')}
             </HeadingRenderer>
-            <div className={"flex items-center shadow-md"}>
-                <div className={"h-full w-full p-4 bg-[url('/contact_us.svg')] bg-no-repeat bg-center bg-cover"}>
-                    <h2 className={"text-white font-semibold text-2xl text-center"}>Leave us a message!</h2>
-                </div>
+            <div className={"lg:flex lg:items-center shadow-md"}>
+                {dimensions.width <= 1024 ? <></> :
+                    <div className={"h-full w-full p-4 bg-[url('/contact_us.svg')] bg-no-repeat bg-center bg-cover"}>
+                        <h2 className={"text-white font-semibold text-sm md:text-md lg:text-2xl text-center"}>Leave us a message!</h2>
+                    </div>}
 
-                <div className={"flex-shrink-0 flex-grow-0 basis-[50%]"}>
-                    <FormRenderer handleSubmit={handleSubmit} >
-                        <h2 className={"text-roboto text-3xl text-center"}>Enter your information</h2>
+                <div className={"m-auto lg:flex-shrink-0 lg:flex-grow-0 lg:basis-[50%]"}>
+                    <FormRenderer handleSubmit={handleSubmit}>
+                        <h2 className={"text-roboto font-semibold text-xl md:text-2xl lg:text-3xl text-center"}>Enter your information</h2>
                         <FormInput
                             label={"Your Name"}
                             placeholder={"Your full name"}

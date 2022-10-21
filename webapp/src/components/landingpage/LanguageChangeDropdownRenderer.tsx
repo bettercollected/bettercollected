@@ -29,7 +29,7 @@ export default function LanguageChangeDropdownRenderer() {
     return (
         <Box sx={{
             boxShadow: 'none',
-            '.MuiOutlinedInput-notchedOutline': {border: 0},
+            '.MuiOutlinedInput-notchedOutline': {border: 0, paddingTop:0, paddingBottom:0},
             '.Mui-focused': {border: 0},
             '& .Mui-focused .MuiOutlinedInput-notchedOutline': {
                 border: "0"

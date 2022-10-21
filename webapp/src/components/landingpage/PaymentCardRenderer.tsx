@@ -33,7 +33,7 @@ export default function PaymentCardRenderer(props:any) {
             <>
                 <div className="flex justify-between item-baseline ">
                     <span className={`text-3xl ${props.recommended? "text-[#007AFF]":""} font-semibold`}>{title}</span>
-                    {props.recommended && <span className={"p-2 border-1 rounded-full text-sm bg-[#007AFF] font-normal"}>Popular</span>}
+                    {/*{props.recommended && <span className={"p-2 border-1 rounded-full text-sm bg-[#007AFF] font-normal"}>Popular</span>}*/}
                 </div>
                 <p className={`font-light ${props.recommended? "text-white":"text-gray-500"} sm:text-md`}>{description}</p>
             </>
@@ -156,7 +156,7 @@ export default function PaymentCardRenderer(props:any) {
     }
 
     return (
-        <div className={`flex flex-col w-full p-6 mx-auto max-w-lg text-start ${props.recommended? "bg-[#333333] text-white":"bg-white text-dark"} rounded-3xl shadow-lg`}>
+        <div className={`flex flex-col w-full p-6 mx-auto m-4 max-w-lg text-start ${props.recommended? "bg-[#333333] text-white":"bg-white text-dark"} rounded-3xl shadow-lg`}>
             {/*{renderDialog && <PopupDialog/>}*/}
             <Dialog open={renderDialog} onClose={()=>setRenderDialog(false)}>
                 <DialogTitle>Personal Details</DialogTitle>

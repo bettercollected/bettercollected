@@ -12,7 +12,7 @@ export default function FormRenderer(props: any) {
     const {t} = useTranslation();
     const {handleSubmit, shouldButtonDisable} = props;
     return (
-        <form className={"p-6 pt-16"} onSubmit={handleSubmit}>
+        <form className={"p-4 lg:p-6 lg:pt-16"} onSubmit={handleSubmit}>
             {props.children}
             <ButtonRenderer disabled={shouldButtonDisable}>{t('SUBMIT')}</ButtonRenderer>
         </form>
