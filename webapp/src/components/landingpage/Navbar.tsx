@@ -26,7 +26,7 @@ export default function Navbar() {
                         Better<span className={"text-[#007AFF] tracking-widest"}>Collected.</span>
                     </div>
                 </div>
-                <div className={"flex items-center gap-6"}>
+                <div className={"flex items-center justify-between md:gap-6"}>
                     <LanguageChangeDropdownRenderer/>
                     {/*<ThemeSwitcher />*/}
                     <ButtonRenderer onClick={() => router.push("#waitlist")}>
