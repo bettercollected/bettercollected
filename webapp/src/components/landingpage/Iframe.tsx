@@ -4,6 +4,7 @@ import DialogContent from "@mui/material/DialogContent";
 import FormRenderer from "@app/components/ui/FormRenderer";
 import FormInput from "@app/components/ui/FormInput";
 import {useRef} from "react";
+import CloseIcon from '@mui/icons-material/Close';
 
 /**
  * Created By: Rupan Chaulagain
@@ -13,18 +14,21 @@ import {useRef} from "react";
  * Organization: Sireto Technology
  */
 
-export default function Iframe(props:any) {
-    const {handleClose} = props;
+export default function Iframe(props: any) {
+    const {handleClose,field} = props;
+
+    console.log(field)
 
     const iframeRef = useRef(null);
 
-    function handleIframe(e:any){
+    function handleIframe(e: any) {
         const currentIframe = e;
-        console.log("submit",e)
-        if(!!currentIframe.current) {
-            console.log("iframe", currentIframe.contentWindow.document.getElementsByTagName("a"))
-        }
+        console.log("submit", e)
+        // if(!!currentIframe.current) {
+        //     console.log("iframe", currentIframe.contentWindow.document.getElementsByTagName("a"))
+        // }
     }
+
     return (
         <Dialog
             PaperProps={{
@@ -36,15 +40,20 @@ export default function Iframe(props:any) {
             }}
             open={true}
             onClose={handleClose}>
-            {/*<DialogTitle>Personal Details</DialogTitle>*/}
+            <DialogTitle>
+                <div className={"flex justify-between items-center"}>
+                    <h3>Please fill up the form below.</h3>
+                    <CloseIcon className={"cursor-pointer"} onClick={handleClose}/>
+                </div>
+            </DialogTitle>
             <DialogContent>
                 <div className={"overflow-hidden"}>
                     <iframe
                         ref={iframeRef}
-                        src="https://docs.google.com/forms/d/e/1FAIpQLSc-OA5vBjBLYm2xN2ZVxDuxqqrmwSHKAqAgv6QrF1TwIWKMow/viewform?embedded=true"
+                        src={`https://docs.google.com/forms/d/e/1FAIpQLSc-OA5vBjBLYm2xN2ZVxDuxqqrmwSHKAqAgv6QrF1TwIWKMow/viewform?emailAddress=${field}&embedded=true`}
                         width="640"
                         height="1900"
-                        onSubmit={handleIframe}
+                        onLoad={handleIframe}
                         scrolling={"no"}
                         frameBorder={0}
                         marginHeight={0}

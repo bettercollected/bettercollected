@@ -16,9 +16,12 @@ import Button from '@mui/material/Button';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormRenderer from "@app/components/ui/FormRenderer";
 import FormInput from "@app/components/ui/FormInput";
+import {useTranslation} from "next-i18next";
 
 export default function PaymentCardRenderer(props:any) {
     const {title, description,amount,plan,type} = props;
+
+    const {t} = useTranslation();
 
     const [renderDialog,setRenderDialog] = useState(false);
 
@@ -55,7 +58,8 @@ export default function PaymentCardRenderer(props:any) {
         }
         return (
             <ButtonRenderer onClick={onClick}>
-                {!!props.buttonTitle? props.buttonTitle: "Get Started"}
+               Get Started
+                {/*{!!props.buttonTitle? props.buttonTitle: "Get Started"}*/}
             </ButtonRenderer>
         );
     }
@@ -78,7 +82,7 @@ export default function PaymentCardRenderer(props:any) {
         return (
             <ul role="list" className="mt-3 mb-8 space-y-4 text-left">
                 <FeatureListRenderer nocheckmark={true}>
-                    <h3 className=' text-lg font-bold'>Features</h3>
+                    <h3 className=' text-lg font-bold'>{t("FEATURES")}</h3>
                     <p></p>
                 </FeatureListRenderer>
                 {props.features.map((feature:string,index:number) => (

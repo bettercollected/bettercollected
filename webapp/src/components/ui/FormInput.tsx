@@ -25,8 +25,8 @@ export default function FormInput(props: any) {
     }
 
     const renderValidationMessage = () => (
-        validInputFormat ? <div className={"pl-2.5 text-green-600"}>Valid Input</div> :
-            <div className={"pl-2.5 text-red-600"}>Invalid input</div>
+        validInputFormat ? <span className={"pl-2.5 text-green-600"}>Valid Input</span> :
+            <span className={"pl-2.5 text-red-600"}>Invalid input</span>
     )
 
     return (

@@ -73,7 +73,8 @@ export default function ContactUs() {
                             </label>
                             <textarea
                                 id={"message"}
-                                className="resize rounded-md border h-[100px]"
+                                className="resize rounded-md pl-2 border h-[100px]"
+                                placeholder={"Enter your message"}
                                 onChange={(e) =>
                                     handleAllFieldChanges(e.currentTarget.id, e.target.value)
                                 }

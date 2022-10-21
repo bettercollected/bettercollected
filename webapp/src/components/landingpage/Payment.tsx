@@ -3,12 +3,12 @@ import PaymentCardRenderer from "@app/components/landingpage/PaymentCardRenderer
 import {useTranslation} from "next-i18next";
 import LandingPageSectionContainer from "@app/components/landingpage/LandingPageSectionContainer";
 
-const basicFeatures = ["Individual configuration","No setup, or hidden fees","Team size: 1 developer", "Basic support: 6 months","Free updates: 6 months"];
-const proFeatures = ["Individual configuration","No setup, or hidden fees","Team size: 3 developer", "Basic support: 12 months","Free updates: Forever"];
-const ultroProFeatures = ["Individual configuration","No setup, or hidden fees","Team size: 5 developer", "Basic support: Forever","Free updates: Forever"];
+const basicFeatures = ["Unlimited forms and responses","Custom domain","Custom form URLs", "Single user","Single workspace"];
+const proFeatures = ["Unlimited forms and responses","Custom domain","Custom form URLs", "Unlimited workspaces","Unlimited users"];
+const ultroProFeatures = ["Everything in Business","Single Sign On","Premium support"];
 
 enum plans {
-    BASIC,PRO,ULTRA_PRO
+    INDIVIDUAL,BUSINESS,ENTERPRISE
 }
 
 export default function Payment() {
@@ -20,25 +20,25 @@ export default function Payment() {
                 {t("READY_TO_GET_STARTED")}
             </HeadingRenderer>
             <div className="lg:grid lg:grid-cols-3 sm:gap-6 xl:gap-10 lg:space-y-0">
-                <PaymentCardRenderer title={"Starter"}
-                                     description={"Best option for personal use only"}
-                                     amount={"$9"}
+                <PaymentCardRenderer title={"Individual"}
+                                     description={"Best for personal user"}
+                                     amount={"10 euro"}
                                      features={basicFeatures}
-                                     type={plans.BASIC}
+                                     type={plans.INDIVIDUAL}
                                      buttonTitle={"Try 7 days for free"}
                                      plan={"monthly"}/>
-                <PaymentCardRenderer title={"Pro"}
-                                     description={"Best option for personal use & for your next project."}
-                                     amount={"$5"}
-                                     type={plans.PRO}
-                                     plan={"monthly"}
+                <PaymentCardRenderer title={"Business"}
+                                     description={"Best for small and medium-sized businesses."}
+                                     amount={"20 euro"}
+                                     type={plans.BUSINESS}
+                                     plan={"month/user"}
                                      features={proFeatures}
                                      recommended={true}/>
-                <PaymentCardRenderer title={"Ultro Pro Max"}
-                                     description={"Best option for a professional"}
+                <PaymentCardRenderer title={"Enterprise"}
+                                     description={"Best for large enterprises"}
                                      features={ultroProFeatures}
                                      amount={"$7"}
-                                     type={plans.ULTRA_PRO}
+                                     type={plans.ENTERPRISE}
                                      plan={"yearly"}/>
             </div>
         </LandingPageSectionContainer>

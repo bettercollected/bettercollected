@@ -29,6 +29,25 @@ export default function Banner() {
         setEmail(value)
     }
 
+    const handleSubmit = () => {
+        // const myInit:any = {
+        //     method: 'GET',
+        //     mode: 'cors',
+        //     headers: [
+        //     ['Content-Type', 'application/x-www-form-urlencoded'],
+        //     ['Content-Type', 'multipart/form-data'],
+        //     ['Content-Type', 'text/plain'],
+        // ],
+        //     cache: 'default',
+        // };
+        // fetch(`https://docs.google.com/forms/d/e/1FAIpQLSc-OA5vBjBLYm2xN2ZVxDuxqqrmwSHKAqAgv6QrF1TwIWKMow/viewform?emailAddress=${email}`,myInit)
+        //     .then(res => console.log("res"))
+        //     .finally(() => {
+        //         setIframe(true)
+        //     })
+        setIframe(true)
+    }
+
     const shouldButtonDisable = () => {
         const pattern = /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/;
         return !email.match(pattern);
@@ -36,7 +55,7 @@ export default function Banner() {
 
     return (
         <>
-            {iFrame && <Iframe handleClose={() => setIframe(false)}/>}
+            {iFrame && <Iframe field={email} handleClose={() => setIframe(false)}/>}
             <div className={"sm:bg-white lg:bg-[url('/background-7.svg')] lg:bg-no-repeat lg:bg-cover"}>
                 <LandingPageSectionContainer sectionId={"banner"}>
                     <FlexRowContainer>
@@ -55,13 +74,11 @@ export default function Banner() {
                                     id={"email"}
                                     handleChange={handleChange}
                                 />
-                                {/*<a target={"_blank"} rel={"noreferrer"}*/}
-                                {/*   href={"https://docs.google.com/forms/d/e/1FAIpQLSc-OA5vBjBLYm2xN2ZVxDuxqqrmwSHKAqAgv6QrF1TwIWKMow/viewform"}>*/}
-                                    <div
-                                        onClick={()=>setIframe(true)}
-                                        className={"cursor-pointer shadow-md text-center p-3 mb-2 md:p-4 md:pt-2 md:pb-2 text-white rounded-md bg-[#007AFF]"}>
-                                        {t("BECOME_A_BETTER_COLLECTOR")}
-                                    </div>
+                                <div
+                                    onClick={handleSubmit}
+                                    className={"cursor-pointer shadow-md text-center p-3 mb-2 md:p-4 md:pt-2 md:pb-2 text-white rounded-md bg-[#007AFF]"}>
+                                    {t("BECOME_A_BETTER_COLLECTOR")}
+                                </div>
                             </div>
                         </div>
                         <div><Image src={BannerImage} className={"rounded-lg"} alt={"Forms"}/></div>
