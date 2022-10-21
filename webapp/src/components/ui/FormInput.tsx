@@ -35,7 +35,7 @@ export default function FormInput(props: any) {
                 className={"block text-gray-700 text-sm font-normal mb-2"}
                 htmlFor={id}
             >
-                {id === "email" ? `${label}*` : label}
+                {id === "email" && !!label ? `${label}*` : label}
             </label>
             <input
                 className="border text-gray-900 text-sm rounded-lg w-full p-2.5"

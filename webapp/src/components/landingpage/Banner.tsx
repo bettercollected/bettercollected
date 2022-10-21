@@ -7,6 +7,9 @@ import ButtonRenderer from "@app/components/ui/ButtonRenderer";
 import {useRouter} from "next/router";
 import LandingPageSectionContainer from "@app/components/landingpage/LandingPageSectionContainer";
 import useDimension from "@app/hooks/useDimension";
+import FormInput from "@app/components/ui/FormInput";
+import {useState} from "react";
+import Iframe from "@app/components/landingpage/Iframe";
 
 /**
  * Created By: Rupan Chaulagain
@@ -18,29 +21,53 @@ import useDimension from "@app/hooks/useDimension";
 
 export default function Banner() {
     const {t} = useTranslation();
+    const [email, setEmail] = useState("");
 
-    const router = useRouter();
-    const dimension = useDimension();
+    const [iFrame, setIframe] = useState(false);
+
+    const handleChange = (id: string, value: any) => {
+        setEmail(value)
+    }
+
+    const shouldButtonDisable = () => {
+        const pattern = /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/;
+        return !email.match(pattern);
+    }
 
     return (
-        <div className={"sm:bg-white lg:bg-[url('/background-7.svg')] lg:bg-no-repeat lg:bg-cover"}>
-            <LandingPageSectionContainer sectionId={"banner"}>
-                <FlexRowContainer>
-                    <div className={"w-full md:w-full lg:w-1/2"}>
-                        <div className={"font-bold text-4xl md:text-5xl lg:text-7xl font-roboto mb-3"}>
-                            {t('SLOGAN_TITLE')}
+        <>
+            {iFrame && <Iframe handleClose={() => setIframe(false)}/>}
+            <div className={"sm:bg-white lg:bg-[url('/background-7.svg')] lg:bg-no-repeat lg:bg-cover"}>
+                <LandingPageSectionContainer sectionId={"banner"}>
+                    <FlexRowContainer>
+                        <div className={"w-full md:w-full lg:w-1/2"}>
+                            <div className={"font-bold text-2xl sm:text-4xl md:text-5xl lg:text-7xl font-roboto mb-3"}>
+                                {t('SLOGAN_TITLE')}
+                            </div>
+                            <div className={"font-roboto font-display text-gray-400 text-lg sm:text-2xl mb-6"}>
+                                {t("SLOGAN_DESCRIPTION")}
+                            </div>
+
+                            <div className={"flex flex-col lg:flex-row lg:items-center gap-4"}>
+                                <FormInput
+                                    label={""}
+                                    placeholder={t("EMAIL_ADDRESS")}
+                                    id={"email"}
+                                    handleChange={handleChange}
+                                />
+                                {/*<a target={"_blank"} rel={"noreferrer"}*/}
+                                {/*   href={"https://docs.google.com/forms/d/e/1FAIpQLSc-OA5vBjBLYm2xN2ZVxDuxqqrmwSHKAqAgv6QrF1TwIWKMow/viewform"}>*/}
+                                    <div
+                                        onClick={()=>setIframe(true)}
+                                        className={"cursor-pointer shadow-md text-center p-3 mb-2 md:p-4 md:pt-2 md:pb-2 text-white rounded-md bg-[#007AFF]"}>
+                                        {t("BECOME_A_BETTER_COLLECTOR")}
+                                    </div>
+                            </div>
                         </div>
-                        <div className={"font-roboto font-display text-gray-400 text-2xl mb-6"}>
-                            {t("SLOGAN_DESCRIPTION")}
-                        </div>
-                        <ButtonRenderer buttonId={"button-wait-list"} onClick={() => router.push("#waitlist")}>
-                            <p>{t("JOIN_WAITLIST")}</p>
-                        </ButtonRenderer>
-                    </div>
-                    {/*{dimension.width <= 640 ? <></> : <div><Image src={BannerImage} className={"rounded-lg"} alt={"Forms"}/></div>}*/}
-                    <div><Image src={BannerImage} className={"rounded-lg"} alt={"Forms"}/></div>
-                </FlexRowContainer>
-            </LandingPageSectionContainer>
-        </div>
+                        <div><Image src={BannerImage} className={"rounded-lg"} alt={"Forms"}/></div>
+                    </FlexRowContainer>
+                </LandingPageSectionContainer>
+            </div>
+        </>
     );
 }

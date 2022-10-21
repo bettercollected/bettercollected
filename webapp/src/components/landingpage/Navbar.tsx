@@ -30,7 +30,8 @@ export default function Navbar() {
                     <LanguageChangeDropdownRenderer/>
                     {/*<ThemeSwitcher />*/}
                     <ButtonRenderer onClick={() => router.push("#banner")}>
-                        <p>{t("JOIN_WAITLIST")}</p>
+                        {/*<p> {t("BECOME_A_BETTER_COLLECTOR")}</p>*/}
+                        <p> {t("JOIN_WAITLIST")}</p>
                     </ButtonRenderer>
                 </div>
             </div>

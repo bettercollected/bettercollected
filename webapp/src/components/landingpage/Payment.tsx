@@ -12,11 +12,12 @@ enum plans {
 }
 
 export default function Payment() {
+    const {t} = useTranslation();
     return (
         <LandingPageSectionContainer sectionId={"payment"}>
             <HeadingRenderer
-                description={"Here at Better collected, we focus on markets where technology, innovation, and capital can unlock long-term value and drive economic growth."}>
-                Ready to get started?
+                description={t("PAYMENT_DESC")}>
+                {t("READY_TO_GET_STARTED")}
             </HeadingRenderer>
             <div className="lg:grid lg:grid-cols-3 sm:gap-6 xl:gap-10 lg:space-y-0">
                 <PaymentCardRenderer title={"Starter"}
