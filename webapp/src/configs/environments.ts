@@ -26,6 +26,7 @@ const environments = {
   GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "",
   WAILIST_URL: process.env.NEXT_PUBLIC_WAITLIST_FORM_URL,
   CONTACT_US_URL: process.env.NEXT_PUBLIC_CONTACT_US_URL,
+  PRICING_URL: process.env.NEXT_PUBLIC_PRICING_FORM,
   //internal configs
   IS_IN_PRODUCTION_MODE,
 };

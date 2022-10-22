@@ -6,7 +6,7 @@
  * Organization: Sireto Technology
  */
 import ButtonRenderer from "@app/components/ui/ButtonRenderer";
-import React,{useState} from "react";
+import React, {useState} from "react";
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -19,7 +19,7 @@ import FormInput from "@app/components/ui/FormInput";
 import {useTranslation} from "next-i18next";
 
 import Snackbar from '@mui/material/Snackbar';
-import MuiAlert, { AlertProps } from '@mui/material/Alert';
+import MuiAlert, {AlertProps} from '@mui/material/Alert';
 import CloseIcon from "@mui/icons-material/Close";
 
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
@@ -30,15 +30,15 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
 });
 
 enum plans {
-    INDIVIDUAL,BUSINESS,ENTERPRISE
+    INDIVIDUAL, BUSINESS, ENTERPRISE
 }
 
-export default function PaymentCardRenderer(props:any) {
-    const {title, description,amount,plan,type} = props;
+export default function PaymentCardRenderer(props: any) {
+    const {title, description, amount, plan, type} = props;
 
     const {t} = useTranslation();
 
-    const [renderDialog,setRenderDialog] = useState(false);
+    const [renderDialog, setRenderDialog] = useState(false);
 
     const [formFields, setFormFields] = useState({
         firstname: "",
@@ -47,16 +47,17 @@ export default function PaymentCardRenderer(props:any) {
     });
 
     const [displaySnackbar, setDisplaySnackbar] = useState(false)
-    const [confirmationMessage, setConfirmationMessage] = useState({severity:"",message:""})
+    const [confirmationMessage, setConfirmationMessage] = useState({severity: "", message: ""})
 
     function CardHeader() {
         return (
             <>
                 <div className="flex justify-between item-baseline ">
-                    <span className={`text-3xl ${props.recommended? "text-[#007AFF]":""} font-semibold`}>{title}</span>
+                    <span
+                        className={`text-3xl ${props.recommended ? "text-[#007AFF]" : ""} font-semibold`}>{title}</span>
                     {/*{props.recommended && <span className={"p-2 border-1 rounded-full text-sm bg-[#007AFF] font-normal"}>Popular</span>}*/}
                 </div>
-                <p className={`font-light ${props.recommended? "text-white":"text-gray-500"} sm:text-md`}>{description}</p>
+                <p className={`font-light ${props.recommended ? "text-white" : "text-gray-500"} sm:text-md`}>{description}</p>
             </>
         );
     }
@@ -65,28 +66,31 @@ export default function PaymentCardRenderer(props:any) {
         return (
             <div className="flex justify-center items-baseline my-8">
                 <span className="mr-2 text-6xl font-bold">{amount}</span>
-                <span className={`${props.recommended?"text-white":"text-gray-500"}`}>{type===plans.ENTERPRISE?"":"/"}{plan}</span>
+                <span
+                    className={`${props.recommended ? "text-white" : "text-gray-500"}`}>{type === plans.ENTERPRISE ? "" : "/"}{plan}</span>
             </div>
         );
     }
 
     function GetStartedButton() {
         const onClick = () => {
-            setRenderDialog(true)
+            // setRenderDialog(true)
         }
         return (
-            <ButtonRenderer onClick={onClick}>
-               Get Started
-                {/*{!!props.buttonTitle? props.buttonTitle: "Get Started"}*/}
-            </ButtonRenderer>
-        );
+            // <ButtonRenderer>
+            <a href={`/pricingForm/${plans[type]}`} rel={"noreferrer"} target={"_blank"}>
+                <div className={"p-2 md:p-4 text-center md:pt-2 md:pb-2 text-white rounded-md bg-[#007aff] hover:bg-[#4da2ff]"}>
+                    Get Started
+                </div>
+            </a>
+    );
     }
 
-    function FeatureListRenderer(props:any){
-        return(
+    function FeatureListRenderer(props: any) {
+        return (
             <li className={"flex items-center space-x-3"}>
                 {!props.nocheckmark && <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400"
-                     fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                            fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path fillRule="evenodd"
                           d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                           clipRule="evenodd"></path>
@@ -103,7 +107,7 @@ export default function PaymentCardRenderer(props:any) {
                     <h3 className=' text-lg font-bold'>{t("FEATURES")}</h3>
                     <p></p>
                 </FeatureListRenderer>
-                {props.features.map((feature:string,index:number) => (
+                {props.features.map((feature: string, index: number) => (
                     <FeatureListRenderer key={index}>
                         <span>{feature}</span>
                     </FeatureListRenderer>
@@ -122,7 +126,7 @@ export default function PaymentCardRenderer(props:any) {
             "first_name": formFields.firstname,
             "last_name": formFields.lastname,
             "email": formFields.email,
-            "plan":type
+            "plan": type
         }
 
         try {
@@ -135,48 +139,51 @@ export default function PaymentCardRenderer(props:any) {
                 body: JSON.stringify(bodyContent),
             });
             setDisplaySnackbar(true)
-            setConfirmationMessage({message:`You're successfully subscribed to ${plans[type]} plan`, severity:"success"})
+            setConfirmationMessage({
+                message: `You're successfully subscribed to ${plans[type]} plan`,
+                severity: "success"
+            })
             setRenderDialog(false)
         } catch (e: any) {
             setDisplaySnackbar(true)
-            setConfirmationMessage({message:e.message, severity:"error"})
+            setConfirmationMessage({message: e.message, severity: "error"})
             // setRenderDialog(false)
         }
     }
 
-    function PopupDialog(){
-        return(
-                <Dialog open={renderDialog} onClose={()=>setRenderDialog(false)}>
-                    <DialogTitle>
-                        <h3>You are subscribing to {type} plan.</h3>
-                    </DialogTitle>
-                    <DialogContent>
-                        <FormRenderer handleSubmit={handleSubmit} shouldButtonDisable={false}>
-                            <div className={"flex mb-4 gap-3"}>
-                                <FormInput
-                                    label={"Your First Name"}
-                                    placeholder={"Enter your first name"}
-                                    id={"firstname"}
-                                    handleChange={handleAllFieldChanges}
-                                />
-                                <FormInput
-                                    label={"Your Last Name"}
-                                    placeholder={"Enter your last name"}
-                                    id={"lastname"}
-                                    handleChange={handleAllFieldChanges}
-                                />
-                            </div>
-                            <FormInput
-                                label={"Email Address"}
-                                placeholder={"Enter your email address"}
-                                id={"email"}
-                                handleChange={handleAllFieldChanges}
-                            />
-                        </FormRenderer>
-                    </DialogContent>
-                </Dialog>
-        );
-    }
+    // function PopupDialog(){
+    //     return(
+    //             <Dialog open={renderDialog} onClose={()=>setRenderDialog(false)}>
+    //                 <DialogTitle>
+    //                     <h3>You are subscribing to {type} plan.</h3>
+    //                 </DialogTitle>
+    //                 <DialogContent>
+    //                     <FormRenderer handleSubmit={handleSubmit} shouldButtonDisable={false}>
+    //                         <div className={"flex mb-4 gap-3"}>
+    //                             <FormInput
+    //                                 label={"Your First Name"}
+    //                                 placeholder={"Enter your first name"}
+    //                                 id={"firstname"}
+    //                                 handleChange={handleAllFieldChanges}
+    //                             />
+    //                             <FormInput
+    //                                 label={"Your Last Name"}
+    //                                 placeholder={"Enter your last name"}
+    //                                 id={"lastname"}
+    //                                 handleChange={handleAllFieldChanges}
+    //                             />
+    //                         </div>
+    //                         <FormInput
+    //                             label={"Email Address"}
+    //                             placeholder={"Enter your email address"}
+    //                             id={"email"}
+    //                             handleChange={handleAllFieldChanges}
+    //                         />
+    //                     </FormRenderer>
+    //                 </DialogContent>
+    //             </Dialog>
+    //     );
+    // }
 
     const shouldSubmitButtonDisable = () => {
         const pattern = /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/;
@@ -185,48 +192,48 @@ export default function PaymentCardRenderer(props:any) {
 
 
     return (
-        <div className={`flex flex-col w-full p-6 mx-auto m-4 max-w-lg text-start ${props.recommended? "bg-[#333333] text-white":"bg-white text-dark"} rounded-3xl shadow-lg`}>
+        <div
+            className={`flex flex-col w-full p-6 mx-auto m-4 max-w-lg text-start ${props.recommended ? "bg-[#333333] text-white" : "bg-white text-dark"} rounded-3xl shadow-lg`}>
 
-            <Snackbar open={displaySnackbar} autoHideDuration={6000} onClose={()=> setDisplaySnackbar(false)}>
-                {/* @ts-ignore */ }
-                <Alert onClose={()=> setDisplaySnackbar(false)} severity={confirmationMessage.severity} sx={{ width: '100%' }}>
-                    {confirmationMessage.message}
-                </Alert>
-            </Snackbar>
+            {/*<Snackbar open={displaySnackbar} autoHideDuration={6000} onClose={()=> setDisplaySnackbar(false)}>*/}
+            {/*    <Alert onClose={()=> setDisplaySnackbar(false)} severity={confirmationMessage.severity} sx={{ width: '100%' }}>*/}
+            {/*        {confirmationMessage.message}*/}
+            {/*    </Alert>*/}
+            {/*</Snackbar>*/}
 
-            <Dialog open={renderDialog} onClose={()=>setRenderDialog(false)}>
-                <DialogTitle style={{marginBottom:0, paddingBottom:0}}>
-                    <div className={"flex justify-between items-center"}>
-                        <p className={"text-gray-500"}>Please fill up the form below</p>
-                        <CloseIcon className={"cursor-pointer"} onClick={()=>setRenderDialog(false)}/>
-                    </div>
-                    <p>You are subscribing to <b>{plans[type]}</b> plan.</p>
-                </DialogTitle>
-                <DialogContent>
-                    <FormRenderer handleSubmit={handleSubmit} shouldButtonDisable={shouldSubmitButtonDisable()}>
-                        <div className={"flex mb-4 gap-3"}>
-                            <FormInput
-                                label={"Your First Name"}
-                                placeholder={"Enter your first name"}
-                                id={"firstname"}
-                                handleChange={handleAllFieldChanges}
-                            />
-                            <FormInput
-                                label={"Your Last Name"}
-                                placeholder={"Enter your last name"}
-                                id={"lastname"}
-                                handleChange={handleAllFieldChanges}
-                            />
-                        </div>
-                        <FormInput
-                            label={"Email Address"}
-                            placeholder={"Enter your email address"}
-                            id={"email"}
-                            handleChange={handleAllFieldChanges}
-                        />
-                    </FormRenderer>
-                </DialogContent>
-            </Dialog>
+            {/*<Dialog open={renderDialog} onClose={()=>setRenderDialog(false)}>*/}
+            {/*    <DialogTitle style={{marginBottom:0, paddingBottom:0}}>*/}
+            {/*        <div className={"flex justify-between items-center"}>*/}
+            {/*            <p className={"text-gray-500"}>Please fill up the form below</p>*/}
+            {/*            <CloseIcon className={"cursor-pointer"} onClick={()=>setRenderDialog(false)}/>*/}
+            {/*        </div>*/}
+            {/*        <p>You are subscribing to <b>{plans[type]}</b> plan.</p>*/}
+            {/*    </DialogTitle>*/}
+            {/*    <DialogContent>*/}
+            {/*        <FormRenderer handleSubmit={handleSubmit} shouldButtonDisable={shouldSubmitButtonDisable()}>*/}
+            {/*            <div className={"flex mb-4 gap-3"}>*/}
+            {/*                <FormInput*/}
+            {/*                    label={"Your First Name"}*/}
+            {/*                    placeholder={"Enter your first name"}*/}
+            {/*                    id={"firstname"}*/}
+            {/*                    handleChange={handleAllFieldChanges}*/}
+            {/*                />*/}
+            {/*                <FormInput*/}
+            {/*                    label={"Your Last Name"}*/}
+            {/*                    placeholder={"Enter your last name"}*/}
+            {/*                    id={"lastname"}*/}
+            {/*                    handleChange={handleAllFieldChanges}*/}
+            {/*                />*/}
+            {/*            </div>*/}
+            {/*            <FormInput*/}
+            {/*                label={"Email Address"}*/}
+            {/*                placeholder={"Enter your email address"}*/}
+            {/*                id={"email"}*/}
+            {/*                handleChange={handleAllFieldChanges}*/}
+            {/*            />*/}
+            {/*        </FormRenderer>*/}
+            {/*    </DialogContent>*/}
+            {/*</Dialog>*/}
             <CardHeader/>
             <Pricing/>
             <GetStartedButton/>
