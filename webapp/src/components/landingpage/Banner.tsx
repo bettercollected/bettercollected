@@ -55,7 +55,7 @@ export default function Banner() {
 
     return (
         <>
-            {iFrame && <Iframe field={email} handleClose={() => setIframe(false)}/>}
+            {iFrame && <Iframe formUrl={`${environments.WAILIST_URL}&emailAddress=${email}`} handleClose={() => setIframe(false)}/>}
             <div className={"sm:bg-white lg:bg-[url('/background-7.svg')] lg:bg-no-repeat lg:bg-cover"}>
                 <LandingPageSectionContainer sectionId={"banner"}>
                     <FlexRowContainer>

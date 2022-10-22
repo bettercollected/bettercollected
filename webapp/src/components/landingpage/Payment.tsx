@@ -20,18 +20,18 @@ export default function Payment() {
                 {t("READY_TO_GET_STARTED")}
             </HeadingRenderer>
             <div className="lg:grid lg:grid-cols-3 sm:gap-6 xl:gap-10 lg:space-y-0">
-                <PaymentCardRenderer title={"Individual"}
-                                     description={"Best for personal user"}
+                <PaymentCardRenderer title={t("INDIVIDUAL")}
+                                     description={t("INDIVIDUAL_1")}
                                      amount={"10 euro"}
                                      features={basicFeatures}
                                      type={plans.INDIVIDUAL}
                                      buttonTitle={"Try 7 days for free"}
-                                     plan={"monthly"}/>
+                                     plan={t("INDIVIDUAL_2")}/>
                 <PaymentCardRenderer title={"Business"}
                                      description={"Best for small and medium-sized businesses."}
                                      amount={"20 euro"}
                                      type={plans.BUSINESS}
-                                     plan={"month/user"}
+                                     plan={`${t("INDIVIDUAL")}`}
                                      features={proFeatures}
                                      recommended={true}/>
                 <PaymentCardRenderer title={"Enterprise"}

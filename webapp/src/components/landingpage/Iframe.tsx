@@ -15,9 +15,7 @@ import CloseIcon from '@mui/icons-material/Close';
  */
 
 export default function Iframe(props: any) {
-    const {handleClose,field} = props;
-
-    console.log(field)
+    const {handleClose, formUrl} = props;
 
     const iframeRef = useRef(null);
 
@@ -50,7 +48,9 @@ export default function Iframe(props: any) {
                 <div className={"overflow-hidden"}>
                     <iframe
                         ref={iframeRef}
-                        src={`https://docs.google.com/forms/d/e/1FAIpQLSc-OA5vBjBLYm2xN2ZVxDuxqqrmwSHKAqAgv6QrF1TwIWKMow/viewform?emailAddress=${field}&embedded=true`}
+                        src={formUrl}
+                        // src={`https://docs.google.com/forms/d/e/1FAIpQLSc-OA5vBjBLYm2xN2ZVxDuxqqrmwSHKAqAgv6QrF1TwIWKMow/viewform?emailAddress=${field}&embedded=true`}
+                        // src={`https://docs.google.com/forms/d/e/1FAIpQLSfq2czYvDrNv0-aXvb7zrUTzMefScFRdO7nM52_A0vRdUkvOQ/viewform?emailAddress=${field}&embedded=true`}
                         width="640"
                         height="1900"
                         onLoad={handleIframe}
