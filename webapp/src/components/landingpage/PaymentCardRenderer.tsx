@@ -34,7 +34,7 @@ enum plans {
 }
 
 export default function PaymentCardRenderer(props: any) {
-    const {title, description, amount, plan, type} = props;
+    const {title, description, amount, plan, type, formUrl} = props;
 
     const {t} = useTranslation();
 
@@ -78,7 +78,7 @@ export default function PaymentCardRenderer(props: any) {
         }
         return (
             // <ButtonRenderer>
-            <a href={`/pricingForm/${plans[type]}`} rel={"noreferrer"} target={"_blank"}>
+            <a href={formUrl} rel={"noreferrer"} target={"_blank"}>
                 <div className={"p-2 md:p-4 text-center md:pt-2 md:pb-2 text-white rounded-md bg-[#007aff] hover:bg-[#4da2ff]"}>
                     Get Started
                 </div>

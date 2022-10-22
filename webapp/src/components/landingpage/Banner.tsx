@@ -78,7 +78,7 @@ export default function Banner() {
                                 {/*    id={"email"}*/}
                                 {/*    handleChange={handleChange}*/}
                                 {/*/>*/}
-                                <a href="/waitlistForms" target="_blank">
+                                <a href="/waitlist" target="_blank">
                                     <div
                                         // onClick={handleSubmit}
                                         className={"cursor-pointer shadow-md hover:bg-[#4da2ff] text-center p-3 mb-2 md:p-4 md:pt-2 md:pb-2 text-white rounded-md bg-[#007AFF]"}>

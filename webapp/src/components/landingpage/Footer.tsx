@@ -43,7 +43,7 @@ export default function Footer() {
                 <FontBold>Company</FontBold>
                 <SectionLink title={"Home"} path={""}/>
                 <SectionLink title={"Features"} path={"#features"}/>
-                <a href="/contactUs" target="_blank">
+                <a href="/contact" target="_blank">
                     <p className={"cursor-pointer mb-2 hover:text-gray-600"}>Contact us</p>
                 </a>
             </div>

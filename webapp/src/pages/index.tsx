@@ -9,6 +9,7 @@ import TimelineContainer from "@app/components/landingpage/TimelineContainer";
 import Payment from "@app/components/landingpage/Payment";
 import Head from "next/head";
 import Footer from "@app/components/landingpage/Footer";
+import Advertising from "@app/components/landingpage/Advertising";
 
 const Home: NextPage = () => {
     return (
