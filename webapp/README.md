@@ -10,8 +10,13 @@ Better collected is a platform that enables form creators to open a portal for t
 ```bash
 npm install
 ```
+**Step 2:** Create a .env.local file in your root directory and copy the contents of .env.example to .env.local using below command
+```bash
+cp .env.example .env.local
+```
+the environment variables inside .env.local will be injected to nextjs project on run time.
 
-**Step 2:** Run the development server:
+**Step 3:** Run the development server:
 
 ```bash
 npm run dev
