@@ -16,7 +16,7 @@ export default function Footer() {
 
     function SectionLink(props:any) {
         const {title, path} = props;
-        return <p className={"cursor-pointer mb-2 hover:text-gray-600"} onClick={() => router.push(`#${path}`)}>{title}</p>
+        return <p className={"cursor-pointer mb-2 hover:text-gray-600"} onClick={() => router.push(`${path}`)}>{title}</p>
     }
 
     function FontBold(props:any){
@@ -42,8 +42,10 @@ export default function Footer() {
             <div className={"flex flex-col justify-center lg:items-center lg:mb-0 mb-4"}>
                 <FontBold>Company</FontBold>
                 <SectionLink title={"Home"} path={""}/>
-                <SectionLink title={"Features"} path={"features"}/>
-                <SectionLink title={"Contact"} path={"contact"}/>
+                <SectionLink title={"Features"} path={"#features"}/>
+                <a href="/contactUs" target="_blank">
+                    <p className={"cursor-pointer mb-2 hover:text-gray-600"}>Contact us</p>
+                </a>
             </div>
 
             <div className={"flex flex-col mb-4"}>

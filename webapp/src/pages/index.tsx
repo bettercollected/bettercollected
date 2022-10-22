@@ -19,7 +19,7 @@ const Home: NextPage = () => {
             <Features/>
             {/*<TimelineContainer/>*/}
             <Payment/>
-            <ContactUs/>
+            {/*<ContactUs/>*/}
             <Footer/>
         </>
     );

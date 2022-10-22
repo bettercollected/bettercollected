@@ -65,7 +65,7 @@ export default function PaymentCardRenderer(props:any) {
         return (
             <div className="flex justify-center items-baseline my-8">
                 <span className="mr-2 text-6xl font-bold">{amount}</span>
-                <span className={`${props.recommended?"text-white":"text-gray-500"}`}>/{plan}</span>
+                <span className={`${props.recommended?"text-white":"text-gray-500"}`}>{type===plans.ENTERPRISE?"":"/"}{plan}</span>
             </div>
         );
     }

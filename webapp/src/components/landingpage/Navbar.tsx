@@ -26,14 +26,14 @@ export default function Navbar() {
                         Better<span className={"text-[#007AFF] tracking-widest"}>Collected.</span>
                     </div>
                 </div>
-                <div className={"flex items-center justify-between md:gap-6"}>
-                    <LanguageChangeDropdownRenderer/>
-                    {/*<ThemeSwitcher />*/}
-                    <ButtonRenderer onClick={() => router.push("#banner")}>
-                        {/*<p> {t("BECOME_A_BETTER_COLLECTOR")}</p>*/}
-                        <p> {t("JOIN_WAITLIST")}</p>
-                    </ButtonRenderer>
-                </div>
+                {/*<div className={"flex items-center justify-between md:gap-6"}>*/}
+                {/*    /!*<LanguageChangeDropdownRenderer/>*!/*/}
+                {/*    /!*<ThemeSwitcher />*!/*/}
+                {/*    <ButtonRenderer onClick={() => router.push("#banner")}>*/}
+                {/*        /!*<p> {t("BECOME_A_BETTER_COLLECTOR")}</p>*!/*/}
+                {/*        <p> {t("JOIN_WAITLIST")}</p>*/}
+                {/*    </ButtonRenderer>*/}
+                {/*</div>*/}
             </div>
         </div>
     );

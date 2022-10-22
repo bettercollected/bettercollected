@@ -37,9 +37,9 @@ export default function Payment() {
                 <PaymentCardRenderer title={"Enterprise"}
                                      description={"Best for large enterprises"}
                                      features={ultroProFeatures}
-                                     amount={"$7"}
+                                     amount={""}
                                      type={plans.ENTERPRISE}
-                                     plan={"yearly"}/>
+                                     plan={""}/>
             </div>
         </LandingPageSectionContainer>
     );
