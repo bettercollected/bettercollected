@@ -1,25 +1,23 @@
 stages:
-    - build-app
-    - build-image
+    - build-develop
+    - build-master
 
-build app:
-    stage: build-app
-    image: node:16
+build develop:
+    stage: build-develop
+    image: docker:latest
     script:
-        - yarn
-        - yarn lint
-        - yarn build
-    cache:
-        paths:
-            - node_modules
-    artifacts:
-        paths:
-            - .next
-            - build
-        expire_in: 1 day
+        - docker info
+        - echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+        - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG || docker pull $CI_REGISTRY_IMAGE:develop || true
+        - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA --cache-from=$CI_REGISTRY_IMAGE:$CI_BUILD_REF_NAME --cache-from=$CI_REGISTRY_IMAGE:develop --shm-size 512M .
+        - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+        - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+        - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    except:
+        - master
 
-build image:
-    stage: build-image
+build master:
+    stage: build-master
     image: docker:latest
     services:
         - docker:dind
@@ -31,3 +29,5 @@ build image:
         - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
         - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
         - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    only:
+        - master
