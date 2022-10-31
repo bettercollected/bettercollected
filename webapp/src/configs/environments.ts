@@ -27,6 +27,10 @@ const environments = {
     BUSINESS_FORM_URL: publicRuntimeConfig.BUSINESS_FORM_URL,
     ENTERPRISE_FORM_URL: publicRuntimeConfig.ENTERPRISE_FORM_URL,
 
+    // Custom Domain Variables (run-time configs)
+    IS_CUSTOM_DOMAIN: (publicRuntimeConfig.IS_CUSTOM_DOMAIN && (publicRuntimeConfig.IS_CUSTOM_DOMAIN === 'true' || publicRuntimeConfig.IS_CUSTOM_DOMAIN === true)) ?? false,
+    CUSTOM_DOMAIN: publicRuntimeConfig.CUSTOM_DOMAIN,
+
     // internal configs
     IS_IN_PRODUCTION_MODE
 };

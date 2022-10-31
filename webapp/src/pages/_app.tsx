@@ -22,7 +22,7 @@ const clientSideEmotionCache = createEmotionCache();
 ReactGA.initialize(environments.GA_MEASUREMENT_ID);
 ReactGA.send('pageview');
 
-function MyApp({ Component, pageProps }: AppProps) {
+function MainApp({ Component, pageProps }: AppProps) {
     //TODO: configure NextSEO component for all pages
     let title = globalConstants.title || globalConstants.socialPreview.title;
     let description = globalConstants.socialPreview.desc;
@@ -92,4 +92,4 @@ function MyApp({ Component, pageProps }: AppProps) {
     );
 }
 
-export default appWithTranslation(MyApp);
+export default appWithTranslation(MainApp);

@@ -1,18 +1,20 @@
 import type { NextPage } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import Head from 'next/head';
+import dynamic from 'next/dynamic';
 
-import Advertising from '@app/components/landingpage/Advertising';
-import Banner from '@app/components/landingpage/Banner';
-import ContactUs from '@app/components/landingpage/ContactUs';
-import Features from '@app/components/landingpage/Features';
-import Footer from '@app/components/landingpage/Footer';
-import Navbar from '@app/components/landingpage/Navbar';
-import Payment from '@app/components/landingpage/Payment';
-import TimelineContainer from '@app/components/landingpage/TimelineContainer';
-import WaitlistForm from '@app/components/landingpage/WaitlistForm';
+import environments from '@app/configs/environments';
 
-const Home: NextPage = () => {
+const Banner = dynamic(() => import('@app/components/landingpage/Banner'), { ssr: false });
+const Features = dynamic(() => import('@app/components/landingpage/Features'), { ssr: false });
+const Footer = dynamic(() => import('@app/components/landingpage/Footer'), { ssr: false });
+const Navbar = dynamic(() => import('@app/components/landingpage/Navbar'), { ssr: false });
+const Payment = dynamic(() => import('@app/components/landingpage/Payment'), { ssr: false });
+
+const Home: NextPage = (props: any) => {
+    const hasCustomDomain = !!props?.IS_CUSTOM_DOMAIN;
+
+    if (hasCustomDomain) return <h1>Public dashboard of forms.sireto.io</h1>;
+
     return (
         <>
             <Navbar />
@@ -32,7 +34,8 @@ export default Home;
 export async function getServerSideProps({ locale }: any) {
     return {
         props: {
-            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de']))
+            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
+            IS_CUSTOM_DOMAIN: environments.IS_CUSTOM_DOMAIN
         }
     };
 }

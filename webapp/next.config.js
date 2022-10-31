@@ -45,7 +45,11 @@ const nextConfig = {
         WAITLIST_FORM_URL: process.env.WAITLIST_FORM_URL,
         INDIVIDUAL_FORM_URL: process.env.INDIVIDUAL_FORM_URL,
         BUSINESS_FORM_URL: process.env.BUSINESS_FORM_URL,
-        ENTERPRISE_FORM_URL: process.env.ENTERPRISE_FORM_URL
+        ENTERPRISE_FORM_URL: process.env.ENTERPRISE_FORM_URL,
+
+        // Custom Domain Variables
+        IS_CUSTOM_DOMAIN: process.env.IS_CUSTOM_DOMAIN || false,
+        CUSTOM_DOMAIN: process.env.CUSTOM_DOMAIN
     }
 };
 
