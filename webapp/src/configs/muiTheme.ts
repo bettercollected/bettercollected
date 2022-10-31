@@ -5,15 +5,14 @@
  * Project: formintegratorwebapp
  * Organization: Sireto Technology
  */
-
-import {PaletteOptions, createTheme, css} from '@mui/material/styles';
+import { PaletteOptions, createTheme, css } from '@mui/material/styles';
 
 export type AllowedTheme = NonNullable<PaletteOptions['mode']>;
 
 export const lightTheme = createTheme({
     palette: {
-        primary: {main: '#ffa500'},
-        secondary: {main: '#f04444'},
+        primary: { main: '#007AFF' },
+        secondary: { main: '#f04444' },
         mode: 'light'
     }
 });

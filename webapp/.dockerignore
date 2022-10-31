@@ -1,0 +1,9 @@
+.github
+.next
+.next-dev
+.vercel
+.husky
+.vscode
+
+node_modules
+build

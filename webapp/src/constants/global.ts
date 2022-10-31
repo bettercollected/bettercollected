@@ -5,7 +5,7 @@
  * Project: formintegratorwebapp
  * Organization: Sireto Technology
  */
-import environments from "@app/configs/environments";
+import environments from '@app/configs/environments';
 
 // import environments from '@app/configs/environments';
 
@@ -29,6 +29,6 @@ const globalConstants = {
     imageTypes: ['image/jpg', 'image/jpeg', 'image/png', 'image/gif', 'image/svg+xml'],
     modelTypes: ['model/gltf-binary', 'model/gltf+json', '.glb'],
     audioTypes: ['audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/ogg']
-}
+};
 
 export default globalConstants;
