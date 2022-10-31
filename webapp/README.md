@@ -1,48 +1,26 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Better Collected
 
-## Better Collected
+Source code for Better Collected, with Next.js version `12.3.1`.
 
-Better collected is a platform that enables form creators to open a portal for their form submitters to see their collected data and let them exercise their data rights.
+## Runtime Environment Variables
+Please refer to the [.env.example](.env.example) file for updated environment variables
 
-## Running locally
+- NEXT_PUBLIC_GA_MEASUREMENT_ID
+- NEXT_PUBLIC_WAITLIST_FORM_URL
+- NEXT_PUBLIC_CONTACT_US_URL
+- NEXT_PUBLIC_INDIVIDUAL_FORM
+- NEXT_PUBLIC_BUSINESS_FORM
+- NEXT_PUBLIC_ENTERPRISE_FORM
 
-Open your favorite code editor. Webstorm is recommended.
+### Project Setup and Scripts
 
-**Step 1:** Install all the required packages using below command.
+1. If you are using `nvm`, install node version `16 LTS` and run `nvm alias default 16` to set the default node environment or run `nvm use` to use the version from [.nvmrc](.nvmrc)](.nvmrc). Else, use node version `16`.
+2. Run `yarn install` in the terminal to set up the project and husky configuration.
+3. Run `yarn dev` to start the project locally.
+4. Run `yarn build` and `yarn start` to start production build.
+5. Run `yarn clean` to clear cache, node_modules, and build folders.
+6. `(Optional) Should be done automatically during the package installation process (i.e. npm install)` Run `yarn prepare` to install and initialize husky for commit hooks
 
-```bash
-npm install
-```
+### Development
 
-**Step 2:** Create a .env.local file in your root directory and copy the contents of .env.example to .env.local using below command
-
-```bash
-cp .env.example .env.local
-```
-
-the environment variables inside .env.local will be injected to nextjs project on run time.
-
-**Step 3:** Run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-The starting point for the application is `pages/index.tsx`.
-
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
-
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
--   [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
--   [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+For the development of the project, please refer to the [DEVELOPERS GUIDE](DEVELOPERS_GUIDE.md) documentation.
