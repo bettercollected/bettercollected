@@ -1,5 +1,6 @@
-import environments from "@app/configs/environments";
-import {useRouter} from "next/router";
+import { useRouter } from 'next/router';
+
+import environments from '@app/configs/environments';
 
 /**
  * Created By: Rupan Chaulagain
@@ -8,12 +9,11 @@ import {useRouter} from "next/router";
  * Project: formintegratorwebapp
  * Organization: Sireto Technology
  */
-export default function IndividualPlan(){
+export default function IndividualPlan() {
     return (
-        <div className={"absolute left-0 right-0 top-0 bottom-0"}>
-            <iframe
-                src={environments.BUSINESS_PLAN_FORM_URL}
-                height={"100%"} width={"100%"}>Loading…
+        <div className={'absolute left-0 right-0 top-0 bottom-0'}>
+            <iframe src={environments.BUSINESS_PLAN_FORM_URL} height={'100%'} width={'100%'}>
+                Loading…
             </iframe>
         </div>
     );

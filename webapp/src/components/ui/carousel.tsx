@@ -5,31 +5,31 @@
  * Project: formintegratorwebapp
  * Organization: Sireto Technology
  */
+// import {Carousel} from 'react-responsive-carousel';
+import Image from 'next/image';
 
-import {Carousel} from 'react-responsive-carousel';
-import PropTypes, {any} from "prop-types";
-import Image from "next/image";
+import PropTypes, { any } from 'prop-types';
 
-function LocalCarousel({ ImagesArray }:any) {
+function LocalCarousel({ ImagesArray }: any) {
     return (
         <div className="min-h-screen md:h-auto md:w-3/5">
-            <Carousel autoPlay={true} showThumbs={false} interval={2000}>
+            {/* <Carousel autoPlay={true} showThumbs={false} interval={2000}>
                 {ImagesArray.map((image:any, index:number) => (
                     <div key={index} className={"h-screen"}>
                         <Image src={image} alt={image.name}/>
                     </div>
                 ))}
-            </Carousel>
+            </Carousel> */}
         </div>
-    )
+    );
 }
 
 LocalCarousel.propTypes = {
     ImagesArray: PropTypes.arrayOf(any)
-}
+};
 
 LocalCarousel.defaultProps = {
     ImagesArray: []
-}
+};
 
 export default LocalCarousel;

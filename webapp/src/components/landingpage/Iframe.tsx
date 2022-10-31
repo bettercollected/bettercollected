@@ -1,10 +1,12 @@
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import FormRenderer from "@app/components/ui/FormRenderer";
-import FormInput from "@app/components/ui/FormInput";
-import {useRef} from "react";
+import { useRef } from 'react';
+
 import CloseIcon from '@mui/icons-material/Close';
+import Dialog from '@mui/material/Dialog';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+
+import FormInput from '@app/components/ui/FormInput';
+import FormRenderer from '@app/components/ui/FormRenderer';
 
 /**
  * Created By: Rupan Chaulagain
@@ -15,13 +17,13 @@ import CloseIcon from '@mui/icons-material/Close';
  */
 
 export default function Iframe(props: any) {
-    const {handleClose, formUrl} = props;
+    const { handleClose, formUrl } = props;
 
     const iframeRef = useRef(null);
 
     function handleIframe(e: any) {
         const currentIframe = e;
-        console.log("submit", e)
+        console.log('submit', e);
         // if(!!currentIframe.current) {
         //     console.log("iframe", currentIframe.contentWindow.document.getElementsByTagName("a"))
         // }
@@ -31,21 +33,22 @@ export default function Iframe(props: any) {
         <Dialog
             PaperProps={{
                 sx: {
-                    width: "640",
-                    maxWidth: "720px!important",
-                    overflow: "hidden"
-                },
+                    width: '640',
+                    maxWidth: '720px!important',
+                    overflow: 'hidden'
+                }
             }}
             open={true}
-            onClose={handleClose}>
+            onClose={handleClose}
+        >
             <DialogTitle>
-                <div className={"flex justify-between items-center"}>
+                <div className={'flex justify-between items-center'}>
                     <h3>Please fill up the form below.</h3>
-                    <CloseIcon className={"cursor-pointer"} onClick={handleClose}/>
+                    <CloseIcon className={'cursor-pointer'} onClick={handleClose} />
                 </div>
             </DialogTitle>
             <DialogContent>
-                <div className={"overflow-hidden"}>
+                <div className={'overflow-hidden'}>
                     <iframe
                         ref={iframeRef}
                         src={formUrl}
@@ -54,13 +57,15 @@ export default function Iframe(props: any) {
                         width="640"
                         height="1900"
                         onLoad={handleIframe}
-                        scrolling={"no"}
+                        scrolling={'no'}
                         frameBorder={0}
                         marginHeight={0}
-                        marginWidth={0}>Loading…
+                        marginWidth={0}
+                    >
+                        Loading…
                     </iframe>
                 </div>
             </DialogContent>
         </Dialog>
-    )
+    );
 }

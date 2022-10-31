@@ -1,4 +1,4 @@
-import HeadingRenderer from "@app/components/ui/HeadingRenderer";
+import HeadingRenderer from '@app/components/ui/HeadingRenderer';
 
 /**
  * Created By: Rupan Chaulagain
@@ -9,16 +9,10 @@ import HeadingRenderer from "@app/components/ui/HeadingRenderer";
  */
 
 export default function FeaturesContainer(props: any) {
-  const inverted = props?.invert;
-  return (
-    <>
-      <div
-        className={`flex ${
-          inverted ? "flex-row-reverse" : "flex-row"
-        } justify-between mb-24 p-8 justify-between`}
-      >
-        {props.children}
-      </div>
-    </>
-  );
+    const inverted = props?.invert;
+    return (
+        <>
+            <div className={`flex ${inverted ? 'flex-row-reverse' : 'flex-row'} justify-between mb-24 p-8 justify-between`}>{props.children}</div>
+        </>
+    );
 }

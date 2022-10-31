@@ -6,15 +6,11 @@
  * Organization: Sireto Technology
  */
 
-export default function FeaturesContainer(props:any) {
+export default function FeaturesContainer(props: any) {
     // const inverted = props?.invert;
-    return(
+    return (
         <>
-            <div
-                className={`flex items-center gap-4 mb-2 p-4 border-[1px] rounded-md border-solid border-[#eaeaea]`}
-            >
-                {props.children}
-            </div>
+            <div className={`flex items-center gap-4 mb-2 p-4 border-[1px] rounded-md border-solid border-[#eaeaea]`}>{props.children}</div>
         </>
-    )
+    );
 }

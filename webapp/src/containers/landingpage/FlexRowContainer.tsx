@@ -5,13 +5,13 @@
  * Project: formintegratorwebapp
  * Organization: Sireto Technology
  */
-import HeadingRenderer from "@app/components/ui/HeadingRenderer";
+import HeadingRenderer from '@app/components/ui/HeadingRenderer';
 
 export default function FlexRowContainer(props: any) {
     return (
         <>
             {!!props.title ? <HeadingRenderer>{props.title}</HeadingRenderer> : null}
-            <div className={"flex flex-col-reverse lg:flex-row lg:justify-between"}>{props.children}</div>
+            <div className={'flex flex-col-reverse lg:flex-row lg:justify-between'}>{props.children}</div>
         </>
     );
 }

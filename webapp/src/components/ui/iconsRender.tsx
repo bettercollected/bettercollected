@@ -1,4 +1,4 @@
-import GoogleIcon from "@mui/icons-material/Google";
+import GoogleIcon from '@mui/icons-material/Google';
 
 /**
  * Created By: Rupan Chaulagain
@@ -9,18 +9,13 @@ import GoogleIcon from "@mui/icons-material/Google";
  */
 
 export default function IconsRender({ IconsArray }: any) {
-  return (
-    <div className={"flex gap-1"}>
-      {IconsArray.map((icon: any, index: number) => (
-        <div
-          key={index}
-          className={
-            "p-2 border-gray-100 rounded-lg rounded-tr-none rounded-bl-none border-solid  border-[2px]"
-          }
-        >
-          {icon.Icon}
+    return (
+        <div className={'flex gap-1'}>
+            {IconsArray.map((icon: any, index: number) => (
+                <div key={index} className={'p-2 border-gray-100 rounded-lg rounded-tr-none rounded-bl-none border-solid  border-[2px]'}>
+                    {icon.Icon}
+                </div>
+            ))}
         </div>
-      ))}
-    </div>
-  );
+    );
 }
