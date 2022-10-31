@@ -3,15 +3,16 @@
 Source code for Better Collected, with Next.js version `12.3.1`.
 
 ## Runtime Environment Variables
+
 Please refer to the [.env.example](.env.example) file for updated environment variables
 
-- GA_MEASUREMENT_ID
-- WAITLIST_FORM_URL
-- CONTACT_US_URL
-- INDIVIDUAL_FORM
-- BUSINESS_FORM
-- ENTERPRISE_FORM
-- NEXT_PUBLIC_NODE_ENV
+-   GA_MEASUREMENT_ID
+-   WAITLIST_FORM_URL
+-   CONTACT_US_URL
+-   INDIVIDUAL_FORM
+-   BUSINESS_FORM
+-   ENTERPRISE_FORM
+-   NEXT_PUBLIC_NODE_ENV
 
 ### Project Setup and Scripts
 
