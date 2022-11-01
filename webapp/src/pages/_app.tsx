@@ -14,15 +14,18 @@ import ReactGA from 'react-ga4';
 import { Provider } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { PersistGate } from 'redux-persist/integration/react';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
 import '@app/assets/css/globals.css';
+import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import NextNProgress from '@app/components/ui/nprogress';
 import createEmotionCache from '@app/configs/createEmotionCache';
 import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
 import MuiThemeProvider from '@app/layouts/_mui-theme-provider';
+import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
 
 // Client-side cache, shared for the whole session of the user in the browser.
@@ -103,7 +106,11 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                     </CookieConsent>
                     <NextNProgress color="#f04444" startPosition={0} stopDelayMs={400} height={5} options={{ easing: 'ease' }} />
                     <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
-                    <Component {...pageProps} />
+                    <Provider store={store}>
+                        <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
+                            {getLayout(<Component {...pageProps} />)}
+                        </PersistGate>
+                    </Provider>
                 </MuiThemeProvider>
             </CacheProvider>
         </ThemeProvider>
