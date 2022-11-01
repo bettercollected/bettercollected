@@ -1,0 +1,297 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@tailwind variants;
+
+@layer base {
+    :root {
+        --color-brand: 17 24 39;
+    }
+
+    html,
+    body {
+        @apply bg-body font-body antialiased dark:bg-dark dark:text-white;
+    }
+
+    .dynamic-html h6 {
+        @apply font-medium uppercase;
+    }
+
+    .dynamic-html p {
+        @apply mb-3;
+    }
+
+    [type='text'],
+    [type='email'],
+    [type='url'],
+    [type='password'],
+    [type='number'],
+    [type='date'],
+    [type='datetime-local'],
+    [type='month'],
+    [type='search'],
+    [type='tel'],
+    [type='time'],
+    [type='week'],
+    [multiple],
+    textarea,
+    select {
+        padding: 16.5px 14px;
+        @apply border-none bg-transparent;
+    }
+
+    [type='text']:focus,
+    [type='email']:focus,
+    [type='url']:focus,
+    [type='password']:focus,
+    [type='number']:focus,
+    [type='date']:focus,
+    [type='datetime-local']:focus,
+    [type='month']:focus,
+    [type='search']:focus,
+    [type='tel']:focus,
+    [type='time']:focus,
+    [type='week']:focus,
+    [multiple]:focus,
+    textarea:focus,
+    select:focus {
+        @apply ring-0 ring-transparent;
+    }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+}
+
+@layer utilities {
+    .text-case-inherit {
+        text-transform: inherit;
+    }
+
+    .letter-space-inherit {
+        letter-spacing: inherit;
+    }
+
+    .word-break-all {
+        word-break: break-all;
+    }
+
+    .animation-delay-200 {
+        animation-delay: 200ms;
+    }
+
+    .animation-delay-500 {
+        animation-delay: 500ms;
+    }
+
+    .animation-delay-700 {
+        animation-delay: 700ms;
+    }
+
+    .text-vertical {
+        writing-mode: tb;
+        text-orientation: upright;
+    }
+}
+
+/* Hide spin button for input type number */
+input.spin-button-hidden::-webkit-outer-spin-button,
+input.spin-button-hidden::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.swiper {
+    @apply flex flex-col;
+}
+
+.swiper-wrapper {
+    @apply order-first;
+}
+
+.swiper-scrollbar {
+    @apply relative rounded bg-gray-200 dark:bg-gray-600;
+}
+
+.swiper-horizontal > .swiper-scrollbar {
+    @apply z-10 mt-4 mb-0 h-0.5 w-full sm:mt-6;
+}
+
+.swiper-vertical > .swiper-scrollbar {
+    @apply absolute top-0 right-1 z-10 h-full w-0.5;
+}
+
+.swiper-scrollbar-drag {
+    @apply relative rounded bg-gray-900 dark:bg-light-dark;
+}
+
+.swiper-horizontal .swiper-scrollbar-drag {
+    @apply top-[-1px] left-0 h-[3px] w-full shadow-sm;
+}
+
+.swiper-vertical .swiper-scrollbar-drag {
+    @apply left-[-1px] top-0 h-full w-[3px] shadow-sm;
+}
+
+.swiper-scrollbar-cursor-drag {
+    @apply cursor-move;
+}
+
+.swiper-scrollbar-lock {
+    @apply hidden;
+}
+
+.transaction-table {
+    border-spacing: 0 12px;
+    margin-top: -12px;
+}
+
+.transaction-table > thead tr > th {
+    text-align: left;
+}
+
+.text-heading-style {
+    @apply text-sm font-medium tracking-wider;
+}
+
+/* React Share button custom styles */
+.product-share .react-share__ShareButton {
+    @apply flex flex-col items-center justify-center;
+}
+
+/* ============================================= */
+/* Loading animation */
+/* ============================================= */
+.animated-background,
+.text-line,
+.image {
+    -webkit-animation-duration: 1.25s;
+    animation-duration: 1.25s;
+    -webkit-animation-fill-mode: forwards;
+    animation-fill-mode: forwards;
+    -webkit-animation-iteration-count: infinite;
+    animation-iteration-count: infinite;
+    -webkit-animation-name: placeholdershimmer;
+    animation-name: placeHolderShimmer;
+    -webkit-animation-timing-function: linear;
+    animation-timing-function: linear;
+    background: #f6f6f6;
+    background: linear-gradient(to right, #f6f6f6 8%, #f0f0f0 18%, #f6f6f6 33%);
+    background-size: 900px 500px;
+    height: auto;
+    width: 100%;
+
+    /* height: 96px; */
+    position: relative;
+}
+
+@-webkit-keyframes placeHolderShimmer {
+    0% {
+        background-position: -468px 0;
+    }
+
+    90% {
+        background-position: 468px 0;
+    }
+}
+
+@keyframes placeHolderShimmer {
+    0% {
+        background-position: -468px 0;
+    }
+
+    100% {
+        background-position: 468px 0;
+    }
+}
+
+.hover-scale {
+    transition: all 0.2s ease-in-out;
+}
+
+.hover-scale:hover {
+    -webkit-transform: scale(1.05);
+    transform: scale(1.05);
+}
+
+.hover-animate {
+    transition: all 0.2s ease-in-out;
+}
+
+.hover-animate:focus,
+.hover-animate:hover {
+    -webkit-transform: translate3d(0, -2px, 5px);
+    transform: translate3d(0, -2px, 5px);
+}
+
+.hover-scale-bg-image .bg-image {
+    transition: all 0.2s ease-in-out;
+}
+
+.hover-scale-bg-image:focus .bg-image,
+.hover-scale-bg-image:hover .bg-image {
+    -webkit-transform: scale(1.05);
+    transform: scale(1.05);
+}
+
+.product-box .product-image video,
+.product-box .product-image img {
+    -webkit-transition: 0.3s ease-in;
+    -o-transition: 0.3s ease-in;
+    transition: 0.3s ease-in;
+}
+
+.product-box:hover .product-image video,
+.product-box:hover .product-image img {
+    -webkit-transform: scale(1.05, 1.05);
+    -ms-transform: scale(1.05, 1.05);
+    transform: scale(1.05, 1.05);
+}
+
+.product-box:hover .product-image video,
+.product-box:hover .product-image img,
+.seller-box-table:hover .thumbnail a:hover img {
+    transform: scale(1.05, 1.05);
+}
+
+.product-box .product-meta {
+    -webkit-transform: translate(0, -10px);
+    -ms-transform: translate(0, -10px);
+    transform: translate(0, -10px);
+    -webkit-transition: 0.3s ease-in;
+    -o-transition: 0.3s ease-in;
+    transition: 0.3s ease-in;
+    opacity: 0;
+    visibility: hidden;
+}
+
+.product-box:hover .product-meta {
+    -webkit-transform: translate(0, 0);
+    -ms-transform: translate(0, 0);
+    transform: translate(0, 0);
+    opacity: 1;
+    visibility: visible;
+}
+
+.custom-img {
+    object-fit: contain;
+    width: 100% !important;
+    position: relative !important;
+    height: unset !important;
+    min-height: auto !important;
+}
+
+.custom-img > span {
+    position: inherit !important;
+}
+
+.unset-img {
+    width: 100% !important;
+}
+
+.unset-img > div {
+    min-height: auto !important;
+    position: unset !important;
+}

@@ -13,7 +13,7 @@ const Payment = dynamic(() => import('@app/components/landingpage/Payment'), { s
 const Home: NextPage = (props: any) => {
     const hasCustomDomain = !!props?.IS_CUSTOM_DOMAIN;
 
-    if (hasCustomDomain) return <h1>Public dashboard of forms.sireto.io</h1>;
+    if (hasCustomDomain) return <h1 className="text-red-500">Public dashboard of forms.sireto.io</h1>;
 
     return (
         <>
