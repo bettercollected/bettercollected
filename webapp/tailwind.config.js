@@ -16,7 +16,7 @@ module.exports = {
         },
         extend: {
             blur: {
-                dashboardBackground: '200px'
+                dashboardBackground: '105px'
             },
             colors: {
                 brand: 'rgb(var(--color-brand) / <alpha-value>)',
