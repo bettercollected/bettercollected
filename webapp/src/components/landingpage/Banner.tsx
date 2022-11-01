@@ -12,7 +12,7 @@ import ButtonRenderer from '@app/components/ui/ButtonRenderer';
 import FormInput from '@app/components/ui/FormInput';
 import environments from '@app/configs/environments';
 import FlexRowContainer from '@app/containers/landingpage/FlexRowContainer';
-import useDimension from '@app/hooks/useDimension';
+import useDimension from '@app/lib/hooks/use-dimension';
 
 /**
  * Created By: Rupan Chaulagain

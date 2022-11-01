@@ -9,7 +9,7 @@ import FormInput from '@app/components/ui/FormInput';
 import FormRenderer from '@app/components/ui/FormRenderer';
 import HeadingRenderer from '@app/components/ui/HeadingRenderer';
 import environments from '@app/configs/environments';
-import useDimension from '@app/hooks/useDimension';
+import useDimension from '@app/lib/hooks/use-dimension';
 
 import ContactImage from '../../../public/contact_us.svg';
 
