@@ -37,7 +37,7 @@ const nextConfig = {
     images: {
         minimumCacheTTL: 600,
         formats: ['image/avif', 'image/webp'],
-        domains: ['s3.eu-west-1.wasabisys.com']
+        domains: ['s3.eu-west-1.wasabisys.com', 's3.eu-central-1.wasabisys.com', 'sireto.com']
     },
     publicRuntimeConfig: {
         CONTACT_US_URL: process.env.CONTACT_US_URL,

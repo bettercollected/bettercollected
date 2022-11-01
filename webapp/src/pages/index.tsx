@@ -17,7 +17,7 @@ interface IHome {
 }
 
 const Home = ({ hasCustomDomain, companyJson }: IHome) => {
-    if (hasCustomDomain) return <DashboardContainer companyJson={companyJson} />;
+    if (hasCustomDomain && !!companyJson) return <DashboardContainer companyJson={companyJson} />;
 
     return (
         <>

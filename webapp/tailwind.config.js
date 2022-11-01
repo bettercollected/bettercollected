@@ -15,6 +15,9 @@ module.exports = {
             '4xl': '2160px' // only need to control product grid mode in ultra 4k device
         },
         extend: {
+            blur: {
+                dashboardBackground: '200px'
+            },
             colors: {
                 brand: 'rgb(var(--color-brand) / <alpha-value>)',
                 body: '#ffffff',
