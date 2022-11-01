@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
-import BannerImage from '@app/assets/BannerImage.svg';
+import BannerImage from '@app/assets/svgs/BannerImage.svg';
 import Iframe from '@app/components/landingpage/Iframe';
 import LandingPageSectionContainer from '@app/components/landingpage/LandingPageSectionContainer';
 import ButtonRenderer from '@app/components/ui/ButtonRenderer';

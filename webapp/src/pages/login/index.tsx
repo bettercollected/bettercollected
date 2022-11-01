@@ -4,9 +4,6 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 
-import img1 from '@app/assets/carousel/1.jpg';
-import img2 from '@app/assets/carousel/1.jpg';
-import img3 from '@app/assets/carousel/1.jpg';
 import LoginForm from '@app/components/login/login-form';
 import LocalCarousel from '@app/components/ui/carousel';
 
@@ -25,7 +22,7 @@ export default function LoginContainer(props: any) {
             </Head>
             <div className="flex-1 min-h-screen min-w-screen bg-white rounded-lg shadow-xl">
                 <div className="flex flex-col min-h-screen md:flex-row">
-                    <LocalCarousel ImagesArray={[img1, img2, img3]} />
+                    {/* <LocalCarousel ImagesArray={[img1, img2, img3]} /> */}
                     <LoginForm />
                 </div>
             </div>

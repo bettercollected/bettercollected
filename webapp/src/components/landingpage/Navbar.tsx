@@ -2,8 +2,8 @@ import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
-import BrandLogo from '@app/assets/brand-logo.svg';
-import HamburgerMenu from '@app/assets/hamburger-menu.svg';
+import BrandLogo from '@app/assets/svgs/brand-logo.svg';
+import HamburgerMenu from '@app/assets/svgs/hamburger-menu.svg';
 import LanguageChangeDropdownRenderer from '@app/components/landingpage/LanguageChangeDropdownRenderer';
 import ThemeSwitcher from '@app/components/settings/theme-switcher';
 import ButtonRenderer from '@app/components/ui/ButtonRenderer';

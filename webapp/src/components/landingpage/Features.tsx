@@ -8,12 +8,12 @@
 import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
 
-import diagram from '@app/assets/Diagram4.svg';
-import data from '@app/assets/Group.svg';
-import Vector from '@app/assets/Vector.svg';
-import cardImage from '@app/assets/card.svg';
-import form from '@app/assets/form.svg';
-import privacy from '@app/assets/privacy.svg';
+import diagram from '@app/assets/svgs/Diagram4.svg';
+import data from '@app/assets/svgs/Group.svg';
+import Vector from '@app/assets/svgs/Vector.svg';
+import cardImage from '@app/assets/svgs/card.svg';
+import form from '@app/assets/svgs/form.svg';
+import privacy from '@app/assets/svgs/privacy.svg';
 import FeaturesContainer from '@app/components/landingpage/FeaturesContainer';
 import LandingPageSectionContainer from '@app/components/landingpage/LandingPageSectionContainer';
 import HeadingRenderer from '@app/components/ui/HeadingRenderer';
