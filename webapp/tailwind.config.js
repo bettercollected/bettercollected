@@ -23,7 +23,10 @@ module.exports = {
                 body: '#ffffff',
                 dark: '#1c1917',
                 // dark: '#0D1321',
-                'light-dark': '#171e2e'
+                'light-dark': '#171e2e',
+                darkGrey: '#333333',
+                grey: '#4F4F4F',
+                softBlue: '#9AA8BD'
             },
             spacing: {
                 13: '3.375rem'
