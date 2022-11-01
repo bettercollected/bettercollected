@@ -24,6 +24,7 @@ import NextNProgress from '@app/components/ui/nprogress';
 import createEmotionCache from '@app/configs/createEmotionCache';
 import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
+import { consoleTextStyle, consoleWarningStyle } from '@app/constants/styles';
 import MuiThemeProvider from '@app/layouts/_mui-theme-provider';
 import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
@@ -40,6 +41,9 @@ ReactGA.initialize(environments.GA_MEASUREMENT_ID);
 ReactGA.send('pageview');
 
 function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }: AppPropsWithLayout) {
+    console.warn(globalConstants.consoleWarningTitle, consoleWarningStyle);
+    console.warn(globalConstants.consoleWarningDescription, consoleTextStyle);
+
     const getLayout = Component.getLayout ?? ((page: any) => page);
 
     //TODO: configure NextSEO component for all pages

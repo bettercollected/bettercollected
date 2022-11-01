@@ -32,7 +32,7 @@ const nextConfig = {
     optimizeFonts: true,
     compiler: {
         emotion: true,
-        removeConsole: process.env.NEXT_PUBLIC_NODE_ENV === 'production'
+        removeConsole: process.env.NEXT_PUBLIC_NODE_ENV === 'production' ? { exclude: ['warn'] } : false
     },
     images: {
         minimumCacheTTL: 600,
