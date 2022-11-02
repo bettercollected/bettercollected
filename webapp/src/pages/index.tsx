@@ -17,7 +17,7 @@ interface IHome {
 }
 
 const Home = ({ hasCustomDomain, companyJson }: IHome) => {
-    if (hasCustomDomain && !!companyJson) return <DashboardContainer companyJson={companyJson} />;
+    if (hasCustomDomain) return <DashboardContainer companyJson={companyJson} />;
 
     return (
         <>
@@ -37,20 +37,22 @@ export default Home;
 
 export async function getServerSideProps({ locale }: any) {
     const hasCustomDomain = !!environments.IS_CUSTOM_DOMAIN;
-    let companyObj: CompanyJsonDto | null = null;
+    let companyJson: CompanyJsonDto | null = null;
+
     try {
         if (hasCustomDomain && !!environments.CUSTOM_DOMAIN_JSON) {
             const json = await fetch(environments.CUSTOM_DOMAIN_JSON).catch((e) => e);
-            companyObj = await json.json();
+            companyJson = (await json.json().catch((e: any) => e)) ?? null;
         }
     } catch (err) {
+        companyJson = null;
         console.error(err);
     }
     return {
         props: {
             ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
-            hasCustomDomain: hasCustomDomain && !!environments.CUSTOM_DOMAIN_JSON,
-            companyJson: companyObj
+            hasCustomDomain,
+            companyJson
         }
     };
 }

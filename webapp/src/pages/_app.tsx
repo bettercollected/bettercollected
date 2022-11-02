@@ -41,8 +41,8 @@ ReactGA.initialize(environments.GA_MEASUREMENT_ID);
 ReactGA.send('pageview');
 
 function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }: AppPropsWithLayout) {
-    console.warn(globalConstants.consoleWarningTitle, consoleWarningStyle);
-    console.warn(globalConstants.consoleWarningDescription, consoleTextStyle);
+    console.info(globalConstants.consoleWarningTitle, consoleWarningStyle);
+    console.info(globalConstants.consoleWarningDescription, consoleTextStyle);
 
     const getLayout = Component.getLayout ?? ((page: any) => page);
 

@@ -1,6 +1,6 @@
 const path = require('path');
 module.exports = {
-    debug: process.env.NODE_ENV === 'development',
+    debug: false,
     i18n: {
         defaultLocale: 'en',
         locales: ['en', 'nl']
