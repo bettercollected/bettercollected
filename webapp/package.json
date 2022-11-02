@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "clean": "rimraf \"{node_modules,.next,.next-dev,out.cache}\"",
+    "clean": "rimraf \"{node_modules,.next,.next-dev,out,.cache,.idea}\"",
     "format": "prettier --write .",
     "lint": "next lint",
     "dev": "cross-env NODE_OPTIONS='--inspect' next dev",
