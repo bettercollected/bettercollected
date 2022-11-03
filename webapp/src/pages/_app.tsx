@@ -35,6 +35,7 @@ const clientSideEmotionCache = createEmotionCache();
 type AppPropsWithLayout = AppProps & {
     Component: NextPageWithLayout;
     emotionCache?: EmotionCache;
+    pageProps: any;
 };
 
 ReactGA.initialize(environments.GA_MEASUREMENT_ID);
@@ -51,6 +52,14 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
     let description = globalConstants.socialPreview.desc;
     let url = globalConstants.socialPreview.url;
     let imageUrl = globalConstants.socialPreview.image;
+
+    const hasCustomDomain = !!pageProps?.hasCustomDomain;
+    if (hasCustomDomain && !!pageProps?.companyJson) {
+        title = pageProps?.companyJson?.companyTitle ?? title;
+        imageUrl = pageProps?.companyJson?.companyProfile ?? imageUrl;
+        url = pageProps?.companyJson?.companyDomain ?? url;
+        description = pageProps?.companyJson?.companyDescription ?? description;
+    }
 
     const router = useRouter();
 
@@ -86,13 +95,13 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                             type: 'website',
                             locale: 'en_IE',
                             url,
-                            site_name: globalConstants.appName,
+                            site_name: title || globalConstants.appName,
                             description: description,
                             title,
                             images: [
                                 {
                                     url: imageUrl,
-                                    alt: 'Better Collected'
+                                    alt: hasCustomDomain ? title : 'Better Collected'
                                 }
                             ]
                         }}

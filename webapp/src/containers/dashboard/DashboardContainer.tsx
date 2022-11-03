@@ -6,6 +6,7 @@ import TextField from '@mui/material/TextField';
 import { ShareIcon } from '@app/components/icons/share-icon';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Image from '@app/components/ui/image';
+import ActiveLink from '@app/components/ui/links/active-link';
 import MarkdownText from '@app/components/ui/markdown-text';
 import ContentLayout from '@app/layouts/_content-layout';
 import { CompanyJsonDto } from '@app/models/dtos/customDomain';
@@ -17,6 +18,8 @@ interface IDashboardContainer {
 
 export default function DashboardContainer({ companyJson }: IDashboardContainer) {
     if (!companyJson) return <FullScreenLoader />;
+
+    const forms = companyJson?.forms ?? [];
 
     return (
         <div className="relative">
@@ -49,22 +52,28 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                     </div>
                     <div className="pt-3 md:pt-7">
                         <div className="grid grid-cols-1 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
-                            {[1, 2, 3, 4, 5, 6].map((form) => (
-                                <div key={form} className="flex flex-row items-center gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-md transition cursor-pointer bg-white rounded-[20px]">
-                                    <div className="flex flex-col">
-                                        <p className="text-xl text-grey mb-4 p-0">Community Manager Summer 2022</p>
-                                        <p className="text-base text-softBlue m-0 p-0">
-                                            {toEndDottedStr(
-                                                'This is a description or info necessary for the profile this is a description or info necessary for the profile this is a description or info necessary for the profile limited to X characters.',
-                                                200
-                                            )}
-                                        </p>
-                                    </div>
-                                    <div className="p-2 border-[1px] border-white hover:border-neutral-100 hover:shadow rounded-md">
-                                        <ShareIcon width={19} height={19} />
-                                    </div>
-                                </div>
-                            ))}
+                            {forms.map((form) => {
+                                const slug = form.info.title.toLowerCase().replaceAll(' ', '-');
+                                return (
+                                    <ActiveLink
+                                        key={form.id}
+                                        href={{
+                                            pathname: `/forms/[slug]`,
+                                            query: { slug }
+                                        }}
+                                    >
+                                        <div className="flex flex-row items-center gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-md transition cursor-pointer bg-white rounded-[20px]">
+                                            <div className="flex flex-col">
+                                                <p className="text-xl text-grey mb-4 p-0">{form.info.title}</p>
+                                                {form.info?.description && <p className="text-base text-softBlue m-0 p-0">{toEndDottedStr(form.info.description, 200)}</p>}
+                                            </div>
+                                            <div className="p-2 border-[1px] border-white hover:border-neutral-100 hover:shadow rounded-md">
+                                                <ShareIcon width={19} height={19} />
+                                            </div>
+                                        </div>
+                                    </ActiveLink>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
