@@ -124,8 +124,8 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                                                 query: { slug }
                                             }}
                                         >
-                                            <div className="flex flex-row items-center gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
-                                                <div className="flex flex-col">
+                                            <div className="flex flex-row items-center h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
+                                                <div className="flex flex-col justify-start h-full">
                                                     <p className="text-xl text-grey mb-4 p-0">{form.info.title}</p>
                                                     {form.info?.description && <p className="text-base text-softBlue m-0 p-0">{toEndDottedStr(form.info.description, 180)}</p>}
                                                 </div>
