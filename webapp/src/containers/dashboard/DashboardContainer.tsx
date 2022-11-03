@@ -1,25 +1,58 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
-import Autocomplete from '@mui/material/Autocomplete';
+import styled from '@emotion/styled';
+import { IconButton, InputAdornment } from '@mui/material';
 import TextField from '@mui/material/TextField';
 
+import EmptyTray from '@app/assets/svgs/empty-tray.svg';
+import { SearchIcon } from '@app/components/icons/search';
 import { ShareIcon } from '@app/components/icons/share-icon';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
 import MarkdownText from '@app/components/ui/markdown-text';
+import MuiSnackbar from '@app/components/ui/mui-snackbar';
 import ContentLayout from '@app/layouts/_content-layout';
+import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { CompanyJsonDto } from '@app/models/dtos/customDomain';
+import { GoogleFormDto } from '@app/models/dtos/googleForm';
 import { toEndDottedStr } from '@app/utils/stringUtils';
+
+const StyledTextField = styled.div`
+    .MuiFormControl-root {
+        background: white;
+    }
+`;
 
 interface IDashboardContainer {
     companyJson: CompanyJsonDto | null;
 }
 
 export default function DashboardContainer({ companyJson }: IDashboardContainer) {
-    if (!companyJson) return <FullScreenLoader />;
+    const [searchText, setSearchText] = useState('');
+    const [isOpen, setIsOpen] = useState(false);
+    const [forms, setForms] = useState<Array<GoogleFormDto> | null>(null);
 
-    const forms = companyJson?.forms ?? [];
+    const [_, copyToClipboard] = useCopyToClipboard();
+
+    let timeOutId: any;
+    const handleSearch = (event: any) => {
+        setSearchText(event.target.value.toLowerCase());
+    };
+
+    useEffect(() => {
+        if (!!companyJson) {
+            const companyForms: Array<GoogleFormDto> | null = companyJson?.forms ?? [];
+            const filteredForms = companyForms.filter((form) => form.info.title.toLowerCase().includes(searchText.toLowerCase()));
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            timeOutId = setTimeout(() => setForms(filteredForms ?? []), 500);
+        }
+
+        return () => timeOutId && clearTimeout(timeOutId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchText, companyJson]);
+
+    if (!companyJson || !forms) return <FullScreenLoader />;
 
     return (
         <div className="relative">
@@ -48,33 +81,72 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                 <div className="relative flex flex-col w-full">
                     <div className="flex flex-row items-center justify-between">
                         <h2 className="font-semibold text-darkGrey text-lg sm:text-xl md:text-2xl xl:text-3xl">Forms</h2>
-                        <Autocomplete size="small" disablePortal id="combo-box-demo" options={[]} sx={{ width: 250 }} renderInput={(params) => <TextField {...params} label="Search forms..." />} />
+                        <StyledTextField>
+                            <TextField
+                                size="small"
+                                name="search-input"
+                                placeholder="Search forms..."
+                                value={searchText}
+                                onChange={handleSearch}
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton>
+                                                <SearchIcon />
+                                            </IconButton>
+                                        </InputAdornment>
+                                    )
+                                }}
+                            />
+                        </StyledTextField>
+                        {/* <Autocomplete value={sea} onChange={handleSearch} size="small" disablePortal id="combo-box-demo" options={[]} sx={{ width: 250 }} renderInput={(params) => <TextField {...params} label="Search forms..." />} /> */}
                     </div>
                     <div className="pt-3 md:pt-7">
+                        {forms.length === 0 && (
+                            <div className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
+                                <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />
+                                <p className="mt-4 p-0">0 forms</p>
+                            </div>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
-                            {forms.map((form) => {
-                                const slug = form.info.title.toLowerCase().replaceAll(' ', '-');
-                                return (
-                                    <ActiveLink
-                                        key={form.id}
-                                        href={{
-                                            pathname: `/forms/[slug]`,
-                                            query: { slug }
-                                        }}
-                                    >
-                                        <div className="flex flex-row items-center gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-md transition cursor-pointer bg-white rounded-[20px]">
-                                            <div className="flex flex-col">
-                                                <p className="text-xl text-grey mb-4 p-0">{form.info.title}</p>
-                                                {form.info?.description && <p className="text-base text-softBlue m-0 p-0">{toEndDottedStr(form.info.description, 200)}</p>}
+                            {forms.length !== 0 &&
+                                forms.map((form) => {
+                                    const slug = form.info.title.toLowerCase().replaceAll(' ', '-');
+                                    let shareUrl = '';
+                                    if (window && typeof window !== 'undefined') {
+                                        shareUrl = `${window.location.origin}/forms/${slug}`;
+                                    }
+                                    return (
+                                        <ActiveLink
+                                            key={form.id}
+                                            href={{
+                                                pathname: `/forms/[slug]`,
+                                                query: { slug }
+                                            }}
+                                        >
+                                            <div className="flex flex-row items-center gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
+                                                <div className="flex flex-col">
+                                                    <p className="text-xl text-grey mb-4 p-0">{form.info.title}</p>
+                                                    {form.info?.description && <p className="text-base text-softBlue m-0 p-0">{toEndDottedStr(form.info.description, 180)}</p>}
+                                                </div>
+                                                <div
+                                                    aria-hidden
+                                                    onClick={(event) => {
+                                                        event.preventDefault();
+                                                        event.stopPropagation();
+                                                        copyToClipboard(shareUrl);
+                                                        setIsOpen(true);
+                                                    }}
+                                                    className="p-2 border-[1px] border-white hover:border-neutral-100 hover:shadow rounded-md"
+                                                >
+                                                    <ShareIcon width={19} height={19} />
+                                                </div>
                                             </div>
-                                            <div className="p-2 border-[1px] border-white hover:border-neutral-100 hover:shadow rounded-md">
-                                                <ShareIcon width={19} height={19} />
-                                            </div>
-                                        </div>
-                                    </ActiveLink>
-                                );
-                            })}
+                                        </ActiveLink>
+                                    );
+                                })}
                         </div>
+                        <MuiSnackbar isOpen={isOpen} setIsOpen={setIsOpen} message="Copied URL" severity="info" />
                     </div>
                 </div>
             </ContentLayout>

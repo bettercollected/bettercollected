@@ -25,7 +25,7 @@ export default function SingleFormPage(props: ISingleFormPage) {
     const responderUri = form.responderUri;
     return (
         <>
-            <Button className="w-auto z-10 !h-8 mx-4 mt-0 sm:mt-1 md:mt-3 hover:!-translate-y-0" variant="solid" onClick={() => router.push('/')}>
+            <Button className="w-auto z-10 !h-8 mx-4 mt-0 sm:mt-1 md:mt-3 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => router.push('/')}>
                 <LongArrowLeft width={15} height={15} />
             </Button>
             <ContentLayout className={'absolute left-0 right-0 top-0 bottom-0 !py-0 !px-0'}>
@@ -61,7 +61,9 @@ export async function getServerSideProps(_context: any) {
     return {
         props: {
             ...(await serverSideTranslations(_context.locale, ['common'], null, ['en', 'de'])),
-            form
+            form,
+            companyJson,
+            hasCustomDomain
         }
     };
 }

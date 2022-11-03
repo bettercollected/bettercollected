@@ -37,7 +37,7 @@ export default function MuiSnackbar({ isOpen, setIsOpen, severity, message }: IM
     return (
         <StyledSnackbar>
             <Snackbar open={isOpen} autoHideDuration={6000} onClose={handleClose}>
-                <Alert onClose={handleClose} severity={severity} sx={{ width: '100%' }}>
+                <Alert onClose={handleClose} severity={severity}>
                     {message}
                 </Alert>
             </Snackbar>
