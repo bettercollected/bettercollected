@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import { appWithTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
@@ -38,9 +38,6 @@ type AppPropsWithLayout = AppProps & {
     pageProps: any;
 };
 
-ReactGA.initialize(environments.GA_MEASUREMENT_ID);
-ReactGA.send('pageview');
-
 function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }: AppPropsWithLayout) {
     console.info(globalConstants.consoleWarningTitle, consoleWarningStyle);
     console.info(globalConstants.consoleWarningDescription, consoleTextStyle);
@@ -62,6 +59,13 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
     }
 
     const router = useRouter();
+
+    useEffect(() => {
+        if (!!environments.GA_MEASUREMENT_ID) {
+            ReactGA.initialize(environments.GA_MEASUREMENT_ID);
+            ReactGA.send('pageview');
+        }
+    }, []);
 
     return (
         <ThemeProvider attribute="class" enableSystem={false} defaultTheme="light">
