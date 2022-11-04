@@ -79,7 +79,7 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                     </div>
                 </div>
                 <div className="relative flex flex-col w-full">
-                    <div className="flex flex-row items-center justify-between">
+                    <div className="flex flex-row gap-6 items-center justify-between">
                         <h2 className="font-semibold text-darkGrey text-lg sm:text-xl md:text-2xl xl:text-3xl">Forms</h2>
                         <StyledTextField>
                             <TextField
@@ -124,10 +124,10 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                                                 query: { slug }
                                             }}
                                         >
-                                            <div className="flex flex-row items-center h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
+                                            <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
                                                 <div className="flex flex-col justify-start h-full">
                                                     <p className="text-xl text-grey mb-4 p-0">{form.info.title}</p>
-                                                    {form.info?.description && <p className="text-base text-softBlue m-0 p-0">{toEndDottedStr(form.info.description, 180)}</p>}
+                                                    {form.info?.description && <p className="text-base text-softBlue m-0 p-0 w-full">{toEndDottedStr(form.info.description, 180)}</p>}
                                                 </div>
                                                 <div
                                                     aria-hidden
