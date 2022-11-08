@@ -19,6 +19,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 
 import '@app/assets/css/globals.css';
+import ModalContainer from '@app/components/modal-views/container';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import NextNProgress from '@app/components/ui/nprogress';
 import createEmotionCache from '@app/configs/createEmotionCache';
@@ -128,6 +129,7 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                             {getLayout(<Component {...pageProps} />)}
                         </PersistGate>
                     </Provider>
+                    <ModalContainer />
                 </MuiThemeProvider>
             </CacheProvider>
         </ThemeProvider>

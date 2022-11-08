@@ -28,7 +28,7 @@ const Home = ({ hasCustomDomain, companyJson }: IHome) => {
             {/*<WaitlistForm/>*/}
             <Features />
             {/*<TimelineContainer/>*/}
-            <Payment />
+            {/* <Payment /> */}
             {/*<ContactUs/>*/}
             <Footer />
         </>
