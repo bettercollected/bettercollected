@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
-import BannerImage from '@app/assets/svgs/BannerImage.svg';
+import bettercollected from '@app/assets/svgs/bettercollected.svg';
 import Iframe from '@app/components/landingpage/Iframe';
 import LandingPageSectionContainer from '@app/components/landingpage/LandingPageSectionContainer';
 import ButtonRenderer from '@app/components/ui/ButtonRenderer';
@@ -61,12 +61,13 @@ export default function Banner() {
     return (
         <>
             {iFrame && <Iframe formUrl={`${environments.WAITLIST_FORM_URL}&emailAddress=${email}`} handleClose={() => setIframe(false)} />}
-            <div className={"sm:bg-white lg:bg-[url('/background-7.svg')] lg:bg-no-repeat lg:bg-cover"}>
+            <div className={'sm:bg-white'}>
+                {/* <div className={"sm:bg-white lg:bg-[url('/background-8.svg')] lg:bg-no-repeat lg:bg-cover"}> */}
                 <LandingPageSectionContainer sectionId={'banner'}>
                     <FlexRowContainer>
-                        <div className={'w-full md:w-full lg:w-1/2'}>
-                            <div className={'font-bold text-2xl sm:text-4xl md:text-5xl lg:text-7xl font-roboto mb-3'}>{t('SLOGAN_TITLE')}</div>
-                            <div className={'font-roboto font-display text-gray-400 text-lg sm:text-2xl mb-6'}>{t('SLOGAN_DESCRIPTION')}</div>
+                        <div className={'w-full md:w-full lg:w-1/2 flex-2 mt-10'}>
+                            <div className={'font-bold text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-roboto mb-3'}>{t('SLOGAN_TITLE')}</div>
+                            <div className={'font-roboto font-display text-gray-400 text-md md:text-lg lg:text-xl mb-6'}>{t('SLOGAN_DESCRIPTION')}</div>
 
                             <div className={'flex flex-col lg:flex-row lg:items-center gap-4'}>
                                 {/*<FormInput*/}
@@ -85,8 +86,8 @@ export default function Banner() {
                                 </a>
                             </div>
                         </div>
-                        <div>
-                            <Image src={BannerImage} className={'rounded-lg'} alt={'Forms'} />
+                        <div className="flex-1">
+                            <Image src={bettercollected} className={'rounded-lg'} alt={'Forms'} width={900} />
                         </div>
                     </FlexRowContainer>
                 </LandingPageSectionContainer>

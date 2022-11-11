@@ -21,7 +21,10 @@ export default function Payment() {
     return (
         <LandingPageSectionContainer sectionId={'payment'}>
             <HeadingRenderer description={t('PAYMENT_DESC')}>{t('READY_TO_GET_STARTED')}</HeadingRenderer>
-            <div className="lg:grid lg:grid-cols-3 sm:gap-6 xl:gap-10 lg:space-y-0 mb-8">
+            <div className="mb-8">
+                <Advertising />
+            </div>
+            <div className="lg:grid lg:grid-cols-3 sm:gap-6 xl:gap-10 lg:space-y-0 mb-8 mt-8">
                 <PaymentCardRenderer
                     title={t('INDIVIDUAL')}
                     description={t('INDIVIDUAL_1')}
@@ -44,7 +47,6 @@ export default function Payment() {
                 />
                 <PaymentCardRenderer title={'Enterprise'} description={'Best for large enterprises'} formUrl={'/pricing/enterprise-plan'} features={ultroProFeatures} amount={''} type={plans.ENTERPRISE} plan={''} />
             </div>
-            <Advertising />
         </LandingPageSectionContainer>
     );
 }

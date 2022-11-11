@@ -11,7 +11,7 @@ export default function FlexRowContainer(props: any) {
     return (
         <>
             {!!props.title ? <HeadingRenderer>{props.title}</HeadingRenderer> : null}
-            <div className={'flex flex-col-reverse lg:flex-row lg:justify-between'}>{props.children}</div>
+            <div className={'flex flex-col-reverse lg:flex-row lg:justify-between mt-5'}>{props.children}</div>
         </>
     );
 }

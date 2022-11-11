@@ -9,8 +9,8 @@
 export default function HeadingRenderer(props: any) {
     return (
         <>
-            <h2 className={`text-[#007AFF] text-4xl font-bold lg:text-center mb-1`}>{props.children}</h2>
-            {!!props.description ? <p className={'text-gray-500 font-normal text-xl lg:text-center mb-16'}>{props.description}</p> : null}
+            <h2 className={`text-[#007AFF] text-3xl md:text-4xl font-bold lg:text-6xl text-center mb-4`}>{props.children}</h2>
+            {!!props.description ? <p className={'text-gray-500 text-md text-center font-normal lg:text-center mb-4'}>{props.description}</p> : null}
         </>
     );
 }
