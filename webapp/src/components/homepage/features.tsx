@@ -29,8 +29,10 @@ export default function Features() {
                         <Image src={portal} alt="Feature 1" width={140} height={140} />
                     </div>
                     <div className="flex flex-col justify-start h-full">
-                        <p className="text-xl md:text-2xl font-semibold text-dark mb-4 p-0">{t('FEATURE_1')}</p>
-                        <p className="text-base text-grey m-0 p-0 w-full">{t('FEATURE_1_DESC')}</p>
+                        <p className="text-xl md:text-2xl font-semibold text-dark mb-4 p-0">Integrate with your favourite form builder</p>
+                        <p className="text-base text-grey m-0 p-0 w-full">
+                            Better collected integrates with your favourite form solution like Google forms. All your forms and form responses are imported and a nice dashboard is prepared for your automatically.
+                        </p>
                     </div>
                 </div>
                 <div className="bg-white flex flex-col md:flex-row items-center md:items-start h-full gap-6 p-6 transition drop-shadow-md hover:drop-shadow-lg rounded-lg">
@@ -38,8 +40,8 @@ export default function Features() {
                         <Image src={builder} alt="Feature 2" width={140} height={140} />
                     </div>
                     <div className="flex flex-col justify-start h-full">
-                        <p className="text-xl md:text-2xl font-semibold text-dark mb-4 p-0">{t('FEATURE_2')}</p>
-                        <p className="text-base text-grey m-0 p-0 w-full">{t('FEATURE_2_DESC')}</p>
+                        <p className="text-xl md:text-2xl font-semibold text-dark mb-4 p-0">Portal for form responders</p>
+                        <p className="text-base text-grey m-0 p-0 w-full">Better collected provides a data portal where any user can verify their email address and view all their collected data associated to the verified email.</p>
                     </div>
                 </div>
                 <div className="bg-white flex flex-col md:flex-row items-center md:items-start h-full gap-6 p-6 transition drop-shadow-md hover:drop-shadow-lg rounded-lg">
@@ -47,8 +49,10 @@ export default function Features() {
                         <Image src={brand} alt="Feature 3" width={140} height={140} />
                     </div>
                     <div className="flex flex-col justify-start h-full">
-                        <p className="text-xl md:text-2xl font-semibold text-dark mb-4 p-0">{t('FEATURE_3')}</p>
-                        <p className="text-base text-grey m-0 p-0 w-full">{t('FEATURE_3_DESC')}</p>
+                        <p className="text-xl md:text-2xl font-semibold text-dark mb-4 p-0">Custom domain and form URLs</p>
+                        <p className="text-base text-grey m-0 p-0 w-full">
+                            You can use your own (sub) domain and create a nice profile with selected forms. You can also customise the form URLs with your own domain instead of random looking Google form URLs.
+                        </p>
                         <AnchorLink className="text-blue-500" href="https://forms.bettercollected.com">
                             See an example
                         </AnchorLink>
@@ -59,8 +63,8 @@ export default function Features() {
                         <Image src={gdpr} alt="Feature 4" width={140} height={140} />
                     </div>
                     <div className="flex flex-col justify-start h-full">
-                        <p className="text-xl md:text-2xl font-semibold text-dark mb-4 p-0">{t('FEATURE_4')}</p>
-                        <p className="text-base text-grey m-0 p-0 w-full">{t('FEATURE_4_DESC')}</p>
+                        <p className="text-xl md:text-2xl font-semibold text-dark mb-4 p-0">Email validation (soon)</p>
+                        <p className="text-base text-grey m-0 p-0 w-full">With email validation, you’ll no longer need to worry about spam responses. All genuine verified responses. How cool is that?</p>
                     </div>
                 </div>
             </div>
