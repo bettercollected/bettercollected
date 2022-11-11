@@ -23,8 +23,8 @@ export default function Navbar() {
         <div className={'sticky bg-white shadow-md top-0 opacity-80 z-50 h-[70px]'}>
             <div className={'p-4 md:pl-20 md:pr-20 flex items-center justify-between'}>
                 <div className={'flex items-center'}>
-                    <div className={'font-bold text-sm md:text-xl lg:text-2xl font-roboto tracking-widest'}>
-                        Better<span className={'text-[#007AFF] tracking-widest'}>Collected.</span>
+                    <div className={'font-bold text-2xl md:text-3xl font-roboto tracking-widest'}>
+                        Better<span className={'text-[#007AFF] tracking-widest'}>Collected</span>
                     </div>
                 </div>
                 {/*<div className={"flex items-center justify-between md:gap-6"}>*/}

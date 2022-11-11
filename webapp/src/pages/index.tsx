@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import environments from '@app/configs/environments';
 import { CompanyJsonDto } from '@app/models/dtos/customDomain';
 
+const HomeContainer = dynamic(() => import('@app/containers/home/HomeContainer'), { ssr: false });
 const DashboardContainer = dynamic(() => import('@app/containers/dashboard/DashboardContainer'), { ssr: false });
 const Banner = dynamic(() => import('@app/components/landingpage/Banner'), { ssr: false });
 const Features = dynamic(() => import('@app/components/landingpage/Features'), { ssr: false });
@@ -18,6 +19,7 @@ interface IHome {
 
 const Home = ({ hasCustomDomain, companyJson }: IHome) => {
     if (hasCustomDomain) return <DashboardContainer companyJson={companyJson} />;
+    return <HomeContainer />;
 
     return (
         <>
