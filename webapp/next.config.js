@@ -32,12 +32,12 @@ const nextConfig = {
     optimizeFonts: true,
     compiler: {
         emotion: true,
-        removeConsole: process.env.NEXT_PUBLIC_NODE_ENV === 'production'
+        removeConsole: process.env.NEXT_PUBLIC_NODE_ENV === 'production' ? { exclude: ['info'] } : false
     },
     images: {
         minimumCacheTTL: 600,
         formats: ['image/avif', 'image/webp'],
-        domains: ['s3.eu-west-1.wasabisys.com']
+        domains: ['s3.eu-west-1.wasabisys.com', 's3.eu-central-1.wasabisys.com', 'sireto.com']
     },
     publicRuntimeConfig: {
         CONTACT_US_URL: process.env.CONTACT_US_URL,
@@ -45,7 +45,12 @@ const nextConfig = {
         WAITLIST_FORM_URL: process.env.WAITLIST_FORM_URL,
         INDIVIDUAL_FORM_URL: process.env.INDIVIDUAL_FORM_URL,
         BUSINESS_FORM_URL: process.env.BUSINESS_FORM_URL,
-        ENTERPRISE_FORM_URL: process.env.ENTERPRISE_FORM_URL
+        ENTERPRISE_FORM_URL: process.env.ENTERPRISE_FORM_URL,
+
+        // Custom Domain Variables
+        IS_CUSTOM_DOMAIN: process.env.IS_CUSTOM_DOMAIN || false,
+        CUSTOM_DOMAIN: process.env.CUSTOM_DOMAIN,
+        CUSTOM_DOMAIN_JSON: process.env.CUSTOM_DOMAIN_JSON
     }
 };
 

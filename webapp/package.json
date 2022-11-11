@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "clean": "rimraf \"{node_modules,.next,.next-dev,out.cache}\"",
+    "clean": "rimraf \"{node_modules,.next,.next-dev,out,.cache,.idea}\"",
     "format": "prettier --write .",
     "lint": "next lint",
     "dev": "cross-env NODE_OPTIONS='--inspect' next dev",
@@ -50,6 +50,7 @@
     "react-ga4": "^1.4.1",
     "react-hook-form": "^7.34.2",
     "react-json-view": "^1.21.3",
+    "react-markdown": "^8.0.3",
     "react-query": "^3.39.2",
     "react-redux": "^8.0.2",
     "react-share": "^4.4.0",
@@ -58,6 +59,7 @@
     "recharts": "^2.1.13",
     "redux-logger": "^3.0.6",
     "redux-persist": "^6.0.0",
+    "remark-gfm": "^3.0.1",
     "sharp": "^0.31.0",
     "swiper": "^8.3.2",
     "uuid": "^8.3.2"

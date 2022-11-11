@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
 
-import BannerImage from '@app/assets/BannerImage.svg';
+import BannerImage from '@app/assets/svgs/BannerImage.svg';
 import LandingPageSectionContainer from '@app/components/landingpage/LandingPageSectionContainer';
 import DialogRenderer from '@app/components/ui/DialogRenderer';
 import FormInput from '@app/components/ui/FormInput';

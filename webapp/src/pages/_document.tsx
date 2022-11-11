@@ -2,21 +2,13 @@ import Document, { DocumentContext, DocumentInitialProps, Head, Html, Main, Next
 
 class MyDocument extends Document {
     static async getInitialProps(ctx: DocumentContext): Promise<DocumentInitialProps> {
-        return await Document.getInitialProps(ctx);
+        return Document.getInitialProps(ctx);
     }
 
     render() {
         return (
-            <Html lang={'en-US'} dir={'ltr'} className={'light'}>
-                <Head>
-                    <link rel="preconnect" href="https://fonts.googleapis.com" />
-                    <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin={'anonymous'} />
-                    {/*<link*/}
-                    {/*  href="https://fonts.googleapis.com/css2?family=Poppins&display=swap"*/}
-                    {/*  rel="stylesheet"*/}
-                    {/*/>*/}
-                    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
-                </Head>
+            <Html lang="en-US" dir="ltr" className="light">
+                <Head>{this.props.styles}</Head>
                 <body>
                     <Main />
                     <NextScript />

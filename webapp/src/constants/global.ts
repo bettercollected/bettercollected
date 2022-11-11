@@ -7,8 +7,6 @@
  */
 import environments from '@app/configs/environments';
 
-// import environments from '@app/configs/environments';
-
 const globalConstants = {
     appName: 'Better Collected',
     appDesc: 'Better collected.',

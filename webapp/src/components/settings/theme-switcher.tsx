@@ -9,8 +9,8 @@ import { useTheme } from 'next-themes';
 
 import { RadioGroup } from '@headlessui/react';
 
-import { Moon } from '@app/assets/icons/moon';
-import { Sun } from '@app/assets/icons/sun';
+import { Moon } from '@app/components/icons/moon';
+import { Sun } from '@app/components/icons/sun';
 
 export default function ThemeSwitcher() {
     const { theme, setTheme } = useTheme();
