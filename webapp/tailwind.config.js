@@ -42,6 +42,7 @@ module.exports = {
                 'calc-358': 'calc(100% - 358px)'
             },
             fontFamily: {
+                righteous: ['Righteous', 'cursive'],
                 body: ['Roboto', 'Open Sans', 'monospace']
             },
             fontSize: {
@@ -125,5 +126,39 @@ module.exports = {
             }
         }
     },
-    plugins: [require('@tailwindcss/typography'), require('@tailwindcss/forms')]
+    plugins: [
+        require('@tailwindcss/typography'),
+        require('@tailwindcss/forms'),
+        ({ addComponents }) => {
+            addComponents({
+                '.container': {
+                    maxWidth: '100%',
+                    '@screen xs': {
+                        maxWidth: '500px'
+                    },
+                    '@screen sm': {
+                        maxWidth: '640px'
+                    },
+                    '@screen md': {
+                        maxWidth: '800px'
+                    },
+                    '@screen lg': {
+                        maxWidth: '1176px'
+                    },
+                    '@screen xl': {
+                        maxWidth: '1310px'
+                    },
+                    '@screen 2xl': {
+                        maxWidth: '1352px'
+                    },
+                    '@screen 3xl': {
+                        maxWidth: '1536px'
+                    },
+                    '@screen 4xl': {
+                        maxWidth: '1536px'
+                    }
+                }
+            });
+        }
+    ]
 };
