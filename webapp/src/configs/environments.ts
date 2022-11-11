@@ -14,10 +14,11 @@ if (config && config.publicRuntimeConfig) {
 }
 
 const IS_IN_PRODUCTION_MODE = publicRuntimeConfig.NEXT_PUBLIC_NODE_ENV === 'production';
+const BASE_DEPLOY_PATH = process.env.BASE_DEPLOY_PATH ?? '';
 
 const environments = {
     // build-time configs
-    BASE_DEPLOY_PATH: process.env.BASE_DEPLOY_PATH ?? '',
+    BASE_DEPLOY_PATH,
 
     // run-time configs
     CONTACT_US_URL: publicRuntimeConfig.CONTACT_US_URL,
@@ -33,7 +34,9 @@ const environments = {
     CUSTOM_DOMAIN_JSON: publicRuntimeConfig.CUSTOM_DOMAIN_JSON,
 
     // internal configs
-    IS_IN_PRODUCTION_MODE
+    IS_IN_PRODUCTION_MODE,
+    TERMS_AND_CONDITIONS: `${BASE_DEPLOY_PATH}/legal/terms-and-conditions-2022.pdf`,
+    PRIVACY_POLICY: `${BASE_DEPLOY_PATH}/legal/privacy-policy-2022.pdf`
 };
 
 export default environments;

@@ -11,6 +11,7 @@ import TwitterIcon from '@mui/icons-material/Twitter';
 
 import ActiveLink from '@app/components/ui/links/active-link';
 import Logo from '@app/components/ui/logo';
+import environments from '@app/configs/environments';
 
 export default function Footer() {
     const router = useRouter();
@@ -48,10 +49,10 @@ export default function Footer() {
                     </ActiveLink>
                 </div>
                 <div className="flex flex-col">
-                    <ActiveLink className="mt-6 md:mt-0 text-lg font-semibold hover:text-gray-600" href="https://bettercollected.com/legal/terms-and-conditions-2022.pdf">
+                    <ActiveLink className="mt-6 md:mt-0 text-lg font-semibold hover:text-gray-600" href={environments.TERMS_AND_CONDITIONS}>
                         Terms and Conditions
                     </ActiveLink>
-                    <ActiveLink className="mt-6 md:mt-0 text-lg font-semibold hover:text-gray-600" href="https://bettercollected.com/legal/privacy-policy-2022.pdf">
+                    <ActiveLink className="mt-6 md:mt-0 text-lg font-semibold hover:text-gray-600" href={environments.PRIVACY_POLICY}>
                         Privacy Policy
                     </ActiveLink>
                 </div>
