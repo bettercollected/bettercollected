@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import TextField from '@mui/material/TextField';
 
 import Button from '@app/components/ui/button';
+import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 
 import { useModal } from './modal-views/context';
 
@@ -94,33 +95,39 @@ function LoginForm() {
     const [emailInput, setEmailInput] = useState('');
     return (
         <div className="flex flex-col justify-center">
-            <div className={'font-semibold text-darkGrey rounded-md text-2xl'}>Login</div>
-            <StyledTextField>
-                <TextField size="small" name="email-input" placeholder="Enter your email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} />
-            </StyledTextField>
+            <TextField className="h-[35px] w-full border-solid border-[#eaeaea] mb-5" placeholder="Enter your email" />
             <Button variant="solid" className="mt-2 mb-0" onClick={() => console.log(emailInput)}>
-                Send
+                Get in
             </Button>
         </div>
     );
 }
 
-function ImageRender() {
-    return (
-        <div className="max-w-full lg:max-w-[200px]">
-            <Image src={'/otp.svg'} width={'200px'} height={'200px'} />
-        </div>
-    );
+function ImageRenderer() {
+    const screenSize = useBreakpoint();
+
+    switch (screenSize) {
+        case 'sm':
+            return <></>;
+        case 'xs':
+            return <></>;
+        default:
+            return (
+                <div>
+                    <img src={'/otp.svg'} height="200px" width={'200px'} />
+                </div>
+            );
+    }
 }
 
 function LoginContainer() {
     const { closeModal } = useModal();
     return (
         <div className=" m-auto max-w-[500px] items-start justify-between rounded-lg bg-white lg:scale-150">
-            <div className="flex flex-row gap-8 items-center justify-between p-10">
-                {/* <LoginForm/> */}
-                <OtpRenderer />
-                <ImageRender />
+            <div className="flex flex-row items-center gap-8 justify-between p-10">
+                <LoginForm />
+                {/* <OtpRenderer /> */}
+                <ImageRenderer />
             </div>
             <div className="cursor-pointer absolute top-3 right-3 text-gray-600 hover:text-black" onClick={() => closeModal()}>
                 X

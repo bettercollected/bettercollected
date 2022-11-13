@@ -78,7 +78,7 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                         </div>
                     </div>
                     <Button variant="solid" className="mt-2 mb-0" onClick={() => openModal(MODAL_VIEW.LOGIN_VIEW)}>
-                        Login
+                        Check your data
                     </Button>
                 </div>
 
