@@ -127,9 +127,9 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                     <Provider store={store}>
                         <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
                             {getLayout(<Component {...pageProps} />)}
+                            <ModalContainer />
                         </PersistGate>
                     </Provider>
-                    <ModalContainer />
                 </MuiThemeProvider>
             </CacheProvider>
         </ThemeProvider>
