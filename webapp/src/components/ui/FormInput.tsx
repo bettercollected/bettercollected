@@ -7,32 +7,38 @@
  */
 import { useState } from 'react';
 
+import { border } from '@mui/system';
+
+import { Check } from '../icons/check';
+import { Close } from '../icons/close';
+
 export default function FormInput(props: any) {
-    const { label, placeholder, id, handleChange } = props;
+    const { value, placeholder, onChange } = props;
 
-    const [validInputFormat, setValidInputFormat] = useState<any>(undefined);
+    const [validInputFormat, setValidInputFormat] = useState<any>(false);
 
-    const checkValidation = (fieldValue: any) => {
-        if (id === 'email') {
-            const pattern = /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/;
-            if (!!fieldValue.match(pattern)) {
-                setValidInputFormat(true);
-            } else {
-                setValidInputFormat(false);
-            }
+    const checkValidation = (e: any) => {
+        const fieldValue = e.target.value;
+
+        const pattern = /^\w+@gmail+?\.com$/;
+
+        if (!!fieldValue.match(pattern)) {
+            setValidInputFormat(true);
+        } else {
+            setValidInputFormat(false);
         }
-        handleChange(id, fieldValue);
+        onChange(e);
     };
 
-    const renderValidationMessage = () => (validInputFormat ? <span className={'pl-2.5 text-green-600'}>Valid Input</span> : <span className={'pl-2.5 text-red-600'}>Invalid input</span>);
-
     return (
-        <div className={'flex flex-col mb-4'}>
-            <label className={'block text-gray-700 text-sm font-normal mb-2'} htmlFor={id}>
-                {id === 'email' && !!label ? `${label}*` : label}
-            </label>
-            <input className="border text-gray-900 text-sm rounded-lg w-full p-2.5" id={'email'} type="text" placeholder={placeholder} onChange={(e) => checkValidation(e.target.value)} />
-            {validInputFormat !== undefined && renderValidationMessage()}
+        <div className={'flex items-center mb-4'}>
+            <input
+                className={`border-solid ${value.length !== 0 ? (validInputFormat ? '!border-green-500' : '!border-red-500') : ''} h-[40px] text-gray-900 text-sm rounded-lg w-full p-2.5`}
+                value={value}
+                type="text"
+                placeholder={placeholder}
+                onChange={(e) => checkValidation(e)}
+            />
         </div>
     );
 }
