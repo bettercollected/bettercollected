@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 
 import styled from '@emotion/styled';
 import TextField from '@mui/material/TextField';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import Button from '@app/components/ui/button';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
@@ -18,19 +20,19 @@ const StyledTextField = styled.div`
 
 export default function LoginView({ ...props }) {
     function OtpRenderer({ email }: any) {
-        const [showCountDown, setShowCountDown] = useState(true);
-        const [counter, setCounter] = useState(60);
+        const [counter, setCounter] = useState(0);
         const [otp, setOtp] = useState('');
+        const [postAuthEmail, response] = usePostAuthEmailMutation();
 
         const [postVerifyOtp, result] = usePostVerifyOtpMutation();
 
-        const { isLoading } = result;
+        const { isLoading, isSuccess, isError } = result;
+
+        const emailRequest = { receiver_email: email };
 
         useEffect(() => {
             counter > 0 && setTimeout(() => setCounter(counter - 1), 1000);
         }, [counter]);
-
-        const Countdown = () => <>{counter}</>;
 
         const handleClick = (e: any) => {
             e.preventDefault();
@@ -48,15 +50,28 @@ export default function LoginView({ ...props }) {
                     <br />
                 </div>
 
+                {isSuccess && toast('Successfully verified!')}
+
                 <TextField placeholder="Enter OTP code" className="border-none  p-1 outline-none focus:bg-white" onChange={(e) => setOtp(e.target.value)} value={otp} />
 
                 <Button isLoading={isLoading} onClick={handleClick}>
                     Verify
                 </Button>
-                <div className={'text-md align flex cursor-pointer  items-center justify-center text-primary hover:text-blue-500 hover:underline'}>
-                    <Button disabled={!showCountDown} className="hover:underline-offset-1">
-                        Resend code {showCountDown && <Countdown />}
-                    </Button>
+
+                <div className={'text-md align flex mt-4 cursor-pointer  items-center justify-center text-primary hover:text-blue-500 hover:underline'}>
+                    {counter !== 0 && <div className="text-gray-500 underline-offset-0 border-none">Resend code ({counter})</div>}
+
+                    {counter === 0 && (
+                        <div
+                            className="hover:underline-offset-1"
+                            onClick={() => {
+                                postAuthEmail(emailRequest);
+                                setCounter(60);
+                            }}
+                        >
+                            Resend code
+                        </div>
+                    )}
                 </div>
             </form>
         );
@@ -65,17 +80,26 @@ export default function LoginView({ ...props }) {
     function SendCode({ updateEmail, isLoading, postAuthEmail }: any) {
         const [emailInput, setEmailInput] = useState('');
 
+        const [emailValid, setEmailValid] = useState(false);
+
         const handleClick = () => {
             const email = { receiver_email: emailInput };
             updateEmail(emailInput);
             postAuthEmail(email);
         };
 
+        const handleValidation = (isValid: boolean) => {
+            setEmailValid(isValid);
+        };
+
+        const handleChangeOnInput = (e: any) => {
+            setEmailInput(e.target.value);
+        };
+
         return (
             <div className="flex flex-col justify-center">
-                {/* <TextField className="h-[35px] w-full border-solid border-[#eaeaea] mb-5" onChange={(e) => setEmailInput(e.target.value)} placeholder="Enter your email" /> */}
-                <FormInput value={emailInput} placeholder={'Enter your email'} onChange={(e: any) => setEmailInput(e.target.value)} />
-                <Button isLoading={isLoading} variant="solid" className="mt-2 mb-0" onClick={handleClick}>
+                <FormInput value={emailInput} placeholder={'Enter your email'} onChange={handleChangeOnInput} handleValidation={handleValidation} />
+                <Button disabled={!emailValid} isLoading={isLoading} variant="solid" className="mt-2 mb-0" onClick={handleClick}>
                     Get in
                 </Button>
             </div>
