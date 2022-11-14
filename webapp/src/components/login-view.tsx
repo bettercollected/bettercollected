@@ -7,6 +7,7 @@ import TextField from '@mui/material/TextField';
 
 import Button from '@app/components/ui/button';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import { usePostAuthEmailMutation } from '@app/store/otp/api';
 
 import { useModal } from './modal-views/context';
 
@@ -93,6 +94,9 @@ function OtpRenderer() {
 
 function LoginForm() {
     const [emailInput, setEmailInput] = useState('');
+    const [postAuthEmail, result] = usePostAuthEmailMutation();
+    // console.log(response);
+
     return (
         <div className="flex flex-col justify-center">
             <TextField className="h-[35px] w-full border-solid border-[#eaeaea] mb-5" placeholder="Enter your email" />
