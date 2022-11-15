@@ -5,10 +5,10 @@
  * Project: formintegratorwebapp
  * Organization: Sireto Technology
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function FormInput(props: any) {
-    const { value, placeholder, onChange, handleValidation } = props;
+    const { value, placeholder, onChange, handleValidation, inputFieldType } = props;
 
     const [validInputFormat, setValidInputFormat] = useState<any>(false);
 
@@ -25,7 +25,6 @@ export default function FormInput(props: any) {
         } else {
             setValidInputFormat(false);
         }
-        console.log(fieldValue, validInputFormat);
         onChange(e);
     };
 

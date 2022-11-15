@@ -11,7 +11,7 @@ import { Transition } from '@app/components/ui/transition';
 import { MODAL_VIEW, useModal } from './context';
 
 // dynamic imports
-const LoginView = dynamic(() => import('@app/components/login-view'));
+const LoginView = dynamic(() => import('@app/components/login/login-view'));
 
 function renderModalContent(view: MODAL_VIEW | string) {
     switch (view) {

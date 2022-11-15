@@ -16,9 +16,14 @@ if (config && config.publicRuntimeConfig) {
 const IS_IN_PRODUCTION_MODE = publicRuntimeConfig.NEXT_PUBLIC_NODE_ENV === 'production';
 const BASE_DEPLOY_PATH = process.env.BASE_DEPLOY_PATH ?? '';
 
+console.log('environments: ', publicRuntimeConfig.API_ENDPOINT_HOST);
+
 const environments = {
     // build-time configs
     BASE_DEPLOY_PATH,
+
+    // api host configs
+    API_ENDPOINT_HOST: publicRuntimeConfig.API_ENDPOINT_HOST,
 
     // run-time configs
     CONTACT_US_URL: publicRuntimeConfig.CONTACT_US_URL,
