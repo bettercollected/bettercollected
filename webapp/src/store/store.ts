@@ -7,20 +7,18 @@ import environments from '@app/configs/environments';
 import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
 import counterSlice from '@app/store/counter/counterSlice';
 import { monitorReducerEnhancer } from '@app/store/enhancers';
+import { otpApi } from '@app/store/otp/api';
 
 const loggerMiddleware = createLogger();
 
 // Add more middlewares here
-const middlewares = [
-    loggerMiddleware
-    // marketplaceApi.middleware
-];
+const middlewares = [loggerMiddleware, otpApi.middleware];
 
 if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
 const reducers = {
-    [counterSlice.reducerPath]: counterSlice.reducer
-    // [marketplaceApi.reducerPath]: marketplaceApi.reducer,
+    [counterSlice.reducerPath]: counterSlice.reducer,
+    [otpApi.reducerPath]: otpApi.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);
