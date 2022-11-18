@@ -11,8 +11,8 @@ export default function HomeContainer() {
                 <Banner />
                 <Features />
                 <Waitlist />
+                <Footer />
             </Layout>
-            <Footer />
         </>
     );
 }

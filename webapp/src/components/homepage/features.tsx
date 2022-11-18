@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import featureImage from '@app/assets/svgs/Diagram.svg';
+import featureImage from '@app/assets/images/Diagram.png';
 import brand from '@app/assets/svgs/brand.svg';
 import builder from '@app/assets/svgs/builder.svg';
 import gdpr from '@app/assets/svgs/gdpr.svg';
@@ -18,8 +18,8 @@ export default function Features() {
     return (
         <LandingPageSectionContainer sectionId="features">
             <div className="w-full h-full flex flex-col justify-center items-center my-10">
-                <h1 className="text-4xl tracking-tight leading-10 font-extrabold text-blue-500 sm:text-5xl sm:leading-none md:text-6xl">{t('FEATURES')}</h1>
-                <div className="flex justify-center mt-6 md:mt-12 w-full h-full md:w-2/5">
+                <h1 className="text-4xl tracking-tight leading-10 font-extrabold text-blue-500 sm:text-5xl sm:leading-none md:text-6xl">Features</h1>
+                <div className="flex justify-center mt-6 md:mt-12 w-full h-full mb-10 md:w-4/5">
                     <Image src={featureImage} alt="Features" />
                 </div>
             </div>
@@ -64,7 +64,7 @@ export default function Features() {
                     </div>
                     <div className="flex flex-col justify-start h-full">
                         <p className="text-xl md:text-2xl font-semibold text-dark mb-4 p-0">Email validation (soon)</p>
-                        <p className="text-base text-grey m-0 p-0 w-full">With email validation, you’ll no longer need to worry about spam responses. All genuine verified responses. How cool is that?</p>
+                        <p className="text-base text-grey m-0 p-0 w-full">With email validation, you&apos;ll no longer need to worry about spam responses. All genuine verified responses. How cool is that?</p>
                     </div>
                 </div>
             </div>

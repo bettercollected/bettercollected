@@ -10,6 +10,7 @@ import { ShareIcon } from '@app/components/icons/share-icon';
 import { MODAL_VIEW, useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import Hamburger from '@app/components/ui/hamburger';
 import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
 import MarkdownText from '@app/components/ui/markdown-text';
@@ -23,6 +24,13 @@ import { toEndDottedStr } from '@app/utils/stringUtils';
 const StyledTextField = styled.div`
     .MuiFormControl-root {
         background: white;
+        border-radius: 14px;
+        outline: none;
+    }
+
+    .MuiOutlinedInput-notchedOutline {
+        border-radius: 14px;
+        border-width: 0.5px;
     }
 `;
 
@@ -71,21 +79,24 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                     <div className="absolute top-[35%] left-[65%] w-[765px] h-[765px] bg-gradient-to-r from-cyan-300 via-sky-300 to-cyan-400 blur-dashboardBackground opacity-[15%]" />
                     <div className="absolute bottom-0 left-[50%] w-[599px] h-[388px] bg-gradient-to-r from-rose-200 via-rose-300 to-rose-400 rotate-180 blur-dashboardBackground opacity-[20%]" />
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                     <div className="product-box">
                         <div className="product-image absolute border-[1px] border-neutral-300 hover:border-neutral-400 rounded-full z-10 h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 xl:h-40 xl:w-40 2xl:h-[180px] 2xl:w-[180px] overflow-hidden -top-12 sm:-top-16 md:-top-20 xl:-top-[88px] 2xl:-top-24">
                             <Image src={companyJson.companyProfile} layout="fill" objectFit="contain" alt={companyJson.companyTitle} />
                         </div>
                     </div>
-                    <Button variant="solid" className="mt-2 mb-0" onClick={() => openModal(MODAL_VIEW.LOGIN_VIEW)}>
-                        Check your data
-                    </Button>
+                    <div className="mt-2 mb-0 flex items-center">
+                        <Button variant="solid" className="mx-3 !rounded-xl !bg-blue-500" onClick={() => openModal(MODAL_VIEW.LOGIN_VIEW)}>
+                            Check my data
+                        </Button>
+                        <Hamburger className="!rounded-xl !text-neutral-700 !bg-neutral-200" />
+                    </div>
                 </div>
 
                 <div className="relative h-full w-full mt-10 sm:mt-16 md:mt-20 xl:mt-[88px] 2xl:mt-24">
                     <div className="py-4 md:py-6 xl:py-8 2xl:py-12 w-full md:w-9/12 xl:w-4/6 2xl:w-3/6">
                         <h1 className="font-semibold text-darkGrey text-xl sm:text-2xl md:text-3xl xl:text-4xl 2xl:text-[40px]">{companyJson.companyTitle}</h1>
-                        <MarkdownText description={companyJson.companyDescription} contentStripLength={250} markdownClassName="pt-3 md:pt-7 text-base text-grey" textClassName="text-base" />
+                        <MarkdownText description={companyJson.companyDescription} contentStripLength={1000} markdownClassName="pt-3 md:pt-7 text-base text-grey" textClassName="text-base" />
                     </div>
                 </div>
 
