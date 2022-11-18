@@ -51,6 +51,7 @@ const nextConfig = {
         IS_CUSTOM_DOMAIN: process.env.IS_CUSTOM_DOMAIN || false,
         CUSTOM_DOMAIN: process.env.CUSTOM_DOMAIN,
         CUSTOM_DOMAIN_JSON: process.env.CUSTOM_DOMAIN_JSON,
+        ENABLE_CHECK_MY_DATA: process.env.ENABLE_CHECK_MY_DATA || false,
 
         // api hosts
         API_ENDPOINT_HOST: process.env.API_ENDPOINT_HOST

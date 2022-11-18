@@ -15,6 +15,7 @@ import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
 import MarkdownText from '@app/components/ui/markdown-text';
 import MuiSnackbar from '@app/components/ui/mui-snackbar';
+import environments from '@app/configs/environments';
 import ContentLayout from '@app/layouts/_content-layout';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { CompanyJsonDto } from '@app/models/dtos/customDomain';
@@ -69,8 +70,8 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
     return (
         <div className="relative">
             <div className="product-box">
-                <div data-aos="fade-up" className="product-image relative h-44 w-full overflow-hidden md:h-80 xl:h-[350px]">
-                    <Image src={companyJson.companyBanner} layout="fill" objectFit="cover" objectPosition="center" alt={companyJson.companyTitle} />
+                <div data-aos="fade-up" className="product-image relative h-44 w-full overflow-hidden md:h-80 xl:h-[380px]">
+                    <Image src={companyJson.companyBanner} layout="fill" objectFit="contain" objectPosition="center" alt={companyJson.companyTitle} />
                 </div>
             </div>
             <ContentLayout className="!pt-0 relative bg-[#FBFBFB]">
@@ -81,16 +82,18 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                 </div>
                 <div className="flex justify-between items-center">
                     <div className="product-box">
-                        <div className="product-image absolute border-[1px] border-neutral-300 hover:border-neutral-400 rounded-full z-10 h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 xl:h-40 xl:w-40 2xl:h-[180px] 2xl:w-[180px] overflow-hidden -top-12 sm:-top-16 md:-top-20 xl:-top-[88px] 2xl:-top-24">
+                        <div className="product-image bg-white absolute border-[1px] border-neutral-300 hover:border-neutral-400 rounded-full z-10 h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 xl:h-40 xl:w-40 2xl:h-[180px] 2xl:w-[180px] overflow-hidden -top-12 sm:-top-16 md:-top-20 xl:-top-[88px] 2xl:-top-24">
                             <Image src={companyJson.companyProfile} layout="fill" objectFit="contain" alt={companyJson.companyTitle} />
                         </div>
                     </div>
-                    <div className="mt-2 mb-0 flex items-center">
-                        <Button variant="solid" className="mx-3 !rounded-xl !bg-blue-500" onClick={() => openModal(MODAL_VIEW.LOGIN_VIEW)}>
-                            Check my data
-                        </Button>
-                        <Hamburger className="!rounded-xl !text-neutral-700 !bg-neutral-200" />
-                    </div>
+                    {environments.ENABLE_CHECK_MY_DATA && (
+                        <div className="mt-2 mb-0 flex items-center">
+                            <Button variant="solid" className="mx-3 !rounded-xl !bg-blue-500" onClick={() => openModal(MODAL_VIEW.LOGIN_VIEW)}>
+                                Check my data
+                            </Button>
+                            <Hamburger className="!rounded-xl !text-neutral-700 !bg-neutral-200" />
+                        </div>
+                    )}
                 </div>
 
                 <div className="relative h-full w-full mt-10 sm:mt-16 md:mt-20 xl:mt-[88px] 2xl:mt-24">
