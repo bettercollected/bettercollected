@@ -37,6 +37,7 @@ const environments = {
     IS_CUSTOM_DOMAIN: (publicRuntimeConfig.IS_CUSTOM_DOMAIN && (publicRuntimeConfig.IS_CUSTOM_DOMAIN === 'true' || publicRuntimeConfig.IS_CUSTOM_DOMAIN === true)) ?? false,
     CUSTOM_DOMAIN: publicRuntimeConfig.CUSTOM_DOMAIN,
     CUSTOM_DOMAIN_JSON: publicRuntimeConfig.CUSTOM_DOMAIN_JSON,
+    ENABLE_CHECK_MY_DATA: (publicRuntimeConfig.ENABLE_CHECK_MY_DATA && (publicRuntimeConfig.ENABLE_CHECK_MY_DATA === 'true' || publicRuntimeConfig.ENABLE_CHECK_MY_DATA === true)) ?? false,
 
     // internal configs
     IS_IN_PRODUCTION_MODE,
