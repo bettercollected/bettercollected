@@ -30,7 +30,7 @@ export default function Footer() {
     }
 
     return (
-        <div className="relative bg-gradient-to-r from-white via-sky-50 to-red-50 mb-0 px-4 pt-24 pb-4 sm:px-6 sm:pt-24 sm:pb-20 lg:px-8 xl:px-10 3xl:px-12">
+        <div className="relative border-t-[1.5px] border-[#eaeaea] bg-transparent drop-shadow-main mb-0 pt-24 pb-24 sm:pt-24 md:pb-0">
             <Logo />
             <p>Collect forms responses responsibly.</p>
             <div className="flex flex-col md:flex-row md:justify-between mt-6">

@@ -50,7 +50,10 @@ const nextConfig = {
         // Custom Domain Variables
         IS_CUSTOM_DOMAIN: process.env.IS_CUSTOM_DOMAIN || false,
         CUSTOM_DOMAIN: process.env.CUSTOM_DOMAIN,
-        CUSTOM_DOMAIN_JSON: process.env.CUSTOM_DOMAIN_JSON
+        CUSTOM_DOMAIN_JSON: process.env.CUSTOM_DOMAIN_JSON,
+
+        // api hosts
+        API_ENDPOINT_HOST: process.env.API_ENDPOINT_HOST
     }
 };
 
