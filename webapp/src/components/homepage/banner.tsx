@@ -6,6 +6,7 @@ import bettercollected from '@app/assets/svgs/bettercollected.svg';
 import LandingPageSectionContainer from '@app/components/landingpage/LandingPageSectionContainer';
 import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
+import environments from '@app/configs/environments';
 
 export default function Banner() {
     const { t } = useTranslation();
@@ -24,7 +25,7 @@ export default function Banner() {
                         <div className="mt-5 sm:mt-8 sm:flex justify-start">
                             <div className="rounded-md shadow">
                                 <ActiveLink
-                                    href="/waitlist"
+                                    href={environments.WAITLIST_FORM_NAVIGATION_URL}
                                     className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo transition duration-150 ease-in-out md:py-4 md:text-lg md:px-10"
                                 >
                                     Become a better collector
