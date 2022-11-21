@@ -38,7 +38,7 @@ export default function Footer() {
                     <p className="text-lg font-bold">Company</p>
                     <SectionLink title="Home" path="#banner" />
                     <SectionLink title="Features" path="#features" />
-                    <ActiveLink href="/contact" className="hover:text-gray-600">
+                    <ActiveLink href={environments.CONTACT_US_FORM_NAVIGATION_URL} className="hover:text-gray-600">
                         Contact us
                     </ActiveLink>
                 </div>

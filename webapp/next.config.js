@@ -41,8 +41,10 @@ const nextConfig = {
     },
     publicRuntimeConfig: {
         CONTACT_US_URL: process.env.CONTACT_US_URL,
+        CONTACT_US_FORM_NAVIGATION_URL: process.env.CONTACT_US_FORM_NAVIGATION_URL,
         GA_MEASUREMENT_ID: process.env.GA_MEASUREMENT_ID,
         WAITLIST_FORM_URL: process.env.WAITLIST_FORM_URL,
+        WAITLIST_FORM_NAVIGATION_URL: process.env.WAITLIST_FORM_NAVIGATION_URL,
         INDIVIDUAL_FORM_URL: process.env.INDIVIDUAL_FORM_URL,
         BUSINESS_FORM_URL: process.env.BUSINESS_FORM_URL,
         ENTERPRISE_FORM_URL: process.env.ENTERPRISE_FORM_URL,

@@ -2,16 +2,9 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import featureImage from '@app/assets/svgs/Diagram.svg';
-import brand from '@app/assets/svgs/brand.svg';
-import builder from '@app/assets/svgs/builder.svg';
-import gdpr from '@app/assets/svgs/gdpr.svg';
-import portal from '@app/assets/svgs/portal.svg';
 import LandingPageSectionContainer from '@app/components/landingpage/LandingPageSectionContainer';
-import Image from '@app/components/ui/image';
-
-import ActiveLink from '../ui/links/active-link';
-import AnchorLink from '../ui/links/anchor-link';
+import ActiveLink from '@app/components/ui/links/active-link';
+import environments from '@app/configs/environments';
 
 export default function Waitlist() {
     const { t } = useTranslation();
@@ -26,7 +19,7 @@ export default function Waitlist() {
                 <div className="mt-5 sm:mt-8 sm:flex justify-start w-full md:w-fit">
                     <div className="rounded-md shadow w-full">
                         <ActiveLink
-                            href="/waitlist"
+                            href={environments.WAITLIST_FORM_NAVIGATION_URL}
                             className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo transition duration-150 ease-in-out md:py-4 md:text-lg md:px-20"
                         >
                             Sign Up
