@@ -8,6 +8,7 @@ import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
+import ImportForms from '../importforms/import-forms';
 import { MODAL_VIEW, useModal } from './context';
 
 // dynamic imports
@@ -21,6 +22,8 @@ function renderModalContent(view: MODAL_VIEW | string) {
         //     return <ShareView />;
         case MODAL_VIEW.LOGIN_VIEW:
             return <LoginView />;
+        case MODAL_VIEW.IMPORT_FORMS_VIEW:
+            return <ImportForms />;
         default:
             return null;
     }
@@ -29,6 +32,9 @@ function renderModalContent(view: MODAL_VIEW | string) {
 export default function ModalContainer() {
     const router = useRouter();
     const { view, isOpen, closeModal } = useModal();
+
+    console.log('current view: ', view);
+
     useEffect(() => {
         // close search modal when route change
         router.events.on('routeChangeStart', closeModal);
@@ -36,6 +42,7 @@ export default function ModalContainer() {
             router.events.off('routeChangeStart', closeModal);
         };
     }, []);
+
     return (
         <Transition appear show={isOpen} as={Fragment}>
             <Dialog as="div" className="fixed inset-0 z-50 h-full w-full overflow-y-auto overflow-x-hidden p-4 text-center sm:p-6 lg:p-8 xl:p-10 3xl:p-12" onClose={closeModal}>
@@ -44,7 +51,7 @@ export default function ModalContainer() {
                 </Transition.Child>
 
                 {/* This element is to trick the browser into centering the modal contents. */}
-                {view && view !== MODAL_VIEW.SEARCH_VIEW && (
+                {view && view !== 'SEARCH_VIEW' && (
                     <span className="inline-block h-full align-middle" aria-hidden="true">
                         &#8203;
                     </span>

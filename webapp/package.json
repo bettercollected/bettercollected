@@ -23,6 +23,7 @@
     "@mui/x-date-pickers": "^5.0.0-beta.7",
     "@reduxjs/toolkit": "^1.8.5",
     "@types/overlayscrollbars": "^1.12.1",
+    "async-mutex": "^0.4.0",
     "axios": "^0.27.2",
     "classnames": "^2.3.1",
     "date-fns": "^2.29.2",
@@ -45,6 +46,7 @@
     "overlayscrollbars-react": "^0.3.0",
     "rc-slider": "^10.0.1",
     "react": "18.2.0",
+    "react-cookie": "^4.1.1",
     "react-cookie-consent": "^8.0.1",
     "react-dom": "18.2.0",
     "react-ga4": "^1.4.1",
@@ -88,6 +90,7 @@
     "prettier": "2.7.1",
     "prettier-plugin-tailwindcss": "^0.1.13",
     "rimraf": "^3.0.2",
+    "tailwind-scrollbar": "^2.0.1",
     "tailwindcss": "^3.1.8",
     "typescript": "4.8.4"
   }
