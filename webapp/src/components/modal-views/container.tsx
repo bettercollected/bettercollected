@@ -8,22 +8,18 @@ import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
-import ImportForms from '../importforms/import-forms';
 import { MODAL_VIEW, useModal } from './context';
 
 // dynamic imports
 const LoginView = dynamic(() => import('@app/components/login/login-view'));
+const ImportFormsView = dynamic(() => import('@app/components/importforms/import-forms'));
 
 function renderModalContent(view: MODAL_VIEW | string) {
     switch (view) {
-        // case 'SEARCH_VIEW':
-        //     return <SearchView />;
-        // case 'SHARE_VIEW':
-        //     return <ShareView />;
-        case MODAL_VIEW.LOGIN_VIEW:
+        case 'LOGIN_VIEW':
             return <LoginView />;
-        case MODAL_VIEW.IMPORT_FORMS_VIEW:
-            return <ImportForms />;
+        case 'IMPORT_FORMS_VIEW':
+            return <ImportFormsView />;
         default:
             return null;
     }
@@ -32,8 +28,6 @@ function renderModalContent(view: MODAL_VIEW | string) {
 export default function ModalContainer() {
     const router = useRouter();
     const { view, isOpen, closeModal } = useModal();
-
-    console.log('current view: ', view);
 
     useEffect(() => {
         // close search modal when route change
@@ -59,7 +53,7 @@ export default function ModalContainer() {
 
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
                 <div className="sr-only">
-                    <Button size="small" color="gray" shape="circle" onClick={() => console.log('hello')} className="opacity-50 hover:opacity-80 ">
+                    <Button size="small" color="gray" shape="circle" onClick={closeModal} className="opacity-50 hover:opacity-80 ">
                         <Close className="h-auto w-[13px]" />
                     </Button>
                 </div>

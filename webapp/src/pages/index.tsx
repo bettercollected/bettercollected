@@ -18,7 +18,8 @@ interface IHome {
 }
 
 const Home = ({ hasCustomDomain, companyJson }: IHome) => {
-    if (hasCustomDomain) return <DashboardContainer companyJson={companyJson} />;
+    // if (hasCustomDomain) return <DashboardContainer companyJson={companyJson} />;
+    return <DashboardContainer companyJson={companyJson} />;
     // return <HomeContainer />;
 };
 
@@ -39,7 +40,7 @@ export async function getServerSideProps({ locale }: any) {
     }
     return {
         props: {
-            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
+            // ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
             hasCustomDomain,
             companyJson
         }

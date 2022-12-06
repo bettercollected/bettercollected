@@ -12,7 +12,7 @@ import EmptyTray from '@app/assets/svgs/empty-tray.svg';
 import { Logout } from '@app/components/icons/logout-icon';
 import { SearchIcon } from '@app/components/icons/search';
 import { ShareIcon } from '@app/components/icons/share-icon';
-import { MODAL_VIEW, useModal } from '@app/components/modal-views/context';
+import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Image from '@app/components/ui/image';
@@ -93,12 +93,13 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
         });
     };
 
-    const handleCheckMyData = () => {
-        openModal(MODAL_VIEW.LOGIN_VIEW);
+    const handleCheckMyData = (e: any) => {
+        e.preventDefault();
+        openModal('LOGIN_VIEW');
     };
 
     const handleImportForms = () => {
-        openModal(MODAL_VIEW.IMPORT_FORMS_VIEW);
+        openModal('IMPORT_FORMS_VIEW');
     };
 
     const handleConnectWithGoogle = async (e: any) => {

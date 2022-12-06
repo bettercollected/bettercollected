@@ -143,4 +143,5 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
     );
 }
 
-export default appWithTranslation(MainApp);
+export default MainApp;
+// export default appWithTranslation(MainApp);

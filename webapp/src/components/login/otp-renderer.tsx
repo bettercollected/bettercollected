@@ -43,6 +43,7 @@ export default function OtpRenderer({ email }: any) {
         const result = await postVerifyOtp(response).unwrap();
         if (result.payload.content.status_code === 200) {
             toast.info(result.payload.content.detail);
+
             // console.log('google slice', googleApiSlice);
             // trigger('status');
             closeModal();
@@ -74,19 +75,16 @@ export default function OtpRenderer({ email }: any) {
     const HeaderRenderer = () => {
         return (
             <>
-                <div className={'font-semibold text-darkGrey rounded-md text-xl'}>Enter OTP code to Verify</div>
+                <div className={'font-semibold text-darkGrey rounded-md text-md'}>Enter OTP code</div>
 
-                <div className={'text-sm mb-2 text-gray-400 md:text-base'}>
-                    {' '}
-                    We have just send a verification code to <span className="text-black font-bold">{email}</span>
-                    <br />
-                </div>
+                <p className={'text-sm text-gray-500 md:text-base'}> We have just send a verification code to</p>
+                <p className="text-darkGrey font-semibold mb-2">{email}</p>
             </>
         );
     };
 
     return (
-        <form className={' flex flex-col text-center'}>
+        <form className={'flex flex-col text-center'}>
             <HeaderRenderer />
             <input className={`border-solid mb-4 h-[40px] text-gray-900 text-sm rounded-lg w-full p-2.5`} value={otp} type="text" placeholder={'Enter the OTP code'} onChange={(e: any) => setOtp(e.target.value)} />
             <Button isLoading={isLoading} onClick={handleVerifyButtonClick} className="w-full">
