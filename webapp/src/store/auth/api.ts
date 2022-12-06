@@ -1,19 +1,25 @@
 import { baseApi } from '../baseApi';
-
-// export const AUTH_TAG_TYPES = 'authApi';
+import { AUTH_LOG_OUT, AUTH_TAG_TYPES } from './types';
 
 export const authApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
-        postLogout: builder.mutation<any, void>({
+        getLogout: builder.query<any, void>({
             query: () => ({
                 url: `/auth/logout`,
-                method: 'POST'
-            })
+                method: 'GET',
+                credentials: 'include'
+            }),
+            providesTags: [AUTH_LOG_OUT]
         }),
         getStatus: builder.query<any, any>({
-            query: (path) => `/auth/${path}`
+            query: (path) => ({
+                url: `/auth/${path}`,
+                method: 'GET',
+                credentials: 'include'
+            }),
+            providesTags: (_) => [AUTH_TAG_TYPES]
         })
     })
 });
 
-export const { usePostLogoutMutation, useGetStatusQuery } = authApi;
+export const { useGetLogoutQuery, useLazyGetLogoutQuery, useGetStatusQuery } = authApi;

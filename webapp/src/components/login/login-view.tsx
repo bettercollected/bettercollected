@@ -41,6 +41,7 @@ export default function LoginView({ ...props }) {
             <div className=" m-auto max-w-[500px] items-start justify-between rounded-lg bg-white lg:scale-150">
                 <div className="flex flex-col  items-center gap-8 justify-between p-10">
                     <ImageRenderer />
+                    {/* <OtpRenderer /> */}
                     <EmailAndOTPUiSwitcher />
                 </div>
                 <div className="cursor-pointer absolute top-3 right-3 text-gray-600 hover:text-black" onClick={() => closeModal()}>

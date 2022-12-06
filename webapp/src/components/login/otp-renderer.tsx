@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
 
 import { authApi } from '@app/store/auth/api';
+import { googleApiSlice } from '@app/store/google/api';
 import { usePostAuthEmailMutation, usePostVerifyOtpMutation } from '@app/store/otp/api';
 
 import { useModal } from '../modal-views/context';
@@ -22,19 +23,14 @@ export default function OtpRenderer({ email }: any) {
 
     const router = useRouter();
 
-    const [trigger] = authApi.useLazyGetStatusQuery();
+    // const [trigger] = authApi.useLazyGetStatusQuery();
+    const getGoogleConnect = googleApiSlice.useLazyGetConnectToGoogleQuery();
 
     const emailRequest = { receiver_email: email };
 
     useEffect(() => {
         counter > 0 && setTimeout(() => setCounter(counter - 1), 1000);
     }, [counter]);
-
-    const handleGoogleRedirectURL = (redirect_url: string) => {
-        router.push(redirect_url);
-        // toast.info(result.detail);
-        // trigger('status');
-    };
 
     const handleVerifyButtonClick = async (e: any) => {
         e.preventDefault();
@@ -43,12 +39,15 @@ export default function OtpRenderer({ email }: any) {
             return;
         }
         const response = { email: email, otp_code: otp };
+        // const response = { email: 'jordanandrew932@gmail.com', otp_code: otp };
         const result = await postVerifyOtp(response).unwrap();
         if (result.payload.content.status_code === 200) {
-            handleGoogleRedirectURL(result.payload.content.redirect_url);
+            toast.info(result.payload.content.detail);
+            // console.log('google slice', googleApiSlice);
+            // trigger('status');
             closeModal();
         } else {
-            toast.error(result.detail);
+            toast.error(result.payload.content.detail);
         }
     };
 

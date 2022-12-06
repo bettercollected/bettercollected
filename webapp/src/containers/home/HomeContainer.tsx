@@ -16,16 +16,3 @@ export default function HomeContainer() {
         </>
     );
 }
-
-// return (
-//     <>
-//         <Navbar />
-//         <Banner />
-//         {/*<WaitlistForm/>*/}
-//         <Features />
-//         {/*<TimelineContainer/>*/}
-//         <Payment />
-//         {/*<ContactUs/>*/}
-//         <Footer />
-//     </>
-// );

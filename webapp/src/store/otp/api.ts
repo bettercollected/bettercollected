@@ -15,6 +15,7 @@ export const otpApi = createApi({
     tagTypes: [OTP_TAG_TYPES],
     baseQuery: fetchBaseQuery({
         baseUrl: environments.API_ENDPOINT_HOST,
+        credentials: 'include',
         prepareHeaders: (headers, { getState }) => {
             headers.set('Access-Control-Allow-origin', 'http://localhost:8000');
             return headers;
@@ -23,7 +24,7 @@ export const otpApi = createApi({
     endpoints: (builder) => ({
         postAuthEmail: builder.mutation<any, { receiver_email: string }>({
             query: (body) => ({
-                url: `/auth/send_code`,
+                url: `/auth/otp/send`,
                 method: 'POST',
                 params: { receiver_email: body.receiver_email }
             }),
@@ -31,7 +32,7 @@ export const otpApi = createApi({
         }),
         postVerifyOtp: builder.mutation<any, verifyOtp>({
             query: (body) => ({
-                url: '/auth/validate',
+                url: '/auth/otp/validate',
                 method: 'POST',
                 body
             })

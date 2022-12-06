@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
+import Router, { useRouter } from 'next/router';
+
 import styled from '@emotion/styled';
 import { IconButton, InputAdornment } from '@mui/material';
 import TextField from '@mui/material/TextField';
@@ -22,8 +24,9 @@ import ContentLayout from '@app/layouts/_content-layout';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { CompanyJsonDto } from '@app/models/dtos/customDomain';
 import { GoogleFormDto } from '@app/models/dtos/googleForm';
-import { authApi, useGetStatusQuery, usePostLogoutMutation } from '@app/store/auth/api';
+import { authApi, useGetLogoutQuery, useGetStatusQuery, useLazyGetLogoutQuery } from '@app/store/auth/api';
 import { baseApi } from '@app/store/baseApi';
+import { googleApiSlice } from '@app/store/google/api';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
@@ -49,19 +52,23 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
     const [isOpen, setIsOpen] = useState(false);
     const [forms, setForms] = useState<Array<GoogleFormDto> | null>(null);
 
-    const [postLogout, logoutResponse] = usePostLogoutMutation();
-    const { data } = useGetStatusQuery('status');
+    const [trigger, result] = useLazyGetLogoutQuery();
+
+    const getGoogleConnect = googleApiSlice.useLazyGetConnectToGoogleQuery();
+
+    const getStatus = useGetStatusQuery('status');
 
     const { openModal } = useModal();
     const [_, copyToClipboard] = useCopyToClipboard();
 
+    const dispatch = useDispatch();
+    const router = useRouter();
+
     let timeOutId: any;
 
-    const selectQuery = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
-
-    const selectGetStatus = useAppSelector(selectQuery);
-
-    console.log('get status: ', selectGetStatus);
+    const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
+    const selectGetStatus = useAppSelector(statusQuerySelect);
+    console.log('status: ', selectGetStatus);
 
     useEffect(() => {
         if (!!companyJson) {
@@ -79,16 +86,26 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
     };
 
     const handleLogout = async () => {
-        await postLogout();
+        trigger().finally(() => {
+            dispatch(authApi.util.resetApiState());
+            const { error, refetch } = getStatus;
+            refetch();
+        });
     };
 
     const handleCheckMyData = () => {
-        // !logoutResponse.isSuccess && openModal(MODAL_VIEW.LOGIN_VIEW);
         openModal(MODAL_VIEW.LOGIN_VIEW);
     };
 
     const handleImportForms = () => {
         openModal(MODAL_VIEW.IMPORT_FORMS_VIEW);
+    };
+
+    const handleConnectWithGoogle = async (e: any) => {
+        e.preventDefault();
+        const [trigger] = getGoogleConnect;
+        const googleRedirectUrl = await trigger().unwrap();
+        router.push(googleRedirectUrl);
     };
 
     const Banner = () => (
@@ -117,18 +134,26 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
 
     const ProfileMenu = () => (
         <>
-            <Button variant="solid" className="mx-3 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
-                Check my data
-            </Button>
+            {selectGetStatus.data?.payload?.content?.user?.services?.length === 0 && (
+                <Button variant="solid" className="mx-3 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
+                    Connect with google
+                </Button>
+            )}
 
-            {!selectGetStatus.error && (
+            {selectGetStatus.data?.payload?.content?.user?.services?.length !== 0 && (
+                <Button variant="solid" className="mx-3 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
+                    Check My data
+                </Button>
+            )}
+
+            {!selectGetStatus?.error && (
                 <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-[#ffe0e0]" onClick={handleLogout}>
                     <Logout height="30px" width="30px" className="!rounded-xl !text-[#e60000]" />
                 </Button>
             )}
-            <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
+            {/* <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
                 Import Forms
-            </Button>
+            </Button> */}
         </>
     );
 
@@ -162,7 +187,6 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                     }}
                 />
             </StyledTextField>
-            {/* <Autocomplete value={sea} onChange={handleSearch} size="small" disablePortal id="combo-box-demo" options={[]} sx={{ width: 250 }} renderInput={(params) => <TextField {...params} label="Search forms..." />} /> */}
         </div>
     );
 
@@ -220,7 +244,6 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
 
     return (
         <div className="relative">
-            {/* <AuthHoc> */}
             <Banner />
             <ContentLayout className="!pt-0 relative bg-[#FBFBFB]">
                 <Background />
@@ -242,7 +265,6 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                     </div>
                 </div>
             </ContentLayout>
-            {/* </AuthHoc> */}
         </div>
     );
 }

@@ -40,8 +40,10 @@ type AppPropsWithLayout = AppProps & {
 };
 
 function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }: AppPropsWithLayout) {
-    console.info(globalConstants.consoleWarningTitle, consoleWarningStyle);
-    console.info(globalConstants.consoleWarningDescription, consoleTextStyle);
+    // console.info(globalConstants.consoleWarningTitle, consoleWarningStyle);
+    // console.info(globalConstants.consoleWarningDescription, consoleTextStyle);
+
+    const router = useRouter();
 
     const getLayout = Component.getLayout ?? ((page: any) => page);
 
@@ -58,8 +60,6 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
         url = pageProps?.companyJson?.companyDomain ?? url;
         description = pageProps?.companyJson?.companyDescription ?? description;
     }
-
-    const router = useRouter();
 
     useEffect(() => {
         if (!!environments.GA_MEASUREMENT_ID) {
@@ -116,7 +116,14 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                             cardType: 'summary_large_image'
                         }}
                     />
-                    <CookieConsent location="bottom" buttonText="I understand" cookieName="BetterCookie" style={{ background: '#007AFF' }} buttonStyle={{ color: '#4e503b', fontSize: '13px', borderRadius: '3px' }} expires={150}>
+                    <CookieConsent
+                        location="bottom"
+                        buttonText="I understand"
+                        cookieName="BetterCookie"
+                        style={{ background: '#5492f7', display: 'flex', alignItems: 'center' }}
+                        buttonStyle={{ color: '#4e503b', fontSize: '13px', borderRadius: '3px' }}
+                        expires={150}
+                    >
                         This website uses cookies to enhance the user experience.{' '}
                         <p className={'cursor-pointer mt-2 text-white hover:text-gray-300'} onClick={() => router.push('https://www.termsfeed.com/blog/cookies/')}>
                             What are cookies?

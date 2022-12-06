@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch, { SwitchProps } from '@mui/material/Switch';
 import { styled } from '@mui/material/styles';
-import { atom, useAtom } from 'jotai';
 
 import { useModal } from '../modal-views/context';
 import Button from '../ui/button';
@@ -171,7 +170,7 @@ export default function ImportForms() {
         <div className=" m-auto max-w-[774px] items-start justify-between rounded-lg bg-white lg:scale-150">
             <div className="flex flex-col items-center gap-8 justify-between p-10">
                 <HeadingRenderer />
-                <div className="w-full h-[300px] scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-blue-300 overflow-y-scroll scrollbar-thumb-rounded-full scrollbar-track-rounded-full">
+                <div className="w-full h-[300px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-300 overflow-y-scroll scrollbar-thumb-rounded-full scrollbar-track-rounded-full">
                     <CardContainerRenderer />
                 </div>
                 <FooterRenderer />
