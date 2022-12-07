@@ -38,10 +38,10 @@ export default function LoginView({ ...props }) {
 
         return (
             <div ref={ref} className=" relative m-auto max-w-[500px] items-start justify-between rounded-lg bg-white lg:scale-150">
-                <form className=" relative flex flex-col  items-center gap-8 justify-between p-10">
+                <div className=" relative flex flex-col  items-center gap-8 justify-between p-10">
                     <ImageRenderer />
                     <EmailAndOTPUiSwitcher />
-                </form>
+                </div>
                 <div className="cursor-pointer absolute top-3 right-3 text-gray-600 hover:text-black" onClick={() => closeModal()}>
                     <Close className="h-auto w-3 text-gray-600 dark:text-white" />
                 </div>
