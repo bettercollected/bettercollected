@@ -1,8 +1,13 @@
+import { useEffect } from 'react';
+
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import dynamic from 'next/dynamic';
 
+import { useDispatch } from 'react-redux';
+
 import environments from '@app/configs/environments';
 import { CompanyJsonDto } from '@app/models/dtos/customDomain';
+import { setActiveData } from '@app/store/search/activeTabDataSlice';
 
 const HomeContainer = dynamic(() => import('@app/containers/home/HomeContainer'), { ssr: false });
 const DashboardContainer = dynamic(() => import('@app/containers/dashboard/DashboardContainer'), { ssr: false });
@@ -18,6 +23,12 @@ interface IHome {
 }
 
 const Home = ({ hasCustomDomain, companyJson }: IHome) => {
+    const dispatch = useDispatch();
+
+    useEffect(() => {
+        dispatch(setActiveData(companyJson?.forms));
+    }, []);
+
     // if (hasCustomDomain) return <DashboardContainer companyJson={companyJson} />;
     return <DashboardContainer companyJson={companyJson} />;
     // return <HomeContainer />;

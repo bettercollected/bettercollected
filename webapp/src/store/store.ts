@@ -11,6 +11,8 @@ import { otpApi } from '@app/store/otp/api';
 
 import { authApi } from './auth/api';
 import { googleApiSlice } from './google/api';
+import { activeTabDataSlice } from './search/activeTabDataSlice';
+import activeDataReducerObj from './search/activeTabDataSlice';
 
 const loggerMiddleware = createLogger();
 
@@ -21,6 +23,7 @@ if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
 const reducers = {
     [counterSlice.reducerPath]: counterSlice.reducer,
+    [activeDataReducerObj.reducerPath]: activeTabDataSlice.reducer,
     [otpApi.reducerPath]: otpApi.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [googleApiSlice.reducerPath]: googleApiSlice.reducer

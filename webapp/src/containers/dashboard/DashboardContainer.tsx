@@ -9,6 +9,7 @@ import { useCookies } from 'react-cookie';
 import { useDispatch } from 'react-redux';
 
 import EmptyTray from '@app/assets/svgs/empty-tray.svg';
+import FormCard from '@app/components/dashboard/form-card';
 import { Logout } from '@app/components/icons/logout-icon';
 import { SearchIcon } from '@app/components/icons/search';
 import { ShareIcon } from '@app/components/icons/share-icon';
@@ -29,6 +30,8 @@ import { baseApi } from '@app/store/baseApi';
 import { googleApiSlice } from '@app/store/google/api';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { toEndDottedStr } from '@app/utils/stringUtils';
+
+import SubmissionTabContainer from '../submissions-tab/submissions-tab-container';
 
 const StyledTextField = styled.div`
     .MuiFormControl-root {
@@ -88,13 +91,13 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
         setSearchText(event.target.value.toLowerCase());
     };
 
-    const handleLogout = async () => {
-        trigger().finally(() => {
-            dispatch(authApi.util.resetApiState());
-            const { error, refetch } = getStatus;
-            refetch();
-        });
-    };
+    // const handleLogout = async () => {
+    //     trigger().finally(() => {
+    //         dispatch(authApi.util.resetApiState());
+    //         const { error, refetch } = getStatus;
+    //         refetch();
+    //     });
+    // };
 
     const handleCheckMyData = () => {
         openModal('LOGIN_VIEW');
@@ -104,11 +107,11 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
         openModal('IMPORT_FORMS_VIEW');
     };
 
-    const handleConnectWithGoogle = async () => {
-        const [trigger] = getGoogleConnect;
-        const googleRedirectUrl = await trigger().unwrap();
-        router.push(googleRedirectUrl);
-    };
+    // const handleConnectWithGoogle = async () => {
+    //     const [trigger] = getGoogleConnect;
+    //     // const googleRedirectUrl = await trigger().unwrap();
+    //     router.push(googleRedirectUrl);
+    // };
 
     // const ProfileMenu = () => (
     //     <>
@@ -167,15 +170,17 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                 </div>
 
                 <div className="relative flex flex-col w-full">
-                    <div className="flex flex-row gap-6 items-center justify-between">
-                        <h2 className="font-semibold text-darkGrey text-lg sm:text-xl md:text-2xl xl:text-3xl">Forms</h2>
-                        <StyledTextField>
+                    <div className="flex flex-row gap-6 items-start justify-between">
+                        {/* <h2 className="font-semibold text-darkGrey text-lg sm:text-xl md:text-2xl xl:text-3xl">Forms</h2> */}
+                        <SubmissionTabContainer />
+                        {/* <StyledTextField>
                             <TextField
                                 size="small"
                                 name="search-input"
                                 placeholder="Search forms..."
                                 value={searchText}
                                 onChange={handleSearch}
+                                className={'mt-5 xl:mt-9'}
                                 InputProps={{
                                     endAdornment: (
                                         <InputAdornment position="end">
@@ -186,55 +191,7 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                                     )
                                 }}
                             />
-                        </StyledTextField>
-                        {/* <Autocomplete value={sea} onChange={handleSearch} size="small" disablePortal id="combo-box-demo" options={[]} sx={{ width: 250 }} renderInput={(params) => <TextField {...params} label="Search forms..." />} /> */}
-                    </div>
-                    <div className="pt-3 md:pt-7">
-                        {forms.length === 0 && (
-                            <div className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
-                                <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />
-                                <p className="mt-4 p-0">0 forms</p>
-                            </div>
-                        )}
-                        <div className="grid grid-cols-1 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
-                            {forms.length !== 0 &&
-                                forms.map((form) => {
-                                    const slug = form.info.title.toLowerCase().replaceAll(' ', '-');
-                                    let shareUrl = '';
-                                    if (window && typeof window !== 'undefined') {
-                                        shareUrl = `${window.location.origin}/forms/${slug}`;
-                                    }
-                                    return (
-                                        <ActiveLink
-                                            key={form.id}
-                                            href={{
-                                                pathname: `/forms/[slug]`,
-                                                query: { slug }
-                                            }}
-                                        >
-                                            <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
-                                                <div className="flex flex-col justify-start h-full">
-                                                    <p className="text-xl text-grey mb-4 p-0">{form.info.title}</p>
-                                                    {form.info?.description && <p className="text-base text-softBlue m-0 p-0 w-full">{toEndDottedStr(form.info.description, 180)}</p>}
-                                                </div>
-                                                <div
-                                                    aria-hidden
-                                                    onClick={(event) => {
-                                                        event.preventDefault();
-                                                        event.stopPropagation();
-                                                        copyToClipboard(shareUrl);
-                                                        setIsOpen(true);
-                                                    }}
-                                                    className="p-2 border-[1px] border-white hover:border-neutral-100 hover:shadow rounded-md"
-                                                >
-                                                    <ShareIcon width={19} height={19} />
-                                                </div>
-                                            </div>
-                                        </ActiveLink>
-                                    );
-                                })}
-                        </div>
-                        <MuiSnackbar isOpen={isOpen} setIsOpen={setIsOpen} message="Copied URL" severity="info" />
+                        </StyledTextField> */}
                     </div>
                 </div>
             </ContentLayout>
