@@ -23,8 +23,8 @@ export default function OtpRenderer({ email }: any) {
 
     const router = useRouter();
 
-    // const [trigger] = authApi.useLazyGetStatusQuery();
-    const getGoogleConnect = googleApiSlice.useLazyGetConnectToGoogleQuery();
+    const [trigger] = authApi.useLazyGetStatusQuery();
+    // const getGoogleConnect = googleApiSlice.useLazyGetConnectToGoogleQuery();
 
     const emailRequest = { receiver_email: email };
 
@@ -43,9 +43,8 @@ export default function OtpRenderer({ email }: any) {
         const result = await postVerifyOtp(response).unwrap();
         if (result.payload.content.status_code === 200) {
             toast.info(result.payload.content.detail);
-
             // console.log('google slice', googleApiSlice);
-            // trigger('status');
+            trigger('status');
             closeModal();
         } else {
             toast.error(result.payload.content.detail);

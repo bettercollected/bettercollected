@@ -57,24 +57,21 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
 
     const [trigger, result] = useLazyGetLogoutQuery();
 
-    const getGoogleConnect = googleApiSlice.useLazyGetConnectToGoogleQuery();
+    // const getGoogleConnect = googleApiSlice.useLazyGetConnectToGoogleQuery();
 
-    // const getStatus = useGetStatusQuery('status');
+    const getStatus = useGetStatusQuery('status');
 
     const { openModal } = useModal();
-    const [_, copyToClipboard] = useCopyToClipboard();
-
-    const dispatch = useDispatch();
-    const router = useRouter();
+    // const [_, copyToClipboard] = useCopyToClipboard();
 
     let timeOutId: any;
 
-    // const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
+    const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
 
-    // useEffect(() => {
-    //     const selectGetStatus = useAppSelector(statusQuerySelect);
-    //     console.log('status: ', selectGetStatus);
-    // }, []);
+    const selectGetStatus = useAppSelector(statusQuerySelect);
+    const dispatch = useDispatch();
+
+    console.log('select get status: ', selectGetStatus);
 
     useEffect(() => {
         if (!!companyJson) {
@@ -87,17 +84,17 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
 
     if (!companyJson || !forms) return <FullScreenLoader />;
 
-    const handleSearch = (event: any) => {
-        setSearchText(event.target.value.toLowerCase());
-    };
-
-    // const handleLogout = async () => {
-    //     trigger().finally(() => {
-    //         dispatch(authApi.util.resetApiState());
-    //         const { error, refetch } = getStatus;
-    //         refetch();
-    //     });
+    // const handleSearch = (event: any) => {
+    //     setSearchText(event.target.value.toLowerCase());
     // };
+
+    const handleLogout = async () => {
+        trigger().finally(() => {
+            dispatch(authApi.util.resetApiState());
+            getStatus.refetch();
+            // getStatus('status');
+        });
+    };
 
     const handleCheckMyData = () => {
         openModal('LOGIN_VIEW');
@@ -126,9 +123,9 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
     //         </Button>
 
     //         {/* {!selectGetStatus?.error && (
-    //             <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-[#ffe0e0]" onClick={handleLogout}>
-    //                 <Logout height="30px" width="30px" className="!rounded-xl !text-[#e60000]" />
-    //             </Button>
+    // <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-[#ffe0e0]" onClick={handleLogout}>
+    //     <Logout height="30px" width="30px" className="!rounded-xl !text-[#e60000]" />
+    // </Button>
     //         )} */}
     //         {/* <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
     //             Import Forms
@@ -156,9 +153,15 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                         </div>
                     </div>
                     <div className="mt-2 mb-0 flex items-center">
-                        <Button variant="solid" className="mx-3 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
-                            Check my data
-                        </Button>
+                        {!!selectGetStatus.error ? (
+                            <Button variant="solid" className="mx-3 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
+                                Check my data
+                            </Button>
+                        ) : (
+                            <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-[#ffe0e0]" onClick={handleLogout}>
+                                <Logout height="30px" width="30px" className="!rounded-xl !text-[#e60000]" />
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -172,7 +175,7 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                 <div className="relative flex flex-col w-full">
                     <div className="flex flex-row gap-6 items-start justify-between">
                         {/* <h2 className="font-semibold text-darkGrey text-lg sm:text-xl md:text-2xl xl:text-3xl">Forms</h2> */}
-                        <SubmissionTabContainer />
+                        <SubmissionTabContainer showResponseBar={!!selectGetStatus.error} />
                         {/* <StyledTextField>
                             <TextField
                                 size="small"

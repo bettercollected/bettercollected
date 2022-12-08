@@ -4,19 +4,25 @@ import { NormalGridIcon } from '@app/components/icons/normal-grid';
 import Logo from '@app/components/ui/logo';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 
-export default function SubmissionTabContainer() {
+export default function SubmissionTabContainer({ showResponseBar }: any) {
     const paramTabs = [
         {
             title: 'Forms',
             path: 'forms',
             icon: <NormalGridIcon className="h-auto w-4" />
-        },
-        {
+        }
+    ];
+
+    if (!showResponseBar && paramTabs.length === 1) {
+        paramTabs.push({
             title: 'My Submissions',
             path: 'my-submissions',
             icon: <InfoIcon className="h-auto w-4" />
-        }
-    ];
+        });
+    } else if (!!showResponseBar && paramTabs.length === 2) {
+        paramTabs.pop();
+    }
+
     return (
         <div className="mt-5 flex flex-col pb-5 xl:mt-9">
             <ParamTab tabMenu={paramTabs}>

@@ -39,7 +39,7 @@ export function TabItem({ children, className }: React.PropsWithChildren<{ class
 export function TabPanels({ children, className }: React.PropsWithChildren<{ className?: string }>) {
     return (
         <Tab.Panels className={className}>
-            <AnimatePresence exitBeforeEnter>
+            <AnimatePresence mode="wait">
                 <>{children}</>
             </AnimatePresence>
         </Tab.Panels>
