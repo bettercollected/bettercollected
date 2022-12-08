@@ -1,4 +1,5 @@
 import FormCard from '@app/components/dashboard/form-card';
+import ResponseCard from '@app/components/dashboard/response-card';
 import { InfoIcon } from '@app/components/icons/info-icon';
 import { NormalGridIcon } from '@app/components/icons/normal-grid';
 import Logo from '@app/components/ui/logo';
@@ -10,18 +11,23 @@ export default function SubmissionTabContainer({ showResponseBar }: any) {
             title: 'Forms',
             path: 'forms',
             icon: <NormalGridIcon className="h-auto w-4" />
-        }
-    ];
-
-    if (!showResponseBar && paramTabs.length === 1) {
-        paramTabs.push({
+        },
+        {
             title: 'My Submissions',
             path: 'my-submissions',
             icon: <InfoIcon className="h-auto w-4" />
-        });
-    } else if (!!showResponseBar && paramTabs.length === 2) {
-        paramTabs.pop();
-    }
+        }
+    ];
+
+    // if (!showResponseBar && paramTabs.length === 1) {
+    //     paramTabs.push({
+    //         title: 'My Submissions',
+    //         path: 'my-submissions',
+    //         icon: <InfoIcon className="h-auto w-4" />
+    //     });
+    // } else if (!!showResponseBar && paramTabs.length === 2) {
+    //     paramTabs.pop();
+    // }
 
     return (
         <div className="mt-5 flex flex-col pb-5 xl:mt-9">
@@ -30,7 +36,7 @@ export default function SubmissionTabContainer({ showResponseBar }: any) {
                     <FormCard />
                 </TabPanel>
                 <TabPanel className="focus:outline-none" key="my-submissions">
-                    <div>Hello submissions</div>
+                    <ResponseCard />
                 </TabPanel>
             </ParamTab>
         </div>

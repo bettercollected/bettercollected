@@ -29,9 +29,6 @@ const StyledTextField = styled.div`
         border-radius: 14px;
         outline: none;
         float: right;
-        // position: absolute;
-        // right: 0;
-        // top: -1;
     }
 
     .MuiOutlinedInput-notchedOutline {
