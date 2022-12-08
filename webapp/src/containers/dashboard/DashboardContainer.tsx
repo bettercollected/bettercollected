@@ -44,6 +44,12 @@ const StyledTextField = styled.div`
         border-radius: 14px;
         border-width: 0.5px;
     }
+
+    @media screen and (max-width: 640px) {
+        .MuiFormControl-root {
+            width: 100%;
+        }
+    }
 `;
 
 interface IDashboardContainer {
@@ -84,9 +90,9 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
 
     if (!companyJson || !forms) return <FullScreenLoader />;
 
-    // const handleSearch = (event: any) => {
-    //     setSearchText(event.target.value.toLowerCase());
-    // };
+    const handleSearch = (event: any) => {
+        setSearchText(event.target.value.toLowerCase());
+    };
 
     const handleLogout = async () => {
         trigger().finally(() => {
@@ -172,31 +178,31 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                     </div>
                 </div>
 
-                <div className="relative flex flex-col w-full">
-                    <div className="flex flex-row gap-6 items-start justify-between">
-                        {/* <h2 className="font-semibold text-darkGrey text-lg sm:text-xl md:text-2xl xl:text-3xl">Forms</h2> */}
-                        <SubmissionTabContainer showResponseBar={!!selectGetStatus.error} />
-                        {/* <StyledTextField>
-                            <TextField
-                                size="small"
-                                name="search-input"
-                                placeholder="Search forms..."
-                                value={searchText}
-                                onChange={handleSearch}
-                                className={'mt-5 xl:mt-9'}
-                                InputProps={{
-                                    endAdornment: (
-                                        <InputAdornment position="end">
-                                            <IconButton>
-                                                <SearchIcon />
-                                            </IconButton>
-                                        </InputAdornment>
-                                    )
-                                }}
-                            />
-                        </StyledTextField> */}
-                    </div>
+                {/* <div className="relative flex flex-col w-full"> */}
+                <div className="w-full md:flex md:justify-end">
+                    <StyledTextField>
+                        <TextField
+                            size="small"
+                            name="search-input"
+                            placeholder="Search forms..."
+                            value={searchText}
+                            onChange={handleSearch}
+                            className={'w-full'}
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton>
+                                            <SearchIcon />
+                                        </IconButton>
+                                    </InputAdornment>
+                                )
+                            }}
+                        />
+                    </StyledTextField>
                 </div>
+                {/* <h2 className="font-semibold text-darkGrey text-lg sm:text-xl md:text-2xl xl:text-3xl">Forms</h2> */}
+                <SubmissionTabContainer showResponseBar={!!selectGetStatus.error} />
+                {/* </div> */}
             </ContentLayout>
         </div>
     );
