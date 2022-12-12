@@ -126,9 +126,15 @@ module.exports = {
             }
         }
     },
+    variants: {
+        extends: {
+            scrollbar: ['rounded']
+        }
+    },
     plugins: [
         require('@tailwindcss/typography'),
         require('@tailwindcss/forms'),
+        require('tailwind-scrollbar')({ nocompatible: true }),
         ({ addComponents }) => {
             addComponents({
                 '.container': {

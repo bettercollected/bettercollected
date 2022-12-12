@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
 
+import { useRouter } from 'next/router';
+
 import { toast } from 'react-toastify';
 
+import environments from '@app/configs/environments';
+import { authApi } from '@app/store/auth/api';
+import { googleApiSlice } from '@app/store/google/api';
 import { usePostAuthEmailMutation, usePostVerifyOtpMutation } from '@app/store/otp/api';
 
 import { useModal } from '../modal-views/context';
@@ -15,8 +20,12 @@ export default function OtpRenderer({ email }: any) {
     const [postAuthEmail, response] = usePostAuthEmailMutation();
 
     const [postVerifyOtp, result] = usePostVerifyOtpMutation();
-
     const { isLoading } = result;
+
+    const router = useRouter();
+
+    const [trigger] = authApi.useLazyGetStatusQuery();
+    // const getGoogleConnect = googleApiSlice.useLazyGetConnectToGoogleQuery();
 
     const emailRequest = { receiver_email: email };
 
@@ -31,12 +40,16 @@ export default function OtpRenderer({ email }: any) {
             return;
         }
         const response = { email: email, otp_code: otp };
+        // const response = { email: 'jordanandrew932@gmail.com', otp_code: otp };
         const result = await postVerifyOtp(response).unwrap();
-        if (result.status_code === 200) {
-            toast.info(result.detail);
+        if (result.payload.content.status_code === 200) {
+            toast.info(result.payload.content.detail);
+            // console.log('google slice', googleApiSlice);
+            router.push(`${environments.API_ENDPOINT_HOST}/auth/google/connect`);
+            // trigger('status');
             closeModal();
         } else {
-            toast.error(result.detail);
+            toast.error(result.payload.content.detail);
         }
     };
 
@@ -63,19 +76,16 @@ export default function OtpRenderer({ email }: any) {
     const HeaderRenderer = () => {
         return (
             <>
-                <div className={'font-semibold text-darkGrey rounded-md text-xl'}>Enter OTP code to Verify</div>
+                <div className={'font-semibold text-darkGrey rounded-md text-md'}>Enter OTP code</div>
 
-                <div className={'text-sm mb-2 text-gray-400 md:text-base'}>
-                    {' '}
-                    We have just send a verification code to <span className="text-black font-bold">{email}</span>
-                    <br />
-                </div>
+                <p className={'text-sm text-gray-500 md:text-base'}> We have just send a verification code to</p>
+                <p className="text-darkGrey font-semibold mb-2">{email}</p>
             </>
         );
     };
 
     return (
-        <form className={' flex flex-col text-center'}>
+        <form className={'flex flex-col text-center'}>
             <HeaderRenderer />
             <input className={`border-solid mb-4 h-[40px] text-gray-900 text-sm rounded-lg w-full p-2.5`} value={otp} type="text" placeholder={'Enter the OTP code'} onChange={(e: any) => setOtp(e.target.value)} />
             <Button isLoading={isLoading} onClick={handleVerifyButtonClick} className="w-full">

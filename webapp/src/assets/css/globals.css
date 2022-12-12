@@ -33,3 +33,15 @@ body {
     margin: 0;
     padding: 0;
 }
+
+.input[type='radio']:checked {
+    content: '';
+    display: block;
+    position: relative;
+    top: 3px;
+    left: 3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: red;
+}

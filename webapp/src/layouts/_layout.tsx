@@ -1,7 +1,10 @@
 import React from 'react';
 
+import { useDrawer } from '@app/components/drawer-views/context';
+import { useModal } from '@app/components/modal-views/context';
+import Button from '@app/components/ui/button';
+import Hamburger from '@app/components/ui/hamburger';
 import Logo from '@app/components/ui/logo';
-import { MenuItems } from '@app/layouts/_layout-menu';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
@@ -11,6 +14,12 @@ export function Header() {
     const breakpoint = useBreakpoint();
     const isMounted = useIsMounted();
 
+    const { openModal } = useModal();
+
+    const handleImportForms = () => {
+        openModal('LOGIN_VIEW');
+    };
+
     return (
         <nav
             className={`fixed top-0 !z-30 flex w-full items-center justify-between px-4 transition-all duration-300 ltr:right-0 rtl:left-0 sm:px-6 lg:px-8 xl:px-10 3xl:px-12 ${
@@ -19,10 +28,12 @@ export function Header() {
                     : 'h-16 border-b-[0.5px] border-neutral-100 dark:border-neutral-700 bg-white dark:bg-dark sm:h-24'
             }`}
         >
-            <div className="flex items-center">
+            <div className="flex justify-between items-center">
                 <Logo />
-                {isMounted && ['xs', 'sm', 'md', 'lg'].indexOf(breakpoint) === -1 && <MenuItems />}
             </div>
+            <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
+                Get in
+            </Button>
         </nav>
     );
 }

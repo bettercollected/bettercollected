@@ -59,7 +59,6 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         const sizeClassNames = sizes[size];
         const buttonRef = useRef<HTMLButtonElement>(null);
         useImperativeHandle(ref, () => buttonRef.current);
-
         function dripCompletedHandle() {
             setDripShow(false);
             setDripX(0);

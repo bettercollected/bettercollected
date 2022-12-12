@@ -9,16 +9,23 @@ import counterSlice from '@app/store/counter/counterSlice';
 import { monitorReducerEnhancer } from '@app/store/enhancers';
 import { otpApi } from '@app/store/otp/api';
 
+import { authApi } from './auth/api';
+import { googleApiSlice } from './google/api';
+import searchReducerObj, { searchSlice } from './search/searchSlice';
+
 const loggerMiddleware = createLogger();
 
 // Add more middlewares here
-const middlewares = [loggerMiddleware, otpApi.middleware];
+const middlewares = [loggerMiddleware, otpApi.middleware, authApi.middleware, googleApiSlice.middleware];
 
 if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
 const reducers = {
     [counterSlice.reducerPath]: counterSlice.reducer,
-    [otpApi.reducerPath]: otpApi.reducer
+    [searchReducerObj.reducerPath]: searchSlice.reducer,
+    [otpApi.reducerPath]: otpApi.reducer,
+    [authApi.reducerPath]: authApi.reducer,
+    [googleApiSlice.reducerPath]: googleApiSlice.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);

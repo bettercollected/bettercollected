@@ -1,16 +1,15 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import 'react-toastify/dist/ReactToastify.css';
 
 import { usePostAuthEmailMutation } from '@app/store/otp/api';
 
+import { Close } from '../icons/close';
 import { useModal } from '../modal-views/context';
 import OtpRenderer from './otp-renderer';
 import SendCode from './sendcode-renderer';
 
 export default function LoginView({ ...props }) {
-    const { closeModal } = useModal();
-
     function EmailAndOTPUiSwitcher() {
         const [postAuthEmail, result] = usePostAuthEmailMutation();
         const { isLoading, isSuccess } = result;
@@ -21,11 +20,7 @@ export default function LoginView({ ...props }) {
             setEmail(email);
         }
 
-        if (isSuccess) {
-            return <OtpRenderer email={email} />;
-        } else {
-            return <SendCode updateEmail={updateEmail} isLoading={isLoading} postAuthEmail={postAuthEmail} />;
-        }
+        return isSuccess ? <OtpRenderer email={email} /> : <SendCode updateEmail={updateEmail} isLoading={isLoading} postAuthEmail={postAuthEmail} />;
     }
 
     function ImageRenderer() {
@@ -37,14 +32,18 @@ export default function LoginView({ ...props }) {
     }
 
     function LoginContainer() {
+        const { closeModal } = useModal();
+
+        const ref = useRef<HTMLDivElement>(null);
+
         return (
-            <div className=" m-auto max-w-[500px] items-start justify-between rounded-lg bg-white lg:scale-150">
-                <div className="flex flex-col  items-center gap-8 justify-between p-10">
+            <div ref={ref} className=" relative m-auto max-w-[500px] items-start justify-between rounded-lg bg-white lg:scale-150">
+                <div className=" relative flex flex-col  items-center gap-8 justify-between p-10">
                     <ImageRenderer />
                     <EmailAndOTPUiSwitcher />
                 </div>
                 <div className="cursor-pointer absolute top-3 right-3 text-gray-600 hover:text-black" onClick={() => closeModal()}>
-                    X
+                    <Close className="h-auto w-3 text-gray-600 dark:text-white" />
                 </div>
             </div>
         );

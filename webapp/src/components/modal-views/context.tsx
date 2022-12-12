@@ -1,14 +1,15 @@
 import { atom, useAtom } from 'jotai';
 
-// export type MODAL_VIEW = 'SEARCH_VIEW' | 'SHARE_VIEW' |'LOGIN_VIEW';
+export type MODAL_VIEW = 'SEARCH_VIEW' | 'SHARE_VIEW' | 'LOGIN_VIEW' | 'IMPORT_FORMS_VIEW';
 
-export enum MODAL_VIEW {
-    SEARCH_VIEW,
-    SHARE_VIEW,
-    LOGIN_VIEW
-}
+// export enum MODAL_VIEW {
+//     SEARCH_VIEW,
+//     SHARE_VIEW,
+//     LOGIN_VIEW,
+//     IMPORT_FORMS_VIEW
+// }
 
-const modalAtom = atom({ isOpen: false, view: MODAL_VIEW.LOGIN_VIEW, modalProps: null });
+const modalAtom = atom({ isOpen: false, view: 'LOGIN_VIEW', modalProps: null });
 
 export function useModal() {
     const [state, setState] = useAtom(modalAtom);

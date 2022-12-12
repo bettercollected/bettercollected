@@ -34,22 +34,6 @@ export default function Banner() {
     };
 
     const handleSubmit = () => {
-        // const myInit:any = {
-        //     method: 'GET',
-        //     mode: 'cors',
-        //     headers: [
-        //     ['Content-Type', 'application/x-www-form-urlencoded'],
-        //     ['Content-Type', 'multipart/form-data'],
-        //     ['Content-Type', 'text/plain'],
-        // ],
-        //     cache: 'default',
-        // };
-        // fetch(`https://docs.google.com/forms/d/e/1FAIpQLSc-OA5vBjBLYm2xN2ZVxDuxqqrmwSHKAqAgv6QrF1TwIWKMow/viewform?emailAddress=${email}`,myInit)
-        //     .then(res => console.log("res"))
-        //     .finally(() => {
-        //         setIframe(true)
-        //     })
-        // setIframe(true)
         router.push('/waitlistForms');
     };
 
@@ -70,19 +54,8 @@ export default function Banner() {
                             <div className={'font-roboto font-display text-gray-400 text-md md:text-lg lg:text-xl mb-6'}>{t('SLOGAN_DESCRIPTION')}</div>
 
                             <div className={'flex flex-col lg:flex-row lg:items-center gap-4'}>
-                                {/*<FormInput*/}
-                                {/*    label={""}*/}
-                                {/*    placeholder={t("EMAIL_ADDRESS")}*/}
-                                {/*    id={"email"}*/}
-                                {/*    handleChange={handleChange}*/}
-                                {/*/>*/}
                                 <a href="/waitlist" target="_blank">
-                                    <div
-                                        // onClick={handleSubmit}
-                                        className={'cursor-pointer shadow-md hover:bg-[#4da2ff] text-center p-3 mb-2 md:p-4 md:pt-2 md:pb-2 text-white rounded-md bg-[#007AFF]'}
-                                    >
-                                        {t('BECOME_A_BETTER_COLLECTOR')}
-                                    </div>
+                                    <div className={'cursor-pointer shadow-md hover:bg-[#4da2ff] text-center p-3 mb-2 md:p-4 md:pt-2 md:pb-2 text-white rounded-md bg-[#007AFF]'}>{t('BECOME_A_BETTER_COLLECTOR')}</div>
                                 </a>
                             </div>
                         </div>

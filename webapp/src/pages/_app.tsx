@@ -5,6 +5,7 @@ import { NextSeo } from 'next-seo';
 import { ThemeProvider } from 'next-themes';
 import type { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
+import Script from 'next/script';
 
 import { CacheProvider, EmotionCache, css } from '@emotion/react';
 import { GlobalStyles } from '@mui/material';
@@ -19,6 +20,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 
 import '@app/assets/css/globals.css';
+import DrawerContainer from '@app/components/drawer-views/container';
 import ModalContainer from '@app/components/modal-views/container';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import NextNProgress from '@app/components/ui/nprogress';
@@ -40,8 +42,10 @@ type AppPropsWithLayout = AppProps & {
 };
 
 function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }: AppPropsWithLayout) {
-    console.info(globalConstants.consoleWarningTitle, consoleWarningStyle);
-    console.info(globalConstants.consoleWarningDescription, consoleTextStyle);
+    // console.info(globalConstants.consoleWarningTitle, consoleWarningStyle);
+    // console.info(globalConstants.consoleWarningDescription, consoleTextStyle);
+
+    const router = useRouter();
 
     const getLayout = Component.getLayout ?? ((page: any) => page);
 
@@ -59,8 +63,6 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
         description = pageProps?.companyJson?.companyDescription ?? description;
     }
 
-    const router = useRouter();
-
     useEffect(() => {
         if (!!environments.GA_MEASUREMENT_ID) {
             ReactGA.initialize(environments.GA_MEASUREMENT_ID);
@@ -74,6 +76,7 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                 <MuiThemeProvider>
                     {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
                     <CssBaseline />
+                    <Script src="https://unpkg.com/flowbite@1.5.4/dist/datepicker.js" strategy="beforeInteractive" />
                     <GlobalStyles
                         styles={css`
                             :root {
@@ -116,7 +119,14 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                             cardType: 'summary_large_image'
                         }}
                     />
-                    <CookieConsent location="bottom" buttonText="I understand" cookieName="BetterCookie" style={{ background: '#007AFF' }} buttonStyle={{ color: '#4e503b', fontSize: '13px', borderRadius: '3px' }} expires={150}>
+                    <CookieConsent
+                        location="bottom"
+                        buttonText="I understand"
+                        cookieName="BetterCookie"
+                        style={{ background: '#5492f7', display: 'flex', alignItems: 'center' }}
+                        buttonStyle={{ color: '#4e503b', fontSize: '13px', borderRadius: '3px' }}
+                        expires={150}
+                    >
                         This website uses cookies to enhance the user experience.{' '}
                         <p className={'cursor-pointer mt-2 text-white hover:text-gray-300'} onClick={() => router.push('https://www.termsfeed.com/blog/cookies/')}>
                             What are cookies?
@@ -128,6 +138,7 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                         <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
                             {getLayout(<Component {...pageProps} />)}
                             <ModalContainer />
+                            <DrawerContainer />
                         </PersistGate>
                     </Provider>
                 </MuiThemeProvider>
@@ -136,4 +147,5 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
     );
 }
 
-export default appWithTranslation(MainApp);
+export default MainApp;
+// export default appWithTranslation(MainApp);

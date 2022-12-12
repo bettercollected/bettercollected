@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 
-console.log(process.env);
+// console.log(process.env);
 
 const runtimeCaching = require('next-pwa/cache');
 
