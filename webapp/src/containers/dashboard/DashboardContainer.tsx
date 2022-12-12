@@ -123,37 +123,6 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
         router.push(`${environments.API_ENDPOINT_HOST}/auth/google/connect`);
     };
 
-    // const handleConnectWithGoogle = async () => {
-    //     const [trigger] = getGoogleConnect;
-    //     // const googleRedirectUrl = await trigger().unwrap();
-    //     router.push(googleRedirectUrl);
-    // };
-
-    // const ProfileMenu = () => (
-    //     <>
-    //         {selectGetStatus.data?.payload?.content?.user?.services?.length === 0 && (
-    //             <Button variant="solid" className="mx-3 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
-    //                 Connect with google
-    //             </Button>
-    //         )}
-
-    //         <Button variant="solid" className="mx-3 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
-    //             Check My data
-    //         </Button>
-
-    //         {/* {!selectGetStatus?.error && (
-    // <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-[#ffe0e0]" onClick={handleLogout}>
-    //     <Logout height="30px" width="30px" className="!rounded-xl !text-[#e60000]" />
-    // </Button>
-    //         )} */}
-    //         {/* <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
-    //             Import Forms
-    //         </Button> */}
-    //     </>
-    // );
-
-    // const isGoogleConnected = !!selectGetStatus?.data?.payload?.content?.user?.services === 'google';
-
     return (
         <div className="relative">
             <div className="product-box">

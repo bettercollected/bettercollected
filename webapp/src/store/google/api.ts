@@ -23,8 +23,15 @@ export const googleApiSlice = createApi({
                 method: 'GET',
                 credentials: 'include'
             })
+        }),
+        importForms: builder.query<any, null>({
+            query: () => ({
+                url: 'forms/import',
+                method: 'GET',
+                credentials: 'include'
+            })
         })
     })
 });
 
-export const { useGetFormsQuery } = googleApiSlice;
+export const { useGetFormsQuery, useImportFormsQuery } = googleApiSlice;
