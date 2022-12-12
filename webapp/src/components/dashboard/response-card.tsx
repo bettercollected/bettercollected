@@ -20,7 +20,6 @@ import ActiveLink from '@app/components/ui/links/active-link';
 import MuiSnackbar from '@app/components/ui/mui-snackbar';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { useAppSelector } from '@app/store/hooks';
-import { activeTabDataSlice } from '@app/store/search/activeTabDataSlice';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function ResponseCard() {
@@ -40,13 +39,17 @@ export default function ResponseCard() {
     //     // return () => timeOutId && clearTimeout(timeOutId);
     // }, []);
 
+    useEffect(() => {
+        //TODO: fetch all the forms of the users
+    }, []);
+
     const forms = [
         {
             id: '1RTwg2uQbv1X2xEiNgyWN8wizD3HCmWg1naYdyqSoYOQ',
             info: {
-                title: 'Become a Better Responder',
+                title: 'Become a Better Collector',
                 description:
-                    'Loren Ipsum is great for collecting data from users via form responses but it lacks some important features for companies like us who value users data rights and privacy. For eg. once the user fills in the form, they cannot always view their own responses or see their past form responses. It feels like the user is ignored after the data is collected from them. We feel that is not right. There has to be a better way to collect data and let the user exercise their data rights.\n\nBetter Collected is exactly the platform for addressing that. Better Collected integrates with Google forms and opens up a portal for your users to view all of their collected data via Google forms and let them exercise rights like request for data deletion. This all happens without disrupting your normal workflow how you use Google forms. Better collected makes you a better data collector.\n\nFill the form below to join the waitlist so we get to inform you once the platform is ready for you. First 100 users to join the waitlist gets the Lifetime access to the platform for FREE.\n\nBonus: You can also use your own domain and generate custom URLs for your Google forms with our platform. No more random looking URLs. Instead, beautiful and branded forms. How cool is that?',
+                    'Google Forms is great for collecting data from users via form responses but it lacks some important features for companies like us who value users data rights and privacy. For eg. once the user fills in the form, they cannot always view their own responses or see their past form responses. It feels like the user is ignored after the data is collected from them. We feel that is not right. There has to be a better way to collect data and let the user exercise their data rights.\n\nBetter Collected is exactly the platform for addressing that. Better Collected integrates with Google forms and opens up a portal for your users to view all of their collected data via Google forms and let them exercise rights like request for data deletion. This all happens without disrupting your normal workflow how you use Google forms. Better collected makes you a better data collector.\n\nFill the form below to join the waitlist so we get to inform you once the platform is ready for you. First 100 users to join the waitlist gets the Lifetime access to the platform for FREE.\n\nBonus: You can also use your own domain and generate custom URLs for your Google forms with our platform. No more random looking URLs. Instead, beautiful and branded forms. How cool is that?',
                 documentTitle: 'Better Collected Waiting List'
             },
             revisionId: '00000176',

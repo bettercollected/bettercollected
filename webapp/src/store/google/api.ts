@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
 
-export const GOOGLE_API = 'GOOGLE_API';
+export const GOOGLE_API = 'google';
 export const GOOGLE_API_TAG = 'GOOGLE_API_TAG';
 
 export const googleApiSlice = createApi({
@@ -17,22 +17,14 @@ export const googleApiSlice = createApi({
         }
     }),
     endpoints: (builder) => ({
-        getConnectToGoogle: builder.query<any, null>({
+        getForms: builder.query<any, null>({
             query: () => ({
-                url: `/auth/google/connect`,
+                url: `forms/import`,
                 method: 'GET',
                 credentials: 'include'
             })
-            // invalidatesTags: [GOOGLE_API_TAG]
         })
-        // postVerifyOtp: builder.mutation<any, verifyOtp>({
-        //     query: (body) => ({
-        //         url: '/auth/otp/validate',
-        //         method: 'POST',
-        //         body
-        //     })
-        // })
     })
 });
 
-export const { useGetConnectToGoogleQuery } = googleApiSlice;
+export const { useGetFormsQuery } = googleApiSlice;

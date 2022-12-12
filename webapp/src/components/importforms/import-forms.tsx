@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch, { SwitchProps } from '@mui/material/Switch';
 import { styled } from '@mui/material/styles';
+
+import { googleApiSlice } from '@app/store/google/api';
+import { toMonthDateYearStr } from '@app/utils/dateUtils';
 
 import { useModal } from '../modal-views/context';
 import Button from '../ui/button';
@@ -53,53 +56,70 @@ const IOSSwitch = styled((props: SwitchProps) => <Switch focusVisibleClassName="
     }
 }));
 
-const forms = [
-    {
-        title: 'Form 1',
-        description: 'This is the description'
+const forms = {
+    apiVersion: 'v1',
+    payload: {
+        content: [
+            {
+                iconLink: 'https://drive-thirdparty.googleusercontent.com/16/type/application/vnd.google-apps.form',
+                owners: [
+                    {
+                        displayName: 'Andrew Jordan',
+                        kind: 'drive#user',
+                        me: true,
+                        permissionId: '09701994910462109291',
+                        emailAddress: 'jordanandrew932@gmail.com',
+                        photoLink: 'https://lh3.googleusercontent.com/a/default-user=s64'
+                    }
+                ],
+                webViewLink: 'https://docs.google.com/forms/d/1F7O-GckfIVNyjBtBiBM0mZb1VV7eJdwIpOkhdETLhaw/edit?usp=drivesdk',
+                id: '1F7O-GckfIVNyjBtBiBM0mZb1VV7eJdwIpOkhdETLhaw',
+                name: 'Untitled form',
+                createdTime: '2022-11-09T13:24:51.778Z',
+                modifiedTime: '2022-12-08T10:39:48.798Z'
+            },
+            {
+                iconLink: 'https://drive-thirdparty.googleusercontent.com/16/type/application/vnd.google-apps.form',
+                owners: [
+                    {
+                        displayName: 'Andrew Jordan',
+                        kind: 'drive#user',
+                        me: true,
+                        permissionId: '09701994910462109291',
+                        emailAddress: 'jordanandrew932@gmail.com',
+                        photoLink: 'https://lh3.googleusercontent.com/a/default-user=s64'
+                    }
+                ],
+                webViewLink: 'https://docs.google.com/forms/d/1r0Xk9ev0eDdE01hxsjjmVCErTl4jXEFTCkJhICXsL10/edit?usp=drivesdk',
+                id: '1r0Xk9ev0eDdE01hxsjjmVCErTl4jXEFTCkJhICXsL10',
+                name: 'Contact Information',
+                createdTime: '2022-11-09T13:48:26.866Z',
+                modifiedTime: '2022-12-08T10:39:41.605Z'
+            }
+        ],
+        pageable: {
+            page: 0,
+            size: 15,
+            total: 2
+        }
     },
-    {
-        title: 'Form 2',
-        description: 'This is the description'
-    },
-    {
-        title: 'Form 3',
-        description: 'This is the description'
-    },
-    {
-        title: 'Form 4',
-        description: 'This is the description'
-    },
-    {
-        title: 'Form 5',
-        description: 'This is the description'
-    },
-    {
-        title: 'Form 6',
-        description: 'This is the description'
-    },
-    {
-        title: 'Form 7',
-        description: 'This is the description'
-    },
-    {
-        title: 'Form 8',
-        description: 'This is the description'
-    },
-    {
-        title: 'Form 9',
-        description: 'This is the description'
-    },
-    {
-        title: 'Form 10',
-        description: 'This is the description'
-    }
-];
+    timestamp: '2022-12-08T18:21:28.809180'
+};
 
 export default function ImportForms() {
     const { closeModal } = useModal();
 
     const [enabledFormList, setEnabledFormList] = useState<any>([]);
+
+    // const [forms, setForms] = useState({});
+
+    // const [trigger] = googleApiSlice.useLazyGetFormsQuery();
+
+    // useEffect(() => {
+    //     trigger().then((data) => {
+    //         setForms(data);
+    //     });
+    // }, []);
 
     const FooterRenderer = () => {
         return (
@@ -119,25 +139,26 @@ export default function ImportForms() {
     };
 
     const CardRenderer = (props: any) => {
-        const { title } = props.form;
+        const { name, id, createdTime, owners } = props.form;
 
         const handleSwitchEnable = () => {
-            if (enabledFormList.includes(props.form.title)) {
-                const tempArray = enabledFormList.filter((form: any) => form !== props.form.title);
+            if (enabledFormList.includes(props.form.id)) {
+                const tempArray = enabledFormList.filter((form: any) => form !== props.form.id);
                 setEnabledFormList([...tempArray]);
             } else {
-                setEnabledFormList([...enabledFormList, props.form.title]);
+                setEnabledFormList([...enabledFormList, props.form.id]);
             }
         };
 
         return (
             <div onClick={handleSwitchEnable} className="flex cursor-pointer justify-between items-center pb-2 pt-2 border-b-[1px] border-[#eaeaea]">
                 <div>
-                    <p className="text-[9px] !m-0 !p-0 text-gray-400 italic">2039304034</p>
-                    <h2 className="text-md font-bold text-grey p-0">{title}</h2>
-                    <p className="text-[9px] !m-0 !p-0 text-blue-500 italic">teamlead@gmail.com</p>
+                    <p className="text-[9px] !m-0 !p-0 text-gray-400 italic">{id}</p>
+                    <h2 className="text-md font-bold text-grey p-0">{name}</h2>
+                    {/* <p className="text-[9px] !m-0 !p-0 text-blue-500 italic">{props.form.owners[0].emailAddress}</p> */}
                 </div>
-                <FormControlLabel label="" control={<IOSSwitch checked={checkIfSwitchIsEnabled(props.form.title)} />} />
+                <p className="text-[9px] !m-0 !p-0 text-blue-500 italic">{toMonthDateYearStr(new Date(createdTime))}</p>
+                <FormControlLabel label="" control={<IOSSwitch checked={checkIfSwitchIsEnabled(props.form.id)} />} />
             </div>
         );
     };
@@ -145,10 +166,8 @@ export default function ImportForms() {
     const CardContainerRenderer = ({ formsCounter, setFormsCounter }: any) => {
         return (
             <>
-                {/* <div className="flex justify-end text-green-700">Selected: {formsCounter}</div> */}
-                {/* <div className="grid grid-cols-1 md:grid-cols-2 h-96 overflow-y-scroll 3xl:grid-cols-2 4xl:grid-cols-4 gap-5"> */}
-                {forms.map((form: any, idx: any) => (
-                    <CardRenderer key={idx} form={form} />
+                {forms?.payload?.content.map((form: any, idx: any) => (
+                    <CardRenderer key={form['id']} form={form} />
                 ))}
             </>
         );
@@ -170,7 +189,7 @@ export default function ImportForms() {
         <div className=" m-auto max-w-[774px] items-start justify-between rounded-lg bg-white lg:scale-150">
             <div className="flex flex-col items-center gap-8 justify-between p-10">
                 <HeadingRenderer />
-                <div className="w-full h-[300px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-300 overflow-y-scroll scrollbar-thumb-rounded-full scrollbar-track-rounded-full">
+                <div className="w-full h-[250px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-300 overflow-y-scroll scrollbar-thumb-rounded-full scrollbar-track-rounded-full">
                     <CardContainerRenderer />
                 </div>
                 <FooterRenderer />

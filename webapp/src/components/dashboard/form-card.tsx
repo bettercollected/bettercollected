@@ -20,7 +20,7 @@ import ActiveLink from '@app/components/ui/links/active-link';
 import MuiSnackbar from '@app/components/ui/mui-snackbar';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { useAppSelector } from '@app/store/hooks';
-import { activeTabDataSlice } from '@app/store/search/activeTabDataSlice';
+import { searchSlice } from '@app/store/search/searchSlice';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 const StyledTextField = styled.div`
@@ -42,7 +42,7 @@ export default function FormCard() {
     const [_, copyToClipboard] = useCopyToClipboard();
     const [searchText, setSearchText] = useState('');
 
-    const forms = useAppSelector((state) => state.activeData.formsArray);
+    const forms = useAppSelector((state) => state.search.activeSearchContent);
 
     // useEffect(() => {
     //     // const filteredForms = getActiveTab.filter((form) => form.info.title.toLowerCase().includes(searchText.toLowerCase()));

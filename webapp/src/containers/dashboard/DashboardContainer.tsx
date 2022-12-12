@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import Router, { useRouter } from 'next/router';
 
 import styled from '@emotion/styled';
+import { Menu } from '@headlessui/react';
 import { IconButton, InputAdornment } from '@mui/material';
 import TextField from '@mui/material/TextField';
 import { useCookies } from 'react-cookie';
@@ -10,12 +11,15 @@ import { useDispatch } from 'react-redux';
 
 import EmptyTray from '@app/assets/svgs/empty-tray.svg';
 import FormCard from '@app/components/dashboard/form-card';
+import ProfileDropdown from '@app/components/dashboard/profile-dropdown';
+import { ChevronDown } from '@app/components/icons/chevron-down';
 import { Logout } from '@app/components/icons/logout-icon';
 import { SearchIcon } from '@app/components/icons/search';
 import { ShareIcon } from '@app/components/icons/share-icon';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import Hamburger from '@app/components/ui/hamburger';
 import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
 import MarkdownText from '@app/components/ui/markdown-text';
@@ -29,6 +33,7 @@ import { authApi, useGetLogoutQuery, useGetStatusQuery, useLazyGetLogoutQuery } 
 import { baseApi } from '@app/store/baseApi';
 import { googleApiSlice } from '@app/store/google/api';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { setActiveData, setSearchInput } from '@app/store/search/searchSlice';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 import SubmissionTabContainer from '../submissions-tab/submissions-tab-container';
@@ -57,15 +62,13 @@ interface IDashboardContainer {
 }
 
 export default function DashboardContainer({ companyJson }: IDashboardContainer) {
-    const [searchText, setSearchText] = useState('');
+    // const [searchText, setSearchText] = useState('');
     const [isOpen, setIsOpen] = useState(false);
-    const [forms, setForms] = useState<Array<GoogleFormDto> | null>(null);
+    // const [forms, setForms] = useState<Array<GoogleFormDto> | null>(null);
 
     const [trigger, result] = useLazyGetLogoutQuery();
 
-    // const getGoogleConnect = googleApiSlice.useLazyGetConnectToGoogleQuery();
-
-    const getStatus = useGetStatusQuery('status');
+    const { isLoading, refetch, isError, isSuccess } = useGetStatusQuery('status');
 
     const { openModal } = useModal();
     // const [_, copyToClipboard] = useCopyToClipboard();
@@ -73,32 +76,38 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
     let timeOutId: any;
 
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
-
     const selectGetStatus = useAppSelector(statusQuerySelect);
     const dispatch = useDispatch();
+    const router = useRouter();
 
     console.log('select get status: ', selectGetStatus);
+
+    const searchText = useAppSelector((state) => state.search.searchInput);
+
+    const forms = useAppSelector((state) => state.search.activeSearchContent);
+
+    const [dropdown, setDropdown] = useState(false);
+    const ref: any = useRef();
 
     useEffect(() => {
         if (!!companyJson) {
             const companyForms: Array<GoogleFormDto> | null = companyJson?.forms ?? [];
             const filteredForms = companyForms.filter((form) => form.info.title.toLowerCase().includes(searchText.toLowerCase()));
-            timeOutId = setTimeout(() => setForms(filteredForms ?? []), 500);
+            timeOutId = setTimeout(() => dispatch(setActiveData(filteredForms ?? [])), 300);
         }
         return () => timeOutId && clearTimeout(timeOutId);
-    }, [searchText, companyJson]);
+    }, [companyJson, searchText]);
 
-    if (!companyJson || !forms) return <FullScreenLoader />;
+    if (!companyJson || !forms || isLoading) return <FullScreenLoader />;
 
     const handleSearch = (event: any) => {
-        setSearchText(event.target.value.toLowerCase());
+        dispatch(setSearchInput(event.target.value.toLowerCase()));
     };
 
     const handleLogout = async () => {
         trigger().finally(() => {
             dispatch(authApi.util.resetApiState());
-            getStatus.refetch();
-            // getStatus('status');
+            refetch();
         });
     };
 
@@ -108,6 +117,10 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
 
     const handleImportForms = () => {
         openModal('IMPORT_FORMS_VIEW');
+    };
+
+    const handleConnectWithGoogle = () => {
+        router.push(`${environments.API_ENDPOINT_HOST}/auth/google/connect`);
     };
 
     // const handleConnectWithGoogle = async () => {
@@ -139,6 +152,8 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
     //     </>
     // );
 
+    // const isGoogleConnected = !!selectGetStatus?.data?.payload?.content?.user?.services === 'google';
+
     return (
         <div className="relative">
             <div className="product-box">
@@ -160,13 +175,28 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                     </div>
                     <div className="mt-2 mb-0 flex items-center">
                         {!!selectGetStatus.error ? (
-                            <Button variant="solid" className="mx-3 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
-                                Check my data
+                            <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
+                                Check My data
                             </Button>
                         ) : (
-                            <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-[#ffe0e0]" onClick={handleLogout}>
-                                <Logout height="30px" width="30px" className="!rounded-xl !text-[#e60000]" />
-                            </Button>
+                            <>
+                                <Button variant="solid" className="ml-3 !px-3 !rounded-xl bg-[#ffe0e0]" onClick={handleLogout}>
+                                    <span className="w-full flex gap-1 items-center">
+                                        <Logout height="30px" width="30px" className="!rounded-xl  !text-[#e60000]" />
+                                        <span className="!text-[#e60000]">Logout</span>
+                                    </span>
+                                </Button>
+                                {selectGetStatus?.data?.payload?.content?.user?.services === 'google' && (
+                                    <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
+                                        Import Forms
+                                    </Button>
+                                )}
+                                {selectGetStatus?.data?.payload?.content?.user?.services?.length === 0 && (
+                                    <Button variant="solid" className="mx-3 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
+                                        Connect with google
+                                    </Button>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

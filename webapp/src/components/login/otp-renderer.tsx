@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 
 import { toast } from 'react-toastify';
 
+import environments from '@app/configs/environments';
 import { authApi } from '@app/store/auth/api';
 import { googleApiSlice } from '@app/store/google/api';
 import { usePostAuthEmailMutation, usePostVerifyOtpMutation } from '@app/store/otp/api';
@@ -44,7 +45,8 @@ export default function OtpRenderer({ email }: any) {
         if (result.payload.content.status_code === 200) {
             toast.info(result.payload.content.detail);
             // console.log('google slice', googleApiSlice);
-            trigger('status');
+            router.push(`${environments.API_ENDPOINT_HOST}/auth/google/connect`);
+            // trigger('status');
             closeModal();
         } else {
             toast.error(result.payload.content.detail);

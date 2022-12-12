@@ -20,6 +20,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 
 import '@app/assets/css/globals.css';
+import DrawerContainer from '@app/components/drawer-views/container';
 import ModalContainer from '@app/components/modal-views/container';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import NextNProgress from '@app/components/ui/nprogress';
@@ -137,6 +138,7 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                         <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
                             {getLayout(<Component {...pageProps} />)}
                             <ModalContainer />
+                            <DrawerContainer />
                         </PersistGate>
                     </Provider>
                 </MuiThemeProvider>
