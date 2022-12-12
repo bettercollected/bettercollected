@@ -19,6 +19,7 @@ import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
 import MuiSnackbar from '@app/components/ui/mui-snackbar';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
+import { useGetFormsQuery } from '@app/store/google/api';
 import { useAppSelector } from '@app/store/hooks';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
@@ -26,6 +27,14 @@ export default function ResponseCard() {
     const [isOpen, setIsOpen] = useState(false);
     const [_, copyToClipboard] = useCopyToClipboard();
     const [searchText, setSearchText] = useState('');
+
+    const { refetch, data } = useGetFormsQuery(null);
+
+    console.log('data received forms: ', data);
+
+    // const forms = data;
+
+    const forms = data?.payload?.content || [];
 
     // const forms = useAppSelector((state) => state.activeData.formsArray);
 
@@ -40,113 +49,114 @@ export default function ResponseCard() {
     // }, []);
 
     useEffect(() => {
-        //TODO: fetch all the forms of the users
+        refetch();
     }, []);
 
-    const forms = [
-        {
-            id: '1RTwg2uQbv1X2xEiNgyWN8wizD3HCmWg1naYdyqSoYOQ',
-            info: {
-                title: 'Become a Better Collector',
-                description:
-                    'Google Forms is great for collecting data from users via form responses but it lacks some important features for companies like us who value users data rights and privacy. For eg. once the user fills in the form, they cannot always view their own responses or see their past form responses. It feels like the user is ignored after the data is collected from them. We feel that is not right. There has to be a better way to collect data and let the user exercise their data rights.\n\nBetter Collected is exactly the platform for addressing that. Better Collected integrates with Google forms and opens up a portal for your users to view all of their collected data via Google forms and let them exercise rights like request for data deletion. This all happens without disrupting your normal workflow how you use Google forms. Better collected makes you a better data collector.\n\nFill the form below to join the waitlist so we get to inform you once the platform is ready for you. First 100 users to join the waitlist gets the Lifetime access to the platform for FREE.\n\nBonus: You can also use your own domain and generate custom URLs for your Google forms with our platform. No more random looking URLs. Instead, beautiful and branded forms. How cool is that?',
-                documentTitle: 'Better Collected Waiting List'
-            },
-            revisionId: '00000176',
-            responderUri: 'https://docs.google.com/forms/d/e/1FAIpQLSc-OA5vBjBLYm2xN2ZVxDuxqqrmwSHKAqAgv6QrF1TwIWKMow/viewform',
-            items: [
-                {
-                    itemId: '7b268a27',
-                    title: 'Your full name',
-                    questionItem: {
-                        question: {
-                            questionId: '3bb27f24',
-                            required: true,
-                            textQuestion: {}
-                        }
-                    }
-                },
-                {
-                    itemId: '470e4740',
-                    title: 'Your organization (or website)',
-                    questionItem: {
-                        question: {
-                            questionId: '353705f2',
-                            textQuestion: {}
-                        }
-                    }
-                },
-                {
-                    itemId: '593a828b',
-                    title: 'We regularly share our weekly progress with our users via email and on Twitter. Would you like to receive those weekly progress emails?',
-                    questionItem: {
-                        question: {
-                            questionId: '1c19cd1b',
-                            required: true,
-                            choiceQuestion: {
-                                type: 'RADIO',
-                                options: [
-                                    {
-                                        value: 'Yes'
-                                    },
-                                    {
-                                        value: "Nah, I'll wait until the platform is ready to use"
-                                    }
-                                ]
-                            }
-                        }
-                    }
-                },
-                {
-                    itemId: '27dfcc29',
-                    title: 'Would you like to register to be beta tester who gets to use the new features before anybody else?',
-                    questionItem: {
-                        question: {
-                            questionId: '57b6012a',
-                            required: true,
-                            choiceQuestion: {
-                                type: 'RADIO',
-                                options: [
-                                    {
-                                        value: 'Yes'
-                                    },
-                                    {
-                                        value: "Nah, I'll wait until the platform is fully ready"
-                                    }
-                                ]
-                            }
-                        }
-                    }
-                },
-                {
-                    itemId: '7ed4ab90',
-                    title: 'Do you have a feature request, suggestion or feedback that you would like to share with us?',
-                    questionItem: {
-                        question: {
-                            questionId: '657b2d88',
-                            textQuestion: {
-                                paragraph: true
-                            }
-                        }
-                    }
-                }
-            ]
-        }
-    ];
+    // const forms = [
+    //     {
+    //         id: '1RTwg2uQbv1X2xEiNgyWN8wizD3HCmWg1naYdyqSoYOQ',
+    //         info: {
+    //             title: 'Become a Better Collector',
+    //             description:
+    //                 'Google Forms is great for collecting data from users via form responses but it lacks some important features for companies like us who value users data rights and privacy. For eg. once the user fills in the form, they cannot always view their own responses or see their past form responses. It feels like the user is ignored after the data is collected from them. We feel that is not right. There has to be a better way to collect data and let the user exercise their data rights.\n\nBetter Collected is exactly the platform for addressing that. Better Collected integrates with Google forms and opens up a portal for your users to view all of their collected data via Google forms and let them exercise rights like request for data deletion. This all happens without disrupting your normal workflow how you use Google forms. Better collected makes you a better data collector.\n\nFill the form below to join the waitlist so we get to inform you once the platform is ready for you. First 100 users to join the waitlist gets the Lifetime access to the platform for FREE.\n\nBonus: You can also use your own domain and generate custom URLs for your Google forms with our platform. No more random looking URLs. Instead, beautiful and branded forms. How cool is that?',
+    //             documentTitle: 'Better Collected Waiting List'
+    //         },
+    //         revisionId: '00000176',
+    //         responderUri: 'https://docs.google.com/forms/d/e/1FAIpQLSc-OA5vBjBLYm2xN2ZVxDuxqqrmwSHKAqAgv6QrF1TwIWKMow/viewform',
+    //         items: [
+    //             {
+    //                 itemId: '7b268a27',
+    //                 title: 'Your full name',
+    //                 questionItem: {
+    //                     question: {
+    //                         questionId: '3bb27f24',
+    //                         required: true,
+    //                         textQuestion: {}
+    //                     }
+    //                 }
+    //             },
+    //             {
+    //                 itemId: '470e4740',
+    //                 title: 'Your organization (or website)',
+    //                 questionItem: {
+    //                     question: {
+    //                         questionId: '353705f2',
+    //                         textQuestion: {}
+    //                     }
+    //                 }
+    //             },
+    //             {
+    //                 itemId: '593a828b',
+    //                 title: 'We regularly share our weekly progress with our users via email and on Twitter. Would you like to receive those weekly progress emails?',
+    //                 questionItem: {
+    //                     question: {
+    //                         questionId: '1c19cd1b',
+    //                         required: true,
+    //                         choiceQuestion: {
+    //                             type: 'RADIO',
+    //                             options: [
+    //                                 {
+    //                                     value: 'Yes'
+    //                                 },
+    //                                 {
+    //                                     value: "Nah, I'll wait until the platform is ready to use"
+    //                                 }
+    //                             ]
+    //                         }
+    //                     }
+    //                 }
+    //             },
+    //             {
+    //                 itemId: '27dfcc29',
+    //                 title: 'Would you like to register to be beta tester who gets to use the new features before anybody else?',
+    //                 questionItem: {
+    //                     question: {
+    //                         questionId: '57b6012a',
+    //                         required: true,
+    //                         choiceQuestion: {
+    //                             type: 'RADIO',
+    //                             options: [
+    //                                 {
+    //                                     value: 'Yes'
+    //                                 },
+    //                                 {
+    //                                     value: "Nah, I'll wait until the platform is fully ready"
+    //                                 }
+    //                             ]
+    //                         }
+    //                     }
+    //                 }
+    //             },
+    //             {
+    //                 itemId: '7ed4ab90',
+    //                 title: 'Do you have a feature request, suggestion or feedback that you would like to share with us?',
+    //                 questionItem: {
+    //                     question: {
+    //                         questionId: '657b2d88',
+    //                         textQuestion: {
+    //                             paragraph: true
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         ]
+    //     }
+    // ];
 
     return (
         <>
             <div className="pt-3 md:pt-7">
-                {forms.length === 0 && (
+                {forms?.length === 0 && (
                     <div className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
                         <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />
                         <p className="mt-4 p-0">0 forms</p>
                     </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
-                    {forms.length !== 0 &&
-                        forms.map((form: any) => {
-                            const slug = form.info.title.toLowerCase().replaceAll(' ', '-');
+                    {forms?.length !== 0 &&
+                        forms?.map((form: any) => {
+                            // const slug = form.info.title.toLowerCase().replaceAll(' ', '-');
+                            const slug = form.id;
                             let shareUrl = '';
                             if (window && typeof window !== 'undefined') {
                                 shareUrl = `${window.location.origin}/forms/${slug}`;
@@ -161,8 +171,8 @@ export default function ResponseCard() {
                                 >
                                     <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
                                         <div className="flex flex-col justify-start h-full">
-                                            <p className="text-xl text-grey mb-4 p-0">{form.info.title}</p>
-                                            {form.info?.description && <p className="text-base text-softBlue m-0 p-0 w-full">{toEndDottedStr(form.info.description, 180)}</p>}
+                                            <p className="text-xl text-grey mb-4 p-0">{form.title}</p>
+                                            {form?.info?.description && <p className="text-base text-softBlue m-0 p-0 w-full">{toEndDottedStr(form.info.description, 180)}</p>}
                                         </div>
                                         <div
                                             aria-hidden

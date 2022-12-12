@@ -180,16 +180,27 @@ export default function DashboardContainer({ companyJson }: IDashboardContainer)
                             </Button>
                         ) : (
                             <>
+                                {!!selectGetStatus.data.payload.content.user.sub && (
+                                    <>
+                                        <div className="p-3 flex rounded-full text-gray-700 border-solid italic border-[1px] border-[#eaeaea]">
+                                            {/* <div className="w-[24px] h-[24px] rounded-full bg-green-700 mr-2" /> */}
+                                            {selectGetStatus.data.payload.content.user.sub}
+                                        </div>
+                                    </>
+                                )}
                                 <Button variant="solid" className="ml-3 !px-3 !rounded-xl bg-[#ffe0e0]" onClick={handleLogout}>
                                     <span className="w-full flex gap-1 items-center">
                                         <Logout height="30px" width="30px" className="!rounded-xl  !text-[#e60000]" />
                                         <span className="!text-[#e60000]">Logout</span>
                                     </span>
                                 </Button>
+
                                 {selectGetStatus?.data?.payload?.content?.user?.services === 'google' && (
-                                    <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
-                                        Import Forms
-                                    </Button>
+                                    <>
+                                        <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
+                                            Import Forms
+                                        </Button>
+                                    </>
                                 )}
                                 {selectGetStatus?.data?.payload?.content?.user?.services?.length === 0 && (
                                     <Button variant="solid" className="mx-3 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>

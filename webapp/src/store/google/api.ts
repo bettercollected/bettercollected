@@ -19,7 +19,7 @@ export const googleApiSlice = createApi({
     endpoints: (builder) => ({
         getForms: builder.query<any, null>({
             query: () => ({
-                url: `forms/import`,
+                url: `forms/submissions`,
                 method: 'GET',
                 credentials: 'include'
             })
