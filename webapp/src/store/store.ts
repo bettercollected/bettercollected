@@ -12,20 +12,22 @@ import { otpApi } from '@app/store/otp/api';
 import { authApi } from './auth/api';
 import { googleApiSlice } from './google/api';
 import searchReducerObj, { searchSlice } from './search/searchSlice';
+import { workspacesApi } from './workspaces/api';
 
 const loggerMiddleware = createLogger();
 
 // Add more middlewares here
-const middlewares = [loggerMiddleware, otpApi.middleware, authApi.middleware, googleApiSlice.middleware];
+const middlewares = [otpApi.middleware, authApi.middleware, googleApiSlice.middleware, workspacesApi.middleware];
 
-if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
+// if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
 const reducers = {
     [counterSlice.reducerPath]: counterSlice.reducer,
     [searchReducerObj.reducerPath]: searchSlice.reducer,
     [otpApi.reducerPath]: otpApi.reducer,
     [authApi.reducerPath]: authApi.reducer,
-    [googleApiSlice.reducerPath]: googleApiSlice.reducer
+    [googleApiSlice.reducerPath]: googleApiSlice.reducer,
+    [workspacesApi.reducerPath]: workspacesApi.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);
@@ -55,8 +57,8 @@ export const store = configureStore({
             // }
         }).concat(middlewares),
     preloadedState: {},
-    devTools: !environments.IS_IN_PRODUCTION_MODE,
-    enhancers: environments.IS_IN_PRODUCTION_MODE ? [] : [monitorReducerEnhancer]
+    devTools: !environments.IS_IN_PRODUCTION_MODE
+    // enhancers: environments.IS_IN_PRODUCTION_MODE ? [] : [monitorReducerEnhancer]
 });
 
 export const persistor = persistStore(store);

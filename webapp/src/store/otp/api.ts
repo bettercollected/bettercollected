@@ -4,7 +4,7 @@ import environments from '@app/configs/environments';
 
 export const OTP_API_REDUCER_KEY = 'otpApi';
 
-interface verifyOtp {
+interface VerifyOtp {
     email: string;
     otp_code: string;
 }
@@ -15,11 +15,10 @@ export const otpApi = createApi({
     tagTypes: [OTP_TAG_TYPES],
     baseQuery: fetchBaseQuery({
         baseUrl: environments.API_ENDPOINT_HOST,
-        credentials: 'include',
-        prepareHeaders: (headers, { getState }) => {
-            headers.set('Access-Control-Allow-origin', 'http://localhost:8000');
+        prepareHeaders(headers) {
             return headers;
-        }
+        },
+        credentials: 'include'
     }),
     endpoints: (builder) => ({
         postAuthEmail: builder.mutation<any, { receiver_email: string }>({
@@ -30,12 +29,13 @@ export const otpApi = createApi({
             }),
             invalidatesTags: [OTP_TAG_TYPES]
         }),
-        postVerifyOtp: builder.mutation<any, verifyOtp>({
+        postVerifyOtp: builder.mutation<any, VerifyOtp>({
             query: (body) => ({
                 url: '/auth/otp/validate',
                 method: 'POST',
                 body
-            })
+            }),
+            invalidatesTags: [OTP_TAG_TYPES]
         })
     })
 });
