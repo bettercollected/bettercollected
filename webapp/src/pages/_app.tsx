@@ -5,7 +5,6 @@ import { NextSeo } from 'next-seo';
 import { ThemeProvider } from 'next-themes';
 import type { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
-import Script from 'next/script';
 
 import { CacheProvider, EmotionCache, css } from '@emotion/react';
 import { GlobalStyles } from '@mui/material';
@@ -26,7 +25,6 @@ import NextNProgress from '@app/components/ui/nprogress';
 import createEmotionCache from '@app/configs/createEmotionCache';
 import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
-import { consoleTextStyle, consoleWarningStyle } from '@app/constants/styles';
 import MuiThemeProvider from '@app/layouts/_mui-theme-provider';
 import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
@@ -41,9 +39,6 @@ type AppPropsWithLayout = AppProps & {
 };
 
 function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }: AppPropsWithLayout) {
-    // console.info(globalConstants.consoleWarningTitle, consoleWarningStyle);
-    // console.info(globalConstants.consoleWarningDescription, consoleTextStyle);
-
     const router = useRouter();
 
     const getLayout = Component.getLayout ?? ((page: any) => page);
@@ -75,7 +70,6 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                 <MuiThemeProvider>
                     {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
                     <CssBaseline />
-                    <Script src="https://unpkg.com/flowbite@1.5.4/dist/datepicker.js" strategy="beforeInteractive" />
                     <GlobalStyles
                         styles={css`
                             :root {
@@ -145,5 +139,4 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
     );
 }
 
-export default MainApp;
-// export default appWithTranslation(MainApp);
+export default appWithTranslation(MainApp);
