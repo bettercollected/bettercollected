@@ -6,6 +6,7 @@ import { usePostAuthEmailMutation } from '@app/store/otp/api';
 
 import { Close } from '../icons/close';
 import { useModal } from '../modal-views/context';
+import Image from '../ui/image';
 import OtpRenderer from './otp-renderer';
 import SendCode from './sendcode-renderer';
 
@@ -26,7 +27,7 @@ export default function LoginView({ ...props }) {
     function ImageRenderer() {
         return (
             <div>
-                <img src={'/otp.svg'} width="150px" height="150px" />
+                <Image src="/otp.svg" width="150px" height="150px" alt="OTP Image" />
             </div>
         );
     }
