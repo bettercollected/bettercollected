@@ -51,6 +51,7 @@ const nextConfig = {
 
         // Custom Domain Variables
         IS_CUSTOM_DOMAIN: process.env.IS_CUSTOM_DOMAIN || false,
+        WORKSPACE_ID: process.env.WORKSPACE_ID,
         CUSTOM_DOMAIN: process.env.CUSTOM_DOMAIN,
         CUSTOM_DOMAIN_JSON: process.env.CUSTOM_DOMAIN_JSON,
         ENABLE_CHECK_MY_DATA: process.env.ENABLE_CHECK_MY_DATA || false,
