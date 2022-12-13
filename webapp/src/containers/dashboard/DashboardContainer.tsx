@@ -21,7 +21,6 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { authApi, useGetStatusQuery, useLazyGetLogoutQuery } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 import { setSearchInput } from '@app/store/search/searchSlice';
-import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 
 const StyledTextField = styled.div`
     .MuiFormControl-root {
@@ -48,7 +47,6 @@ interface IDashboardContainer {
 
 export default function DashboardContainer({ workspace }: IDashboardContainer) {
     const [trigger] = useLazyGetLogoutQuery();
-    const { isLoading, data, isError, error } = useGetWorkspaceFormsQuery(workspace.id, { pollingInterval: 20000, refetchOnMountOrArgChange: true });
 
     const authStatus = useGetStatusQuery('status');
 
@@ -61,9 +59,7 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
 
     const searchText = useAppSelector((state) => state.search.searchInput);
 
-    if (!workspace || isLoading || authStatus.isLoading) return <FullScreenLoader />;
-
-    if (isError || !data) return <>Error Page {error}</>;
+    if (!workspace || authStatus.isLoading) return <FullScreenLoader />;
 
     const handleSearch = (event: any) => {
         dispatch(setSearchInput(event.target.value.toLowerCase()));
@@ -164,7 +160,7 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
                         />
                     </StyledTextField>
                 </div>
-                <SubmissionTabContainer forms={data?.payload.content} showResponseBar={!!selectGetStatus.error} />
+                <SubmissionTabContainer workspaceId={workspace.id} showResponseBar={!!selectGetStatus.error} />
             </ContentLayout>
         </div>
     );

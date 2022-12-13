@@ -3,14 +3,13 @@ import ResponseCard from '@app/components/dashboard/response-card';
 import { InfoIcon } from '@app/components/icons/info-icon';
 import { NormalGridIcon } from '@app/components/icons/normal-grid';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
-import { StandardFormDto } from '@app/models/dtos/form';
 
 interface ISubmissionTabContainer {
-    forms: Array<StandardFormDto>;
+    workspaceId: string;
     showResponseBar: boolean;
 }
 
-export default function SubmissionTabContainer({ forms, showResponseBar }: ISubmissionTabContainer) {
+export default function SubmissionTabContainer({ workspaceId, showResponseBar }: ISubmissionTabContainer) {
     const paramTabs = [
         {
             title: 'Forms',
@@ -31,12 +30,12 @@ export default function SubmissionTabContainer({ forms, showResponseBar }: ISubm
 
     return (
         <div className="mt-5 sm:mt-0 flex flex-col pb-5 xl:mt-9">
-            <ParamTab tabMenu={paramTabs}>
+            <ParamTab tabMenu={paramTabs} isRouteChangeable={false}>
                 <TabPanel className="focus:outline-none" key="forms">
-                    <FormCard forms={forms} />
+                    <FormCard workspaceId={workspaceId} />
                 </TabPanel>
                 <TabPanel className="focus:outline-none" key="mySubmissions">
-                    <ResponseCard />
+                    <ResponseCard workspaceId={workspaceId} />
                 </TabPanel>
             </ParamTab>
         </div>

@@ -11,8 +11,12 @@ import RadioButton from '@app/components/form-components/radio-button';
 import ShortAnswer from '@app/components/form-components/short-answer';
 import TextInput from '@app/components/form-components/text-input';
 import TextArea from '@app/components/form-components/textarea';
+import globalServerProps from '@app/lib/serverSideProps';
+import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 
-export default function Submissions() {
+interface ISubmission extends IServerSideProps {}
+
+export default function Submission(props: ISubmission) {
     return (
         <div className="p-10 w-full">
             <div className={'w-[900px] mx-auto'}>
@@ -32,4 +36,15 @@ export default function Submissions() {
             </div>
         </div>
     );
+}
+
+export async function getServerSideProps(_context: any) {
+    const globalProps = (await globalServerProps(_context)).props;
+    console.log(globalProps);
+    console.log(_context.query);
+    return {
+        props: {
+            ...globalProps
+        }
+    };
 }

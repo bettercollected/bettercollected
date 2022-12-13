@@ -19,7 +19,7 @@ export default function FormInput(props: any) {
     const checkValidation = (e: any) => {
         const fieldValue = e.target.value;
 
-        const pattern = /^\w+@gmail+?\.com$/;
+        const pattern = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
         if (!!fieldValue.match(pattern)) {
             setValidInputFormat(true);
         } else {

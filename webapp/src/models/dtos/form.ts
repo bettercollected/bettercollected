@@ -29,3 +29,15 @@ export interface StandardFormDto {
     createdTime: string | Date;
     modifiedTime: string | Date;
 }
+
+export interface StandardFormResponseDto {
+    responseId: string;
+    formId: string;
+    formTitle: string;
+    provider: string;
+    dataOwnerIdentifierType: string | null | undefined;
+    dataOwnerIdentifier: string | null | undefined;
+    responses: Array<{ questionId: string; answer: any }>;
+    createdAt: string | Date;
+    updatedAt: string | Date;
+}

@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
-import { StandardFormDto } from '@app/models/dtos/form';
+import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { IGenericAPIResponse } from '@app/models/dtos/genericResponse';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { IGetWorkspaceFormQuery } from '@app/store/workspaces/types';
@@ -42,8 +42,15 @@ export const workspacesApi = createApi({
                 method: 'GET'
             }),
             providesTags: [WORKSPACE_TAGS]
+        }),
+        getWorkspaceSubmissions: builder.query<IGenericAPIResponse<Array<StandardFormResponseDto>>, string>({
+            query: (id) => ({
+                url: `/workspaces/${id}/submissions`,
+                method: 'GET'
+            }),
+            providesTags: [WORKSPACE_TAGS]
         })
     })
 });
 
-export const { useGetWorkspaceQuery, useGetWorkspaceFormsQuery, useGetWorkspaceFormQuery } = workspacesApi;
+export const { useGetWorkspaceQuery, useGetWorkspaceFormsQuery, useGetWorkspaceFormQuery, useGetWorkspaceSubmissionsQuery } = workspacesApi;

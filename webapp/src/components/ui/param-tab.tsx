@@ -45,6 +45,8 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true }
                 )
                 .then((r) => r)
                 .catch((e) => e);
+        } else {
+            setSelectedTabIndex(index);
         }
     }
     useEffect(() => {

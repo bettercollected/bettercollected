@@ -4,18 +4,38 @@ import EmptyTray from '@app/assets/svgs/empty-tray.svg';
 import { ShareIcon } from '@app/components/icons/share-icon';
 import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
+import Loader from '@app/components/ui/loader';
 import MuiSnackbar from '@app/components/ui/mui-snackbar';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';
+import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface IFormCard {
-    forms: Array<StandardFormDto>;
+    workspaceId: string;
 }
 
-export default function FormCard({ forms }: IFormCard) {
+export default function FormCard({ workspaceId }: IFormCard) {
     const [isOpen, setIsOpen] = useState(false);
     const [_, copyToClipboard] = useCopyToClipboard();
+    const { isLoading, data, isError } = useGetWorkspaceFormsQuery(workspaceId, { pollingInterval: 30000 });
+
+    if (isLoading)
+        return (
+            <div className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
+                <Loader />
+            </div>
+        );
+
+    if ((data?.payload?.content && Array.isArray(data?.payload?.content) && data?.payload?.content?.length === 0) || isError)
+        return (
+            <div className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
+                <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />
+                <p className="mt-4 p-0">0 forms</p>
+            </div>
+        );
+
+    const forms: Array<StandardFormDto> = data?.payload?.content ?? [];
 
     return (
         <div className="pt-3 md:pt-7">
