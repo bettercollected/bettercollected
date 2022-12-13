@@ -18,7 +18,7 @@ interface IFormCard {
 export default function FormCard({ workspaceId }: IFormCard) {
     const [isOpen, setIsOpen] = useState(false);
     const [_, copyToClipboard] = useCopyToClipboard();
-    const { isLoading, data, isError } = useGetWorkspaceFormsQuery(workspaceId, { pollingInterval: 30000 });
+    const { isLoading, data, isError } = useGetWorkspaceFormsQuery(workspaceId, { pollingInterval: 30000, refetchOnReconnect: true, refetchOnFocus: true, refetchOnMountOrArgChange: true });
 
     if (isLoading)
         return (

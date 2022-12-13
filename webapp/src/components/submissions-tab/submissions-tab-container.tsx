@@ -13,16 +13,16 @@ export default function SubmissionTabContainer({ workspaceId, showResponseBar }:
     const paramTabs = [
         {
             title: 'Forms',
-            path: 'forms',
-            icon: <NormalGridIcon className="h-auto w-4" />
+            path: 'forms'
+            // icon: <NormalGridIcon className="h-auto w-4" />
         }
     ];
 
     if (!showResponseBar && paramTabs.length === 1) {
         paramTabs.push({
             title: 'My Submissions',
-            path: 'mySubmissions',
-            icon: <InfoIcon className="h-auto w-4" />
+            path: 'mySubmissions'
+            // icon: <InfoIcon className="h-auto w-4" />
         });
     } else if (!!showResponseBar && paramTabs.length === 2) {
         paramTabs.pop();

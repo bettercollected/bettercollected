@@ -13,7 +13,7 @@ interface IResponseCard {
 }
 
 export default function ResponseCard({ workspaceId }: IResponseCard) {
-    const { isLoading, data, isError } = useGetWorkspaceSubmissionsQuery(workspaceId, { pollingInterval: 30000 });
+    const { isLoading, data, isError } = useGetWorkspaceSubmissionsQuery(workspaceId, { pollingInterval: 30000, refetchOnReconnect: true, refetchOnFocus: true, refetchOnMountOrArgChange: true });
 
     if (isLoading)
         return (
@@ -56,7 +56,7 @@ export default function ResponseCard({ workspaceId }: IResponseCard) {
                                 >
                                     <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
                                         <div className="flex flex-col justify-start h-full">
-                                            <p className="text-sm text-gray-400 italic">{submission.formId}</p>
+                                            <p className="text-sm text-gray-400 italic">Responsed to form with ID {submission.formId}</p>
                                             <p className="text-xl text-grey mb-4 p-0">{submission.formTitle}</p>
                                             <p className="text-sm text-gray-400 italic">
                                                 <span>Last submitted at {submittedAt}</span>
