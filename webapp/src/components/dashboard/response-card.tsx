@@ -50,7 +50,7 @@ export default function ResponseCard({ workspaceId }: IResponseCard) {
                                 <ActiveLink
                                     key={submission.responseId}
                                     href={{
-                                        pathname: `/submissions/[slug]?workspaceId=${workspaceId}`,
+                                        pathname: `/submissions/[slug]`,
                                         query: { slug, workspaceId }
                                     }}
                                 >
