@@ -7,7 +7,8 @@ export default async function getServerSideProps({ locale, ..._context }: any): 
     props: IServerSideProps;
 }> {
     const hasCustomDomain = !!environments.IS_CUSTOM_DOMAIN;
-    const workspaceId = hasCustomDomain ? environments.WORKSPACE_ID : null;
+    let workspaceId: string | null = null;
+    if (hasCustomDomain && environments?.WORKSPACE_ID) workspaceId = environments.WORKSPACE_ID;
 
     let workspace = null;
     try {
