@@ -4,7 +4,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch, { SwitchProps } from '@mui/material/Switch';
 import { styled } from '@mui/material/styles';
 
-import { googleApiSlice, useImportFormsQuery } from '@app/store/google/api';
+import { googleApiSlice, useGetFormsQuery, useImportFormsMutation, useImportFormsQuery, usePatchPinnedFormMutation } from '@app/store/google/api';
 import { toMonthDateYearStr } from '@app/utils/dateUtils';
 
 import { useModal } from '../modal-views/context';
@@ -57,56 +57,6 @@ const IOSSwitch = styled((props: SwitchProps) => <Switch focusVisibleClassName="
     }
 }));
 
-// const forms = {
-//     apiVersion: 'v1',
-//     payload: {
-//         content: [
-//             {
-//                 iconLink: 'https://drive-thirdparty.googleusercontent.com/16/type/application/vnd.google-apps.form',
-//                 owners: [
-//                     {
-//                         displayName: 'Andrew Jordan',
-//                         kind: 'drive#user',
-//                         me: true,
-//                         permissionId: '09701994910462109291',
-//                         emailAddress: 'jordanandrew932@gmail.com',
-//                         photoLink: 'https://lh3.googleusercontent.com/a/default-user=s64'
-//                     }
-//                 ],
-//                 webViewLink: 'https://docs.google.com/forms/d/1F7O-GckfIVNyjBtBiBM0mZb1VV7eJdwIpOkhdETLhaw/edit?usp=drivesdk',
-//                 id: '1F7O-GckfIVNyjBtBiBM0mZb1VV7eJdwIpOkhdETLhaw',
-//                 name: 'Untitled form',
-//                 createdTime: '2022-11-09T13:24:51.778Z',
-//                 modifiedTime: '2022-12-08T10:39:48.798Z'
-//             },
-//             {
-//                 iconLink: 'https://drive-thirdparty.googleusercontent.com/16/type/application/vnd.google-apps.form',
-//                 owners: [
-//                     {
-//                         displayName: 'Andrew Jordan',
-//                         kind: 'drive#user',
-//                         me: true,
-//                         permissionId: '09701994910462109291',
-//                         emailAddress: 'jordanandrew932@gmail.com',
-//                         photoLink: 'https://lh3.googleusercontent.com/a/default-user=s64'
-//                     }
-//                 ],
-//                 webViewLink: 'https://docs.google.com/forms/d/1r0Xk9ev0eDdE01hxsjjmVCErTl4jXEFTCkJhICXsL10/edit?usp=drivesdk',
-//                 id: '1r0Xk9ev0eDdE01hxsjjmVCErTl4jXEFTCkJhICXsL10',
-//                 name: 'Contact Information',
-//                 createdTime: '2022-11-09T13:48:26.866Z',
-//                 modifiedTime: '2022-12-08T10:39:41.605Z'
-//             }
-//         ],
-//         pageable: {
-//             page: 0,
-//             size: 15,
-//             total: 2
-//         }
-//     },
-//     timestamp: '2022-12-08T18:21:28.809180'
-// };
-
 export default function ImportForms() {
     const { closeModal } = useModal();
 
@@ -114,7 +64,9 @@ export default function ImportForms() {
 
     const [forms, setForms] = useState({});
 
-    const { data, isLoading, refetch } = useImportFormsQuery(null);
+    const { data, isLoading, refetch } = useGetFormsQuery(null);
+
+    const [importForms] = useImportFormsMutation();
 
     useEffect(() => {
         if (data) {
@@ -122,14 +74,20 @@ export default function ImportForms() {
         }
     }, [data]);
 
+    console.log('enabled forms: ', enabledFormList);
+
     if (isLoading) return <FullScreenLoader />;
 
     console.log('import forms data:', data);
 
+    const handleImportForms = () => {
+        importForms(enabledFormList);
+    };
+
     const FooterRenderer = () => {
         return (
             <div className="flex w-full justify-between">
-                <Button variant="solid" className="!rounded-xl !m-0 !bg-blue-500" onClick={() => {}}>
+                <Button variant="solid" className="!rounded-xl !m-0 !bg-blue-500" onClick={handleImportForms}>
                     Import ({enabledFormList.length})
                 </Button>
                 <Button variant="transparent" className="!rounded-xl !m-0 !border-gray border-[1px] !border-solid" onClick={() => closeModal()}>

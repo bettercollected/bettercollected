@@ -17,21 +17,45 @@ export const googleApiSlice = createApi({
         }
     }),
     endpoints: (builder) => ({
-        getForms: builder.query<any, null>({
+        getSubmissions: builder.query<any, null>({
             query: () => ({
                 url: `forms/submissions`,
                 method: 'GET',
                 credentials: 'include'
             })
         }),
-        importForms: builder.query<any, null>({
+        getForms: builder.query<any, null>({
             query: () => ({
                 url: 'forms/import',
                 method: 'GET',
                 credentials: 'include'
             })
+        }),
+        importForms: builder.mutation<any, null>({
+            query: (body) => ({
+                url: `workspaces/${environments.WORKSPACE_ID}/forms/import`,
+                method: 'POST',
+                body,
+                credentials: 'include',
+                prepareHeaders: (headers: any) => {
+                    headers.set('Access-Control-Allow-origin', environments.API_ENDPOINT_HOST);
+                    return headers;
+                }
+            })
+        }),
+        patchPinnedForm: builder.mutation<any, any>({
+            query: (body) => ({
+                url: `/workspaces/${environments.WORKSPACE_ID}/pin_forms`,
+                method: 'PATCH',
+                body,
+                credentials: 'include',
+                prepareHeaders: (headers: any) => {
+                    headers.set('Access-Control-Allow-origin', environments.API_ENDPOINT_HOST);
+                    return headers;
+                }
+            })
         })
     })
 });
 
-export const { useGetFormsQuery, useImportFormsQuery } = googleApiSlice;
+export const { useGetFormsQuery, useGetSubmissionsQuery, useImportFormsMutation, usePatchPinnedFormMutation } = googleApiSlice;

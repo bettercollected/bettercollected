@@ -1,25 +1,21 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { useModal } from '@app/components/modal-views/context';
 import Layout from '@app/components/sidebar/layout';
 import Button from '@app/components/ui/button/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import useUserAuth from '@app/lib/hooks/use-authuser';
 import { authApi, useGetStatusQuery } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
 export default function CreatorDashboard() {
     const { openModal } = useModal();
 
-    const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
-    const selectGetStatus = useAppSelector(statusQuerySelect);
-
-    console.log('status details: ', selectGetStatus);
-
-    const { isLoading, refetch, isError, isSuccess } = useGetStatusQuery('status');
+    const { user, isLoading } = useUserAuth();
 
     if (isLoading) return <FullScreenLoader />;
 
-    const email = selectGetStatus.data.payload.content.user.sub;
+    const email = user.data.payload.content.user.sub;
 
     const handleImportForms = () => {
         openModal('IMPORT_FORMS_VIEW');
@@ -54,3 +50,12 @@ export default function CreatorDashboard() {
         </Layout>
     );
 }
+
+// export const getServerSideProps = async (context: any) => {
+//     const cookies = context.req.headers.cookie;
+//     console.log('cookies:', cookies);
+
+//     return {
+//         props: {}
+//     };
+// };
