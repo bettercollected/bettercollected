@@ -15,11 +15,12 @@ import { HistoryIcon } from '../icons/history';
 import { HomeIcon } from '../icons/home';
 import { Logout } from '../icons/logout-icon';
 import { SearchIcon } from '../icons/search';
+import { useModal } from '../modal-views/context';
 
 export default function Aside({ close }: { close?: () => void }) {
     const router = useRouter();
 
-    console.log('router as path: ', router.asPath);
+    const { openModal } = useModal();
 
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
     const selectGetStatus = useAppSelector(statusQuerySelect);
@@ -72,14 +73,16 @@ export default function Aside({ close }: { close?: () => void }) {
                             </Link>
                         ))}
                         <div>
-                            <Link href={'/logout'} key={'logout'}>
-                                <div className={`flex items-center text-red-600 hover:text-red-500 cursor-pointer p-4 border-[1px] w-full border-transparent hover:border-[1px] hover:border-red-400 hover:bg-red-50 hover:rounded-md`} key={'logout'}>
-                                    <div className="pr-2">
-                                        <Logout height="20px" width="20px" />
-                                    </div>
-                                    <div className="font-semibold">Sign off</div>
+                            <div
+                                onClick={() => openModal('LOGOUT_VIEW')}
+                                className={`flex items-center text-red-600 hover:text-red-500 cursor-pointer p-4 border-[1px] w-full border-transparent hover:border-[1px] hover:border-red-400 hover:bg-red-50 hover:rounded-md`}
+                                key={'logout'}
+                            >
+                                <div className="pr-2">
+                                    <Logout height="20px" width="20px" />
                                 </div>
-                            </Link>
+                                <div className="font-semibold">Logout</div>
+                            </div>
                         </div>
                     </div>
                 </div>

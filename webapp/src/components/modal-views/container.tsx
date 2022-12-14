@@ -8,6 +8,7 @@ import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
+import LogoutView from '../logout/logout-view';
 import { MODAL_VIEW, useModal } from './context';
 
 // dynamic imports
@@ -20,6 +21,8 @@ function renderModalContent(view: MODAL_VIEW | string) {
             return <LoginView />;
         case 'IMPORT_FORMS_VIEW':
             return <ImportFormsView />;
+        case 'LOGOUT_VIEW':
+            return <LogoutView />;
         default:
             return null;
     }

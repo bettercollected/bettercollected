@@ -4,7 +4,6 @@ import Aside from './aside';
 
 export default function Layout(props: any) {
     const children = props.children;
-    const bgColor = props.bgColor ? props.bgColor : 'lightBackground';
     return (
         <div className={`relative flex flex-1 flex-col md:flex-row`}>
             <div className="absolute z-0 overflow-hidden inset-0">

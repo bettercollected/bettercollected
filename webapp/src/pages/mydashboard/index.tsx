@@ -20,11 +20,10 @@ export default function CreatorDashboard() {
     const workspaceForms = useGetWorkspaceFormsQuery(null);
     const breakpoint = useBreakpoint();
 
+    if (isLoading) return <FullScreenLoader />;
     const forms = workspaceForms?.data?.payload?.content;
 
-    if (isLoading) return <FullScreenLoader />;
-
-    const email = user.data.payload.content.user.sub;
+    const email = user?.data?.payload?.content?.user?.sub;
 
     const handleImportForms = () => {
         openModal('IMPORT_FORMS_VIEW');
@@ -33,7 +32,7 @@ export default function CreatorDashboard() {
     const Header = () => (
         <div className="flex justify-between items-center mb-10">
             <div className="flex flex-col">
-                <h1 className="font-extrabold text-3xl">Hello {email.replaceAll('@gmail.com', '')}!</h1>
+                <h1 className="font-extrabold text-3xl">Hello {email?.replaceAll('@gmail.com', '')}!</h1>
                 <p className="text-gray-600">Here you have the summary of the week</p>
             </div>
 
@@ -95,6 +94,17 @@ export default function CreatorDashboard() {
             </div>
         );
     };
+
+    // {
+    //     !!user && !isLoading ? (
+    //         <Layout>
+    //             <Header />
+    //             <MyRecentForms />
+    //         </Layout>
+    //     ) : (
+    //         <></>
+    //     );
+    // }
 
     return (
         <Layout>

@@ -50,8 +50,6 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
 
     const authStatus = useGetStatusQuery('status');
 
-    console.log('workspace', workspace);
-
     const { openModal } = useModal();
 
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
