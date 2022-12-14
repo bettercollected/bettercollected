@@ -54,8 +54,15 @@ export const googleApiSlice = createApi({
                     return headers;
                 }
             })
+        }),
+        getWorkspaceForms: builder.query<null, null>({
+            query: () => ({
+                url: `workspaces/${environments.WORKSPACE_ID}/forms?pinned=false`,
+                method: 'GET',
+                credentials: 'include'
+            })
         })
     })
 });
 
-export const { useGetFormsQuery, useGetSubmissionsQuery, useImportFormsMutation, usePatchPinnedFormMutation } = googleApiSlice;
+export const { useGetFormsQuery, useGetSubmissionsQuery, useImportFormsMutation, usePatchPinnedFormMutation, useGetWorkspaceFormsQuery } = googleApiSlice;

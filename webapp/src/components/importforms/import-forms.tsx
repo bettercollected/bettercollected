@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch, { SwitchProps } from '@mui/material/Switch';
 import { styled } from '@mui/material/styles';
+import { toast } from 'react-toastify';
 
-import { googleApiSlice, useGetFormsQuery, useImportFormsMutation, useImportFormsQuery, usePatchPinnedFormMutation } from '@app/store/google/api';
+import { googleApiSlice, useGetFormsQuery, useImportFormsMutation, usePatchPinnedFormMutation } from '@app/store/google/api';
 import { toMonthDateYearStr } from '@app/utils/dateUtils';
 
 import { useModal } from '../modal-views/context';
@@ -66,7 +67,7 @@ export default function ImportForms() {
 
     const { data, isLoading, refetch } = useGetFormsQuery(null);
 
-    const [importForms] = useImportFormsMutation();
+    const importFormsMutation = useImportFormsMutation();
 
     useEffect(() => {
         if (data) {
@@ -74,23 +75,27 @@ export default function ImportForms() {
         }
     }, [data]);
 
-    console.log('enabled forms: ', enabledFormList);
-
     if (isLoading) return <FullScreenLoader />;
 
-    console.log('import forms data:', data);
-
     const handleImportForms = () => {
-        importForms(enabledFormList);
+        const [importForms] = importFormsMutation;
+        importForms(enabledFormList)
+            .then((data) => {
+                toast.info(data?.data?.status);
+                closeModal();
+            })
+            .catch((e) => {
+                toast.error('An Error occured');
+            });
     };
 
     const FooterRenderer = () => {
         return (
             <div className="flex w-full justify-between">
-                <Button variant="solid" className="!rounded-xl !m-0 !bg-blue-500" onClick={handleImportForms}>
+                <Button isLoading={importFormsMutation[1].isLoading} disabled={enabledFormList.length === 0} variant="solid" className="!rounded-xl !m-0 !bg-blue-500" onClick={handleImportForms}>
                     Import ({enabledFormList.length})
                 </Button>
-                <Button variant="transparent" className="!rounded-xl !m-0 !border-gray border-[1px] !border-solid" onClick={() => closeModal()}>
+                <Button variant="transparent" disabled={importFormsMutation[1].isLoading} className="!rounded-xl !m-0 !border-gray border-[1px] !border-solid" onClick={() => closeModal()}>
                     Cancel
                 </Button>
             </div>
@@ -118,7 +123,6 @@ export default function ImportForms() {
                 <div>
                     <p className="text-[9px] !m-0 !p-0 text-gray-400 italic">{id}</p>
                     <h2 className="text-md font-bold text-grey p-0">{name}</h2>
-                    {/* <p className="text-[9px] !m-0 !p-0 text-blue-500 italic">{props.form.owners[0].emailAddress}</p> */}
                 </div>
                 <p className="text-[9px] !m-0 !p-0 text-blue-500 italic">{toMonthDateYearStr(new Date(createdTime))}</p>
                 <FormControlLabel label="" control={<IOSSwitch checked={checkIfSwitchIsEnabled(props.form.id)} />} />

@@ -6,7 +6,7 @@ import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { authApi, useGetStatusQuery } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
-export default function useUserAuth({ redirectTo = '', redirectIfFound = false } = {}) {
+export default function useUser({ redirectTo = '', redirectIfFound = false } = {}) {
     //TODO: get the user authentication from the endpoint
     // this provides us with the user
     const { isLoading, refetch, isError, isSuccess } = useGetStatusQuery('status');
