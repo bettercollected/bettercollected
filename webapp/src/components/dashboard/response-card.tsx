@@ -13,7 +13,7 @@ interface IResponseCard {
 }
 
 export default function ResponseCard({ workspaceId }: IResponseCard) {
-    const { isLoading, data, isError } = useGetWorkspaceSubmissionsQuery(workspaceId, { pollingInterval: 30000, refetchOnReconnect: true, refetchOnFocus: true, refetchOnMountOrArgChange: true });
+    const { isLoading, data, isError } = useGetWorkspaceSubmissionsQuery(workspaceId, { pollingInterval: 30000 });
 
     if (isLoading)
         return (

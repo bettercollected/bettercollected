@@ -4,13 +4,13 @@ import { useRouter } from 'next/router';
 
 import { useDispatch } from 'react-redux';
 
-import { authApi } from '@app/store/auth/api';
+import { useLazyGetStatusQuery } from '@app/store/auth/api';
 
 export default function AuthHoc({ children }: { children: JSX.Element }) {
     const dispatch = useDispatch();
     const router = useRouter();
     const [authorized, setAuthorized] = useState(false);
-    const getStatus = authApi.useLazyGetStatusQuery();
+    const getStatus = useLazyGetStatusQuery();
 
     useEffect(() => {
         console.log('inside use effect');

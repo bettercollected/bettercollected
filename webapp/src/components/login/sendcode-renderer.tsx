@@ -3,7 +3,7 @@ import { useState } from 'react';
 import FormInput from '../ui/FormInput';
 import Button from '../ui/button';
 
-export default function SendCode({ updateEmail, isLoading, postAuthEmail }: any) {
+export default function SendCode({ updateEmail, isLoading, postSendOtp }: any) {
     const [emailInput, setEmailInput] = useState('');
 
     const [emailValid, setEmailValid] = useState(false);
@@ -12,7 +12,7 @@ export default function SendCode({ updateEmail, isLoading, postAuthEmail }: any)
         e.preventDefault();
         const email = { receiver_email: emailInput };
         updateEmail(emailInput);
-        postAuthEmail(email);
+        postSendOtp(email);
     };
 
     const handleValidation = (isValid: boolean) => {

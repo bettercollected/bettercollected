@@ -12,6 +12,10 @@ const WORKSPACE_TAGS = 'WORKSPACE_TAG';
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
     tagTypes: [WORKSPACE_TAGS],
+    refetchOnMountOrArgChange: true,
+    refetchOnReconnect: true,
+    refetchOnFocus: true,
+    keepUnusedDataFor: 0,
     baseQuery: fetchBaseQuery({
         baseUrl: environments.API_ENDPOINT_HOST,
         prepareHeaders(headers) {
@@ -32,7 +36,7 @@ export const workspacesApi = createApi({
             query: (id) => ({
                 url: `/workspaces/${id}/forms`,
                 method: 'GET',
-                params: { pinned: true }
+                params: {}
             }),
             providesTags: [WORKSPACE_TAGS]
         }),

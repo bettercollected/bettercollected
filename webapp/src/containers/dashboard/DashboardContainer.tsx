@@ -48,7 +48,7 @@ interface IDashboardContainer {
 export default function DashboardContainer({ workspace }: IDashboardContainer) {
     const [trigger] = useLazyGetLogoutQuery();
 
-    const authStatus = useGetStatusQuery('status', { refetchOnMountOrArgChange: true });
+    const authStatus = useGetStatusQuery('status');
 
     const { openModal } = useModal();
 

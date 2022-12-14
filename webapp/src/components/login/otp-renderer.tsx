@@ -4,20 +4,19 @@ import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
-import { authApi } from '@app/store/auth/api';
-import { usePostAuthEmailMutation, usePostVerifyOtpMutation } from '@app/store/otp/api';
+import { useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
 
 export default function OtpRenderer({ email }: any) {
     const { closeModal } = useModal();
 
     const [counter, setCounter] = useState(0);
     const [otp, setOtp] = useState('');
-    const [postAuthEmail, response] = usePostAuthEmailMutation();
+    const [postSendOtp, response] = usePostSendOtpMutation();
 
     const [postVerifyOtp, result] = usePostVerifyOtpMutation();
     const { isLoading } = result;
 
-    const [trigger] = authApi.useLazyGetStatusQuery();
+    const [trigger] = useLazyGetStatusQuery();
 
     const emailRequest = { receiver_email: email };
 
@@ -48,7 +47,7 @@ export default function OtpRenderer({ email }: any) {
                     <div
                         className="hover:underline-offset-1"
                         onClick={() => {
-                            postAuthEmail(emailRequest);
+                            postSendOtp(emailRequest);
                             setCounter(60);
                         }}
                     >

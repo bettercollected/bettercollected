@@ -2,17 +2,17 @@ import { useRef, useState } from 'react';
 
 import 'react-toastify/dist/ReactToastify.css';
 
-import { usePostAuthEmailMutation } from '@app/store/otp/api';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
+import Image from '@app/components/ui/image';
+import { usePostSendOtpMutation } from '@app/store/auth/api';
 
-import { Close } from '../icons/close';
-import { useModal } from '../modal-views/context';
-import Image from '../ui/image';
 import OtpRenderer from './otp-renderer';
 import SendCode from './sendcode-renderer';
 
 export default function LoginView({ ...props }) {
     function EmailAndOTPUiSwitcher() {
-        const [postAuthEmail, result] = usePostAuthEmailMutation();
+        const [postSendOtp, result] = usePostSendOtpMutation();
         const { isLoading, isSuccess } = result;
 
         const [email, setEmail] = useState('');
@@ -21,7 +21,7 @@ export default function LoginView({ ...props }) {
             setEmail(email);
         }
 
-        return isSuccess ? <OtpRenderer email={email} /> : <SendCode updateEmail={updateEmail} isLoading={isLoading} postAuthEmail={postAuthEmail} />;
+        return isSuccess ? <OtpRenderer email={email} /> : <SendCode updateEmail={updateEmail} isLoading={isLoading} postSendOtp={postSendOtp} />;
     }
 
     function ImageRenderer() {

@@ -18,7 +18,7 @@ interface IFormCard {
 export default function FormCard({ workspaceId }: IFormCard) {
     const [isOpen, setIsOpen] = useState(false);
     const [_, copyToClipboard] = useCopyToClipboard();
-    const { isLoading, data, isError } = useGetWorkspaceFormsQuery(workspaceId, { pollingInterval: 30000, refetchOnReconnect: true, refetchOnFocus: true, refetchOnMountOrArgChange: true });
+    const { isLoading, data, isError } = useGetWorkspaceFormsQuery(workspaceId, { pollingInterval: 30000 });
 
     if (isLoading)
         return (
@@ -65,6 +65,7 @@ export default function FormCard({ workspaceId }: IFormCard) {
                                     <div className="flex flex-col justify-start h-full">
                                         <p className="text-xl text-grey mb-4 p-0">{form.title}</p>
                                         {form?.description && <p className="text-base text-softBlue m-0 p-0 w-full">{toEndDottedStr(form.description, 180)}</p>}
+                                        {!form?.description && <p className="text-base text-softBlue m-0 p-0 w-full italic">Form description not available.</p>}
                                     </div>
                                     <div
                                         aria-hidden
