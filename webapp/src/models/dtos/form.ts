@@ -34,6 +34,7 @@ export interface StandardFormResponseDto {
     responseId: string;
     formId: string;
     formTitle: string;
+    formCustomUrl: string;
     provider: string;
     dataOwnerIdentifierType: string | null | undefined;
     dataOwnerIdentifier: string | null | undefined;

@@ -3,7 +3,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import environments from '@app/configs/environments';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 
-export default async function getServerSideProps({ locale }: any): Promise<{
+export default async function getServerSideProps({ locale, ..._context }: any): Promise<{
     props: IServerSideProps;
 }> {
     const hasCustomDomain = !!environments.IS_CUSTOM_DOMAIN;
