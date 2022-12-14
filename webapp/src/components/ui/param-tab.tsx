@@ -52,9 +52,10 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true }
     useEffect(() => {
         if (router?.query?.view && isRouteChangeable) {
             setSelectedTabIndex(tabMenu.findIndex((item) => router.query.view === item.path));
-        } else {
-            setSelectedTabIndex(0);
         }
+        // else {
+        //     setSelectedTabIndex(0);
+        // }
     }, [router.query, isRouteChangeable, tabMenu]);
 
     useClickAway(dropdownEl, () => {

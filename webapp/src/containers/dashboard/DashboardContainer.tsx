@@ -109,7 +109,9 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
                             </Button>
                         ) : (
                             <>
-                                {!!selectGetStatus.data.payload.content.user.sub && <div className="py-3 px-5 flex rounded-full text-gray-700 border-solid italic border-[1px] border-[#eaeaea]">{selectGetStatus.data.payload.content.user.sub}</div>}
+                                {!!selectGetStatus.data.payload.content.user.sub && (
+                                    <div className="py-3 px-5 hidden sm:flex rounded-full text-gray-700 border-solid italic border-[1px] border-[#eaeaea]">{selectGetStatus.data.payload.content.user.sub}</div>
+                                )}
                                 {selectGetStatus?.data?.payload?.content?.user?.services?.length === 0 && (
                                     <Button variant="solid" className="ml-3 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
                                         Connect with google

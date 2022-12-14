@@ -4,9 +4,11 @@ import EmptyTray from '@app/assets/svgs/empty-tray.svg';
 import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
+import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { useGetWorkspaceSubmissionsQuery } from '@app/store/workspaces/api';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr } from '@app/utils/dateUtils';
+import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface IResponseCard {
     workspaceId: string;
@@ -14,6 +16,7 @@ interface IResponseCard {
 
 export default function ResponseCard({ workspaceId }: IResponseCard) {
     const { isLoading, data, isError } = useGetWorkspaceSubmissionsQuery(workspaceId, { pollingInterval: 30000 });
+    const breakpoint = useBreakpoint();
 
     if (isLoading)
         return (
@@ -54,9 +57,9 @@ export default function ResponseCard({ workspaceId }: IResponseCard) {
                                         query: { slug, workspaceId }
                                     }}
                                 >
-                                    <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
+                                    <div className="flex flex-row overflow-hidden items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
                                         <div className="flex flex-col justify-start h-full">
-                                            <p className="text-sm text-gray-400 italic">Responsed to form with ID {submission.formId}</p>
+                                            <p className="text-sm text-gray-400 italic">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submission.formId, 30) : submission.formId}</p>
                                             <p className="text-xl text-grey mb-4 p-0">{submission.formTitle}</p>
                                             <p className="text-sm text-gray-400 italic">
                                                 <span>Last submitted at {submittedAt}</span>

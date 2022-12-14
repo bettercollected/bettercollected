@@ -6,6 +6,7 @@ import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import MuiSnackbar from '@app/components/ui/mui-snackbar';
+import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
@@ -17,6 +18,7 @@ interface IFormCard {
 
 export default function FormCard({ workspaceId }: IFormCard) {
     const [isOpen, setIsOpen] = useState(false);
+    const breakpoint = useBreakpoint();
     const [_, copyToClipboard] = useCopyToClipboard();
     const { isLoading, data, isError } = useGetWorkspaceFormsQuery(workspaceId, { pollingInterval: 30000 });
 
@@ -63,8 +65,12 @@ export default function FormCard({ workspaceId }: IFormCard) {
                             >
                                 <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
                                     <div className="flex flex-col justify-start h-full">
-                                        <p className="text-xl text-grey mb-4 p-0">{form.title}</p>
-                                        {form?.description && <p className="text-base text-softBlue m-0 p-0 w-full">{toEndDottedStr(form.description, 180)}</p>}
+                                        <p className="text-xl text-grey mb-4 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 15) : toEndDottedStr(form.title, 30)}</p>
+                                        {form?.description && (
+                                            <p className="text-base text-softBlue m-0 p-0 w-full">
+                                                {['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 45) : ['md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 80) : toEndDottedStr(form.description, 140)}
+                                            </p>
+                                        )}
                                         {!form?.description && <p className="text-base text-softBlue m-0 p-0 w-full italic">Form description not available.</p>}
                                     </div>
                                     <div
