@@ -62,7 +62,7 @@ export default function Aside({ close }: { close?: () => void }) {
                             <Link href={href} key={title}>
                                 <div
                                     className={`flex items-center ${
-                                        router.asPath === href && 'text-blue-500 border-[1px] border-blue-400 rounded-md bg-blue-50 '
+                                        router.asPath === href && 'text-blue-500 mb-2 border-[1px] border-blue-400 rounded-md bg-blue-50 '
                                     } hover:text-blue-500 text-gray-600 cursor-pointer p-4 border-[1px] w-full border-transparent hover:border-[1px] hover:border-blue-400 hover:bg-blue-50 hover:rounded-md`}
                                     key={title}
                                 >
