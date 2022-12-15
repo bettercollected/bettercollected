@@ -135,7 +135,7 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
                     </div>
                 </div>
 
-                <div className="w-full md:flex md:justify-end">
+                {/* <div className="w-full md:flex md:justify-end">
                     <StyledTextField>
                         <TextField
                             size="small"
@@ -155,7 +155,7 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
                             }}
                         />
                     </StyledTextField>
-                </div>
+                </div> */}
                 <SubmissionTabContainer workspaceId={workspace.id} showResponseBar={!!selectGetStatus.error} />
             </ContentLayout>
         </div>

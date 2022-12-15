@@ -95,17 +95,6 @@ export default function CreatorDashboard() {
         );
     };
 
-    // {
-    //     !!user && !isLoading ? (
-    //         <Layout>
-    //             <Header />
-    //             <MyRecentForms />
-    //         </Layout>
-    //     ) : (
-    //         <></>
-    //     );
-    // }
-
     return (
         <Layout>
             <Header />

@@ -12,7 +12,7 @@ export const googleApiSlice = createApi({
         baseUrl: environments.API_ENDPOINT_HOST,
         credentials: 'include',
         prepareHeaders: (headers, { getState }) => {
-            headers.set('Access-Control-Allow-origin', 'http://localhost:8000');
+            headers.set('Access-Control-Allow-origin', environments.API_ENDPOINT_HOST);
             return headers;
         }
     }),
