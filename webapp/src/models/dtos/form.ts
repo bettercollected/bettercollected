@@ -1,3 +1,22 @@
+export interface StandardFormQuestionDto {
+    questionId: string;
+    formId: string;
+    title: string;
+    description: string | null | undefined;
+    type:
+        | {
+              type: string;
+              options: Array<any>;
+          }
+        | any;
+    required: boolean | null | undefined;
+    isMediaContent: boolean;
+    mediaContent: boolean;
+    isGroupQuestion: boolean;
+    groupQuestion: any;
+    answer: any;
+}
+
 export interface StandardFormDto {
     formId: string;
     title: string;
@@ -9,23 +28,7 @@ export interface StandardFormDto {
         provider: string;
         roles: Array<string>;
     };
-    questions: {
-        questionId: string;
-        formId: string;
-        title: string;
-        description: string | null | undefined;
-        type:
-            | {
-                  type: string;
-                  options: Array<any>;
-              }
-            | any;
-        required: boolean | null | undefined;
-        isMediaContent: boolean;
-        mediaContent: boolean;
-        isGroupQuestion: boolean;
-        groupQuestion: any;
-    };
+    questions: Array<StandardFormQuestionDto>;
     createdTime: string | Date;
     modifiedTime: string | Date;
 }
