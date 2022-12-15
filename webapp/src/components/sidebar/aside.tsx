@@ -93,7 +93,7 @@ export default function Aside({ close }: { close?: () => void }) {
                             <div className="flex shrink flex-col justify-center pl-4">
                                 <div className="flex w-full justify-between truncate">
                                     <Tooltip title={selectGetStatus?.data?.payload?.content?.user?.sub} arrow>
-                                        <div className="font-bold text-lg max-w-[190px] truncate">{selectGetStatus?.data?.payload?.content?.user?.sub}</div>
+                                        <div className="font-bold text-md max-w-[190px] truncate">{selectGetStatus?.data?.payload?.content?.user?.sub}</div>
                                     </Tooltip>
                                 </div>
                                 <div className="italic">Free Plan</div>
