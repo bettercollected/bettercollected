@@ -45,3 +45,9 @@ body {
     border-radius: 50%;
     background: red;
 }
+
+
+.side {
+    background-image: url("/bettercollected.svg");
+    background-color: deepskyblue;
+}
