@@ -41,7 +41,7 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true }
                         query: { ...router.query, view: tabMenu[index].path }
                     },
                     undefined,
-                    { scroll: false, shallow: true }
+                    { scroll: true, shallow: true }
                 )
                 .then((r) => r)
                 .catch((e) => e);

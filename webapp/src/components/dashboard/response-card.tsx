@@ -49,14 +49,12 @@ export default function ResponseCard({ workspaceId }: IResponseCard) {
                         submissions?.map((submission: StandardFormResponseDto) => {
                             const slug = submission.responseId;
                             const submittedAt = `${toMonthDateYearStr(parseDateStrToDate(submission.updatedAt))} ${toHourMinStr(parseDateStrToDate(submission.updatedAt))}`;
-                            const formCustomUrl = submission.formCustomUrl;
-                            const formId = submission.formId;
                             return (
                                 <ActiveLink
                                     key={submission.responseId}
                                     href={{
                                         pathname: `/submissions/[slug]`,
-                                        query: { slug, workspaceId, formId, formCustomUrl }
+                                        query: { slug }
                                     }}
                                 >
                                     <div className="flex flex-row overflow-hidden items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">

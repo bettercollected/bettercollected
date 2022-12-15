@@ -4,7 +4,6 @@ import { appWithTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { ThemeProvider } from 'next-themes';
 import type { AppProps } from 'next/app';
-import { useRouter } from 'next/router';
 
 import { CacheProvider, EmotionCache, css } from '@emotion/react';
 import { GlobalStyles } from '@mui/material';
@@ -39,8 +38,6 @@ type AppPropsWithLayout = AppProps & {
 };
 
 function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }: AppPropsWithLayout) {
-    const router = useRouter();
-
     const getLayout = Component.getLayout ?? ((page: any) => page);
 
     //TODO: configure NextSEO component for all pages
@@ -121,9 +118,9 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                         expires={150}
                     >
                         This website uses cookies to enhance the user experience.{' '}
-                        <p className={'cursor-pointer mt-2 text-white hover:text-gray-300'} onClick={() => router.push('https://www.termsfeed.com/blog/cookies/')}>
+                        <a href="https://www.termsfeed.com/blog/cookies/" target="_blank" rel="noreferrer" className={'cursor-pointer mt-2 text-white hover:text-gray-300'}>
                             What are cookies?
-                        </p>
+                        </a>
                     </CookieConsent>
                     <NextNProgress color="#f04444" startPosition={0} stopDelayMs={400} height={5} options={{ easing: 'ease' }} />
                     <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />

@@ -35,7 +35,7 @@ export default function OtpRenderer({ email }: any) {
             .unwrap()
             .then(async () => await trigger('status'))
             .then(() => closeModal())
-            .then(() => toast.info('Login successful'))
+            // .then(() => toast.info('Login successful'))
             .catch((err) => toast.error(err));
     };
 

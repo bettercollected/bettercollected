@@ -77,7 +77,7 @@ export default function Aside({ close }: { close?: () => void }) {
                                     <div className="pr-2">
                                         <Logout height="20px" width="20px" />
                                     </div>
-                                    <div className="font-semibold">Logout</div>
+                                    <div className="font-semibold">Sign off</div>
                                 </div>
                             </Link>
                         </div>
