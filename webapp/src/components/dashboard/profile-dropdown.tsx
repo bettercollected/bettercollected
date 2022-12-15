@@ -16,7 +16,7 @@ export default function ProfileDropdown({ closeDropdown, showDropdown }: any) {
                 <div className={'overflow-y-auto'} aria-hidden>
                     <Link key={'logout'} href={`/`}>
                         <div className="p-3 cursor-pointer border-[1px] text-red-600 border-transparent hover:border-[1px] hover:border-red-600 hover:bg-red-100 hover:rounded-md" role="none">
-                            Logout
+                            Sign off
                         </div>
                     </Link>
                 </div>
