@@ -8,11 +8,42 @@ import ContentLayout from '@app/layouts/_content-layout';
 import globalServerProps from '@app/lib/serverSideProps';
 
 export async function getServerSideProps(_context: any) {
+    const { cookies } = _context.req;
     const globalProps = (await globalServerProps(_context)).props;
-    return {
-        props: {
-            ...globalProps
+    if (globalProps.hasCustomDomain) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    }
+    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
+    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
+
+    const config = {
+        method: 'GET',
+        headers: {
+            cookie: `${auth};${refresh}`
         }
+    };
+
+    try {
+        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
+        const user = (await userStatus?.json().catch((e: any) => e))?.payload?.content ?? null;
+        if (user?.user?.roles?.includes('FORM_CREATOR')) {
+            return {
+                redirect: {
+                    permanent: false,
+                    destination: '/mydashboard'
+                }
+            };
+        }
+    } catch (e) {
+        console.error(e);
+    }
+    return {
+        props: {}
     };
 }
 
@@ -27,7 +58,7 @@ export const Login = () => {
                 </div>
             </ContentLayout>
             <div className="absolute top-0 left-0 h-full w-full flex flex-start">
-                <div className=" w-full lg:min-w-[1024px]  flex items-center justify-center flex-col space-y-8">
+                <div className=" w-full lg:w-[50%]  flex items-center justify-center flex-col space-y-8">
                     <div className="flex-col flex items-center">
                         <div className="flex items-start space-x-2">
                             <Image src="/bettercollected-logo.png" alt="Logo" height="30px" width="30px" />
@@ -40,10 +71,10 @@ export const Login = () => {
                     <div className="flex flex-col justify-center items-center text-[#555555] space-y-2">
                         <div className="text-3xl font-bold">Welcome back, Collector</div>
                     </div>
-                    <ConnectWithGoogleButton text="Sign In with google" />
+                    <ConnectWithGoogleButton text="Sign In with google" creator />
                     <div className="text-lg text-[#555555]">
                         Don&apos;t have an account?{' '}
-                        <a href={`${environments.API_ENDPOINT_HOST}/auth/google/basicAuth`} className="ml-2 text-blue-500 cursor-pointer">
+                        <a href={`${environments.API_ENDPOINT_HOST}/auth/google/basicAuth?creator=true`} className="ml-2 text-blue-500 cursor-pointer">
                             {' '}
                             Sign Up
                         </a>
@@ -61,8 +92,9 @@ export const Login = () => {
                         .
                     </div>
                 </div>
-
-                <div className={`h-full side w-full hidden lg:flex`}></div>
+                <div className={`relative h-full w-[50%] hidden lg:flex side`}>
+                    <Image layout="fill" src="/bettercollected.svg" alt="image" />
+                </div>
             </div>
         </div>
     );

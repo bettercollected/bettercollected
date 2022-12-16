@@ -1,17 +1,20 @@
-import { useRouter } from 'next/router';
-
 import { Google } from '@app/components/icons/brands/google';
 import environments from '@app/configs/environments';
 
-export default function ConnectWithGoogleButton({ text }: { text: string }) {
-    const router = useRouter();
+interface ConnectWithGoogleButtonProps {
+    text: string;
+    creator?: boolean;
+}
 
-    const handleGoogleOauthLogin = (e: any) => {
-        router.push(`${environments.API_ENDPOINT_HOST}/auth/google/basicAuth`);
-    };
+ConnectWithGoogleButton.defaultProps = {
+    creator: false
+};
+
+export default function ConnectWithGoogleButton(props: ConnectWithGoogleButtonProps) {
+    const { text, creator } = props;
 
     return (
-        <a href={`${environments.API_ENDPOINT_HOST}/auth/google/basicAuth`} className="bg-[#1a73e8] max-w-[250px] mx-auto flex w-full items-center rounded-2xl p-[2px]">
+        <a href={`${environments.API_ENDPOINT_HOST}/auth/google/basicAuth${creator ? '?creator=true' : ''}`} referrerPolicy="unsafe-url" className="bg-[#1a73e8] max-w-[250px] mx-auto flex w-full items-center rounded-2xl p-[2px]">
             <div className=" rounded-full bg-white p-2">
                 <Google />
             </div>
