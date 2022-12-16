@@ -1,23 +1,14 @@
 import React from 'react';
 
-import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
-import Hamburger from '@app/components/ui/hamburger';
+import Link from 'next/link';
+
 import Logo from '@app/components/ui/logo';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
 
 export function Header() {
     const windowScroll = useWindowScroll();
-    const breakpoint = useBreakpoint();
     const isMounted = useIsMounted();
-
-    const { openModal } = useModal();
-
-    const handleImportForms = () => {
-        openModal('LOGIN_VIEW');
-    };
 
     return (
         <nav
@@ -30,9 +21,11 @@ export function Header() {
             <div className="flex justify-between items-center">
                 <Logo />
             </div>
-            <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
-                Get in
-            </Button>
+            <div>
+                <Link href="/login">
+                    <div className="bg-blue-500 px-5 py-2 rounded-xl text-white cursor-pointer">Sign In</div>
+                </Link>
+            </div>
         </nav>
     );
 }

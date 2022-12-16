@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
@@ -9,17 +8,16 @@ import Tooltip from '@mui/material/Tooltip';
 import { authApi } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
-import { ChevronDown } from '../icons/chevron-down';
-import { ChevronForward } from '../icons/chevron-forward';
 import { HistoryIcon } from '../icons/history';
 import { HomeIcon } from '../icons/home';
 import { Logout } from '../icons/logout-icon';
 import { SearchIcon } from '../icons/search';
+import { useModal } from '../modal-views/context';
 
 export default function Aside({ close }: { close?: () => void }) {
     const router = useRouter();
 
-    console.log('router as path: ', router.asPath);
+    const { openModal } = useModal();
 
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
     const selectGetStatus = useAppSelector(statusQuerySelect);
@@ -31,12 +29,12 @@ export default function Aside({ close }: { close?: () => void }) {
             icon: <HomeIcon className="w-[20px] h-[20px]" />
         },
         {
-            href: '/dashboard/submissions',
-            title: 'My Submissions',
+            href: '/mydashboard/submissions',
+            title: 'Submissions',
             icon: <HistoryIcon className="w-[20px] h-[20px]" />
         },
         {
-            href: '/dashboard/settings',
+            href: '/mydashboard/settings',
             title: 'Settings',
             icon: <SearchIcon className="w-[20px] h-[20px]" />
         }
@@ -61,7 +59,7 @@ export default function Aside({ close }: { close?: () => void }) {
                         {menuItems.map(({ href, title, icon }) => (
                             <Link href={href} key={title}>
                                 <div
-                                    className={`flex items-center ${
+                                    className={`flex items-center mb-2 ${
                                         router.asPath === href && 'text-blue-500 border-[1px] border-blue-400 rounded-md bg-blue-50 '
                                     } hover:text-blue-500 text-gray-600 cursor-pointer p-4 border-[1px] w-full border-transparent hover:border-[1px] hover:border-blue-400 hover:bg-blue-50 hover:rounded-md`}
                                     key={title}
@@ -72,14 +70,16 @@ export default function Aside({ close }: { close?: () => void }) {
                             </Link>
                         ))}
                         <div>
-                            <Link href={'/logout'} key={'logout'}>
-                                <div className={`flex items-center text-red-600 hover:text-red-500 cursor-pointer p-4 border-[1px] w-full border-transparent hover:border-[1px] hover:border-red-400 hover:bg-red-50 hover:rounded-md`} key={'logout'}>
-                                    <div className="pr-2">
-                                        <Logout height="20px" width="20px" />
-                                    </div>
-                                    <div className="font-semibold">Sign off</div>
+                            <div
+                                onClick={() => openModal('LOGOUT_VIEW')}
+                                className={`flex items-center text-red-600 hover:text-red-500 cursor-pointer p-4 border-[1px] w-full border-transparent hover:border-[1px] hover:border-red-400 hover:bg-red-50 hover:rounded-md`}
+                                key={'logout'}
+                            >
+                                <div className="pr-2">
+                                    <Logout height="20px" width="20px" />
                                 </div>
-                            </Link>
+                                <div className="font-semibold">Logout</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -89,11 +89,11 @@ export default function Aside({ close }: { close?: () => void }) {
                         <div className="flex w-full justify-between">
                             <div className="flex shrink flex-col justify-center pl-4">
                                 <div className="flex w-full justify-between truncate">
-                                    <Tooltip title="jordanandrew932@gmail.com" arrow>
-                                        <div className="font-bold text-lg max-w-[190px] truncate">{selectGetStatus?.data?.payload?.content?.user?.sub}</div>
+                                    <Tooltip title={selectGetStatus?.data?.payload?.content?.user?.sub} arrow>
+                                        <div className="font-bold text-md max-w-[190px] truncate">{selectGetStatus?.data?.payload?.content?.user?.sub}</div>
                                     </Tooltip>
                                 </div>
-                                <div className="italic">Free Plan</div>
+                                <div className="italic text-gray-700">Free Plan</div>
                             </div>
                         </div>
                     </div>

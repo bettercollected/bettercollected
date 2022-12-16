@@ -48,6 +48,5 @@ body {
 
 
 .side {
-    background-image: url("/bettercollected.svg");
-    background-color: deepskyblue;
+    background-color: rgba(0, 191, 255, 0.04);
 }

@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch, { SwitchProps } from '@mui/material/Switch';
 import { styled } from '@mui/material/styles';
+import { toast } from 'react-toastify';
 
-import { googleApiSlice, useImportFormsQuery } from '@app/store/google/api';
+import { googleApiSlice, useGetFormsQuery, useImportFormsMutation, usePatchPinnedFormMutation } from '@app/store/google/api';
 import { toMonthDateYearStr } from '@app/utils/dateUtils';
 
 import { useModal } from '../modal-views/context';
@@ -57,64 +58,16 @@ const IOSSwitch = styled((props: SwitchProps) => <Switch focusVisibleClassName="
     }
 }));
 
-// const forms = {
-//     apiVersion: 'v1',
-//     payload: {
-//         content: [
-//             {
-//                 iconLink: 'https://drive-thirdparty.googleusercontent.com/16/type/application/vnd.google-apps.form',
-//                 owners: [
-//                     {
-//                         displayName: 'Andrew Jordan',
-//                         kind: 'drive#user',
-//                         me: true,
-//                         permissionId: '09701994910462109291',
-//                         emailAddress: 'jordanandrew932@gmail.com',
-//                         photoLink: 'https://lh3.googleusercontent.com/a/default-user=s64'
-//                     }
-//                 ],
-//                 webViewLink: 'https://docs.google.com/forms/d/1F7O-GckfIVNyjBtBiBM0mZb1VV7eJdwIpOkhdETLhaw/edit?usp=drivesdk',
-//                 id: '1F7O-GckfIVNyjBtBiBM0mZb1VV7eJdwIpOkhdETLhaw',
-//                 name: 'Untitled form',
-//                 createdTime: '2022-11-09T13:24:51.778Z',
-//                 modifiedTime: '2022-12-08T10:39:48.798Z'
-//             },
-//             {
-//                 iconLink: 'https://drive-thirdparty.googleusercontent.com/16/type/application/vnd.google-apps.form',
-//                 owners: [
-//                     {
-//                         displayName: 'Andrew Jordan',
-//                         kind: 'drive#user',
-//                         me: true,
-//                         permissionId: '09701994910462109291',
-//                         emailAddress: 'jordanandrew932@gmail.com',
-//                         photoLink: 'https://lh3.googleusercontent.com/a/default-user=s64'
-//                     }
-//                 ],
-//                 webViewLink: 'https://docs.google.com/forms/d/1r0Xk9ev0eDdE01hxsjjmVCErTl4jXEFTCkJhICXsL10/edit?usp=drivesdk',
-//                 id: '1r0Xk9ev0eDdE01hxsjjmVCErTl4jXEFTCkJhICXsL10',
-//                 name: 'Contact Information',
-//                 createdTime: '2022-11-09T13:48:26.866Z',
-//                 modifiedTime: '2022-12-08T10:39:41.605Z'
-//             }
-//         ],
-//         pageable: {
-//             page: 0,
-//             size: 15,
-//             total: 2
-//         }
-//     },
-//     timestamp: '2022-12-08T18:21:28.809180'
-// };
-
 export default function ImportForms() {
     const { closeModal } = useModal();
 
     const [enabledFormList, setEnabledFormList] = useState<any>([]);
 
-    const [forms, setForms] = useState({});
+    const [forms, setForms] = useState<any>({});
 
-    const { data, isLoading, refetch } = useImportFormsQuery(null);
+    const { data, isLoading, refetch } = useGetFormsQuery(null);
+
+    const importFormsMutation = useImportFormsMutation();
 
     useEffect(() => {
         if (data) {
@@ -124,15 +77,25 @@ export default function ImportForms() {
 
     if (isLoading) return <FullScreenLoader />;
 
-    console.log('import forms data:', data);
+    const handleImportForms = () => {
+        const [importForms] = importFormsMutation;
+        importForms(enabledFormList)
+            .then((data: any) => {
+                toast.info(data?.data?.status);
+                closeModal();
+            })
+            .catch((e) => {
+                toast.error('An Error occured');
+            });
+    };
 
     const FooterRenderer = () => {
         return (
             <div className="flex w-full justify-between">
-                <Button variant="solid" className="!rounded-xl !m-0 !bg-blue-500" onClick={() => {}}>
+                <Button isLoading={importFormsMutation[1].isLoading} disabled={enabledFormList.length === 0} variant="solid" className={`!rounded-xl !m-0 ${!enabledFormList.length ? '' : '!bg-blue-500'}`} onClick={handleImportForms}>
                     Import ({enabledFormList.length})
                 </Button>
-                <Button variant="transparent" className="!rounded-xl !m-0 !border-gray border-[1px] !border-solid" onClick={() => closeModal()}>
+                <Button variant="transparent" disabled={importFormsMutation[1].isLoading} className="!rounded-xl !m-0 !border-gray border-[1px] !border-solid" onClick={() => closeModal()}>
                     Cancel
                 </Button>
             </div>
@@ -160,7 +123,6 @@ export default function ImportForms() {
                 <div>
                     <p className="text-[9px] !m-0 !p-0 text-gray-400 italic">{id}</p>
                     <h2 className="text-md font-bold text-grey p-0">{name}</h2>
-                    {/* <p className="text-[9px] !m-0 !p-0 text-blue-500 italic">{props.form.owners[0].emailAddress}</p> */}
                 </div>
                 <p className="text-[9px] !m-0 !p-0 text-blue-500 italic">{toMonthDateYearStr(new Date(createdTime))}</p>
                 <FormControlLabel label="" control={<IOSSwitch checked={checkIfSwitchIsEnabled(props.form.id)} />} />
@@ -168,7 +130,7 @@ export default function ImportForms() {
         );
     };
 
-    const CardContainerRenderer = ({ formsCounter, setFormsCounter }: any) => {
+    const CardContainerRenderer = () => {
         return (
             <>
                 {forms?.payload?.content.map((form: any, idx: any) => (
