@@ -1,12 +1,10 @@
 import Layout from '@app/components/sidebar/layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import environments from '@app/configs/environments';
 import useUser from '@app/lib/hooks/use-authuser';
+import globalServerProps from '@app/lib/serverSideProps';
 
 export default function MySettings() {
-    const { user, isLoading } = useUser();
-
-    if (isLoading) return <FullScreenLoader />;
-
     const Header = () => {
         return (
             <div className=" pb-4 border-b-gray-200 border-b-[1px]">
@@ -21,4 +19,49 @@ export default function MySettings() {
             <Header />
         </Layout>
     );
+}
+
+export async function getServerSideProps(_context: any) {
+    const { cookies } = _context.req;
+    const globalProps = (await globalServerProps(_context)).props;
+    if (globalProps.hasCustomDomain) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    }
+    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
+    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
+
+    const config = {
+        method: 'GET',
+        headers: {
+            cookie: `${auth};${refresh}`
+        }
+    };
+
+    try {
+        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
+        const user = (await userStatus?.json().catch((e: any) => e))?.payload?.content ?? null;
+        if (!user?.user?.roles?.includes('FORM_CREATOR')) {
+            return {
+                redirect: {
+                    permanent: false,
+                    destination: '/login'
+                }
+            };
+        }
+    } catch (e) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/login'
+            }
+        };
+    }
+    return {
+        props: {}
+    };
 }

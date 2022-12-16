@@ -15,13 +15,12 @@ import { toEndDottedStr } from '@app/utils/stringUtils';
 export default function CreatorDashboard() {
     const { openModal } = useModal();
 
-    const { user, isLoading } = useUser();
+    const { user } = useUser();
 
     const workspaceForms = useGetWorkspaceFormsQuery<any>(null);
 
     const breakpoint = useBreakpoint();
 
-    if (isLoading) return <FullScreenLoader />;
     const forms = workspaceForms?.data?.payload?.content;
 
     const email = user?.data?.payload?.content?.user?.sub;

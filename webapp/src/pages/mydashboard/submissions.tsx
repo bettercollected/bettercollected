@@ -5,14 +5,14 @@ import { info } from 'console';
 import { ShareIcon } from '@app/components/icons/share-icon';
 import Layout from '@app/components/sidebar/layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import environments from '@app/configs/environments';
 import useUser from '@app/lib/hooks/use-authuser';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import globalServerProps from '@app/lib/serverSideProps';
 import { useGetSubmissionsQuery } from '@app/store/google/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function MySubmissions() {
-    const { isLoading } = useUser();
-
     const submissionsQuery = useGetSubmissionsQuery(null);
     const breakpoint = useBreakpoint();
 
@@ -35,13 +35,13 @@ export default function MySubmissions() {
     };
 
     useEffect(() => {
-        if (!submissionsQuery.isLoading && !!submissionsQuery.data.payload.content) {
-            const responseMapObject = convertToClientForm(submissionsQuery.data.payload.content);
+        if (!submissionsQuery?.isLoading && !!submissionsQuery?.data?.payload?.content) {
+            const responseMapObject = convertToClientForm(submissionsQuery?.data?.payload?.content);
             setResponseObject(responseMapObject);
         }
     }, [submissionsQuery]);
 
-    if (isLoading || submissionsQuery.isLoading) return <FullScreenLoader />;
+    // if (submissionsQuery.isLoading) return <FullScreenLoader/>;
 
     const CardRenderer = () => {
         return (
@@ -97,4 +97,49 @@ export default function MySubmissions() {
             <CardRenderer />
         </Layout>
     );
+}
+
+export async function getServerSideProps(_context: any) {
+    const { cookies } = _context.req;
+    const globalProps = (await globalServerProps(_context)).props;
+    if (globalProps.hasCustomDomain) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    }
+    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
+    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
+
+    const config = {
+        method: 'GET',
+        headers: {
+            cookie: `${auth};${refresh}`
+        }
+    };
+
+    try {
+        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
+        const user = (await userStatus?.json().catch((e: any) => e))?.payload?.content ?? null;
+        if (!user?.user?.roles?.includes('FORM_CREATOR')) {
+            return {
+                redirect: {
+                    permanent: false,
+                    destination: '/login'
+                }
+            };
+        }
+    } catch (e) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/login'
+            }
+        };
+    }
+    return {
+        props: {}
+    };
 }
