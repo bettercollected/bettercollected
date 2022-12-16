@@ -149,19 +149,24 @@ module.exports = {
                         maxWidth: '800px'
                     },
                     '@screen lg': {
-                        maxWidth: '1176px'
+                        maxWidth: '800px'
+                        // maxWidth: '1176px'
                     },
                     '@screen xl': {
-                        maxWidth: '1310px'
+                        maxWidth: '800px'
+                        // maxWidth: '1310px'
                     },
                     '@screen 2xl': {
-                        maxWidth: '1352px'
+                        maxWidth: '800px'
+                        // maxWidth: '1352px'
                     },
                     '@screen 3xl': {
-                        maxWidth: '1536px'
+                        maxWidth: '800px'
+                        // maxWidth: '1536px'
                     },
                     '@screen 4xl': {
-                        maxWidth: '1536px'
+                        maxWidth: '800px'
+                        // maxWidth: '1536px'
                     }
                 }
             });

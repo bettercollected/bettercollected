@@ -30,7 +30,7 @@ export default function SubmissionTabContainer({ workspaceId, showResponseBar }:
 
     return (
         <div className="mt-5 sm:mt-0 flex flex-col pb-5 xl:mt-9">
-            <ParamTab tabMenu={paramTabs} isRouteChangeable={false}>
+            <ParamTab tabMenu={paramTabs}>
                 <TabPanel className="focus:outline-none" key="forms">
                     <FormCard workspaceId={workspaceId} />
                 </TabPanel>

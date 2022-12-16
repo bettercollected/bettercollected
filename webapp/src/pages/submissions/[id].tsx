@@ -12,7 +12,6 @@ import Select from '@mui/material/Select';
 import Slider from '@mui/material/Slider';
 import TextField from '@mui/material/TextField';
 
-import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Loader from '@app/components/ui/loader';
@@ -41,9 +40,12 @@ const StyledTextField = styled.div`
         padding-left: 0;
         padding-right: 0;
         padding-bottom: 8px;
-        color: rgba(0, 0, 0, 0.38);
-        border-bottom-style: dotted;
         width: 100%;
+        border-bottom-style: dotted;
+    }
+
+    textarea:disabled {
+        color: rgba(0, 0, 0, 0.38);
     }
 `;
 
@@ -65,7 +67,7 @@ enum QUESTION_TYPE {
     LINEAR_SCALE = 'LINEAR_SCALE'
 }
 
-export default function Submission({ form, workspace, ...props }: ISubmission) {
+export default function Submission({ form, workspace, submissionId, ...props }: ISubmission) {
     const router = useRouter();
     const breakpoint = useBreakpoint();
 
@@ -124,7 +126,7 @@ export default function Submission({ form, workspace, ...props }: ISubmission) {
 
                                 return (
                                     <div key={idx}>
-                                        <Component checked={handleCheckedAnswer(gcp)} disabled />
+                                        <Component checked={handleCheckedAnswer(gcp)} />
                                     </div>
                                 );
                             })}
@@ -175,7 +177,7 @@ export default function Submission({ form, workspace, ...props }: ISubmission) {
                 return (
                     <StyledTextField>
                         {radioOptions.map((option: any, idx: any) => (
-                            <FormControlLabel key={idx} disabled control={<Radio checked={radioAnswers.includes(option?.value)} />} label={option?.value} />
+                            <FormControlLabel key={idx} control={<Radio checked={radioAnswers.includes(option?.value)} />} label={option?.value} />
                         ))}
                     </StyledTextField>
                 );
@@ -188,14 +190,14 @@ export default function Submission({ form, workspace, ...props }: ISubmission) {
                 return (
                     <StyledTextField>
                         {checkboxOptions.map((option: any, idx: any) => (
-                            <FormControlLabel key={idx} disabled control={<Checkbox checked={checkboxAnswers.includes(option?.value)} />} label={option?.value} />
+                            <FormControlLabel key={idx} control={<Checkbox checked={checkboxAnswers.includes(option?.value)} />} label={option?.value} />
                         ))}
                     </StyledTextField>
                 );
             case QUESTION_TYPE.TEXT_AREA:
                 return (
                     <StyledTextField>
-                        <TextareaAutosize value={question.answer} disabled />
+                        <TextareaAutosize value={question.answer} />
                     </StyledTextField>
                 );
             case QUESTION_TYPE.DROP_DOWN:
@@ -207,7 +209,7 @@ export default function Submission({ form, workspace, ...props }: ISubmission) {
                 const dropdownAnswer = Array.isArray(dropdownAnswers) && dropdownAnswers.length !== 0 ? dropdownAnswers[0] : 'No answer selected';
                 return (
                     <StyledTextField>
-                        <Select value={dropdownAnswer} disabled>
+                        <Select value={dropdownAnswer}>
                             {dropdownOptions.map((dd: any, idx: any) => (
                                 <MenuItem key={idx} value={dd?.value}>
                                     {dd?.value}
@@ -218,7 +220,7 @@ export default function Submission({ form, workspace, ...props }: ISubmission) {
                 );
             case QUESTION_TYPE.FILE_UPLOAD:
                 return (
-                    <Button variant="solid" className="mt-3" disabled>
+                    <Button variant="solid" className="mt-3">
                         Upload File
                         <input type="file" hidden />
                     </Button>
@@ -235,23 +237,66 @@ export default function Submission({ form, workspace, ...props }: ISubmission) {
                 const linearScaleAnswers: any = question.answer ? question.answer : [];
                 const linearScaleAnswer = Array.isArray(linearScaleAnswers) && linearScaleAnswers.length !== 0 ? Number(linearScaleAnswers[0]) : undefined;
 
-                return <Slider disabled value={linearScaleAnswer} min={linearScaleLowValue} step={1} max={linearScaleHightValue} marks={followerMarks} />;
+                return <Slider value={linearScaleAnswer} min={linearScaleLowValue} step={1} max={linearScaleHightValue} marks={followerMarks} />;
             case QUESTION_TYPE.INPUT_FIELD:
             default:
                 return (
                     <StyledTextField>
-                        <TextField value={question.answer} disabled fullWidth variant="standard" />
+                        <TextField value={question.answer} fullWidth variant="standard" />
                     </StyledTextField>
                 );
         }
     };
 
+    const goToSubmissions = () => {
+        router
+            .push(
+                {
+                    pathname: '/',
+                    query: { view: 'mySubmissions' }
+                },
+                undefined,
+                { scroll: true, shallow: true }
+            )
+            .then((r) => r)
+            .catch((e) => e);
+    };
+
     return (
-        <div className="relative container mx-auto">
-            <Button className="!absolute !top-0 !left-0 w-auto z-10 !h-8 mx-4 mt-3 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => router.push('/')}>
-                <LongArrowLeft width={15} height={15} />
-            </Button>
-            <div className="px-6 pt-20 pb-14">
+        <div className="relative container mx-auto px-6 md:px-0">
+            <div className="!absolute !top-0 !left-0">
+                <nav className="flex mt-3 px-6 md:px-0" aria-label="Breadcrumb">
+                    <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                        <li className="inline-flex items-center">
+                            <span aria-hidden onClick={() => router.push('/')} className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                                </svg>
+                                Home
+                            </span>
+                        </li>
+                        <li>
+                            <div className="flex items-center">
+                                <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span aria-hidden onClick={goToSubmissions} className="cursor-pointer ml-1 text-sm font-medium text-gray-700 hover:text-gray-900 md:ml-2 dark:text-gray-400 dark:hover:text-white">
+                                    Submissions
+                                </span>
+                            </div>
+                        </li>
+                        <li aria-current="page">
+                            <div className="flex items-center">
+                                <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.formId, 10) : form.formId}</span>
+                            </div>
+                        </li>
+                    </ol>
+                </nav>
+            </div>
+            <div className="pt-20 pb-14">
                 <p className="text-sm text-gray-400 italic">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.formId, 30) : form.formId}</p>
                 <h1 className="font-semibold text-darkGrey mb-3 text-xl sm:text-2xl md:text-3xl xl:text-4xl 2xl:text-[40px]">{form.title}</h1>
                 {form?.description && (
@@ -302,7 +347,8 @@ export async function getServerSideProps(_context: any) {
     return {
         props: {
             ...globalProps,
-            form
+            form,
+            submissionId
         }
     };
 }

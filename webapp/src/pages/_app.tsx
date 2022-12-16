@@ -25,16 +25,21 @@ import createEmotionCache from '@app/configs/createEmotionCache';
 import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
 import MuiThemeProvider from '@app/layouts/_mui-theme-provider';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
 
+interface IWorkspacePageProps {
+    workspace: WorkspaceDto | null;
+}
+
 type AppPropsWithLayout = AppProps & {
     Component: NextPageWithLayout;
     emotionCache?: EmotionCache;
-    pageProps: any;
+    pageProps: IWorkspacePageProps | any;
 };
 
 function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }: AppPropsWithLayout) {
@@ -47,11 +52,12 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
     let imageUrl = globalConstants.socialPreview.image;
 
     const hasCustomDomain = !!pageProps?.hasCustomDomain;
-    if (hasCustomDomain && !!pageProps?.companyJson) {
-        title = pageProps?.companyJson?.companyTitle ?? title;
-        imageUrl = pageProps?.companyJson?.companyProfile ?? imageUrl;
-        url = pageProps?.companyJson?.companyDomain ?? url;
-        description = pageProps?.companyJson?.companyDescription ?? description;
+    const workspace: WorkspaceDto | null = pageProps?.workspace;
+    if (hasCustomDomain && !!workspace) {
+        title = workspace?.title ?? title;
+        imageUrl = workspace?.profileImage ?? imageUrl;
+        url = workspace?.customDomain ?? url;
+        description = workspace?.description ?? description;
     }
 
     useEffect(() => {
