@@ -1,13 +1,13 @@
-import { useEffect, useMemo } from 'react';
-
 import { ShareIcon } from '@app/components/icons/share-icon';
 import { useModal } from '@app/components/modal-views/context';
 import Layout from '@app/components/sidebar/layout';
 import Button from '@app/components/ui/button/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
+import environments from '@app/configs/environments';
 import useUser from '@app/lib/hooks/use-authuser';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import globalServerProps from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { useGetWorkspaceFormsQuery } from '@app/store/google/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
@@ -104,11 +104,47 @@ export default function CreatorDashboard() {
     );
 }
 
-// export const getServerSideProps = async (context: any) => {
-//     const cookies = context.req.headers.cookie;
-//     console.log('cookies:', cookies);
+export async function getServerSideProps(_context: any) {
+    const { cookies } = _context.req;
+    const globalProps = (await globalServerProps(_context)).props;
+    if (globalProps.hasCustomDomain) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    }
+    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
+    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
 
-//     return {
-//         props: {}
-//     };
-// };
+    const config = {
+        method: 'GET',
+        headers: {
+            cookie: `${auth};${refresh}`
+        }
+    };
+
+    try {
+        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
+        const user = (await userStatus?.json().catch((e: any) => e))?.payload?.content ?? null;
+        if (!user?.user?.roles?.includes('FORM_CREATOR')) {
+            return {
+                redirect: {
+                    permanent: false,
+                    destination: '/login'
+                }
+            };
+        }
+    } catch (e) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/login'
+            }
+        };
+    }
+    return {
+        props: {}
+    };
+}
