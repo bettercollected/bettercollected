@@ -66,7 +66,7 @@ export default function PublicWorkspaceLayout({ workspace, children }: React.Pro
                                 {!!selectGetStatus.data.payload.content.user.sub && (
                                     <div className="py-3 px-5 hidden sm:flex rounded-full text-gray-700 border-solid italic border-[1px] border-[#eaeaea]">{selectGetStatus.data.payload.content.user.sub}</div>
                                 )}
-                                <Button variant="solid" className="ml-3 !px-3 !rounded-xl bg-[#ffe0e0]" onClick={handleLogout}>
+                                <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-[#ffe0e0]" onClick={handleLogout}>
                                     <span className="w-full flex gap-2 items-center justify-center">
                                         <Logout height={20} width={20} className="!rounded-xl !text-[#e60000]" />
                                         <span className="!text-[#e60000]">Sign off</span>

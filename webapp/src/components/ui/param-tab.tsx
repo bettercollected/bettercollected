@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
@@ -10,6 +10,8 @@ import { Tab, TabItem, TabPanel, TabPanels } from '@app/components/ui/tab';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useClickAway } from '@app/lib/hooks/use-click-away';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
+import { authApi } from '@app/store/auth/api';
+import { useAppSelector } from '@app/store/hooks';
 
 interface TabMenuItem {
     title: React.ReactNode;
@@ -32,6 +34,9 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true }
     const dropdownEl = useRef<HTMLDivElement>(null);
     const [selectedTabIndex, setSelectedTabIndex] = useState(0);
     const [visibleMobileMenu, setVisibleMobileMenu] = useState(false);
+    const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
+    const selectGetStatus = useAppSelector(statusQuerySelect);
+
     function handleTabChange(index: number) {
         if (isRouteChangeable) {
             router
@@ -57,6 +62,13 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true }
         //     setSelectedTabIndex(0);
         // }
     }, [router.query, isRouteChangeable, tabMenu]);
+
+    useEffect(() => {
+        // Reset tab params to forms if logged out and tab param index is at submissions
+        if (!!selectGetStatus.error) {
+            setSelectedTabIndex(0);
+        }
+    }, [selectGetStatus]);
 
     useClickAway(dropdownEl, () => {
         setVisibleMobileMenu(false);
