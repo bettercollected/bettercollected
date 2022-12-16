@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
@@ -9,8 +8,6 @@ import Tooltip from '@mui/material/Tooltip';
 import { authApi } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
-import { ChevronDown } from '../icons/chevron-down';
-import { ChevronForward } from '../icons/chevron-forward';
 import { HistoryIcon } from '../icons/history';
 import { HomeIcon } from '../icons/home';
 import { Logout } from '../icons/logout-icon';
@@ -33,7 +30,7 @@ export default function Aside({ close }: { close?: () => void }) {
         },
         {
             href: '/mydashboard/submissions',
-            title: 'My Submissions',
+            title: 'Submissions',
             icon: <HistoryIcon className="w-[20px] h-[20px]" />
         },
         {
@@ -96,7 +93,7 @@ export default function Aside({ close }: { close?: () => void }) {
                                         <div className="font-bold text-md max-w-[190px] truncate">{selectGetStatus?.data?.payload?.content?.user?.sub}</div>
                                     </Tooltip>
                                 </div>
-                                <div className="italic">Free Plan</div>
+                                <div className="italic text-gray-700">Free Plan</div>
                             </div>
                         </div>
                     </div>

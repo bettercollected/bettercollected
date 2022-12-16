@@ -20,7 +20,7 @@ export const googleApiSlice = createApi({
     endpoints: (builder) => ({
         getSubmissions: builder.query<any, null>({
             query: () => ({
-                url: `forms/submissions`,
+                url: `workspaces/${environments.WORKSPACE_ID}/allSubmissions`,
                 method: 'GET',
                 credentials: 'include'
             })

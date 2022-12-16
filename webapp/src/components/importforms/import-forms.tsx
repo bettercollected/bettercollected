@@ -63,7 +63,7 @@ export default function ImportForms() {
 
     const [enabledFormList, setEnabledFormList] = useState<any>([]);
 
-    const [forms, setForms] = useState({});
+    const [forms, setForms] = useState<any>({});
 
     const { data, isLoading, refetch } = useGetFormsQuery(null);
 
@@ -80,7 +80,7 @@ export default function ImportForms() {
     const handleImportForms = () => {
         const [importForms] = importFormsMutation;
         importForms(enabledFormList)
-            .then((data) => {
+            .then((data: any) => {
                 toast.info(data?.data?.status);
                 closeModal();
             })
@@ -92,7 +92,7 @@ export default function ImportForms() {
     const FooterRenderer = () => {
         return (
             <div className="flex w-full justify-between">
-                <Button isLoading={importFormsMutation[1].isLoading} disabled={enabledFormList.length === 0} variant="solid" className="!rounded-xl !m-0 !bg-blue-500" onClick={handleImportForms}>
+                <Button isLoading={importFormsMutation[1].isLoading} disabled={enabledFormList.length === 0} variant="solid" className={`!rounded-xl !m-0 ${!enabledFormList.length ? '' : '!bg-blue-500'}`} onClick={handleImportForms}>
                     Import ({enabledFormList.length})
                 </Button>
                 <Button variant="transparent" disabled={importFormsMutation[1].isLoading} className="!rounded-xl !m-0 !border-gray border-[1px] !border-solid" onClick={() => closeModal()}>
@@ -130,7 +130,7 @@ export default function ImportForms() {
         );
     };
 
-    const CardContainerRenderer = ({ formsCounter, setFormsCounter }: any) => {
+    const CardContainerRenderer = () => {
         return (
             <>
                 {forms?.payload?.content.map((form: any, idx: any) => (

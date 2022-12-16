@@ -17,7 +17,8 @@ export default function CreatorDashboard() {
 
     const { user, isLoading } = useUser();
 
-    const workspaceForms = useGetWorkspaceFormsQuery(null);
+    const workspaceForms = useGetWorkspaceFormsQuery<any>(null);
+
     const breakpoint = useBreakpoint();
 
     if (isLoading) return <FullScreenLoader />;
@@ -30,10 +31,10 @@ export default function CreatorDashboard() {
     };
 
     const Header = () => (
-        <div className="flex justify-between items-center mb-10">
+        <div className="flex justify-between items-center mb-10 py-4 pt-4 border-b-[1px] border-b-gray-200">
             <div className="flex flex-col">
                 <h1 className="font-extrabold text-3xl">Hello {email?.replaceAll('@gmail.com', '')}!</h1>
-                <p className="text-gray-600">Here you have the summary of the week</p>
+                <p className="text-gray-600">Here are your forms</p>
             </div>
 
             <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
