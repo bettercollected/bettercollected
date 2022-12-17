@@ -1,3 +1,5 @@
+import { useRouter } from 'next/router';
+
 import { ShareIcon } from '@app/components/icons/share-icon';
 import { useModal } from '@app/components/modal-views/context';
 import Layout from '@app/components/sidebar/layout';
@@ -14,6 +16,7 @@ import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function CreatorDashboard() {
     const { openModal } = useModal();
+    const router = useRouter();
 
     const { user } = useUser();
 
@@ -25,8 +28,14 @@ export default function CreatorDashboard() {
 
     const email = user?.data?.payload?.content?.user?.sub;
 
+    console.log(user?.data?.payload?.content);
+
     const handleImportForms = () => {
         openModal('IMPORT_FORMS_VIEW');
+    };
+
+    const handleConnectWithGoogle = () => {
+        router.push(`${environments.API_ENDPOINT_HOST}/auth/google/connect`);
     };
 
     const Header = () => (
@@ -36,9 +45,15 @@ export default function CreatorDashboard() {
                 <p className="text-gray-600">Here are your forms</p>
             </div>
 
-            <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
-                Import Forms
-            </Button>
+            {user?.data?.payload?.content?.user?.services?.length === 0 ? (
+                <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
+                    Authorize Google
+                </Button>
+            ) : (
+                <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
+                    Import Forms
+                </Button>
+            )}
         </div>
     );
 

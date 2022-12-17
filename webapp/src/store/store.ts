@@ -9,6 +9,7 @@ import counterSlice from '@app/store/counter/counterSlice';
 import { monitorReducerEnhancer } from '@app/store/enhancers';
 
 import { authApi } from './auth/api';
+import { formsApi } from './forms/api';
 import { googleApiSlice } from './google/api';
 import searchReducerObj, { searchSlice } from './search/searchSlice';
 import { workspacesApi } from './workspaces/api';
@@ -16,7 +17,7 @@ import { workspacesApi } from './workspaces/api';
 const loggerMiddleware = createLogger();
 
 // Add more middlewares here
-const middlewares = [authApi.middleware, googleApiSlice.middleware, workspacesApi.middleware];
+const middlewares = [authApi.middleware, googleApiSlice.middleware, formsApi.middleware, workspacesApi.middleware];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
@@ -25,6 +26,7 @@ const reducers = {
     [searchReducerObj.reducerPath]: searchSlice.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [googleApiSlice.reducerPath]: googleApiSlice.reducer,
+    [formsApi.reducerPath]: formsApi.reducer,
     [workspacesApi.reducerPath]: workspacesApi.reducer
 };
 
