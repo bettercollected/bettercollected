@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { useRouter } from 'next/router';
 
 import { ShareIcon } from '@app/components/icons/share-icon';
@@ -70,13 +72,7 @@ export default function CreatorDashboard() {
                                 shareUrl = `${window.location.origin}/forms/${slug}`;
                             }
                             return (
-                                <ActiveLink
-                                    key={form.formId}
-                                    href={{
-                                        pathname: `/forms/[slug]`,
-                                        query: { slug }
-                                    }}
-                                >
+                                <Link key={form.formId} href={`/dashboard/forms/${form.formId}`}>
                                     <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
                                         <div className="flex flex-col justify-start h-full">
                                             <p className="text-xl text-grey mb-4 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 15) : toEndDottedStr(form.title, 30)}</p>
@@ -101,7 +97,7 @@ export default function CreatorDashboard() {
                                             {/* <PinOutlinedIcon width={40} height={40} clickButton={() => console.log('clicked')} /> */}
                                         </div>
                                     </div>
-                                </ActiveLink>
+                                </Link>
                             );
                         })}
                 </div>
