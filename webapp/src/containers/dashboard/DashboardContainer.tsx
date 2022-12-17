@@ -1,45 +1,16 @@
 import React, { useMemo } from 'react';
 
-import { useRouter } from 'next/router';
-
-import styled from '@emotion/styled';
-import { IconButton, InputAdornment } from '@mui/material';
-import TextField from '@mui/material/TextField';
-import { useDispatch } from 'react-redux';
-
 import { Logout } from '@app/components/icons/logout-icon';
-import { SearchIcon } from '@app/components/icons/search';
 import { useModal } from '@app/components/modal-views/context';
 import SubmissionTabContainer from '@app/components/submissions-tab/submissions-tab-container';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Image from '@app/components/ui/image';
 import MarkdownText from '@app/components/ui/markdown-text';
-import environments from '@app/configs/environments';
 import ContentLayout from '@app/layouts/_content-layout';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { authApi, useGetStatusQuery, useLazyGetLogoutQuery } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
-import { setSearchInput } from '@app/store/search/searchSlice';
-
-const StyledTextField = styled.div`
-    .MuiFormControl-root {
-        background: white;
-        border-radius: 14px;
-        outline: none;
-    }
-
-    .MuiOutlinedInput-notchedOutline {
-        border-radius: 14px;
-        border-width: 0.5px;
-    }
-
-    @media screen and (max-width: 640px) {
-        .MuiFormControl-root {
-            width: 100%;
-        }
-    }
-`;
 
 interface IDashboardContainer {
     workspace: WorkspaceDto;
@@ -54,16 +25,8 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
 
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
     const selectGetStatus = useAppSelector(statusQuerySelect);
-    const dispatch = useDispatch();
-    const router = useRouter();
-
-    const searchText = useAppSelector((state) => state.search.searchInput);
 
     if (!workspace || authStatus.isLoading) return <FullScreenLoader />;
-
-    const handleSearch = (event: any) => {
-        dispatch(setSearchInput(event.target.value.toLowerCase()));
-    };
 
     const handleLogout = async () => {
         trigger().finally(() => {
@@ -73,14 +36,6 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
 
     const handleCheckMyData = () => {
         openModal('LOGIN_VIEW');
-    };
-
-    const handleImportForms = () => {
-        openModal('IMPORT_FORMS_VIEW');
-    };
-
-    const handleConnectWithGoogle = () => {
-        router.push(`${environments.API_ENDPOINT_HOST}/auth/google/connect`);
     };
 
     return (
@@ -112,15 +67,10 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
                                 {!!selectGetStatus.data.payload.content.user.sub && (
                                     <div className="py-3 px-5 hidden sm:flex rounded-full text-gray-700 border-solid italic border-[1px] border-[#eaeaea]">{selectGetStatus.data.payload.content.user.sub}</div>
                                 )}
-                                {selectGetStatus?.data?.payload?.content?.user?.services?.length === 0 && (
-                                    <Button variant="solid" className="ml-3 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
-                                        Connect with google
-                                    </Button>
-                                )}
-                                <Button variant="solid" className="ml-3 !px-3 !rounded-xl bg-[#ffe0e0]" onClick={handleLogout}>
+                                <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-[#ffe0e0]" onClick={handleLogout}>
                                     <span className="w-full flex gap-2 items-center justify-center">
                                         <Logout height={20} width={20} className="!rounded-xl !text-[#e60000]" />
-                                        <span className="!text-[#e60000]">Logout</span>
+                                        <span className="!text-[#e60000]">Sign off</span>
                                     </span>
                                 </Button>
                             </>
@@ -134,28 +84,6 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
                         <MarkdownText description={workspace.description} contentStripLength={1000} markdownClassName="pt-3 md:pt-7 text-base text-grey" textClassName="text-base" />
                     </div>
                 </div>
-
-                {/* <div className="w-full md:flex md:justify-end">
-                    <StyledTextField>
-                        <TextField
-                            size="small"
-                            name="search-input"
-                            placeholder="Search forms..."
-                            value={searchText}
-                            onChange={handleSearch}
-                            className={'w-full'}
-                            InputProps={{
-                                endAdornment: (
-                                    <InputAdornment position="end">
-                                        <IconButton>
-                                            <SearchIcon />
-                                        </IconButton>
-                                    </InputAdornment>
-                                )
-                            }}
-                        />
-                    </StyledTextField>
-                </div> */}
                 <SubmissionTabContainer workspaceId={workspace.id} showResponseBar={!!selectGetStatus.error} />
             </ContentLayout>
         </div>

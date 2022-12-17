@@ -35,7 +35,6 @@ export default function OtpRenderer({ email }: any) {
             .unwrap()
             .then(async () => await trigger('status'))
             .then(() => closeModal())
-            // .then(() => toast.info('Login successful'))
             .catch((err) => toast.error(err));
     };
 
@@ -62,18 +61,28 @@ export default function OtpRenderer({ email }: any) {
         return (
             <>
                 <div className={'font-semibold text-darkGrey rounded-md text-md'}>Enter OTP code</div>
-
-                <p className={'text-sm text-gray-500 md:text-base'}> We have just send a verification code to</p>
-                <p className="text-darkGrey font-semibold mb-2">{email}</p>
+                <p className={'text-xs text-gray-500 md:text-base'}> We have just send a verification code to</p>
+                <p className="text-gray-500 text-xs md:text-base font-semibold mb-2">{email}</p>
             </>
         );
+    };
+
+    const handleChange = (e: any) => {
+        setOtp(e.target.value.toUpperCase());
     };
 
     return (
         <form className={'flex flex-col text-center'}>
             <HeaderRenderer />
-            <input className={`border-solid mb-4 h-[40px] text-gray-900 text-sm rounded-lg w-full p-2.5`} value={otp} type="text" placeholder={'Enter the OTP code'} onChange={(e: any) => setOtp(e.target.value.toUpperCase())} />
-            <Button isLoading={isLoading} onClick={handleVerifyButtonClick} className="w-full">
+            <input
+                spellCheck={false}
+                className={`border-solid tracking-[0.5rem] font-bold placeholder:font-normal placeholder:text-sm placeholder:tracking-normal mb-4 h-[40px] text-gray-900 rounded-lg w-full p-2.5`}
+                value={otp}
+                type="text"
+                placeholder={'Enter the OTP code'}
+                onChange={handleChange}
+            />
+            <Button isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} className="w-full !h-10 !rounded-lg">
                 Verify
             </Button>
             <ResendButtonRenderer />

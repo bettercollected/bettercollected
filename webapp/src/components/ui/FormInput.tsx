@@ -17,7 +17,7 @@ export default function FormInput(props: any) {
     }, [validInputFormat]);
 
     const checkValidation = (e: any) => {
-        const fieldValue = e.target.value;
+        const fieldValue = e.target.value.toLowerCase();
 
         const pattern = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
         if (!!fieldValue.match(pattern)) {

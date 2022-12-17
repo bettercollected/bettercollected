@@ -58,15 +58,23 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true }
         if (router?.query?.view && isRouteChangeable) {
             setSelectedTabIndex(tabMenu.findIndex((item) => router.query.view === item.path));
         }
-        // else {
-        //     setSelectedTabIndex(0);
-        // }
     }, [router.query, isRouteChangeable, tabMenu]);
 
     useEffect(() => {
         // Reset tab params to forms if logged out and tab param index is at submissions
         if (!!selectGetStatus.error) {
             setSelectedTabIndex(0);
+            router
+                .push(
+                    {
+                        pathname: router.pathname,
+                        query: { ...router.query, view: tabMenu[0].path }
+                    },
+                    undefined,
+                    { scroll: true, shallow: true }
+                )
+                .then((r) => r)
+                .catch((e) => e);
         }
     }, [selectGetStatus]);
 

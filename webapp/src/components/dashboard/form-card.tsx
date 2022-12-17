@@ -3,11 +3,10 @@ import React, { useEffect, useState } from 'react';
 import styled from '@emotion/styled';
 import { IconButton, InputAdornment } from '@mui/material';
 import TextField from '@mui/material/TextField';
-import Tooltip from '@mui/material/Tooltip';
-import { info } from 'console';
 import { useDispatch } from 'react-redux';
 
 import EmptyTray from '@app/assets/svgs/empty-tray.svg';
+import { SearchIcon } from '@app/components/icons/search';
 import { ShareIcon } from '@app/components/icons/share-icon';
 import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
@@ -16,15 +15,10 @@ import MuiSnackbar from '@app/components/ui/mui-snackbar';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { usePatchPinnedFormMutation } from '@app/store/google/api';
 import { useAppSelector } from '@app/store/hooks';
 import { setSearchInput } from '@app/store/search/searchSlice';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
-
-import { PinFillIcon } from '../icons/pin-fill';
-import { PinOutlinedIcon } from '../icons/pin-outline';
-import { SearchIcon } from '../icons/search';
 
 interface IFormCard {
     workspaceId: string;
@@ -54,7 +48,6 @@ export default function FormCard({ workspaceId }: IFormCard) {
     const breakpoint = useBreakpoint();
     const [_, copyToClipboard] = useCopyToClipboard();
     const { isLoading, data, isError } = useGetWorkspaceFormsQuery(workspaceId, { pollingInterval: 30000 });
-    const [patchPinnedForm] = usePatchPinnedFormMutation();
 
     const [pinnedForms, setPinnedForms] = useState<any>([]);
     const [unpinnedForms, setUnpinnedForms] = useState<any>([]);
@@ -88,19 +81,6 @@ export default function FormCard({ workspaceId }: IFormCard) {
 
     const forms: Array<StandardFormDto> = data?.payload?.content ?? [];
 
-    // const handlePinnedForms = (formId: string) => {
-    //     const formObject = [
-    //         {
-    //             form_id: formId,
-    //             pinned: true
-    //         }
-    //     ];
-    //     //TODO: patch api for the pinned forms
-    //     patchPinnedForm(formObject).then((data) => {
-    //         console.log('patch response: ', data);
-    //     });
-    // };
-
     const handleSearch = (event: any) => {
         dispatch(setSearchInput(event.target.value.toLowerCase()));
     };
@@ -108,8 +88,8 @@ export default function FormCard({ workspaceId }: IFormCard) {
     const FormsCardRenderer = ({ title, formsArray }: any) => {
         if (formsArray.length === 0) return <></>;
         return (
-            <div className="mb-10">
-                {!!title && <h1 className=" text-gray-700 text-xl mb-4">{title}</h1>}
+            <div className="mb-6">
+                {!!title && <h1 className=" text-gray-700 font-semibold text-md md:text-lg mb-4">{title}</h1>}
                 <div className="grid grid-cols-1 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
                     {formsArray.length !== 0 &&
                         formsArray.map((form: StandardFormDto) => {
@@ -160,7 +140,7 @@ export default function FormCard({ workspaceId }: IFormCard) {
     };
 
     return (
-        <div className="pt-3 md:pt-7">
+        <>
             {forms.length === 0 && (
                 <div className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
                     <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />
@@ -168,31 +148,36 @@ export default function FormCard({ workspaceId }: IFormCard) {
                 </div>
             )}
             {pinnedForms.length !== 0 && <FormsCardRenderer title="Pinned Forms" formsArray={pinnedForms} />}
-            <hr />
-            <div className="w-[30%] mt-10 mb-10">
-                <StyledTextField>
-                    <TextField
-                        size="small"
-                        name="search-input"
-                        placeholder="Search forms..."
-                        value={searchText}
-                        onChange={handleSearch}
-                        className={'w-full'}
-                        InputProps={{
-                            endAdornment: (
-                                <InputAdornment position="end">
-                                    <IconButton>
-                                        <SearchIcon />
-                                    </IconButton>
-                                </InputAdornment>
-                            )
-                        }}
-                    />
-                </StyledTextField>
-            </div>
+            {unpinnedForms.length !== 0 && (
+                <>
+                    {pinnedForms.length !== 0 && <hr className="mb-6" />}
+                    {pinnedForms.length !== 0 && <h1 className=" text-gray-700 font-semibold text-md md:text-lg mb-4">All Forms</h1>}
+                    <div className={`w-full md:w-[30%] ${!pinnedForms ? 'mt-6' : 'mt-0'} mb-6`}>
+                        <StyledTextField>
+                            <TextField
+                                size="small"
+                                name="search-input"
+                                placeholder="Search forms..."
+                                value={searchText}
+                                onChange={handleSearch}
+                                className={'w-full'}
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton>
+                                                <SearchIcon />
+                                            </IconButton>
+                                        </InputAdornment>
+                                    )
+                                }}
+                            />
+                        </StyledTextField>
+                    </div>
+                </>
+            )}
             {unpinnedForms.length !== 0 && <FormsCardRenderer formsArray={unpinnedForms} />}
 
             <MuiSnackbar isOpen={isOpen} setIsOpen={setIsOpen} message="Copied URL" severity="info" />
-        </div>
+        </>
     );
 }
