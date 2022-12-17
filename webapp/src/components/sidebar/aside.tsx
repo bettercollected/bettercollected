@@ -24,17 +24,17 @@ export default function Aside({ close }: { close?: () => void }) {
 
     const menuItems = [
         {
-            href: '/mydashboard',
+            href: '/dashboard',
             title: 'Forms',
             icon: <HomeIcon className="w-[20px] h-[20px]" />
         },
         {
-            href: '/mydashboard/submissions',
+            href: '/dashboard/submissions',
             title: 'Submissions',
             icon: <HistoryIcon className="w-[20px] h-[20px]" />
         },
         {
-            href: '/mydashboard/settings',
+            href: '/dashboard/settings',
             title: 'Settings',
             icon: <SearchIcon className="w-[20px] h-[20px]" />
         }

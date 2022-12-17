@@ -35,7 +35,7 @@ export async function getServerSideProps(_context: any) {
             return {
                 redirect: {
                     permanent: false,
-                    destination: '/mydashboard'
+                    destination: '/dashboard'
                 }
             };
         }
