@@ -56,11 +56,7 @@ export const googleApiSlice = createApi({
                 url: `/workspaces/${environments.WORKSPACE_ID}/pin_forms`,
                 method: 'PATCH',
                 body,
-                credentials: 'include',
-                prepareHeaders: (headers: any) => {
-                    headers.set('Access-Control-Allow-origin', environments.API_ENDPOINT_HOST);
-                    return headers;
-                }
+                credentials: 'include'
             })
         }),
         getWorkspaceForms: builder.query<IGenericAPIResponse<Array<StandardFormDto>>, void>({

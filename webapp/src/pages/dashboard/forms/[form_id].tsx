@@ -7,14 +7,17 @@ import { Feed, Settings } from '@mui/icons-material';
 import { Divider, IconButton, Input, InputAdornment } from '@mui/material';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
+import { toast } from 'react-toastify';
 
 import { HistoryIcon } from '@app/components/icons/history';
 import { SearchIcon } from '@app/components/icons/search';
 import Layout from '@app/components/sidebar/layout';
 import ParamTab from '@app/components/ui/param-tab';
 import { TabPanel } from '@app/components/ui/tab';
+import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import globalServerProps from '@app/lib/serverSideProps';
+import { usePatchPinnedFormMutation } from '@app/store/google/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 enum FormTabs {
@@ -24,9 +27,11 @@ enum FormTabs {
 }
 
 export default function FormPage(props: any) {
-    const { formId } = props;
+    const { formId, form } = props;
     const breakpoint = useBreakpoint();
     const router = useRouter();
+    const [patchPinnedForm] = usePatchPinnedFormMutation();
+    const [isPinned, setIsPinned] = useState(!!form?.settings?.pinned);
 
     const tabs = [
         {
@@ -46,13 +51,36 @@ export default function FormPage(props: any) {
         }
     ];
 
+    const onSwitchChange = async (event: any) => {
+        try {
+            const response: any = await patchPinnedForm([{ form_id: formId, pinned: !isPinned }]);
+            const updated = response?.data[0][formId] === 'True';
+            console.info(updated);
+
+            if (updated) {
+                setIsPinned(!isPinned);
+                toast(`Form ${!isPinned ? 'Pinned' : 'Unpinned'}`, {
+                    type: 'success'
+                });
+            } else {
+                toast('Error patching form', {
+                    type: 'error'
+                });
+            }
+        } catch (e) {
+            toast('Error patching form', {
+                type: 'error'
+            });
+        }
+    };
+
     const SettingsTabContent = () => (
         <div className="max-w-[600px]">
             <div className=" flex flex-col">
                 <div className="text-xl font-bold text-black">Pinned</div>
                 <div className="flex w-full justify-between items-center h-14 text-gray-800">
                     <div>Show this form in pinned section</div>
-                    <Switch />
+                    <Switch checked={isPinned} onClick={onSwitchChange} />
                 </div>
             </div>
             <Divider className="mb-6 mt-2" />
@@ -121,11 +149,34 @@ export default function FormPage(props: any) {
 
 export async function getServerSideProps(_context: any) {
     const globalProps = (await globalServerProps(_context)).props;
+    const { cookies } = _context.req;
+
+    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
+    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
+
+    const config = {
+        method: 'GET',
+        headers: {
+            cookie: `${auth};${refresh}`
+        }
+    };
     const { form_id } = _context.query;
-    console.info(form_id);
+    let form = null;
+    try {
+        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${environments.WORKSPACE_ID}/forms?form_id=${form_id}`, config);
+        form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
+    } catch (e) {}
+    if (!form) {
+        return {
+            notFound: true
+        };
+    }
+
     return {
         props: {
-            formId: form_id
+            ...globalProps,
+            formId: form_id,
+            form
         }
     };
 }

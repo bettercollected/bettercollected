@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { debounce } from 'lodash';
+import { debounce, escapeRegExp } from 'lodash';
 
 import styled from '@emotion/styled';
 import { IconButton, InputAdornment } from '@mui/material';
@@ -47,8 +47,7 @@ export default function FormCard({ workspaceId }: IFormCard) {
     const breakpoint = useBreakpoint();
     const [_, copyToClipboard] = useCopyToClipboard();
     const { isLoading, data, isError } = useGetWorkspaceFormsQuery(workspaceId, { pollingInterval: 30000 });
-
-    const [searchWorkspaceForms, result] = useSearchWorkspaceFormsMutation();
+    const [searchWorkspaceForms] = useSearchWorkspaceFormsMutation();
 
     const [pinnedForms, setPinnedForms] = useState<any>([]);
     const [unpinnedForms, setUnpinnedForms] = useState<any>([]);
@@ -65,10 +64,17 @@ export default function FormCard({ workspaceId }: IFormCard) {
     }, [data]);
 
     const handleSearch = async (event: any) => {
-        console.info('Search Triggered', event.target.value);
-        const response: any = await searchWorkspaceForms({ workspace_id: workspaceId, query: event.target.value });
-        setUnpinnedForms(response?.data?.payload?.content || []);
+        const response: any = await searchWorkspaceForms({
+            workspace_id: workspaceId,
+            query: escapeRegExp(event.target.value)
+        });
+        if (event.target.value) {
+            setUnpinnedForms(response?.data?.payload?.content);
+        } else {
+            setUnpinnedForms(response?.data?.payload?.content.filter((form: any) => !form.settings.pinned) || []);
+        }
     };
+
     const debouncedResults = useMemo(() => {
         return debounce(handleSearch, 500);
     }, []);
