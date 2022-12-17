@@ -1,13 +1,10 @@
 import Link from 'next/link';
-
 import { useRouter } from 'next/router';
 
 import { ShareIcon } from '@app/components/icons/share-icon';
 import { useModal } from '@app/components/modal-views/context';
 import Layout from '@app/components/sidebar/layout';
 import Button from '@app/components/ui/button/button';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import useUser from '@app/lib/hooks/use-authuser';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
@@ -17,19 +14,20 @@ import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function CreatorDashboard() {
+    const { openModal } = useModal();
+    const router = useRouter();
+
     const { user } = useUser();
 
     const workspaceForms = useGetWorkspaceFormsQuery<any>(environments.WORKSPACE_ID);
-
-    const router = useRouter();
-
-    const { openModal } = useModal();
 
     const breakpoint = useBreakpoint();
 
     const forms = workspaceForms?.data?.payload?.content;
 
     const email = user?.data?.payload?.content?.user?.sub;
+
+    console.log(user?.data?.payload?.content);
 
     const handleImportForms = () => {
         openModal('IMPORT_FORMS_VIEW');
