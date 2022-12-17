@@ -1,5 +1,6 @@
 import React from 'react';
 
+import SidebarExpandable from './_expandable';
 import Aside from './aside';
 
 export default function Layout(props: any) {
@@ -18,3 +19,12 @@ export default function Layout(props: any) {
         </div>
     );
 }
+
+// export default function Layout(props: any) {
+//     const children = props.children;
+//     return (
+//         <div className="ltr:xl:pl-24 rtl:xl:pr-24 ltr:2xl:pl-28 rtl:2xl:pr-28">
+//             <SidebarExpandable />
+//         </div>
+//     );
+// }
