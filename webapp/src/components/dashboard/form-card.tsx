@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+
+import { debounce } from 'lodash';
 
 import styled from '@emotion/styled';
 import { IconButton, InputAdornment } from '@mui/material';
 import TextField from '@mui/material/TextField';
-import { useDispatch } from 'react-redux';
 
 import EmptyTray from '@app/assets/svgs/empty-tray.svg';
 import { SearchIcon } from '@app/components/icons/search';
@@ -15,9 +16,7 @@ import MuiSnackbar from '@app/components/ui/mui-snackbar';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { useAppSelector } from '@app/store/hooks';
-import { setSearchInput } from '@app/store/search/searchSlice';
-import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
+import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface IFormCard {
@@ -49,20 +48,34 @@ export default function FormCard({ workspaceId }: IFormCard) {
     const [_, copyToClipboard] = useCopyToClipboard();
     const { isLoading, data, isError } = useGetWorkspaceFormsQuery(workspaceId, { pollingInterval: 30000 });
 
+    const [searchWorkspaceForms, result] = useSearchWorkspaceFormsMutation();
+
     const [pinnedForms, setPinnedForms] = useState<any>([]);
     const [unpinnedForms, setUnpinnedForms] = useState<any>([]);
-
-    const dispatch = useDispatch();
-    const searchText = useAppSelector((state) => state.search.searchInput);
+    const [showUnpinnedForms, setShowUnpinnedForms] = useState(false);
 
     useEffect(() => {
         if (!!data) {
-            const pinnedForms = data.payload.content.filter((form) => form.settings.pinned === true);
-            const unpinnedForms = data.payload.content.filter((form) => form.settings.pinned === false);
+            const pinnedForms = data.payload.content.filter((form) => form.settings.pinned);
+            const unpinnedForms = data.payload.content.filter((form) => !form.settings.pinned);
             setPinnedForms(pinnedForms);
             setUnpinnedForms(unpinnedForms);
+            setShowUnpinnedForms(unpinnedForms.length > 0);
         }
     }, [data]);
+
+    const handleSearch = async (event: any) => {
+        console.info('Search Triggered', event.target.value);
+        const response: any = await searchWorkspaceForms({ workspace_id: workspaceId, query: event.target.value });
+        setUnpinnedForms(response?.data?.payload?.content || []);
+    };
+    const debouncedResults = useMemo(() => {
+        return debounce(handleSearch, 500);
+    }, []);
+
+    useEffect(() => {
+        debouncedResults.cancel();
+    }, []);
 
     if (isLoading)
         return (
@@ -81,11 +94,7 @@ export default function FormCard({ workspaceId }: IFormCard) {
 
     const forms: Array<StandardFormDto> = data?.payload?.content ?? [];
 
-    const handleSearch = (event: any) => {
-        dispatch(setSearchInput(event.target.value.toLowerCase()));
-    };
-
-    const FormsCardRenderer = ({ title, formsArray }: { title?: string; formsArray: Array<StandardFormDto> }) => {
+    const FormsCardRenderer = ({ title, formsArray }: any) => {
         if (formsArray.length === 0) return <></>;
         return (
             <div className="mb-6">
@@ -148,7 +157,7 @@ export default function FormCard({ workspaceId }: IFormCard) {
                 </div>
             )}
             {pinnedForms.length !== 0 && <FormsCardRenderer title="Pinned Forms" formsArray={pinnedForms} />}
-            {unpinnedForms.length !== 0 && (
+            {showUnpinnedForms && (
                 <>
                     {pinnedForms.length !== 0 && <hr className="mb-6" />}
                     {pinnedForms.length !== 0 && <h1 className=" text-gray-700 font-semibold text-md md:text-lg mb-4">All Forms</h1>}
@@ -158,8 +167,7 @@ export default function FormCard({ workspaceId }: IFormCard) {
                                 size="small"
                                 name="search-input"
                                 placeholder="Search forms..."
-                                value={searchText}
-                                onChange={handleSearch}
+                                onChange={debouncedResults}
                                 className={'w-full'}
                                 InputProps={{
                                     endAdornment: (

@@ -4,7 +4,7 @@ import environments from '@app/configs/environments';
 import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { IGenericAPIResponse } from '@app/models/dtos/genericResponse';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery } from '@app/store/workspaces/types';
+import { IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
@@ -60,8 +60,14 @@ export const workspacesApi = createApi({
                 method: 'GET'
             }),
             providesTags: [WORKSPACE_TAGS]
+        }),
+        searchWorkspaceForms: builder.mutation<IGenericAPIResponse<Array<StandardFormDto>>, ISearchWorkspaceFormsQuery>({
+            query: (query) => ({
+                url: `/workspaces/${query.workspace_id}/forms/search?query=${query.query}`,
+                method: 'POST'
+            })
         })
     })
 });
 
-export const { useGetWorkspaceQuery, useGetWorkspaceFormsQuery, useGetWorkspaceFormQuery, useGetWorkspaceSubmissionsQuery, useGetWorkspaceSubmissionQuery } = workspacesApi;
+export const { useGetWorkspaceQuery, useGetWorkspaceFormsQuery, useGetWorkspaceFormQuery, useGetWorkspaceSubmissionsQuery, useGetWorkspaceSubmissionQuery, useSearchWorkspaceFormsMutation } = workspacesApi;

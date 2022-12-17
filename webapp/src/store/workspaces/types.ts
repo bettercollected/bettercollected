@@ -7,3 +7,8 @@ export interface IGetWorkspaceSubmissionQuery {
     workspace_id: string;
     submission_id: string;
 }
+
+export interface ISearchWorkspaceFormsQuery {
+    workspace_id: string;
+    query: string;
+}
