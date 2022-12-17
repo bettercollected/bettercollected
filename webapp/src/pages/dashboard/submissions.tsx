@@ -13,7 +13,7 @@ import { useGetSubmissionsQuery } from '@app/store/google/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function MySubmissions() {
-    const submissionsQuery = useGetSubmissionsQuery(null);
+    const submissionsQuery = useGetSubmissionsQuery();
     const breakpoint = useBreakpoint();
 
     const [responseObject, setResponseObject] = useState({});

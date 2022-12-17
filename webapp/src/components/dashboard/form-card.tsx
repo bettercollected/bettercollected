@@ -85,7 +85,7 @@ export default function FormCard({ workspaceId }: IFormCard) {
         dispatch(setSearchInput(event.target.value.toLowerCase()));
     };
 
-    const FormsCardRenderer = ({ title, formsArray }: any) => {
+    const FormsCardRenderer = ({ title, formsArray }: { title?: string; formsArray: Array<StandardFormDto> }) => {
         if (formsArray.length === 0) return <></>;
         return (
             <div className="mb-6">

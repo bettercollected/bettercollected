@@ -5,8 +5,9 @@ import Switch, { SwitchProps } from '@mui/material/Switch';
 import { styled } from '@mui/material/styles';
 import { toast } from 'react-toastify';
 
-import { googleApiSlice, useGetFormsQuery, useImportFormsMutation, usePatchPinnedFormMutation } from '@app/store/google/api';
-import { toMonthDateYearStr } from '@app/utils/dateUtils';
+import { GoogleMinifiedFormDto } from '@app/models/dtos/googleForm';
+import { useGetMinifiedFormsQuery, useImportFormsMutation } from '@app/store/google/api';
+import { toEndDottedStr } from '@app/utils/stringUtils';
 
 import { useModal } from '../modal-views/context';
 import Button from '../ui/button';
@@ -63,15 +64,15 @@ export default function ImportForms() {
 
     const [enabledFormList, setEnabledFormList] = useState<any>([]);
 
-    const [forms, setForms] = useState<any>({});
+    const [forms, setForms] = useState<Array<GoogleMinifiedFormDto>>([]);
 
-    const { data, isLoading, refetch } = useGetFormsQuery(null);
+    const { data, isLoading, refetch } = useGetMinifiedFormsQuery();
 
     const importFormsMutation = useImportFormsMutation();
 
     useEffect(() => {
         if (data) {
-            setForms(data);
+            setForms(data?.payload?.content);
         }
     }, [data]);
 
@@ -92,10 +93,10 @@ export default function ImportForms() {
     const FooterRenderer = () => {
         return (
             <div className="flex w-full justify-between">
-                <Button isLoading={importFormsMutation[1].isLoading} disabled={enabledFormList.length === 0} variant="solid" className={`!rounded-xl !m-0 ${!enabledFormList.length ? '' : '!bg-blue-500'}`} onClick={handleImportForms}>
+                <Button isLoading={importFormsMutation[1].isLoading} disabled={enabledFormList.length === 0} variant="solid" className={`!rounded-lg !h-10 !m-0 ${!enabledFormList.length ? '' : '!bg-blue-500'}`} onClick={handleImportForms}>
                     Import ({enabledFormList.length})
                 </Button>
-                <Button variant="transparent" disabled={importFormsMutation[1].isLoading} className="!rounded-xl !m-0 !border-gray border-[1px] !border-solid" onClick={() => closeModal()}>
+                <Button variant="transparent" disabled={importFormsMutation[1].isLoading} className="!rounded-lg !h-10 !m-0 !border-gray border-[1px] !border-solid" onClick={() => closeModal()}>
                     Cancel
                 </Button>
             </div>
@@ -106,26 +107,26 @@ export default function ImportForms() {
         return enabledFormList.includes(title);
     };
 
-    const CardRenderer = (props: any) => {
-        const { name, id, createdTime, owners } = props.form;
+    const CardRenderer = ({ form }: { form: GoogleMinifiedFormDto }) => {
+        const { name, id } = form;
 
         const handleSwitchEnable = () => {
-            if (enabledFormList.includes(props.form.id)) {
-                const tempArray = enabledFormList.filter((form: any) => form !== props.form.id);
+            if (enabledFormList.includes(id)) {
+                const tempArray = enabledFormList.filter((enabledFormId: string) => id !== enabledFormId);
                 setEnabledFormList([...tempArray]);
             } else {
-                setEnabledFormList([...enabledFormList, props.form.id]);
+                setEnabledFormList([...enabledFormList, id]);
             }
         };
 
         return (
-            <div onClick={handleSwitchEnable} className="flex cursor-pointer justify-between items-center pb-2 pt-2 border-b-[1px] border-[#eaeaea]">
-                <div>
-                    <p className="text-[9px] !m-0 !p-0 text-gray-400 italic">{id}</p>
-                    <h2 className="text-md font-bold text-grey p-0">{name}</h2>
+            <div onClick={handleSwitchEnable} className="flex border-[1.5px] border-gray-100 hover:bg-blue-50 hover:border-blue-50 cursor-pointer justify-between items-center p-2 mb-2 mr-3 rounded-lg">
+                <div className="w-full mr-2">
+                    <p className="text-[9px] !m-0 !p-0 text-gray-400 italic">{toEndDottedStr(id, 30)}</p>
+                    <p className="text-xs font-semibold text-grey p-0">{toEndDottedStr(name, 40)}</p>
                 </div>
-                <p className="text-[9px] !m-0 !p-0 text-blue-500 italic">{toMonthDateYearStr(new Date(createdTime))}</p>
-                <FormControlLabel label="" control={<IOSSwitch checked={checkIfSwitchIsEnabled(props.form.id)} />} />
+
+                <FormControlLabel className="m-0" label="" control={<IOSSwitch checked={checkIfSwitchIsEnabled(form.id)} />} />
             </div>
         );
     };
@@ -133,8 +134,8 @@ export default function ImportForms() {
     const CardContainerRenderer = () => {
         return (
             <>
-                {forms?.payload?.content.map((form: any, idx: any) => (
-                    <CardRenderer key={form['id']} form={form} />
+                {forms.map((form: GoogleMinifiedFormDto, idx: any) => (
+                    <CardRenderer key={form.id} form={form} />
                 ))}
             </>
         );
@@ -143,8 +144,8 @@ export default function ImportForms() {
     const HeadingRenderer = () => (
         <div className="flex flex-row items-start border-b-[1px] pb-1 border-[#eaeaea] justify-between">
             <div className="flex flex-col">
-                <h2 className="text-lg text-left font-bold">Import Forms</h2>
-                <p className="text-[#00000082]">Select the forms you wish to import to Better Collected.</p>
+                <h2 className="text-md text-left font-bold">Import Forms</h2>
+                <p className="text-[#00000082] text-sm">Select the forms you wish to import to Better Collected.</p>
             </div>
             <div className="cursor-pointer text-gray-600 hover:text-black" onClick={() => closeModal()}>
                 X
@@ -153,7 +154,7 @@ export default function ImportForms() {
     );
 
     return (
-        <div className=" m-auto max-w-[774px] items-start justify-between rounded-lg bg-white lg:scale-150">
+        <div className="m-auto w-full items-start justify-between rounded-lg bg-white scale-110">
             <div className="flex flex-col items-center gap-8 justify-between p-10">
                 <HeadingRenderer />
                 <div className="w-full h-[250px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-300 overflow-y-scroll scrollbar-thumb-rounded-full scrollbar-track-rounded-full">

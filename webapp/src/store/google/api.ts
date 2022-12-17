@@ -1,6 +1,9 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { IGenericAPIResponse } from '@app/models/dtos/genericResponse';
+import { GoogleMinifiedFormDto } from '@app/models/dtos/googleForm';
 
 export const GOOGLE_API = 'google';
 export const GOOGLE_API_TAG = 'GOOGLE_API_TAG';
@@ -18,14 +21,14 @@ export const googleApiSlice = createApi({
         }
     }),
     endpoints: (builder) => ({
-        getSubmissions: builder.query<any, null>({
+        getSubmissions: builder.query<any, void>({
             query: () => ({
                 url: `workspaces/${environments.WORKSPACE_ID}/allSubmissions`,
                 method: 'GET',
                 credentials: 'include'
             })
         }),
-        getForms: builder.query<any, null>({
+        getMinifiedForms: builder.query<IGenericAPIResponse<Array<GoogleMinifiedFormDto>>, void>({
             query: () => ({
                 url: 'forms/import',
                 method: 'GET',
@@ -57,7 +60,7 @@ export const googleApiSlice = createApi({
                 }
             })
         }),
-        getWorkspaceForms: builder.query<null, null>({
+        getWorkspaceForms: builder.query<IGenericAPIResponse<Array<StandardFormDto>>, void>({
             query: () => ({
                 url: `workspaces/${environments.WORKSPACE_ID}/forms`,
                 method: 'GET',
@@ -68,4 +71,4 @@ export const googleApiSlice = createApi({
     })
 });
 
-export const { useGetFormsQuery, useGetSubmissionsQuery, useImportFormsMutation, usePatchPinnedFormMutation, useGetWorkspaceFormsQuery } = googleApiSlice;
+export const { useGetMinifiedFormsQuery, useGetSubmissionsQuery, useImportFormsMutation, usePatchPinnedFormMutation, useGetWorkspaceFormsQuery } = googleApiSlice;

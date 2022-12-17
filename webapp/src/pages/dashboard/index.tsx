@@ -17,7 +17,7 @@ export default function CreatorDashboard() {
 
     const { user } = useUser();
 
-    const workspaceForms = useGetWorkspaceFormsQuery<any>(null);
+    const workspaceForms = useGetWorkspaceFormsQuery<any>();
 
     const breakpoint = useBreakpoint();
 
