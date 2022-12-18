@@ -12,6 +12,9 @@ export const GET_GOOGLE_FORMS = 'GET_GOOGLE_FORMS';
 export const googleApiSlice = createApi({
     reducerPath: GOOGLE_API,
     tagTypes: [GOOGLE_API_TAG, GET_GOOGLE_FORMS],
+    refetchOnMountOrArgChange: true,
+    refetchOnReconnect: true,
+    refetchOnFocus: true,
     baseQuery: fetchBaseQuery({
         baseUrl: environments.API_ENDPOINT_HOST,
         credentials: 'include',

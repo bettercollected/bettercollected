@@ -11,7 +11,7 @@ import useUser from '@app/lib/hooks/use-authuser';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import globalServerProps from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { useGetWorkspaceFormsQuery } from '@app/store/google/api';
+import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function CreatorDashboard() {
@@ -20,15 +20,13 @@ export default function CreatorDashboard() {
 
     const { user } = useUser();
 
-    const workspaceForms = useGetWorkspaceFormsQuery<any>();
+    const workspaceForms = useGetWorkspaceFormsQuery<any>(environments.WORKSPACE_ID);
 
     const breakpoint = useBreakpoint();
 
     const forms = workspaceForms?.data?.payload?.content;
 
     const email = user?.data?.payload?.content?.user?.sub;
-
-    console.log(user?.data?.payload?.content);
 
     const handleImportForms = () => {
         openModal('IMPORT_FORMS_VIEW');

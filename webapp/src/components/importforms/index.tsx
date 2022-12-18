@@ -91,11 +91,14 @@ export default function ImportForms() {
                         <p className="text-sm font-semibold text-grey my-2">Select data response owner</p>
                         <FormControl fullWidth>
                             <Select placeholder="Select one of the fields" value={responseDataOwner} onChange={handleSelectDataResponseOwner}>
-                                {form?.items.map((item) => (
-                                    <MenuItem key={item.itemId} value={item.itemId}>
-                                        {item.title}
-                                    </MenuItem>
-                                ))}
+                                {form?.items.map(
+                                    (item) =>
+                                        item?.questionItem?.question?.questionId && (
+                                            <MenuItem key={item.itemId} value={item?.questionItem?.question?.questionId}>
+                                                {item.title}
+                                            </MenuItem>
+                                        )
+                                )}
                             </Select>
                         </FormControl>
                     </>
@@ -138,7 +141,13 @@ export default function ImportForms() {
                             Next
                         </Button>
                     ) : (
-                        <Button isLoading={importFormResult.isLoading} disabled={!responseDataOwner} variant="solid" className={`!rounded-lg !h-10 !m-0 ${!responseDataOwner ? '' : '!bg-blue-500'}`} onClick={handleImportForm}>
+                        <Button
+                            isLoading={importFormResult.isLoading}
+                            disabled={!googleFormResult?.data?.payload?.content}
+                            variant="solid"
+                            className={`!rounded-lg !h-10 !m-0 ${!googleFormResult?.data?.payload?.content ? '' : '!bg-blue-500'}`}
+                            onClick={handleImportForm}
+                        >
                             Import
                         </Button>
                     )}
