@@ -13,7 +13,7 @@ import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Loader from '@app/components/ui/loader';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { GoogleMinifiedFormDto } from '@app/models/dtos/googleForm';
-import { useGetMinifiedFormsQuery, useImportFormMutation, useLazyGetGoogleFormQuery } from '@app/store/forms/api';
+import { useGetMinifiedFormsQuery, useImportFormMutation, useLazyGetGoogleFormQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function ImportForms() {
