@@ -1,13 +1,15 @@
 import React from 'react';
 
-import Link from 'next/link';
+import { useRouter } from 'next/router';
 
+import Button from '@app/components/ui/button';
 import Logo from '@app/components/ui/logo';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
 
 export function Header() {
     const windowScroll = useWindowScroll();
+    const router = useRouter();
     const isMounted = useIsMounted();
 
     return (
@@ -21,11 +23,9 @@ export function Header() {
             <div className="flex justify-between items-center">
                 <Logo />
             </div>
-            <div>
-                <Link href="/login">
-                    <div className="bg-blue-500 px-5 py-2 rounded-xl text-white cursor-pointer">Sign In</div>
-                </Link>
-            </div>
+            <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={() => router.push('/login')}>
+                Sign In
+            </Button>
         </nav>
     );
 }

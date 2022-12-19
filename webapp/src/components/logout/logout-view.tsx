@@ -46,7 +46,7 @@ export default function LogoutView(props: any) {
         const { closeModal } = useModal();
 
         return (
-            <div className=" relative m-auto max-w-[500px] items-start justify-between rounded-lg bg-white lg:scale-150">
+            <div className=" relative m-auto max-w-[500px] items-start justify-between rounded-lg bg-white lg:scale-110">
                 <div className=" relative flex flex-col  items-center gap-8 justify-between p-10">
                     <ImageRenderer />
                     <DialogBox />

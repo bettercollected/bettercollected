@@ -88,7 +88,7 @@ export default function ImportForms() {
                 {form?.items && Array.isArray(form?.items) && (
                     <>
                         <hr />
-                        <p className="text-sm font-semibold text-grey my-2">Select data response owner</p>
+                        <p className="max-w-[360px] text-sm font-semibold text-grey my-2">Select another data response owner if collect emails is disabled in your form</p>
                         <FormControl fullWidth>
                             <Select placeholder="Select one of the fields" value={responseDataOwner} onChange={handleSelectDataResponseOwner}>
                                 {form?.items.map(
