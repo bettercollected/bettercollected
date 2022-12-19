@@ -21,6 +21,7 @@ import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import globalServerProps from '@app/lib/serverSideProps';
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
+import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 const StyledTextField = styled.div`
@@ -67,13 +68,15 @@ enum QUESTION_TYPE {
     LINEAR_SCALE = 'LINEAR_SCALE'
 }
 
-export default function Submission({ form, workspace, submissionId, ...props }: ISubmission) {
+export default function Submission({ workspace, submissionId, ...props }: ISubmission) {
     const router = useRouter();
     const breakpoint = useBreakpoint();
-    console.log(workspace);
-    console.log(form);
 
-    if (!form || !workspace) return <FullScreenLoader />;
+    const { isLoading, isError, data } = useGetWorkspaceSubmissionQuery({ workspace_id: workspace?.id ?? '', submission_id: submissionId });
+
+    const form: any = data?.payload?.content;
+
+    if (isLoading || isError || !data) return <FullScreenLoader />;
 
     const getQuestionType = (question: StandardFormQuestionDto) => {
         if (question.isMediaContent && 'video' in question.type) return QUESTION_TYPE.VIDEO_CONTENT;
@@ -280,7 +283,7 @@ export default function Submission({ form, workspace, submissionId, ...props }: 
                         <li>
                             <div className="flex items-center">
                                 <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
                                 </svg>
                                 <span aria-hidden onClick={goToSubmissions} className="cursor-pointer ml-1 text-sm font-medium text-gray-700 hover:text-gray-900 md:ml-2 dark:text-gray-400 dark:hover:text-white">
                                     Submissions
@@ -290,7 +293,7 @@ export default function Submission({ form, workspace, submissionId, ...props }: 
                         <li aria-current="page">
                             <div className="flex items-center">
                                 <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
                                 </svg>
                                 <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.formId, 10) : form.formId}</span>
                             </div>
@@ -307,7 +310,7 @@ export default function Submission({ form, workspace, submissionId, ...props }: 
                     </div>
                 )}
                 <hr className="my-6" />
-                {form.questions.map((question, idx) => (
+                {form.questions.map((question: any, idx: any) => (
                     <div key={question?.questionId ?? `${question.formId}_${idx}`} className="p-6 border-[1.5px] border-gray-200 rounded-lg mb-4">
                         {/* <p className="font-semibold text-xs underline underline-offset-4 decoration-gray-200 text-gray-400">Question #{idx}</p> */}
                         <h1 className="font-semibold text-lg text-gray-600">{question.title}</h1>
@@ -329,8 +332,6 @@ export async function getServerSideProps(_context: any) {
     const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
     const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
 
-    console.info('auth', auth);
-    console.info('refresh', refresh);
     const config = {
         method: 'GET',
         headers: {
@@ -347,9 +348,6 @@ export async function getServerSideProps(_context: any) {
         form = null;
         console.error(err);
     }
-
-    console.log(globalProps);
-    console.log(form);
 
     return {
         props: {

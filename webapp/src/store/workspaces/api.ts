@@ -88,7 +88,7 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
-        getWorkspaceSubmission: builder.query<IGenericAPIResponse<Array<StandardFormResponseDto>>, IGetWorkspaceSubmissionQuery>({
+        getWorkspaceSubmission: builder.query<IGenericAPIResponse<any>, IGetWorkspaceSubmissionQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspace_id}/submissions/${query.submission_id}`,
                 method: 'GET'
