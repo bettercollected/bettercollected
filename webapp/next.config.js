@@ -42,7 +42,7 @@ const nextConfig = {
     optimizeFonts: true,
     compiler: {
         emotion: true,
-        removeConsole: process.env.NEXT_PUBLIC_NODE_ENV === 'production' ? { exclude: ['info'] } : false
+        removeConsole: false
     },
     images: {
         minimumCacheTTL: 600,

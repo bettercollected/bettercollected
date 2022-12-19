@@ -70,6 +70,8 @@ enum QUESTION_TYPE {
 export default function Submission({ form, workspace, submissionId, ...props }: ISubmission) {
     const router = useRouter();
     const breakpoint = useBreakpoint();
+    console.log(workspace);
+    console.log(form);
 
     if (!form || !workspace) return <FullScreenLoader />;
 
@@ -327,6 +329,8 @@ export async function getServerSideProps(_context: any) {
     const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
     const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
 
+    console.info('auth', auth);
+    console.info('refresh', refresh);
     const config = {
         method: 'GET',
         headers: {
@@ -343,6 +347,9 @@ export async function getServerSideProps(_context: any) {
         form = null;
         console.error(err);
     }
+
+    console.log(globalProps);
+    console.log(form);
 
     return {
         props: {
