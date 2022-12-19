@@ -10,9 +10,10 @@ import ActiveLink from '@app/components/ui/links/active-link';
 import { useMeasure } from '@app/lib/hooks/use-measure';
 
 type MenuItemProps = {
-    name: string;
+    name?: string;
     icon: React.ReactNode;
     href: string;
+    link: boolean;
     dropdownItems?: DropdownItemProps[];
 };
 
@@ -21,7 +22,7 @@ type DropdownItemProps = {
     href: string;
 };
 
-export function MenuItem({ name, icon, href, dropdownItems }: MenuItemProps) {
+export function MenuItem({ name, icon, href, link, dropdownItems }: MenuItemProps) {
     let [isOpen, setIsOpen] = useState(false);
     let [ref, { height }] = useMeasure<HTMLUListElement>();
     let { pathname } = useRouter();
@@ -32,7 +33,6 @@ export function MenuItem({ name, icon, href, dropdownItems }: MenuItemProps) {
         if (isChildrenActive) {
             setIsOpen(true);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
@@ -40,7 +40,7 @@ export function MenuItem({ name, icon, href, dropdownItems }: MenuItemProps) {
             {dropdownItems?.length ? (
                 <>
                     <div
-                        className={cn('relative flex h-12 cursor-pointer items-center justify-between whitespace-nowrap  rounded-lg px-4 text-sm transition-all', isChildrenActive ? 'text-white' : 'text-gray-500 hover:text-brand dark:hover:text-white')}
+                        className={cn('relative flex h-12 cursor-pointer items-center justify-between whitespace-nowrap rounded-lg px-4 text-sm transition-all', isChildrenActive ? 'text-white' : 'text-gray-500 hover:text-brand dark:hover:text-white')}
                         onClick={() => setIsOpen(!isOpen)}
                     >
                         <span className="z-[1] flex items-center ltr:mr-3 rtl:ml-3">
@@ -76,12 +76,26 @@ export function MenuItem({ name, icon, href, dropdownItems }: MenuItemProps) {
                     </div>
                 </>
             ) : (
-                <ActiveLink href={href} className="relative flex h-12 items-center whitespace-nowrap rounded-lg px-4 text-sm text-gray-500 transition-all hover:text-brand dark:hover:text-white" activeClassName=" !text-white">
-                    <span className="relative z-[1] ltr:mr-3 rtl:ml-3">{icon}</span>
-                    <span className="relative z-[1]"> {name}</span>
+                <>
+                    {link && (
+                        <ActiveLink
+                            href={href}
+                            className="relative flex h-12 items-center hover:border-blue-400 hover:bg-blue-50 hover:text-blue-500 whitespace-nowrap rounded-lg px-3 text-sm text-gray-500 transition-all dark:hover:text-white"
+                            activeClassName="!text-blue-500"
+                        >
+                            <span className={`relative z-[1] ${!!name ? 'ltr:mr-3 rtl:ml-3' : 'flex justify-center items-center w-full h-full'}`}>{icon}</span>
+                            <span className="relative z-[1]"> {name}</span>
 
-                    {href === pathname && <motion.span className="absolute bottom-0 left-0 right-0 h-full w-full rounded-lg bg-brand shadow-large" layoutId="menu-item-active-indicator" />}
-                </ActiveLink>
+                            {href === pathname && <motion.span className="absolute bottom-0 left-0 right-0 h-full w-full border-[1px] border-blue-400 rounded-md bg-blue-50" layoutId="menu-item-active-indicator" />}
+                        </ActiveLink>
+                    )}
+                    {/* {!link && (
+                        <div className="relative cursor-pointer flex h-12 items-center hover:border-red-400 hover:bg-red-50 hover:text-red-500 whitespace-nowrap rounded-lg px-4 text-red-500 transition-all dark:hover:text-white">
+                            <span className="relative z-[1] ltr:mr-3 rtl:ml-3">{icon}</span>
+                            <span className="relative z-[1]"> {name}</span>
+                        </div>
+                    )} */}
+                </>
             )}
         </div>
     );

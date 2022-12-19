@@ -15,12 +15,13 @@ import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function CreatorDashboard() {
-    const { openModal } = useModal();
-    const router = useRouter();
-
     const { user } = useUser();
 
     const workspaceForms = useGetWorkspaceFormsQuery<any>(environments.WORKSPACE_ID);
+
+    const router = useRouter();
+
+    const { openModal } = useModal();
 
     const breakpoint = useBreakpoint();
 
@@ -37,7 +38,7 @@ export default function CreatorDashboard() {
     };
 
     const Header = () => (
-        <div className="flex justify-between items-center mb-10 py-4 pt-4 border-b-[1px] border-b-gray-200">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 py-4 pt-4 border-b-[1px] border-b-gray-200">
             <div className="flex flex-col">
                 <h1 className="font-extrabold text-3xl">Hello {email?.replaceAll('@gmail.com', '')}!</h1>
                 <p className="text-gray-600">Here are your forms</p>
