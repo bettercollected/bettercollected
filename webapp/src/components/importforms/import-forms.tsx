@@ -120,7 +120,7 @@ export default function ImportForms() {
         };
 
         return (
-            <div onClick={handleSwitchEnable} className="flex border-[1.5px] border-gray-100 hover:bg-blue-50 hover:border-blue-50 cursor-pointer justify-between items-center p-2 mb-2 mr-3 rounded-lg">
+            <div onClick={handleSwitchEnable} className="flex border-[1.5px] border-gray-100 hover:bg-gray-50 hover:border-gray-50 cursor-pointer justify-between items-center p-2 mb-2 mr-3 rounded-lg">
                 <div className="w-full mr-2">
                     <p className="text-[9px] !m-0 !p-0 text-gray-400 italic">{toEndDottedStr(id, 30)}</p>
                     <p className="text-xs font-semibold text-grey p-0">{toEndDottedStr(name, 40)}</p>

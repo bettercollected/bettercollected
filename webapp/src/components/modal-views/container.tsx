@@ -13,7 +13,7 @@ import { MODAL_VIEW, useModal } from './context';
 
 // dynamic imports
 const LoginView = dynamic(() => import('@app/components/login/login-view'));
-const ImportFormsView = dynamic(() => import('@app/components/importforms/import-forms'));
+const ImportFormsView = dynamic(() => import('@app/components/importforms'));
 
 function renderModalContent(view: MODAL_VIEW | string) {
     switch (view) {

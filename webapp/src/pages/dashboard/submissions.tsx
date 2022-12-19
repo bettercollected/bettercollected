@@ -9,11 +9,11 @@ import environments from '@app/configs/environments';
 import useUser from '@app/lib/hooks/use-authuser';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import globalServerProps from '@app/lib/serverSideProps';
-import { useGetSubmissionsQuery } from '@app/store/google/api';
+import { useGetWorkspaceAllSubmissionsQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function MySubmissions() {
-    const submissionsQuery = useGetSubmissionsQuery();
+    const submissionsQuery = useGetWorkspaceAllSubmissionsQuery(environments.WORKSPACE_ID);
     const breakpoint = useBreakpoint();
 
     const [responseObject, setResponseObject] = useState({});

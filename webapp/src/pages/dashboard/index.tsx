@@ -1,3 +1,5 @@
+import { useRouter } from 'next/router';
+
 import { ShareIcon } from '@app/components/icons/share-icon';
 import { useModal } from '@app/components/modal-views/context';
 import Layout from '@app/components/sidebar/layout';
@@ -9,15 +11,16 @@ import useUser from '@app/lib/hooks/use-authuser';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import globalServerProps from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { useGetWorkspaceFormsQuery } from '@app/store/google/api';
+import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function CreatorDashboard() {
     const { openModal } = useModal();
+    const router = useRouter();
 
     const { user } = useUser();
 
-    const workspaceForms = useGetWorkspaceFormsQuery<any>();
+    const workspaceForms = useGetWorkspaceFormsQuery<any>(environments.WORKSPACE_ID);
 
     const breakpoint = useBreakpoint();
 
@@ -29,6 +32,10 @@ export default function CreatorDashboard() {
         openModal('IMPORT_FORMS_VIEW');
     };
 
+    const handleConnectWithGoogle = () => {
+        router.push(`${environments.API_ENDPOINT_HOST}/auth/google/connect`);
+    };
+
     const Header = () => (
         <div className="flex justify-between items-center mb-10 py-4 pt-4 border-b-[1px] border-b-gray-200">
             <div className="flex flex-col">
@@ -36,9 +43,15 @@ export default function CreatorDashboard() {
                 <p className="text-gray-600">Here are your forms</p>
             </div>
 
-            <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
-                Import Forms
-            </Button>
+            {user?.data?.payload?.content?.user?.services?.length === 0 ? (
+                <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
+                    Authorize Google
+                </Button>
+            ) : (
+                <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
+                    Import Forms
+                </Button>
+            )}
         </div>
     );
 
