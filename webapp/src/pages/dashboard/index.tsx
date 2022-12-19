@@ -44,11 +44,11 @@ export default function CreatorDashboard() {
             </div>
 
             {user?.data?.payload?.content?.user?.services?.length === 0 ? (
-                <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
+                <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
                     Authorize Google
                 </Button>
             ) : (
-                <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
+                <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
                     Import Forms
                 </Button>
             )}

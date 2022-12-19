@@ -77,10 +77,10 @@ export default function ImportForms() {
         if (googleFormResult.isError) return <p className="text-sm text-red-500">Oops! We&apos;ve encountered an issue.</p>;
         const form = googleFormResult?.data?.payload?.content;
         return (
-            <div className="flex flex-col max-w-[360px]">
-                {form?.info?.title && <p className="text-sm md:text-base font-semibold text-grey mb-2 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.info?.title, 15) : toEndDottedStr(form?.info?.title, 30)}</p>}
+            <div className="flex flex-col w-full">
+                {form?.info?.title && <p className="max-w-[360px] text-sm md:text-base font-semibold text-grey mb-2 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.info?.title, 15) : toEndDottedStr(form?.info?.title, 30)}</p>}
                 {form?.info?.description && (
-                    <p className="text-sm text-softBlue mb-2 p-0 w-full">
+                    <p className="max-w-[360px] text-sm text-softBlue mb-2 p-0 w-full">
                         {['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.info?.description, 45) : ['md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.info?.description, 80) : toEndDottedStr(form?.info?.description, 140)}
                     </p>
                 )}
@@ -113,16 +113,18 @@ export default function ImportForms() {
                 <div className="flex flex-row items-start border-b-[1px] pb-1 border-[#eaeaea] justify-between">
                     <div className="flex flex-col">
                         {!!stepCount ? (
-                            <Button className="w-fit z-10 !h-6 mb-3 rounded-lg hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={handleBack}>
+                            <Button className="w-fit z-10 !h-[34px] mb-3 rounded-lg hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={handleBack}>
                                 <LongArrowLeft width={15} height={15} />
                             </Button>
                         ) : (
-                            <div className="!h-6 mb-3" />
+                            <div className="!h-[34px] mb-3" />
                         )}
                         <h2 className="text-md md:text-lg text-left font-bold">Import Forms</h2>
                         <p className="text-[#00000082] text-sm md:text-md">Select the forms you wish to import to Better Collected.</p>
                     </div>
-                    <Close className="cursor-pointer text-gray-600 hover:text-black" onClick={() => closeModal()} />
+                    <div onClick={() => closeModal()} className="border-[1.5px] border-gray-200 hover:shadow hover:text-black cursor-pointer rounded-full p-3">
+                        <Close className="cursor-pointer text-gray-600 hover:text-black" />
+                    </div>
                 </div>
                 <div className="w-full h-[250px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-300 overflow-y-scroll scrollbar-thumb-rounded-full scrollbar-track-rounded-full">
                     {!stepCount ? (
