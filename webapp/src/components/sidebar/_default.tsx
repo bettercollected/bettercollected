@@ -68,11 +68,13 @@ export default function Sidebar() {
             </div>
 
             <Scrollbar style={{ height: 'calc(100% - 96px)' }}>
-                <div className="px-6 pb-5 2xl:px-8">
-                    <div className="mt-12">
-                        {menuItems.map((item, index) => (
-                            <MenuItem key={'default' + item.name + index} name={item.name} href={item.href} icon={item.icon} link={!!item.href} />
-                        ))}
+                <div className="px-6 h-full pb-5 2xl:px-8">
+                    <div className="flex h-full flex-col justify-between">
+                        <div className="mt-12">
+                            {menuItems.map((item, index) => (
+                                <MenuItem key={'default' + item.name + index} name={item.name} href={item.href} icon={item.icon} link={!!item.href} />
+                            ))}
+                        </div>
                         <FooterRenderer icon={<Logout className={'!w-5 !h-5'} />} name={'Logout'} profileName={selectGetStatus?.data?.payload?.content?.user?.sub} />
                     </div>
                 </div>
