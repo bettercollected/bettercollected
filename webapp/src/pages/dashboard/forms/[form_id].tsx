@@ -1,23 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 import { Feed, Settings } from '@mui/icons-material';
-import { Divider, IconButton, Input, InputAdornment } from '@mui/material';
-import Switch from '@mui/material/Switch';
-import TextField from '@mui/material/TextField';
-import { toast } from 'react-toastify';
 
+import { FormTabContent } from '@app/components/dashboard/form-overview';
+import FormSubmissionsTab from '@app/components/dashboard/form-responses';
+import FormSettingsTab from '@app/components/dashboard/form-settings';
 import { HistoryIcon } from '@app/components/icons/history';
-import { SearchIcon } from '@app/components/icons/search';
 import Layout from '@app/components/sidebar/layout';
 import ParamTab from '@app/components/ui/param-tab';
 import { TabPanel } from '@app/components/ui/tab';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import globalServerProps from '@app/lib/serverSideProps';
-import { usePatchPinnedFormMutation } from '@app/store/google/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 enum FormTabs {
@@ -30,8 +26,6 @@ export default function FormPage(props: any) {
     const { formId, form } = props;
     const breakpoint = useBreakpoint();
     const router = useRouter();
-    const [patchPinnedForm] = usePatchPinnedFormMutation();
-    const [isPinned, setIsPinned] = useState(!!form?.settings?.pinned);
 
     const tabs = [
         {
@@ -50,61 +44,6 @@ export default function FormPage(props: any) {
             path: 'settings'
         }
     ];
-
-    const onSwitchChange = async (event: any) => {
-        try {
-            const response: any = await patchPinnedForm([{ form_id: formId, pinned: !isPinned }]);
-            const updated = response?.data[0][formId] === 'True';
-            console.info(updated);
-
-            if (updated) {
-                setIsPinned(!isPinned);
-                toast(`Form ${!isPinned ? 'Pinned' : 'Unpinned'}`, {
-                    type: 'success'
-                });
-            } else {
-                toast('Error patching form', {
-                    type: 'error'
-                });
-            }
-        } catch (e) {
-            toast('Error patching form', {
-                type: 'error'
-            });
-        }
-    };
-
-    const SettingsTabContent = () => (
-        <div className="max-w-[600px]">
-            <div className=" flex flex-col">
-                <div className="text-xl font-bold text-black">Pinned</div>
-                <div className="flex w-full justify-between items-center h-14 text-gray-800">
-                    <div>Show this form in pinned section</div>
-                    <Switch checked={isPinned} onClick={onSwitchChange} />
-                </div>
-            </div>
-            <Divider className="mb-6 mt-2" />
-            <div className=" flex flex-col ">
-                <div className="text-xl font-bold text-black">Custom Url</div>
-                <div className="flex w-full items-center justify-between text-gray-800">
-                    <div>Something to show in url instead of id of form</div>
-                    <TextField size="small" name="search-input" placeholder="Custom-url" value={'Hello'} onChange={() => {}} className={'w-full max-w-[250px]'} />
-                </div>
-            </div>
-        </div>
-    );
-
-    const FormTabContent = () => (
-        <div className="w-full">
-            <div>You can preview the form by clicking the link below.</div>
-            <Link href={`http://localhost:3000/forms/${formId}`}>
-                <div className="flex">
-                    <div className="text-blue-500 hover:underline  cursor-pointer ">Link to form.</div>
-                    🔗
-                </div>
-            </Link>
-        </div>
-    );
 
     return (
         <Layout>
@@ -133,13 +72,13 @@ export default function FormPage(props: any) {
             <div className="flex flex-col justify-center">
                 <ParamTab tabMenu={tabs}>
                     <TabPanel className="focus:outline-none" key="form">
-                        <FormTabContent />
+                        <FormTabContent formId={form.settings.customUrl} />
                     </TabPanel>
                     <TabPanel className="focus:outline-none" key="submissions">
-                        <div>Submission tab content</div>
+                        <FormSubmissionsTab />
                     </TabPanel>
                     <TabPanel className="focus:outline-none" key="settings">
-                        <SettingsTabContent />
+                        <FormSettingsTab formId={formId} form={form} />
                     </TabPanel>
                 </ParamTab>
             </div>
