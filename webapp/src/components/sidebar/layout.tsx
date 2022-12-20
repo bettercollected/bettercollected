@@ -62,7 +62,7 @@ export default function Layout(props: any) {
                 </Header>
             )}
             {checkIfSideBarRender() && <SidebarExpandable />}
-            <main className={cn('min-h-screen px-4 w-full lg:w-auto absolute top-24 pt-4 pb-16 sm:px-6 sm:pb-20 lg:px-8 xl:pb-24 3xl:px-10 3xl:pt-2.5')}>{children}</main>
+            <main className={cn('px-4 xl:left-24 right-0 w-full xl:w-auto absolute top-24 pt-4 pb-16 sm:px-6 sm:pb-20 lg:px-8 xl:pb-24 3xl:px-10 3xl:pt-2.5')}>{children}</main>
         </div>
     );
 }

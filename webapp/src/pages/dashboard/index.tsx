@@ -38,7 +38,7 @@ export default function CreatorDashboard() {
     };
 
     const Header = () => (
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 py-4 pt-4 border-b-[1px] border-b-gray-200">
+        <div className="flex flex-col w-full sm:flex-row justify-between items-start sm:items-center mb-10 py-4 pt-4 border-b-[1px] border-b-gray-200">
             <div className="flex flex-col">
                 <h1 className="font-extrabold text-3xl">Hello {email?.replaceAll('@gmail.com', '')}!</h1>
                 <p className="text-gray-600">Here are your forms</p>
