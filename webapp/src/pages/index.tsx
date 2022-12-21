@@ -1,8 +1,13 @@
+import { useEffect } from 'react';
+
 import dynamic from 'next/dynamic';
+
+import { useDispatch } from 'react-redux';
 
 import environments from '@app/configs/environments';
 import globalServerProps from '@app/lib/serverSideProps';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
+import { setWorkspace } from '@app/store/counter/workspaceSlice';
 
 const HomeContainer = dynamic(() => import('@app/containers/home/HomeContainer'), { ssr: false });
 const DashboardContainer = dynamic(() => import('@app/containers/dashboard/DashboardContainer'), { ssr: false });
@@ -10,6 +15,11 @@ const DashboardContainer = dynamic(() => import('@app/containers/dashboard/Dashb
 interface IHome extends IServerSideProps {}
 
 const Home = ({ hasCustomDomain, workspace, workspaceId, ...props }: IHome) => {
+    const dispatch = useDispatch();
+    useEffect(() => {
+        dispatch(setWorkspace({ workspaceId: 'Hello', workspaceName: 'Name' }));
+    }, []);
+
     if (hasCustomDomain && workspace) return <DashboardContainer workspace={workspace} />;
     return <HomeContainer />;
 };

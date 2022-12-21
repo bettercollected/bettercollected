@@ -20,7 +20,6 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
     const [trigger] = useLazyGetLogoutQuery();
 
     const authStatus = useGetStatusQuery('status');
-
     const { openModal } = useModal();
 
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);

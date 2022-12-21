@@ -8,9 +8,8 @@ export default async function getServerSideProps({ locale, ..._context }: any): 
     props: IServerSideProps;
 }> {
     const hasCustomDomain = !!environments.IS_CUSTOM_DOMAIN;
-    let workspaceId: string | null = null;
-    if (hasCustomDomain && environments?.WORKSPACE_ID) workspaceId = environments.WORKSPACE_ID;
-
+    // let workspaceId: string | null = null;
+    const workspaceId = environments.WORKSPACE_ID;
     let workspace: WorkspaceDto | null = null;
     try {
         if (hasCustomDomain && workspaceId) {

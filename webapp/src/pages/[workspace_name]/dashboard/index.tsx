@@ -1,11 +1,10 @@
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 import { ShareIcon } from '@app/components/icons/share-icon';
 import { useModal } from '@app/components/modal-views/context';
 import Layout from '@app/components/sidebar/layout';
 import Button from '@app/components/ui/button/button';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import useUser from '@app/lib/hooks/use-authuser';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
@@ -28,6 +27,8 @@ export default function CreatorDashboard() {
 
     const email = user?.data?.payload?.content?.user?.sub;
 
+    console.log(user?.data?.payload?.content);
+
     const handleImportForms = () => {
         openModal('IMPORT_FORMS_VIEW');
     };
@@ -37,7 +38,7 @@ export default function CreatorDashboard() {
     };
 
     const Header = () => (
-        <div className="flex justify-between items-center mb-10 py-4 pt-4 border-b-[1px] border-b-gray-200">
+        <div className="flex flex-col w-full sm:flex-row justify-between items-start sm:items-center mb-10 py-4 pt-4 border-b-[1px] border-b-gray-200">
             <div className="flex flex-col">
                 <h1 className="font-extrabold text-3xl">Hello {email?.replaceAll('@gmail.com', '')}!</h1>
                 <p className="text-gray-600">Here are your forms</p>
@@ -69,13 +70,7 @@ export default function CreatorDashboard() {
                                 shareUrl = `${window.location.origin}/forms/${slug}`;
                             }
                             return (
-                                <ActiveLink
-                                    key={form.formId}
-                                    href={{
-                                        pathname: `/forms/[slug]`,
-                                        query: { slug }
-                                    }}
-                                >
+                                <Link key={form.formId} href={`/dashboard/forms/${form.formId}`}>
                                     <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
                                         <div className="flex flex-col justify-start h-full">
                                             <p className="text-xl text-grey mb-4 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 15) : toEndDottedStr(form.title, 30)}</p>
@@ -100,7 +95,7 @@ export default function CreatorDashboard() {
                                             {/* <PinOutlinedIcon width={40} height={40} clickButton={() => console.log('clicked')} /> */}
                                         </div>
                                     </div>
-                                </ActiveLink>
+                                </Link>
                             );
                         })}
                 </div>

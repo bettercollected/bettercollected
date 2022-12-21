@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 
 import Tooltip from '@mui/material/Tooltip';
 
-import { authApi } from '@app/store/auth/api';
+import { authApi, useGetStatusQuery } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
 import { HistoryIcon } from '../icons/history';
@@ -18,6 +18,10 @@ export default function Aside({ close }: { close?: () => void }) {
     const router = useRouter();
 
     const { openModal } = useModal();
+
+    const authStatus = useGetStatusQuery('status');
+
+    console.log('auth status: ', authStatus.isFetching);
 
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
     const selectGetStatus = useAppSelector(statusQuerySelect);

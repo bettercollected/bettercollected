@@ -1,5 +1,6 @@
 import { HistoryIcon } from '../icons/history';
 import { HomeIcon } from '../icons/home';
+import { Logout } from '../icons/logout-icon';
 import { SearchIcon } from '../icons/search';
 
 export const menuItems = [

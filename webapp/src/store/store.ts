@@ -1,14 +1,14 @@
 import { Reducer, combineReducers, configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { createLogger } from 'redux-logger';
-import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE, persistStore } from 'redux-persist';
+import { persistStore } from 'redux-persist';
 
 import environments from '@app/configs/environments';
 import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
-import counterSlice from '@app/store/counter/counterSlice';
-import { monitorReducerEnhancer } from '@app/store/enhancers';
+import workspaceSlice from '@app/store/counter/workspaceSlice';
 
 import { authApi } from './auth/api';
+import { formsApi } from './forms/api';
 import { googleApiSlice } from './google/api';
 import searchReducerObj, { searchSlice } from './search/searchSlice';
 import { workspacesApi } from './workspaces/api';
@@ -16,15 +16,16 @@ import { workspacesApi } from './workspaces/api';
 const loggerMiddleware = createLogger();
 
 // Add more middlewares here
-const middlewares = [authApi.middleware, googleApiSlice.middleware, workspacesApi.middleware];
+const middlewares = [authApi.middleware, googleApiSlice.middleware, formsApi.middleware, workspacesApi.middleware];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
 const reducers = {
-    [counterSlice.reducerPath]: counterSlice.reducer,
+    [workspaceSlice.reducerPath]: workspaceSlice.reducer,
     [searchReducerObj.reducerPath]: searchSlice.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [googleApiSlice.reducerPath]: googleApiSlice.reducer,
+    [formsApi.reducerPath]: formsApi.reducer,
     [workspacesApi.reducerPath]: workspacesApi.reducer
 };
 

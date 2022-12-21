@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import Router from 'next/router';
+
 import { info } from 'console';
 
 import { ShareIcon } from '@app/components/icons/share-icon';
@@ -31,6 +33,8 @@ export default function MySubmissions() {
             return accumulator;
         }, Object.create(null));
 
+        console.log('response map: ', responseMap);
+
         return responseMap;
     };
 
@@ -57,6 +61,7 @@ export default function MySubmissions() {
                                     {response.responses.map((form: any) => {
                                         return (
                                             <div
+                                                onClick={() => Router.push(`/dashboard/submissions/${form.responseId}`)}
                                                 key={form.responseId}
                                                 className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]"
                                             >
@@ -83,7 +88,7 @@ export default function MySubmissions() {
     };
 
     // UI for forms
-    const MyRecentForms = () => {
+    const MyRecentSubmissions = () => {
         return (
             <div>
                 <h1 className="font-semibold text-2xl mb-4">Submissions</h1>
@@ -93,7 +98,7 @@ export default function MySubmissions() {
 
     return (
         <Layout>
-            <MyRecentForms />
+            <MyRecentSubmissions />
             <CardRenderer />
         </Layout>
     );
