@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useDispatch } from 'react-redux';
 
 import environments from '@app/configs/environments';
-import globalServerProps from '@app/lib/serverSideProps';
+import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { setWorkspace } from '@app/store/counter/workspaceSlice';
 
@@ -28,12 +28,20 @@ export default Home;
 
 export async function getServerSideProps(_context: any) {
     const { cookies } = _context.req;
-    const globalProps = (await globalServerProps(_context)).props;
-    if (globalProps.hasCustomDomain) {
+    const hasCustomDomain = _context.req.headers.host !== environments.CLIENT_HOST;
+    if (hasCustomDomain) {
+        const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
+        if (!globalProps?.workspace?.id) {
+            return {
+                notFound: true
+            };
+        }
+        console.log(globalProps);
         return {
             props: { ...globalProps }
         };
     }
+
     const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
     const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
 
@@ -48,10 +56,12 @@ export async function getServerSideProps(_context: any) {
         const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
         const user = (await userStatus?.json().catch((e: any) => e))?.payload?.content ?? null;
         if (user?.user?.roles?.includes('FORM_CREATOR')) {
+            const userWorkspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/mine`, config);
+            const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
             return {
                 redirect: {
                     permanent: false,
-                    destination: '/dashboard'
+                    destination: `/${userWorkspace[0].workspaceName}/dashboard`
                 }
             };
         }

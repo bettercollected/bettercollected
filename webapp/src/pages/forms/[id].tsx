@@ -8,7 +8,7 @@ import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
 import ContentLayout from '@app/layouts/_content-layout';
-import globalServerProps from '@app/lib/serverSideProps';
+import globalServerProps, { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 
@@ -49,7 +49,18 @@ export async function getServerSideProps(_context: any) {
         back = (query?.back && (query?.back === 'true' || query?.back === true)) ?? false;
     }
 
-    const globalProps = (await globalServerProps(_context)).props;
+    const hasCustomDomain = !_context.req.headers.host === environments.CLIENT_HOST;
+
+    if (!hasCustomDomain) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    }
+
+    const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
     let form: StandardFormDto | null = null;
 
     try {
