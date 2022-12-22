@@ -92,12 +92,6 @@ export function MenuItem({ name, icon, href, link, dropdownItems }: MenuItemProp
                             {href === pathname && <motion.span className="absolute bottom-0 left-0 right-0 h-full w-full border-[1px] border-blue-400 rounded-md bg-blue-50" layoutId="menu-item-active-indicator" />}
                         </ActiveLink>
                     )}
-                    {/* {!link && (
-                        <div className="relative cursor-pointer flex h-12 items-center hover:border-red-400 hover:bg-red-50 hover:text-red-500 whitespace-nowrap rounded-lg px-4 text-red-500 transition-all dark:hover:text-white">
-                            <span className="relative z-[1] ltr:mr-3 rtl:ml-3">{icon}</span>
-                            <span className="relative z-[1]"> {name}</span>
-                        </div>
-                    )} */}
                 </>
             )}
         </div>

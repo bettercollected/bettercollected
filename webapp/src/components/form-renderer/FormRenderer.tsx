@@ -67,7 +67,7 @@ enum QUESTION_TYPE {
     LINEAR_SCALE = 'LINEAR_SCALE'
 }
 
-export default function FormRenderer({ form, workspace, submissionId, ...props }: ISubmission) {
+export default function FormRenderer({ form, workspace, submissionId, ...props }: any) {
     const router = useRouter();
     const breakpoint = useBreakpoint();
 

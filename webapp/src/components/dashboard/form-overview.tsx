@@ -14,8 +14,6 @@ export const FormTabContent = () => {
     const [questions, setQuestions] = useState([]);
 
     useEffect(() => {
-        console.log('form id: ', formId);
-        //TODO: fetch the forms creating an api slice
         fetch(`${environments.API_ENDPOINT_HOST}/forms/1-CQgKC3Ms-PqCuJNXDEkjlRP1MR4NscStXhz5rhkddk`, {
             credentials: 'include',
             headers: {

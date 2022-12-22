@@ -47,10 +47,18 @@ export async function getServerSideProps(_context: any) {
         if (user?.user?.roles?.includes('FORM_CREATOR')) {
             const userWorkspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/mine`, config);
             const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
+            if (!userWorkspace || userWorkspace.length < 1) {
+                return {
+                    redirect: {
+                        permanent: false,
+                        destination: `/setupWorkspace`
+                    }
+                };
+            }
             return {
                 redirect: {
                     permanent: false,
-                    destination: '/dashboard'
+                    destination: `/${userWorkspace[0].workspaceName}/dashboard`
                 }
             };
         }
