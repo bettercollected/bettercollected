@@ -5,7 +5,8 @@ import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
-import { usePatchPinnedFormMutation } from '@app/store/google/api';
+import { useAppSelector } from '@app/store/hooks';
+import { usePatchPinnedFormMutation } from '@app/store/workspaces/api';
 
 interface FormSettingsProps {
     formId: string;
@@ -15,12 +16,15 @@ interface FormSettingsProps {
 export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
     const [patchPinnedForm] = usePatchPinnedFormMutation();
     const [isPinned, setIsPinned] = useState(!!form?.settings?.pinned);
-
+    const workspace = useAppSelector((state) => state.workspace);
     const [customUrl, setCustomUrl] = useState(form.settings.customUrl || '');
 
     const onSwitchChange = async (event: any) => {
         try {
-            const response: any = await patchPinnedForm([{ form_id: formId, pinned: !isPinned }]);
+            const response: any = await patchPinnedForm({
+                workspaceId: workspace.id,
+                body: [{ form_id: formId, pinned: !isPinned }]
+            });
             const updated = response?.data[0][formId] === 'True';
 
             if (updated) {

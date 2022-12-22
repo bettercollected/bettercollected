@@ -5,18 +5,16 @@ import { persistStore } from 'redux-persist';
 
 import environments from '@app/configs/environments';
 import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
-import workspaceSlice from '@app/store/counter/workspaceSlice';
+import workspaceSlice from '@app/store/workspaces/slice';
 
 import { authApi } from './auth/api';
-import { formsApi } from './forms/api';
-import { googleApiSlice } from './google/api';
 import searchReducerObj, { searchSlice } from './search/searchSlice';
 import { workspacesApi } from './workspaces/api';
 
 const loggerMiddleware = createLogger();
 
 // Add more middlewares here
-const middlewares = [authApi.middleware, googleApiSlice.middleware, formsApi.middleware, workspacesApi.middleware];
+const middlewares = [authApi.middleware, workspacesApi.middleware];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewaress.splice(0, 1);
 
@@ -24,8 +22,6 @@ const reducers = {
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
     [searchReducerObj.reducerPath]: searchSlice.reducer,
     [authApi.reducerPath]: authApi.reducer,
-    [googleApiSlice.reducerPath]: googleApiSlice.reducer,
-    [formsApi.reducerPath]: formsApi.reducer,
     [workspacesApi.reducerPath]: workspacesApi.reducer
 };
 
