@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
@@ -8,14 +10,22 @@ import Button from '@app/components/ui/button/button';
 import environments from '@app/configs/environments';
 import useUser from '@app/lib/hooks/use-authuser';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import globalServerProps from '@app/lib/serverSideProps';
+import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
+import { setWorkspace } from '@app/store/counter/workspaceSlice';
+import { useAppDispatch } from '@app/store/hooks';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
-export default function CreatorDashboard() {
+export default function CreatorDashboard({ workspace, hasCustomDomain }: { workspace: any; hasCustomDomain: boolean }) {
     const { openModal } = useModal();
     const router = useRouter();
+
+    const dispatch = useAppDispatch();
+
+    useEffect(() => {
+        dispatch(setWorkspace(workspace));
+    }, []);
 
     const { user } = useUser();
 
@@ -26,8 +36,6 @@ export default function CreatorDashboard() {
     const forms = workspaceForms?.data?.payload?.content;
 
     const email = user?.data?.payload?.content?.user?.sub;
-
-    console.log(user?.data?.payload?.content);
 
     const handleImportForms = () => {
         openModal('IMPORT_FORMS_VIEW');
@@ -67,10 +75,10 @@ export default function CreatorDashboard() {
                             const slug = form.settings.customUrl;
                             let shareUrl = '';
                             if (window && typeof window !== 'undefined') {
-                                shareUrl = `${window.location.origin}/forms/${slug}`;
+                                shareUrl = hasCustomDomain ? `${window.location.origin}/forms/${slug}` : `https://`;
                             }
                             return (
-                                <Link key={form.formId} href={`/dashboard/forms/${form.formId}`}>
+                                <Link key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
                                     <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
                                         <div className="flex flex-col justify-start h-full">
                                             <p className="text-xl text-grey mb-4 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 15) : toEndDottedStr(form.title, 30)}</p>
@@ -113,7 +121,7 @@ export default function CreatorDashboard() {
 
 export async function getServerSideProps(_context: any) {
     const { cookies } = _context.req;
-    const globalProps = (await globalServerProps(_context)).props;
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
     if (globalProps.hasCustomDomain) {
         return {
             redirect: {
@@ -151,7 +159,10 @@ export async function getServerSideProps(_context: any) {
             }
         };
     }
+    console.log(globalProps);
     return {
-        props: {}
+        props: {
+            ...globalProps
+        }
     };
 }

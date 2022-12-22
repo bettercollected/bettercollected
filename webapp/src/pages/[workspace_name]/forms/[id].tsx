@@ -8,7 +8,7 @@ import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
 import ContentLayout from '@app/layouts/_content-layout';
-import globalServerProps from '@app/lib/serverSideProps';
+import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 
@@ -49,11 +49,11 @@ export async function getServerSideProps(_context: any) {
         back = (query?.back && (query?.back === 'true' || query?.back === true)) ?? false;
     }
 
-    const globalProps = (await globalServerProps(_context)).props;
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
     let form: StandardFormDto | null = null;
 
     try {
-        if (globalProps.hasCustomDomain && globalProps.workspaceId) {
+        if (globalProps.workspaceId) {
             const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/forms/${slug}`).catch((e) => e);
             form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
         }

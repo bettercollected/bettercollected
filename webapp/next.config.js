@@ -59,6 +59,7 @@ const nextConfig = {
         BUSINESS_FORM_URL: process.env.BUSINESS_FORM_URL,
         ENTERPRISE_FORM_URL: process.env.ENTERPRISE_FORM_URL,
         GOOGLE_IMAGE_DOMAINS: process.env.GOOGLE_IMAGE_DOMAINS,
+        CLIENT_HOST: process.env.CLIENT_HOST,
 
         // Custom Domain Variables
         IS_CUSTOM_DOMAIN: process.env.IS_CUSTOM_DOMAIN || false,

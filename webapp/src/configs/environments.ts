@@ -19,7 +19,7 @@ const BASE_DEPLOY_PATH = process.env.BASE_DEPLOY_PATH ?? '';
 const environments = {
     // build-time configs
     BASE_DEPLOY_PATH,
-
+    CLIENT_HOST: publicRuntimeConfig.CLIENT_HOST || 'localhost:3000',
     // api host configs
     API_ENDPOINT_HOST: publicRuntimeConfig.API_ENDPOINT_HOST,
 

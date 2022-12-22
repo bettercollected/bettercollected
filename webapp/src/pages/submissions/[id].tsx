@@ -18,7 +18,7 @@ import Loader from '@app/components/ui/loader';
 import MarkdownText from '@app/components/ui/markdown-text';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import globalServerProps from '@app/lib/serverSideProps';
+import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
@@ -72,7 +72,10 @@ export default function Submission({ workspace, submissionId, ...props }: ISubmi
     const router = useRouter();
     const breakpoint = useBreakpoint();
 
-    const { isLoading, isError, data } = useGetWorkspaceSubmissionQuery({ workspace_id: workspace?.id ?? '', submission_id: submissionId });
+    const { isLoading, isError, data } = useGetWorkspaceSubmissionQuery({
+        workspace_id: workspace?.id ?? '',
+        submission_id: submissionId
+    });
 
     const form: any = data?.payload?.content;
 
@@ -324,10 +327,21 @@ export default function Submission({ workspace, submissionId, ...props }: ISubmi
 }
 
 export async function getServerSideProps(_context: any) {
-    const globalProps = (await globalServerProps(_context)).props;
+    const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
+    let form: StandardFormDto | null = null;
     const { cookies } = _context.req;
     const submissionId = _context.query.id;
-    let form: StandardFormDto | null = null;
+
+    const hasCustomDomain = !_context.req.headers.host === environments.CLIENT_HOST;
+
+    if (!hasCustomDomain) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    }
 
     const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
     const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';

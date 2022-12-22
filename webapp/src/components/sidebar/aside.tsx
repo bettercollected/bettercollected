@@ -21,8 +21,6 @@ export default function Aside({ close }: { close?: () => void }) {
 
     const authStatus = useGetStatusQuery('status');
 
-    console.log('auth status: ', authStatus.isFetching);
-
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
     const selectGetStatus = useAppSelector(statusQuerySelect);
 

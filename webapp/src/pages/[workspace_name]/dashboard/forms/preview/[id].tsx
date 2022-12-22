@@ -51,7 +51,6 @@ export async function getServerSideProps(_context: any) {
 
     const globalProps = (await globalServerProps(_context)).props;
     let form: StandardFormDto | null = null;
-    console.log(globalProps);
 
     try {
         const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/forms/${slug}`).catch((e) => e);
@@ -60,7 +59,6 @@ export async function getServerSideProps(_context: any) {
         form = null;
         console.error(err);
     }
-    console.log(form);
     return {
         props: {
             ...globalProps,

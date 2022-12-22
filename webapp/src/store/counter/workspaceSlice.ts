@@ -4,12 +4,18 @@ import storage from 'redux-persist/lib/storage';
 
 export interface WorkspaceState {
     workspaceName: string;
-    workspaceId: string;
+    id: string;
+    title: string;
+    description: string;
+    customDomain?: string;
 }
 
 const initialState: WorkspaceState = {
     workspaceName: '',
-    workspaceId: ''
+    id: '',
+    title: '',
+    description: '',
+    customDomain: ''
 };
 
 export const workspaceSlice = createSlice({
@@ -21,8 +27,11 @@ export const workspaceSlice = createSlice({
             // doesn't actually mutate the state because it uses the Immer library,
             // which detects changes to a "draft state" and produces a brand new
             // immutable state based off those changes;
-            state.workspaceId = action.payload?.workspaceId || '';
-            state.workspaceName = action.payload?.workspaceName || '';
+            state.id = action.payload.id;
+            state.title = action.payload.title;
+            state.description = action.payload.description;
+            state.workspaceName = action.payload.workspaceName;
+            state.customDomain = action.payload.customDomain;
         }
     }
 });
