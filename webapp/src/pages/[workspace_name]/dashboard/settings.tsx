@@ -1,8 +1,6 @@
 import Layout from '@app/components/sidebar/layout';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
-import useUser from '@app/lib/hooks/use-authuser';
-import globalServerProps from '@app/lib/serverSideProps';
+import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 
 export default function MySettings() {
     const Header = () => {
@@ -23,7 +21,7 @@ export default function MySettings() {
 
 export async function getServerSideProps(_context: any) {
     const { cookies } = _context.req;
-    const globalProps = (await globalServerProps(_context)).props;
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
     if (globalProps.hasCustomDomain) {
         return {
             redirect: {
@@ -62,6 +60,8 @@ export async function getServerSideProps(_context: any) {
         };
     }
     return {
-        props: {}
+        props: {
+            ...globalProps
+        }
     };
 }

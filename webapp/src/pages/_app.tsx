@@ -19,6 +19,7 @@ import 'swiper/css/navigation';
 
 import '@app/assets/css/globals.css';
 import DrawersContainer from '@app/components/drawer-views/container';
+import WorkspaceHOC from '@app/components/hoc/WorkspaceHOC';
 import ModalContainer from '@app/components/modal-views/container';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import NextNProgress from '@app/components/ui/nprogress';
@@ -132,11 +133,13 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                     <NextNProgress color="#f04444" startPosition={0} stopDelayMs={400} height={5} options={{ easing: 'ease' }} />
                     <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
                     <Provider store={store}>
-                        <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
-                            {getLayout(<Component {...pageProps} />)}
-                            <ModalContainer />
-                            <DrawersContainer />
-                        </PersistGate>
+                        <WorkspaceHOC {...pageProps}>
+                            <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
+                                {getLayout(<Component {...pageProps} />)}
+                                <ModalContainer />
+                                <DrawersContainer />
+                            </PersistGate>
+                        </WorkspaceHOC>
                     </Provider>
                 </MuiThemeProvider>
             </CacheProvider>

@@ -2,20 +2,15 @@ import { useEffect, useState } from 'react';
 
 import Router from 'next/router';
 
-import { info } from 'console';
-
-import { ShareIcon } from '@app/components/icons/share-icon';
 import Layout from '@app/components/sidebar/layout';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
-import useUser from '@app/lib/hooks/use-authuser';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import globalServerProps from '@app/lib/serverSideProps';
+import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { useGetWorkspaceAllSubmissionsQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
-export default function MySubmissions() {
-    const submissionsQuery = useGetWorkspaceAllSubmissionsQuery(environments.WORKSPACE_ID);
+export default function MySubmissions({ workspace }: { workspace: any }) {
+    const submissionsQuery = useGetWorkspaceAllSubmissionsQuery(workspace?.id || '');
     const breakpoint = useBreakpoint();
 
     const [responseObject, setResponseObject] = useState({});
@@ -106,7 +101,7 @@ export default function MySubmissions() {
 
 export async function getServerSideProps(_context: any) {
     const { cookies } = _context.req;
-    const globalProps = (await globalServerProps(_context)).props;
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
     if (globalProps.hasCustomDomain) {
         return {
             redirect: {
@@ -145,6 +140,8 @@ export async function getServerSideProps(_context: any) {
         };
     }
     return {
-        props: {}
+        props: {
+            ...globalProps
+        }
     };
 }

@@ -89,6 +89,14 @@ export default function FormPage(props: any) {
 export async function getServerSideProps(_context: any) {
     const globalProps = (await globalServerProps(_context)).props;
     const { cookies } = _context.req;
+    if (globalProps.hasCustomDomain) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    }
 
     const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
     const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';

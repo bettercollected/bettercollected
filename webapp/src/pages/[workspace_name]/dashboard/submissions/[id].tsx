@@ -322,8 +322,6 @@ export async function getServerSideProps(_context: any) {
     const { cookies } = _context.req;
     const submissionId = _context.query.id;
 
-    console.log('reached here!');
-
     let form: StandardFormDto | null = null;
 
     const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
@@ -343,7 +341,6 @@ export async function getServerSideProps(_context: any) {
         form = null;
         console.error(err);
     }
-    console.info(form);
 
     return {
         props: {
