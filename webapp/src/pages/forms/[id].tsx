@@ -49,7 +49,7 @@ export async function getServerSideProps(_context: any) {
         back = (query?.back && (query?.back === 'true' || query?.back === true)) ?? false;
     }
 
-    const hasCustomDomain = !_context.req.headers.host === environments.CLIENT_HOST;
+    const hasCustomDomain = _context.req.headers.host !== environments.CLIENT_HOST;
 
     if (!hasCustomDomain) {
         return {
@@ -62,6 +62,12 @@ export async function getServerSideProps(_context: any) {
 
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
     let form: StandardFormDto | null = null;
+
+    if (!hasCustomDomain) {
+        return {
+            notFound: true
+        };
+    }
 
     try {
         if (globalProps.hasCustomDomain && globalProps.workspaceId) {

@@ -8,9 +8,10 @@ import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
 import ContentLayout from '@app/layouts/_content-layout';
-import globalServerProps from '@app/lib/serverSideProps';
+import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
+import { hasWorkspace } from '@app/utils/workspaceValidationServerSide';
 
 interface ISingleFormPage extends IServerSideProps {
     form: StandardFormDto;
@@ -49,7 +50,14 @@ export async function getServerSideProps(_context: any) {
         back = (query?.back && (query?.back === 'true' || query?.back === true)) ?? false;
     }
 
-    const globalProps = (await globalServerProps(_context)).props;
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
+
+    if (!hasWorkspace(globalProps)) {
+        return {
+            notFound: true
+        };
+    }
+
     let form: StandardFormDto | null = null;
 
     try {

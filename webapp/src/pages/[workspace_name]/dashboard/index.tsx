@@ -1,5 +1,3 @@
-import { useEffect } from 'react';
-
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
@@ -12,8 +10,6 @@ import useUser from '@app/lib/hooks/use-authuser';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { setWorkspace } from '@app/store/counter/workspaceSlice';
-import { useAppDispatch } from '@app/store/hooks';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
@@ -21,15 +17,9 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
     const { openModal } = useModal();
     const router = useRouter();
 
-    const dispatch = useAppDispatch();
-
-    useEffect(() => {
-        dispatch(setWorkspace(workspace));
-    }, []);
-
     const { user } = useUser();
 
-    const workspaceForms = useGetWorkspaceFormsQuery<any>(environments.WORKSPACE_ID);
+    const workspaceForms = useGetWorkspaceFormsQuery<any>(workspace.id);
 
     const breakpoint = useBreakpoint();
 
@@ -159,7 +149,6 @@ export async function getServerSideProps(_context: any) {
             }
         };
     }
-    console.log(globalProps);
     return {
         props: {
             ...globalProps

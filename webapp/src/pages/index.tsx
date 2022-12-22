@@ -1,13 +1,8 @@
-import { useEffect } from 'react';
-
 import dynamic from 'next/dynamic';
-
-import { useDispatch } from 'react-redux';
 
 import environments from '@app/configs/environments';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
-import { setWorkspace } from '@app/store/counter/workspaceSlice';
 
 const HomeContainer = dynamic(() => import('@app/containers/home/HomeContainer'), { ssr: false });
 const DashboardContainer = dynamic(() => import('@app/containers/dashboard/DashboardContainer'), { ssr: false });
@@ -15,11 +10,6 @@ const DashboardContainer = dynamic(() => import('@app/containers/dashboard/Dashb
 interface IHome extends IServerSideProps {}
 
 const Home = ({ hasCustomDomain, workspace, workspaceId, ...props }: IHome) => {
-    const dispatch = useDispatch();
-    useEffect(() => {
-        dispatch(setWorkspace(workspace));
-    }, []);
-
     if (hasCustomDomain && workspace) return <DashboardContainer workspace={workspace} />;
     return <HomeContainer />;
 };
@@ -57,6 +47,14 @@ export async function getServerSideProps(_context: any) {
         if (user?.user?.roles?.includes('FORM_CREATOR')) {
             const userWorkspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/mine`, config);
             const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
+            if (!userWorkspace || userWorkspace.length < 1) {
+                return {
+                    redirect: {
+                        permanent: false,
+                        destination: `/setupWorkspace`
+                    }
+                };
+            }
             return {
                 redirect: {
                     permanent: false,
