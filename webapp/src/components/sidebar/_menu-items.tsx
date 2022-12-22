@@ -5,17 +5,17 @@ import { SearchIcon } from '../icons/search';
 
 export const menuItems = [
     {
-        href: '/dashboard',
+        href: '/1/dashboard',
         name: 'Forms',
         icon: <HomeIcon className="w-[20px] h-[20px]" />
     },
     {
-        href: '/dashboard/submissions',
+        href: '/1/dashboard/submissions',
         name: 'Submissions',
         icon: <HistoryIcon className="w-[20px] h-[20px]" />
     },
     {
-        href: '/dashboard/settings',
+        href: '/1/dashboard/settings',
         name: 'Settings',
         icon: <SearchIcon className="w-[20px] h-[20px]" />
     }

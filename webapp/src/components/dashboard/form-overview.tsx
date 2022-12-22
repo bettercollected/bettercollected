@@ -1,15 +1,33 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
-import Link from 'next/link';
+import { useRouter } from 'next/router';
 
-export const FormTabContent = ({ formId }: { formId: string }) => (
-    <div className="w-full">
-        <div>You can preview the form by clicking the link below.</div>
-        <Link href={`/dashboard/forms/preview/${formId}`} target="_blank" referrerPolicy="no-referrer">
-            <div className="flex">
-                <div className="text-blue-500 hover:underline  cursor-pointer ">Link to preview of form.</div>
-                <div className="cursor-pointer">🔗</div>
-            </div>
-        </Link>
-    </div>
-);
+import environments from '@app/configs/environments';
+
+import FormRenderer from '../form-renderer/FormRenderer';
+
+export const FormTabContent = () => {
+    const router = useRouter();
+
+    const formId = router.query.workspace_name;
+
+    const [questions, setQuestions] = useState([]);
+
+    useEffect(() => {
+        console.log('form id: ', formId);
+        //TODO: fetch the forms creating an api slice
+        fetch(`${environments.API_ENDPOINT_HOST}/forms/1-CQgKC3Ms-PqCuJNXDEkjlRP1MR4NscStXhz5rhkddk`, {
+            credentials: 'include',
+            headers: {
+                'Access-Control-Allow-origin': environments.API_ENDPOINT_HOST
+            }
+        }).then((data) => {
+            data.json().then((d) => {
+                console.log('data: ', d.payload.content.questions);
+                setQuestions(d.payload.content);
+            });
+        });
+    }, []);
+
+    return <div className="w-full">{questions.length == 0 ? <></> : <FormRenderer form={questions} />}</div>;
+};

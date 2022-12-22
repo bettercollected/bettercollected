@@ -19,6 +19,9 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
+import FormsCard from '../cards/form-card';
+import FormsContainer from '../cards/form-container';
+
 interface IFormCard {
     workspaceId: string;
 }
@@ -105,51 +108,50 @@ export default function FormCard({ workspaceId }: IFormCard) {
         return (
             <div className="mb-6">
                 {!!title && <h1 className=" text-gray-700 font-semibold text-md md:text-lg mb-4">{title}</h1>}
-                <div className="grid grid-cols-1 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
-                    {formsArray.length !== 0 &&
-                        formsArray.map((form: StandardFormDto) => {
-                            const slug = form.settings.customUrl;
-                            let shareUrl = '';
-                            if (window && typeof window !== 'undefined') {
-                                shareUrl = `${window.location.origin}/forms/${slug}`;
-                            }
-                            return (
-                                <ActiveLink
-                                    key={form.formId}
-                                    href={{
-                                        pathname: `/forms/[slug]`,
-                                        query: { slug, back: true }
-                                    }}
-                                >
-                                    <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
-                                        <div className="flex flex-col justify-start h-full">
-                                            <p className="text-xl text-grey mb-4 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 15) : toEndDottedStr(form.title, 30)}</p>
-                                            {form?.description && (
-                                                <p className="text-base text-softBlue m-0 p-0 w-full">
-                                                    {['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 45) : ['md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 80) : toEndDottedStr(form.description, 140)}
-                                                </p>
-                                            )}
+                <FormsContainer>
+                    {formsArray.map((form: StandardFormDto) => {
+                        const slug = form.settings.customUrl;
+                        let shareUrl = '';
+                        if (window && typeof window !== 'undefined') {
+                            shareUrl = `${window.location.origin}/forms/${slug}`;
+                        }
+                        return (
+                            <ActiveLink
+                                key={form.formId}
+                                href={{
+                                    pathname: `/forms/[slug]`,
+                                    query: { slug, back: true }
+                                }}
+                            >
+                                <FormsCard>
+                                    <div className="flex flex-col justify-start h-full">
+                                        <p className="text-xl text-grey mb-4 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 15) : toEndDottedStr(form.title, 30)}</p>
+                                        {form?.description && (
+                                            <p className="text-base text-softBlue m-0 p-0 w-full">
+                                                {['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 45) : ['md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 80) : toEndDottedStr(form.description, 140)}
+                                            </p>
+                                        )}
 
-                                            {!form?.description && <p className="text-base text-softBlue m-0 p-0 w-full italic">Form description not available.</p>}
-                                        </div>
-
-                                        <div
-                                            aria-hidden
-                                            onClick={(event) => {
-                                                event.preventDefault();
-                                                event.stopPropagation();
-                                                copyToClipboard(shareUrl);
-                                                setIsOpen(true);
-                                            }}
-                                            className="p-2 border-[1px] border-white hover:border-neutral-100 hover:shadow rounded-md"
-                                        >
-                                            <ShareIcon width={19} height={19} />
-                                        </div>
+                                        {!form?.description && <p className="text-base text-softBlue m-0 p-0 w-full italic">Form description not available.</p>}
                                     </div>
-                                </ActiveLink>
-                            );
-                        })}
-                </div>
+
+                                    <div
+                                        aria-hidden
+                                        onClick={(event) => {
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            copyToClipboard(shareUrl);
+                                            setIsOpen(true);
+                                        }}
+                                        className="p-2 border-[1px] border-white hover:border-neutral-100 hover:shadow rounded-md"
+                                    >
+                                        <ShareIcon width={19} height={19} />
+                                    </div>
+                                </FormsCard>
+                            </ActiveLink>
+                        );
+                    })}
+                </FormsContainer>
             </div>
         );
     };

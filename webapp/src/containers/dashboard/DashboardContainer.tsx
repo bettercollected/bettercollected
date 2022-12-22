@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 
+import { useRouter } from 'next/router';
+
 import { Logout } from '@app/components/icons/logout-icon';
 import { useModal } from '@app/components/modal-views/context';
 import SubmissionTabContainer from '@app/components/submissions-tab/submissions-tab-container';
@@ -18,6 +20,9 @@ interface IDashboardContainer {
 
 export default function DashboardContainer({ workspace }: IDashboardContainer) {
     const [trigger] = useLazyGetLogoutQuery();
+
+    const router = useRouter();
+    console.log('router components', router);
 
     const authStatus = useGetStatusQuery('status');
     const { openModal } = useModal();

@@ -47,7 +47,7 @@ export default function FormPage(props: any) {
 
     return (
         <Layout>
-            <div className="max-h-[100vh] overflow-auto">
+            <div className="max-h-[100vh] overflow-auto mb-4">
                 <nav className="flex mt-3 px-0 md:px-0" aria-label="Breadcrumb">
                     <ol className="inline-flex items-center space-x-1 md:space-x-3">
                         <li className="inline-flex items-center">
@@ -69,7 +69,7 @@ export default function FormPage(props: any) {
                     </ol>
                 </nav>
             </div>
-            <div className="flex flex-col justify-center">
+            <div className="flex flex-col w-full m-auto justify-center">
                 <ParamTab tabMenu={tabs}>
                     <TabPanel className="focus:outline-none" key="form">
                         <FormTabContent formId={form.settings.customUrl} />
