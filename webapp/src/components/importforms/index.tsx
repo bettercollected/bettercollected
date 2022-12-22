@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { useRouter } from 'next/router';
+
 import FormControl from '@mui/material/FormControl';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
@@ -11,6 +13,7 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Loader from '@app/components/ui/loader';
+import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { GoogleMinifiedFormDto } from '@app/models/dtos/googleForm';
 import { useGetMinifiedFormsQuery, useImportFormMutation, useLazyGetGoogleFormQuery } from '@app/store/forms/api';
@@ -28,8 +31,24 @@ export default function ImportForms() {
 
     const [importForm, importFormResult] = useImportFormMutation();
 
+    const router = useRouter();
+
+    const handleConnectWithGoogle = () => {
+        router.push(`${environments.API_ENDPOINT_HOST}/auth/google/connect`);
+        console.log('got inside');
+    };
+
     if (minifiedForms.isLoading) return <FullScreenLoader />;
-    if (minifiedForms.isError) return <p className="text-sm text-red-500">Oops! We&apos;ve encountered an issue.</p>;
+
+    if (minifiedForms.isError)
+        return (
+            <div className="text-sm text-red-500 p-4 rounded-md shadow-md bg-white">
+                <h2 className="mb-2">Oops! We&apos;ve encountered an issue.</h2>
+                <Button variant="solid" size="small" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
+                    Authorize Google
+                </Button>
+            </div>
+        );
 
     const handleBack = (e: any) => {
         setStepCount(stepCount - 1);

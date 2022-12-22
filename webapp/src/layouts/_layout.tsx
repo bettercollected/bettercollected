@@ -3,7 +3,6 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
-import Button from '@app/components/ui/button';
 import Logo from '@app/components/ui/logo';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
@@ -28,9 +27,10 @@ export function Header(props: any) {
 
 interface LayoutProps {
     className?: string;
+    hideSignIn?: boolean;
 }
 
-export default function Layout({ children, className = '' }: React.PropsWithChildren<LayoutProps>) {
+export default function Layout({ children, className = '', hideSignIn }: React.PropsWithChildren<LayoutProps>) {
     return (
         <div className="flex min-h-screen flex-col bg-white dark:bg-dark z-20">
             <Header>
@@ -38,9 +38,11 @@ export default function Layout({ children, className = '' }: React.PropsWithChil
                     <Logo />
                 </div>
                 <div>
-                    <Link href="/login">
-                        <div className="bg-blue-500 px-5 py-2 rounded-xl text-white cursor-pointer">Sign In</div>
-                    </Link>
+                    {!hideSignIn && (
+                        <Link href="/login">
+                            <div className="bg-blue-500 px-5 py-2 rounded-xl text-white cursor-pointer">Sign In</div>
+                        </Link>
+                    )}
                 </div>
             </Header>
             <main className={`relative mb-0 px-4 pt-24 sm:px-6 sm:pt-24 sm:pb-20 lg:px-8 xl:px-10 3xl:px-12 ${className}`}>
