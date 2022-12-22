@@ -24,8 +24,8 @@ export default function Sidebar() {
 
     useGetStatusQuery('status');
 
-    const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
-    const selectGetStatus = useAppSelector(statusQuerySelect);
+    // const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
+    // const selectGetStatus = useAppSelector(statusQuerySelect);
 
     const FooterRenderer = ({ icon, name, profileName }: any) => {
         return (
@@ -75,7 +75,7 @@ export default function Sidebar() {
                                 <MenuItem key={'default' + item.name + index} name={item.name} href={item.href} icon={item.icon} link={!!item.href} />
                             ))}
                         </div>
-                        <FooterRenderer icon={<Logout className={'!w-5 !h-5'} />} name={'Logout'} profileName={selectGetStatus?.data?.payload?.content?.user?.sub} />
+                        {/* <FooterRenderer icon={<Logout className={'!w-5 !h-5'} />} name={'Logout'} profileName={selectGetStatus?.data?.payload?.content?.user?.sub} /> */}
                     </div>
                 </div>
             </Scrollbar>

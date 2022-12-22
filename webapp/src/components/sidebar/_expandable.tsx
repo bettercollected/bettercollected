@@ -85,7 +85,7 @@ export default function SidebarExpandable() {
                                     <MenuItem key={index} link={!!item.href} href={item.href} icon={item.icon} />
                                 ))}
                             </div>
-                            <FooterRenderer icon={<Logout className={'!w-5 !h-5'} />} profileName={selectGetStatus?.data?.payload?.content?.user?.sub} />
+                            {/* <FooterRenderer icon={<Logout className={'!w-5 !h-5'} />} profileName={selectGetStatus?.data?.payload?.content?.user?.sub} /> */}
                         </div>
                     ) : (
                         <div className="flex h-full flex-col justify-between">
@@ -94,7 +94,7 @@ export default function SidebarExpandable() {
                                     <MenuItem key={index} link={!!item.href} name={item.name} href={item.href} icon={item.icon} />
                                 ))}
                             </div>
-                            <FooterRenderer icon={<Logout className={'!w-5 !h-5'} />} name={'Logout'} profileName={selectGetStatus?.data?.payload?.content?.user?.sub} />
+                            {/* <FooterRenderer icon={<Logout className={'!w-5 !h-5'} />} name={'Logout'} profileName={selectGetStatus?.data?.payload?.content?.user?.sub} /> */}
                         </div>
                     )}
                 </div>

@@ -14,18 +14,18 @@ export const FormTabContent = () => {
     const [questions, setQuestions] = useState([]);
 
     useEffect(() => {
-        fetch(`${environments.API_ENDPOINT_HOST}/forms/1-CQgKC3Ms-PqCuJNXDEkjlRP1MR4NscStXhz5rhkddk`, {
+        fetch(`${environments.API_ENDPOINT_HOST}/forms/${formId}`, {
             credentials: 'include',
             headers: {
                 'Access-Control-Allow-origin': environments.API_ENDPOINT_HOST
             }
         }).then((data) => {
             data.json().then((d) => {
-                console.log('data: ', d.payload.content.questions);
-                setQuestions(d.payload.content);
+                console.log('data: ', d);
+                setQuestions(d?.payload?.content ?? []);
             });
         });
-    }, []);
+    }, [router.asPath]);
 
     return <div className="w-full">{questions.length == 0 ? <></> : <FormRenderer form={questions} />}</div>;
 };
