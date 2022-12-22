@@ -66,7 +66,7 @@ export default function SidebarExpandable() {
                 className
             )}
         >
-            <div className={cn('relative flex h-24 items-center overflow-hidden px-6 py-4 2xl:px-8', open ? 'flex-start' : 'justify-center')}>
+            <div className={cn('relative flex h-24 items-center overflow-hidden px-9 py-4 2xl:px-11', open ? 'flex-start' : 'justify-center')}>
                 {!open && <Hamburger isOpen={open} className="!w-10 !h-10 !bg-white !text-black" onClick={() => setOpen(!open)} />}
                 {open && (
                     <div className="flex items-center justify-center h-10 cursor-pointer overflow-hidden" onClick={() => setOpen(false)}>

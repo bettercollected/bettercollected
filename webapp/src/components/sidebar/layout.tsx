@@ -54,7 +54,7 @@ export default function Layout(props: any) {
                     <>
                         <div className="flex flex-row w-full h-full py-2 md:py-0 justify-between items-center">
                             <div className={'flex'}>
-                                {!checkIfSideBarRender() && <Hamburger isOpen={isOpen} className="!shadow-none !bg-white !text-black" onClick={handleOpenSidebar} />}
+                                {!checkIfSideBarRender() && <Hamburger isOpen={isOpen} className="!shadow-none !bg-white !text-black !flex !justify-start" onClick={handleOpenSidebar} />}
                                 <Logo />
                             </div>
                         </div>

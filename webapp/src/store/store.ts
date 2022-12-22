@@ -18,7 +18,7 @@ const loggerMiddleware = createLogger();
 // Add more middlewares here
 const middlewares = [authApi.middleware, googleApiSlice.middleware, formsApi.middleware, workspacesApi.middleware];
 
-// if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
+// if (environments.IS_IN_PRODUCTION_MODE) middlewaress.splice(0, 1);
 
 const reducers = {
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
