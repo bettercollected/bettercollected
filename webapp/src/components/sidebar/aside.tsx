@@ -19,24 +19,23 @@ export default function Aside({ close }: { close?: () => void }) {
 
     const { openModal } = useModal();
 
-    const authStatus = useGetStatusQuery('status');
-
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
     const selectGetStatus = useAppSelector(statusQuerySelect);
+    const workspace = useAppSelector((state) => state.workspace);
 
     const menuItems = [
         {
-            href: '/dashboard',
+            href: `${workspace.workspaceName}/dashboard`,
             title: 'Forms',
             icon: <HomeIcon className="w-[20px] h-[20px]" />
         },
         {
-            href: '/dashboard/submissions',
+            href: `${workspace.workspaceName}/dashboard/submissions`,
             title: 'Submissions',
             icon: <HistoryIcon className="w-[20px] h-[20px]" />
         },
         {
-            href: '/dashboard/settings',
+            href: `${workspace.workspaceName}/dashboard/settings`,
             title: 'Settings',
             icon: <SearchIcon className="w-[20px] h-[20px]" />
         }

@@ -26,11 +26,13 @@ type DropdownItemProps = {
 export function MenuItem({ name, icon, href, link, dropdownItems }: MenuItemProps) {
     let [isOpen, setIsOpen] = useState(false);
     let [ref, { height }] = useMeasure<HTMLUListElement>();
-    let { pathname } = useRouter();
+    let { asPath } = useRouter();
+
+    // console.log('pathname: ', useRouter);
 
     const workspace = useAppSelector((state) => state.workspace);
 
-    let isChildrenActive = dropdownItems && dropdownItems.some((item) => item.href === pathname);
+    let isChildrenActive = dropdownItems && dropdownItems.some((item) => item.href === asPath);
 
     useEffect(() => {
         if (isChildrenActive) {
@@ -89,7 +91,7 @@ export function MenuItem({ name, icon, href, link, dropdownItems }: MenuItemProp
                             <span className={`relative z-[1] ${!!name ? 'ltr:mr-3 rtl:ml-3' : 'flex justify-center items-center w-full h-full'}`}>{icon}</span>
                             <span className="relative z-[1]"> {name}</span>
 
-                            {href === pathname && <motion.span className="absolute bottom-0 left-0 right-0 h-full w-full border-[1px] border-blue-400 rounded-md bg-blue-50" layoutId="menu-item-active-indicator" />}
+                            {`/${workspace.workspaceName}${href}` === asPath && <motion.span className="absolute bottom-0 left-0 right-0 h-full w-full border-[1px] border-blue-400 rounded-md bg-blue-50" layoutId="menu-item-active-indicator" />}
                         </ActiveLink>
                     )}
                 </>
