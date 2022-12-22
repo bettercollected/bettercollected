@@ -38,7 +38,6 @@ export default function ContactUs() {
     const handleSubmit = (e: any) => {
         e.preventDefault();
         setShowIframe(true);
-        console.log('submit:', formFields);
     };
 
     const handleAllFieldChanges = (id: string, value: any) => {

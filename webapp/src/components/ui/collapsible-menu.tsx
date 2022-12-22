@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { ChevronDown } from '@app/components/icons/chevron-down';
 import ActiveLink from '@app/components/ui/links/active-link';
 import { useMeasure } from '@app/lib/hooks/use-measure';
+import { useAppSelector } from '@app/store/hooks';
 
 type MenuItemProps = {
     name?: string;
@@ -26,6 +27,8 @@ export function MenuItem({ name, icon, href, link, dropdownItems }: MenuItemProp
     let [isOpen, setIsOpen] = useState(false);
     let [ref, { height }] = useMeasure<HTMLUListElement>();
     let { pathname } = useRouter();
+
+    const workspace = useAppSelector((state) => state.workspace);
 
     let isChildrenActive = dropdownItems && dropdownItems.some((item) => item.href === pathname);
 
@@ -64,7 +67,7 @@ export function MenuItem({ name, icon, href, link, dropdownItems }: MenuItemProp
                             {dropdownItems.map((item, index) => (
                                 <li className="first:pt-2" key={index}>
                                     <ActiveLink
-                                        href={item.href}
+                                        href={'/' + workspace.workspaceName + item.href}
                                         className="flex items-center rounded-lg p-3 text-sm text-gray-500 transition-all before:h-1 before:w-1 before:rounded-full before:bg-gray-500 hover:text-brand ltr:pl-6 before:ltr:mr-5 rtl:pr-6 before:rtl:ml-5 dark:hover:text-white"
                                         activeClassName="!text-brand dark:!text-white dark:before:!bg-white before:!bg-brand before:!w-2 before:!h-2 before:-ml-0.5 before:ltr:!mr-[18px] before:rtl:!ml-[18px] !font-medium"
                                     >
@@ -79,7 +82,7 @@ export function MenuItem({ name, icon, href, link, dropdownItems }: MenuItemProp
                 <>
                     {link && (
                         <ActiveLink
-                            href={href}
+                            href={'/' + workspace.workspaceName + href}
                             className="relative flex h-12 items-center hover:border-blue-400 hover:bg-blue-50 hover:text-blue-500 whitespace-nowrap rounded-lg px-3 text-sm text-gray-500 transition-all dark:hover:text-white"
                             activeClassName="!text-blue-500"
                         >

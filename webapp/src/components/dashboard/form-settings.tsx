@@ -22,7 +22,6 @@ export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
         try {
             const response: any = await patchPinnedForm([{ form_id: formId, pinned: !isPinned }]);
             const updated = response?.data[0][formId] === 'True';
-            console.info(updated);
 
             if (updated) {
                 setIsPinned(!isPinned);

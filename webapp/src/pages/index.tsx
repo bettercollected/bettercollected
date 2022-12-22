@@ -17,7 +17,7 @@ interface IHome extends IServerSideProps {}
 const Home = ({ hasCustomDomain, workspace, workspaceId, ...props }: IHome) => {
     const dispatch = useDispatch();
     useEffect(() => {
-        dispatch(setWorkspace({ workspaceId: 'Hello', workspaceName: 'Name' }));
+        dispatch(setWorkspace(workspace));
     }, []);
 
     if (hasCustomDomain && workspace) return <DashboardContainer workspace={workspace} />;
@@ -36,7 +36,6 @@ export async function getServerSideProps(_context: any) {
                 notFound: true
             };
         }
-        console.log(globalProps);
         return {
             props: { ...globalProps }
         };
