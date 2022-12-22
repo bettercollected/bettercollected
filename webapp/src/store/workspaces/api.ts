@@ -5,15 +5,19 @@ import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form'
 import { IGenericAPIResponse } from '@app/models/dtos/genericResponse';
 import { GoogleFormDto, GoogleMinifiedFormDto } from '@app/models/dtos/googleForm';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
+import { IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPinnedFOrmRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
 const WORKSPACE_TAGS = 'WORKSPACE_TAG';
 
 interface ImportFormQueryInterface {
-    form: GoogleFormDto;
-    response_data_owner: string;
+    workspaceId: string;
+
+    body: {
+        form: GoogleFormDto;
+        response_data_owner: string;
+    };
 }
 
 export const workspacesApi = createApi({
@@ -44,10 +48,10 @@ export const workspacesApi = createApi({
             })
         }),
         importForm: builder.mutation<any, ImportFormQueryInterface>({
-            query: (body) => ({
-                url: `/workspaces/${environments.WORKSPACE_ID}/forms/import`,
+            query: (request) => ({
+                url: `workspaces/${request.workspaceId}/forms/import`,
                 method: 'POST',
-                body
+                body: request.body
             }),
             invalidatesTags: [WORKSPACE_TAGS]
         }),
@@ -100,6 +104,14 @@ export const workspacesApi = createApi({
                 url: `/workspaces/${query.workspace_id}/forms/search?query=${query.query}`,
                 method: 'POST'
             })
+        }),
+        patchPinnedForm: builder.mutation<any, IPinnedFOrmRequest>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/pin_forms`,
+                method: 'PATCH',
+                body: request.body,
+                credentials: 'include'
+            })
         })
     })
 });
@@ -114,5 +126,6 @@ export const {
     useGetWorkspaceSubmissionsQuery,
     useGetWorkspaceAllSubmissionsQuery,
     useGetWorkspaceSubmissionQuery,
-    useSearchWorkspaceFormsMutation
+    useSearchWorkspaceFormsMutation,
+    usePatchPinnedFormMutation
 } = workspacesApi;

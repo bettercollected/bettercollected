@@ -12,3 +12,8 @@ export interface ISearchWorkspaceFormsQuery {
     workspace_id: string;
     query: string;
 }
+
+export interface IPinnedFOrmRequest {
+    workspaceId: string;
+    body: any;
+}

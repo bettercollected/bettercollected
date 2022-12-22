@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
-import { setWorkspace } from '@app/store/counter/workspaceSlice';
 import { useAppDispatch } from '@app/store/hooks';
+import { setWorkspace } from '@app/store/workspaces/slice';
 
 export default function WorkspaceHOC(props: any) {
     const { workspace, children } = props;

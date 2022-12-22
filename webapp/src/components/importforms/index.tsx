@@ -16,7 +16,8 @@ import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { GoogleMinifiedFormDto } from '@app/models/dtos/googleForm';
-import { useGetMinifiedFormsQuery, useImportFormMutation, useLazyGetGoogleFormQuery } from '@app/store/forms/api';
+import { useAppSelector } from '@app/store/hooks';
+import { useGetMinifiedFormsQuery, useImportFormMutation, useLazyGetGoogleFormQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function ImportForms() {
@@ -25,6 +26,8 @@ export default function ImportForms() {
     const [selectedForm, setSelectedForm] = useState('');
     const [responseDataOwner, setResponseDataOwner] = useState('');
     const [stepCount, setStepCount] = useState(0);
+
+    const workspace = useAppSelector((state) => state.workspace);
 
     const minifiedForms = useGetMinifiedFormsQuery();
     const [googleFormTrigger, googleFormResult] = useLazyGetGoogleFormQuery();
@@ -35,7 +38,6 @@ export default function ImportForms() {
 
     const handleConnectWithGoogle = () => {
         router.push(`${environments.API_ENDPOINT_HOST}/auth/google/connect`);
-        console.log('got inside');
     };
 
     if (minifiedForms.isLoading) return <FullScreenLoader />;
@@ -63,7 +65,7 @@ export default function ImportForms() {
 
     const handleImportForm = async () => {
         const form: any = { ...googleFormResult?.data?.payload?.content, provider: 'google' };
-        await importForm({ form, response_data_owner: responseDataOwner })
+        await importForm({ body: { form, response_data_owner: responseDataOwner }, workspaceId: workspace.id })
             .then(() => closeModal())
             .catch((e) => toast.error('Could not import the form.'));
     };

@@ -18,7 +18,7 @@ const initialState: WorkspaceState = {
     customDomain: ''
 };
 
-export const workspaceSlice = createSlice({
+export const slice = createSlice({
     name: 'workspace',
     initialState,
     reducers: {
@@ -42,12 +42,12 @@ const workspaceReducer = persistReducer(
         storage,
         whitelist: ['value']
     },
-    workspaceSlice.reducer
+    slice.reducer
 );
 
-const reducerObj = { reducerPath: workspaceSlice.name, reducer: workspaceReducer };
+const reducerObj = { reducerPath: slice.name, reducer: workspaceReducer };
 
 // Action creators are generated for each case reducer function
-export const { setWorkspace } = workspaceSlice.actions;
+export const { setWorkspace } = slice.actions;
 
 export default reducerObj;
