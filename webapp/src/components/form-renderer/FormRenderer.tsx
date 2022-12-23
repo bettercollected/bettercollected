@@ -295,8 +295,8 @@ export default function FormRenderer({ form, workspace, submissionId, ...props }
                     </ol>
                 </nav>
             </div> */}
-            <div className="pt-20 pb-14">
-                <p className="text-sm text-gray-400 italic">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.formId, 30) : form.formId}</p>
+            <div className="pb-14 pt-4">
+                {/* <p className="text-sm text-gray-400 italic">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.formId, 30) : form.formId}</p> */}
                 <h1 className="font-semibold text-darkGrey mb-3 text-xl sm:text-2xl md:text-3xl xl:text-4xl 2xl:text-[40px]">{form.title}</h1>
                 {form?.description && (
                     <div className="p-6 border-[1.5px] border-gray-200 rounded-lg">

@@ -6,7 +6,7 @@ import environments from '@app/configs/environments';
 
 import FormRenderer from '../form-renderer/FormRenderer';
 
-export const FormTabContent = () => {
+export const FormTabContent = ({ workspaceId }: String) => {
     const router = useRouter();
 
     const formId = router.query.form_id;
@@ -14,18 +14,19 @@ export const FormTabContent = () => {
     const [questions, setQuestions] = useState([]);
 
     useEffect(() => {
-        fetch(`${environments.API_ENDPOINT_HOST}/forms/${formId}`, {
-            credentials: 'include',
-            headers: {
-                'Access-Control-Allow-origin': environments.API_ENDPOINT_HOST
-            }
-        }).then((data) => {
-            data.json().then((d) => {
-                console.log('data: ', d);
-                setQuestions(d?.payload?.content ?? []);
+        if (!!workspaceId && !!formId) {
+            fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${workspaceId}/forms?form_id=${formId}`, {
+                credentials: 'include',
+                headers: {
+                    'Access-Control-Allow-origin': environments.API_ENDPOINT_HOST
+                }
+            }).then((data) => {
+                data.json().then((d) => {
+                    setQuestions(d?.payload?.content ?? []);
+                });
             });
-        });
-    }, [router.asPath]);
+        }
+    }, [workspaceId, formId]);
 
     return <div className="w-full">{questions.length == 0 ? <></> : <FormRenderer form={questions} />}</div>;
 };

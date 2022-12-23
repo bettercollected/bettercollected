@@ -23,7 +23,9 @@ enum FormTabs {
 }
 
 export default function FormPage(props: any) {
-    const { formId, form, workspaceId, workspaceName } = props;
+    const { formId, form, workspaceName } = props;
+
+    console.log(formId);
 
     const breakpoint = useBreakpoint();
     const router = useRouter();
@@ -73,10 +75,10 @@ export default function FormPage(props: any) {
             <div className="flex flex-col w-full m-auto justify-center">
                 <ParamTab tabMenu={tabs}>
                     <TabPanel className="focus:outline-none" key="form">
-                        <FormTabContent />
+                        <FormTabContent workspaceId={props?.workspace?.id ?? ''} />
                     </TabPanel>
                     <TabPanel className="focus:outline-none" key="submissions">
-                        <FormSubmissionsTab />
+                        <FormSubmissionsTab workspaceId={props?.workspace?.id ?? ''} formId={formId} />
                     </TabPanel>
                     <TabPanel className="focus:outline-none" key="settings">
                         <FormSettingsTab formId={formId} form={form} />

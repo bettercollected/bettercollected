@@ -56,6 +56,7 @@ export default function Layout(props: any) {
     };
 
     const profileName = selectGetStatus?.data?.payload?.content?.user?.sub ?? '';
+
     const handleClose = () => {
         setAnchorEl(null);
     };
@@ -76,7 +77,7 @@ export default function Layout(props: any) {
                                 <Logo />
                             </div>
                             <div aria-label="more" id="profile-button" aria-expanded={open ? 'true' : undefined} aria-haspopup="true" aria-controls={open ? 'profile-menu' : undefined} onClick={handleClick}>
-                                <div className="flex items-center mt-2">
+                                <div className="flex cursor-pointer items-center mt-2">
                                     <div className="flex rounded-md w-full p-3 h-10 items-center justify-center mr-2 bg-blue-50">{profileName[0]?.toUpperCase()}</div>
                                     <div className="italic font-bold text-md text-gray-600 flex flex-row items-center">
                                         <p className="mr-2">{profileName}</p>
@@ -117,7 +118,7 @@ export default function Layout(props: any) {
                 </Header>
             )}
             {checkIfSideBarRender() && <SidebarExpandable />}
-            <main className={cn('px-4 xl:left-24 right-0 w-full xl:w-auto absolute top-24 pt-4 pb-16 sm:px-6 sm:pb-20 lg:px-8 xl:pb-24 3xl:px-10 3xl:pt-2.5')}>{children}</main>
+            <main className={cn('px-4 xl:left-24 right-0 h-full w-full xl:w-auto absolute top-24 pt-4 pb-16 sm:px-6 sm:pb-20 lg:px-8 xl:pb-24 3xl:px-10 3xl:pt-2.5')}>{children}</main>
         </div>
     );
 }
