@@ -9,7 +9,7 @@ import FormRenderer from '../form-renderer/FormRenderer';
 export const FormTabContent = () => {
     const router = useRouter();
 
-    const formId = router.query.workspace_name;
+    const formId = router.query.form_id;
 
     const [questions, setQuestions] = useState([]);
 

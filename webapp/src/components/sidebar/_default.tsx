@@ -24,20 +24,20 @@ export default function Sidebar() {
 
     useGetStatusQuery('status');
 
-    // const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
-    // const selectGetStatus = useAppSelector(statusQuerySelect);
+    const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
+    const selectGetStatus = useAppSelector(statusQuerySelect);
 
     const FooterRenderer = ({ icon, name, profileName }: any) => {
         return (
             <div className="flex flex-col justify-center mt-2 border-t-[1.5px] border-gray-100">
-                {!!profileName && (
+                {/* {!!profileName && (
                     <Tooltip title={profileName} arrow>
                         <div className="flex items-center mt-2">
                             {!name && <div className="flex rounded-md w-full h-10 items-center justify-center bg-blue-50">{profileName[0]}</div>}
                             {!!name && <div className="italic font-extrabold text-xs text-gray-600">{profileName}</div>}
                         </div>
                     </Tooltip>
-                )}
+                )} */}
                 <div
                     onClick={() => openModal('LOGOUT_VIEW')}
                     className={`relative flex flex-row mt-2 py-3 px-4 ${
@@ -75,7 +75,7 @@ export default function Sidebar() {
                                 <MenuItem key={'default' + item.name + index} name={item.name} href={item.href} icon={item.icon} link={!!item.href} />
                             ))}
                         </div>
-                        {/* <FooterRenderer icon={<Logout className={'!w-5 !h-5'} />} name={'Logout'} profileName={selectGetStatus?.data?.payload?.content?.user?.sub} /> */}
+                        <FooterRenderer icon={<Logout className={'!w-5 !h-5'} />} name={'Logout'} profileName={selectGetStatus?.data?.payload?.content?.user?.sub} />
                     </div>
                 </div>
             </Scrollbar>
