@@ -13,7 +13,7 @@ import ParamTab from '@app/components/ui/param-tab';
 import { TabPanel } from '@app/components/ui/tab';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
+import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 enum FormTabs {
@@ -91,17 +91,15 @@ export async function getServerSideProps(_context: any) {
     const { cookies } = _context.req;
     const hasCustomDomain = _context.req.headers.host !== environments.CLIENT_HOST;
     if (hasCustomDomain) {
-        const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
-        if (!globalProps?.workspace?.id) {
-            return {
-                notFound: true
-            };
-        }
         return {
-            props: { ...globalProps }
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
         };
     }
 
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context).catch((e) => {})).props;
     const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
     const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
 
@@ -140,8 +138,7 @@ export async function getServerSideProps(_context: any) {
                 return {
                     props: {
                         formId: form_id,
-                        workspaceId: id,
-                        workspaceName: workspace_name,
+                        ...globalProps,
                         form
                     }
                 };
