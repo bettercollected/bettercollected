@@ -5,8 +5,9 @@ import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
+import environments from '@app/configs/environments';
 import { useAppSelector } from '@app/store/hooks';
-import { usePatchPinnedFormMutation } from '@app/store/workspaces/api';
+import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
 interface FormSettingsProps {
     formId: string;
@@ -14,40 +15,40 @@ interface FormSettingsProps {
 }
 
 export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
-    const [patchPinnedForm] = usePatchPinnedFormMutation();
+    const [patchFormSettings] = usePatchFormSettingsMutation();
     const [isPinned, setIsPinned] = useState(!!form?.settings?.pinned);
     const workspace = useAppSelector((state) => state.workspace);
     const [customUrl, setCustomUrl] = useState(form.settings.customUrl || '');
+    const isCustomDomain = !!workspace.customDomain;
+    const [error, setError] = useState(false);
 
-    const onSwitchChange = async (event: any) => {
-        try {
-            const response: any = await patchPinnedForm({
-                workspaceId: workspace.id,
-                body: [{ form_id: formId, pinned: !isPinned }]
+    const patchSettings = (body: any) => {
+        return patchFormSettings({
+            workspaceId: workspace.id,
+            formId: formId,
+            body: body
+        })
+            .then((res) => {
+                toast('Form Updated!!', { type: 'success' });
+            })
+            .catch((e) => {
+                toast('Something went wrong!!', { type: 'error' });
             });
-            const updated = response?.data[0][formId] === 'True';
-
-            if (updated) {
-                setIsPinned(!isPinned);
-                toast(`Form ${!isPinned ? 'Pinned' : 'Unpinned'}`, {
-                    type: 'success'
-                });
-            } else {
-                toast('Error patching form', {
-                    type: 'error'
-                });
-            }
-        } catch (e) {
-            toast('Error patching form', {
-                type: 'error'
-            });
-        }
     };
 
-    const onBlur = () => {};
+    const onSwitchChange = (event: any) => {
+        patchSettings({ pinned: !isPinned }).then((res) => {
+            setIsPinned(!isPinned);
+        });
+    };
+
+    const onBlur = () => {
+        if (error) return;
+        patchSettings({ customUrl });
+    };
 
     return (
-        <div className="max-w-[600px]">
+        <div className="max-w-[800px]">
             <div className=" flex flex-col">
                 <div className="text-xl font-bold text-black">Pinned</div>
                 <div className="flex w-full justify-between items-center h-14 text-gray-800">
@@ -56,24 +57,39 @@ export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
                 </div>
             </div>
             <Divider className="mb-6 mt-2" />
-            <div className=" flex flex-col ">
-                <div className="text-xl font-bold text-black">Custom URL</div>
-                <div className="flex w-full items-center justify-between text-gray-800">
-                    <div>Something to show in url instead of id of form</div>
+            <div className="flex justify-between items-start w-full">
+                <div className={`text-xl font-bold w-full text-black mb-12`}>Custom Slug</div>
+                <div className="w-full">
                     <TextField
-                        size="small"
+                        size="medium"
                         name="search-input"
                         placeholder="Custom-url"
                         value={customUrl}
-                        onBlur={() => {
-                            toast.success('On blur');
-                        }}
+                        error={error}
+                        onBlur={onBlur}
                         onChange={(event) => {
+                            if (event.target.value && !event.target.value.match('^\\S+$')) {
+                                setError(true);
+                            } else {
+                                setError(false);
+                            }
                             setCustomUrl(event.target.value);
                         }}
-                        className={'w-full max-w-[250px]'}
+                        className={`w-full`}
                     />
+                    <div className="text-red-500 text-sm">{error && 'Custom Slug cannot contain spaces.'}</div>
                 </div>
+            </div>
+            <div className="mt-5 space-y-2">
+                <div className="text-gray-700 font-bold">Form URLs</div>
+                <div className="text-blue-500 underline">
+                    {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{environments.CLIENT_HOST}/{workspace.workspaceName}/forms/{customUrl}
+                </div>
+                {isCustomDomain && (
+                    <div className="text-blue-500 underline">
+                        {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{workspace.customDomain}/forms/{customUrl}
+                    </div>
+                )}
             </div>
         </div>
     );

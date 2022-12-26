@@ -5,7 +5,7 @@ import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form'
 import { IGenericAPIResponse } from '@app/models/dtos/genericResponse';
 import { GoogleFormDto, GoogleMinifiedFormDto } from '@app/models/dtos/googleForm';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPinnedFOrmRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
+import { IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
@@ -105,9 +105,9 @@ export const workspacesApi = createApi({
                 method: 'POST'
             })
         }),
-        patchPinnedForm: builder.mutation<any, IPinnedFOrmRequest>({
+        patchFormSettings: builder.mutation<any, IPatchFormSettingsRequest>({
             query: (request) => ({
-                url: `/workspaces/${request.workspaceId}/pin_forms`,
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/settings`,
                 method: 'PATCH',
                 body: request.body,
                 credentials: 'include'
@@ -127,5 +127,5 @@ export const {
     useGetWorkspaceAllSubmissionsQuery,
     useGetWorkspaceSubmissionQuery,
     useSearchWorkspaceFormsMutation,
-    usePatchPinnedFormMutation
+    usePatchFormSettingsMutation
 } = workspacesApi;

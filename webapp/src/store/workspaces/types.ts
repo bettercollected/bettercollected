@@ -13,7 +13,8 @@ export interface ISearchWorkspaceFormsQuery {
     query: string;
 }
 
-export interface IPinnedFOrmRequest {
+export interface IPatchFormSettingsRequest {
     workspaceId: string;
+    formId: string;
     body: any;
 }
