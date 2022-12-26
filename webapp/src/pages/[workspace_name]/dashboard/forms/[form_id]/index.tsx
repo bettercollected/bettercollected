@@ -1,8 +1,10 @@
 import React from 'react';
 
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 import { Feed, Settings } from '@mui/icons-material';
+import { toast } from 'react-toastify';
 
 import { FormTabContent } from '@app/components/dashboard/form-overview';
 import FormSubmissionsTab from '@app/components/dashboard/form-responses';
@@ -14,6 +16,7 @@ import { TabPanel } from '@app/components/ui/tab';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
+import Error from '@app/pages/_error';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 enum FormTabs {
@@ -23,12 +26,11 @@ enum FormTabs {
 }
 
 export default function FormPage(props: any) {
-    const { formId, form, workspaceName } = props;
-
-    console.log(formId);
-
     const breakpoint = useBreakpoint();
-    const router = useRouter();
+    if (props.error) {
+        return <Error />;
+    }
+    const { formId, form, workspaceName } = props;
 
     const tabs = [
         {
@@ -54,12 +56,14 @@ export default function FormPage(props: any) {
                 <nav className="flex mt-3 px-0 md:px-0" aria-label="Breadcrumb">
                     <ol className="inline-flex items-center space-x-1 md:space-x-3">
                         <li className="inline-flex items-center">
-                            <span aria-hidden onClick={() => router.push(`/${workspaceName}/dashboard`)} className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
-                                </svg>
-                                Forms
-                            </span>
+                            <Link href={`/${props.workspace.workspaceName}/dashboard`}>
+                                <span aria-hidden className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                                    </svg>
+                                    Forms
+                                </span>
+                            </Link>
                         </li>
                         <li aria-current="page">
                             <div className="flex items-center">
@@ -78,7 +82,7 @@ export default function FormPage(props: any) {
                         <FormTabContent workspaceId={props?.workspace?.id ?? ''} />
                     </TabPanel>
                     <TabPanel className="focus:outline-none" key="submissions">
-                        <FormSubmissionsTab workspaceId={props?.workspace?.id ?? ''} formId={formId} />
+                        <FormSubmissionsTab workspace={props.workspace} workspaceName={props?.workspace?.workspaceName} workspaceId={props?.workspace?.id ?? ''} formId={formId} />
                     </TabPanel>
                     <TabPanel className="focus:outline-none" key="settings">
                         <FormSettingsTab formId={formId} form={form} />
@@ -102,6 +106,7 @@ export async function getServerSideProps(_context: any) {
     }
 
     const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context).catch((e) => {})).props;
+
     const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
     const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
 
@@ -146,7 +151,13 @@ export async function getServerSideProps(_context: any) {
                 };
             }
         }
-    } catch (e) {}
+    } catch (e) {
+        return {
+            props: {
+                error: true
+            }
+        };
+    }
 
     return {
         props: {}

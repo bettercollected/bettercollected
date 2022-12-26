@@ -23,9 +23,6 @@ export default function Iframe(props: any) {
 
     function handleIframe(e: any) {
         const currentIframe = e;
-        // if(!!currentIframe.current) {
-        //     console.log("iframe", currentIframe.contentWindow.document.getElementsByTagName("a"))
-        // }
     }
 
     return (

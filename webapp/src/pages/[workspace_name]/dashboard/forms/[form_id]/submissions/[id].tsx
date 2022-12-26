@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 import { useRouter } from 'next/router';
 
@@ -21,7 +21,6 @@ import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import globalServerProps from '@app/lib/serverSideProps';
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
-import { useGetWorkspaceSubmissionQuery, useLazyGetWorkspaceFormsQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 const StyledTextField = styled.div`
@@ -68,39 +67,14 @@ enum QUESTION_TYPE {
     LINEAR_SCALE = 'LINEAR_SCALE'
 }
 
-//TODO: fetch the data using api slice and set the form...
-// you will need two api calls conditionally based on questions or responses.
-
-export default function FormRenderer({ submissionId, formId, workspaceId, form }: any) {
+export default function Submission({ form, workspace, submissionId, ...props }: ISubmission) {
     const router = useRouter();
+
+    const { id, workspace_name, form_id } = router.query;
+
     const breakpoint = useBreakpoint();
 
-    // const [form, setForm] = useState([]);
-
-    // const submission = useLazyGetWorkspaceSubmissionQuery();
-    // const forms = useLazyGetWorkspaceFormsQuery();
-
-    // const conditionalFetchingFormsOrSubmissions = async () => {
-    //     if (!!submissionId) {
-    //         const submissionQuery = {
-    //             workspace_id: workspaceId,
-    //             submission_id: submissionId
-    //         };
-    //         const [trigger, result] = submission;
-    //         return await trigger(submissionQuery).unwrap();
-    //     } else {
-    //         const formsQuery = {
-    //             workspace_id: workspaceId,
-    //             form_id: formId
-    //         };
-    //         const [trigger] = forms;
-    //         return await trigger(formsQuery).unwrap();
-    //     }
-    // };
-
-    // useEffect(() => {
-    //     conditionalFetchingFormsOrSubmissions().then((d) => setForm(d?.payload?.content));
-    // }, [submissionId, formId]);
+    if (!form) return <FullScreenLoader />;
 
     const getQuestionType = (question: any) => {
         if (question.isMediaContent && 'video' in question.type) return QUESTION_TYPE.VIDEO_CONTENT;
@@ -277,18 +251,66 @@ export default function FormRenderer({ submissionId, formId, workspaceId, form }
         }
     };
 
+    const goToSubmissions = () => {
+        router
+            .push(
+                {
+                    pathname: `/${workspace_name}/dashboard/forms/${form_id}`,
+                    query: { view: 'response' }
+                },
+                undefined,
+                { scroll: true, shallow: true }
+            )
+            .then((r) => r)
+            .catch((e) => e);
+    };
+
     return (
         <div className="relative container mx-auto px-6 md:px-0">
-            <div className="pb-14 pt-4">
-                <h1 className="font-semibold text-darkGrey mb-3 text-xl sm:text-2xl md:text-3xl xl:text-4xl 2xl:text-[40px]">{form?.title}</h1>
+            <div className="!absolute !top-0 !left-0">
+                <nav className="flex mt-3 px-6 md:px-0" aria-label="Breadcrumb">
+                    <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                        <li className="inline-flex items-center">
+                            <span aria-hidden onClick={() => router.push(`/${workspace_name}/dashboard`)} className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                                </svg>
+                                Home
+                            </span>
+                        </li>
+                        <li>
+                            <div className="flex items-center">
+                                <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span aria-hidden onClick={() => goToSubmissions()} className="cursor-pointer ml-1 text-sm font-medium text-gray-700 hover:text-gray-900 md:ml-2 dark:text-gray-400 dark:hover:text-white">
+                                    Submissions
+                                </span>
+                            </div>
+                        </li>
+                        <li aria-current="page">
+                            <div className="flex items-center">
+                                <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.formId, 10) : form.formId}</span>
+                            </div>
+                        </li>
+                    </ol>
+                </nav>
+            </div>
+            <div className="pt-20 pb-14">
+                <p className="text-sm text-gray-400 italic">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.formId, 30) : form.formId}</p>
+                <h1 className="font-semibold text-darkGrey mb-3 text-xl sm:text-2xl md:text-3xl xl:text-4xl 2xl:text-[40px]">{form.title}</h1>
                 {form?.description && (
                     <div className="p-6 border-[1.5px] border-gray-200 rounded-lg">
-                        <MarkdownText description={form?.description} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />
+                        <MarkdownText description={form.description} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />
                     </div>
                 )}
                 <hr className="my-6" />
-                {form?.questions?.map((question: any, idx: number) => (
+                {form.questions.map((question: any, idx: number) => (
                     <div key={question?.questionId ?? `${question.formId}_${idx}`} className="p-6 border-[1.5px] border-gray-200 rounded-lg mb-4">
+                        {/* <p className="font-semibold text-xs underline underline-offset-4 decoration-gray-200 text-gray-400">Question #{idx}</p> */}
                         <h1 className="font-semibold text-lg text-gray-600">{question.title}</h1>
                         {question?.description && <MarkdownText description={question.description} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />}
                         {renderQuestionTypeField(question)}
@@ -299,37 +321,36 @@ export default function FormRenderer({ submissionId, formId, workspaceId, form }
     );
 }
 
-// export async function getServerSideProps(_context: any) {
-//     const globalProps = (await globalServerProps(_context)).props;
-//     const { cookies } = _context.req;
-//     const submissionId = _context.query.id;
+export async function getServerSideProps(_context: any) {
+    const globalProps = (await globalServerProps(_context)).props;
+    const { cookies } = _context.req;
+    const submissionId = _context.query.id;
 
-//     let form: StandardFormDto | null = null;
+    let form: StandardFormDto | null = null;
 
-//     const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
-//     const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
+    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
+    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
 
-//     const config = {
-//         method: 'GET',
-//         headers: {
-//             cookie: `${auth};${refresh}`
-//         }
-//     };
+    const config = {
+        method: 'GET',
+        headers: {
+            cookie: `${auth};${refresh}`
+        }
+    };
 
-//     try {
-//         const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${environments.WORKSPACE_ID}/submissions/${submissionId}`, config).catch((e) => e);
-//         form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
-//     } catch (err) {
-//         form = null;
-//         console.error(err);
-//     }
-//     console.info(form);
+    try {
+        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${environments.WORKSPACE_ID}/submissions/${submissionId}`, config).catch((e) => e);
+        form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
+    } catch (err) {
+        form = null;
+        console.error(err);
+    }
 
-//     return {
-//         props: {
-//             ...globalProps,
-//             form,
-//             submissionId
-//         }
-//     };
-// }
+    return {
+        props: {
+            ...globalProps,
+            form,
+            submissionId
+        }
+    };
+}

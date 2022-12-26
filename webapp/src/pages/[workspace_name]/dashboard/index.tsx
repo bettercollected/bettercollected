@@ -19,7 +19,11 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
 
     const { user } = useUser();
 
-    const workspaceForms = useGetWorkspaceFormsQuery<any>(workspace.id);
+    const workspaceQuery = {
+        workspace_id: workspace.id
+    };
+
+    const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery);
 
     const breakpoint = useBreakpoint();
 
@@ -38,8 +42,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
     const Header = () => (
         <div className="flex flex-col w-full sm:flex-row justify-between items-start sm:items-center mb-10 py-4 pt-4 border-b-[1px] border-b-gray-200">
             <div className="flex flex-col">
-                <h1 className="font-extrabold text-3xl">Hello {email?.replaceAll('@gmail.com', '')}!</h1>
-                <p className="text-gray-600">Here are your forms</p>
+                <h1 className="font-extrabold text-3xl">Hello {workspace.title}!</h1>
             </div>
 
             {user?.data?.payload?.content?.user?.services?.length === 0 ? (
@@ -83,9 +86,6 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                                             aria-hidden
                                             onClick={(event) => {
                                                 event.preventDefault();
-                                                // handlePinnedForms(form.formId);
-                                                // copyToClipboard(shareUrl);
-                                                // setIsOpen(true);
                                             }}
                                             className="flex flex-col border-white hover:border-neutral-100 rounded-md"
                                         >

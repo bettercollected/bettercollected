@@ -29,17 +29,13 @@ const customFetchBase: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryEr
 
             try {
                 const refreshResult = await baseQuery({ credentials: 'include', url: 'auth/refresh_token' }, api, extraOptions);
-                console.log('refresh: ', refreshResult);
 
                 // console.log('inside custom base');
 
                 if (refreshResult.data) {
-                    console.log('login');
                     // Retry the initial query
                     result = await baseQuery(args, api, extraOptions);
                 } else {
-                    console.log('logout');
-
                     // api.dispatch(logout());
                     // window.location.href = '/login';
                 }
