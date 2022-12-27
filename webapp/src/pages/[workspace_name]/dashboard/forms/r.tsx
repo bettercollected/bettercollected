@@ -127,7 +127,7 @@ export async function getServerSideProps(_context: any) {
                 return {
                     redirect: {
                         permanent: false,
-                        destination: `/setupWorkspace`
+                        destination: `/SetupWorkspace`
                     }
                 };
             }
