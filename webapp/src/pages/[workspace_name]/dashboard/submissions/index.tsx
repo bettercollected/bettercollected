@@ -2,18 +2,26 @@ import { useEffect, useState } from 'react';
 
 import Router from 'next/router';
 
+import { toast } from 'react-toastify';
+
+import FormRenderer from '@app/components/form-renderer/FormRenderer';
 import Layout from '@app/components/sidebar/layout';
+import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
-import { useGetWorkspaceAllSubmissionsQuery } from '@app/store/workspaces/api';
+import { useGetWorkspaceAllSubmissionsQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function MySubmissions({ workspace }: { workspace: any }) {
     const submissionsQuery = useGetWorkspaceAllSubmissionsQuery(workspace?.id || '');
     const breakpoint = useBreakpoint();
+    const [trigger, { isLoading, isError, data }] = useLazyGetWorkspaceSubmissionQuery();
 
     const [responseObject, setResponseObject] = useState({});
+    const [form, setForm] = useState([]);
+
+    const [responseId, setResponseId] = useState('');
 
     const convertToClientForm = (formsArray: Array<any>) => {
         const responseMap = formsArray.reduce(function (accumulator, value) {
@@ -28,10 +36,24 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
             return accumulator;
         }, Object.create(null));
 
-        console.log('response map: ', responseMap);
-
         return responseMap;
     };
+
+    useEffect(() => {
+        if (!!responseId) {
+            const submissionQuery = {
+                workspace_id: workspace.id,
+                submission_id: responseId
+            };
+            trigger(submissionQuery)
+                .then((d: any) => {
+                    setForm(d.data?.payload?.content);
+                })
+                .catch((e) => {
+                    toast.error('Error fetching submission data.');
+                });
+        }
+    }, [responseId]);
 
     useEffect(() => {
         if (!submissionsQuery?.isLoading && !!submissionsQuery?.data?.payload?.content) {
@@ -39,8 +61,6 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
             setResponseObject(responseMapObject);
         }
     }, [submissionsQuery]);
-
-    // if (submissionsQuery.isLoading) return <FullScreenLoader/>;
 
     const CardRenderer = () => {
         return (
@@ -56,7 +76,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
                                     {response.responses.map((form: any) => {
                                         return (
                                             <div
-                                                onClick={() => Router.push(`/dashboard/submissions/${form.responseId}`)}
+                                                onClick={() => setResponseId(form.responseId)}
                                                 key={form.responseId}
                                                 className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]"
                                             >
@@ -91,10 +111,45 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
         );
     };
 
+    const BreadCrumbRenderer = () => {
+        return (
+            <div className="max-h-[100vh] overflow-auto mb-4">
+                <nav className="flex mt-3 px-0 md:px-0" aria-label="Breadcrumb">
+                    <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                        <li className="inline-flex items-center">
+                            <span aria-hidden onClick={() => setResponseId('')} className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                                </svg>
+                                Responses
+                            </span>
+                        </li>
+                        <li aria-current="page">
+                            <div className="flex items-center">
+                                <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                {!!responseId && <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(responseId, 10) : responseId}</span>}
+                            </div>
+                        </li>
+                    </ol>
+                </nav>
+            </div>
+        );
+    };
+
+    if (isLoading) return <FullScreenLoader />;
+
     return (
         <Layout>
-            <MyRecentSubmissions />
-            <CardRenderer />
+            {!responseId && (
+                <>
+                    <MyRecentSubmissions />
+                    <CardRenderer />
+                </>
+            )}
+            {!!responseId && <BreadCrumbRenderer />}
+            {!!responseId && <FormRenderer form={form} />}
         </Layout>
     );
 }

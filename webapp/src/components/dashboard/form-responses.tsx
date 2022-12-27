@@ -8,14 +8,13 @@ import TableBody from '@mui/material/TableBody';
 import TableCell, { tableCellClasses } from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import { styled } from '@mui/material/styles';
 import { toast } from 'react-toastify';
 
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { useGetWorkspaceSubmissionsQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { toMonthDateYearStr } from '@app/utils/dateUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
@@ -47,11 +46,11 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 }));
 
 export default function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: any) {
-    const [page, setPage] = useState(1);
-    const breakpoint = useBreakpoint();
-    const handleChangePage = (event: unknown, newPage: number) => {
-        setPage(newPage);
-    };
+    // const [page, setPage] = useState(1);
+    // const breakpoint = useBreakpoint();
+    // const handleChangePage = (event: unknown, newPage: number) => {
+    //     setPage(newPage);
+    // };
 
     const [trigger, { isLoading, isError, data }] = useLazyGetWorkspaceSubmissionQuery();
 
@@ -64,6 +63,8 @@ export default function FormSubmissionsTab({ workspaceId, formId, workspaceName,
     const [submissionId, setSubmissionId] = useState('');
 
     const [responses, setResponses] = useState([]);
+
+    console.log(form, submissionId, responses);
 
     useEffect(() => {
         if (!!submissionId) {
@@ -129,7 +130,7 @@ export default function FormSubmissionsTab({ workspaceId, formId, workspaceName,
                                 <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                     <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
                                 </svg>
-                                {!!submissionId && <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submissionId, 10) : submissionId}</span>}
+                                {!!submissionId && <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">{submissionId}</span>}
                             </div>
                         </li>
                     </ol>

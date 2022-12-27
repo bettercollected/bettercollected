@@ -73,7 +73,7 @@ enum QUESTION_TYPE {
 
 export default function FormRenderer({ submissionId, formId, workspaceId, form }: any) {
     const router = useRouter();
-    const breakpoint = useBreakpoint();
+    // const breakpoint = useBreakpoint();
 
     // const [form, setForm] = useState([]);
 
