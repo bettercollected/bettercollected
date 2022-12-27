@@ -1,35 +1,95 @@
 stages:
-    - build-develop
-    - build-master
+  - build
+  - deploy
 
 build develop:
-    stage: build-develop
-    image: docker:latest
-    services:
-        - docker:dind
-    script:
-        - docker info
-        - echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
-        - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG || docker pull $CI_REGISTRY_IMAGE:develop || true
-        - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA --cache-from=$CI_REGISTRY_IMAGE:$CI_BUILD_REF_NAME --cache-from=$CI_REGISTRY_IMAGE:develop --shm-size 512M .
-        - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-        - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-        - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    only:
-        - develop
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker info
+    - echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG || docker pull $CI_REGISTRY_IMAGE:nightly || true
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE:nightly  --cache-from=$CI_REGISTRY_IMAGE:$CI_BUILD_REF_NAME --cache-from=$CI_REGISTRY_IMAGE:nightly --shm-size 512M .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    - docker push $CI_REGISTRY_IMAGE:nightly
+  only:
+    - develop
 
-build master:
-    stage: build-master
-    image: docker:latest
-    services:
-        - docker:dind
-    script:
-        - docker info
-        - echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
-        - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG || docker pull $CI_REGISTRY_IMAGE:latest || true
-        - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA --cache-from=$CI_REGISTRY_IMAGE:$CI_BUILD_REF_NAME --cache-from=$CI_REGISTRY_IMAGE:latest --shm-size 512M .
-        - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-        - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-        - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    only:
-        - master
+deploy develop:
+  stage: deploy
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: 172.31.0.6:2376
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker service update --force --with-registry-auth --image  $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA bettercollected_dev_webapp
+  only:
+    - develop
+
+build staging:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker info
+    - echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG || docker pull $CI_REGISTRY_IMAGE:latest || true
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE:latest --cache-from=$CI_REGISTRY_IMAGE:$CI_BUILD_REF_NAME --cache-from=$CI_REGISTRY_IMAGE:latest --shm-size 512M .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    - docker push $CI_REGISTRY_IMAGE:latest
+  only:
+    - master
+
+deploy staging:
+  stage: deploy
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: 172.31.0.7:2376
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker service update --force --with-registry-auth --image  $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA bettercollected_staging_webapp
+  only:
+    - master
+
+build release:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker info
+    - echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG || docker pull $CI_REGISTRY_IMAGE:release || true
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -t  $CI_REGISTRY_IMAGE:release --cache-from=$CI_REGISTRY_IMAGE:$CI_BUILD_REF_NAME --cache-from=$CI_REGISTRY_IMAGE:release --shm-size 512M .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    - docker push $CI_REGISTRY_IMAGE:release
+  only:
+    - release
+
+deploy release:
+  stage: deploy
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: 172.31.0.7:2376
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker service update --force --with-registry-auth --image  $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA bettercollected_webapp
+  only:
+    - release
+
+
