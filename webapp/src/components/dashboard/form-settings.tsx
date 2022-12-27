@@ -5,7 +5,10 @@ import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
+import { Copy } from '@app/components/icons/copy';
+import { ShareIcon } from '@app/components/icons/share-icon';
 import environments from '@app/configs/environments';
+import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
@@ -21,6 +24,7 @@ export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
     const [customUrl, setCustomUrl] = useState(form.settings.customUrl || '');
     const isCustomDomain = !!workspace.customDomain;
     const [error, setError] = useState(false);
+    const [_, copyToClipboard] = useCopyToClipboard();
 
     const patchSettings = (body: any) => {
         return patchFormSettings({
@@ -82,12 +86,34 @@ export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
             </div>
             <div className="mt-5 space-y-2">
                 <div className="text-gray-700 font-bold">Form URLs</div>
-                <div className="text-blue-500 underline">
+                <div className="text-gray-800 underline w-fit items-center rounded px-4 py-2 flex bg-gray-100">
                     {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{environments.CLIENT_HOST}/{workspace.workspaceName}/forms/{customUrl}
+                    <Copy
+                        width="16px"
+                        height="16px"
+                        className="ml-4 cursor-pointer"
+                        onClick={() => {
+                            copyToClipboard(`${environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`);
+                            toast('Copied Form Url', {
+                                type: 'info'
+                            });
+                        }}
+                    />
                 </div>
                 {isCustomDomain && (
-                    <div className="text-blue-500 underline">
+                    <div className="text-gray-800 underline w-fit items-center rounded px-4 py-2 flex bg-gray-100">
                         {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{workspace.customDomain}/forms/{customUrl}
+                        <Copy
+                            width="16px"
+                            height="16px"
+                            className="ml-4 cursor-pointer"
+                            onClick={() => {
+                                copyToClipboard(`${environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`);
+                                toast('Form Url Copied', {
+                                    type: 'info'
+                                });
+                            }}
+                        />
                     </div>
                 )}
             </div>
