@@ -30,6 +30,7 @@ export const workspacesApi = createApi({
     baseQuery: fetchBaseQuery({
         baseUrl: environments.API_ENDPOINT_HOST,
         prepareHeaders(headers) {
+            headers.set('Access-Control-Allow-Origin', environments.API_ENDPOINT_HOST);
             return headers;
         },
         credentials: 'include'
