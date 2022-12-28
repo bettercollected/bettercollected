@@ -124,6 +124,17 @@ export const workspacesApi = createApi({
                     'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
             })
+        }),
+        patchExistingWorkspace: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}`,
+                method: 'PATCH',
+                body: request.body,
+                credentials: 'include',
+                headers: {
+                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
+                }
+            })
         })
     })
 });
@@ -142,5 +153,6 @@ export const {
     useLazyGetWorkspaceSubmissionQuery,
     useSearchWorkspaceFormsMutation,
     usePatchFormSettingsMutation,
-    useCreateWorkspaceMutation
+    useCreateWorkspaceMutation,
+    usePatchExistingWorkspaceMutation
 } = workspacesApi;

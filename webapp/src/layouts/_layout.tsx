@@ -1,7 +1,6 @@
 import React from 'react';
 
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 
 import Logo from '@app/components/ui/logo';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
@@ -9,7 +8,6 @@ import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
 
 export function Header(props: any) {
     const windowScroll = useWindowScroll();
-    const router = useRouter();
     const isMounted = useIsMounted();
 
     return (
@@ -32,7 +30,7 @@ interface LayoutProps {
 
 export default function Layout({ children, className = '', hideSignIn }: React.PropsWithChildren<LayoutProps>) {
     return (
-        <div className="flex min-h-screen flex-col bg-white dark:bg-dark z-20">
+        <div className="!min-h-full !min-w-full bg-white dark:bg-dark z-20">
             <Header>
                 <div className="flex justify-between items-center">
                     <Logo />
@@ -45,7 +43,7 @@ export default function Layout({ children, className = '', hideSignIn }: React.P
                     )}
                 </div>
             </Header>
-            <main className={`relative mb-0 px-4 pt-24 sm:px-6 sm:pt-24 sm:pb-20 lg:px-8 xl:px-10 3xl:px-12 ${className}`}>
+            <main className={`mb-0 px-4 pt-24 sm:px-6 sm:pt-24 sm:pb-20 lg:px-8 xl:px-10 3xl:px-12 ${className}`}>
                 {children}
                 <div className="pointer-events-none absolute overflow-hidden inset-0 !z-10">
                     <div className="absolute top-[60%] left-[-100px] w-[359px] h-[153px] bg-gradient-to-r from-orange-200 via-orange-300 to-orange-400 rotate-90 blur-dashboardBackground opacity-[20%]" />

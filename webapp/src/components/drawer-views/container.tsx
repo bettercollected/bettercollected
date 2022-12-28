@@ -3,13 +3,12 @@ import { Fragment, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 
-import Sidebar from '../sidebar/_default';
 import { Dialog } from '../ui/dialog';
 import { Transition } from '../ui/transition';
 import { useDrawer } from './context';
 
 // dynamic imports
-// const Sidebar = dynamic(() => import('@/layouts/sidebar/_default'));
+const Sidebar = dynamic(() => import('../sidebar/_default'));
 
 function renderDrawerContent(view: string) {
     switch (view) {
@@ -28,7 +27,6 @@ export default function DrawersContainer() {
         return () => {
             router.events.off('routeChangeStart', closeDrawer);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
