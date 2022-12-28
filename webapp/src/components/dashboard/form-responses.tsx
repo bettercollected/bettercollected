@@ -13,13 +13,12 @@ import { styled } from '@mui/material/styles';
 import { toast } from 'react-toastify';
 
 import environments from '@app/configs/environments';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { toMonthDateYearStr } from '@app/utils/dateUtils';
-import { toEndDottedStr } from '@app/utils/stringUtils';
 
 import FormRenderer from '../form-renderer/FormRenderer';
 import FullScreenLoader from '../ui/fullscreen-loader';
+import EmptyFormsView from './empty-form';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
     [`&.${tableCellClasses.head}`]: {
@@ -45,12 +44,8 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
     }
 }));
 
-export default function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: any) {
-    // const [page, setPage] = useState(1);
-    // const breakpoint = useBreakpoint();
-    // const handleChangePage = (event: unknown, newPage: number) => {
-    //     setPage(newPage);
-    // };
+function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: any) {
+    const router = useRouter();
 
     const [trigger, { isLoading, isError, data }] = useLazyGetWorkspaceSubmissionQuery();
 
@@ -60,11 +55,9 @@ export default function FormSubmissionsTab({ workspaceId, formId, workspaceName,
 
     const [form, setForm] = useState([]);
 
-    const [submissionId, setSubmissionId] = useState('');
+    const submissionId = router?.query?.sub_id ?? '';
 
     const [responses, setResponses] = useState([]);
-
-    console.log(form, submissionId, responses);
 
     useEffect(() => {
         if (!!submissionId) {
@@ -79,7 +72,7 @@ export default function FormSubmissionsTab({ workspaceId, formId, workspaceName,
                 .catch((e) => {
                     toast.error('Error fetching submission data.');
                 });
-        }
+        } else return;
     }, [submissionId]);
 
     useEffect(() => {
@@ -101,7 +94,13 @@ export default function FormSubmissionsTab({ workspaceId, formId, workspaceName,
     }, [formId, workspaceId]);
 
     const handleSubmissionClick = (responseId: any) => {
-        setSubmissionId(responseId);
+        router.push({
+            pathname: router.pathname,
+            query: {
+                ...router.query,
+                sub_id: responseId
+            }
+        });
     };
 
     const RenderSubmissionForm = () => {
@@ -112,13 +111,22 @@ export default function FormSubmissionsTab({ workspaceId, formId, workspaceName,
         }
     };
 
+    const handleRemoveSubmissionId = () => {
+        const updatedQuery = { ...router.query };
+        delete updatedQuery.sub_id;
+        router.push({
+            pathname: router.pathname,
+            query: updatedQuery
+        });
+    };
+
     const BreadCrumbRenderer = () => {
         return (
             <div className="max-h-[100vh] overflow-auto mb-4">
                 <nav className="flex mt-3 px-0 md:px-0" aria-label="Breadcrumb">
                     <ol className="inline-flex items-center space-x-1 md:space-x-3">
                         <li className="inline-flex items-center">
-                            <span aria-hidden onClick={() => setSubmissionId('')} className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                            <span aria-hidden onClick={handleRemoveSubmissionId} className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                                 <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
                                 </svg>
@@ -143,6 +151,7 @@ export default function FormSubmissionsTab({ workspaceId, formId, workspaceName,
         return (
             <>
                 <h1 className="text-2xl font-extrabold mb-4">Total Submissions ({responses.length})</h1>
+                {responses.length === 0 && <EmptyFormsView />}
                 {responses.length !== 0 && (
                     <TableContainer component={Paper}>
                         <StyledTableContainer>
@@ -172,10 +181,15 @@ export default function FormSubmissionsTab({ workspaceId, formId, workspaceName,
         );
     };
 
+    if (isLoading) return <FullScreenLoader />;
+
     return (
         <>
             {!!submissionId && <BreadCrumbRenderer />}
-            {!submissionId ? <AllSubmissionsRenderer /> : <RenderSubmissionForm />}
+            {!submissionId && <AllSubmissionsRenderer />}
+            {!!form && !!submissionId && <FormRenderer form={form} />}
         </>
     );
 }
+
+export default React.memo(FormSubmissionsTab);
