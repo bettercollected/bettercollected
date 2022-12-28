@@ -103,14 +103,6 @@ function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: a
         });
     };
 
-    const RenderSubmissionForm = () => {
-        if (isLoading) {
-            return <FullScreenLoader />;
-        } else {
-            return <FormRenderer form={form} />;
-        }
-    };
-
     const handleRemoveSubmissionId = () => {
         const updatedQuery = { ...router.query };
         delete updatedQuery.sub_id;

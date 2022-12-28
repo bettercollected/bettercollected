@@ -1,10 +1,8 @@
 import React from 'react';
 
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 
 import { Feed, Settings } from '@mui/icons-material';
-import { toast } from 'react-toastify';
 
 import { FormTabContent } from '@app/components/dashboard/form-overview';
 import FormSubmissionsTab from '@app/components/dashboard/form-responses';
@@ -14,10 +12,8 @@ import Layout from '@app/components/sidebar/layout';
 import ParamTab from '@app/components/ui/param-tab';
 import { TabPanel } from '@app/components/ui/tab';
 import environments from '@app/configs/environments';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import Error from '@app/pages/_error';
-import { toEndDottedStr } from '@app/utils/stringUtils';
 
 enum FormTabs {
     FORM = 'Form',
