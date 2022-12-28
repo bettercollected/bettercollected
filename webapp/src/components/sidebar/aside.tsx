@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 
 import Tooltip from '@mui/material/Tooltip';
 
-import { authApi, useGetStatusQuery } from '@app/store/auth/api';
+import { authApi } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
 import { HistoryIcon } from '../icons/history';

@@ -46,7 +46,6 @@ export default function SidebarExpandable() {
             </div>
         );
     };
-    // !bg-[#3b82f6]
 
     const className = 'top-24 hidden border-r-[1px] sm:block relative h-[calc(100%-4rem)] sm:h-[calc(100%-6rem)]';
 

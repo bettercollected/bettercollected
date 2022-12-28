@@ -10,6 +10,7 @@ import { IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSetting
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
 const WORKSPACE_TAGS = 'WORKSPACE_TAG';
+const WORKSPACE_UPDATE_TAG = 'WORKSPACE_UPDATE_TAG';
 
 interface ImportFormQueryInterface {
     workspaceId: string;
@@ -22,7 +23,7 @@ interface ImportFormQueryInterface {
 
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -135,6 +136,7 @@ export const workspacesApi = createApi({
                     'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
             })
+            // providesTags: [WORKSPACE_UPDATE_TAG]
         })
     })
 });

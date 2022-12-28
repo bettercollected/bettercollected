@@ -85,34 +85,6 @@ export default function Layout(props: any) {
                                     </div>
                                 </div>
                             </div>
-                            {/* <Menu
-                                id="profile-menu"
-                                MenuListProps={{ 'aria-labelledby': 'profile-button' }}
-                                anchorEl={anchorEl}
-                                open={open}
-                                PaperProps={{
-                                    style: {
-                                        maxHeight: '20ch',
-                                        width: '20ch'
-                                    }
-                                }}
-                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                onClose={handleClose}
-                            >
-                                <MenuItem
-                                    key="logout"
-                                    onClick={() => {
-                                        setAnchorEl(null);
-                                        openModal('LOGOUT_VIEW');
-                                    }}
-                                >
-                                    <div className="flex flex-row text-red-500">
-                                        <Logout className={'!w-5 !h-5 mr-2 '} />
-                                        <p>Logout</p>
-                                    </div>
-                                </MenuItem>
-                            </Menu> */}
                         </div>
                     </>
                 </Header>
