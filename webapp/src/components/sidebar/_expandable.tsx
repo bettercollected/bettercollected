@@ -24,6 +24,8 @@ export default function SidebarExpandable() {
 
     useGetStatusQuery('status');
 
+    const breakpoint = useBreakpoint();
+
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
     const selectGetStatus = useAppSelector(statusQuerySelect);
 
@@ -34,7 +36,7 @@ export default function SidebarExpandable() {
     const FooterRenderer = ({ icon, name, profileName }: any) => {
         return (
             <div className="flex flex-col justify-center mt-2 border-t-[1.5px] border-gray-100">
-                {!!profileName && (
+                {['xs', 'sm'].indexOf(breakpoint) !== -1 && !!profileName && (
                     <Tooltip title={profileName} arrow>
                         <div className="flex items-center mt-2">
                             {!name && <div className="flex rounded-md w-full h-10 items-center justify-center bg-blue-50">{profileName[0]}</div>}

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -20,10 +20,8 @@ import SidebarExpandable from './_expandable';
 export default function Layout(props: any) {
     const children = props.children;
     const isNavbarRequired = props.children;
-    const { openModal } = useModal();
     const { openDrawer, isOpen } = useDrawer();
     const [anchorEl, setAnchorEl] = useState(null);
-    const open = Boolean(anchorEl);
 
     const screenSize = useBreakpoint();
 
@@ -76,14 +74,11 @@ export default function Layout(props: any) {
                                 {!checkIfSideBarRender() && <Hamburger isOpen={isOpen} className="!shadow-none !bg-white !text-black !flex !justify-start" onClick={handleOpenSidebar} />}
                                 <Logo />
                             </div>
-                            {['xs', 'sm'].indexOf(screenSize) === -1 && (
-                                <div aria-label="more" id="profile-button" aria-expanded={open ? 'true' : undefined} aria-haspopup="true" aria-controls={open ? 'profile-menu' : undefined} onClick={handleClick}>
-                                    <div className="flex cursor-pointer items-center mt-2">
-                                        <div className="flex rounded-md w-full p-3 h-10 items-center justify-center mr-2 bg-blue-50">{profileName[0]?.toUpperCase()}</div>
-                                        <div className="italic font-bold text-md text-gray-600 flex flex-row items-center">
-                                            <p className="mr-2">{profileName}</p>
-                                            {/* <ChevronDown className="w-[10px] h-[10px]" /> */}
-                                        </div>
+                            {['xs', 'sm'].indexOf(screenSize) === -1 && !!profileName[0] && (
+                                <div className="flex items-center mt-2">
+                                    <div className="flex rounded-md w-full p-3 h-10 items-center justify-center mr-2 bg-blue-50">{profileName[0]?.toUpperCase()}</div>
+                                    <div className="italic font-bold text-md text-gray-600 flex flex-row items-center">
+                                        <p className="mr-2">{profileName}</p>
                                     </div>
                                 </div>
                             )}
@@ -92,7 +87,7 @@ export default function Layout(props: any) {
                 </Header>
             )}
             {checkIfSideBarRender() && <SidebarExpandable />}
-            <main className={cn('px-4 xl:left-24 right-0 w-full xl:w-auto absolute top-24 pt-4 sm:px-6 lg:px-8 3xl:px-10 3xl:pt-2.5')}>{children}</main>
+            <main className={cn('px-4 xl:left-24 right-0 w-full xl:w-auto absolute top-24 md:pt-4 sm:px-6 lg:px-8 3xl:px-10 3xl:pt-2.5')}>{children}</main>
         </div>
     );
 }
