@@ -17,12 +17,14 @@ export default function MySettings(props: any) {
     const { bannerImage, customDomain, description, id, ownerId, profileImage, title, workspaceName } = props.workspace;
 
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
+
     const [trigger] = useLazyGetWorkspaceQuery();
     const existingWorkspace = useAppSelector((state) => state.workspace);
 
     const dispatch = useDispatch();
     const [workspaceForm, setWorkspaceForm] = useState({ title: '', custom_domain: '', workspace_name: '', description: '', profile_image: '', banner_image: '' });
 
+    console.log(workspaceForm);
     useEffect(() => {
         setWorkspaceForm({
             title: title,
@@ -58,10 +60,6 @@ export default function MySettings(props: any) {
         setWorkspaceForm({ ...workspaceForm, [e.target.name]: e.target.value });
     };
 
-    const handleSaveCustomDomain = () => {
-        console.log('custom domain saved!');
-    };
-
     const SubTitleRenderer = ({ title, description }: any) => {
         return (
             <div className={` pb-4 border-b-gray-200 mt-6 mb-4 border-b-[1px] w-2/3 `}>
@@ -69,6 +67,29 @@ export default function MySettings(props: any) {
                 {!!description && <p className="text-gray-600">{description}</p>}
             </div>
         );
+    };
+
+    const handleUpdateCustomDomain = async (e: any) => {
+        e.preventDefault();
+
+        if (!!handleValidation(workspaceForm.custom_domain, false)) return;
+        const formData = new FormData();
+        formData.append('custom_domain', workspaceForm.custom_domain);
+        const response = {
+            workspace_id: id,
+            body: formData
+        };
+        const data = await patchExistingWorkspace(response);
+        if (!data.error) {
+            toast.info('Updated workspace info!');
+            // update the workspace info to client side.
+            const workspaceId = existingWorkspace.id;
+            const data = await trigger(workspaceId);
+            const workspace = data.data;
+            dispatch(setWorkspace(workspace));
+        } else {
+            toast.error('Something went wrong!');
+        }
     };
 
     const handleFileUpload = (e: any) => {
@@ -135,11 +156,20 @@ export default function MySettings(props: any) {
             <div className="w-full  md:w-2/3 h-[50px]">
                 <div className="flex flex-row gap-6 items-center">
                     <div className=" flex flex-col h-[50px] justify-between w-full">
-                        <TextField size="medium" name="custom_domain" placeholder="Custom-domain (e.g. https://forms.bettercollected.com)" value={workspaceForm.custom_domain} onChange={handleChange} className={`w-full`} />
+                        <TextField
+                            error={!!handleValidation(workspaceForm.custom_domain, false)}
+                            helperText={handleValidation(workspaceForm.custom_domain, false)}
+                            size="medium"
+                            name="custom_domain"
+                            placeholder="Custom-domain (e.g. https://forms.bettercollected.com)"
+                            value={workspaceForm.custom_domain}
+                            onChange={handleChange}
+                            className={`w-full`}
+                        />
                         {/* <div className={`text-red-500 text-sm`}>{error && 'Custom Domain cannot contain spaces.'}</div> */}
                     </div>
-                    <Button className="!bg-blue-600 h-[50px]" onClick={handleSaveCustomDomain}>
-                        Save
+                    <Button isLoading={isLoading} className="!bg-blue-600 h-[50px]" onClick={handleUpdateCustomDomain}>
+                        Update
                     </Button>
                 </div>
             </div>
@@ -193,6 +223,7 @@ export default function MySettings(props: any) {
                     </div>
 
                     <div className="mb-10">
+                        {/* <Image src={workspaceForm.profile_image} height={'50px'} width={'50px'} /> */}
                         <label className="block text-xl mb-2 font-medium text-gray-900 dark:text-gray-300" htmlFor="profile">
                             Profile Photo
                         </label>
