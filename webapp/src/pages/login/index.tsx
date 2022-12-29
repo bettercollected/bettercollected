@@ -51,7 +51,7 @@ export async function getServerSideProps(_context: any) {
 
 export const Login = () => {
     return (
-        <div className="relative">
+        <div>
             <ContentLayout className="!pt-0 relative bg-[#FBFBFB]">
                 <div className="absolute overflow-hidden inset-0">
                     <div className="absolute top-[60%] left-[-100px] w-[359px] h-[153px] bg-gradient-to-r from-orange-200 via-orange-300 to-orange-400 rotate-90 blur-dashboardBackground opacity-[20%]" />

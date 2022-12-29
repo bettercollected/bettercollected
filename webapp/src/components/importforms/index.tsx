@@ -46,7 +46,7 @@ export default function ImportForms() {
         return (
             <div className="text-sm text-red-500 p-4 rounded-md shadow-md bg-white">
                 <h2 className="mb-2">Oops! We&apos;ve encountered an issue.</h2>
-                <Button variant="solid" size="small" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
+                <Button variant="solid" size="small" className="ml-3 !w-full !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
                     Authorize Google
                 </Button>
             </div>
