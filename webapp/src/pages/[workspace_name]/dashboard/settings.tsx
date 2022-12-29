@@ -16,8 +16,6 @@ export default function MySettings(props: any) {
     // fetched from the props
     const { bannerImage, customDomain, description, id, ownerId, profileImage, title, workspaceName } = props.workspace;
 
-    console.log('banner image: ', bannerImage);
-
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const [trigger] = useLazyGetWorkspaceQuery();
     const existingWorkspace = useAppSelector((state) => state.workspace);

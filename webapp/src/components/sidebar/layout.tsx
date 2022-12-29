@@ -76,15 +76,17 @@ export default function Layout(props: any) {
                                 {!checkIfSideBarRender() && <Hamburger isOpen={isOpen} className="!shadow-none !bg-white !text-black !flex !justify-start" onClick={handleOpenSidebar} />}
                                 <Logo />
                             </div>
-                            <div aria-label="more" id="profile-button" aria-expanded={open ? 'true' : undefined} aria-haspopup="true" aria-controls={open ? 'profile-menu' : undefined} onClick={handleClick}>
-                                <div className="flex cursor-pointer items-center mt-2">
-                                    <div className="flex rounded-md w-full p-3 h-10 items-center justify-center mr-2 bg-blue-50">{profileName[0]?.toUpperCase()}</div>
-                                    <div className="italic font-bold text-md text-gray-600 flex flex-row items-center">
-                                        <p className="mr-2">{profileName}</p>
-                                        {/* <ChevronDown className="w-[10px] h-[10px]" /> */}
+                            {['xs', 'sm'].indexOf(screenSize) === -1 && (
+                                <div aria-label="more" id="profile-button" aria-expanded={open ? 'true' : undefined} aria-haspopup="true" aria-controls={open ? 'profile-menu' : undefined} onClick={handleClick}>
+                                    <div className="flex cursor-pointer items-center mt-2">
+                                        <div className="flex rounded-md w-full p-3 h-10 items-center justify-center mr-2 bg-blue-50">{profileName[0]?.toUpperCase()}</div>
+                                        <div className="italic font-bold text-md text-gray-600 flex flex-row items-center">
+                                            <p className="mr-2">{profileName}</p>
+                                            {/* <ChevronDown className="w-[10px] h-[10px]" /> */}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </>
                 </Header>
