@@ -7,7 +7,7 @@ import Layout from '@app/layouts/_layout';
 export default function HomeContainer() {
     return (
         <>
-            <Layout>
+            <Layout className="min-h-full">
                 <Banner />
                 <Features />
                 <Waitlist />

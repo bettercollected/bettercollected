@@ -43,13 +43,13 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
     };
 
     return (
-        <div className="relative">
+        <div className="relative min-h-screen">
             <div className="product-box">
                 <div data-aos="fade-up" className="product-image relative h-44 w-full overflow-hidden md:h-80 xl:h-[380px]">
                     <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
                 </div>
             </div>
-            <ContentLayout className="!pt-0 relative bg-[#FBFBFB]">
+            <ContentLayout className="!pt-0 relative h-full bg-[#FBFBFB]">
                 <div className="absolute overflow-hidden inset-0">
                     <div className="absolute top-[60%] left-[-100px] w-[359px] h-[153px] bg-gradient-to-r from-orange-200 via-orange-300 to-orange-400 rotate-90 blur-dashboardBackground opacity-[20%]" />
                     <div className="absolute top-[35%] left-[65%] w-[765px] h-[765px] bg-gradient-to-r from-cyan-300 via-sky-300 to-cyan-400 blur-dashboardBackground opacity-[15%]" />
