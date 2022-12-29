@@ -16,17 +16,16 @@ export default function MySettings(props: any) {
     // fetched from the props
     const { bannerImage, customDomain, description, id, ownerId, profileImage, title, workspaceName } = props.workspace;
 
+    console.log('banner image: ', bannerImage);
+
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const [trigger] = useLazyGetWorkspaceQuery();
     const existingWorkspace = useAppSelector((state) => state.workspace);
-
-    console.log('existing workspace: ', existingWorkspace);
 
     const dispatch = useDispatch();
     const [workspaceForm, setWorkspaceForm] = useState({ title: '', custom_domain: '', workspace_name: '', description: '', profile_image: '', banner_image: '' });
 
     useEffect(() => {
-        //prepopulate the state from the data fetched from endpoint
         setWorkspaceForm({
             title: title,
             workspace_name: workspaceName,
@@ -37,7 +36,13 @@ export default function MySettings(props: any) {
         });
     }, []);
 
-    const [error, setError] = useState(false);
+    const handleValidation = (value: any, requireWhiteSpaceValidation: boolean) => {
+        if (value.length === 0) return 'Field cannot be empty';
+        if (requireWhiteSpaceValidation) {
+            if (/\s/g.test(value)) return 'Field cannot have whitespaces';
+        }
+        return '';
+    };
 
     const Header = () => {
         return (
@@ -71,28 +76,34 @@ export default function MySettings(props: any) {
     const handleFileUpload = (e: any) => {
         e.preventDefault();
         const file = e.target.files[0];
-        const reader = new FileReader();
 
-        reader.onload = function () {
-            //convert the file contents to a Uint8Array
-            const binaryString = reader.result;
-            if (!!binaryString && binaryString.length !== 0) {
-                const binaryArray = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    binaryArray[i] = binaryString.charCodeAt(i);
-                }
+        setWorkspaceForm({ ...workspaceForm, [e.target.name]: file });
 
-                // create a file object from the Uint8Array
-                const fileObject = new Blob([binaryArray], { type: file.type });
+        // const reader = new FileReader();
 
-                setWorkspaceForm({ ...workspaceForm, [e.target.name]: fileObject });
-            }
-        };
-        reader.readAsBinaryString(file);
+        // reader.onload = function () {
+        //     //convert the file contents to a Uint8Array
+        //     const binaryString = reader.result;
+        //     if (!!binaryString && binaryString.length !== 0) {
+        //         const binaryArray = new Uint8Array(binaryString.length);
+        //         for (let i = 0; i < binaryString.length; i++) {
+        //             binaryArray[i] = binaryString.charCodeAt(i);
+        //         }
+
+        //         // create a file object from the Uint8Array
+        //         const fileObject = new Blob([binaryArray], { type: file.type });
+
+        //         setWorkspaceForm({ ...workspaceForm, [e.target.name]: fileObject });
+        //     }
+        // };
+        // reader.readAsBinaryString(file);
     };
 
     const handleUpdateProfile = async (e: any) => {
         e.preventDefault();
+
+        if (!!handleValidation(workspaceForm.workspace_name, true) || !!handleValidation(workspaceForm.title, false)) return;
+
         const formData = new FormData();
         formData.append('profile_image', workspaceForm.profile_image);
         formData.append('banner_image', workspaceForm.banner_image);
@@ -136,24 +147,41 @@ export default function MySettings(props: any) {
             </div>
             <form>
                 <SubTitleRenderer title={'Workspace Information'} description={'Update your workspace profile'} />
-                <div className="w-full md:w-2/3 h-[50px] mb-4">
-                    <div className="mb-4">
+                <div className="w-full md:w-2/3 h-[50px] pb-4">
+                    <div className="mb-10">
                         <h1 className="text-lg">Workspace title</h1>
                         <div className=" flex flex-col h-[50px] justify-between w-full">
-                            <TextField size="medium" name="title" placeholder="Enter your workspace title" value={workspaceForm.title} error={error} onChange={handleChange} className={`w-full`} />
-                            {/* <div className={`text-red-500 text-sm`}>{error && 'Custom Domain cannot contain spaces.'}</div> */}
+                            <TextField
+                                error={!!handleValidation(workspaceForm.title, false)}
+                                helperText={handleValidation(workspaceForm.title, false)}
+                                size="medium"
+                                name="title"
+                                placeholder="Enter your workspace title"
+                                value={workspaceForm.title}
+                                onChange={handleChange}
+                                className={`w-full`}
+                            />
                         </div>
                     </div>
 
-                    <div className="mb-4">
-                        <h1 className="text-lg">Workspace Name</h1>
+                    <div className="mb-10">
+                        <h1 className="text-lg">Workspace Handle</h1>
                         <div className=" flex flex-col h-[50px] justify-between w-full">
-                            <TextField value={workspaceForm.workspace_name} size="medium" name="workspace_name" placeholder="Enter your workspace name" error={error} onChange={handleChange} className={`w-full`} />
+                            <TextField
+                                error={!!handleValidation(workspaceForm.workspace_name, true)}
+                                helperText={handleValidation(workspaceForm.workspace_name, true)}
+                                value={workspaceForm.workspace_name}
+                                size="medium"
+                                name="workspace_name"
+                                placeholder="Enter your workspace name"
+                                onChange={handleChange}
+                                className={`w-full`}
+                            />
                             <div className={`text-red-500 text-sm`}>{error && 'Custom Domain cannot contain spaces.'}</div>
                         </div>
                     </div>
 
-                    <div className="mb-4">
+                    <div className="mb-10">
                         <h1 className="text-lg">Workspace Description</h1>
                         <textarea
                             name="description"
@@ -166,7 +194,7 @@ export default function MySettings(props: any) {
                         />
                     </div>
 
-                    <div className="mb-4">
+                    <div className="mb-10">
                         <label className="block text-xl mb-2 font-medium text-gray-900 dark:text-gray-300" htmlFor="profile">
                             Profile Photo
                         </label>
@@ -181,7 +209,7 @@ export default function MySettings(props: any) {
                         />
                     </div>
 
-                    <div className="mb-8">
+                    <div className="mb-10">
                         <label className="block text-xl mb-2 font-medium text-gray-900 dark:text-gray-300" htmlFor="profile">
                             Banner Photo
                         </label>
@@ -196,7 +224,7 @@ export default function MySettings(props: any) {
                         />
                     </div>
 
-                    <Button isLoading={isLoading} type={'submit'} className="w-full md:w-auto !bg-blue-600 h-[50px]" onClick={handleUpdateProfile}>
+                    <Button isLoading={isLoading} type={'submit'} className="w-full md:w-auto !bg-blue-600 h-[50px] mb-10" onClick={handleUpdateProfile}>
                         Update workspace profile
                     </Button>
                 </div>
