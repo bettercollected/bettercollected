@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
 import cn from 'classnames';
 
 import { Header } from '@app/layouts/_layout';
@@ -10,9 +8,6 @@ import { authApi } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
 import { useDrawer } from '../drawer-views/context';
-import { ChevronDown } from '../icons/chevron-down';
-import { Logout } from '../icons/logout-icon';
-import { useModal } from '../modal-views/context';
 import Hamburger from '../ui/hamburger';
 import Logo from '../ui/logo';
 import SidebarExpandable from './_expandable';
@@ -87,7 +82,7 @@ export default function Layout(props: any) {
                 </Header>
             )}
             {checkIfSideBarRender() && <SidebarExpandable />}
-            <main className={cn('px-4 xl:left-24 right-0 !w-full xl:w-auto absolute top-24 md:pt-4 sm:px-6 lg:px-8 3xl:px-10 3xl:pt-2.5')}>{children}</main>
+            <main className={cn('px-4 xl:left-24 right-0 w-full xl:w-auto absolute top-24 md:pt-4 sm:px-6 lg:px-8 3xl:px-10 3xl:pt-2.5')}>{children}</main>
         </div>
     );
 }

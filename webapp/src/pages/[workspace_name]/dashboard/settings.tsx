@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { TextField } from '@mui/material';
 import { useDispatch } from 'react-redux';
@@ -13,8 +13,8 @@ import { useLazyGetAllMineWorkspacesQuery, useLazyGetWorkspaceQuery, usePatchExi
 import { setWorkspace } from '@app/store/workspaces/slice';
 
 export default function MySettings(props: any) {
-    // fetched from the props
     const { bannerImage, customDomain, description, id, ownerId, profileImage, title, workspaceName } = props.workspace;
+    const imageRef = useRef(null);
 
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
 
@@ -22,9 +22,8 @@ export default function MySettings(props: any) {
     const existingWorkspace = useAppSelector((state) => state.workspace);
 
     const dispatch = useDispatch();
-    const [workspaceForm, setWorkspaceForm] = useState({ title: '', custom_domain: '', workspace_name: '', description: '', profile_image: '', banner_image: '' });
+    const [workspaceForm, setWorkspaceForm] = useState({ title: '', custom_domain: '', workspace_name: '', description: '', profile_image: null, banner_image: null });
 
-    console.log(workspaceForm);
     useEffect(() => {
         setWorkspaceForm({
             title: title,
@@ -92,8 +91,22 @@ export default function MySettings(props: any) {
         }
     };
 
+    // this method is used to check if the image obtained is a image url or a file object
+    const checkIfTheImageUrlIsObjectOrLink = (srcContent: any) => {
+        if (!srcContent) return null;
+        if (srcContent.constructor === File) {
+            // image is a file object
+            imageRef.current = URL.createObjectURL(srcContent);
+            return imageRef.current;
+        } else if (typeof srcContent === 'string') {
+            // image is a url string
+            return srcContent;
+        }
+    };
+
     const handleFileUpload = (e: any) => {
         e.preventDefault();
+        URL.revokeObjectURL(imageRef.current);
         const file = e.target.files[0];
 
         setWorkspaceForm({ ...workspaceForm, [e.target.name]: file });
@@ -166,7 +179,6 @@ export default function MySettings(props: any) {
                             onChange={handleChange}
                             className={`w-full`}
                         />
-                        {/* <div className={`text-red-500 text-sm`}>{error && 'Custom Domain cannot contain spaces.'}</div> */}
                     </div>
                     <Button isLoading={isLoading} className="!bg-blue-600 h-[50px]" onClick={handleUpdateCustomDomain}>
                         Update
@@ -227,8 +239,10 @@ export default function MySettings(props: any) {
                         <label className="block text-xl mb-2 font-medium text-gray-900 dark:text-gray-300" htmlFor="profile">
                             Profile Photo
                         </label>
+                        <img src={checkIfTheImageUrlIsObjectOrLink(workspaceForm.profile_image)} alt={'Profile image'} height={500} />
                         <input
                             accept="image/png, image/jpeg"
+                            placeholder="upload a profile image"
                             className="block w-full text-sm text-gray-900 border border-gray-300 rounded-md cursor-pointer bg-gray-50 file:rounded-l-md file:py-3 file:px-3 file:bg-gray-500 file:text-white file:border-none "
                             id="profile"
                             // value={!workspaceForm.profile_image ? null : workspaceForm.profile_image}
@@ -242,6 +256,7 @@ export default function MySettings(props: any) {
                         <label className="block text-xl mb-2 font-medium text-gray-900 dark:text-gray-300" htmlFor="profile">
                             Banner Photo
                         </label>
+                        <img src={checkIfTheImageUrlIsObjectOrLink(workspaceForm.banner_image)} alt={'Banner Image'} />
                         <input
                             accept="image/png, image/jpeg"
                             className="block w-full text-sm text-gray-900 border border-gray-300 rounded-md cursor-pointer bg-gray-50 file:rounded-l-md file:py-3 file:px-3 file:bg-gray-500 file:text-white file:border-none "
