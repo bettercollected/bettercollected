@@ -137,8 +137,8 @@ export default function MySettings(props: any) {
             <div className="w-full  md:w-2/3 h-[50px]">
                 <div className="flex flex-row gap-6 items-center">
                     <div className=" flex flex-col h-[50px] justify-between w-full">
-                        <TextField size="medium" name="custom_domain" placeholder="Custom-domain (e.g. https://forms.bettercollected.com)" value={workspaceForm.custom_domain} error={error} onChange={handleChange} className={`w-full`} />
-                        <div className={`text-red-500 text-sm`}>{error && 'Custom Domain cannot contain spaces.'}</div>
+                        <TextField size="medium" name="custom_domain" placeholder="Custom-domain (e.g. https://forms.bettercollected.com)" value={workspaceForm.custom_domain} onChange={handleChange} className={`w-full`} />
+                        {/* <div className={`text-red-500 text-sm`}>{error && 'Custom Domain cannot contain spaces.'}</div> */}
                     </div>
                     <Button className="!bg-blue-600 h-[50px]" onClick={handleSaveCustomDomain}>
                         Save
@@ -177,7 +177,7 @@ export default function MySettings(props: any) {
                                 onChange={handleChange}
                                 className={`w-full`}
                             />
-                            <div className={`text-red-500 text-sm`}>{error && 'Custom Domain cannot contain spaces.'}</div>
+                            {/* <div className={`text-red-500 text-sm`}>{error && 'Custom Domain cannot contain spaces.'}</div> */}
                         </div>
                     </div>
 
