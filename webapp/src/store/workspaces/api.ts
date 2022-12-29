@@ -57,13 +57,18 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: [WORKSPACE_TAGS]
         }),
-        getWorkspace: builder.query<WorkspaceDto, { workspace_id: string }>({
+        getWorkspace: builder.query<WorkspaceDto, string>({
             query: (body) => ({
-                url: `/workspaces`,
-                method: 'GET',
-                params: { workspace_id: body.workspace_id }
+                url: `/workspaces/${body}`,
+                method: 'GET'
             }),
             providesTags: [WORKSPACE_TAGS]
+        }),
+        getAllMineWorkspaces: builder.query<any, void>({
+            query: () => ({
+                url: '/workspaces/mine',
+                method: 'GET'
+            })
         }),
         getWorkspaceForms: builder.query<IGenericAPIResponse<Array<StandardFormDto>>, any>({
             query: (body) => ({
@@ -146,6 +151,7 @@ export const {
     useLazyGetGoogleFormQuery,
     useImportFormMutation,
     useGetWorkspaceQuery,
+    useLazyGetWorkspaceQuery,
     useGetWorkspaceFormsQuery,
     useGetWorkspaceFormQuery,
     useLazyGetWorkspaceFormsQuery,
@@ -156,5 +162,7 @@ export const {
     useSearchWorkspaceFormsMutation,
     usePatchFormSettingsMutation,
     useCreateWorkspaceMutation,
-    usePatchExistingWorkspaceMutation
+    usePatchExistingWorkspaceMutation,
+    useGetAllMineWorkspacesQuery,
+    useLazyGetAllMineWorkspacesQuery
 } = workspacesApi;

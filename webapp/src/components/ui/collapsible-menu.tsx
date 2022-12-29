@@ -7,8 +7,10 @@ import { motion } from 'framer-motion';
 
 import { ChevronDown } from '@app/components/icons/chevron-down';
 import ActiveLink from '@app/components/ui/links/active-link';
+import environments from '@app/configs/environments';
 import { useMeasure } from '@app/lib/hooks/use-measure';
 import { useAppSelector } from '@app/store/hooks';
+import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 
 type MenuItemProps = {
     name?: string;
