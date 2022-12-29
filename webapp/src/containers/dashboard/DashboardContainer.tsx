@@ -21,9 +21,6 @@ interface IDashboardContainer {
 export default function DashboardContainer({ workspace }: IDashboardContainer) {
     const [trigger] = useLazyGetLogoutQuery();
 
-    const router = useRouter();
-    console.log('router components', router);
-
     const authStatus = useGetStatusQuery('status');
     const { openModal } = useModal();
 

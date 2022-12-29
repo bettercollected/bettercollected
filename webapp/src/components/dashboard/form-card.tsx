@@ -49,7 +49,10 @@ export default function FormCard({ workspaceId }: IFormCard) {
     const [isOpen, setIsOpen] = useState(false);
     const breakpoint = useBreakpoint();
     const [_, copyToClipboard] = useCopyToClipboard();
-    const { isLoading, data, isError } = useGetWorkspaceFormsQuery(workspaceId, { pollingInterval: 30000 });
+    const query = {
+        workspace_id: workspaceId
+    };
+    const { isLoading, data, isError } = useGetWorkspaceFormsQuery(query, { pollingInterval: 30000 });
     const [searchWorkspaceForms] = useSearchWorkspaceFormsMutation();
 
     const [pinnedForms, setPinnedForms] = useState<any>([]);
