@@ -31,7 +31,7 @@ export default function SingleFormPage({ form, back, ...props }: ISingleFormPage
                 </Button>
             )}
 
-            <ContentLayout className={'absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
+            <ContentLayout className={'absolute !min-h-screen left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
                 <iframe src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0" marginHeight={0} marginWidth={0}>
                     <Loader />
                 </iframe>
