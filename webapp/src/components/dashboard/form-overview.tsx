@@ -22,11 +22,11 @@ export const FormTabContent = ({ workspaceId }: any) => {
 
     const { isLoading, data, isError, error } = useGetWorkspaceFormsQuery(query);
 
-    if (isError) toast.error('Something went wrong!');
-
     if (isLoading) return <FullScreenLoader />;
 
-    const formFields = data.payload.content;
+    if (isError || !data) return <></>;
+
+    const formFields = data?.payload.content || [];
 
     return <div className="w-full">{formFields.length === 0 ? <EmptyFormsView /> : <FormRenderer form={formFields} />}</div>;
 };

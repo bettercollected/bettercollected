@@ -8,7 +8,7 @@ import Layout from '@app/layouts/_layout';
 
 const Error = () => {
     return (
-        <Layout>
+        <Layout className="min-h-screen">
             <div className="flex !h-full flex-col justify-between items-center my-auto">
                 <div className="my-5 py-5">
                     <Image src={oop} className={'rounded-lg'} alt={'Error page'} height={450} />
