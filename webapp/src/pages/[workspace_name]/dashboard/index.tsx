@@ -29,7 +29,9 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
 
     const forms = workspaceForms?.data?.payload?.content;
 
-    const email = user?.data?.payload?.content?.user?.sub;
+    console.log('forms: ', forms);
+
+    console.log(forms);
 
     const handleImportForms = () => {
         openModal('IMPORT_FORMS_VIEW');
@@ -82,16 +84,6 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                                             )}
                                             {!form?.description && <p className="text-base text-softBlue m-0 p-0 w-full italic">Form description not available.</p>}
                                         </div>
-                                        {/* <div
-                                            aria-hidden
-                                            onClick={(event) => {
-                                                event.preventDefault();
-                                            }}
-                                            className="flex flex-col border-white hover:border-neutral-100 rounded-md"
-                                        >
-                                            <ShareIcon width={19} height={19} />
-                                            <PinOutlinedIcon width={40} height={40} clickButton={() => console.log('clicked')} />
-                                        </div> */}
                                     </div>
                                 </Link>
                             );

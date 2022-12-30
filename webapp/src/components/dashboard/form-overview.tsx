@@ -10,7 +10,7 @@ import FormRenderer from '../form-renderer/FormRenderer';
 import FullScreenLoader from '../ui/fullscreen-loader';
 import EmptyFormsView from './empty-form';
 
-export const FormTabContent = ({ workspaceId }: any) => {
+export const FormTabContent = ({ workspaceId, form }: any) => {
     const router = useRouter();
 
     const formId = router.query.form_id;
@@ -20,13 +20,13 @@ export const FormTabContent = ({ workspaceId }: any) => {
         form_id: formId
     };
 
-    const { isLoading, data, isError, error } = useGetWorkspaceFormsQuery(query);
+    // const { isLoading, data, isError, error } = useGetWorkspaceFormsQuery(query);
 
-    if (isLoading) return <FullScreenLoader />;
+    // if (isLoading) return <FullScreenLoader />;
 
-    if (isError || !data) return <></>;
+    // if (isError || !data) return <></>;
 
-    const formFields = data?.payload.content || [];
+    // const formFields = data?.payload.content || [];
 
-    return <div className="w-full">{formFields.length === 0 ? <EmptyFormsView /> : <FormRenderer form={formFields} />}</div>;
+    return <div className="w-full">{form.length === 0 ? <EmptyFormsView /> : <FormRenderer form={form} />}</div>;
 };

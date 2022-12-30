@@ -27,8 +27,6 @@ export default function FormPage(props: any) {
     }
     const { formId, form } = props;
 
-    // console.log('props:', props);
-
     const tabs = [
         {
             icon: <Feed />,
@@ -76,7 +74,7 @@ export default function FormPage(props: any) {
             <div className="flex flex-col w-full m-auto justify-center">
                 <ParamTab tabMenu={tabs}>
                     <TabPanel className="focus:outline-none" key="form">
-                        <FormTabContent workspaceId={props?.workspace?.id ?? ''} />
+                        <FormTabContent form={form} workspaceId={props?.workspace?.id ?? ''} />
                     </TabPanel>
                     <TabPanel className="focus:outline-none" key="submissions">
                         <FormSubmissionsTab workspace={props.workspace} workspaceName={props?.workspace?.workspaceName} workspaceId={props?.workspace?.id ?? ''} formId={formId} />
