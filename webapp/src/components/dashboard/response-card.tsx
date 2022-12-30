@@ -4,6 +4,7 @@ import EmptyTray from '@app/assets/svgs/empty-tray.svg';
 import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
+import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { useGetWorkspaceSubmissionsQuery } from '@app/store/workspaces/api';
@@ -36,6 +37,8 @@ export default function ResponseCard({ workspace }: any) {
 
     const submissions: Array<StandardFormResponseDto> = data?.payload?.content ?? [];
 
+    const isCustomDomain = window?.location.host !== environments.CLIENT_HOST;
+
     return (
         <>
             {submissions?.length === 0 && (
@@ -53,7 +56,7 @@ export default function ResponseCard({ workspace }: any) {
                             <ActiveLink
                                 key={submission.responseId}
                                 href={{
-                                    pathname: `${workspace.workspaceName}/submissions/[slug]`,
+                                    pathname: isCustomDomain ? `/submissions/[slug]` : `${workspace.workspaceName}/submissions/[slug]`,
                                     query: { slug }
                                 }}
                             >

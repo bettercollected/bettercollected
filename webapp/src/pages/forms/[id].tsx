@@ -51,7 +51,7 @@ export async function getServerSideProps(_context: any) {
 
     const hasCustomDomain = _context.req.headers.host !== environments.CLIENT_HOST;
 
-    if (hasCustomDomain) {
+    if (!hasCustomDomain) {
         return {
             redirect: {
                 permanent: false,
