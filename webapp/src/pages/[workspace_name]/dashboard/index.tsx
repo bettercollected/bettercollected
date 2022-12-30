@@ -23,15 +23,11 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
         workspace_id: workspace.id
     };
 
-    const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery);
+    const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
 
     const breakpoint = useBreakpoint();
 
     const forms = workspaceForms?.data?.payload?.content;
-
-    console.log('forms: ', forms);
-
-    console.log(forms);
 
     const handleImportForms = () => {
         openModal('IMPORT_FORMS_VIEW');

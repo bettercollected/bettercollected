@@ -15,7 +15,7 @@ import { useGetWorkspaceAllSubmissionsQuery, useLazyGetWorkspaceSubmissionQuery 
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function MySubmissions({ workspace }: { workspace: any }) {
-    const submissionsQuery = useGetWorkspaceAllSubmissionsQuery(workspace?.id || '');
+    const submissionsQuery = useGetWorkspaceAllSubmissionsQuery(workspace?.id || '', { pollingInterval: 30000 });
     const breakpoint = useBreakpoint();
     const [trigger, { isLoading, isError, data }] = useLazyGetWorkspaceSubmissionQuery();
 
