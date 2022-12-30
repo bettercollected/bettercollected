@@ -14,7 +14,8 @@ interface IResponseCard {
     workspaceId: string;
 }
 
-export default function ResponseCard({ workspaceId }: IResponseCard) {
+export default function ResponseCard({ workspace }: any) {
+    const workspaceId = workspace.id;
     const { isLoading, data, isError } = useGetWorkspaceSubmissionsQuery(workspaceId, { pollingInterval: 30000 });
     const breakpoint = useBreakpoint();
 
@@ -52,7 +53,7 @@ export default function ResponseCard({ workspaceId }: IResponseCard) {
                             <ActiveLink
                                 key={submission.responseId}
                                 href={{
-                                    pathname: `/submissions/[slug]`,
+                                    pathname: `${workspace.workspaceName}/submissions/[slug]`,
                                     query: { slug }
                                 }}
                             >

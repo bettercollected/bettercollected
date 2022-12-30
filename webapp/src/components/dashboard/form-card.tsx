@@ -45,7 +45,9 @@ const StyledTextField = styled.div`
     }
 `;
 
-export default function FormCard({ workspaceId }: IFormCard) {
+export default function FormCard({ workspace }: any) {
+    const workspaceId = workspace.id;
+
     const [isOpen, setIsOpen] = useState(false);
     const breakpoint = useBreakpoint();
     const [_, copyToClipboard] = useCopyToClipboard();
@@ -122,7 +124,7 @@ export default function FormCard({ workspaceId }: IFormCard) {
                             <ActiveLink
                                 key={form.formId}
                                 href={{
-                                    pathname: `/forms/[slug]`,
+                                    pathname: `${workspace.workspaceName}/forms/[slug]`,
                                     query: { slug, back: true }
                                 }}
                             >

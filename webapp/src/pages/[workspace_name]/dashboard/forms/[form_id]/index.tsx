@@ -27,6 +27,8 @@ export default function FormPage(props: any) {
     }
     const { formId, form } = props;
 
+    // console.log('props:', props);
+
     const tabs = [
         {
             icon: <Feed />,

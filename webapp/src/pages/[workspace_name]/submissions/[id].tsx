@@ -18,7 +18,7 @@ import Loader from '@app/components/ui/loader';
 import MarkdownText from '@app/components/ui/markdown-text';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import globalServerProps from '@app/lib/serverSideProps';
+import globalServerProps, { getGlobalServerSidePropsByDomain, getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
@@ -68,8 +68,9 @@ enum QUESTION_TYPE {
     LINEAR_SCALE = 'LINEAR_SCALE'
 }
 
-export default function Submission({ workspace, submissionId, ...props }: ISubmission) {
+export default function Submission({ workspace, submissionId }: ISubmission) {
     const router = useRouter();
+
     const breakpoint = useBreakpoint();
 
     const { isLoading, isError, data } = useGetWorkspaceSubmissionQuery({ workspace_id: workspace?.id ?? '', submission_id: submissionId });
@@ -257,7 +258,7 @@ export default function Submission({ workspace, submissionId, ...props }: ISubmi
         router
             .push(
                 {
-                    pathname: '/',
+                    pathname: `/${router.query.workspace_name}`,
                     query: { view: 'mySubmissions' }
                 },
                 undefined,
@@ -273,7 +274,7 @@ export default function Submission({ workspace, submissionId, ...props }: ISubmi
                 <nav className="flex mt-3 px-6 md:px-0" aria-label="Breadcrumb">
                     <ol className="inline-flex items-center space-x-1 md:space-x-3">
                         <li className="inline-flex items-center">
-                            <span aria-hidden onClick={() => router.push('/')} className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                            <span aria-hidden onClick={() => router.push(`/${router.query.workspace_name}`)} className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                                 <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
                                 </svg>
@@ -324,7 +325,7 @@ export default function Submission({ workspace, submissionId, ...props }: ISubmi
 }
 
 export async function getServerSideProps(_context: any) {
-    const globalProps = (await globalServerProps(_context)).props;
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
     const { cookies } = _context.req;
     const submissionId = _context.query.id;
     let form: StandardFormDto | null = null;

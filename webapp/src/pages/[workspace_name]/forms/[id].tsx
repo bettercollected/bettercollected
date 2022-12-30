@@ -17,7 +17,9 @@ interface ISingleFormPage extends IServerSideProps {
     slug: string;
 }
 
-export default function SingleFormPage({ form, back, ...props }: ISingleFormPage) {
+export default function SingleFormPage(props: any) {
+    const { form, back } = props;
+
     const router = useRouter();
 
     if (!form) return <FullScreenLoader />;
@@ -31,15 +33,17 @@ export default function SingleFormPage({ form, back, ...props }: ISingleFormPage
                 <div className="absolute bottom-0 left-[50%] w-[599px] h-[388px] bg-gradient-to-r from-rose-200 via-rose-300 to-rose-400 rotate-180 blur-dashboardBackground opacity-[20%]" />
             </div>
             {back && (
-                <Button className="!absolute !top-0 !left-0 w-auto z-10 !h-8 mx-4 mt-0 sm:mt-1 md:mt-3 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => router.push('/')}>
+                <Button className="!absolute !top-0 !left-0 w-auto z-10 !h-8 mx-4 mt-0 sm:mt-1 md:mt-3 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => router.push(`/${props.workspace.workspaceName}?view=forms`)}>
                     <LongArrowLeft width={15} height={15} />
                 </Button>
             )}
 
             <ContentLayout className={'absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
-                <iframe src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0" marginHeight={0} marginWidth={0}>
-                    <Loader />
-                </iframe>
+                {!!responderUri && (
+                    <iframe src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0" marginHeight={0} marginWidth={0}>
+                        <Loader />
+                    </iframe>
+                )}
             </ContentLayout>
         </div>
     );
@@ -59,7 +63,7 @@ export async function getServerSideProps(_context: any) {
 
     try {
         if (globalProps.workspaceId) {
-            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/forms/${slug}`).catch((e) => e);
+            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace.id}/forms/${slug}`).catch((e) => e);
             form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
         }
     } catch (err) {

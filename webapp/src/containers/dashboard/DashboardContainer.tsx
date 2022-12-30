@@ -46,7 +46,7 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
                     <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
                 </div>
             </div>
-            <ContentLayout className="!pt-0 relative h-full bg-[#FBFBFB]">
+            <ContentLayout className="!pt-0 relative pb-20 sm:pb-24 min-h-screen bg-[#FBFBFB]">
                 <div className="absolute overflow-hidden inset-0">
                     <div className="absolute top-[60%] left-[-100px] w-[359px] h-[153px] bg-gradient-to-r from-orange-200 via-orange-300 to-orange-400 rotate-90 blur-dashboardBackground opacity-[20%]" />
                     <div className="absolute top-[35%] left-[65%] w-[765px] h-[765px] bg-gradient-to-r from-cyan-300 via-sky-300 to-cyan-400 blur-dashboardBackground opacity-[15%]" />
@@ -85,7 +85,7 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
                         <MarkdownText description={workspace.description} contentStripLength={1000} markdownClassName="pt-3 md:pt-7 text-base text-grey" textClassName="text-base" />
                     </div>
                 </div>
-                <SubmissionTabContainer workspaceId={workspace.id} showResponseBar={!!selectGetStatus.error} />
+                <SubmissionTabContainer workspace={workspace} workspaceId={workspace.id} showResponseBar={!!selectGetStatus.error} />
             </ContentLayout>
         </div>
     );

@@ -2,6 +2,8 @@ import React from 'react';
 
 import { useRouter } from 'next/router';
 
+import { toast } from 'react-toastify';
+
 import { useGetWorkspaceFormsQuery, useLazyGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 
 import FormRenderer from '../form-renderer/FormRenderer';
@@ -19,6 +21,8 @@ export const FormTabContent = ({ workspaceId }: any) => {
     };
 
     const { isLoading, data, isError, error } = useGetWorkspaceFormsQuery(query);
+
+    if (isError) toast.error('Something went wrong!');
 
     if (isLoading) return <FullScreenLoader />;
 

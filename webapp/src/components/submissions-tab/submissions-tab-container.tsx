@@ -5,9 +5,10 @@ import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 interface ISubmissionTabContainer {
     workspaceId: string;
     showResponseBar: boolean;
+    workspace: any;
 }
 
-export default function SubmissionTabContainer({ workspaceId, showResponseBar }: ISubmissionTabContainer) {
+export default function SubmissionTabContainer({ workspaceId, showResponseBar, workspace }: ISubmissionTabContainer) {
     const paramTabs = [
         {
             title: 'Forms',
@@ -27,10 +28,10 @@ export default function SubmissionTabContainer({ workspaceId, showResponseBar }:
     return (
         <ParamTab tabMenu={paramTabs}>
             <TabPanel className="focus:outline-none" key="forms">
-                <FormCard workspaceId={workspaceId} />
+                <FormCard workspace={workspace} />
             </TabPanel>
             <TabPanel className="focus:outline-none" key="mySubmissions">
-                <ResponseCard workspaceId={workspaceId} />
+                <ResponseCard workspace={workspace} />
             </TabPanel>
         </ParamTab>
     );

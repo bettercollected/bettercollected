@@ -51,7 +51,7 @@ export async function getServerSideProps(_context: any) {
 
     const hasCustomDomain = _context.req.headers.host !== environments.CLIENT_HOST;
 
-    if (!hasCustomDomain) {
+    if (hasCustomDomain) {
         return {
             redirect: {
                 permanent: false,
@@ -62,12 +62,6 @@ export async function getServerSideProps(_context: any) {
 
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
     let form: StandardFormDto | null = null;
-
-    if (!hasCustomDomain) {
-        return {
-            notFound: true
-        };
-    }
 
     try {
         if (globalProps.hasCustomDomain && globalProps.workspaceId) {

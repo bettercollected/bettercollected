@@ -73,7 +73,7 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
     | any
 > {
     const hasCustomDomain = _context.req.headers.host !== environments.CLIENT_HOST;
-    const workspaceId = '';
+    let workspaceId = '';
     let workspace = null;
     const { workspace_name } = _context.params;
 
@@ -90,6 +90,7 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
     try {
         const workspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces?workspace_name=${workspace_name}`).catch((e) => e);
         workspace = (await workspaceResponse?.json().catch((e: any) => e)) ?? null;
+        workspaceId = workspace.id;
     } catch (e) {}
     return {
         props: {
