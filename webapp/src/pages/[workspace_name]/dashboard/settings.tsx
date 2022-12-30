@@ -133,17 +133,22 @@ export default function MySettings(props: any) {
 
     const handleUpdateProfile = async (e: any) => {
         e.preventDefault();
+        if (!id) return;
 
         if (!!handleValidation(workspaceForm.workspace_name, true) || !!handleValidation(workspaceForm.title, false)) return;
 
-        const formData = new FormData();
-        formData.append('profile_image', workspaceForm.profile_image);
-        formData.append('banner_image', workspaceForm.banner_image);
-        formData.append('title', workspaceForm.title);
-        formData.append('description', workspaceForm.description);
-        formData.append('workspace_name', workspaceForm.workspace_name);
+        const { profile_image, banner_image, title, description, workspace_name } = workspaceForm;
 
-        if (!id) return;
+        const formData = new FormData();
+        if (!!profile_image && profile_image.constructor === File) {
+            formData.append('profile_image', profile_image);
+        }
+        if (!!banner_image && banner_image.constructor === File) {
+            formData.append('banner_image', banner_image);
+        }
+        !!title && formData.append('title', workspaceForm.title);
+        formData.append('description', workspaceForm.description);
+        !!workspace_name && formData.append('workspace_name', workspaceForm.workspace_name);
 
         const response = {
             workspace_id: id,

@@ -118,7 +118,7 @@ export default function FormCard({ workspace }: any) {
                         const slug = form.settings.customUrl;
                         let shareUrl = '';
                         if (window && typeof window !== 'undefined') {
-                            shareUrl = `${window.location.origin}/forms/${slug}`;
+                            shareUrl = `${window.location.origin}/${workspace.workspaceName}/forms/${slug}`;
                         }
                         return (
                             <ActiveLink
