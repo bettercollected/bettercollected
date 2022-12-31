@@ -353,12 +353,6 @@ export async function getServerSideProps(_context: any) {
         }
     };
 
-    if (!hasCustomDomain) {
-        return {
-            notFound: true
-        };
-    }
-
     try {
         if (globalProps.hasCustomDomain && globalProps.workspaceId) {
             const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/submissions/${submissionId}`, config).catch((e) => e);
@@ -367,12 +361,6 @@ export async function getServerSideProps(_context: any) {
     } catch (err) {
         form = null;
         console.error(err);
-    }
-
-    if (!form) {
-        return {
-            notFound: true
-        };
     }
 
     return {
