@@ -109,8 +109,8 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true }
                         {tabMenu.map((item) => (
                             <TabItem key={item.path}>
                                 <div className="flex items-center">
-                                    {item.icon && <span className="pr-2">{item.icon}</span>}
-                                    <div className="hidden md:block">{item.title}</div>
+                                    {item.icon && <span className="hidden md:block pr-2">{item.icon}</span>}
+                                    <div className="">{item.title}</div>
                                 </div>
                             </TabItem>
                         ))}

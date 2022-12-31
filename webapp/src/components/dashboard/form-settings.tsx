@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { Divider } from '@mui/material';
+import { Divider, Tooltip } from '@mui/material';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
@@ -51,6 +51,13 @@ export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
         patchSettings({ customUrl });
     };
 
+    const getFirstFiveSlugName = (slug: any) => {
+        if (slug.length <= 5) return slug;
+        const firstPart = slug.substring(0, 3);
+        const lastPart = slug.substring(slug.length - 2);
+        return `${firstPart}..${lastPart}`;
+    };
+
     return (
         <div className="max-w-[800px]">
             <div className=" flex flex-col">
@@ -72,7 +79,7 @@ export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
                         error={error}
                         onBlur={onBlur}
                         onChange={(event) => {
-                            if (event.target.value && !event.target.value.match('^\\S+$')) {
+                            if (!event.target.value || !event.target.value.match('^\\S+$')) {
                                 setError(true);
                             } else {
                                 setError(false);
@@ -87,7 +94,11 @@ export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
             <div className="mt-5 space-y-2">
                 <div className="text-gray-700 font-bold">Form URLs</div>
                 <div className="text-gray-800 underline w-fit items-center rounded px-4 py-2 flex bg-gray-100">
-                    {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{environments.CLIENT_HOST}/{workspace.workspaceName}/forms/{customUrl}
+                    <Tooltip title={customUrl}>
+                        <p>
+                            {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{environments.CLIENT_HOST}/{workspace.workspaceName}/forms/{getFirstFiveSlugName(customUrl)}
+                        </p>
+                    </Tooltip>
                     <Copy
                         width="16px"
                         height="16px"
@@ -102,7 +113,11 @@ export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
                 </div>
                 {isCustomDomain && (
                     <div className="text-gray-800 underline w-fit items-center rounded px-4 py-2 flex bg-gray-100">
-                        {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{workspace.customDomain}/forms/{customUrl}
+                        <Tooltip title={customUrl}>
+                            <p className="text-ellipsis whitespace-pre-wrap">
+                                {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{workspace.customDomain}/forms/{getFirstFiveSlugName(customUrl)}
+                            </p>
+                        </Tooltip>
                         <Copy
                             width="16px"
                             height="16px"

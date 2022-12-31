@@ -244,7 +244,7 @@ export default function MySettings(props: any) {
                         <label className="block text-xl mb-2 font-medium text-gray-900 dark:text-gray-300" htmlFor="profile">
                             Profile Photo
                         </label>
-                        <img src={checkIfTheImageUrlIsObjectOrLink(workspaceForm.profile_image)} alt={'Profile image'} height={500} />
+                        <img src={checkIfTheImageUrlIsObjectOrLink(workspaceForm.profile_image)} alt={'Profile image'} height={200} />
                         <input
                             accept="image/png, image/jpeg"
                             placeholder="upload a profile image"
@@ -261,7 +261,7 @@ export default function MySettings(props: any) {
                         <label className="block text-xl mb-2 font-medium text-gray-900 dark:text-gray-300" htmlFor="profile">
                             Banner Photo
                         </label>
-                        <img src={checkIfTheImageUrlIsObjectOrLink(workspaceForm.banner_image)} alt={'Banner Image'} />
+                        <img src={checkIfTheImageUrlIsObjectOrLink(workspaceForm.banner_image)} height={200} alt={'Banner Image'} />
                         <input
                             accept="image/png, image/jpeg"
                             className="block w-full text-sm text-gray-900 border border-gray-300 rounded-md cursor-pointer bg-gray-50 file:rounded-l-md file:py-3 file:px-3 file:bg-gray-500 file:text-white file:border-none "
