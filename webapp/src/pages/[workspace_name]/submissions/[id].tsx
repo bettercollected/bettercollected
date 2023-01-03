@@ -22,6 +22,7 @@ import globalServerProps, { getGlobalServerSidePropsByDomain, getGlobalServerSid
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 const StyledTextField = styled.div`
@@ -73,7 +74,10 @@ export default function Submission({ workspace, submissionId }: ISubmission) {
 
     const breakpoint = useBreakpoint();
 
-    const { isLoading, isError, data } = useGetWorkspaceSubmissionQuery({ workspace_id: workspace?.id ?? '', submission_id: submissionId });
+    const { isLoading, isError, data } = useGetWorkspaceSubmissionQuery({
+        workspace_id: workspace?.id ?? '',
+        submission_id: submissionId
+    });
 
     const form: any = data?.payload?.content;
 
@@ -325,24 +329,29 @@ export default function Submission({ workspace, submissionId }: ISubmission) {
 }
 
 export async function getServerSideProps(_context: any) {
+    const hasCustomDomain = checkHasCustomDomain(_context);
+    if (hasCustomDomain) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    }
     const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
-    const { cookies } = _context.req;
-    const submissionId = _context.query.id;
+    if (!globalProps.workspace.id) {
+        return {
+            notFound: true
+        };
+    }
+
     let form: StandardFormDto | null = null;
 
-    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
-    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
-
-    const config = {
-        method: 'GET',
-        headers: {
-            cookie: `${auth};${refresh}`
-        }
-    };
+    const submissionId = _context.query.id;
 
     try {
-        if (globalProps.hasCustomDomain && globalProps.workspaceId) {
-            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/submissions/${submissionId}`, config).catch((e) => e);
+        if (globalProps.workspaceId) {
+            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/submissions/${submissionId}`, getServerSideAuthHeaderConfig(_context)).catch((e) => e);
             form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
         }
     } catch (err) {

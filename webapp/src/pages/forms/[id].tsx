@@ -11,6 +11,7 @@ import ContentLayout from '@app/layouts/_content-layout';
 import globalServerProps, { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
+import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 
 interface ISingleFormPage extends IServerSideProps {
     form: StandardFormDto;
@@ -49,7 +50,7 @@ export async function getServerSideProps(_context: any) {
         back = (query?.back && (query?.back === 'true' || query?.back === true)) ?? false;
     }
 
-    const hasCustomDomain = _context.req.headers.host !== environments.CLIENT_HOST;
+    const hasCustomDomain = checkHasCustomDomain(_context);
 
     if (!hasCustomDomain) {
         return {
@@ -72,6 +73,13 @@ export async function getServerSideProps(_context: any) {
         form = null;
         console.error(err);
     }
+
+    if (!form) {
+        return {
+            notFound: true
+        };
+    }
+
     return {
         props: {
             ...globalProps,

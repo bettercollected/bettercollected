@@ -10,8 +10,9 @@ import Layout from '@app/components/sidebar/layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
+import { getAuthUserPropsWithWorkspace, getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { useGetWorkspaceAllSubmissionsQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function MySubmissions({ workspace }: { workspace: any }) {
@@ -22,11 +23,9 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
     const [responseObject, setResponseObject] = useState({});
     const [form, setForm] = useState([]);
 
-    const [responseId, setResponseId] = useState('');
-
     const router = useRouter();
 
-    const submissionId = router.query.sub_id;
+    const { sub_id }: any = router.query;
 
     const convertToClientForm = (formsArray: Array<any>) => {
         const responseMap = formsArray.reduce(function (accumulator, value) {
@@ -55,11 +54,12 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
     };
 
     useEffect(() => {
-        if (!!submissionId) {
+        if (!!sub_id) {
             const submissionQuery = {
                 workspace_id: workspace.id,
-                submission_id: submissionId
+                submission_id: sub_id
             };
+            // @ts-ignore
             trigger(submissionQuery)
                 .then((d: any) => {
                     setForm(d.data?.payload?.content);
@@ -68,7 +68,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
                     toast.error('Error fetching submission data.');
                 });
         }
-    }, [submissionId]);
+    }, [sub_id]);
 
     const handleRemoveSubmissionId = () => {
         const updatedQuery = { ...router.query };
@@ -154,7 +154,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
                                 <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                     <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
                                 </svg>
-                                {!!submissionId && <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submissionId, 10) : submissionId}</span>}
+                                {!!sub_id && <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(sub_id, 10) : sub_id}</span>}
                             </div>
                         </li>
                     </ol>
@@ -163,65 +163,28 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
         );
     };
 
-    if (isLoading) return <FullScreenLoader />;
+    if (isLoading) return;
 
     return (
         <Layout>
-            {!submissionId && (
+            {isLoading ? (
+                <FullScreenLoader />
+            ) : (
                 <>
-                    <MyRecentSubmissions />
-                    <CardRenderer />
+                    {!sub_id && (
+                        <>
+                            <MyRecentSubmissions />
+                            <CardRenderer />
+                        </>
+                    )}
+                    {!!sub_id && <BreadCrumbRenderer />}
+                    {!!sub_id && <FormRenderer form={form} />}
                 </>
             )}
-            {!!submissionId && <BreadCrumbRenderer />}
-            {!!submissionId && <FormRenderer form={form} />}
         </Layout>
     );
 }
 
 export async function getServerSideProps(_context: any) {
-    const { cookies } = _context.req;
-    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
-    if (globalProps.hasCustomDomain) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/'
-            }
-        };
-    }
-    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
-    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
-
-    const config = {
-        method: 'GET',
-        headers: {
-            cookie: `${auth};${refresh}`
-        }
-    };
-
-    try {
-        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
-        const user = (await userStatus?.json().catch((e: any) => e))?.payload?.content ?? null;
-        if (!user?.user?.roles?.includes('FORM_CREATOR')) {
-            return {
-                redirect: {
-                    permanent: false,
-                    destination: '/login'
-                }
-            };
-        }
-    } catch (e) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/login'
-            }
-        };
-    }
-    return {
-        props: {
-            ...globalProps
-        }
-    };
+    return await getAuthUserPropsWithWorkspace(_context);
 }

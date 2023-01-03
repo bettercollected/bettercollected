@@ -71,37 +71,7 @@ enum QUESTION_TYPE {
 //TODO: fetch the data using api slice and set the form...
 // you will need two api calls conditionally based on questions or responses.
 
-export default function FormRenderer({ submissionId, formId, workspaceId, form }: any) {
-    const router = useRouter();
-    // const breakpoint = useBreakpoint();
-
-    // const [form, setForm] = useState([]);
-
-    // const submission = useLazyGetWorkspaceSubmissionQuery();
-    // const forms = useLazyGetWorkspaceFormsQuery();
-
-    // const conditionalFetchingFormsOrSubmissions = async () => {
-    //     if (!!submissionId) {
-    //         const submissionQuery = {
-    //             workspace_id: workspaceId,
-    //             submission_id: submissionId
-    //         };
-    //         const [trigger, result] = submission;
-    //         return await trigger(submissionQuery).unwrap();
-    //     } else {
-    //         const formsQuery = {
-    //             workspace_id: workspaceId,
-    //             form_id: formId
-    //         };
-    //         const [trigger] = forms;
-    //         return await trigger(formsQuery).unwrap();
-    //     }
-    // };
-
-    // useEffect(() => {
-    //     conditionalFetchingFormsOrSubmissions().then((d) => setForm(d?.payload?.content));
-    // }, [submissionId, formId]);
-
+export default function FormRenderer({ form }: any) {
     const getQuestionType = (question: any) => {
         if (question.isMediaContent && 'video' in question.type) return QUESTION_TYPE.VIDEO_CONTENT;
         if (question.isMediaContent && 'image' in question.type) return QUESTION_TYPE.IMAGE_CONTENT;
@@ -298,38 +268,3 @@ export default function FormRenderer({ submissionId, formId, workspaceId, form }
         </div>
     );
 }
-
-// export async function getServerSideProps(_context: any) {
-//     const globalProps = (await globalServerProps(_context)).props;
-//     const { cookies } = _context.req;
-//     const submissionId = _context.query.id;
-
-//     let form: StandardFormDto | null = null;
-
-//     const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
-//     const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
-
-//     const config = {
-//         method: 'GET',
-//         headers: {
-//             cookie: `${auth};${refresh}`
-//         }
-//     };
-
-//     try {
-//         const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${environments.WORKSPACE_ID}/submissions/${submissionId}`, config).catch((e) => e);
-//         form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
-//     } catch (err) {
-//         form = null;
-//         console.error(err);
-//     }
-//     console.info(form);
-
-//     return {
-//         props: {
-//             ...globalProps,
-//             form,
-//             submissionId
-//         }
-//     };
-// }

@@ -8,9 +8,10 @@ import Button from '@app/components/ui/button/button';
 import environments from '@app/configs/environments';
 import useUser from '@app/lib/hooks/use-authuser';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
+import { getAuthUserPropsWithWorkspace, getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
+import { checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function CreatorDashboard({ workspace, hasCustomDomain }: { workspace: any; hasCustomDomain: boolean }) {
@@ -98,48 +99,5 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
 }
 
 export async function getServerSideProps(_context: any) {
-    const { cookies } = _context.req;
-    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
-    if (globalProps.hasCustomDomain) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/'
-            }
-        };
-    }
-    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
-    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
-
-    const config = {
-        method: 'GET',
-        headers: {
-            cookie: `${auth};${refresh}`
-        }
-    };
-
-    try {
-        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
-        const user = (await userStatus?.json().catch((e: any) => e))?.payload?.content ?? null;
-        if (!user?.user?.roles?.includes('FORM_CREATOR')) {
-            return {
-                redirect: {
-                    permanent: false,
-                    destination: '/login'
-                }
-            };
-        }
-    } catch (e) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/login'
-            }
-        };
-    }
-    return {
-        props: {
-            ...globalProps
-        }
-    };
+    return await getAuthUserPropsWithWorkspace(_context);
 }

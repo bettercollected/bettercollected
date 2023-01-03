@@ -12,19 +12,16 @@ import Layout from '@app/components/sidebar/layout';
 import ParamTab from '@app/components/ui/param-tab';
 import { TabPanel } from '@app/components/ui/tab';
 import environments from '@app/configs/environments';
-import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
+import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import Error from '@app/pages/_error';
-
-enum FormTabs {
-    FORM = 'Form',
-    RESPONSE = 'Responses',
-    SETTINGS = 'Settings'
-}
+import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export default function FormPage(props: any) {
     if (!props && Object.keys(props).length === 0) {
         return <Error />;
     }
+
+    console.log(props);
     const { formId, form } = props;
 
     const tabs = [
@@ -74,7 +71,7 @@ export default function FormPage(props: any) {
             <div className="flex flex-col w-full m-auto justify-center">
                 <ParamTab tabMenu={tabs}>
                     <TabPanel className="focus:outline-none" key="form">
-                        <FormTabContent form={form} workspaceId={props?.workspace?.id ?? ''} />
+                        <FormTabContent form={form} />
                     </TabPanel>
                     <TabPanel className="focus:outline-none" key="submissions">
                         <FormSubmissionsTab workspace={props.workspace} workspaceName={props?.workspace?.workspaceName} workspaceId={props?.workspace?.id ?? ''} formId={formId} />
@@ -89,73 +86,29 @@ export default function FormPage(props: any) {
 }
 
 export async function getServerSideProps(_context: any) {
-    const { cookies } = _context.req;
-    const hasCustomDomain = _context.req.headers.host !== environments.CLIENT_HOST;
-    if (hasCustomDomain) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/'
-            }
-        };
+    const props = await getAuthUserPropsWithWorkspace(_context);
+    if (!props.props) {
+        return props;
     }
-
-    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context).catch((e) => {})).props;
-
-    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
-    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
-
-    const config = {
-        method: 'GET',
-        headers: {
-            cookie: `${auth};${refresh}`
-        }
-    };
+    const globalProps = props.props;
     const { form_id } = _context.query;
     let form = null;
     try {
-        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
-        const user = (await userStatus?.json().catch((e: any) => e))?.payload?.content ?? null;
-
-        if (!user) {
+        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace.id}/forms?form_id=${form_id}`);
+        form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
+        if (!form) {
             return {
-                redirect: {
-                    permanent: false,
-                    destination: '/'
-                }
+                notFound: true
             };
         }
 
-        if (user?.user?.roles?.includes('FORM_CREATOR')) {
-            const userWorkspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/mine`, config);
-            const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
-            const { id } = userWorkspace[0];
-
-            if (!userWorkspace || userWorkspace.length < 1) {
-                return {
-                    redirect: {
-                        permanent: false,
-                        destination: `/setupWorkspace`
-                    }
-                };
+        return {
+            props: {
+                formId: form_id,
+                ...globalProps,
+                form
             }
-            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${id}/forms?form_id=${form_id}`, config);
-            form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
-
-            if (!form) {
-                return {
-                    notFound: true
-                };
-            } else {
-                return {
-                    props: {
-                        formId: form_id,
-                        ...globalProps,
-                        form
-                    }
-                };
-            }
-        }
+        };
     } catch (e) {
         return {
             props: {
@@ -163,8 +116,4 @@ export async function getServerSideProps(_context: any) {
             }
         };
     }
-
-    return {
-        props: {}
-    };
 }

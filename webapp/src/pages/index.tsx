@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic';
 import environments from '@app/configs/environments';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
+import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 
 const HomeContainer = dynamic(() => import('@app/containers/home/HomeContainer'), { ssr: false });
 const DashboardContainer = dynamic(() => import('@app/containers/dashboard/DashboardContainer'), { ssr: false });
@@ -18,7 +19,7 @@ export default Home;
 
 export async function getServerSideProps(_context: any) {
     const { cookies } = _context.req;
-    const hasCustomDomain = _context.req.headers.host !== environments.CLIENT_HOST;
+    const hasCustomDomain = checkHasCustomDomain(_context);
     if (hasCustomDomain) {
         const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
         if (!globalProps?.workspace?.id) {

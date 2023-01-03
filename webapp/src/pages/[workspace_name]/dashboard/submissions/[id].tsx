@@ -13,15 +13,15 @@ import Slider from '@mui/material/Slider';
 import TextField from '@mui/material/TextField';
 
 import Button from '@app/components/ui/button';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Loader from '@app/components/ui/loader';
 import MarkdownText from '@app/components/ui/markdown-text';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import globalServerProps from '@app/lib/serverSideProps';
+import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 const StyledTextField = styled.div`
@@ -68,15 +68,9 @@ enum QUESTION_TYPE {
     LINEAR_SCALE = 'LINEAR_SCALE'
 }
 
-export default function Submission({ workspace, submissionId, ...props }: ISubmission) {
+export default function Submission({ form }: ISubmission) {
     const router = useRouter();
     const breakpoint = useBreakpoint();
-
-    const { isLoading, isError, data } = useGetWorkspaceSubmissionQuery({ workspace_id: workspace?.id ?? '', submission_id: submissionId });
-
-    const form: any = data?.payload?.content;
-
-    if (isLoading || isError || !data) return <FullScreenLoader />;
 
     const getQuestionType = (question: StandardFormQuestionDto) => {
         if (question.isMediaContent && 'video' in question.type) return QUESTION_TYPE.VIDEO_CONTENT;
@@ -312,7 +306,6 @@ export default function Submission({ workspace, submissionId, ...props }: ISubmi
                 <hr className="my-6" />
                 {form.questions.map((question: any, idx: any) => (
                     <div key={question?.questionId ?? `${question.formId}_${idx}`} className="p-6 border-[1.5px] border-gray-200 rounded-lg mb-4">
-                        {/* <p className="font-semibold text-xs underline underline-offset-4 decoration-gray-200 text-gray-400">Question #{idx}</p> */}
                         <h1 className="font-semibold text-lg text-gray-600">{question.title}</h1>
                         {question?.description && <MarkdownText description={question.description} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />}
                         {renderQuestionTypeField(question)}
@@ -324,24 +317,16 @@ export default function Submission({ workspace, submissionId, ...props }: ISubmi
 }
 
 export async function getServerSideProps(_context: any) {
-    const globalProps = (await globalServerProps(_context)).props;
-    const { cookies } = _context.req;
     const submissionId = _context.query.id;
     let form: StandardFormDto | null = null;
-
-    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
-    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
-
-    const config = {
-        method: 'GET',
-        headers: {
-            cookie: `${auth};${refresh}`
-        }
-    };
-
+    const { props } = await getAuthUserPropsWithWorkspace(_context);
+    if (!props.props) {
+        return props;
+    }
+    const globalProps = props.props;
     try {
         if (globalProps.hasCustomDomain && globalProps.workspaceId) {
-            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/submissions/${submissionId}`, config).catch((e) => e);
+            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/submissions/${submissionId}`, getServerSideAuthHeaderConfig(_context)).catch((e) => e);
             form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
         }
     } catch (err) {

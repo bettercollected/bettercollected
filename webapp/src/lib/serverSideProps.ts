@@ -3,12 +3,13 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import environments from '@app/configs/environments';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage } from '@app/utils/serverSidePropsUtils';
 
 export default async function getServerSideProps({ locale, ..._context }: any): Promise<{
     props: IServerSideProps;
 }> {
     // const hasCustomDomain = !!environments.IS_CUSTOM_DOMAIN;
-    const hasCustomDomain = _context.req.headers.host !== environments.CLIENT_HOST;
+    const hasCustomDomain = checkHasCustomDomain(_context);
     // let workspaceId: string | null = null;
     const workspaceId = environments.WORKSPACE_ID;
     let workspace: WorkspaceDto | null = null;
@@ -72,7 +73,7 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
       }
     | any
 > {
-    const hasCustomDomain = _context.req.headers.host !== environments.CLIENT_HOST;
+    const hasCustomDomain = checkHasCustomDomain(_context);
     let workspaceId = '';
     let workspace = null;
     const { workspace_name } = _context.params;
@@ -98,6 +99,36 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
             hasCustomDomain,
             workspaceId,
             workspace
+        }
+    };
+}
+
+export async function getAuthUserPropsWithWorkspace(_context: any) {
+    const hasCustomDomain = checkHasCustomDomain(_context);
+    if (hasCustomDomain) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    }
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
+    if (!globalProps.workspace.id) {
+        return {
+            notFound: true
+        };
+    }
+    if (!(await checkIfUserIsAuthorizedToViewPage(_context, globalProps.workspace)))
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    return {
+        props: {
+            ...globalProps
         }
     };
 }

@@ -6,12 +6,19 @@ import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { useCreateWorkspaceMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
+import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 
 const SetUpWorkspace = (props: any) => {
     const [createWorkspace, { isLoading, isError }] = useCreateWorkspaceMutation();
     const existingWorkspace = usePatchExistingWorkspaceMutation();
 
-    const [workspaceForm, setWorkspaceForm] = useState({ title: '', workspace_name: '', description: '', profile_image: '', banner_image: '' });
+    const [workspaceForm, setWorkspaceForm] = useState({
+        title: '',
+        workspace_name: '',
+        description: '',
+        profile_image: '',
+        banner_image: ''
+    });
 
     console.log(workspaceForm);
 
@@ -56,7 +63,7 @@ const SetUpWorkspace = (props: any) => {
 
         reader.onload = function () {
             //convert the file contents to a Uint8Array
-            const binaryString = reader.result;
+            const binaryString: any = reader.result;
             if (!!binaryString && binaryString.length !== 0) {
                 const binaryArray = new Uint8Array(binaryString.length);
                 for (let i = 0; i < binaryString.length; i++) {
@@ -152,7 +159,7 @@ export default SetUpWorkspace;
 export async function getServerSideProps(_context: any) {
     const { cookies } = _context.req;
 
-    const hasCustomDomain = _context.req.headers.host !== environments.CLIENT_HOST;
+    const hasCustomDomain = checkHasCustomDomain(_context);
     if (hasCustomDomain) {
         return {
             redirect: {

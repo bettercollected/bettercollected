@@ -22,6 +22,7 @@ import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 const StyledTextField = styled.div`
@@ -332,7 +333,7 @@ export async function getServerSideProps(_context: any) {
     const { cookies } = _context.req;
     const submissionId = _context.query.id;
 
-    const hasCustomDomain = _context.req.headers.host !== environments.CLIENT_HOST;
+    const hasCustomDomain = checkHasCustomDomain(_context);
 
     if (!hasCustomDomain) {
         return {

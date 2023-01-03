@@ -5,12 +5,10 @@ import Image from 'next/image';
 import ConnectWithGoogleButton from '@app/components/login/login-with-google-button';
 import environments from '@app/configs/environments';
 import ContentLayout from '@app/layouts/_content-layout';
-import globalServerProps from '@app/lib/serverSideProps';
+import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export async function getServerSideProps(_context: any) {
-    const { cookies } = _context.req;
-    const globalProps = (await globalServerProps(_context)).props;
-    if (globalProps.hasCustomDomain) {
+    if (checkHasCustomDomain(_context)) {
         return {
             redirect: {
                 permanent: false,
@@ -18,15 +16,7 @@ export async function getServerSideProps(_context: any) {
             }
         };
     }
-    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
-    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
-
-    const config = {
-        method: 'GET',
-        headers: {
-            cookie: `${auth};${refresh}`
-        }
-    };
+    const config = getServerSideAuthHeaderConfig(_context);
 
     try {
         const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);

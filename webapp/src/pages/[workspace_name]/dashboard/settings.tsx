@@ -7,14 +7,15 @@ import { toast } from 'react-toastify';
 import Layout from '@app/components/sidebar/layout';
 import Button from '@app/components/ui/button/button';
 import environments from '@app/configs/environments';
-import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
+import { getAuthUserPropsWithWorkspace, getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { useAppSelector } from '@app/store/hooks';
-import { useLazyGetAllMineWorkspacesQuery, useLazyGetWorkspaceQuery, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
+import { useLazyGetWorkspaceQuery, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
+import { checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage } from '@app/utils/serverSidePropsUtils';
 
 export default function MySettings(props: any) {
     const { bannerImage, customDomain, description, id, ownerId, profileImage, title, workspaceName } = props.workspace;
-    const imageRef = useRef(null);
+    const imageRef = useRef<any>();
 
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
 
@@ -22,7 +23,14 @@ export default function MySettings(props: any) {
     const existingWorkspace = useAppSelector((state) => state.workspace);
 
     const dispatch = useDispatch();
-    const [workspaceForm, setWorkspaceForm] = useState({ title: '', custom_domain: '', workspace_name: '', description: '', profile_image: null, banner_image: null });
+    const [workspaceForm, setWorkspaceForm] = useState({
+        title: '',
+        custom_domain: '',
+        workspace_name: '',
+        description: '',
+        profile_image: null,
+        banner_image: null
+    });
 
     useEffect(() => {
         setWorkspaceForm({
@@ -69,8 +77,6 @@ export default function MySettings(props: any) {
     };
 
     const handleUpdateCustomDomain = async (e: any) => {
-        e.preventDefault();
-
         if (!!handleValidation(workspaceForm.custom_domain, false)) return;
         const formData = new FormData();
         formData.append('custom_domain', workspaceForm.custom_domain);
@@ -78,7 +84,7 @@ export default function MySettings(props: any) {
             workspace_id: id,
             body: formData
         };
-        const data = await patchExistingWorkspace(response);
+        const data: any = await patchExistingWorkspace(response);
         if (!data.error) {
             toast.info('Updated workspace info!');
             // update the workspace info to client side.
@@ -93,7 +99,7 @@ export default function MySettings(props: any) {
 
     // this method is used to check if the image obtained is a image url or a file object
     const checkIfTheImageUrlIsObjectOrLink = (srcContent: any) => {
-        if (!srcContent) return null;
+        if (!srcContent) return;
         if (srcContent.constructor === File) {
             // image is a file object
             imageRef.current = URL.createObjectURL(srcContent);
@@ -110,25 +116,6 @@ export default function MySettings(props: any) {
         const file = e.target.files[0];
 
         setWorkspaceForm({ ...workspaceForm, [e.target.name]: file });
-
-        // const reader = new FileReader();
-
-        // reader.onload = function () {
-        //     //convert the file contents to a Uint8Array
-        //     const binaryString = reader.result;
-        //     if (!!binaryString && binaryString.length !== 0) {
-        //         const binaryArray = new Uint8Array(binaryString.length);
-        //         for (let i = 0; i < binaryString.length; i++) {
-        //             binaryArray[i] = binaryString.charCodeAt(i);
-        //         }
-
-        //         // create a file object from the Uint8Array
-        //         const fileObject = new Blob([binaryArray], { type: file.type });
-
-        //         setWorkspaceForm({ ...workspaceForm, [e.target.name]: fileObject });
-        //     }
-        // };
-        // reader.readAsBinaryString(file);
     };
 
     const handleUpdateProfile = async (e: any) => {
@@ -137,7 +124,7 @@ export default function MySettings(props: any) {
 
         if (!!handleValidation(workspaceForm.workspace_name, true) || !!handleValidation(workspaceForm.title, false)) return;
 
-        const { profile_image, banner_image, title, description, workspace_name } = workspaceForm;
+        const { profile_image, banner_image, title, description, workspace_name }: any = workspaceForm;
 
         const formData = new FormData();
         if (!!profile_image && profile_image.constructor === File) {
@@ -154,7 +141,7 @@ export default function MySettings(props: any) {
             workspace_id: id,
             body: formData
         };
-        const data = await patchExistingWorkspace(response);
+        const data: any = await patchExistingWorkspace(response);
         if (!data.error) {
             toast.info('Updated workspace info!');
             // update the workspace info to client side.
@@ -283,61 +270,5 @@ export default function MySettings(props: any) {
 }
 
 export async function getServerSideProps(_context: any) {
-    const { cookies } = _context.req;
-    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
-
-    if (globalProps.hasCustomDomain) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/'
-            }
-        };
-    }
-    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
-    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
-
-    const config = {
-        method: 'GET',
-        headers: {
-            cookie: `${auth};${refresh}`
-        }
-    };
-
-    try {
-        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
-        const user = (await userStatus?.json().catch((e: any) => e))?.payload?.content ?? null;
-        if (!user?.user?.roles?.includes('FORM_CREATOR')) {
-            return {
-                redirect: {
-                    permanent: false,
-                    destination: '/login'
-                }
-            };
-        } else {
-            const userWorkspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/mine`, config);
-            const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
-            if (!userWorkspace || userWorkspace.length < 1) {
-                return {
-                    redirect: {
-                        permanent: false,
-                        destination: `/setupWorkspace`
-                    }
-                };
-            }
-            const { id } = userWorkspace[0];
-            return {
-                props: {
-                    ...globalProps
-                }
-            };
-        }
-    } catch (e) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/login'
-            }
-        };
-    }
+    return await getAuthUserPropsWithWorkspace(_context);
 }
