@@ -3,7 +3,7 @@ from typing import List
 
 from pydantic import BaseModel, validator
 
-from models.form_provider import FormProvider
+from enums.form_provider import FormProvider
 
 
 class FormSchedulerConfigQuery(BaseModel):
