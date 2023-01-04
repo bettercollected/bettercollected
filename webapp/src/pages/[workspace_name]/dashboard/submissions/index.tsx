@@ -1,31 +1,51 @@
 import { useEffect, useState } from 'react';
 
-import Router, { useRouter } from 'next/router';
+import { useRouter } from 'next/router';
 
 import { toast } from 'react-toastify';
 
 import EmptyFormsView from '@app/components/dashboard/empty-form';
-import FormRenderer from '@app/components/form-renderer/FormRenderer';
+import BreadcrumbRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
+import FormRenderer from '@app/components/form/renderer/form-renderer';
+import { HomeIcon } from '@app/components/icons/home';
 import Layout from '@app/components/sidebar/layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { getAuthUserPropsWithWorkspace, getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
+import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useGetWorkspaceAllSubmissionsQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
-import { checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function MySubmissions({ workspace }: { workspace: any }) {
     const submissionsQuery = useGetWorkspaceAllSubmissionsQuery(workspace?.id || '', { pollingInterval: 30000 });
     const breakpoint = useBreakpoint();
     const [trigger, { isLoading, isError, data }] = useLazyGetWorkspaceSubmissionQuery();
-
     const [responseObject, setResponseObject] = useState({});
     const [form, setForm] = useState([]);
-
     const router = useRouter();
-
     const { sub_id }: any = router.query;
+
+    useEffect(() => {
+        if (!submissionsQuery?.isLoading && !!submissionsQuery?.data?.payload?.content) {
+            const responseMapObject = convertToClientForm(submissionsQuery?.data?.payload?.content);
+            setResponseObject(responseMapObject);
+        }
+    }, [submissionsQuery]);
+
+    useEffect(() => {
+        if (!!sub_id) {
+            const submissionQuery = {
+                workspace_id: workspace.id,
+                submission_id: sub_id
+            };
+            trigger(submissionQuery)
+                .then((d: any) => {
+                    setForm(d.data?.payload?.content);
+                })
+                .catch((e) => {
+                    toast.error('Error fetching submission data.');
+                });
+        }
+    }, [sub_id]);
 
     const convertToClientForm = (formsArray: Array<any>) => {
         const responseMap = formsArray.reduce(function (accumulator, value) {
@@ -53,23 +73,6 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
         });
     };
 
-    useEffect(() => {
-        if (!!sub_id) {
-            const submissionQuery = {
-                workspace_id: workspace.id,
-                submission_id: sub_id
-            };
-            // @ts-ignore
-            trigger(submissionQuery)
-                .then((d: any) => {
-                    setForm(d.data?.payload?.content);
-                })
-                .catch((e) => {
-                    toast.error('Error fetching submission data.');
-                });
-        }
-    }, [sub_id]);
-
     const handleRemoveSubmissionId = () => {
         const updatedQuery = { ...router.query };
         delete updatedQuery.sub_id;
@@ -79,12 +82,18 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
         });
     };
 
-    useEffect(() => {
-        if (!submissionsQuery?.isLoading && !!submissionsQuery?.data?.payload?.content) {
-            const responseMapObject = convertToClientForm(submissionsQuery?.data?.payload?.content);
-            setResponseObject(responseMapObject);
+    const breadcrumbsItem = [
+        {
+            title: 'Responses',
+            icon: <HomeIcon className="w-4 h-4 mr-2" />,
+            onClick: handleRemoveSubmissionId
+        },
+        {
+            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(sub_id, 10) : sub_id
         }
-    }, [submissionsQuery]);
+    ];
+
+    /** UI Portion **/
 
     const CardRenderer = () => {
         return (
@@ -136,49 +145,19 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
         );
     };
 
-    const BreadCrumbRenderer = () => {
-        return (
-            <div className="max-h-[100vh] overflow-auto mb-4">
-                <nav className="flex mt-3 px-0 md:px-0" aria-label="Breadcrumb">
-                    <ol className="inline-flex items-center space-x-1 md:space-x-3">
-                        <li className="inline-flex items-center">
-                            <span aria-hidden onClick={handleRemoveSubmissionId} className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
-                                </svg>
-                                Responses
-                            </span>
-                        </li>
-                        <li aria-current="page">
-                            <div className="flex items-center">
-                                <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
-                                </svg>
-                                {!!sub_id && <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(sub_id, 10) : sub_id}</span>}
-                            </div>
-                        </li>
-                    </ol>
-                </nav>
-            </div>
-        );
-    };
-
-    if (isLoading) return;
+    if (isLoading) return <FullScreenLoader />;
 
     return (
         <Layout>
-            {isLoading ? (
-                <FullScreenLoader />
+            {!sub_id ? (
+                <>
+                    <MyRecentSubmissions />
+                    <CardRenderer />
+                </>
             ) : (
                 <>
-                    {!sub_id && (
-                        <>
-                            <MyRecentSubmissions />
-                            <CardRenderer />
-                        </>
-                    )}
-                    {!!sub_id && <BreadCrumbRenderer />}
-                    {!!sub_id && <FormRenderer form={form} />}
+                    <BreadcrumbRenderer breadcrumbsItem={breadcrumbsItem} />
+                    <FormRenderer form={form} />
                 </>
             )}
         </Layout>

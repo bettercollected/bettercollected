@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { Router, useRouter } from 'next/router';
+import { useRouter } from 'next/router';
 
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
@@ -13,10 +13,15 @@ import { styled } from '@mui/material/styles';
 import { toast } from 'react-toastify';
 
 import environments from '@app/configs/environments';
+import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { IGetWorkspaceSubmissionQuery } from '@app/store/workspaces/types';
 import { toMonthDateYearStr } from '@app/utils/dateUtils';
+import { toEndDottedStr } from '@app/utils/stringUtils';
 
-import FormRenderer from '../form-renderer/FormRenderer';
+import BreadcrumbsRenderer from '../form/renderer/breadcrumbs-renderer';
+import FormRenderer from '../form/renderer/form-renderer';
+import { HomeIcon } from '../icons/home';
 import FullScreenLoader from '../ui/fullscreen-loader';
 import EmptyFormsView from './empty-form';
 
@@ -46,6 +51,7 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 
 function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: any) {
     const router = useRouter();
+    const breakpoint = useBreakpoint();
 
     const [trigger, { isLoading, isError, data }] = useLazyGetWorkspaceSubmissionQuery();
 
@@ -57,11 +63,11 @@ function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: a
 
     const submissionId = router?.query?.sub_id ?? '';
 
-    const [responses, setResponses] = useState([]);
+    const [responses, setResponses] = useState<Array<any>>([]);
 
     useEffect(() => {
         if (!!submissionId) {
-            const submissionQuery = {
+            const submissionQuery: IGetWorkspaceSubmissionQuery = {
                 workspace_id: workspaceId,
                 submission_id: submissionId
             };
@@ -85,7 +91,6 @@ function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: a
             })
                 .then((data) => {
                     data.json().then((d) => {
-                        console.log('submissions data: ', d);
                         setResponses(d);
                     });
                 })
@@ -112,32 +117,16 @@ function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: a
         });
     };
 
-    const BreadCrumbRenderer = () => {
-        return (
-            <div className="max-h-[100vh] overflow-auto mb-4">
-                <nav className="flex mt-3 px-0 md:px-0" aria-label="Breadcrumb">
-                    <ol className="inline-flex items-center space-x-1 md:space-x-3">
-                        <li className="inline-flex items-center">
-                            <span aria-hidden onClick={handleRemoveSubmissionId} className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
-                                </svg>
-                                Responses
-                            </span>
-                        </li>
-                        <li aria-current="page">
-                            <div className="flex items-center">
-                                <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
-                                </svg>
-                                {!!submissionId && <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">{submissionId}</span>}
-                            </div>
-                        </li>
-                    </ol>
-                </nav>
-            </div>
-        );
-    };
+    const breadcrumbsItem = [
+        {
+            title: 'Responses',
+            icon: <HomeIcon className="w-4 h-4 mr-2" />,
+            onClick: handleRemoveSubmissionId
+        },
+        {
+            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submissionId, 10) : submissionId
+        }
+    ];
 
     const AllSubmissionsRenderer = () => {
         return (
@@ -155,7 +144,7 @@ function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: a
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {responses.map((row) => (
+                                    {responses.map((row: any) => (
                                         <StyledTableRow key={row.responseId} onClick={() => handleSubmissionClick(row?.responseId)}>
                                             <StyledTableCell component="th" scope="row">
                                                 {!row.dataOwnerIdentifier ? 'Anonymous' : row.dataOwnerIdentifier}
@@ -177,7 +166,7 @@ function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: a
 
     return (
         <>
-            {!!submissionId && <BreadCrumbRenderer />}
+            {!!submissionId && <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />}
             {!submissionId && <AllSubmissionsRenderer />}
             {!!form && !!submissionId && <FormRenderer form={form} />}
         </>

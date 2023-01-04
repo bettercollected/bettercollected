@@ -1,14 +1,6 @@
 import React from 'react';
 
-import { useRouter } from 'next/router';
-
-import { toast } from 'react-toastify';
-
-import { useGetWorkspaceFormsQuery, useLazyGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
-
-import FormRenderer from '../form-renderer/FormRenderer';
-import FullScreenLoader from '../ui/fullscreen-loader';
-import EmptyFormsView from './empty-form';
+import FormRenderer from '../form/renderer/form-renderer';
 
 export const FormTabContent = ({ form }: any) => {
     return (

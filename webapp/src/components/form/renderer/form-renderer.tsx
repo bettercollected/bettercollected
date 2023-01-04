@@ -1,6 +1,4 @@
-import React, { useEffect, useState } from 'react';
-
-import { useRouter } from 'next/router';
+import React from 'react';
 
 import styled from '@emotion/styled';
 import TextareaAutosize from '@mui/base/TextareaAutosize';
@@ -13,16 +11,10 @@ import Slider from '@mui/material/Slider';
 import TextField from '@mui/material/TextField';
 
 import Button from '@app/components/ui/button';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Loader from '@app/components/ui/loader';
 import MarkdownText from '@app/components/ui/markdown-text';
-import environments from '@app/configs/environments';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import globalServerProps from '@app/lib/serverSideProps';
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
-import { useGetWorkspaceSubmissionQuery, useLazyGetWorkspaceFormsQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
-import { toEndDottedStr } from '@app/utils/stringUtils';
 
 const StyledTextField = styled.div`
     .MuiInputBase-input {
@@ -205,10 +197,10 @@ export default function FormRenderer({ form }: any) {
                     dropdownOptions = [...question.type?.options];
                 }
                 const dropdownAnswers: any = question.answer ? question.answer : [];
-                const dropdownAnswer = Array.isArray(dropdownAnswers) && dropdownAnswers.length !== 0 ? dropdownAnswers[0] : 'No answer selected';
+                const dropdownAnswer = Array.isArray(dropdownAnswers) && dropdownAnswers.length !== 0 ? dropdownAnswers[0] : '';
                 return (
                     <StyledTextField>
-                        <Select value={dropdownAnswer}>
+                        <Select defaultValue={''} value={dropdownAnswer}>
                             {dropdownOptions.map((dd: any, idx: any) => (
                                 <MenuItem key={idx} value={dd?.value}>
                                     {dd?.value}

@@ -6,7 +6,6 @@ import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
 import { Copy } from '@app/components/icons/copy';
-import { ShareIcon } from '@app/components/icons/share-icon';
 import environments from '@app/configs/environments';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { useAppSelector } from '@app/store/hooks';
