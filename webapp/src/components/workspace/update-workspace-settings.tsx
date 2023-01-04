@@ -15,9 +15,7 @@ import Button from '../ui/button/button';
 
 export default function UpdateWorkspaceSettings({ updateDomain = false }: { updateDomain: boolean }) {
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
-
     const workspace = useAppSelector((state) => state.workspace);
-
     const { closeModal } = useModal();
     const [error, setError] = useState(false);
 
@@ -60,12 +58,11 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             dispatch(setWorkspace(response.data));
             toast.info(updateDomain ? 'Updated custom Domain of workspace!' : 'Updated workspace handle');
             if (!updateDomain) {
-                // console.log(`${router.basePath}/${response.data.workspaceName}/dashboard/settings`, {}, {shallow: true})
                 router.push(`${window.location.origin}/${response.data.workspaceName}/dashboard/settings`);
             }
             closeModal();
-        } else {
-            toast.error('Something went wrong!');
+        } else if (response.error) {
+            toast.error(response.error.data.message);
         }
     };
 

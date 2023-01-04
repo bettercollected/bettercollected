@@ -23,20 +23,20 @@ export default function FormSettingsTab() {
     const [_, copyToClipboard] = useCopyToClipboard();
     const dispatch = useAppDispatch();
 
-    const patchSettings = (body: any) => {
-        return patchFormSettings({
+    const patchSettings = async (body: any) => {
+        const response: any = await patchFormSettings({
             workspaceId: workspace.id,
             formId: form.formId,
             body: body
-        })
-            .then((res: any) => {
-                const settings = res.data.payload.content.settings;
-                dispatch(setFormSettings(settings));
-                toast('Form Updated!!', { type: 'success' });
-            })
-            .catch((e) => {
-                toast('Something went wrong!!', { type: 'error' });
-            });
+        });
+        if (response.data) {
+            const settings = response.data.payload.content.settings;
+            dispatch(setFormSettings(settings));
+            toast('Form Updated!!', { type: 'success' });
+        } else if (response.error) {
+            setError(true);
+            toast(response.error.data?.message, { type: 'error' });
+        }
     };
 
     const onSwitchChange = (event: any) => {
@@ -92,7 +92,6 @@ export default function FormSettingsTab() {
                         }}
                         className={`w-full`}
                     />
-                    <div className="text-red-500 text-sm">{error && 'Custom Slug cannot be empty or contain spaces.'}</div>
                 </div>
             </div>
             <div className="mt-5 space-y-2">
