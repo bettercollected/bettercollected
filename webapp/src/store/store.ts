@@ -5,6 +5,7 @@ import { persistStore } from 'redux-persist';
 
 import environments from '@app/configs/environments';
 import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
+import formSlice from '@app/store/forms/slice';
 import workspaceSlice from '@app/store/workspaces/slice';
 
 import { authApi } from './auth/api';
@@ -20,6 +21,7 @@ const middlewares = [authApi.middleware, workspacesApi.middleware];
 
 const reducers = {
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
+    [formSlice.reducerPath]: formSlice.reducer,
     [searchReducerObj.reducerPath]: searchSlice.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [workspacesApi.reducerPath]: workspacesApi.reducer

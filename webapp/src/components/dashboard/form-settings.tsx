@@ -8,15 +8,12 @@ import { toast } from 'react-toastify';
 import { Copy } from '@app/components/icons/copy';
 import environments from '@app/configs/environments';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
-import { useAppSelector } from '@app/store/hooks';
+import { setFormSettings } from '@app/store/forms/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
-interface FormSettingsProps {
-    formId: string;
-    form: any;
-}
-
-export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
+export default function FormSettingsTab() {
+    const form = useAppSelector((state) => state.form);
     const [patchFormSettings] = usePatchFormSettingsMutation();
     const [isPinned, setIsPinned] = useState(!!form?.settings?.pinned);
     const workspace = useAppSelector((state) => state.workspace);
@@ -24,14 +21,17 @@ export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
     const isCustomDomain = !!workspace.customDomain;
     const [error, setError] = useState(false);
     const [_, copyToClipboard] = useCopyToClipboard();
+    const dispatch = useAppDispatch();
 
     const patchSettings = (body: any) => {
         return patchFormSettings({
             workspaceId: workspace.id,
-            formId: formId,
+            formId: form.formId,
             body: body
         })
-            .then((res) => {
+            .then((res: any) => {
+                const settings = res.data.payload.content.settings;
+                dispatch(setFormSettings(settings));
                 toast('Form Updated!!', { type: 'success' });
             })
             .catch((e) => {
@@ -46,7 +46,12 @@ export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
     };
 
     const onBlur = () => {
-        if (error) return;
+        if (!customUrl) {
+            setCustomUrl(form.settings.customUrl);
+            setError(false);
+        }
+        if (error || form.settings.customUrl === customUrl || !customUrl) return;
+
         patchSettings({ customUrl });
     };
 
@@ -87,7 +92,7 @@ export default function FormSettingsTab({ form, formId }: FormSettingsProps) {
                         }}
                         className={`w-full`}
                     />
-                    <div className="text-red-500 text-sm">{error && 'Custom Slug cannot contain spaces.'}</div>
+                    <div className="text-red-500 text-sm">{error && 'Custom Slug cannot be empty or contain spaces.'}</div>
                 </div>
             </div>
             <div className="mt-5 space-y-2">

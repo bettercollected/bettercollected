@@ -9,7 +9,7 @@ import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
 import LogoutView from '../logout/logout-view';
-import EditWorkspaceDialog from '../workspace/edit-workspace-dialog';
+import UpdateWorkspaceSettings from '../workspace/update-workspace-settings';
 import { MODAL_VIEW, useModal } from './context';
 
 // dynamic imports
@@ -24,10 +24,12 @@ function renderModalContent(view: MODAL_VIEW | string) {
             return <ImportFormsView />;
         case 'LOGOUT_VIEW':
             return <LogoutView />;
-        case 'EDIT_WORKSPACE_VIEW':
-            return <EditWorkspaceDialog />;
+        case 'UPDATE_WORKSPACE_DOMAIN':
+            return <UpdateWorkspaceSettings updateDomain={true} />;
+        case 'UPDATE_WORKSPACE_HANDLE':
+            return <UpdateWorkspaceSettings updateDomain={false} />;
         default:
-            return null;
+            return <></>;
     }
 }
 

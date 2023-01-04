@@ -1,11 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { TextField } from '@mui/material';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 
+import { WorkspaceDangerZoneSettings } from '@app/components/settings/workspace/workspace-danger-zone-settings';
+import { WorkspaceInformationSettings } from '@app/components/settings/workspace/workspace-information-settings';
 import Layout from '@app/components/sidebar/layout';
 import Button from '@app/components/ui/button/button';
+import Image from '@app/components/ui/image';
 import environments from '@app/configs/environments';
 import { getAuthUserPropsWithWorkspace, getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { useAppSelector } from '@app/store/hooks';
@@ -14,7 +17,7 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 import { checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage } from '@app/utils/serverSidePropsUtils';
 
 export default function MySettings(props: any) {
-    const { bannerImage, customDomain, description, id, ownerId, profileImage, title, workspaceName } = props.workspace;
+    const { bannerImage, customDomain, description, id, profileImage, title, workspaceName } = props.workspace;
     const imageRef = useRef<any>();
 
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
@@ -114,7 +117,6 @@ export default function MySettings(props: any) {
         e.preventDefault();
         URL.revokeObjectURL(imageRef.current);
         const file = e.target.files[0];
-
         setWorkspaceForm({ ...workspaceForm, [e.target.name]: file });
     };
 
@@ -136,7 +138,6 @@ export default function MySettings(props: any) {
         !!title && formData.append('title', workspaceForm.title);
         formData.append('description', workspaceForm.description);
         !!workspace_name && formData.append('workspace_name', workspaceForm.workspace_name);
-
         const response = {
             workspace_id: id,
             body: formData
@@ -157,114 +158,8 @@ export default function MySettings(props: any) {
     return (
         <Layout>
             <Header />
-            <h1 className="mb-2 font-medium">Enter your custom domain</h1>
-            <div className="w-full  md:w-2/3 h-[50px]">
-                <div className="flex flex-row gap-6 items-center">
-                    <div className=" flex flex-col h-[50px] justify-between w-full">
-                        <TextField
-                            error={!!handleValidation(workspaceForm.custom_domain, false)}
-                            helperText={handleValidation(workspaceForm.custom_domain, false)}
-                            size="medium"
-                            name="custom_domain"
-                            placeholder="Custom-domain (e.g. https://forms.bettercollected.com)"
-                            value={workspaceForm.custom_domain}
-                            onChange={handleChange}
-                            className={`w-full`}
-                        />
-                    </div>
-                    <Button isLoading={isLoading} className="!bg-blue-600 h-[50px]" onClick={handleUpdateCustomDomain}>
-                        Update
-                    </Button>
-                </div>
-            </div>
-            <form>
-                <SubTitleRenderer title={'Workspace Information'} description={'Update your workspace profile'} />
-                <div className="w-full md:w-2/3 h-[50px] pb-4">
-                    <div className="mb-10">
-                        <h1 className="text-lg">Workspace title</h1>
-                        <div className=" flex flex-col h-[50px] justify-between w-full">
-                            <TextField
-                                error={!!handleValidation(workspaceForm.title, false)}
-                                helperText={handleValidation(workspaceForm.title, false)}
-                                size="medium"
-                                name="title"
-                                placeholder="Enter your workspace title"
-                                value={workspaceForm.title}
-                                onChange={handleChange}
-                                className={`w-full`}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="mb-10">
-                        <h1 className="text-lg">Workspace Handle</h1>
-                        <div className=" flex flex-col h-[50px] justify-between w-full">
-                            <TextField
-                                error={!!handleValidation(workspaceForm.workspace_name, true)}
-                                helperText={handleValidation(workspaceForm.workspace_name, true)}
-                                value={workspaceForm.workspace_name}
-                                size="medium"
-                                name="workspace_name"
-                                placeholder="Enter your workspace name"
-                                onChange={handleChange}
-                                className={`w-full`}
-                            />
-                            {/* <div className={`text-red-500 text-sm`}>{error && 'Custom Domain cannot contain spaces.'}</div> */}
-                        </div>
-                    </div>
-
-                    <div className="mb-10">
-                        <h1 className="text-lg">Workspace Description</h1>
-                        <textarea
-                            name="description"
-                            value={workspaceForm.description}
-                            onChange={handleChange}
-                            rows={3}
-                            className=" border-solid border-gray-300 text-gray-900 sm:text-sm rounded-lg block w-full p-2.5"
-                            placeholder="Enter about your workspace"
-                            required
-                        />
-                    </div>
-
-                    <div className="mb-10">
-                        {/* <Image src={workspaceForm.profile_image} height={'50px'} width={'50px'} /> */}
-                        <label className="block text-xl mb-2 font-medium text-gray-900 dark:text-gray-300" htmlFor="profile">
-                            Profile Photo
-                        </label>
-                        <img src={checkIfTheImageUrlIsObjectOrLink(workspaceForm.profile_image)} alt={'Profile image'} height={200} />
-                        <input
-                            accept="image/png, image/jpeg"
-                            placeholder="upload a profile image"
-                            className="block w-full text-sm text-gray-900 border border-gray-300 rounded-md cursor-pointer bg-gray-50 file:rounded-l-md file:py-3 file:px-3 file:bg-gray-500 file:text-white file:border-none "
-                            id="profile"
-                            // value={!workspaceForm.profile_image ? null : workspaceForm.profile_image}
-                            onChange={handleFileUpload}
-                            type="file"
-                            name="profile_image"
-                        />
-                    </div>
-
-                    <div className="mb-10">
-                        <label className="block text-xl mb-2 font-medium text-gray-900 dark:text-gray-300" htmlFor="profile">
-                            Banner Photo
-                        </label>
-                        <img src={checkIfTheImageUrlIsObjectOrLink(workspaceForm.banner_image)} height={200} alt={'Banner Image'} />
-                        <input
-                            accept="image/png, image/jpeg"
-                            className="block w-full text-sm text-gray-900 border border-gray-300 rounded-md cursor-pointer bg-gray-50 file:rounded-l-md file:py-3 file:px-3 file:bg-gray-500 file:text-white file:border-none "
-                            id="profile"
-                            // value={!workspaceForm.banner_image ? null : workspaceForm.banner_image}
-                            onChange={handleFileUpload}
-                            type="file"
-                            name="banner_image"
-                        />
-                    </div>
-
-                    <Button isLoading={isLoading} type={'submit'} className="w-full md:w-auto !bg-blue-600 h-[50px] mb-10" onClick={handleUpdateProfile}>
-                        Update workspace profile
-                    </Button>
-                </div>
-            </form>
+            <WorkspaceInformationSettings />
+            <WorkspaceDangerZoneSettings />
         </Layout>
     );
 }
