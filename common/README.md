@@ -10,7 +10,7 @@ This repository contains only the shared files that are used in other repositori
 
 ### NOTE: Before committing the files, follow the below instructions
 1. After the required packages are installed, i.e., `pip install -r requirements.txt`; run `pre-commit install` command to enable autoformatting and linting checks.
-2. Run `pre-commit update`, this will update the mutable references.
+2. Run `pre-commit autoupdate`, this will update the mutable references.
 3. When running `git commit` command, use terminal instead of IDE commit feature as we'll see errors if the commit fails because of autoformatting or some other reason and we can fix it and re-commit.
 
 ### Directory structure
