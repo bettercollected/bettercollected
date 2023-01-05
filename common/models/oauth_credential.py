@@ -4,6 +4,10 @@ from pydantic import BaseModel
 
 
 class GoogleCredentialResponse(BaseModel):
+    """
+    Data transfer object for a response to a request for Google credentials.
+    """
+
     token: Optional[str]
     refresh_token: Optional[str]
     token_uri: Optional[str]

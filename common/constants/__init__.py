@@ -13,6 +13,17 @@ MESSAGE_FORBIDDEN = (
     "403 - Forbidden: You don't have permission to access this resource."
 )
 MESSAGE_NOT_FOUND = "404 - Not found: The resource you are requesting is not available."
+MESSAGE_KEY_FOUND = "Found an unexpected key. Make sure the key is expected."
+MESSAGE_ITEM_TO_DATA_ERROR = (
+    "Could not convert the given item representation into the expected data."
+)
+MESSAGE_DATA_TO_ITEM_ERROR = (
+    "Could not convert the data into the expected item representation."
+)
+MESSAGE_CONVERSION_WARNING = (
+    "A non-fatal error occurred during data-to-item or item-to-data conversion. "
+    "Some information may have been lost or altered."
+)
 
 MESSAGE_SCHEDULER_START_SUCCESS = "Schedulers started!"
 MESSAGE_SCHEDULER_START_FAILURE = "Schedulers startup failure!"
