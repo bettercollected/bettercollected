@@ -38,21 +38,32 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
         router.push(`${environments.API_ENDPOINT_HOST}/auth/google/connect`);
     };
 
+    const getWorkspaceUrl = () => {
+        const protocol = environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://';
+        const domain = !!workspace.customDomain ? workspace.customDomain : environments.CLIENT_HOST;
+        const w_name = !!workspace.customDomain ? '' : workspace.workspaceName;
+        return `${protocol}${domain}${w_name}`;
+    };
+
     const Header = () => (
         <div className="flex flex-col w-full sm:flex-row justify-between items-start sm:items-center mb-10 md:py-4 border-b-[1px] border-b-gray-200">
             <div className="flex flex-col">
                 <h1 className="font-extrabold text-3xl mb-3">Welcome to {workspace.title}!</h1>
             </div>
-
-            {user?.data?.payload?.content?.user?.services?.length === 0 ? (
-                <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
-                    Authorize Google
-                </Button>
-            ) : (
-                <Button variant="solid" className="md:ml-3 mb-3 w-full sm:w-auto !px-8 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
-                    Import Forms
-                </Button>
-            )}
+            <div className="flex items-center flex-col md:flex-row w-full md:w-auto md:space-x-5 space-y-5 md:space-y-0 mb-3 md:mb-0">
+                <a href={getWorkspaceUrl()} className="rounded-xl w-full text-center text-sm  bg-blue-500 text-white px-5 py-3">
+                    Go to Workspace
+                </a>
+                {user?.data?.payload?.content?.user?.services?.length === 0 ? (
+                    <Button variant="solid" className="!px-8 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
+                        Authorize Google
+                    </Button>
+                ) : (
+                    <Button variant="solid" className="md:ml-3 w-full sm:w-auto !px-8 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
+                        Import Forms
+                    </Button>
+                )}
+            </div>
         </div>
     );
 

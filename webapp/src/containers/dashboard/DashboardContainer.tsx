@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 
+import { HomeIcon } from '@app/components/icons/home';
 import { Logout } from '@app/components/icons/logout-icon';
 import { useModal } from '@app/components/modal-views/context';
 import SubmissionTabContainer from '@app/components/submissions-tab/submissions-tab-container';
@@ -9,6 +11,7 @@ import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Image from '@app/components/ui/image';
 import MarkdownText from '@app/components/ui/markdown-text';
+import environments from '@app/configs/environments';
 import ContentLayout from '@app/layouts/_content-layout';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { authApi, useGetStatusQuery, useLazyGetLogoutQuery } from '@app/store/auth/api';
@@ -41,8 +44,8 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
 
     return (
         <div className="relative min-h-screen">
-            <div className="product-box">
-                <div data-aos="fade-up" className="product-image relative h-44 w-full overflow-hidden md:h-80 xl:h-[380px]">
+            <div>
+                <div className="product-image relative h-44 w-full overflow-hidden md:h-80 xl:h-[380px]">
                     <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
                 </div>
             </div>
@@ -65,13 +68,24 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
                             </Button>
                         ) : (
                             <>
-                                {!!selectGetStatus.data.payload.content.user.sub && (
-                                    <div className="py-3 px-5 hidden sm:flex rounded-full text-gray-700 border-solid italic border-[1px] border-[#eaeaea]">{selectGetStatus.data.payload.content.user.sub}</div>
+                                {selectGetStatus.data.payload.content.user.id === workspace.ownerId && (
+                                    <a href={`${environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://'}${environments.CLIENT_HOST}/${workspace.workspaceName}/dashboard`} className="rounded-xl mr-5 !bg-blue-600 z-10 !text-white px-5 py-3">
+                                        <div className=" flex space-x-4">
+                                            <HomeIcon className="w-[20px] h-[20px]" />
+                                            <div className="hidden md:flex">Go To Dashboard</div>
+                                        </div>
+                                    </a>
                                 )}
-                                <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-[#ffe0e0]" onClick={handleLogout}>
+                                {!!selectGetStatus.data.payload.content.user.sub && (
+                                    <>
+                                        <div className="px-5 py-3 bg-gray-100 md:hidden mr-2 md:mr-5 text-gray-800 rounded-xl capitalize">{selectGetStatus.data.payload.content.user.sub[0]}</div>
+                                        <div className="py-3 px-5 hidden sm:flex rounded-full text-gray-700 border-solid italic border-[1px] border-[#eaeaea]">{selectGetStatus.data.payload.content.user.sub}</div>
+                                    </>
+                                )}
+                                <Button variant="solid" className="ml-3 !px-3 !py-6 !rounded-xl !bg-[#ffe0e0]" onClick={handleLogout}>
                                     <span className="w-full flex gap-2 items-center justify-center">
                                         <Logout height={20} width={20} className="!rounded-xl !text-[#e60000]" />
-                                        <span className="!text-[#e60000]">Sign off</span>
+                                        <span className="!text-[#e60000] hidden md:flex">Sign off</span>
                                     </span>
                                 </Button>
                             </>

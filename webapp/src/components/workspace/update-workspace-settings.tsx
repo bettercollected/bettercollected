@@ -32,6 +32,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             setError(!updateText);
         }
     }, [updateText]);
+
     const handleSubmit = async (e: any) => {
         e.preventDefault();
         if (!updateText) return;

@@ -70,8 +70,8 @@ export function WorkspaceInformationSettings() {
         <>
             <SubTitleRenderer title={'Workspace Information'} description={'Update your workspace profile'} />
             <div>
-                <div className="product-box relative">
-                    <div data-aos="fade-up" className="product-image h-44 w-full overflow-hidden md:h-80 xl:h-[380px]">
+                <div className=" relative">
+                    <div className="product-image h-44 w-full overflow-hidden md:h-80 xl:h-[380px]">
                         <Image src={bannerImage || ''} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
                     </div>
                 </div>
