@@ -1,8 +1,5 @@
 import React, { useMemo } from 'react';
 
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-
 import { HomeIcon } from '@app/components/icons/home';
 import { Logout } from '@app/components/icons/logout-icon';
 import { useModal } from '@app/components/modal-views/context';
@@ -10,6 +7,8 @@ import SubmissionTabContainer from '@app/components/submissions-tab/submissions-
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Image from '@app/components/ui/image';
+import ActiveLink from '@app/components/ui/links/active-link';
+import Logo from '@app/components/ui/logo';
 import MarkdownText from '@app/components/ui/markdown-text';
 import environments from '@app/configs/environments';
 import ContentLayout from '@app/layouts/_content-layout';
@@ -19,9 +18,10 @@ import { useAppSelector } from '@app/store/hooks';
 
 interface IDashboardContainer {
     workspace: WorkspaceDto;
+    isCustomDomain: Boolean;
 }
 
-export default function DashboardContainer({ workspace }: IDashboardContainer) {
+export default function DashboardContainer({ workspace, isCustomDomain }: IDashboardContainer) {
     const [trigger] = useLazyGetLogoutQuery();
 
     const authStatus = useGetStatusQuery('status');
@@ -42,6 +42,27 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
         openModal('LOGIN_VIEW');
     };
 
+    const Footer = () => {
+        return (
+            <div className="absolute left-0 bottom-0 w-full flex flex-col justify-start md:flex-row md:justify-between md:items-center px-6 sm:px-8 lg:px-12 py-2 border-t-[1.5px] border-[#eaeaea] bg-transparent drop-shadow-main mb-0">
+                <div className="flex justify-between mb-4">
+                    <ActiveLink className="mt-6 md:mt-0 text-sm md:text-lg mr-6 hover:text-gray-600" href={environments.TERMS_AND_CONDITIONS}>
+                        Terms and Conditions
+                    </ActiveLink>
+                    <ActiveLink className="mt-6 md:mt-0 text-sm md:text-lg hover:text-gray-600" href={environments.PRIVACY_POLICY}>
+                        Privacy Policy
+                    </ActiveLink>
+                </div>
+                {isCustomDomain && (
+                    <div className="mb-2">
+                        <p>Powered by</p>
+                        <Logo className="!text-lg" />
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="relative min-h-screen">
             <div>
@@ -49,7 +70,7 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
                     <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
                 </div>
             </div>
-            <ContentLayout className="!pt-0 relative pb-20 sm:pb-24 min-h-screen bg-[#FBFBFB]">
+            <ContentLayout className="!pt-0 relative min-h-screen bg-[#FBFBFB] pb-40">
                 <div className="absolute overflow-hidden inset-0">
                     <div className="absolute top-[60%] left-[-100px] w-[359px] h-[153px] bg-gradient-to-r from-orange-200 via-orange-300 to-orange-400 rotate-90 blur-dashboardBackground opacity-[20%]" />
                     <div className="absolute top-[35%] left-[65%] w-[765px] h-[765px] bg-gradient-to-r from-cyan-300 via-sky-300 to-cyan-400 blur-dashboardBackground opacity-[15%]" />
@@ -100,6 +121,7 @@ export default function DashboardContainer({ workspace }: IDashboardContainer) {
                     </div>
                 </div>
                 <SubmissionTabContainer workspace={workspace} workspaceId={workspace.id} showResponseBar={!!selectGetStatus.error} />
+                <Footer />
             </ContentLayout>
         </div>
     );

@@ -3,7 +3,7 @@ import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProp
 import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 
 export default function WorkspacePage({ workspace }: { workspace: any }) {
-    return <DashboardContainer workspace={workspace} />;
+    return <DashboardContainer workspace={workspace} isCustomDomain={false} />;
 }
 
 export async function getServerSideProps(_context: any) {

@@ -11,7 +11,7 @@ const DashboardContainer = dynamic(() => import('@app/containers/dashboard/Dashb
 interface IHome extends IServerSideProps {}
 
 const Home = ({ hasCustomDomain, workspace, workspaceId, ...props }: IHome) => {
-    if (hasCustomDomain && workspace) return <DashboardContainer workspace={workspace} />;
+    if (hasCustomDomain && workspace) return <DashboardContainer workspace={workspace} isCustomDomain={true} />;
     return <HomeContainer />;
 };
 

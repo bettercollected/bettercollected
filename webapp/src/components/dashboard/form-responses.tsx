@@ -8,6 +8,7 @@ import TableBody from '@mui/material/TableBody';
 import TableCell, { tableCellClasses } from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
+import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import { styled } from '@mui/material/styles';
 import { toast } from 'react-toastify';
@@ -60,6 +61,8 @@ function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: a
     }
 
     const [form, setForm] = useState([]);
+
+    const [page, setPage] = useState(0);
 
     const submissionId = router?.query?.sub_id ?? '';
 
@@ -117,6 +120,11 @@ function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: a
         });
     };
 
+    const handlePageChange = () => {
+        //TODO: fetch api to call the next page
+        console.log('hello');
+    };
+
     const breadcrumbsItem = [
         {
             title: 'Responses',
@@ -134,29 +142,31 @@ function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: a
                 <h1 className="text-2xl font-extrabold mb-4">Total Submissions ({responses.length})</h1>
                 {responses.length === 0 && <EmptyFormsView />}
                 {responses.length !== 0 && (
-                    <TableContainer component={Paper}>
-                        <StyledTableContainer>
-                            <Table aria-label="customized table">
-                                <TableHead>
-                                    <TableRow>
-                                        <StyledTableCell>Data owner</StyledTableCell>
-                                        <StyledTableCell align="right">Submission date</StyledTableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {responses.map((row: any) => (
-                                        <StyledTableRow key={row.responseId} onClick={() => handleSubmissionClick(row?.responseId)}>
-                                            <StyledTableCell component="th" scope="row">
-                                                {!row.dataOwnerIdentifier ? 'Anonymous' : row.dataOwnerIdentifier}
-                                            </StyledTableCell>
-                                            <StyledTableCell align="right">{toMonthDateYearStr(new Date(row.createdAt))}</StyledTableCell>
-                                        </StyledTableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </StyledTableContainer>
-                        {/* <TablePagination className="flex justify-center" count={rows.length} rowsPerPage={5} page={page} onPageChange={handleChangePage} /> */}
-                    </TableContainer>
+                    <>
+                        <TableContainer component={Paper}>
+                            <StyledTableContainer>
+                                <Table aria-label="customized table">
+                                    <TableHead>
+                                        <TableRow>
+                                            <StyledTableCell>Data owner</StyledTableCell>
+                                            <StyledTableCell align="right">Submission date</StyledTableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {responses.map((row: any) => (
+                                            <StyledTableRow key={row.responseId} onClick={() => handleSubmissionClick(row?.responseId)}>
+                                                <StyledTableCell component="th" scope="row">
+                                                    {!row.dataOwnerIdentifier ? 'Anonymous' : row.dataOwnerIdentifier}
+                                                </StyledTableCell>
+                                                <StyledTableCell align="right">{toMonthDateYearStr(new Date(row.createdAt))}</StyledTableCell>
+                                            </StyledTableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </StyledTableContainer>
+                        </TableContainer>
+                        <TablePagination component="div" rowsPerPageOptions={[]} rowsPerPage={7} count={responses.length} page={page} onPageChange={handlePageChange} />
+                    </>
                 )}
             </>
         );

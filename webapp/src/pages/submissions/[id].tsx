@@ -2,24 +2,10 @@ import React from 'react';
 
 import { useRouter } from 'next/router';
 
-import styled from '@emotion/styled';
-import TextareaAutosize from '@mui/base/TextareaAutosize';
-import Checkbox from '@mui/material/Checkbox';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import MenuItem from '@mui/material/MenuItem';
-import Radio from '@mui/material/Radio';
-import Select from '@mui/material/Select';
-import Slider from '@mui/material/Slider';
-import TextField from '@mui/material/TextField';
-
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { HomeIcon } from '@app/components/icons/home';
-import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import Loader from '@app/components/ui/loader';
-import MarkdownText from '@app/components/ui/markdown-text';
-import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
