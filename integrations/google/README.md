@@ -9,9 +9,10 @@ This repository contains only the Google forms API integration logic. If in case
 3. **TODO other steps pending.**
 
 ### Steps to keep submodules in sync
-1. Run the command: `git submodule sync --recursive`.
-2. Update the submodule changes to your local: `git submodule update --recursive`.
-3. You may need to go into `submodule` directory and checkout to appropriate branch before continuing, `git checkout master`.
+1. Initialize submodule: `git submodule init`.
+2. Run the command: `git submodule sync --recursive`.
+3. Update the submodule changes to your local: `git submodule update --recursive`.
+4. You may need to go into `submodule` directory and checkout to appropriate branch before continuing, `git checkout master`.
 
 ### NOTE: Before committing the files, follow the below instructions
 1. After the required packages are installed, i.e., `pip install -r requirements.txt`; run `pre-commit install` command to enable autoformatting and linting checks.
