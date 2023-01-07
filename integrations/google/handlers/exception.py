@@ -13,10 +13,10 @@ def init_exception_handlers(app: "FastAPI"):
     with the exception's status code and detail as the content.
 
     Parameters:
-    app (FastAPI): The FastAPI app instance to initialize exception handlers for.
+        app (FastAPI): The FastAPI app instance to initialize exception handlers for.
 
     Returns:
-    None
+        None
     """
 
     @app.exception_handler(HTTPException)

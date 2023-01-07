@@ -9,9 +9,9 @@ class ApiSettings(BaseSettings):
     for API settings, including the environment, organization name, title,
     description, version, allowed origins, and paths for the documentation,
     OpenAPI specification, and root path. It also defines settings for the
-     host, JWT secret, and expiry times for access and refresh tokens. The
-     `scheduler_time_in_seconds` attribute specifies the interval at which
-     the scheduler should run.
+    host, JWT secret, and expiry times for access and refresh tokens. The
+    `scheduler_time_in_seconds` attribute specifies the interval at which
+    the scheduler should run.
 
     The `Config` inner class specifies that environment variables should be
     prefixed with "API_" when loading the settings.

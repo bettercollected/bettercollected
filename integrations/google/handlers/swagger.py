@@ -15,10 +15,10 @@ def init_swagger(app: "FastAPI"):
     oauth2_redirect_url parameter.
 
     Parameters:
-    app (FastAPI): The FastAPI app instance to initialize Swagger UI and ReDoc for.
+        app (FastAPI): The FastAPI app instance to initialize Swagger UI and ReDoc for.
 
     Returns:
-    None
+        None
     """
 
     @app.get("/docs", include_in_schema=False)

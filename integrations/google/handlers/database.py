@@ -24,7 +24,7 @@ async def init_db():
     then initializes beanie using the specified database and document models.
 
     Returns:
-    None
+        None
     """
     _client.get_io_loop = asyncio.get_running_loop
     db = _client[_mongo_settings.db]
@@ -49,7 +49,7 @@ async def close_db():
     or failure message.
 
     Returns:
-    None
+        None
     """
     try:
         _client.close()

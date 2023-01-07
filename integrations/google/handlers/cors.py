@@ -14,7 +14,7 @@ def init_cors(app: "FastAPI"):
     and allow_headers parameters are set to allow all values.
 
     Parameters:
-    app (FastAPI): The FastAPI app instance to initialize CORS handling for.
+        app (FastAPI): The FastAPI app instance to initialize CORS handling for.
     """
     origins = settings.api_settings.allowed_origins.split(",")
     app.add_middleware(

@@ -4,20 +4,20 @@ from settings import Settings
 
 
 class Container(containers.DeclarativeContainer):
+    """
+    Container class for storing and accessing application-level dependencies.
+
+    All the repositories and services used in the application are injected
+    in this container.
+
+    Attributes:
+        wiring_config: A WiringConfiguration instance that specifies which
+            packages to search for dependencies.
+        config: A Configuration instance for storing and accessing
+            application-level configuration.
+    """
+
     wiring_config = containers.WiringConfiguration(
         packages=["services", "repositories"]
     )
     config = providers.Configuration(pydantic_settings=[Settings()])
-
-    # form_repo = providers.Factory(FormRepository)
-    # form_response_repo = providers.Factory(FormResponseRepository)
-    # form_scheduler_config_repo = providers.Factory(FormSchedulerConfigRepository)
-    # oauth_credential_repo = providers.Factory(OauthCredentialRepository)
-    #
-    # form_service = providers.Factory(FormService)
-    # form_response_service = providers.Factory(FormResponseService)
-    # form_scheduler_config_service = providers.Factory(FormSchedulerConfigService)
-    # google_service = providers.Factory(GoogleService)
-    # oauth_google_service = providers.Factory(OauthGoogleService)
-    # oauth_credential_service = providers.Factory(OauthCredentialService)
-    # scheduler_service = providers.Factory(SchedulerService)
