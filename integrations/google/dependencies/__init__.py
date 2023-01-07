@@ -1,5 +1,7 @@
 from dependency_injector import containers, providers
 
+from repositories.form import FormRepository
+from services.form import FormService
 from settings import Settings
 
 
@@ -21,3 +23,9 @@ class Container(containers.DeclarativeContainer):
         packages=["services", "repositories"]
     )
     config = providers.Configuration(pydantic_settings=[Settings()])
+
+    # Google form repository and service
+    form_repo = providers.Factory(FormRepository)
+    form_service = providers.Factory(
+        FormService, form_repo=form_repo
+    )  # Injecting form repo onto form service

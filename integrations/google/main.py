@@ -12,7 +12,7 @@ from middlewares import include_middlewares
 from routers import include_routers
 
 
-def create_app(session=None, repositories=None):
+def create_app(session=None):
     """
     Creates a FastAPI app instance with the specified session and repositories.
 
@@ -65,7 +65,6 @@ def create_app(session=None, repositories=None):
     include_routers(app)
 
     app.session = session
-    app.repositories = repositories
     return app
 
 
