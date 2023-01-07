@@ -21,7 +21,19 @@ from common.constants import (
 
 
 class SchedulerSettings:
-    # Faced some issues with pickling when inheriting BaseSettings
+    """
+    Scheduler settings for storing and configuring apscheduler jobs.
+
+    Attributes:
+        _scheduler: The scheduler instance.
+        jobstores: A dictionary of job stores, with the key being the
+            alias and the value being a MongoDBJobStore instance.
+        executors: A dictionary of executors, with the key being the
+            alias and the value being a ProcessPoolExecutor or
+            ThreadPoolExecutor instance.
+        mongo_settings: An instance of the MongoSettings class, which
+            stores settings for connecting to a MongoDB database.
+    """
 
     def __init__(self):
         self._scheduler: AsyncIOScheduler | None = None
@@ -33,9 +45,24 @@ class SchedulerSettings:
 
     @property
     def scheduler(self):
+        """
+        scheduler: AsyncIOScheduler | None
+
+        The asyncio scheduler instance for the application.
+        """
         return self._scheduler
 
     def load_schedule_or_create_blank(self):
+        """
+        This method creates a new scheduler or loads an existing
+        one from the MongoDB jobstore.
+
+        If an existing scheduler is not found, a new one is
+        created and returned.
+
+        Returns:
+        AsyncIOScheduler -- The scheduler instance.
+        """
         try:
             self.jobstores = {
                 "default": MongoDBJobStore(
@@ -74,6 +101,25 @@ class SchedulerSettings:
         misfire_grace_time=None,
         args=None,
     ):
+        """
+        Adds a job to the scheduler.
+
+        Args:
+            callback: The function to be executed when the job runs.
+            trigger: The trigger that determines when the job should run.
+            job_id: The unique ID of the job.
+            job_name: The name of the job (optional).
+            replace_existing: Whether to replace an existing job with the same ID (default: True).
+            misfire_grace_time: The time in seconds after the job's scheduled run time that the job is still allowed to be run (optional).
+            args: The arguments to pass to the callback function (optional).
+
+        Returns:
+            None
+
+        Raises:
+            RuntimeError: If the job could not be removed.
+            LookupError: If the job id is not found in the scheduler.
+        """
         try:
             self.scheduler.add_job(
                 callback,
@@ -90,6 +136,18 @@ class SchedulerSettings:
             logger.error(error)
 
     def remove_job(self, job_id):
+        """Remove a job from the scheduler.
+
+        Args:
+            job_id (str): The id of the job to be removed.
+
+        Returns:
+            None
+
+        Raises:
+            RuntimeError: If the job could not be removed.
+            LookupError: If the job id is not found in the scheduler.
+        """
         try:
             self.scheduler.remove_job(job_id=job_id)
             logger.info(f"Removed a job with the id={job_id}")
@@ -98,6 +156,16 @@ class SchedulerSettings:
             logger.error(error)
 
     def remove_all_jobs(self):
+        """
+        Remove all jobs from the scheduler.
+
+        Returns:
+            None
+
+        Raises:
+            RuntimeError: If the scheduler is not running.
+            LookupError: If the job is not found.
+        """
         try:
             self.scheduler.remove_all_jobs()
             logger.info(MESSAGE_SCHEDULER_REMOVE_ALL_JOBS_SUCCESS)
@@ -106,6 +174,19 @@ class SchedulerSettings:
             logger.error(error)
 
     def shutdown_scheduler(self):
+        """
+        Shuts down the scheduler instance.
+
+        This method stops the scheduler and waits until all scheduled jobs
+        have completed before returning.
+
+        Returns:
+            None
+
+        Raises:
+            RuntimeError: If the scheduler is not running or has already been shutdown.
+            LookupError: If the scheduler cannot be found in the job store.
+        """
         try:
             self.scheduler.pause()
             self.scheduler.shutdown(wait=True)
