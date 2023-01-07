@@ -14,6 +14,10 @@ This repository contains only the Google forms API integration logic. If in case
 3. Update the submodule changes to your local: `git submodule update --recursive`.
 4. You may need to go into `submodule` directory and checkout to appropriate branch before continuing, `git checkout master`.
 
+### VERY IMPORTANT
+After updating the `submodule` you need to install that submodule as a dependency. Locally, you can do it with: 
+`pip install ./common`.
+
 ### NOTE: Before committing the files, follow the below instructions
 1. After the required packages are installed, i.e., `pip install -r requirements.txt`; run `pre-commit install` command to enable autoformatting and linting checks.
 2. Run `pre-commit autoupdate`, this will update the mutable references.
