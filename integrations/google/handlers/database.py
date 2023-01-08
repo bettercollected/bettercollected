@@ -9,13 +9,9 @@ from common.schemas.form_scheduler_config import SchedulerFormConfigDocument
 from common.schemas.google_form import GoogleFormDocument
 from common.schemas.google_form_response import GoogleFormResponseDocument
 from common.schemas.oauth_credential import Oauth2CredentialDocument
-from settings import settings
-
-_mongo_settings = settings.mongo_settings
-_client = AsyncIOMotorClient(_mongo_settings.uri)
 
 
-async def init_db():
+async def init_db(db: str, client: AsyncIOMotorClient):
     """
     Asynchronously initializes the database connection and beanie for the app.
 
@@ -23,11 +19,15 @@ async def init_db():
     to create a MotorClient instance with the specified MongoDB settings. It
     then initializes beanie using the specified database and document models.
 
+    Args:
+        db: Database name
+        client: Database URI
+
     Returns:
         None
     """
-    _client.get_io_loop = asyncio.get_running_loop
-    db = _client[_mongo_settings.db]
+    client.get_io_loop = asyncio.get_running_loop
+    db = client[db]
     await init_beanie(
         database=db,
         document_models=[
@@ -41,7 +41,7 @@ async def init_db():
     logger.info("Database connected successfully.")
 
 
-async def close_db():
+async def close_db(client: AsyncIOMotorClient):
     """
     Asynchronously closes the database connection.
 
@@ -52,7 +52,7 @@ async def close_db():
         None
     """
     try:
-        _client.close()
+        client.close()
         logger.info("Database disconnected successfully.")
     except InvalidOperation as error:
         logger.error("Database disconnect failure.")
