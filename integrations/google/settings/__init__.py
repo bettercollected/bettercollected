@@ -25,9 +25,11 @@ class Settings(BaseSettings):
         mongo_settings: MongoSettings: Settings related to MongoDB.
         scheduler_settings: SchedulerSettings: Settings related to
             the scheduler.
+        environment: str: API environment.
 
     Methods:
         is_development: Return whether the current environment is development.
+        is_in_test_mode: Return whether the current environment is in test mode.
     """
 
     exclude_none_in_all_response_models: bool = True
@@ -36,8 +38,13 @@ class Settings(BaseSettings):
     mongo_settings: MongoSettings = MongoSettings()
     scheduler_settings: SchedulerSettings = SchedulerSettings()
 
+    environment: str = api_settings.environment
+
     def is_development(self):
-        return self.api_settings.environment == "development"
+        return self.environment == "development"
+
+    def is_in_test_mode(self):
+        return self.environment.lower().startswith("test")
 
 
 @lru_cache()

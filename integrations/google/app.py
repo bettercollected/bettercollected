@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi_utils.timing import add_timing_middleware
 from loguru import logger
+from mongomock_motor import AsyncMongoMockClient
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from settings import settings
@@ -13,7 +14,11 @@ from middlewares import include_middlewares
 from routers import include_routers
 
 _mongo_settings = settings.mongo_settings
-_client = AsyncIOMotorClient(_mongo_settings.uri)
+_client = (
+    AsyncMongoMockClient()
+    if settings.is_in_test_mode()
+    else AsyncIOMotorClient(_mongo_settings.uri)
+)
 
 
 def create_app(
