@@ -25,6 +25,7 @@ export interface StandardFormDto {
         pinned: boolean;
         embedUrl: string;
         customUrl: string;
+        private?: boolean;
         provider: string;
         roles: Array<string>;
     };

@@ -13,6 +13,7 @@ export const initialFormState: StandardFormDto = {
         pinned: false,
         embedUrl: '',
         customUrl: '',
+        private: false,
         provider: '',
         roles: []
     },

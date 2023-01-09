@@ -20,6 +20,7 @@ import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import Error from '@app/pages/_error';
 import { initialFormState, setForm } from '@app/store/forms/slice';
 import { useAppDispatch } from '@app/store/hooks';
+import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function FormPage(props: any) {
@@ -94,8 +95,9 @@ export async function getServerSideProps(_context: any) {
     const globalProps = props.props;
     const { form_id } = _context.query;
     let form = null;
+    const config = getServerSideAuthHeaderConfig(_context);
     try {
-        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace.id}/forms?form_id=${form_id}`);
+        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace.id}/forms?form_id=${form_id}`, config);
         form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
         if (!form) {
             return {

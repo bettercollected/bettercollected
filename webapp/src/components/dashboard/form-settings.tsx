@@ -16,6 +16,7 @@ export default function FormSettingsTab() {
     const form = useAppSelector((state) => state.form);
     const [patchFormSettings] = usePatchFormSettingsMutation();
     const [isPinned, setIsPinned] = useState(!!form?.settings?.pinned);
+    const [isPrivate, setIsPrivate] = useState(!!form?.settings?.private);
     const workspace = useAppSelector((state) => state.workspace);
     const [customUrl, setCustomUrl] = useState(form.settings.customUrl || '');
     const isCustomDomain = !!workspace.customDomain;
@@ -39,9 +40,15 @@ export default function FormSettingsTab() {
         }
     };
 
-    const onSwitchChange = (event: any) => {
+    const onPinnedChange = (event: any) => {
         patchSettings({ pinned: !isPinned }).then((res) => {
             setIsPinned(!isPinned);
+        });
+    };
+
+    const onPrivateChanged = () => {
+        patchSettings({ private: !isPrivate }).then((res) => {
+            setIsPrivate(!isPrivate);
         });
     };
 
@@ -52,7 +59,7 @@ export default function FormSettingsTab() {
         }
         if (error || form.settings.customUrl === customUrl || !customUrl) return;
 
-        patchSettings({ customUrl });
+        patchSettings({ customUrl }).catch((e) => {});
     };
 
     const getFirstFiveSlugName = (slug: any) => {
@@ -68,7 +75,14 @@ export default function FormSettingsTab() {
                 <div className="text-xl font-bold text-black">Pinned</div>
                 <div className="flex w-full justify-between items-center h-14 text-gray-800">
                     <div>Show this form in pinned section</div>
-                    <Switch checked={isPinned} onClick={onSwitchChange} />
+                    <Switch checked={isPinned} onClick={onPinnedChange} />
+                </div>
+            </div>
+            <div className=" flex flex-col">
+                <div className="text-xl font-bold text-black">Hide Form</div>
+                <div className="flex w-full justify-between items-center h-14 text-gray-800">
+                    <div>Do not show this form in workspace page.</div>
+                    <Switch checked={isPrivate} onClick={onPrivateChanged} />
                 </div>
             </div>
             <Divider className="mb-6 mt-2" />
