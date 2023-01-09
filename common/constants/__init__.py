@@ -5,6 +5,9 @@ AUTH_REFRESH_TOKEN = "RefreshToken"
 AUTH_RESPONDER_ROLE = "RESPONDER"
 AUTH_CREATOR_ROLE = "CREATOR"
 
+# Date Constants
+GOOGLE_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+
 # Message Constants
 MESSAGE_UNAUTHORIZED = (
     "401 - Unauthorized: Access is denied due to invalid credentials."
