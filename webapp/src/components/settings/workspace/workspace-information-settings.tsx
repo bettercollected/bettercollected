@@ -1,6 +1,7 @@
 import React, { BaseSyntheticEvent, useState } from 'react';
 
-import { TextField } from '@mui/material';
+import { Popover, TextField } from '@mui/material';
+import { ChromePicker } from 'react-color';
 import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';
@@ -28,13 +29,19 @@ export function WorkspaceInformationSettings() {
     const [bannerImage, setBannerImage] = useState(workspace.bannerImage);
     const [profileImage, setProfileImage] = useState(workspace.profileImage);
 
+    const [primaryColor, setPrimaryColor] = useState('#fff');
+
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
+
+    const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
+    const open = Boolean(anchorEl);
+    const id = open ? 'simple-popover' : undefined;
 
     const onChangeBannerImage = (event: BaseSyntheticEvent) => {
         if (event.target.files && event.target.files.length > 0) {
             setPatchReq({
                 ...patchReq,
-                bannerImage: event.target.files[0]
+                banner_image: event.target.files[0]
             });
             setBannerImage(URL.createObjectURL(event.target.files[0]));
         }
@@ -43,10 +50,14 @@ export function WorkspaceInformationSettings() {
         if (event.target.files && event.target.files.length > 0) {
             setPatchReq({
                 ...patchReq,
-                profileImage: event.target.files[0]
+                profile_image: event.target.files[0]
             });
             setProfileImage(URL.createObjectURL(event.target.files[0]));
         }
+    };
+
+    const handlePrimaryColor = (e: any) => {
+        setPrimaryColor(e.hex);
     };
 
     const patchWorkspaceInformation = async () => {
@@ -143,6 +154,51 @@ export function WorkspaceInformationSettings() {
                         placeholder="Enter about your workspace"
                         required
                     />
+                </div>
+
+                <SubTitleRenderer title={'Branding'} description={'Update your branding preferences'} />
+                <div className="pb-6">
+                    <h1 className="text-lg">Brand Primary</h1>
+                    <div className="rounded-lg">
+                        <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setAnchorEl(event.currentTarget)}>
+                            <div style={{ backgroundColor: primaryColor }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
+                            <p>{primaryColor}</p>
+                        </div>
+                    </div>
+                    <Popover
+                        id={id}
+                        open={open}
+                        anchorEl={anchorEl}
+                        onClose={() => setAnchorEl(null)}
+                        anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'left'
+                        }}
+                    >
+                        <ChromePicker color={primaryColor} onChange={handlePrimaryColor} disableAlpha={true} />
+                    </Popover>
+                </div>
+
+                <div className="pb-6">
+                    <h1 className="text-lg">Brand Accent</h1>
+                    <div className="rounded-lg">
+                        <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setAnchorEl(event.currentTarget)}>
+                            <div style={{ backgroundColor: primaryColor }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
+                            <p>{primaryColor}</p>
+                        </div>
+                    </div>
+                    <Popover
+                        id={id}
+                        open={open}
+                        anchorEl={anchorEl}
+                        onClose={() => setAnchorEl(null)}
+                        anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'left'
+                        }}
+                    >
+                        <ChromePicker color={primaryColor} onChange={handlePrimaryColor} disableAlpha={true} />
+                    </Popover>
                 </div>
 
                 <Button isLoading={isLoading} type={'submit'} className="w-full md:w-auto !rounded-xl !bg-blue-600 h-[50px] mb-10" onClick={patchWorkspaceInformation}>
