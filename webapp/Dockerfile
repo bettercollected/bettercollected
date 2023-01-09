@@ -12,11 +12,12 @@ RUN yarn install
 # Rebuild the source code only when needed
 FROM node:16 AS builder
 ARG BASE_DEPLOY_PATH=
+ARG NEXT_PUBLIC_NODE_ENV="development"
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN BASE_DEPLOY_PATH=${BASE_DEPLOY_PATH} yarn build && yarn install --production --ignore-scripts --prefer-offline
+RUN BASE_DEPLOY_PATH=${BASE_DEPLOY_PATH} NEXT_PUBLIC_NODE_ENV=${NEXT_PUBLIC_NODE_ENV}  yarn build && yarn install --production --ignore-scripts --prefer-offline
 
 # Production image, copy all the files and run next
 FROM node:16 AS runner

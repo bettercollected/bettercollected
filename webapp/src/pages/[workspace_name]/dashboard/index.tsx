@@ -1,17 +1,15 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
-import { ShareIcon } from '@app/components/icons/share-icon';
 import { useModal } from '@app/components/modal-views/context';
 import Layout from '@app/components/sidebar/layout';
 import Button from '@app/components/ui/button/button';
 import environments from '@app/configs/environments';
 import useUser from '@app/lib/hooks/use-authuser';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { getAuthUserPropsWithWorkspace, getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
+import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
-import { checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function CreatorDashboard({ workspace, hasCustomDomain }: { workspace: any; hasCustomDomain: boolean }) {
@@ -42,7 +40,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
         const protocol = environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://';
         const domain = !!workspace.customDomain ? workspace.customDomain : environments.CLIENT_HOST;
         const w_name = !!workspace.customDomain ? '' : workspace.workspaceName;
-        return `${protocol}${domain}${w_name}`;
+        return `${protocol}${domain}/${w_name}`;
     };
 
     const Header = () => (

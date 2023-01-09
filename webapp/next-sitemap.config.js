@@ -13,6 +13,7 @@ if (process.env.NEXT_PUBLIC_NODE_ENV !== 'production') {
     policy.xRobotsTag = 'noindex, nofollow';
 }
 
+/** @type {import('next-sitemap').IConfig} */
 module.exports = {
     siteUrl,
     generateRobotsTxt: true,
