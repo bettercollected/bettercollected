@@ -61,7 +61,7 @@ class OauthGoogleService:
             }
         }
 
-    async def authorize(self, email: str, client_referer_url: str):
+    def authorize(self, email: str, client_referer_url: str):
         """
         Authorize the user and obtain an authorization URL.
 
@@ -94,7 +94,7 @@ class OauthGoogleService:
             flow.redirect_uri = settings.google_settings.redirect_uris
 
             authorization_url, state = flow.authorization_url(
-                access_type="offline", state=state, include_granted_scopes="false"
+                access_type="offline", state=state, include_granted_scopes="true"
             )
 
             return authorization_url, state
@@ -189,14 +189,16 @@ class OauthGoogleService:
         Raises:
             HTTPException: If there is an error during the authorization process.
         """
-        flow = google_auth_oauthlib.flow.Flow.from_client_config(
-            client_config=self.client_config,
-            scopes=settings.google_settings.scopes,
-            state=state,
-        )
-        flow.redirect_uri = settings.google_settings.redirect_uris
         try:
+            flow = google_auth_oauthlib.flow.Flow.from_client_config(
+                client_config=self.client_config,
+                scopes=settings.google_settings.scopes,
+                state=state,
+            )
+            flow.redirect_uri = settings.google_settings.redirect_uris
             flow.fetch_token(authorization_response=auth_code)
+            credentials = flow.credentials
+            return credentials
         except InvalidGrantError:
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
@@ -222,8 +224,6 @@ class OauthGoogleService:
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 detail=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
-        credentials = flow.credentials
-        return credentials
 
     async def fetch_oauth_token(self, oauth_credential: Oauth2CredentialDocument):
         """

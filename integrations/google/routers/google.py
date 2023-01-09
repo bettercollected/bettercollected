@@ -23,7 +23,7 @@ class GoogleRouter:
     @router.get("/authorize", status_code=HTTPStatus.OK)
     async def _authorize_google(self, email: str, request: Request):
         client_referer_url = request.headers.get("referer")
-        authorization_url, state = await self.oauth_google_service.authorize(
+        authorization_url, state = self.oauth_google_service.authorize(
             email, client_referer_url
         )
         return RedirectResponse(authorization_url)
@@ -38,3 +38,8 @@ class GoogleRouter:
         if client_referer_url is not None:
             return RedirectResponse(client_referer_url)
         return json_credentials
+
+    @router.post("/revoke", status_code=HTTPStatus.ACCEPTED)
+    async def _revoke(self, email: str):
+        # TODO: add implementation
+        return email
