@@ -1,7 +1,9 @@
 from dependency_injector import containers, providers
 
 from repositories.form import FormRepository
+from repositories.form_response import FormResponseRepository
 from services.form import FormService
+from services.form_response import FormResponseService
 from settings import Settings
 
 
@@ -29,3 +31,9 @@ class Container(containers.DeclarativeContainer):
     form_service = providers.Factory(
         FormService, form_repo=form_repo
     )  # Injecting form repo onto form service
+
+    # Google form response repository and service
+    form_response_repo = providers.Factory(FormResponseRepository)
+    form_response_service = providers.Factory(
+        FormResponseService, form_response_repo=form_response_repo
+    )  # Injecting form response repo onto form response service

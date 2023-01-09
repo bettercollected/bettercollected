@@ -13,17 +13,14 @@ class GoogleFormRouter:
         """
         This class defines the routes for interacting with the Google forms.
         """
-        super().__init__()
 
-        # Injecting form_service dependency
+        # Injecting dependencies
         self.form_service = Container.form_service()
 
     @router.get("", status_code=HTTPStatus.OK)
     async def _get_all_google_forms(self):
-        """
-        Retrieve a list of all google forms.
-
-        Returns:
-            A list of google forms.
-        """
         return await self.form_service.get_forms()
+
+    @router.get("/{form_id}", status_code=HTTPStatus.OK)
+    async def _get_single_google_form(self, form_id: str):
+        return await self.form_service.get_form(form_id)
