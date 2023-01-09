@@ -1,3 +1,6 @@
+# Crypto Constants
+AES_HEX_KEY = "AES_HEX_KEY"
+
 # Auth Constants
 AUTH_STATE = "state"
 AUTH_AUTHORIZATION = "Authorization"
@@ -42,6 +45,8 @@ MESSAGE_EMPTY_FORM_CONFIG = "No forms are imported yet!"
 MESSAGE_DATABASE_EXCEPTION = "500 - We are having some issues with our database connection. Please try again later."
 
 MESSAGE_OAUTH_INVALID_TOKEN = "Token is invalid!"
+MESSAGE_OAUTH_INVALID_GRANT = "Invalid oauth2 grant!"
+MESSAGE_OAUTH_INVALID_CLIENT = "Oauth invalid client error!"
 MESSAGE_OAUTH_MISSING_TOKEN_OR_EXPIRY = (
     "Either oauth access token is missing or expiry time is missing!"
 )
