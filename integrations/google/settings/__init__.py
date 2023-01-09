@@ -3,6 +3,7 @@ from functools import lru_cache
 from pydantic import BaseSettings
 
 from settings.api import ApiSettings
+from settings.google import GoogleSettings
 from settings.mongo import MongoSettings
 from settings.scheduler import SchedulerSettings
 
@@ -25,6 +26,7 @@ class Settings(BaseSettings):
         mongo_settings: MongoSettings: Settings related to MongoDB.
         scheduler_settings: SchedulerSettings: Settings related to
             the scheduler.
+        google_settings: GoogleSettings: Settings related to Google.
         environment: str: API environment.
 
     Methods:
@@ -37,6 +39,7 @@ class Settings(BaseSettings):
     api_settings: ApiSettings = ApiSettings()
     mongo_settings: MongoSettings = MongoSettings()
     scheduler_settings: SchedulerSettings = SchedulerSettings()
+    google_settings: GoogleSettings = GoogleSettings()
 
     environment: str = api_settings.environment
 

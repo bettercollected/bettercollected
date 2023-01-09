@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from routers import form, form_response
+from routers import form, form_response, google
 
 
 def include_routers(server: "FastAPI"):
@@ -10,5 +10,6 @@ def include_routers(server: "FastAPI"):
     Parameters:
         server (FastAPI): FastAPI server instance to include routers in.
     """
+    server.include_router(google.router, tags=["Google API"])
     server.include_router(form.router, tags=["Google Forms"])
     server.include_router(form_response.router, tags=["Google Form Submissions"])

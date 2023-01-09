@@ -51,6 +51,7 @@ This document explains the development guide to the new users participating in t
 | GOOGLE_API_SERVICE_NAME            | drive                                            |
 | GOOGLE_API_VERSION                 | v2                                               |
 | GOOGLE_REVOKE_CREDENTIALS_URL      | https://oauth2.googleapis.com/revoke             |
+| GOOGLE_AES_KEY                     ||
 
 | Mongo DB Environment | Default value |
 |----------------------|---------------|

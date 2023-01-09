@@ -1,6 +1,7 @@
 anyio==3.6.2
 APScheduler==3.9.1.post1
 attrs==22.2.0
+base58==2.1.1
 beanie==1.16.4
 black==22.12.0
 cachetools==5.2.0
@@ -49,6 +50,7 @@ protobuf==4.21.12
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycodestyle==2.10.0
+pycryptodome==3.16.0
 pydantic==1.10.4
 pyflakes==3.0.1
 pymongo==4.3.3
