@@ -16,10 +16,10 @@ import { MODAL_VIEW, useModal } from './context';
 const LoginView = dynamic(() => import('@app/components/login/login-view'));
 const ImportFormsView = dynamic(() => import('@app/components/importforms'));
 
-function renderModalContent(view: MODAL_VIEW | string) {
+function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
     switch (view) {
         case 'LOGIN_VIEW':
-            return <LoginView />;
+            return <LoginView {...modalProps} />;
         case 'IMPORT_FORMS_VIEW':
             return <ImportFormsView />;
         case 'LOGOUT_VIEW':
@@ -35,7 +35,7 @@ function renderModalContent(view: MODAL_VIEW | string) {
 
 export default function ModalContainer() {
     const router = useRouter();
-    const { view, isOpen, closeModal } = useModal();
+    const { view, isOpen, closeModal, modalProps } = useModal();
 
     useEffect(() => {
         // close search modal when route change
@@ -67,7 +67,7 @@ export default function ModalContainer() {
                 </div>
 
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
-                    <div className="relative z-50 inline-block w-full text-left align-middle xs:w-auto">{view && renderModalContent(view)}</div>
+                    <div className="relative z-50 inline-block w-full text-left align-middle xs:w-auto">{view && renderModalContent(view, modalProps)}</div>
                 </Transition.Child>
             </Dialog>
         </Transition>

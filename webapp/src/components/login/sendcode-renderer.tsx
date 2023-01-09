@@ -3,15 +3,21 @@ import { useState } from 'react';
 import ConnectWithGoogleButton from '@app/components/login/login-with-google-button';
 import FormInput from '@app/components/ui/FormInput';
 import Button from '@app/components/ui/button';
+import { useAppSelector } from '@app/store/hooks';
 
-export default function SendCode({ updateEmail, isLoading, postSendOtp }: any) {
+export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustomDomain }: any) {
+    const workspace = useAppSelector((state) => state.workspace);
+
     const [emailInput, setEmailInput] = useState('');
 
     const [emailValid, setEmailValid] = useState(false);
 
     const handleClick = (e: any) => {
         e.preventDefault();
-        const email = { receiver_email: emailInput };
+        const email: any = { receiver_email: emailInput };
+        if (isCustomDomain) {
+            email.workspace_id = workspace.id;
+        }
         updateEmail(emailInput);
         postSendOtp(email);
     };

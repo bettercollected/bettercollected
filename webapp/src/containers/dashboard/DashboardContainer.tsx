@@ -39,7 +39,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
     };
 
     const handleCheckMyData = () => {
-        openModal('LOGIN_VIEW');
+        openModal('LOGIN_VIEW', { isCustomDomain: true });
     };
 
     const Footer = () => {

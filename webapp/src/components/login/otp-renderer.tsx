@@ -5,10 +5,11 @@ import { toast } from 'react-toastify';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
 import { useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
+import { useAppSelector } from '@app/store/hooks';
 
-export default function OtpRenderer({ email }: any) {
+export default function OtpRenderer({ email, isCustomDomain }: any) {
     const { closeModal } = useModal();
-
+    const workspace = useAppSelector((state) => state.workspace);
     const [counter, setCounter] = useState(0);
     const [otp, setOtp] = useState('');
     const [postSendOtp, response] = usePostSendOtpMutation();
@@ -18,7 +19,7 @@ export default function OtpRenderer({ email }: any) {
 
     const [trigger] = useLazyGetStatusQuery();
 
-    const emailRequest = { receiver_email: email };
+    const emailRequest: any = { receiver_email: email };
 
     useEffect(() => {
         counter > 0 && setTimeout(() => setCounter(counter - 1), 1000);
@@ -46,6 +47,9 @@ export default function OtpRenderer({ email }: any) {
                     <div
                         className="hover:underline-offset-1"
                         onClick={() => {
+                            if (isCustomDomain) {
+                                emailRequest.workspace_id = workspace.id;
+                            }
                             postSendOtp(emailRequest);
                             setCounter(60);
                         }}

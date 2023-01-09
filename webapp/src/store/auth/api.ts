@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/dist/query/react';
 
 import environments from '@app/configs/environments';
+import { workspacesApi } from '@app/store/workspaces/api';
 
 import { AUTH_OTP_TAGS, AUTH_TAG_TYPES, VerifyOtp } from './types';
 
@@ -25,9 +26,9 @@ export const authApi = createApi({
                 method: 'GET'
             })
         }),
-        postSendOtp: builder.mutation<any, { receiver_email: string }>({
+        postSendOtp: builder.mutation<any, { workspace_id?: string; receiver_email: string }>({
             query: (body) => ({
-                url: `/auth/otp/send`,
+                url: body.workspace_id ? `/workspaces/${body.workspace_id}/auth/otp/send` : `/auth/otp/send`,
                 method: 'POST',
                 params: { receiver_email: body.receiver_email }
             }),
