@@ -9,15 +9,18 @@ import environments from '@app/configs/environments';
 
 const globalConstants = {
     appName: 'Better Collected',
-    appDesc: 'Better collected.',
-    title: 'Better Collected',
+    appDesc:
+        'If you use any form solutions like Google Forms or Typeform then Better Collected is a right platform for addressing the data rights of your form respondents. Better Collected integrates with those form solutions and opens up a portal for your users to view all of their data collected using forms and let them exercise the data rights like request for data deletion. This all happens without disrupting your normal workflow how you use the existing form solution. Better collected makes you a better data collector and help you prevent GDPR and CCPA fines.',
+    title: environments.METATAG_TITLE || 'Better Collected',
     favIcon: 'favIcon',
-    twitterHandle: '',
+    twitterHandle: '@BetterCollected',
     titleImg: 'titleImg',
     socialPreview: {
         url: `https://bettercollected.io/${environments.BASE_DEPLOY_PATH}`,
-        title: 'BetterCollected.',
-        desc: 'Better Collected',
+        title: environments.METATAG_TITLE || 'BetterCollected.',
+        desc:
+            environments.METATAG_DESCRIPTION ||
+            'If you use any form solutions like Google Forms or Typeform then Better Collected is a right platform for addressing the data rights of your form respondents. Better Collected integrates with those form solutions and opens up a portal for your users to view all of their data collected using forms and let them exercise the data rights like request for data deletion. This all happens without disrupting your normal workflow how you use the existing form solution. Better collected makes you a better data collector and help you prevent GDPR and CCPA fines.',
         image: 'imageUrl'
     },
     consoleWarningTitle: `%cStop!`,

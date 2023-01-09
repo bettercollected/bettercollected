@@ -13,6 +13,7 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@calcom/embed-react": "^1.0.9",
     "@emotion/react": "^11.10.4",
     "@emotion/styled": "^11.10.4",
     "@headlessui/react": "^1.7.3",

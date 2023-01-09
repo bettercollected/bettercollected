@@ -67,7 +67,11 @@ const nextConfig = {
         ENABLE_CHECK_MY_DATA: process.env.ENABLE_CHECK_MY_DATA || false,
 
         // api hosts
-        API_ENDPOINT_HOST: process.env.API_ENDPOINT_HOST
+        API_ENDPOINT_HOST: process.env.API_ENDPOINT_HOST,
+
+        // metatags
+        METATAG_TITLE: process.env.METATAG_TITLE,
+        METATAG_DESCRIPTION: process.env.METATAG_DESCRIPTION
     }
 };
 

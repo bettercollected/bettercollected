@@ -23,6 +23,9 @@ const environments = {
     // api host configs
     API_ENDPOINT_HOST: publicRuntimeConfig.API_ENDPOINT_HOST,
 
+    METATAG_TITLE: publicRuntimeConfig.METATAG_TITLE,
+    METATAG_DESCRIPTION: publicRuntimeConfig.METATAG_DESCRIPTION,
+
     // run-time configs
     CONTACT_US_URL: publicRuntimeConfig.CONTACT_US_URL,
     CONTACT_US_FORM_NAVIGATION_URL: publicRuntimeConfig.CONTACT_US_FORM_NAVIGATION_URL ?? 'https://forms.bettercollected.com/forms/contact-us',
