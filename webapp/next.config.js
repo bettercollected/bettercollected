@@ -71,7 +71,8 @@ const nextConfig = {
 
         // metatags
         METATAG_TITLE: process.env.METATAG_TITLE,
-        METATAG_DESCRIPTION: process.env.METATAG_DESCRIPTION
+        METATAG_DESCRIPTION: process.env.METATAG_DESCRIPTION,
+        METATAG_IMAGE: process.env.METATAG_IMAGE
     }
 };
 

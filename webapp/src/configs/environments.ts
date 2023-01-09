@@ -25,6 +25,7 @@ const environments = {
 
     METATAG_TITLE: publicRuntimeConfig.METATAG_TITLE,
     METATAG_DESCRIPTION: publicRuntimeConfig.METATAG_DESCRIPTION,
+    METATAG_IMAGE: publicRuntimeConfig.METATAG_IMAGE,
 
     // run-time configs
     CONTACT_US_URL: publicRuntimeConfig.CONTACT_US_URL,
