@@ -64,6 +64,8 @@ const nextConfig = {
         WORKSPACE_ID: process.env.WORKSPACE_ID,
         CUSTOM_DOMAIN: process.env.CUSTOM_DOMAIN,
         CUSTOM_DOMAIN_JSON: process.env.CUSTOM_DOMAIN_JSON,
+        ENABLE_TYPEFORM: process.env.ENABLE_TYPEFORM || false,
+        ENABLE_GOOGLE: process.env.ENABLE_GOOGLE || false,
         ENABLE_CHECK_MY_DATA: process.env.ENABLE_CHECK_MY_DATA || false,
 
         // api hosts

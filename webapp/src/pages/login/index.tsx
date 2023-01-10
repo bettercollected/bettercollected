@@ -3,6 +3,7 @@ import React from 'react';
 import Image from 'next/image';
 
 import ConnectWithGoogleButton from '@app/components/login/login-with-google-button';
+import ConnectWithTypeForm from '@app/components/login/login-with-typeform';
 import environments from '@app/configs/environments';
 import ContentLayout from '@app/layouts/_content-layout';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
@@ -63,14 +64,22 @@ export const Login = () => {
                     <div className="flex flex-col justify-center items-center text-[#555555] space-y-2">
                         <div className="text-3xl font-bold">Welcome back, Collector</div>
                     </div>
-                    <ConnectWithGoogleButton text="Sign In with google" creator />
-                    <div className="text-lg text-[#555555]">
-                        Don&apos;t have an account?{' '}
-                        <a href={`${environments.API_ENDPOINT_HOST}/auth/google/basicAuth?creator=true`} className="ml-2 text-blue-500 cursor-pointer">
-                            {' '}
-                            Sign Up
-                        </a>
-                    </div>
+                    {environments.ENABLE_GOOGLE && <ConnectWithGoogleButton text="Sign In with google" creator />}
+                    {environments.ENABLE_TYPEFORM && environments.ENABLE_GOOGLE && (
+                        <div className="flex items-center justify-center">
+                            <div className="border-t w-5 border-gray-200"></div>
+                            <span className="flex-shrink text-xs mx-4 text-gray-400">or</span>
+                            <div className="border-t w-5 border-gray-200"></div>
+                        </div>
+                    )}
+                    {environments.ENABLE_TYPEFORM && <ConnectWithTypeForm />}
+                    {/*<div className="text-lg text-[#555555]">*/}
+                    {/*    Don&apos;t have an account?{' '}*/}
+                    {/*    <a href={`${environments.API_ENDPOINT_HOST}/auth/google/basicAuth?creator=true`} className="ml-2 text-blue-500 cursor-pointer">*/}
+                    {/*        {' '}*/}
+                    {/*        Sign Up*/}
+                    {/*    </a>*/}
+                    {/*</div>*/}
 
                     <div className="text-[11px] text-[#808080]">
                         By signing in, you agree to our
