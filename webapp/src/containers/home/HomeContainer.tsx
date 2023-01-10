@@ -12,12 +12,13 @@ export default function HomeContainer() {
     useEffect(() => {
         (async function () {
             const cal = await getCalApi();
-            cal('floatingButton', { calLink: 'bettercollected', buttonText: 'Request a demo' });
-            cal('ui', {
-                styles: {
-                    branding: { brandColor: '#000000' }
-                }
-            });
+            cal('floatingButton', { calLink: 'bettercollected', buttonText: 'Request a demo', buttonColor: '#3B82F6' });
+            // cal('ui', {
+            //     styles: {
+            //         borderRadius: 0,
+            //         branding: { brandColor: '#3B82F6', borderRadius: 0 }
+            //     }
+            // });
         })();
     }, []);
     return (

@@ -15,9 +15,9 @@ export default function Waitlist() {
         (async function () {
             const cal = await getCalApi();
             cal('ui', {
-                theme: 'dark',
+                theme: 'light',
                 styles: {
-                    branding: { brandColor: '#000000' }
+                    branding: { brandColor: '#3B82F6' }
                 }
             });
         })();
