@@ -2,9 +2,11 @@ from dependency_injector import containers, providers
 
 from repositories.form import FormRepository
 from repositories.form_response import FormResponseRepository
+from repositories.form_scheduler_config import FormSchedulerConfigRepository
 from repositories.oauth_credential import OauthCredentialRepository
 from services.form import FormService
 from services.form_response import FormResponseService
+from services.form_scheduler_config import FormSchedulerConfigService
 from services.google import GoogleService
 from services.oauth_credential import OauthCredentialService
 from services.oauth_google import OauthGoogleService
@@ -41,6 +43,12 @@ class Container(containers.DeclarativeContainer):
     form_response_service = providers.Factory(
         FormResponseService, form_response_repo=form_response_repo
     )  # Injecting form response repo onto form response service
+
+    # Form scheduler config repository and service
+    fsc_repo = providers.Factory(FormSchedulerConfigRepository)
+    fsc_service = providers.Factory(
+        FormSchedulerConfigService, fsc_repo=fsc_repo
+    )  # Injecting fsc repo onto fsc service
 
     # Google service
     google_service = providers.Factory(GoogleService)
