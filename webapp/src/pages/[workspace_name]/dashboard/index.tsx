@@ -1,6 +1,9 @@
+import { useState } from 'react';
+
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
+import ImportFormsMenu from '@app/components/dashboard/import-forms-menu';
 import { useModal } from '@app/components/modal-views/context';
 import Layout from '@app/components/sidebar/layout';
 import Button from '@app/components/ui/button/button';
@@ -16,7 +19,9 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
     const { openModal } = useModal();
     const router = useRouter();
 
-    const { user } = useUser();
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+    const open = Boolean(anchorEl);
 
     const workspaceQuery = {
         workspace_id: workspace.id
@@ -53,15 +58,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                 <a href={getWorkspaceUrl()} className="rounded-xl w-full text-center text-sm  bg-blue-500 text-white px-5 py-3">
                     Go to Workspace
                 </a>
-                {user?.data?.payload?.content?.user?.services?.length === 0 ? (
-                    <Button variant="solid" className="!px-8 !rounded-xl !bg-blue-500" onClick={handleConnectWithGoogle}>
-                        Authorize Google
-                    </Button>
-                ) : (
-                    <Button variant="solid" className="md:ml-3 w-full sm:w-auto !px-8 !rounded-xl !bg-blue-500" onClick={handleImportForms}>
-                        Import Forms
-                    </Button>
-                )}
+                <ImportFormsMenu />
             </div>
         </div>
     );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import FormControl from '@mui/material/FormControl';
 import MenuItem from '@mui/material/MenuItem';
@@ -11,6 +11,7 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Loader from '@app/components/ui/loader';
+import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetTypeformsQuery, useImportTypeFormMutation, useLazyGetTypeformQuery } from '@app/store/workspaces/api';
@@ -39,12 +40,13 @@ export default function ImportTypeForms() {
 
     if (typeforms.isError)
         return (
-            <div className="text-sm text-red-500 p-4 rounded-md shadow-md bg-white">
-                <h2 className="mb-2">Oops! We&apos;ve encountered an issue.</h2>
-                <a>
-                    <Button variant="solid" size="small" className="ml-3 !w-full !rounded-xl !bg-blue-500">
-                        Authorize typeform
-                    </Button>
+            <div className="text-sm relative min-h-[500px] flex items-center justify-center flex-col min-w-screen md:min-w-[400px] p-4 rounded-md shadow-md bg-white">
+                <div onClick={() => closeModal()} className="border-[1.5px] absolute right-5 top-5 border-gray-200 hover:shadow hover:text-black cursor-pointer rounded-full p-3">
+                    <Close className="cursor-pointer text-gray-600 hover:text-black" />
+                </div>
+                <h2 className="mb-2 text-red-500 ">Oops! We&apos;ve encountered an issue.</h2>
+                <a className="ml-3 !w-full items-center flex justify-center !rounded-xl px-8 py-3 text-white !bg-blue-500" href={`${environments.API_ENDPOINT_HOST}/auth/typeform/oauth?creator=true`}>
+                    Authorize typeform
                 </a>
             </div>
         );
