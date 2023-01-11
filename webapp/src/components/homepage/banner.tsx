@@ -8,6 +8,8 @@ import bettercollected from '@app/assets/svgs/bettercollected.svg';
 import LandingPageSectionContainer from '@app/components/landingpage/LandingPageSectionContainer';
 import Image from '@app/components/ui/image';
 
+import AnchorLink from '../ui/links/anchor-link';
+
 export default function Banner() {
     const { t } = useTranslation();
 
@@ -33,7 +35,9 @@ export default function Banner() {
                             <br />
                             <span className="text-blue-500">responsibly.</span>
                         </h2>
-                        <p className="mt-3 text-base text-gray-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">Empower your form responders to view their collected data and exercise their data rights.</p>
+                        <p className="mt-3 text-base text-gray-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
+                            Empower your form responders to view their collected data and exercise their data rights. Become a better collector.
+                        </p>
                         <div data-cal-link="betterCollected" className="mt-5 cursor-pointer sm:mt-8 sm:inline-flex justify-start">
                             <div data-cal-link="betterCollected" className="rounded-md shadow">
                                 <div

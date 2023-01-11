@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
@@ -15,9 +15,36 @@ import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 export default function SingleFormPage(props: any) {
     const { form, back } = props;
 
+    // console.log('navigator', navigator.cookieEnabled);
+
+    useEffect(() => {
+        if (!!form.settings.embedUrl) {
+            fetch(form.settings.embedUrl, {
+                mode: 'no-cors',
+                headers: {
+                    'Access-Control-Allow-Origin': 'https://docs.google.com'
+                }
+            })
+                .then((data) => {
+                    console.log('embed data: ', data);
+                })
+                .catch((e) => {
+                    console.log('error:', e);
+                });
+        }
+    }, [form.settings.embedUrl]);
+
     const router = useRouter();
 
+    const iframeRef = useRef(null);
+
+    const hasFileUploadField = router.query.hasFileUploadField === 'true' ? true : false;
+
     if (!form) return <FullScreenLoader />;
+
+    const handleError = (e: any) => {
+        console.log('error: ', e);
+    };
 
     const responderUri = form.settings.embedUrl;
     return (
@@ -35,7 +62,7 @@ export default function SingleFormPage(props: any) {
 
             <ContentLayout className={'absolute left-0 !min-h-screen right-0 top-0 bottom-0 !p-0 !m-0'}>
                 {!!responderUri && (
-                    <iframe src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0">
+                    <iframe ref={iframeRef} src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0">
                         <Loader />
                     </iframe>
                 )}

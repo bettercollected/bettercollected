@@ -31,7 +31,7 @@ export default function Features() {
                     <div className="flex flex-col justify-start h-full">
                         <p className="text-xl md:text-2xl font-semibold text-dark mb-4 p-0">Integrate with your favourite form builder</p>
                         <p className="text-base text-grey m-0 p-0 w-full">
-                            Better collected integrates with your favourite form solution like Google forms. All your forms and form responses are imported and a nice dashboard is prepared for your automatically.
+                            Better collected integrates with your favourite form solution like Google forms. All your forms and form responses are imported and a nice dashboard is prepared for you automatically.
                         </p>
                     </div>
                 </div>
@@ -53,7 +53,7 @@ export default function Features() {
                         <p className="text-base text-grey m-0 p-0 w-full">
                             You can use your own (sub) domain and create a nice profile with selected forms. You can also customise the form URLs with your own domain instead of random looking Google form URLs.
                         </p>
-                        <AnchorLink className="text-blue-500" href="https://forms.bettercollected.com">
+                        <AnchorLink className="text-blue-500" target={'_blank'} href="https://forms.bettercollected.com">
                             See an example
                         </AnchorLink>
                     </div>

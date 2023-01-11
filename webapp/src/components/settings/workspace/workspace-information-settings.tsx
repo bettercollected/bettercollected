@@ -29,7 +29,7 @@ export function WorkspaceInformationSettings() {
     const [bannerImage, setBannerImage] = useState(workspace.bannerImage);
     const [profileImage, setProfileImage] = useState(workspace.profileImage);
 
-    const [primaryColor, setPrimaryColor] = useState('#fff');
+    const [brandColor, setBrandColor] = useState({ primary_color: '#fff', tertiary_color: '#fff', text_color: '#fff' });
 
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
 
@@ -56,8 +56,9 @@ export function WorkspaceInformationSettings() {
         }
     };
 
-    const handlePrimaryColor = (e: any) => {
-        setPrimaryColor(e.hex);
+    const handleColorChange = (e: any, title: string) => {
+        // setPrimaryColor(e.hex);
+        setBrandColor({ ...brandColor, [title]: e.hex });
     };
 
     const patchWorkspaceInformation = async () => {
@@ -161,8 +162,8 @@ export function WorkspaceInformationSettings() {
                     <h1 className="text-lg">Brand Primary</h1>
                     <div className="rounded-lg">
                         <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setAnchorEl(event.currentTarget)}>
-                            <div style={{ backgroundColor: primaryColor }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
-                            <p>{primaryColor}</p>
+                            <div style={{ backgroundColor: brandColor.primary_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
+                            <p>{brandColor.primary_color}</p>
                         </div>
                     </div>
                     <Popover
@@ -175,7 +176,7 @@ export function WorkspaceInformationSettings() {
                             horizontal: 'left'
                         }}
                     >
-                        <ChromePicker color={primaryColor} onChange={handlePrimaryColor} disableAlpha={true} />
+                        <ChromePicker color={brandColor.primary_color} onChange={(e: any) => handleColorChange(e, 'primary_color')} disableAlpha={true} />
                     </Popover>
                 </div>
 
@@ -183,8 +184,8 @@ export function WorkspaceInformationSettings() {
                     <h1 className="text-lg">Brand Accent</h1>
                     <div className="rounded-lg">
                         <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setAnchorEl(event.currentTarget)}>
-                            <div style={{ backgroundColor: primaryColor }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
-                            <p>{primaryColor}</p>
+                            <div style={{ backgroundColor: brandColor.tertiary_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
+                            <p>{brandColor.tertiary_color}</p>
                         </div>
                     </div>
                     <Popover
@@ -197,7 +198,29 @@ export function WorkspaceInformationSettings() {
                             horizontal: 'left'
                         }}
                     >
-                        <ChromePicker color={primaryColor} onChange={handlePrimaryColor} disableAlpha={true} />
+                        <ChromePicker color={brandColor.tertiary_color} onChange={(e: any) => handleColorChange(e, 'tertiary_color')} disableAlpha={true} />
+                    </Popover>
+                </div>
+
+                <div className="pb-6">
+                    <h1 className="text-lg">Brand Accent</h1>
+                    <div className="rounded-lg">
+                        <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setAnchorEl(event.currentTarget)}>
+                            <div style={{ backgroundColor: brandColor.text_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
+                            <p>{brandColor.text_color}</p>
+                        </div>
+                    </div>
+                    <Popover
+                        id={id}
+                        open={open}
+                        anchorEl={anchorEl}
+                        onClose={() => setAnchorEl(null)}
+                        anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'left'
+                        }}
+                    >
+                        <ChromePicker color={brandColor.text_color} onChange={(e: any) => handleColorChange(e, 'text_color')} disableAlpha={true} />
                     </Popover>
                 </div>
 

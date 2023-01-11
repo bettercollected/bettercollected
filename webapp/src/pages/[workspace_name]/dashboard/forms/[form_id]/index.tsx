@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 
-import Link from 'next/link';
 import Router from 'next/router';
 
 import { Feed, Settings } from '@mui/icons-material';

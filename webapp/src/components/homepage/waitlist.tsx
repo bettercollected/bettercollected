@@ -29,7 +29,7 @@ export default function Waitlist() {
                 <h1 className="text-4xl tracking-tight leading-10 font-extrabold sm:text-5xl sm:leading-none md:text-6xl">
                     Become a <span className="text-blue-500">Better Collector</span>
                 </h1>
-                <p className="text-lg text-grey mt-6 p-0">Request a demo and we&apos;ll keep you updated with our progress</p>
+                <p className="text-lg text-grey mt-6 p-0">Join a club of privacy respecting companies that value their users&apos; data rights.</p>
                 <div data-cal-link="betterCollected" className="mt-5 cursor-pointer sm:mt-8 sm:inline-flex justify-start w-full md:w-fit">
                     <div data-cal-link="betterCollected" className="rounded-md shadow w-full">
                         <div
