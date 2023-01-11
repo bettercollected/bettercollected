@@ -10,11 +10,10 @@ import Layout from '@app/components/sidebar/layout';
 import Button from '@app/components/ui/button/button';
 import Image from '@app/components/ui/image';
 import environments from '@app/configs/environments';
-import { getAuthUserPropsWithWorkspace, getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
+import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceQuery, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
-import { checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage } from '@app/utils/serverSidePropsUtils';
 
 export default function MySettings(props: any) {
     const { bannerImage, customDomain, description, id, profileImage, title, workspaceName } = props.workspace;

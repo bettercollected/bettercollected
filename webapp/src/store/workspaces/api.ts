@@ -160,6 +160,17 @@ export const workspacesApi = createApi({
                 }
             })
             // providesTags: [WORKSPACE_UPDATE_TAG]
+        }),
+        patchTheme: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/theme`,
+                method: 'PATCH',
+                body: request.body,
+                credentials: 'include',
+                headers: {
+                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
+                }
+            })
         })
     })
 });
@@ -184,6 +195,7 @@ export const {
     usePatchFormSettingsMutation,
     useCreateWorkspaceMutation,
     usePatchExistingWorkspaceMutation,
+    usePatchThemeMutation,
     useGetAllMineWorkspacesQuery,
     useLazyGetAllMineWorkspacesQuery
 } = workspacesApi;

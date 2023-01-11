@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
+import { usePatchExistingWorkspaceMutation, usePatchThemeMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
 const SubTitleRenderer = ({ title, description }: any) => {
@@ -22,6 +22,9 @@ const SubTitleRenderer = ({ title, description }: any) => {
 export function WorkspaceInformationSettings() {
     const dispatch = useAppDispatch();
     const workspace = useAppSelector((state) => state.workspace);
+
+    console.log(workspace);
+
     const [patchReq, setPatchReq] = useState<any>({
         title: workspace.title,
         description: workspace.description
@@ -29,9 +32,10 @@ export function WorkspaceInformationSettings() {
     const [bannerImage, setBannerImage] = useState(workspace.bannerImage);
     const [profileImage, setProfileImage] = useState(workspace.profileImage);
 
-    const [brandColor, setBrandColor] = useState({ primary_color: '#fff', tertiary_color: '#fff', text_color: '#fff' });
+    const [brandColor, setBrandColor] = useState({ primary_color: workspace?.theme?.primary_color ?? '#fff', accent_color: workspace?.theme?.accent_color ?? '#fff', text_color: workspace?.theme?.text_color ?? '#fff' });
 
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
+    const [patchTheme] = usePatchThemeMutation();
 
     const [primaryEl, setPrimaryEl] = React.useState<HTMLButtonElement | null>(null);
     const [accentEl, setAccentEl] = React.useState<HTMLButtonElement | null>(null);
@@ -61,8 +65,23 @@ export function WorkspaceInformationSettings() {
     };
 
     const handleColorChange = (e: any, title: string) => {
-        // setPrimaryColor(e.hex);
         setBrandColor({ ...brandColor, [title]: e.hex });
+    };
+
+    const patchWorkspaceThemeInformation = async () => {
+        if (!brandColor.primary_color && !brandColor.accent_color && !brandColor.text_color) return;
+        const formData = new FormData();
+        Object.keys(brandColor).forEach((key) => {
+            if (workspace[key] !== brandColor[key]) formData.append(key, brandColor[key]);
+        });
+
+        try {
+            const response = await patchTheme({ workspace_id: workspace.id, body: formData });
+            dispatch(setWorkspace(response.data));
+            toast('Theme updated!!!', { type: 'success' });
+        } catch (e) {
+            toast('Something went wrong.', { type: 'error' });
+        }
     };
 
     const patchWorkspaceInformation = async () => {
@@ -161,6 +180,10 @@ export function WorkspaceInformationSettings() {
                     />
                 </div>
 
+                <Button isLoading={isLoading} type={'submit'} className="w-full md:w-auto !rounded-xl !bg-blue-600 h-[50px] mb-10" onClick={patchWorkspaceInformation}>
+                    Update workspace profile
+                </Button>
+
                 <SubTitleRenderer title={'Branding'} description={'Update your branding preferences'} />
                 <div className="pb-6">
                     <h1 className="text-lg">Brand Primary</h1>
@@ -187,8 +210,8 @@ export function WorkspaceInformationSettings() {
                     <h1 className="text-lg">Brand Accent</h1>
                     <div className="rounded-lg">
                         <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setAccentEl(event.currentTarget)}>
-                            <div style={{ backgroundColor: brandColor.tertiary_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
-                            <p>{brandColor.tertiary_color}</p>
+                            <div style={{ backgroundColor: brandColor.accent_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
+                            <p>{brandColor.accent_color}</p>
                         </div>
                     </div>
                     <Popover
@@ -200,7 +223,7 @@ export function WorkspaceInformationSettings() {
                             horizontal: 'left'
                         }}
                     >
-                        <ChromePicker color={brandColor.tertiary_color} onChange={(e: any) => handleColorChange(e, 'tertiary_color')} disableAlpha={true} />
+                        <ChromePicker color={brandColor.accent_color} onChange={(e: any) => handleColorChange(e, 'accent_color')} disableAlpha={true} />
                     </Popover>
                 </div>
 
@@ -224,9 +247,8 @@ export function WorkspaceInformationSettings() {
                         <ChromePicker color={brandColor.text_color} onChange={(e: any) => handleColorChange(e, 'text_color')} disableAlpha={true} />
                     </Popover>
                 </div>
-
-                <Button isLoading={isLoading} type={'submit'} className="w-full md:w-auto !rounded-xl !bg-blue-600 h-[50px] mb-10" onClick={patchWorkspaceInformation}>
-                    Update workspace profile
+                <Button isLoading={isLoading} className="w-full md:w-auto !rounded-xl !bg-blue-600 h-[50px] mb-10" onClick={patchWorkspaceThemeInformation}>
+                    Update Brand Theme
                 </Button>
             </div>
         </>
