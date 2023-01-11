@@ -51,11 +51,30 @@ export const workspacesApi = createApi({
         }),
         importForm: builder.mutation<any, ImportFormQueryInterface>({
             query: (request) => ({
-                url: `workspaces/${request.workspaceId}/forms/import`,
+                url: `/workspaces/${request.workspaceId}/forms/import`,
                 method: 'POST',
                 body: request.body
             }),
             invalidatesTags: [WORKSPACE_TAGS]
+        }),
+        importTypeForm: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/import/typeform`,
+                method: 'POST',
+                body: request.body
+            })
+        }),
+        getTypeforms: builder.query<any, void>({
+            query: () => ({
+                url: `/typeform/import`,
+                method: 'GET'
+            })
+        }),
+        getTypeform: builder.query<any, string>({
+            query: (form_id: string) => ({
+                url: `/typeform/import/${form_id}`,
+                method: 'GET'
+            })
         }),
         getWorkspace: builder.query<WorkspaceDto, string>({
             query: (body) => ({
@@ -146,9 +165,12 @@ export const workspacesApi = createApi({
 });
 
 export const {
+    useGetTypeformsQuery,
+    useLazyGetTypeformQuery,
     useGetMinifiedFormsQuery,
     useLazyGetGoogleFormQuery,
     useImportFormMutation,
+    useImportTypeFormMutation,
     useGetWorkspaceQuery,
     useLazyGetWorkspaceQuery,
     useGetWorkspaceFormsQuery,

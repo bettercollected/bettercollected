@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 
 import { Close } from '@app/components/icons/close';
+import ImportTypeForms from '@app/components/importforms/typeform-import';
 import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
@@ -14,13 +15,13 @@ import { MODAL_VIEW, useModal } from './context';
 
 // dynamic imports
 const LoginView = dynamic(() => import('@app/components/login/login-view'));
-const ImportFormsView = dynamic(() => import('@app/components/importforms'));
+const ImportFormsView = dynamic(() => import('@app/components/importforms/google-forms-import'));
 
 function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
     switch (view) {
         case 'LOGIN_VIEW':
             return <LoginView {...modalProps} />;
-        case 'IMPORT_FORMS_VIEW':
+        case 'IMPORT_GOOGLE_FORMS_VIEW':
             return <ImportFormsView />;
         case 'LOGOUT_VIEW':
             return <LogoutView />;
@@ -28,6 +29,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <UpdateWorkspaceSettings updateDomain={true} />;
         case 'UPDATE_WORKSPACE_HANDLE':
             return <UpdateWorkspaceSettings updateDomain={false} />;
+        case 'IMPORT_TYPE_FORMS_VIEW':
+            return <ImportTypeForms />;
         default:
             return <></>;
     }

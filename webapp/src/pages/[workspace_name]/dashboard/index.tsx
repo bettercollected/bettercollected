@@ -29,7 +29,8 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
     const forms = workspaceForms?.data?.payload?.content;
 
     const handleImportForms = () => {
-        openModal('IMPORT_FORMS_VIEW');
+        openModal('IMPORT_TYPE_FORMS_VIEW');
+        // openModal('IMPORT_GOOGLE_FORMS_VIEW');
     };
 
     const handleConnectWithGoogle = () => {
