@@ -33,9 +33,13 @@ export function WorkspaceInformationSettings() {
 
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
 
-    const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
-    const open = Boolean(anchorEl);
-    const id = open ? 'simple-popover' : undefined;
+    const [primaryEl, setPrimaryEl] = React.useState<HTMLButtonElement | null>(null);
+    const [accentEl, setAccentEl] = React.useState<HTMLButtonElement | null>(null);
+    const [textEl, setTextEl] = React.useState<HTMLButtonElement | null>(null);
+
+    const openPrimary = Boolean(primaryEl);
+    const openAccent = Boolean(accentEl);
+    const openText = Boolean(textEl);
 
     const onChangeBannerImage = (event: BaseSyntheticEvent) => {
         if (event.target.files && event.target.files.length > 0) {
@@ -161,16 +165,15 @@ export function WorkspaceInformationSettings() {
                 <div className="pb-6">
                     <h1 className="text-lg">Brand Primary</h1>
                     <div className="rounded-lg">
-                        <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setAnchorEl(event.currentTarget)}>
+                        <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setPrimaryEl(event.currentTarget)}>
                             <div style={{ backgroundColor: brandColor.primary_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
                             <p>{brandColor.primary_color}</p>
                         </div>
                     </div>
                     <Popover
-                        id={id}
-                        open={open}
-                        anchorEl={anchorEl}
-                        onClose={() => setAnchorEl(null)}
+                        open={openPrimary}
+                        anchorEl={primaryEl}
+                        onClose={() => setPrimaryEl(null)}
                         anchorOrigin={{
                             vertical: 'bottom',
                             horizontal: 'left'
@@ -183,16 +186,15 @@ export function WorkspaceInformationSettings() {
                 <div className="pb-6">
                     <h1 className="text-lg">Brand Accent</h1>
                     <div className="rounded-lg">
-                        <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setAnchorEl(event.currentTarget)}>
+                        <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setAccentEl(event.currentTarget)}>
                             <div style={{ backgroundColor: brandColor.tertiary_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
                             <p>{brandColor.tertiary_color}</p>
                         </div>
                     </div>
                     <Popover
-                        id={id}
-                        open={open}
-                        anchorEl={anchorEl}
-                        onClose={() => setAnchorEl(null)}
+                        open={openAccent}
+                        anchorEl={accentEl}
+                        onClose={() => setAccentEl(null)}
                         anchorOrigin={{
                             vertical: 'bottom',
                             horizontal: 'left'
@@ -203,18 +205,17 @@ export function WorkspaceInformationSettings() {
                 </div>
 
                 <div className="pb-6">
-                    <h1 className="text-lg">Brand Accent</h1>
+                    <h1 className="text-lg">Brand Text</h1>
                     <div className="rounded-lg">
-                        <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setAnchorEl(event.currentTarget)}>
+                        <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setTextEl(event.currentTarget)}>
                             <div style={{ backgroundColor: brandColor.text_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
                             <p>{brandColor.text_color}</p>
                         </div>
                     </div>
                     <Popover
-                        id={id}
-                        open={open}
-                        anchorEl={anchorEl}
-                        onClose={() => setAnchorEl(null)}
+                        open={openText}
+                        anchorEl={textEl}
+                        onClose={() => setTextEl(null)}
                         anchorOrigin={{
                             vertical: 'bottom',
                             horizontal: 'left'
