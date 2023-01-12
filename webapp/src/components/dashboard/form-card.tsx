@@ -7,6 +7,7 @@ import { IconButton, InputAdornment } from '@mui/material';
 import TextField from '@mui/material/TextField';
 
 import EmptyTray from '@app/assets/svgs/empty-tray.svg';
+import { Google } from '@app/components/icons/brands/google';
 import { SearchIcon } from '@app/components/icons/search';
 import { ShareIcon } from '@app/components/icons/share-icon';
 import Image from '@app/components/ui/image';
@@ -140,7 +141,20 @@ export default function FormCard({ workspace }: any) {
                             >
                                 <FormsCard>
                                     <div className="flex flex-col justify-start h-full">
-                                        <p className="text-xl text-grey mb-4 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 15) : toEndDottedStr(form.title, 30)}</p>
+                                        <div className="flex mb-4 w-full items-center space-x-4">
+                                            <div>
+                                                {form?.settings.provider === 'typeform' ? (
+                                                    <div className="rounded-full border h-[24px] w-[28px] border-white relative">
+                                                        <Image src="/tf.png" className="rounded-full" layout="fill" alt={'T'} />
+                                                    </div>
+                                                ) : (
+                                                    <div className="rounded-full bg-white p-1">
+                                                        <Google />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <p className="text-xl text-grey  p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 15) : toEndDottedStr(form.title, 30)}</p>
+                                        </div>
                                         {form?.description && (
                                             <p className="text-base text-softBlue m-0 p-0 w-full">
                                                 {['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 45) : ['md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 80) : toEndDottedStr(form.description, 140)}
@@ -148,8 +162,6 @@ export default function FormCard({ workspace }: any) {
                                         )}
 
                                         {!form?.description && <p className="text-base text-softBlue m-0 p-0 w-full italic">Form description not available.</p>}
-
-                                        <div className="flex justify-end">{!form?.settings.private && <div className="rounded text-green-800 bg-green-200">Public</div>}</div>
                                     </div>
 
                                     <div

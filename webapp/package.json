@@ -23,6 +23,7 @@
     "@mui/x-data-grid": "^5.16.0",
     "@mui/x-date-pickers": "^5.0.0-beta.7",
     "@reduxjs/toolkit": "^1.8.5",
+    "@typeform/embed-react": "^2.11.0",
     "@types/overlayscrollbars": "^1.12.1",
     "@types/react-color": "^3.0.6",
     "async-mutex": "^0.4.0",
