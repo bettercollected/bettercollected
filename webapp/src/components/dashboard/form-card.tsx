@@ -148,6 +148,8 @@ export default function FormCard({ workspace }: any) {
                                         )}
 
                                         {!form?.description && <p className="text-base text-softBlue m-0 p-0 w-full italic">Form description not available.</p>}
+
+                                        <div className="flex justify-end">{!form?.settings.private && <div className="rounded text-green-800 bg-green-200">Public</div>}</div>
                                     </div>
 
                                     <div
