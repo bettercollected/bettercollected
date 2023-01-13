@@ -171,6 +171,17 @@ export const workspacesApi = createApi({
                     'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
             })
+        }),
+        patchWorkspacePolicies: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/policies`,
+                method: 'PATCH',
+                body: request.body,
+                credentials: 'include',
+                headers: {
+                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
+                }
+            })
         })
     })
 });
@@ -196,6 +207,7 @@ export const {
     useCreateWorkspaceMutation,
     usePatchExistingWorkspaceMutation,
     usePatchThemeMutation,
+    usePatchWorkspacePoliciesMutation,
     useGetAllMineWorkspacesQuery,
     useLazyGetAllMineWorkspacesQuery
 } = workspacesApi;

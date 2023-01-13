@@ -12,6 +12,7 @@ import TwitterIcon from '@mui/icons-material/Twitter';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
+import { useAppSelector } from '@app/store/hooks';
 
 export default function Footer() {
     const router = useRouter();
@@ -23,10 +24,6 @@ export default function Footer() {
                 {title}
             </p>
         );
-    }
-
-    function FontBold(props: any) {
-        return <div className={'font-semibold mb-2'}>{props.children}</div>;
     }
 
     return (
@@ -49,10 +46,10 @@ export default function Footer() {
                     </ActiveLink>
                 </div>
                 <div className="flex flex-col">
-                    <ActiveLink className="mt-6 md:mt-0 text-lg font-semibold hover:text-gray-600" href={environments.TERMS_AND_CONDITIONS}>
-                        Terms and Conditions
+                    <ActiveLink target={'_blank'} className="mt-6 md:mt-0 text-lg font-semibold hover:text-gray-600" href={environments.TERMS_AND_CONDITIONS}>
+                        Terms of service
                     </ActiveLink>
-                    <ActiveLink className="mt-6 md:mt-0 text-lg font-semibold hover:text-gray-600" href={environments.PRIVACY_POLICY}>
+                    <ActiveLink target={'_blank'} className="mt-6 md:mt-0 text-lg font-semibold hover:text-gray-600" href={environments.PRIVACY_POLICY}>
                         Privacy Policy
                     </ActiveLink>
                 </div>

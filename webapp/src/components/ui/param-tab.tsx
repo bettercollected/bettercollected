@@ -2,10 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
-import styled from '@emotion/styled';
-import cn from 'classnames';
-
-import { ChevronDown } from '@app/components/icons/chevron-down';
 import { Tab, TabItem, TabPanel, TabPanels } from '@app/components/ui/tab';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useClickAway } from '@app/lib/hooks/use-click-away';
