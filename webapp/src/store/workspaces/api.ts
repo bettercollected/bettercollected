@@ -62,7 +62,8 @@ export const workspacesApi = createApi({
                 url: `/workspaces/${request.workspaceId}/forms/import/typeform`,
                 method: 'POST',
                 body: request.body
-            })
+            }),
+            invalidatesTags: [WORKSPACE_TAGS]
         }),
         getTypeforms: builder.query<any, void>({
             query: () => ({

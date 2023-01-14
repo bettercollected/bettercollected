@@ -17,36 +17,11 @@ import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 export default function SingleFormPage(props: any) {
     const { form, back } = props;
 
-    // console.log('navigator', navigator.cookieEnabled);
-
-    useEffect(() => {
-        if (!!form.settings.embedUrl) {
-            fetch(form.settings.embedUrl, {
-                mode: 'no-cors',
-                headers: {
-                    'Access-Control-Allow-Origin': 'https://docs.google.com'
-                }
-            })
-                .then((data) => {
-                    console.log('embed data: ', data);
-                })
-                .catch((e) => {
-                    console.log('error:', e);
-                });
-        }
-    }, [form.settings.embedUrl]);
-
     const router = useRouter();
 
     const iframeRef = useRef(null);
 
-    const hasFileUploadField = router.query.hasFileUploadField === 'true' ? true : false;
-
     if (!form) return <FullScreenLoader />;
-
-    const handleError = (e: any) => {
-        console.log('error: ', e);
-    };
 
     const responderUri = form.settings.embedUrl;
 
@@ -69,7 +44,7 @@ export default function SingleFormPage(props: any) {
                         <Loader />
                     </iframe>
                 )}
-                {form.settings.provider === 'typeform' && <Widget id="obZZBjd4" style={{ height: '100vh' }} className="my-form" />}
+                {form.settings.provider === 'typeform' && <Widget id={form.formId} style={{ height: '100vh' }} className="my-form" />}
             </ContentLayout>
         </div>
     );

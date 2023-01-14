@@ -25,7 +25,7 @@ export default function SingleFormPage({ form, back, ...props }: ISingleFormPage
 
     if (!form) return <FullScreenLoader />;
 
-    const responderUri = form.settings.embedUrl;
+    const responderUri = form?.settings?.embedUrl;
     return (
         <div className="relative">
             {back && (
@@ -40,7 +40,7 @@ export default function SingleFormPage({ form, back, ...props }: ISingleFormPage
                         <Loader />
                     </iframe>
                 )}
-                {form.settings.provider === 'typeform' && <Widget id="obZZBjd4" style={{ height: '100vh' }} className="my-form" />}
+                {form.settings.provider === 'typeform' && <Widget id={form.formId} style={{ height: '100vh' }} className="my-form" />}
             </ContentLayout>
         </div>
     );

@@ -84,13 +84,6 @@ export default function FormCard({ workspace }: any) {
             setUnpinnedForms(response?.data?.payload?.content.filter((form: any) => !form.settings.pinned) || []);
         }
     };
-
-    const checkIfFileUploadPresent = (questions: Array<any>) => {
-        const isFileUploadFieldPresent: Array<Boolean> = questions.map((question) => !!question.type.folderId);
-        const found = isFileUploadFieldPresent.find((element) => !!element);
-        return !!found;
-    };
-
     const debouncedResults = useMemo(() => {
         return debounce(handleSearch, 500);
     }, []);
@@ -127,7 +120,6 @@ export default function FormCard({ workspace }: any) {
                     {formsArray.map((form: StandardFormDto) => {
                         const slug = form.settings.customUrl;
                         let shareUrl = '';
-                        let hasFileUploadField = checkIfFileUploadPresent(form.questions);
                         if (window && typeof window !== 'undefined') {
                             shareUrl = isCustomDomain ? `${window.location.origin}/forms/${slug}` : `${window.location.origin}/${workspace.workspaceName}/forms/${slug}`;
                         }
@@ -136,7 +128,7 @@ export default function FormCard({ workspace }: any) {
                                 key={form.formId}
                                 href={{
                                     pathname: isCustomDomain ? `/forms/[slug]` : `${workspace.workspaceName}/forms/[slug]`,
-                                    query: { slug, back: true, hasFileUploadField: hasFileUploadField }
+                                    query: { slug, back: true }
                                 }}
                             >
                                 <FormsCard>
