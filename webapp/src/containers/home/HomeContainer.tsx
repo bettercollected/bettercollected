@@ -11,7 +11,7 @@ import Layout from '@app/layouts/_layout';
 export default function HomeContainer() {
     useEffect(() => {
         (async function () {
-            const cal = await getCalApi();
+            const cal: any = await getCalApi();
             cal('floatingButton', { calLink: 'bettercollected', buttonText: 'Request a demo', buttonColor: '#3B82F6' });
         })();
     }, []);

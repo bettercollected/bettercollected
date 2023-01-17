@@ -18,7 +18,7 @@ export default function FormSettingsTab() {
     const [isPinned, setIsPinned] = useState(!!form?.settings?.pinned);
     const [isPrivate, setIsPrivate] = useState(!!form?.settings?.private);
     const workspace = useAppSelector((state) => state.workspace);
-    const [customUrl, setCustomUrl] = useState(form.settings.customUrl || '');
+    const [customUrl, setCustomUrl] = useState(form?.settings?.customUrl || '');
     const isCustomDomain = !!workspace.customDomain;
     const [error, setError] = useState(false);
     const [_, copyToClipboard] = useCopyToClipboard();
