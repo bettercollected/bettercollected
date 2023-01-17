@@ -67,7 +67,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
         <div className="relative min-h-screen">
             <div>
                 <div className="product-image relative h-44 w-full overflow-hidden md:h-80 xl:h-[380px]">
-                    <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
+                    {workspace.bannerImage && <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />}
                 </div>
             </div>
             <ContentLayout className="!pt-0 relative min-h-screen bg-[#FBFBFB] pb-40">
@@ -79,7 +79,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                 <div className="flex justify-between items-center">
                     <div className="product-box">
                         <div className="product-image bg-white absolute border-[1px] border-neutral-300 hover:border-neutral-400 rounded-full z-10 h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 xl:h-40 xl:w-40 2xl:h-[180px] 2xl:w-[180px] overflow-hidden -top-12 sm:-top-16 md:-top-20 xl:-top-[88px] 2xl:-top-24">
-                            <Image src={workspace.profileImage} layout="fill" objectFit="contain" alt={workspace.title} />
+                            {workspace.profileImage && <Image src={workspace.profileImage} layout="fill" objectFit="contain" alt={workspace.title} />}
                         </div>
                     </div>
                     <div className="mt-2 mb-0 flex items-center">
