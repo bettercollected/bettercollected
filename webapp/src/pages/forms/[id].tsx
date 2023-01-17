@@ -71,7 +71,7 @@ export async function getServerSideProps(_context: any) {
 
     try {
         if (globalProps.hasCustomDomain && globalProps.workspaceId) {
-            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/forms/${slug}`).catch((e) => e);
+            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${slug}`).catch((e) => e);
             form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
         }
     } catch (err) {
