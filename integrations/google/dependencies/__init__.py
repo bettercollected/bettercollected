@@ -10,6 +10,7 @@ from services.form_scheduler_config import FormSchedulerConfigService
 from services.google import GoogleService
 from services.oauth_credential import OauthCredentialService
 from services.oauth_google import OauthGoogleService
+from services.scheduler import SchedulerService
 from settings import Settings
 
 
@@ -66,4 +67,14 @@ class Container(containers.DeclarativeContainer):
         OauthCredentialService,
         oauth_credential_repo=oauth_credential_repo,
         oauth_google_service=oauth_google_service,
+    )
+
+    # Scheduler service
+    scheduler_service = providers.Factory(
+        SchedulerService,
+        form_service=form_service,
+        form_response_service=form_response_service,
+        fsc_service=fsc_service,
+        oauth_credential_service=oauth_credential_service,
+        google_service=google_service,
     )

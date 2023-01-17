@@ -37,7 +37,7 @@ class FormRepository(BaseRepository):
             )
 
     async def get(
-        self, form_id: str, provider: FormProvider
+        self, form_id: str, provider: FormProvider | str
     ) -> GoogleFormDocument | None:
         """
         Retrieve a form from the database.
@@ -89,10 +89,13 @@ class FormRepository(BaseRepository):
             GoogleFormDocument: The updated form, with any changes made by the database.
         """
         try:
-            provider: FormProvider | None = item.provider or FormProvider.GOOGLE
+            provider: FormProvider | str | None = (
+                item.provider if item.provider else FormProvider.GOOGLE
+            )
             document = await self.get(form_id, provider)
             if document:
                 item.id = document.id
+            item.provider = provider
             return await item.save()
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(

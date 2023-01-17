@@ -1,3 +1,5 @@
+from typing import Any, Dict, Optional
+
 from common.enums.form_provider import FormProvider
 from common.schemas.google_form_response import GoogleFormResponseDocument
 from repositories.form_response import FormResponseRepository
@@ -49,24 +51,12 @@ class FormResponseService:
         """
         return await self.form_response_repo.get(response_id, provider)
 
-    async def add_submission(
-        self, form_id: str, form_response: GoogleFormResponseDocument
-    ):
-        """
-        Add a form submission by its ID and provider.
-
-        Args:
-            form_id: Form ID associated with the form response.
-            form_response: The updated form response data.
-
-        Returns: The updated form response.
-        """
-        # TODO: perform validation and fetch google form responses of form_id from GOOGLE API
-        _ = form_id
-        return await self.form_response_repo.add(form_response)
-
     async def update_submission(
-        self, form_id: str, response_id: str, form_response: GoogleFormResponseDocument
+        self,
+        form_id: str,
+        response_id: str,
+        form_response: Dict[str, Any],
+        data_owner_field: Optional[str] = None,
     ):
         """
         Update a form submission by its ID and provider.
@@ -75,12 +65,47 @@ class FormResponseService:
             form_id: Form ID associated with the form response.
             response_id: The ID of the form response to update.
             form_response: The updated form response data.
+            data_owner_field: Question id indicating the owner from its answer.
+                e.g., What is your email address? -> A question with let's say an id "3e555b2b"
+                      Responder responding to the form fills up this answer in the field, is set as owner.
 
         Returns: The updated form response.
         """
-        # TODO: perform validation and fetch google form responses of form_id from GOOGLE API
-        _ = form_id
-        return await self.form_response_repo.update(response_id, form_response)
+        response_document = GoogleFormResponseDocument(**form_response)
+        response_document.formId = form_id
+        response_document.provider = FormProvider.GOOGLE
+
+        document = await self.get_submission(response_id)
+        if document:
+            response_document.dataOwnerFields = document.dataOwnerFields
+
+        if response_document.respondentEmail:
+            response_document.dataOwnerFields.append(
+                {"respondentEmail": response_document.respondentEmail}
+            )
+
+        if response_document.answers and data_owner_field:
+            answers = (
+                response_document.answers.get(data_owner_field, {})
+                .get("textAnswers", {})
+                .get("answers", [])
+            )
+            if answers and type(answers) is list and len(answers) > 0:
+                data_owner_pairs = {
+                    data_owner_field: answers[0].get("value", {})
+                    if answers[0].get("value")
+                    else ""
+                }
+            else:
+                data_owner_pairs = {data_owner_field: ""}
+            response_document.dataOwnerFields.append(data_owner_pairs)
+
+        # Check for duplication in dataOwnerFields
+        unique_data_owner = list(
+            set(tuple(d.items()) for d in response_document.dataOwnerFields)
+        )
+        response_document.dataOwnerFields = [dict(i) for i in unique_data_owner]
+        return await self.form_response_repo.update(response_id, response_document)
 
     async def delete_submission(
         self, response_id: str, provider: FormProvider = FormProvider.GOOGLE

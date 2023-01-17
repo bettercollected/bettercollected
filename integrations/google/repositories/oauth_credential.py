@@ -1,4 +1,6 @@
+from datetime import datetime
 from http import HTTPStatus
+from typing import Any
 
 from fastapi import HTTPException
 from pymongo.errors import (
@@ -16,7 +18,7 @@ from common.schemas.oauth_credential import Oauth2CredentialDocument
 
 class OauthCredentialRepository(AbstractOauthRepository):
     async def get(
-        self, email: str, provider: FormProvider
+        self, email: str, provider: FormProvider = FormProvider.GOOGLE
     ) -> Oauth2CredentialDocument | None:
         """
         Get an OAuth2 credential document by email and provider.
@@ -38,6 +40,38 @@ class OauthCredentialRepository(AbstractOauthRepository):
             if document:
                 return document
             return None
+        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail=MESSAGE_DATABASE_EXCEPTION,
+            )
+
+    async def add(
+        self, email: str, credentials: Any, provider: FormProvider = FormProvider.GOOGLE
+    ) -> Oauth2CredentialDocument:
+        """
+        Adds an OAuth2 credential document.
+
+        Args:
+            email (str): The email of the user to update the credential for.
+            credentials (Any): The credential object returned after google authorization.
+            provider (FormProvider): A form provider. Defaults to "google".
+
+        Returns:
+            Oauth2CredentialDocument: The added OAuth2 credential document.
+
+        Raises:
+            HTTPException: If there is an error connecting to the database.
+        """
+        try:
+            oauth_credential_document = Oauth2CredentialDocument(
+                email=email,
+                provider=provider,
+                credentials=credentials,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+            )
+            return await oauth_credential_document.save()
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,

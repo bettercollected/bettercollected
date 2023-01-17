@@ -48,6 +48,41 @@ class GoogleService:
             .execute()
         )
 
+    def get_form_list(self, credentials, page_token=None, max_page_size=100):
+        """
+        Get a list of forms from Google Forms API.
+
+        Args:
+            credentials (dict): A dictionary containing the credentials' information.
+            page_token: Current page token
+            max_page_size: Maximum page size
+
+        Returns:
+            list: A list containing the forms.
+        """
+        forms = []
+        drive_service = self._build_service(
+            credentials=credentials, service_name="drive", version="v3"
+        )
+        while max_page_size > 0:
+            max_page_size -= 1
+            response = (
+                drive_service.files()
+                .list(
+                    q="mimeType='application/vnd.google-apps.form'",
+                    spaces="drive",
+                    fields="nextPageToken, files(id, name, webViewLink, iconLink, createdTime, modifiedTime, owners)",
+                    pageToken=page_token,
+                )
+                .execute()
+            )
+            forms.extend(response.get("files", []))
+            page_token = response.get("nextPageToken", None)
+            if page_token is None:
+                break
+        drive_service.close()
+        return forms
+
     def get_form_response_list(self, form_id: str, credentials):
         """
         Get a list of responses for a Google Form.

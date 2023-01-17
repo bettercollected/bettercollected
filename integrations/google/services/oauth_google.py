@@ -145,9 +145,8 @@ class OauthGoogleService:
             json_credentials = credentials.to_json()
             state_json = dict(json.loads(_crypto.decrypt(state)))
             client_referer_url = state_json.get("client_referer_url")
-            # TODO: use email to save credentials
-            # email = state_json.get('email_address')
-            # await google_repository.save_credentials(email=email, credentials=json_credentials, state=str(state))
+            email = state_json.get("email_address")
+            await self.oauth_credential_repo.add(email, json.loads(json_credentials))
             return json_credentials, client_referer_url
         except InvalidGrantError:
             raise HTTPException(
@@ -281,3 +280,27 @@ class OauthGoogleService:
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 detail=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
+
+    @staticmethod
+    async def revoke(credentials: Oauth2CredentialDocument):
+        """
+        Static method that revokes a set of OAuth2 credentials.
+
+        Args:
+        credentials (Oauth2CredentialDocument) : The set of OAuth2 credentials to be revoked.
+
+        Returns:
+        bool : True if the credentials were successfully revoked, False otherwise.
+        """
+        cred = dict_to_credential(credentials.credentials)
+        revoke = requests.post(
+            url=settings.google_settings.revoke_credentials_url,
+            params={"token": cred.token},
+            headers={"content-type": "application/x-www-vendors-urlencoded"},
+        )
+        # flake8: noqa
+        status_code = getattr(revoke, "status_code")
+        credentials_revoked = status_code == 200
+        if credentials_revoked:
+            await credentials.delete()
+        return credentials_revoked

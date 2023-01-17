@@ -57,7 +57,7 @@ class FormResponseRepository(BaseRepository):
             )
 
     async def get(
-        self, response_id: str, provider: FormProvider
+        self, response_id: str, provider: FormProvider | str
     ) -> GoogleFormResponseDocument | None:
         """
         Retrieve a form response from the database.
@@ -120,7 +120,9 @@ class FormResponseRepository(BaseRepository):
                 changes made by the database.
         """
         try:
-            provider: FormProvider | None = item.provider or FormProvider.GOOGLE
+            provider: FormProvider | str | None = (
+                item.provider if item.provider else FormProvider.GOOGLE
+            )
             document = await self.get(response_id, provider)
             if document:
                 item.id = document.id
@@ -131,7 +133,9 @@ class FormResponseRepository(BaseRepository):
                 detail=MESSAGE_DATABASE_EXCEPTION,
             )
 
-    async def delete(self, response_id: str, provider: FormProvider):
+    async def delete(
+        self, response_id: str, provider: FormProvider = FormProvider.GOOGLE
+    ):
         """
         Deletes a form response from the database.
 
@@ -143,7 +147,6 @@ class FormResponseRepository(BaseRepository):
             HTTPStatus.NO_CONTENT -> 204 | HTTPStatus.NOT_FOUND -> 404
         """
         try:
-            provider: FormProvider | None = provider or FormProvider.GOOGLE
             document = await self.get(response_id, provider)
             if document:
                 await document.delete()

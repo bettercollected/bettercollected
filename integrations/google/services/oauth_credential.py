@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import Any
 
 from fastapi import HTTPException
 
@@ -52,6 +53,26 @@ class OauthCredentialService:
             HTTPException: If the document is not found.
         """
         return await self.oauth_credential_repo.get(email, provider)
+
+    async def add_oauth_credential(
+        self, email: str, credentials: Any, provider: FormProvider = FormProvider.GOOGLE
+    ):
+        """
+        Add an OAuth2 credential document by email and provider.
+
+        Args:
+            email (str): The email of the user to get the credential for.
+            credentials (Any): Credential object returned from OAuth authorization.
+            provider (FormProvider, optional): The provider of the form.
+                Defaults to FormProvider.GOOGLE.
+
+        Returns:
+            Oauth2CredentialDocument: An OAuth2 credential document.
+
+        Raises:
+            HTTPException: If the document is not found.
+        """
+        return await self.oauth_credential_repo.add(email, credentials, provider)
 
     async def verify_oauth_token(
         self, email: str, provider: FormProvider = FormProvider.GOOGLE

@@ -1,6 +1,6 @@
 # flake8: noqa
 from abc import abstractmethod, ABCMeta
-from typing import List, TypeVar
+from typing import Any, List, TypeVar
 
 from common.enums.form_provider import FormProvider
 
@@ -120,6 +120,21 @@ class AbstractOauthRepository(metaclass=ABCMeta):
 
         Returns:
             T: The item retrieved from the repository.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def add(self, item_id: str, credentials: Any, item: U | T) -> T:
+        """
+        Abstract method to add an item in the repository.
+
+        Args:
+            item_id (str): The id of the item to update.
+            credentials (Any): Credential object return from OAuth authorization.
+            item (U | T): The updated item to save in the repository.
+
+        Returns:
+            T: The updated item, with any changes made by the repository.
         """
         raise NotImplementedError
 

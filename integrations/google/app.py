@@ -4,6 +4,7 @@ from loguru import logger
 from mongomock_motor import AsyncMongoMockClient
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from dependencies import Container
 from settings import settings
 from handlers.cors import init_cors
 from handlers.database import init_db, close_db
@@ -67,6 +68,7 @@ def create_app(
 
         # Initialize scheduler
         settings.scheduler_settings.load_schedule_or_create_blank()
+        Container.scheduler_service()
 
     @app.on_event("shutdown")
     async def init_shutdown_events():
