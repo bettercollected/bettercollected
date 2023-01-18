@@ -6,6 +6,7 @@ import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Radio from '@mui/material/Radio';
+import Rating from '@mui/material/Rating';
 import Select from '@mui/material/Select';
 import Slider from '@mui/material/Slider';
 import TextField from '@mui/material/TextField';
@@ -57,7 +58,9 @@ enum QUESTION_TYPE {
     CHECKBOX = 'CHECKBOX',
     DROP_DOWN = 'DROP_DOWN',
     FILE_UPLOAD = 'FILE_UPLOAD',
-    LINEAR_SCALE = 'LINEAR_SCALE'
+    LINEAR_SCALE = 'LINEAR_SCALE',
+    RATING = 'RATING',
+    QUESTIONS_GROUP = 'QUESTIONS_GROUP'
 }
 
 //TODO: fetch the data using api slice and set the form...
@@ -76,8 +79,10 @@ export default function FormRenderer({ form }: any) {
         if ('type' in question.type && question.type.type === QUESTION_TYPE.DROP_DOWN) return QUESTION_TYPE.DROP_DOWN;
         if ('type' in question.type && question.type.type === QUESTION_TYPE.RADIO) return QUESTION_TYPE.RADIO;
         if ('type' in question.type && question.type.type === QUESTION_TYPE.CHECKBOX) return QUESTION_TYPE.CHECKBOX;
+        if ('type' in question.type && question.type.type === 'RATING') return QUESTION_TYPE.RATING;
         if ('folderId' in question.type && !!question.type.folderId) return QUESTION_TYPE.FILE_UPLOAD;
         if ('high' in question.type || 'low' in question.type) return QUESTION_TYPE.LINEAR_SCALE;
+        if ('type' in question.type && question.type.type === 'QUESTIONS_GROUP') return QUESTION_TYPE.QUESTIONS_GROUP;
         return QUESTION_TYPE.INPUT_FIELD;
     };
 
@@ -215,6 +220,20 @@ export default function FormRenderer({ form }: any) {
                         Upload File
                         <input type="file" hidden />
                     </Button>
+                );
+            case QUESTION_TYPE.RATING:
+                const ratingAnswers: any = question.answer ? parseInt(question.answer) : 0;
+                return <Rating name="size-large" size="large" defaultValue={ratingAnswers} precision={1} max={!!question.type.steps ? parseInt(question.type.steps) : 3} readOnly />;
+            case QUESTION_TYPE.QUESTIONS_GROUP:
+                return (
+                    <>
+                        {question.type.questions.map((q: any) => (
+                            <>
+                                <h1 className="text-gray-500 font-semibold mt-4">{q?.title}</h1>
+                                {renderQuestionTypeField(q)}
+                            </>
+                        ))}
+                    </>
                 );
             case QUESTION_TYPE.LINEAR_SCALE:
                 const linearScaleLowValue = question.type?.low;
