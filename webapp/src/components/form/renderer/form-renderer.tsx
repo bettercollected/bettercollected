@@ -227,11 +227,11 @@ export default function FormRenderer({ form }: any) {
             case QUESTION_TYPE.QUESTIONS_GROUP:
                 return (
                     <>
-                        {question.type.questions.map((q: any) => (
-                            <>
+                        {question.type.questions.map((q: any, idx: number) => (
+                            <div key={idx}>
                                 <h1 className="text-gray-500 font-semibold mt-4">{q?.title}</h1>
                                 {renderQuestionTypeField(q)}
-                            </>
+                            </div>
                         ))}
                     </>
                 );

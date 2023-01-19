@@ -10,6 +10,7 @@ import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { HomeIcon } from '@app/components/icons/home';
 import Layout from '@app/components/sidebar/layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import { ToastId } from '@app/constants/toastId';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useGetWorkspaceAllSubmissionsQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
@@ -42,7 +43,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
                     setForm(d.data?.payload?.content);
                 })
                 .catch((e) => {
-                    toast.error('Error fetching submission data.');
+                    toast.error('Error fetching submission data.', { toastId: ToastId.ERROR_TOAST });
                 });
         }
     }, [sub_id]);

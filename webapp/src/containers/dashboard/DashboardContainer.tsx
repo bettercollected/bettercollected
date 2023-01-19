@@ -85,7 +85,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                     <div className="mt-2 mb-0 flex items-center">
                         {!!selectGetStatus.error ? (
                             <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
-                                Check My data
+                                Check My Data
                             </Button>
                         ) : (
                             <>

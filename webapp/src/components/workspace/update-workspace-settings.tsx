@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import { TextField } from '@mui/material';
 import { toast } from 'react-toastify';
 
-import environments from '@app/configs/environments';
+import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
@@ -57,13 +57,13 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
         const response: any = await patchExistingWorkspace(body);
         if (response.data) {
             dispatch(setWorkspace(response.data));
-            toast.info(updateDomain ? 'Updated custom Domain of workspace!' : 'Updated workspace handle');
+            toast.info(updateDomain ? 'Updated custom Domain of workspace!' : 'Updated workspace handle', { toastId: ToastId.SUCCESS_TOAST });
             if (!updateDomain) {
                 router.push(`${window.location.origin}/${response.data.workspaceName}/dashboard/settings`);
             }
             closeModal();
         } else if (response.error) {
-            toast.error(response.error.data.message);
+            toast.error(response.error.data.message, { toastId: ToastId.ERROR_TOAST });
         }
     };
 

@@ -8,9 +8,17 @@ import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
+import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation, usePatchThemeMutation } from '@app/store/workspaces/api';
-import { setWorkspace } from '@app/store/workspaces/slice';
+import { BrandColor, WorkspaceState, setWorkspace } from '@app/store/workspaces/slice';
+
+interface PatchRequestType {
+    title: string;
+    description: string;
+    banner_image?: string;
+    profile_image?: string;
+}
 
 const SubTitleRenderer = ({ title, description }: any) => {
     return (
@@ -25,14 +33,14 @@ export default function SettingsProfile() {
     const router = useRouter();
     const workspace = useAppSelector((state) => state.workspace);
 
-    const [patchReq, setPatchReq] = useState<any>({
+    const [patchReq, setPatchReq] = useState<PatchRequestType>({
         title: workspace.title,
         description: workspace.description
     });
     const [bannerImage, setBannerImage] = useState(workspace.bannerImage);
     const [profileImage, setProfileImage] = useState(workspace.profileImage);
 
-    const [brandColor, setBrandColor] = useState({ primary_color: workspace?.theme?.primary_color ?? '#fff', accent_color: workspace?.theme?.accent_color ?? '#fff', text_color: workspace?.theme?.text_color ?? '#fff' });
+    const [brandColor, setBrandColor] = useState<BrandColor>({ primary_color: workspace?.theme?.primary_color ?? '#fff', accent_color: workspace?.theme?.accent_color ?? '#fff', text_color: workspace?.theme?.text_color ?? '#fff' });
 
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const [patchTheme] = usePatchThemeMutation();
@@ -71,33 +79,32 @@ export default function SettingsProfile() {
     const patchWorkspaceThemeInformation = async () => {
         if (!brandColor.primary_color && !brandColor.accent_color && !brandColor.text_color) return;
         const formData = new FormData();
-        Object.keys(brandColor).forEach((key) => {
-            if (workspace[key] !== brandColor[key]) formData.append(key, brandColor[key]);
+        Object.keys(brandColor).forEach((key: any) => {
+            if (workspace.theme[key] !== brandColor[key]) formData.append(key, brandColor[key]);
         });
 
         try {
             await patchTheme({ workspace_id: workspace.id, body: formData });
             router.push(router.asPath, undefined);
-            toast('Theme updated!!!', { type: 'success' });
+            toast('Theme updated!!!', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         } catch (e) {
-            toast('Something went wrong.', { type: 'error' });
+            toast('Something went wrong.', { type: 'error', toastId: ToastId.ERROR_TOAST });
         }
     };
 
     const patchWorkspaceInformation = async () => {
         const formData = new FormData();
-        Object.keys(patchReq).forEach((key) => {
-            // @ts-ignore
+        Object.keys(patchReq).forEach((key: any) => {
             if (workspace[key] !== patchReq[key]) formData.append(key, patchReq[key]);
         });
 
         const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
         if (response.error) {
-            toast('Something went wrong!!!');
+            toast('Something went wrong!!!', { toastId: ToastId.ERROR_TOAST });
         }
         if (response.data) {
             dispatch(setWorkspace(response.data));
-            toast('Workspace Updated!!!', { type: 'success' });
+            toast('Workspace Updated!!!', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         }
     };
 

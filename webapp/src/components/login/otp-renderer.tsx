@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
+import { ToastId } from '@app/constants/toastId';
 import { useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -28,7 +29,7 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
     const handleVerifyButtonClick = async (e: any) => {
         e.preventDefault();
         if (otp.length === 0) {
-            toast.error('OTP field cannot be empty!');
+            toast.error('OTP field cannot be empty!', { toastId: ToastId.ERROR_TOAST });
             return;
         }
         const response = { email: email, otp_code: otp };
@@ -36,7 +37,7 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
             .unwrap()
             .then(async () => await trigger('status'))
             .then(() => closeModal())
-            .catch((err) => toast.error(err));
+            .catch((err) => toast.error(err, { toastId: ToastId.ERROR_TOAST }));
     };
 
     const ResendButtonRenderer = () => {

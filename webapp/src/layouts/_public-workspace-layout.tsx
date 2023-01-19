@@ -59,7 +59,7 @@ export default function PublicWorkspaceLayout({ workspace, children }: React.Pro
                     <div className="mt-2 mb-0 flex items-center">
                         {!!selectGetStatus.error ? (
                             <Button variant="solid" className="ml-3 !px-3 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
-                                Check My data
+                                Check My Data
                             </Button>
                         ) : (
                             <>

@@ -14,6 +14,7 @@ import { styled } from '@mui/material/styles';
 import { toast } from 'react-toastify';
 
 import environments from '@app/configs/environments';
+import { ToastId } from '@app/constants/toastId';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { IGetWorkspaceSubmissionQuery } from '@app/store/workspaces/types';
@@ -54,10 +55,10 @@ function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: a
     const router = useRouter();
     const breakpoint = useBreakpoint();
 
-    const [trigger, { isLoading, isError, data }] = useLazyGetWorkspaceSubmissionQuery();
+    const [trigger, { isLoading, isError, data, error }] = useLazyGetWorkspaceSubmissionQuery();
 
     if (isError) {
-        toast.error('something went wrong!');
+        toast.error(!!error.error ? error.error : 'Something went wrong', { toastId: ToastId.ERROR_TOAST });
     }
 
     const [form, setForm] = useState([]);
@@ -79,7 +80,7 @@ function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: a
                     setForm(d.data?.payload?.content);
                 })
                 .catch((e) => {
-                    toast.error('Error fetching submission data.');
+                    toast.error('Error fetching submission data.', { toastId: 'errorToast' });
                 });
         } else return;
     }, [submissionId]);

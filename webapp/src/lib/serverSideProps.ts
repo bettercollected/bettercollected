@@ -114,7 +114,7 @@ export async function getAuthUserPropsWithWorkspace(_context: any) {
         };
     }
     const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
-    if (!globalProps.workspace.id) {
+    if (!globalProps?.workspace?.id) {
         return {
             notFound: true
         };

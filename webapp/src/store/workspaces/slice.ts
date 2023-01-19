@@ -2,14 +2,25 @@ import { createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
+export interface BrandColor {
+    primary_color: string;
+    accent_color: string;
+    text_color: string;
+}
+
 export interface WorkspaceState {
-    workspaceName: string;
-    id: string;
-    title: string;
-    description: string;
-    customDomain?: string;
-    profileImage?: string;
     bannerImage?: string;
+    customDomain: string;
+    description: string;
+    id: string;
+    mailSettings: string | null;
+    ownerId: string;
+    privacy_profile_url: string;
+    profileImage?: string;
+    terms_of_service_url: string;
+    theme: BrandColor;
+    title: string;
+    workspaceName: string;
 }
 
 const initialState: WorkspaceState = {
@@ -17,7 +28,18 @@ const initialState: WorkspaceState = {
     id: '',
     title: '',
     description: '',
-    customDomain: ''
+    customDomain: '',
+    bannerImage: '',
+    mailSettings: '',
+    ownerId: '',
+    privacy_profile_url: '',
+    profileImage: '',
+    terms_of_service_url: '',
+    theme: {
+        primary_color: '',
+        accent_color: '',
+        text_color: ''
+    }
 };
 
 export const slice = createSlice({

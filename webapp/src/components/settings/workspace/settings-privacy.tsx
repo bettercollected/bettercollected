@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
+import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchWorkspacePoliciesMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
@@ -47,9 +48,9 @@ export default function Settingsprivacy() {
         try {
             await patchWorkspacePolicies({ workspace_id: workspace.id, body: formData });
             router.push(router.asPath, undefined);
-            toast('Policies updated!!!', { type: 'success' });
+            toast('Policies updated!!!', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         } catch (e) {
-            toast('Something went wrong.', { type: 'error' });
+            toast('Something went wrong.', { type: 'error', toastId: ToastId.ERROR_TOAST });
         }
     };
 
