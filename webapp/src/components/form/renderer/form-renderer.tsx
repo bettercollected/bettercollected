@@ -233,13 +233,13 @@ export default function FormRenderer({ form }: any) {
 
                 question.type.questions.map((q: any) => map.set(q.questionId, q));
 
-                const questionsWithAnswersArray = question.answer.map((a: any) => {
+                const questionsWithAnswersArray = question?.answer?.map((a: any) => {
                     return { ...map.get(a.questionId), answer: a.answer };
                 });
 
                 return (
                     <>
-                        {questionsWithAnswersArray.map((q: any, idx: number) => (
+                        {questionsWithAnswersArray?.map((q: any, idx: number) => (
                             <div key={idx}>
                                 <h1 className="text-gray-500 font-semibold mt-4">{q?.title}</h1>
                                 {renderQuestionTypeField(q)}
