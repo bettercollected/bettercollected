@@ -37,8 +37,8 @@ export default function SettingsProfile() {
         title: workspace.title,
         description: workspace.description
     });
-    const [bannerImage, setBannerImage] = useState(!!workspace.bannerImage ? workspace.bannerImage : '/empty_profiles.png');
-    const [profileImage, setProfileImage] = useState(workspace.profileImage);
+    const [bannerImage, setBannerImage] = useState(!!workspace.bannerImage ? workspace.bannerImage : '/empty_banner.png');
+    const [profileImage, setProfileImage] = useState(!!workspace.profileImage ? workspace.profileImage : '/empty_profile.png');
 
     const [brandColor, setBrandColor] = useState<BrandColor>({ primary_color: workspace?.theme?.primary_color ?? '#fff', accent_color: workspace?.theme?.accent_color ?? '#fff', text_color: workspace?.theme?.text_color ?? '#fff' });
 
