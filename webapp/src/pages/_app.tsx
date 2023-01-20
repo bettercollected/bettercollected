@@ -5,6 +5,7 @@ import { NextSeo } from 'next-seo';
 import { ThemeProvider } from 'next-themes';
 import type { AppProps } from 'next/app';
 
+import initApm from '@elastic/apm-rum';
 import { CacheProvider, EmotionCache, css } from '@emotion/react';
 import { GlobalStyles } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -30,6 +31,11 @@ import MuiThemeProvider from '@app/layouts/_mui-theme-provider';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
+
+// const apm = initApm({
+//     serviceName: 'FormIntegrator',
+//     serverUrl: 'https://apm.sireto.io'
+// });
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
@@ -67,6 +73,10 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
             ReactGA.initialize(environments.GA_MEASUREMENT_ID);
             ReactGA.send('pageview');
         }
+        // const transaction = apm.startTransaction('page-load', 'page-load');
+        // return () => {
+        //     transaction?.end();
+        // };
     }, []);
 
     return (

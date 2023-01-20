@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { Divider, Tooltip } from '@mui/material';
+import { Divider } from '@mui/material';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
@@ -111,11 +111,9 @@ export default function FormSettingsTab() {
             <div className="mt-5 space-y-2">
                 <div className="text-gray-700 font-bold">Form URLs</div>
                 <div className="text-gray-800 underline w-fit items-center rounded px-4 py-2 flex bg-gray-100">
-                    <Tooltip title={customUrl}>
-                        <p>
-                            {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{environments.CLIENT_HOST}/{workspace.workspaceName}/forms/{getFirstFiveSlugName(customUrl)}
-                        </p>
-                    </Tooltip>
+                    <p>
+                        {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{environments.CLIENT_HOST}/{workspace.workspaceName}/forms/{getFirstFiveSlugName(customUrl)}
+                    </p>
                     <Copy
                         width="16px"
                         height="16px"
@@ -130,11 +128,9 @@ export default function FormSettingsTab() {
                 </div>
                 {isCustomDomain && (
                     <div className="text-gray-800 underline w-fit items-center rounded px-4 py-2 flex bg-gray-100">
-                        <Tooltip title={customUrl}>
-                            <p className="text-ellipsis whitespace-pre-wrap">
-                                {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{workspace.customDomain}/forms/{getFirstFiveSlugName(customUrl)}
-                            </p>
-                        </Tooltip>
+                        <p className="text-ellipsis whitespace-pre-wrap">
+                            {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{workspace.customDomain}/forms/{getFirstFiveSlugName(customUrl)}
+                        </p>
                         <Copy
                             width="16px"
                             height="16px"
