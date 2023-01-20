@@ -13,7 +13,7 @@ import ContentLayout from '@app/layouts/_content-layout';
 import globalServerProps, { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
-import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
+import { checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 interface ISingleFormPage extends IServerSideProps {
     form: StandardFormDto;
@@ -55,6 +55,8 @@ export async function getServerSideProps(_context: any) {
         back = (query?.back && (query?.back === 'true' || query?.back === true)) ?? false;
     }
 
+    const config = getServerSideAuthHeaderConfig(_context);
+
     const hasCustomDomain = checkHasCustomDomain(_context);
 
     if (!hasCustomDomain) {
@@ -71,7 +73,7 @@ export async function getServerSideProps(_context: any) {
 
     try {
         if (globalProps.hasCustomDomain && globalProps.workspaceId) {
-            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${slug}`).catch((e) => e);
+            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${slug}`, config).catch((e) => e);
             form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
         }
     } catch (err) {
