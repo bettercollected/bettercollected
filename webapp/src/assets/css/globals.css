@@ -50,3 +50,7 @@ body {
 .side {
     background-color: rgba(0, 191, 255, 0.04);
 }
+
+.attachment{
+    height: 250px;
+}

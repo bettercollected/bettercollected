@@ -96,7 +96,7 @@ export async function getServerSideProps(_context: any) {
     let form = null;
     const config = getServerSideAuthHeaderConfig(_context);
     try {
-        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace.id}/forms?form_id=${form_id}`, config);
+        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms?form_id=${form_id}`, config);
         form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
         if (!form) {
             return {
