@@ -10,7 +10,6 @@ import environments from '@app/configs/environments';
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchWorkspacePoliciesMutation } from '@app/store/workspaces/api';
-import { setWorkspace } from '@app/store/workspaces/slice';
 
 export default function Settingsprivacy() {
     const [policies, setPolicies] = useState({ privacy_policy_url: '', terms_of_service_url: '' });
