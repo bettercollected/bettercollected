@@ -12,7 +12,7 @@ import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
-import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
+import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface ISubmission extends IServerSideProps {
@@ -73,7 +73,6 @@ export default function Submission({ workspace, submissionId }: ISubmission) {
 export async function getServerSideProps(_context: any) {
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
     let form: StandardFormDto | null = null;
-    const { cookies } = _context.req;
     const submissionId = _context.query.id;
 
     const hasCustomDomain = checkHasCustomDomain(_context);
@@ -87,15 +86,7 @@ export async function getServerSideProps(_context: any) {
         };
     }
 
-    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
-    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
-
-    const config = {
-        method: 'GET',
-        headers: {
-            cookie: `${auth};${refresh}`
-        }
-    };
+    const config = getServerSideAuthHeaderConfig(_context);
 
     try {
         if (globalProps.hasCustomDomain && globalProps.workspaceId) {

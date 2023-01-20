@@ -12,7 +12,7 @@ import environments from '@app/configs/environments';
 import ContentLayout from '@app/layouts/_content-layout';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
+import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export default function SingleFormPage(props: any) {
     const { form, back } = props;
@@ -70,6 +70,8 @@ export async function getServerSideProps(_context: any) {
         };
     }
 
+    const config = getServerSideAuthHeaderConfig(_context);
+
     const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
 
     if (!globalProps.workspace.id) {
@@ -81,7 +83,7 @@ export async function getServerSideProps(_context: any) {
 
     try {
         if (globalProps.workspaceId) {
-            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace.id}/forms/${slug}`).catch((e) => e);
+            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace.id}/forms/${slug}`, config).catch((e) => e);
             form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
         }
     } catch (err) {
