@@ -18,6 +18,10 @@ import Loader from '@app/components/ui/loader';
 import MarkdownText from '@app/components/ui/markdown-text';
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 const StyledTextField = styled.div`
     .MuiInputBase-input {
@@ -62,9 +66,20 @@ enum QUESTION_TYPE {
     FILE_UPLOAD = 'FILE_UPLOAD',
     LINEAR_SCALE = 'LINEAR_SCALE',
     RATING = 'RATING',
-    GROUP = 'GROUP'
+    GROUP = 'GROUP',
+    DATE = 'DATE',
+    STATEMENT = 'STATEMENT'
 }
 
+enum AttachmentType {
+    IMAGE = 'image',
+    VIDEO = 'video'
+}
+
+enum VideoEmbedProvider {
+    YOUTUBE = 'youtube',
+    VIMEO = 'vimeo'
+}
 //TODO: fetch the data using api slice and set the form...
 // you will need two api calls conditionally based on questions or responses.
 
@@ -83,8 +98,10 @@ export default function FormRenderer({ form }: any) {
         if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.RADIO) return QUESTION_TYPE.RADIO;
         if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.CHECKBOX) return QUESTION_TYPE.CHECKBOX;
         if (!!question.type && 'type' in question.type && question.type.type === 'RATING') return QUESTION_TYPE.RATING;
+        if ('type' in question.type && question.type.type === QUESTION_TYPE.DATE) return QUESTION_TYPE.DATE;
         if (!!question.type && 'folderId' in question.type && !!question.type.folderId) return QUESTION_TYPE.FILE_UPLOAD;
         if ((!!question.type && 'high' in question.type) || (!!question.type && 'low' in question.type)) return QUESTION_TYPE.LINEAR_SCALE;
+        if ('type' in question.type && question.type.type === 'STATEMENT') return QUESTION_TYPE.STATEMENT;
         return QUESTION_TYPE.INPUT_FIELD;
     };
 
@@ -135,25 +152,33 @@ export default function FormRenderer({ form }: any) {
         );
     };
 
+
+    function renderYoutubeVideo(youtubeUri: string, description?: string) {
+        const splitUriByEquals = youtubeUri.split("=")
+        const strippedLink = splitUriByEquals.length > 1 ? splitUriByEquals[1] : null
+        const embedUrl = `https://www.youtube.com/embed/${strippedLink}`;
+        return (
+            <div className="w-full">
+                {description && <MarkdownText description={description} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />}
+                {strippedLink && (
+                    <div className="mt-3 relative w-full">
+                        <iframe src={embedUrl} width="100%" className="min-h-[30vh] xs:min-h-[40vh] md:min-h-[50vh]" frameBorder="0" marginHeight={0} marginWidth={0}>
+                            <Loader />
+                        </iframe>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+
     const renderQuestionTypeField = (question: StandardFormQuestionDto) => {
         const questionType: QUESTION_TYPE = getQuestionType(question);
         switch (questionType) {
             case QUESTION_TYPE.VIDEO_CONTENT:
-                const strippedLink = question?.type?.video?.youtubeUri && question?.type?.video?.youtubeUri.split('=').length > 1 ? question?.type?.video?.youtubeUri.split('=')[1] : null;
-                const embedUrl = `https://www.youtube.com/embed/${strippedLink}`;
-
-                return (
-                    <div className="w-full">
-                        {question?.type?.caption && <MarkdownText description={question.type.caption} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />}
-                        {question?.type?.video?.youtubeUri && (
-                            <div className="mt-3 relative w-full">
-                                <iframe src={embedUrl} width="100%" className="min-h-[30vh] xs:min-h-[40vh] md:min-h-[50vh]" frameBorder="0" marginHeight={0} marginWidth={0}>
-                                    <Loader />
-                                </iframe>
-                            </div>
-                        )}
-                    </div>
-                );
+                const youtubeUri = question?.type?.video?.youtubeUri
+                const description = question?.type?.caption
+                return youtubeUri && renderYoutubeVideo(youtubeUri, description)
             case QUESTION_TYPE.IMAGE_CONTENT:
                 if (question?.type?.image?.contentUri)
                     return (
@@ -235,7 +260,7 @@ export default function FormRenderer({ form }: any) {
 
                 const questionsWithAnswersArray = question?.answer?.map((a: any) => {
                     return { ...map.get(a.questionId), answer: a.answer };
-                });
+                }) ?? [];
 
                 return (
                     <>
@@ -260,6 +285,24 @@ export default function FormRenderer({ form }: any) {
                 const linearScaleAnswer = Array.isArray(linearScaleAnswers) && linearScaleAnswers.length !== 0 ? Number(linearScaleAnswers[0]) : undefined;
 
                 return <Slider value={linearScaleAnswer} min={linearScaleLowValue} step={1} max={linearScaleHightValue} marks={followerMarks} />;
+            case QUESTION_TYPE.DATE:
+                const date_format = (question.type?.date_format) ?? 'MM/DD/YYYY'
+                const answer = question.answer ?? ''
+                return (
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <DatePicker
+                            label=""
+                            renderInput={(params) => <TextField {...params} />}
+                            onChange={(e) => { }}
+                            inputFormat={date_format}
+                            value={answer}
+                            disabled={true}
+                        />
+                    </LocalizationProvider>
+                );
+            case QUESTION_TYPE.STATEMENT:
+                // Render no input element for statement
+                return <></>
             case QUESTION_TYPE.INPUT_FIELD:
             default:
                 return (
@@ -269,6 +312,46 @@ export default function FormRenderer({ form }: any) {
                 );
         }
     };
+
+    function renderVimeoVideo(href: string) {
+        const match = href.match(/https:\/\/vimeo\.com\/(\d+)/)
+        if (match) {
+            const videoId = match[1]
+            return (<iframe width="100%" height="550" src={`https://player.vimeo.com/video/${videoId}`} allow="autoplay; encrypted-media" />)
+        } else {
+            return (<a href={href}>Click here to see video attachment.</a>)
+        }
+    }
+
+    function renderVideoSource(href: string) {
+        return (
+            <div className='mt-2'>
+                <p className="text-gray-400">Couldn't display. Unsupported media type.</p>
+                <a className="text-blue-500 mt-1" target="_blank" href={href}>Click here to see video attachment.</a>
+            </div>
+        )
+
+    }
+    function renderQuestionAttachment(attachment: any) {
+        switch (attachment.type) {
+            case AttachmentType.IMAGE:
+                return <img className="attachment" src={attachment.href} alt={attachment.properties?.description} />
+            case AttachmentType.VIDEO:
+                if (attachment?.href == null)
+                    break;
+                const embed_provider = attachment.embed_provider
+                console.log(attachment)
+                if (embed_provider == VideoEmbedProvider.YOUTUBE)
+                    return renderYoutubeVideo(attachment.href)
+                else if (embed_provider == VideoEmbedProvider.VIMEO)
+                    return renderVimeoVideo(attachment.href)
+                else
+                    return renderVideoSource(attachment.href)
+            default:
+                break;
+        }
+        return (<p className='text-gray-300'>Couldn't display media Unsupported Type.</p>)
+    }
 
     return (
         <div className="relative container mx-auto px-6 md:px-0">
@@ -284,6 +367,7 @@ export default function FormRenderer({ form }: any) {
                     <div key={question?.questionId ?? `${question.formId}_${idx}`} className="p-6 border-[1.5px] border-gray-200 rounded-lg mb-4">
                         <h1 className="font-semibold text-lg text-gray-600">{question.title}</h1>
                         {question?.description && <MarkdownText description={question.description} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />}
+                        {question.attachment && renderQuestionAttachment(question.attachment)}
                         {renderQuestionTypeField(question)}
                     </div>
                 ))}
