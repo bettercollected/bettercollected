@@ -3,8 +3,6 @@ import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
-import Tooltip from '@mui/material/Tooltip';
-
 import { authApi } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -90,9 +88,7 @@ export default function Aside({ close }: { close?: () => void }) {
                         <div className="flex w-full justify-between">
                             <div className="flex shrink flex-col justify-center pl-4">
                                 <div className="flex w-full justify-between truncate">
-                                    <Tooltip title={selectGetStatus?.data?.payload?.content?.user?.sub} arrow>
-                                        <div className="font-bold text-md max-w-[190px] truncate">{selectGetStatus?.data?.payload?.content?.user?.sub}</div>
-                                    </Tooltip>
+                                    <div className="font-bold text-md max-w-[190px] truncate">{selectGetStatus?.data?.payload?.content?.user?.sub}</div>
                                 </div>
                                 <div className="italic text-gray-700">Free Plan</div>
                             </div>

@@ -11,7 +11,7 @@ import Image from '@app/components/ui/image';
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation, usePatchThemeMutation } from '@app/store/workspaces/api';
-import { BrandColor, WorkspaceState, setWorkspace } from '@app/store/workspaces/slice';
+import { BrandColor, setWorkspace } from '@app/store/workspaces/slice';
 
 interface PatchRequestType {
     title: string;
