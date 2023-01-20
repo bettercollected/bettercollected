@@ -80,7 +80,12 @@ export default function SettingsProfile() {
         if (!brandColor.primary_color && !brandColor.accent_color && !brandColor.text_color) return;
         const formData = new FormData();
         Object.keys(brandColor).forEach((key: any) => {
-            if (workspace.theme[key] !== brandColor[key]) formData.append(key, brandColor[key]);
+            if (!workspace.theme) {
+                //@ts-ignore
+                formData.append(key, brandColor[key]);
+            }
+            //@ts-ignore
+            else if (workspace.theme[key] !== brandColor[key]) formData.append(key, brandColor[key]);
         });
 
         try {
@@ -95,6 +100,7 @@ export default function SettingsProfile() {
     const patchWorkspaceInformation = async () => {
         const formData = new FormData();
         Object.keys(patchReq).forEach((key: any) => {
+            //@ts-ignore
             if (workspace[key] !== patchReq[key]) formData.append(key, patchReq[key]);
         });
 
