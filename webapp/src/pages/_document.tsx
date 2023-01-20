@@ -8,7 +8,21 @@ class MyDocument extends Document {
     render() {
         return (
             <Html lang="en-US" dir="ltr" className="light">
-                <Head>{this.props.styles}</Head>
+                <Head>
+                    {this.props.styles}
+                    <script src="https://unpkg.com/@elastic/apm-rum@5.12.0/dist/bundles/elastic-apm-rum.umd.min.js" crossOrigin="true" />
+                    <script
+                        dangerouslySetInnerHTML={{
+                            __html: `
+                    elasticApm.init({
+                        serviceName: 'FormIntegrator',
+                        serverUrl: 'https://apm.sireto.io',
+                    })
+                    `
+                        }}
+                    />
+                </Head>
+
                 <body>
                     <Main />
                     <NextScript />
