@@ -1,5 +1,7 @@
 import React from 'react';
 
+import _ from 'lodash';
+
 import styled from '@emotion/styled';
 import TextareaAutosize from '@mui/base/TextareaAutosize';
 import Checkbox from '@mui/material/Checkbox';
@@ -60,7 +62,7 @@ enum QUESTION_TYPE {
     FILE_UPLOAD = 'FILE_UPLOAD',
     LINEAR_SCALE = 'LINEAR_SCALE',
     RATING = 'RATING',
-    QUESTIONS_GROUP = 'QUESTIONS_GROUP'
+    GROUP = 'GROUP'
 }
 
 //TODO: fetch the data using api slice and set the form...
@@ -74,15 +76,15 @@ export default function FormRenderer({ form }: any) {
             if (question.type?.grid?.columns?.type === QUESTION_TYPE.RADIO) return QUESTION_TYPE.GROUP_RADIO_QUESTION;
             if (question.type?.grid?.columns?.type === QUESTION_TYPE.CHECKBOX) return QUESTION_TYPE.GROUP_CHECKBOX_QUESTION;
         }
-        if ('paragraph' in question.type && !!question.type.paragraph) return QUESTION_TYPE.TEXT_AREA;
-        if ('type' in question.type && question.type.type === QUESTION_TYPE.INPUT_FIELD) return QUESTION_TYPE.INPUT_FIELD;
-        if ('type' in question.type && question.type.type === QUESTION_TYPE.DROP_DOWN) return QUESTION_TYPE.DROP_DOWN;
-        if ('type' in question.type && question.type.type === QUESTION_TYPE.RADIO) return QUESTION_TYPE.RADIO;
-        if ('type' in question.type && question.type.type === QUESTION_TYPE.CHECKBOX) return QUESTION_TYPE.CHECKBOX;
-        if ('type' in question.type && question.type.type === 'RATING') return QUESTION_TYPE.RATING;
-        if ('folderId' in question.type && !!question.type.folderId) return QUESTION_TYPE.FILE_UPLOAD;
-        if ('high' in question.type || 'low' in question.type) return QUESTION_TYPE.LINEAR_SCALE;
-        if ('type' in question.type && question.type.type === 'QUESTIONS_GROUP') return QUESTION_TYPE.QUESTIONS_GROUP;
+        if (!!question.type && 'type' in question.type && question.type.type === 'GROUP') return QUESTION_TYPE.GROUP;
+        if (!!question.type && 'paragraph' in question.type && !!question.type.paragraph) return QUESTION_TYPE.TEXT_AREA;
+        if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.INPUT_FIELD) return QUESTION_TYPE.INPUT_FIELD;
+        if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.DROP_DOWN) return QUESTION_TYPE.DROP_DOWN;
+        if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.RADIO) return QUESTION_TYPE.RADIO;
+        if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.CHECKBOX) return QUESTION_TYPE.CHECKBOX;
+        if (!!question.type && 'type' in question.type && question.type.type === 'RATING') return QUESTION_TYPE.RATING;
+        if (!!question.type && 'folderId' in question.type && !!question.type.folderId) return QUESTION_TYPE.FILE_UPLOAD;
+        if ((!!question.type && 'high' in question.type) || (!!question.type && 'low' in question.type)) return QUESTION_TYPE.LINEAR_SCALE;
         return QUESTION_TYPE.INPUT_FIELD;
     };
 
@@ -224,10 +226,20 @@ export default function FormRenderer({ form }: any) {
             case QUESTION_TYPE.RATING:
                 const ratingAnswers: any = question.answer ? parseInt(question.answer) : 0;
                 return <Rating name="size-large" size="large" defaultValue={ratingAnswers} precision={1} max={!!question.type.steps ? parseInt(question.type.steps) : 3} readOnly />;
-            case QUESTION_TYPE.QUESTIONS_GROUP:
+            case QUESTION_TYPE.GROUP:
+                // const result = _.unionWith(question.type.questions, question.answer, 'questionId');
+
+                const map = new Map();
+
+                question.type.questions.map((q: any) => map.set(q.questionId, q));
+
+                const questionsWithAnswersArray = question?.answer?.map((a: any) => {
+                    return { ...map.get(a.questionId), answer: a.answer };
+                });
+
                 return (
                     <>
-                        {question.type.questions.map((q: any, idx: number) => (
+                        {questionsWithAnswersArray?.map((q: any, idx: number) => (
                             <div key={idx}>
                                 <h1 className="text-gray-500 font-semibold mt-4">{q?.title}</h1>
                                 {renderQuestionTypeField(q)}
