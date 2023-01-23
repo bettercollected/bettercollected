@@ -23,12 +23,15 @@ export default function Settingsprivacy() {
     const router = useRouter();
 
     useEffect(() => {
-        setPolicies({ privacy_policy_url: workspace.privacy_policy_url, terms_of_service_url: workspace.terms_of_service_url });
+        const domain = 'https://bettercollected.com';
+        const privacyPolicyUrl = workspace.privacy_profile_url ? workspace.privacy_profile_url : `${domain}${environments.PRIVACY_POLICY}`;
+        const termsAndConditionsUrl = workspace.terms_of_service_url ? workspace.terms_of_service_url : `${domain}${environments.TERMS_AND_CONDITIONS}`;
+        setPolicies({ privacy_policy_url: privacyPolicyUrl, terms_of_service_url: termsAndConditionsUrl });
     }, []);
 
     const handleEmailValidation = (str: string) => {
         if (!str) return;
-        var testRegex = /(^(https:\/\/www\.|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$)/;
+        const testRegex = /(^(https:\/\/www\.|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$)/;
         const result = testRegex.test(str);
         return result;
     };
@@ -58,7 +61,7 @@ export default function Settingsprivacy() {
             <div className="w-full lg:w-2/3">
                 <div className="pb-6">
                     <h1 className="text-lg">Privacy policy</h1>
-                    <div className=" flex flex-col justify-between w-full">
+                    <div className="flex flex-col justify-between w-full">
                         <TextField
                             error={!handleEmailValidation(policies.privacy_policy_url)}
                             onChange={handleChange}
@@ -73,7 +76,7 @@ export default function Settingsprivacy() {
                 </div>
                 <div className="pb-6">
                     <h1 className="text-lg">Terms of services</h1>
-                    <div className=" flex flex-col justify-between w-full">
+                    <div className="flex flex-col justify-between w-full">
                         <TextField
                             error={!handleEmailValidation(policies.terms_of_service_url)}
                             onChange={handleChange}

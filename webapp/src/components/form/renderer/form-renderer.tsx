@@ -12,16 +12,15 @@ import Rating from '@mui/material/Rating';
 import Select from '@mui/material/Select';
 import Slider from '@mui/material/Slider';
 import TextField from '@mui/material/TextField';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import Button from '@app/components/ui/button';
 import Loader from '@app/components/ui/loader';
 import MarkdownText from '@app/components/ui/markdown-text';
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 const StyledTextField = styled.div`
     .MuiInputBase-input {
@@ -152,10 +151,9 @@ export default function FormRenderer({ form }: any) {
         );
     };
 
-
     function renderYoutubeVideo(youtubeUri: string, description?: string) {
-        const splitUriByEquals = youtubeUri.split("=")
-        const strippedLink = splitUriByEquals.length > 1 ? splitUriByEquals[1] : null
+        const splitUriByEquals = youtubeUri.split('=');
+        const strippedLink = splitUriByEquals.length > 1 ? splitUriByEquals[1] : null;
         const embedUrl = `https://www.youtube.com/embed/${strippedLink}`;
         return (
             <div className="w-full">
@@ -171,14 +169,13 @@ export default function FormRenderer({ form }: any) {
         );
     }
 
-
     const renderQuestionTypeField = (question: StandardFormQuestionDto) => {
         const questionType: QUESTION_TYPE = getQuestionType(question);
         switch (questionType) {
             case QUESTION_TYPE.VIDEO_CONTENT:
-                const youtubeUri = question?.type?.video?.youtubeUri
-                const description = question?.type?.caption
-                return youtubeUri && renderYoutubeVideo(youtubeUri, description)
+                const youtubeUri = question?.type?.video?.youtubeUri;
+                const description = question?.type?.caption;
+                return youtubeUri && renderYoutubeVideo(youtubeUri, description);
             case QUESTION_TYPE.IMAGE_CONTENT:
                 if (question?.type?.image?.contentUri)
                     return (
@@ -258,9 +255,10 @@ export default function FormRenderer({ form }: any) {
 
                 question.type.questions.map((q: any) => map.set(q.questionId, q));
 
-                const questionsWithAnswersArray = question?.answer?.map((a: any) => {
-                    return { ...map.get(a.questionId), answer: a.answer };
-                }) ?? [];
+                const questionsWithAnswersArray =
+                    question?.answer?.map((a: any) => {
+                        return { ...map.get(a.questionId), answer: a.answer };
+                    }) ?? [];
 
                 return (
                     <>
@@ -286,23 +284,16 @@ export default function FormRenderer({ form }: any) {
 
                 return <Slider value={linearScaleAnswer} min={linearScaleLowValue} step={1} max={linearScaleHightValue} marks={followerMarks} />;
             case QUESTION_TYPE.DATE:
-                const date_format = (question.type?.date_format) ?? 'MM/DD/YYYY'
-                const answer = question.answer ?? ''
+                const date_format = question.type?.date_format ?? 'MM/DD/YYYY';
+                const answer = question.answer ?? '';
                 return (
                     <LocalizationProvider dateAdapter={AdapterDayjs}>
-                        <DatePicker
-                            label=""
-                            renderInput={(params) => <TextField {...params} />}
-                            onChange={(e) => { }}
-                            inputFormat={date_format}
-                            value={answer}
-                            disabled={true}
-                        />
+                        <DatePicker label="" renderInput={(params) => <TextField {...params} />} onChange={(e) => {}} inputFormat={date_format} value={answer} disabled={true} />
                     </LocalizationProvider>
                 );
             case QUESTION_TYPE.STATEMENT:
                 // Render no input element for statement
-                return <></>
+                return <></>;
             case QUESTION_TYPE.INPUT_FIELD:
             default:
                 return (
@@ -314,43 +305,40 @@ export default function FormRenderer({ form }: any) {
     };
 
     function renderVimeoVideo(href: string) {
-        const match = href.match(/https:\/\/vimeo\.com\/(\d+)/)
+        const match = href.match(/https:\/\/vimeo\.com\/(\d+)/);
         if (match) {
-            const videoId = match[1]
-            return (<iframe width="100%" height="550" src={`https://player.vimeo.com/video/${videoId}`} allow="autoplay; encrypted-media" />)
+            const videoId = match[1];
+            return <iframe width="100%" height="550" src={`https://player.vimeo.com/video/${videoId}`} allow="autoplay; encrypted-media" />;
         } else {
-            return (<a href={href}>Click here to see video attachment.</a>)
+            return <a href={href}>Click here to see video attachment.</a>;
         }
     }
 
     function renderVideoSource(href: string) {
         return (
-            <div className='mt-2'>
-                <p className="text-gray-400">Couldn't display. Unsupported media type.</p>
-                <a className="text-blue-500 mt-1" target="_blank" href={href}>Click here to see video attachment.</a>
+            <div className="mt-2">
+                <p className="text-gray-400">Couldn&apos;t display. Unsupported media type.</p>
+                <a className="text-blue-500 mt-1" rel="noreferrer" target="_blank" href={href}>
+                    Click here to see video attachment.
+                </a>
             </div>
-        )
-
+        );
     }
     function renderQuestionAttachment(attachment: any) {
         switch (attachment.type) {
             case AttachmentType.IMAGE:
-                return <img className="attachment" src={attachment.href} alt={attachment.properties?.description} />
+                return <img className="attachment" src={attachment.href} alt={attachment.properties?.description} />;
             case AttachmentType.VIDEO:
-                if (attachment?.href == null)
-                    break;
-                const embed_provider = attachment.embed_provider
-                console.log(attachment)
-                if (embed_provider == VideoEmbedProvider.YOUTUBE)
-                    return renderYoutubeVideo(attachment.href)
-                else if (embed_provider == VideoEmbedProvider.VIMEO)
-                    return renderVimeoVideo(attachment.href)
-                else
-                    return renderVideoSource(attachment.href)
+                if (attachment?.href == null) break;
+                const embed_provider = attachment.embed_provider;
+                console.log(attachment);
+                if (embed_provider == VideoEmbedProvider.YOUTUBE) return renderYoutubeVideo(attachment.href);
+                else if (embed_provider == VideoEmbedProvider.VIMEO) return renderVimeoVideo(attachment.href);
+                else return renderVideoSource(attachment.href);
             default:
                 break;
         }
-        return (<p className='text-gray-300'>Couldn't display media Unsupported Type.</p>)
+        return <p className="text-gray-300">Couldn&apos;t display media Unsupported Type.</p>;
     }
 
     return (

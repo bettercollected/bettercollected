@@ -46,11 +46,10 @@ body {
     background: red;
 }
 
-
 .side {
     background-color: rgba(0, 191, 255, 0.04);
 }
 
-.attachment{
+.attachment {
     height: 250px;
 }
