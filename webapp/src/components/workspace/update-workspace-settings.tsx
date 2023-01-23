@@ -27,7 +27,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
 
     useEffect(() => {
         if (updateDomain) {
-            setError(!updateText);
+            setError(!!updateText && !updateText.match('(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\\.[a-zA-Z]{2,3})'));
         } else {
             setError(!updateText);
         }
@@ -35,7 +35,8 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
 
     const handleSubmit = async (e: any) => {
         e.preventDefault();
-        if (!updateText) return;
+        if (error) return;
+        if (!updateText && !updateDomain) return;
         const formData = new FormData();
         if (updateDomain && updateText === workspace.customDomain) {
             closeModal();
