@@ -67,7 +67,8 @@ enum QUESTION_TYPE {
     RATING = 'RATING',
     GROUP = 'GROUP',
     DATE = 'DATE',
-    STATEMENT = 'STATEMENT'
+    STATEMENT = 'STATEMENT',
+    RANKING = 'RANKING'
 }
 
 enum AttachmentType {
@@ -83,6 +84,8 @@ enum VideoEmbedProvider {
 // you will need two api calls conditionally based on questions or responses.
 
 export default function FormRenderer({ form }: any) {
+    console.log('form renderer:', form);
+
     const getQuestionType = (question: any) => {
         if (question.isMediaContent && 'video' in question.type) return QUESTION_TYPE.VIDEO_CONTENT;
         if (question.isMediaContent && 'image' in question.type) return QUESTION_TYPE.IMAGE_CONTENT;
@@ -92,11 +95,12 @@ export default function FormRenderer({ form }: any) {
         }
         if (!!question.type && 'type' in question.type && question.type.type === 'GROUP') return QUESTION_TYPE.GROUP;
         if (!!question.type && 'paragraph' in question.type && !!question.type.paragraph) return QUESTION_TYPE.TEXT_AREA;
+        if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.RANKING) return QUESTION_TYPE.RANKING;
         if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.INPUT_FIELD) return QUESTION_TYPE.INPUT_FIELD;
         if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.DROP_DOWN) return QUESTION_TYPE.DROP_DOWN;
         if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.RADIO) return QUESTION_TYPE.RADIO;
         if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.CHECKBOX) return QUESTION_TYPE.CHECKBOX;
-        if (!!question.type && 'type' in question.type && question.type.type === 'RATING') return QUESTION_TYPE.RATING;
+        if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.RATING) return QUESTION_TYPE.RATING;
         if ('type' in question.type && question.type.type === QUESTION_TYPE.DATE) return QUESTION_TYPE.DATE;
         if (!!question.type && 'folderId' in question.type && !!question.type.folderId) return QUESTION_TYPE.FILE_UPLOAD;
         if ((!!question.type && 'high' in question.type) || (!!question.type && 'low' in question.type)) return QUESTION_TYPE.LINEAR_SCALE;
@@ -214,6 +218,47 @@ export default function FormRenderer({ form }: any) {
                         ))}
                     </StyledTextField>
                 );
+            case QUESTION_TYPE.RANKING:
+                if (!!question.answer) {
+                    const answer = question.answer;
+                    return (
+                        <>
+                            {answer.map((answer: any, idx: number) => {
+                                return (
+                                    <div key={idx} className="p-3 mt-3 mb-3 rounded-md border-[1px] border-gray-300">
+                                        <span className="ml-2">
+                                            {idx + 1}. {answer}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </>
+                    );
+                } else {
+                    const choices = question?.type?.options ?? [];
+                    const choicesArray: Array<number> = [];
+                    for (let i = 0; i < choices.length; i++) {
+                        choicesArray.push(i + 1);
+                    }
+                    return (
+                        <>
+                            {choices.map((choice: any, idx: number) => {
+                                return (
+                                    <div key={idx} className="p-3 mt-3 mb-3 rounded-md border-[1px] border-gray-300">
+                                        <Select defaultValue={''} className="h-6" value={''}>
+                                            {choicesArray.map((dd: number) => (
+                                                <MenuItem key={dd} value={''}>
+                                                    {dd}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                        <span className="ml-2">{choice.value}</span>
+                                    </div>
+                                );
+                            })}
+                        </>
+                    );
+                }
             case QUESTION_TYPE.TEXT_AREA:
                 return (
                     <StyledTextField>
@@ -249,8 +294,6 @@ export default function FormRenderer({ form }: any) {
                 const ratingAnswers: any = question.answer ? parseInt(question.answer) : 0;
                 return <Rating name="size-large" size="large" defaultValue={ratingAnswers} precision={1} max={!!question.type.steps ? parseInt(question.type.steps) : 3} readOnly />;
             case QUESTION_TYPE.GROUP:
-                // const result = _.unionWith(question.type.questions, question.answer, 'questionId');
-
                 const map = new Map();
 
                 question.type.questions.map((q: any) => map.set(q.questionId, q));
