@@ -51,7 +51,11 @@ const environments = {
     // internal configs
     IS_IN_PRODUCTION_MODE,
     TERMS_AND_CONDITIONS: `${BASE_DEPLOY_PATH}/legal/terms-and-conditions-2022.pdf`,
-    PRIVACY_POLICY: `${BASE_DEPLOY_PATH}/legal/privacy-policy-2022.pdf`
+    PRIVACY_POLICY: `${BASE_DEPLOY_PATH}/legal/privacy-policy-2022.pdf`,
+    ELASTIC_APM_SERVER_URL: publicRuntimeConfig.ELASTIC_APM_SERVER_URL,
+    ELASTIC_APM_SERVICE_NAME: publicRuntimeConfig.ELASTIC_APM_SERVICE_NAME,
+    APM_ENABLED: publicRuntimeConfig.ELASTIC_APM_SERVER_URL && publicRuntimeConfig.ELASTIC_APM_SERVICE_NAME,
+    ELASTIC_APM_ENVIRONMENT: publicRuntimeConfig.ELASTIC_APM_ENVIRONMENT
 };
 
 export default environments;

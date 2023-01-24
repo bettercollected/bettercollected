@@ -32,6 +32,7 @@
     "classnames": "^2.3.1",
     "date-fns": "^2.29.2",
     "dayjs": "^1.11.5",
+    "elastic-apm-node": "^3.42.0",
     "file-type": "^16.5.3",
     "framer-motion": "^7.2.1",
     "jotai": "^1.8.2",

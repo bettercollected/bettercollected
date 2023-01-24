@@ -31,8 +31,6 @@ const withPWA = require('next-pwa')({
 const nextConfig = {
     productionBrowserSourceMaps: true,
     compress: true,
-    basePath: process.env.BASE_DEPLOY_PATH ?? '',
-    assetPrefix: process.env.BASE_DEPLOY_PATH ?? '',
     distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
     reactStrictMode: true,
     swcMinify: true,
@@ -74,9 +72,18 @@ const nextConfig = {
         // metatags
         METATAG_TITLE: process.env.METATAG_TITLE,
         METATAG_DESCRIPTION: process.env.METATAG_DESCRIPTION,
-        METATAG_IMAGE: process.env.METATAG_IMAGE
+        METATAG_IMAGE: process.env.METATAG_IMAGE,
+        ELASTIC_APM_SERVER_URL: process.env.ELASTIC_APM_HOST,
+        ELASTIC_APM_SERVICE_NAME: process.env.ELASTIC_APM_SERVICE_NAME,
+        ELASTIC_APM_ENVIRONMENT: process.env.ELASTIC_APM_ENVIRONMENT
     }
 };
+
+if (process.env.BASE_DEPLOY_PATH) {
+    // to supress error:- The value at .assetPrefix must be 1 character or more but it was 0 characters.
+    nextConfig['assetPrefix'] = process.env.BASE_DEPLOY_PATH;
+    nextConfig['basePath'] = process.env.BASE_DEPLOY_PATH;
+}
 
 module.exports = withPWA({
     ...nextConfig,
