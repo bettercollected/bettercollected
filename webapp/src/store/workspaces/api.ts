@@ -183,11 +183,18 @@ export const workspacesApi = createApi({
                     'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
             })
+        }),
+        deleteWorkspaceDomain: builder.mutation<any, any>({
+            query: (workspace_id) => ({
+                url: `/workspaces/${workspace_id}/custom_domain`,
+                method: 'DELETE'
+            })
         })
     })
 });
 
 export const {
+    useDeleteWorkspaceDomainMutation,
     useGetTypeformsQuery,
     useLazyGetTypeformQuery,
     useGetMinifiedFormsQuery,

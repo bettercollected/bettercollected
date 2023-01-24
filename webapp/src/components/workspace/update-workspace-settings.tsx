@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
+import { DeleteForeverOutlined, DeleteOutline } from '@mui/icons-material';
 import { TextField } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
+import { useDeleteWorkspaceDomainMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
 import { useModal } from '../modal-views/context';
@@ -16,10 +17,11 @@ import Button from '../ui/button/button';
 export default function UpdateWorkspaceSettings({ updateDomain = false }: { updateDomain: boolean }) {
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const workspace = useAppSelector((state) => state.workspace);
+    const [deleteWorkspaceDomain] = useDeleteWorkspaceDomainMutation();
     const { closeModal } = useModal();
     const [error, setError] = useState(false);
 
-    const [updateText, setUpdateText] = useState(updateDomain ? workspace.customDomain : workspace.workspaceName);
+    const [updateText, setUpdateText] = useState(updateDomain ? workspace.customDomain || '' : workspace.workspaceName || '');
 
     const dispatch = useAppDispatch();
 
@@ -27,7 +29,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
 
     useEffect(() => {
         if (updateDomain) {
-            setError(!updateText);
+            setError(!!updateText && !updateText.match('(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\\.[a-zA-Z]{2,3})'));
         } else {
             setError(!updateText);
         }
@@ -35,7 +37,8 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
 
     const handleSubmit = async (e: any) => {
         e.preventDefault();
-        if (!updateText) return;
+        if (error) return;
+        if (!updateText && !updateDomain) return;
         const formData = new FormData();
         if (updateDomain && updateText === workspace.customDomain) {
             closeModal();
@@ -59,11 +62,24 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             dispatch(setWorkspace(response.data));
             toast.info(updateDomain ? 'Updated custom Domain of workspace!' : 'Updated workspace handle', { toastId: ToastId.SUCCESS_TOAST });
             if (!updateDomain) {
-                router.push(`${window.location.origin}/${response.data.workspaceName}/dashboard/settings`);
+                router.push(router.asPath, undefined, { shallow: true });
             }
             closeModal();
         } else if (response.error) {
             toast.error(response.error.data.message, { toastId: ToastId.ERROR_TOAST });
+        }
+    };
+
+    const delete_custom_domain = async (e: any) => {
+        e.preventDefault();
+        const res: any = await deleteWorkspaceDomain(workspace.id);
+        if (res.data) {
+            dispatch(setWorkspace(res.data));
+            router.push(router.asPath, undefined, { shallow: true });
+        } else {
+            toast('Error Deleting Workspace', {
+                type: 'error'
+            });
         }
     };
 
@@ -89,16 +105,24 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                                 </div>
                             )}
                         </div>
-                        <TextField
-                            error={error}
-                            helperText={error ? (updateDomain ? 'Invalid domain' : 'Invalid Workspace Handle') : ''}
-                            placeholder={updateDomain ? 'Enter your custom domain' : 'Enter workspace handle'}
-                            value={updateText}
-                            onChange={(e) => {
-                                setUpdateText(e.target.value);
-                            }}
-                            className="font-bold"
-                        />
+                        <div className="flex items-center justify-center space-x-5 w-full">
+                            <TextField
+                                error={error}
+                                helperText={error ? (updateDomain ? 'Invalid domain' : 'Invalid Workspace Handle') : ''}
+                                placeholder={updateDomain ? 'Enter your custom domain' : 'Enter workspace handle'}
+                                value={updateText}
+                                onChange={(e) => {
+                                    setUpdateText(e.target.value);
+                                }}
+                                className="font-bold"
+                            />
+                            {workspace.customDomain && (
+                                <button onClick={delete_custom_domain}>
+                                    <DeleteOutline className="text-red-500 bg-red-100 h-[35px] w-[35px] rounded p-1.5" />
+                                </button>
+                            )}
+                        </div>
+
                         <div className="flex space-x-5 space-between">
                             <Button
                                 isLoading={isLoading}

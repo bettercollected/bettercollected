@@ -5,6 +5,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import { toast } from 'react-toastify';
 
+import EmptyFormsView from '@app/components/dashboard/empty-form';
 import { Close } from '@app/components/icons/close';
 import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
 import { useModal } from '@app/components/modal-views/context';
@@ -83,7 +84,7 @@ export default function ImportTypeForms() {
         if (typeFormResult.isError) return <p className="text-sm text-red-500">Oops! We&apos;ve encountered an issue.</p>;
 
         if (!typeFormResult.data) {
-            return <></>;
+            return <EmptyFormsView />;
         }
 
         return (

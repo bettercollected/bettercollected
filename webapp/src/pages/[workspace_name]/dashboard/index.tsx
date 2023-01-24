@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 
 import { PushPin } from '@mui/icons-material';
 
+import EmptyFormsView from '@app/components/dashboard/empty-form';
 import ImportFormsMenu from '@app/components/dashboard/import-forms-menu';
 import { Google } from '@app/components/icons/brands/google';
 import { useModal } from '@app/components/modal-views/context';
@@ -37,15 +38,6 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
 
     const forms = workspaceForms?.data?.payload?.content;
 
-    const handleImportForms = () => {
-        openModal('IMPORT_TYPE_FORMS_VIEW');
-        // openModal('IMPORT_GOOGLE_FORMS_VIEW');
-    };
-
-    const handleConnectWithGoogle = () => {
-        router.push(`${environments.API_ENDPOINT_HOST}/auth/google/connect`);
-    };
-
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://';
         const domain = !!workspace.customDomain ? workspace.customDomain : environments.CLIENT_HOST;
@@ -72,6 +64,11 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
         return (
             <div>
                 <h1 className="font-semibold text-2xl mb-4">My Recent Forms</h1>
+                {forms?.length === 0 && (
+                    <div className="w-full">
+                        <EmptyFormsView />
+                    </div>
+                )}
                 <div className="grid grid-cols-1 pb-4 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
                     {forms?.length !== 0 &&
                         forms?.map((form: StandardFormDto) => {
