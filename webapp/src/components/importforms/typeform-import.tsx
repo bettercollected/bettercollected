@@ -18,6 +18,8 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetTypeformsQuery, useImportTypeFormMutation, useLazyGetTypeformQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
+const emailFieldsArray = ['short_text', 'long_text', 'phone_number', 'email'];
+
 export default function ImportTypeForms() {
     const { closeModal } = useModal();
 
@@ -108,14 +110,16 @@ export default function ImportTypeForms() {
                         <p className="max-w-[360px] text-sm font-semibold text-grey my-2">Select another data response owner if collect emails is disabled in your form</p>
                         <FormControl fullWidth>
                             <Select placeholder="Select one of the fields" value={responseDataOwner} onChange={handleSelectDataResponseOwner}>
-                                {typeFormResult?.data?.fields.map(
-                                    (item: any) =>
-                                        item?.id && (
-                                            <MenuItem key={item.id} value={item?.id}>
-                                                {item.title}
-                                            </MenuItem>
-                                        )
-                                )}
+                                {typeFormResult?.data?.fields
+                                    .filter((field: any) => emailFieldsArray.includes(field.type))
+                                    .map(
+                                        (item: any) =>
+                                            item?.id && (
+                                                <MenuItem key={item.id} value={item?.id}>
+                                                    {item.title}
+                                                </MenuItem>
+                                            )
+                                    )}
                             </Select>
                         </FormControl>
                     </>
