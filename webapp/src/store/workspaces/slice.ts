@@ -15,7 +15,7 @@ export interface WorkspaceState {
     id: string;
     mailSettings: string | null;
     ownerId: string;
-    privacy_profile_url: string;
+    privacy_policy_url: string;
     profileImage?: string;
     terms_of_service_url: string;
     theme: BrandColor;
@@ -32,7 +32,7 @@ const initialState: WorkspaceState = {
     bannerImage: '',
     mailSettings: '',
     ownerId: '',
-    privacy_profile_url: '',
+    privacy_policy_url: '',
     profileImage: '',
     terms_of_service_url: '',
     theme: {

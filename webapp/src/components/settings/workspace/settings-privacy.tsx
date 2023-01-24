@@ -2,29 +2,81 @@ import { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
+import styled from '@emotion/styled';
+import HelpIcon from '@mui/icons-material/Help';
+import ModeEditIcon from '@mui/icons-material/ModeEdit';
+import SaveIcon from '@mui/icons-material/Save';
+import { Tooltip } from '@mui/material';
 import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
-import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
 import { ToastId } from '@app/constants/toastId';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { privacyPolicyTooltip, termsOfServiceTooltip } from '@app/constants/tooltipContent';
+import { useAppSelector } from '@app/store/hooks';
 import { usePatchWorkspacePoliciesMutation } from '@app/store/workspaces/api';
+
+const StyledTextField = styled.div`
+    width: 100%;
+
+    .MuiFormControl-root {
+        width: 100%;
+        background: white;
+        border-radius: 14px;
+        outline: none;
+    }
+
+    .MuiOutlinedInput-notchedOutline {
+        border-width: 0px;
+        width: 100%;
+    }
+
+    .MuiOutlinedInput-input {
+        width: 100%;
+    }
+
+    .Mui-disabled {
+        -webkit-text-fill-color: #757575;
+    }
+
+    @media screen and (max-width: 640px) {
+        .MuiFormControl-root {
+            width: 100%;
+        }
+    }
+`;
+
+const CardContainer = (props: any) => {
+    return <div className="w-full p-4 h-32 mb-4 border-solid border-[1px] rounded-md border-[#efefef] lg:w-2/3">{props.children}</div>;
+};
+
+const IconContainer = (props: any) => {
+    return <div className="p-1 ml-2 my-19 bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-md">{props.children}</div>;
+};
+
+const CardTitle = ({ title, tooltipDesc }: any) => {
+    return (
+        <div className="flex pl-[15px] h-4 items-center">
+            <h1 className="text-gray-500 text-sm">{title}</h1>
+            <Tooltip title={tooltipDesc} arrow placement="right-start">
+                <HelpIcon className="text-gray-500 cursor-pointer !w-5 !h-5 ml-2" />
+            </Tooltip>
+        </div>
+    );
+};
 
 export default function Settingsprivacy() {
     const [policies, setPolicies] = useState({ privacy_policy_url: '', terms_of_service_url: '' });
 
     const workspace = useAppSelector((state) => state.workspace);
-
     const [patchWorkspacePolicies, { isLoading }] = usePatchWorkspacePoliciesMutation();
 
-    const dispatch = useAppDispatch();
-
+    const [editMode, setEditMode] = useState({ privacy_policy_editMode: false, terms_of_service_editMode: false });
     const router = useRouter();
 
     useEffect(() => {
         const domain = 'https://bettercollected.com';
-        const privacyPolicyUrl = workspace.privacy_profile_url ? workspace.privacy_profile_url : `${domain}${environments.PRIVACY_POLICY}`;
+        const privacyPolicyUrl = workspace.privacy_policy_url ? workspace.privacy_policy_url : `${domain}${environments.PRIVACY_POLICY}`;
         const termsAndConditionsUrl = workspace.terms_of_service_url ? workspace.terms_of_service_url : `${domain}${environments.TERMS_AND_CONDITIONS}`;
         setPolicies({ privacy_policy_url: privacyPolicyUrl, terms_of_service_url: termsAndConditionsUrl });
     }, []);
@@ -40,17 +92,49 @@ export default function Settingsprivacy() {
         setPolicies({ ...policies, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = async () => {
-        if (!policies.privacy_policy_url && !policies.terms_of_service_url) return;
-        const formData = new FormData();
-        Object.keys(policies).forEach((key) => {
-            if (workspace[key] !== policies[key] && !!policies[key]) formData.append(key, policies[key]);
-        });
+    const handleSavePrivacyPolicy = async () => {
+        if (isLoading) return;
+        if (!policies.privacy_policy_url) return;
 
+        if (!handleEmailValidation(policies.privacy_policy_url)) {
+            toast.error('Invalid URL', { type: 'error', toastId: ToastId.ERROR_TOAST });
+            return;
+        }
+        if (workspace.privacy_policy_url === policies.privacy_policy_url) {
+            setEditMode({ ...editMode, privacy_policy_editMode: false });
+            return;
+        }
+        const formData = new FormData();
+        if (workspace.privacy_policy_url !== policies.privacy_policy_url) formData.append('privacy_policy_url', policies.privacy_policy_url);
         try {
             await patchWorkspacePolicies({ workspace_id: workspace.id, body: formData });
+            setEditMode({ ...editMode, privacy_policy_editMode: false });
             router.push(router.asPath, undefined);
-            toast('Policies updated!!!', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            toast('Update successful', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+        } catch (e) {
+            toast('Something went wrong.', { type: 'error', toastId: ToastId.ERROR_TOAST });
+        }
+    };
+
+    const handleSaveTermsOfService = async () => {
+        if (isLoading) return;
+        if (!policies.terms_of_service_url) return;
+
+        if (!handleEmailValidation(policies.terms_of_service_url)) {
+            toast.error('Invalid URL', { type: 'error', toastId: ToastId.ERROR_TOAST });
+            return;
+        }
+        if (workspace.terms_of_service_url === policies.terms_of_service_url) {
+            setEditMode({ ...editMode, terms_of_service_editMode: false });
+            return;
+        }
+        const formData = new FormData();
+        if (workspace.terms_of_service_url !== policies.terms_of_service_url) formData.append('terms_of_service_url', policies.terms_of_service_url);
+        try {
+            await patchWorkspacePolicies({ workspace_id: workspace.id, body: formData });
+            setEditMode({ ...editMode, terms_of_service_editMode: false });
+            router.push(router.asPath, undefined);
+            toast('Update successful', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         } catch (e) {
             toast('Something went wrong.', { type: 'error', toastId: ToastId.ERROR_TOAST });
         }
@@ -58,41 +142,57 @@ export default function Settingsprivacy() {
 
     return (
         <div className="lg:w-2/3 mb-10">
-            <div className="w-full lg:w-2/3">
-                <div className="pb-6">
-                    <h1 className="text-lg">Privacy policy</h1>
-                    <div className="flex flex-col justify-between w-full">
+            <CardContainer>
+                <CardTitle title="Link to privacy policy" tooltipDesc={privacyPolicyTooltip} />
+                <div className="flex items-center h-24 justify-between">
+                    <StyledTextField>
                         <TextField
                             error={!handleEmailValidation(policies.privacy_policy_url)}
                             onChange={handleChange}
-                            helperText={!handleEmailValidation(policies.privacy_policy_url) ? 'Invalid url' : ''}
                             size="medium"
+                            disabled={!editMode.privacy_policy_editMode}
                             value={policies.privacy_policy_url}
                             name="privacy_policy_url"
-                            placeholder={`Enter url (e.g. ${environments.API_ENDPOINT_HOST}/legal/privacy-policy-2022.pdf )`}
-                            className={`w-full`}
+                            placeholder={`Enter URL (e.g. ${environments.API_ENDPOINT_HOST}/legal/privacy-policy-2022.pdf )`}
                         />
-                    </div>
+                    </StyledTextField>
+                    {!editMode.privacy_policy_editMode ? (
+                        <IconContainer>
+                            <ModeEditIcon className="!w-5 !h-5 text-white" onClick={() => setEditMode({ ...editMode, privacy_policy_editMode: true })} />
+                        </IconContainer>
+                    ) : (
+                        <IconContainer>
+                            <SaveIcon className="!w-5 !h-5 text-white" onClick={handleSavePrivacyPolicy} />
+                        </IconContainer>
+                    )}
                 </div>
-                <div className="pb-6">
-                    <h1 className="text-lg">Terms of services</h1>
-                    <div className="flex flex-col justify-between w-full">
+            </CardContainer>
+
+            <CardContainer>
+                <CardTitle title="Link to Terms of service" tooltipDesc={termsOfServiceTooltip} />
+                <div className="flex items-center h-24 justify-between">
+                    <StyledTextField>
                         <TextField
                             error={!handleEmailValidation(policies.terms_of_service_url)}
                             onChange={handleChange}
-                            value={policies.terms_of_service_url}
-                            helperText={!handleEmailValidation(policies.terms_of_service_url) ? 'Invalid url' : ''}
                             size="medium"
+                            disabled={!editMode.terms_of_service_editMode}
+                            value={policies.terms_of_service_url}
                             name="terms_of_service_url"
                             placeholder={`Enter url (e.g. ${environments.API_ENDPOINT_HOST}/legal/terms-and-conditions-2022.pdf )`}
-                            className={`w-full`}
                         />
-                    </div>
+                    </StyledTextField>
+                    {!editMode.terms_of_service_editMode ? (
+                        <IconContainer>
+                            <ModeEditIcon className="!w-5 !h-5 text-white" onClick={() => setEditMode({ ...editMode, terms_of_service_editMode: true })} />
+                        </IconContainer>
+                    ) : (
+                        <IconContainer>
+                            <SaveIcon className="!w-5 !h-5 text-white" onClick={handleSaveTermsOfService} />
+                        </IconContainer>
+                    )}
                 </div>
-            </div>
-            <Button isLoading={isLoading} type={'submit'} className="w-full md:w-auto !rounded-xl !bg-blue-600 h-[50px] mb-10" onClick={handleSubmit}>
-                Update policies
-            </Button>
+            </CardContainer>
         </div>
     );
 }
