@@ -4,6 +4,11 @@
 .vercel
 .husky
 .vscode
+.git
+.env.example
+Readme.md
+.gitignore
 
 node_modules
 build
+.env
