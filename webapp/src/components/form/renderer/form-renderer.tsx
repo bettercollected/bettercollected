@@ -1,7 +1,5 @@
 import React from 'react';
 
-import _ from 'lodash';
-
 import styled from '@emotion/styled';
 import TextareaAutosize from '@mui/base/TextareaAutosize';
 import Checkbox from '@mui/material/Checkbox';
@@ -84,8 +82,6 @@ enum VideoEmbedProvider {
 // you will need two api calls conditionally based on questions or responses.
 
 export default function FormRenderer({ form }: any) {
-    console.log('form renderer:', form);
-
     const getQuestionType = (question: any) => {
         if (question.isMediaContent && 'video' in question.type) return QUESTION_TYPE.VIDEO_CONTENT;
         if (question.isMediaContent && 'image' in question.type) return QUESTION_TYPE.IMAGE_CONTENT;
@@ -201,7 +197,10 @@ export default function FormRenderer({ form }: any) {
                 return (
                     <StyledTextField>
                         {radioOptions.map((option: any, idx: any) => (
-                            <FormControlLabel key={idx} control={<Radio checked={radioAnswers.includes(option?.value)} />} label={option?.value} />
+                            <div key={idx} className="flex items-center gap-3">
+                                {option?.attachment?.href && <img width={80} height={80} src={option?.attachment?.href} />}
+                                <FormControlLabel control={<Radio checked={radioAnswers.includes(option?.value)} />} label={option?.value} />
+                            </div>
                         ))}
                     </StyledTextField>
                 );
@@ -214,7 +213,10 @@ export default function FormRenderer({ form }: any) {
                 return (
                     <StyledTextField>
                         {checkboxOptions.map((option: any, idx: any) => (
-                            <FormControlLabel key={idx} control={<Checkbox checked={checkboxAnswers.includes(option?.value)} />} label={option?.value} />
+                            <div key={idx} className="flex items-center gap-3">
+                                {option?.attachment?.href && <img width={80} height={80} src={option?.attachment?.href} />}
+                                <FormControlLabel control={<Checkbox checked={checkboxAnswers.includes(option?.value)} />} label={option?.value} />
+                            </div>
                         ))}
                     </StyledTextField>
                 );
@@ -374,7 +376,6 @@ export default function FormRenderer({ form }: any) {
             case AttachmentType.VIDEO:
                 if (attachment?.href == null) break;
                 const embed_provider = attachment.embed_provider;
-                console.log(attachment);
                 if (embed_provider == VideoEmbedProvider.YOUTUBE) return renderYoutubeVideo(attachment.href);
                 else if (embed_provider == VideoEmbedProvider.VIMEO) return renderVimeoVideo(attachment.href);
                 else return renderVideoSource(attachment.href);
