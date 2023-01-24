@@ -38,15 +38,6 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
 
     const forms = workspaceForms?.data?.payload?.content;
 
-    const handleImportForms = () => {
-        openModal('IMPORT_TYPE_FORMS_VIEW');
-        // openModal('IMPORT_GOOGLE_FORMS_VIEW');
-    };
-
-    const handleConnectWithGoogle = () => {
-        router.push(`${environments.API_ENDPOINT_HOST}/auth/google/connect`);
-    };
-
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://';
         const domain = !!workspace.customDomain ? workspace.customDomain : environments.CLIENT_HOST;

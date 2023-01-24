@@ -105,25 +105,23 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                                 </div>
                             )}
                         </div>
-                        {
-                            <div className="flex items-center justify-center space-x-5 w-full">
-                                <TextField
-                                    error={error}
-                                    helperText={error ? (updateDomain ? 'Invalid domain' : 'Invalid Workspace Handle') : ''}
-                                    placeholder={updateDomain ? 'Enter your custom domain' : 'Enter workspace handle'}
-                                    value={updateText}
-                                    onChange={(e) => {
-                                        setUpdateText(e.target.value);
-                                    }}
-                                    className="font-bold"
-                                />
-                                {workspace.customDomain && (
-                                    <button onClick={delete_custom_domain}>
-                                        <DeleteOutline className="text-red-500 bg-red-100 h-[35px] w-[35px] rounded p-1.5" />
-                                    </button>
-                                )}
-                            </div>
-                        }
+                        <div className="flex items-center justify-center space-x-5 w-full">
+                            <TextField
+                                error={error}
+                                helperText={error ? (updateDomain ? 'Invalid domain' : 'Invalid Workspace Handle') : ''}
+                                placeholder={updateDomain ? 'Enter your custom domain' : 'Enter workspace handle'}
+                                value={updateText}
+                                onChange={(e) => {
+                                    setUpdateText(e.target.value);
+                                }}
+                                className="font-bold"
+                            />
+                            {workspace.customDomain && (
+                                <button onClick={delete_custom_domain}>
+                                    <DeleteOutline className="text-red-500 bg-red-100 h-[35px] w-[35px] rounded p-1.5" />
+                                </button>
+                            )}
+                        </div>
 
                         <div className="flex space-x-5 space-between">
                             <Button

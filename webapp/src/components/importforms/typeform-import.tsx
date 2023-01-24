@@ -84,11 +84,7 @@ export default function ImportTypeForms() {
         if (typeFormResult.isError) return <p className="text-sm text-red-500">Oops! We&apos;ve encountered an issue.</p>;
 
         if (!typeFormResult.data) {
-            return (
-                <>
-                    <EmptyFormsView />
-                </>
-            );
+            return <EmptyFormsView />;
         }
 
         return (
