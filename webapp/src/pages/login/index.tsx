@@ -62,7 +62,7 @@ export const Login = () => {
                         <div className="text-base text-[#555555]">Collect forms responsibly !!</div>
                     </div>
                     <div className="flex flex-col justify-center items-center text-[#555555] space-y-2">
-                        <div className="text-3xl font-bold">Welcome back, Collector</div>
+                        <div className="text-3xl font-bold">Welcome, Collector</div>
                     </div>
                     {environments.ENABLE_GOOGLE && <ConnectWithGoogleButton text="Sign In with google" creator />}
                     {environments.ENABLE_TYPEFORM && environments.ENABLE_GOOGLE && (

@@ -99,7 +99,13 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                         ) : (
                             <>
                                 {selectGetStatus.data.payload.content.user.id === workspace.ownerId && (
-                                    <a href={`${environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://'}${environments.CLIENT_HOST}/${workspace.workspaceName}/dashboard`} className="rounded-xl mr-5 !bg-blue-600 z-10 !text-white px-5 py-3">
+                                    <a
+                                        target="_blank"
+                                        referrerPolicy="no-referrer"
+                                        href={`${environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://'}${environments.CLIENT_HOST}/${workspace.workspaceName}/dashboard`}
+                                        className="rounded-xl mr-5 !bg-blue-600 z-10 !text-white px-5 py-3"
+                                        rel="noreferrer"
+                                    >
                                         <div className=" flex space-x-4">
                                             <HomeIcon className="w-[20px] h-[20px]" />
                                             <div className="hidden md:flex">Go To Dashboard</div>

@@ -78,10 +78,12 @@ enum VideoEmbedProvider {
     YOUTUBE = 'youtube',
     VIMEO = 'vimeo'
 }
+
 //TODO: fetch the data using api slice and set the form...
 // you will need two api calls conditionally based on questions or responses.
 
 export default function FormRenderer({ form }: any) {
+    const resolveQuestionTextById = (filed_id: string) => {};
     const getQuestionType = (question: any) => {
         if (question.isMediaContent && 'video' in question.type) return QUESTION_TYPE.VIDEO_CONTENT;
         if (question.isMediaContent && 'image' in question.type) return QUESTION_TYPE.IMAGE_CONTENT;
@@ -369,6 +371,7 @@ export default function FormRenderer({ form }: any) {
             </div>
         );
     }
+
     function renderQuestionAttachment(attachment: any) {
         switch (attachment.type) {
             case AttachmentType.IMAGE:
