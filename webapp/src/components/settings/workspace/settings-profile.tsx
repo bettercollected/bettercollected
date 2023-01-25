@@ -8,6 +8,7 @@ import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
+import environments from '@app/configs/environments';
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation, usePatchThemeMutation } from '@app/store/workspaces/api';
@@ -40,7 +41,11 @@ export default function SettingsProfile() {
     const [bannerImage, setBannerImage] = useState(!!workspace.bannerImage ? workspace.bannerImage : '/empty_banner.png');
     const [profileImage, setProfileImage] = useState(!!workspace.profileImage ? workspace.profileImage : '/empty_profile.png');
 
-    const [brandColor, setBrandColor] = useState<BrandColor>({ primary_color: workspace?.theme?.primary_color ?? '#fff', accent_color: workspace?.theme?.accent_color ?? '#fff', text_color: workspace?.theme?.text_color ?? '#fff' });
+    const [brandColor, setBrandColor] = useState<BrandColor>({
+        primary_color: workspace?.theme?.primary_color ?? '#fff',
+        accent_color: workspace?.theme?.accent_color ?? '#fff',
+        text_color: workspace?.theme?.text_color ?? '#fff'
+    });
 
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const [patchTheme] = usePatchThemeMutation();
@@ -113,6 +118,80 @@ export default function SettingsProfile() {
             toast('Workspace Updated!!!', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         }
     };
+
+    const BrandThemeColors = () => (
+        <>
+            <SubTitleRenderer title={'Branding'} description={'Update your branding preferences'} />
+
+            <div className="flex gap-8">
+                <div className="pb-6">
+                    <h1 className="text-lg">Primary</h1>
+                    <div className="rounded-lg">
+                        <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setPrimaryEl(event.currentTarget)}>
+                            <div style={{ backgroundColor: brandColor.primary_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
+                            <p>{brandColor.primary_color}</p>
+                        </div>
+                    </div>
+                    <Popover
+                        open={openPrimary}
+                        anchorEl={primaryEl}
+                        onClose={() => setPrimaryEl(null)}
+                        anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'left'
+                        }}
+                    >
+                        <ChromePicker color={brandColor.primary_color} onChange={(e: any) => handleColorChange(e, 'primary_color')} disableAlpha={true} />
+                    </Popover>
+                </div>
+
+                <div className="pb-6">
+                    <h1 className="text-lg">Accent</h1>
+                    <div className="rounded-lg">
+                        <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setAccentEl(event.currentTarget)}>
+                            <div style={{ backgroundColor: brandColor.accent_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
+                            <p>{brandColor.accent_color}</p>
+                        </div>
+                    </div>
+                    <Popover
+                        open={openAccent}
+                        anchorEl={accentEl}
+                        onClose={() => setAccentEl(null)}
+                        anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'left'
+                        }}
+                    >
+                        <ChromePicker color={brandColor.accent_color} onChange={(e: any) => handleColorChange(e, 'accent_color')} disableAlpha={true} />
+                    </Popover>
+                </div>
+
+                <div className="pb-6">
+                    <h1 className="text-lg">Text</h1>
+                    <div className="rounded-lg">
+                        <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setTextEl(event.currentTarget)}>
+                            <div style={{ backgroundColor: brandColor.text_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
+                            <p>{brandColor.text_color}</p>
+                        </div>
+                    </div>
+                    <Popover
+                        open={openText}
+                        anchorEl={textEl}
+                        onClose={() => setTextEl(null)}
+                        anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'left'
+                        }}
+                    >
+                        <ChromePicker color={brandColor.text_color} onChange={(e: any) => handleColorChange(e, 'text_color')} disableAlpha={true} />
+                    </Popover>
+                </div>
+            </div>
+            <Button isLoading={isLoading} className="w-full md:w-auto !rounded-xl !bg-blue-600 h-[50px] mb-10" onClick={patchWorkspaceThemeInformation}>
+                Update Brand Theme
+            </Button>
+        </>
+    );
 
     return (
         <>
@@ -197,75 +276,7 @@ export default function SettingsProfile() {
                     Update workspace profile
                 </Button>
 
-                <SubTitleRenderer title={'Branding'} description={'Update your branding preferences'} />
-
-                <div className="flex gap-8">
-                    <div className="pb-6">
-                        <h1 className="text-lg">Primary</h1>
-                        <div className="rounded-lg">
-                            <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setPrimaryEl(event.currentTarget)}>
-                                <div style={{ backgroundColor: brandColor.primary_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
-                                <p>{brandColor.primary_color}</p>
-                            </div>
-                        </div>
-                        <Popover
-                            open={openPrimary}
-                            anchorEl={primaryEl}
-                            onClose={() => setPrimaryEl(null)}
-                            anchorOrigin={{
-                                vertical: 'bottom',
-                                horizontal: 'left'
-                            }}
-                        >
-                            <ChromePicker color={brandColor.primary_color} onChange={(e: any) => handleColorChange(e, 'primary_color')} disableAlpha={true} />
-                        </Popover>
-                    </div>
-
-                    <div className="pb-6">
-                        <h1 className="text-lg">Accent</h1>
-                        <div className="rounded-lg">
-                            <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setAccentEl(event.currentTarget)}>
-                                <div style={{ backgroundColor: brandColor.accent_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
-                                <p>{brandColor.accent_color}</p>
-                            </div>
-                        </div>
-                        <Popover
-                            open={openAccent}
-                            anchorEl={accentEl}
-                            onClose={() => setAccentEl(null)}
-                            anchorOrigin={{
-                                vertical: 'bottom',
-                                horizontal: 'left'
-                            }}
-                        >
-                            <ChromePicker color={brandColor.accent_color} onChange={(e: any) => handleColorChange(e, 'accent_color')} disableAlpha={true} />
-                        </Popover>
-                    </div>
-
-                    <div className="pb-6">
-                        <h1 className="text-lg">Text</h1>
-                        <div className="rounded-lg">
-                            <div className="p-2 border-[1px] cursor-pointer flex flex-row items-center gap-2 border-gray-200" aria-describedby={'a'} onClick={(event: any) => setTextEl(event.currentTarget)}>
-                                <div style={{ backgroundColor: brandColor.text_color }} className={`border-[1px] border-[#eaeaea] rounded-full !w-5 !h-5`} />
-                                <p>{brandColor.text_color}</p>
-                            </div>
-                        </div>
-                        <Popover
-                            open={openText}
-                            anchorEl={textEl}
-                            onClose={() => setTextEl(null)}
-                            anchorOrigin={{
-                                vertical: 'bottom',
-                                horizontal: 'left'
-                            }}
-                        >
-                            <ChromePicker color={brandColor.text_color} onChange={(e: any) => handleColorChange(e, 'text_color')} disableAlpha={true} />
-                        </Popover>
-                    </div>
-                </div>
-                <Button isLoading={isLoading} className="w-full md:w-auto !rounded-xl !bg-blue-600 h-[50px] mb-10" onClick={patchWorkspaceThemeInformation}>
-                    Update Brand Theme
-                </Button>
+                {environments.ENABLE_BRAND_COLORS && <BrandThemeColors />}
             </div>
         </>
     );
