@@ -9,6 +9,6 @@
 Readme.md
 .gitignore
 
-node_modules
-build
-.env
+/node_modules
+/build
+/.env

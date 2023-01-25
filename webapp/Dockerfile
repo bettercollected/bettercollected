@@ -7,14 +7,14 @@ USER node
 
 FROM base AS prod
 COPY package.json yarn.lock ./
-RUN yarn install --prod
+RUN yarn install --prod --frozen-lockfile
 
 
 # Rebuild the source code only when needed
 FROM prod as builder
 ARG BASE_DEPLOY_PATH=
 ARG NEXT_PUBLIC_NODE_ENV="production"
-RUN yarn install 
+RUN yarn install --frozen-lockfile
 COPY --chown=node:node . .
 RUN  BASE_DEPLOY_PATH=${BASE_DEPLOY_PATH} NEXT_PUBLIC_NODE_ENV=${NEXT_PUBLIC_NODE_ENV}  yarn build 
 RUN rm -rf ./.next/cache/* && mkdir moveTarget && mv entrypoint.sh next.config.js next-i18next.config.js package.json next-sitemap.config.js public ./moveTarget
