@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 
+import ModeEditIcon from '@mui/icons-material/ModeEdit';
+
 import { HomeIcon } from '@app/components/icons/home';
 import { Logout } from '@app/components/icons/logout-icon';
 import { useModal } from '@app/components/modal-views/context';
@@ -68,6 +70,13 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
             <div>
                 <div className="product-image relative h-44 w-full overflow-hidden md:h-80 xl:h-[380px]">
                     {workspace.bannerImage && <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />}
+                    {selectGetStatus.data.payload.content.user.id === workspace.ownerId && (
+                        <div className="absolute bottom-4 right-4">
+                            <div className="p-1 ml-2 my-19 bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-md">
+                                <ModeEditIcon className="!w-5 !h-5 text-white" />
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
             <ContentLayout className="!pt-0 relative min-h-screen bg-[#FBFBFB] pb-40">
