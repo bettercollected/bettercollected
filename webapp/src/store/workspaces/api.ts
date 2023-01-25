@@ -69,7 +69,6 @@ export const workspacesApi = createApi({
             query: () => ({
                 url: `/typeform/import`,
                 method: 'GET',
-                refetchOnMountOrArgChange: true,
                 refetchOnFocus: false
             })
         }),
@@ -77,7 +76,6 @@ export const workspacesApi = createApi({
             query: (form_id: string) => ({
                 url: `/typeform/import/${form_id}`,
                 method: 'GET',
-                refetchOnMountOrArgChange: true,
                 refetchOnFocus: false
             })
         }),
