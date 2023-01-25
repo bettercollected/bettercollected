@@ -32,8 +32,6 @@ const nextConfig = {
     productionBrowserSourceMaps: true,
     compress: true,
     distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
-    assetPrefix: process.env.BASE_DEPLOY_PATH ?? '',
-    basePath: process.env.BASE_DEPLOY_PATH ?? '',
     reactStrictMode: true,
     swcMinify: true,
     i18n,
@@ -80,6 +78,11 @@ const nextConfig = {
         ELASTIC_APM_ENVIRONMENT: process.env.ELASTIC_APM_ENVIRONMENT
     }
 };
+
+if (process.env.BASE_DEPLOY_PATH) {
+    nextConfig['assetPrefix'] = process.env.BASE_DEPLOY_PATH;
+    nextConfig['basePath'] = process.env.BASE_DEPLOY_PATH;
+}
 
 module.exports = withPWA({
     ...nextConfig,
