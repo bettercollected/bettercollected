@@ -65,6 +65,7 @@ const nextConfig = {
         ENABLE_TYPEFORM: process.env.ENABLE_TYPEFORM || false,
         ENABLE_GOOGLE: process.env.ENABLE_GOOGLE || false,
         ENABLE_CHECK_MY_DATA: process.env.ENABLE_CHECK_MY_DATA || false,
+        ENABLE_BRAND_COLORS: process.env.ENABLE_BRAND_COLORS || false,
 
         // api hosts
         API_ENDPOINT_HOST: process.env.API_ENDPOINT_HOST,
