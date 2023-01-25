@@ -17,7 +17,7 @@ ARG NEXT_PUBLIC_NODE_ENV="production"
 RUN yarn install 
 COPY --chown=node:node . .
 RUN  BASE_DEPLOY_PATH=${BASE_DEPLOY_PATH} NEXT_PUBLIC_NODE_ENV=${NEXT_PUBLIC_NODE_ENV}  yarn build 
-RUN rm -rf ./.next/cache/* && mkdir moveTarget && mv next.config.js next-i18next.config.js package.json next-sitemap.config.js public ./moveTarget
+RUN rm -rf ./.next/cache/* && mkdir moveTarget && mv entrypoint.sh next.config.js next-i18next.config.js package.json next-sitemap.config.js public ./moveTarget
 # Production image, copy all the files and run next
 FROM base
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
