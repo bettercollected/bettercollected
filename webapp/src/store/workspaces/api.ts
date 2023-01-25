@@ -68,13 +68,17 @@ export const workspacesApi = createApi({
         getTypeforms: builder.query<any, void>({
             query: () => ({
                 url: `/typeform/import`,
-                method: 'GET'
+                method: 'GET',
+                refetchOnMountOrArgChange: true,
+                refetchOnFocus: false
             })
         }),
         getTypeform: builder.query<any, string>({
             query: (form_id: string) => ({
                 url: `/typeform/import/${form_id}`,
-                method: 'GET'
+                method: 'GET',
+                refetchOnMountOrArgChange: true,
+                refetchOnFocus: false
             })
         }),
         getWorkspace: builder.query<WorkspaceDto, string>({

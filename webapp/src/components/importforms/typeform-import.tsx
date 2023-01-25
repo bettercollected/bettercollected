@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import HelpIcon from '@mui/icons-material/Help';
+import { Tooltip } from '@mui/material';
 import FormControl from '@mui/material/FormControl';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
@@ -39,7 +41,12 @@ export default function ImportTypeForms() {
 
     const [responseDataOwner, setResponseDataOwner] = useState('');
 
-    if (typeforms.isLoading) return <FullScreenLoader />;
+    if (typeforms.isLoading)
+        return (
+            <div className="min-h-48">
+                <FullScreenLoader />
+            </div>
+        );
 
     if (typeforms.isError)
         return (
@@ -78,7 +85,7 @@ export default function ImportTypeForms() {
     const TypeFormData = () => {
         if (typeFormResult.isFetching)
             return (
-                <div className="flex w-full h-full items-center justify-center">
+                <div className="flex w-full h-full min-h-[200px] items-center justify-center">
                     <Loader />
                 </div>
             );
@@ -90,24 +97,28 @@ export default function ImportTypeForms() {
         }
 
         return (
-            <div className="flex flex-col w-full">
-                {typeFormResult.data.title && (
-                    <p className="max-w-[360px] text-sm md:text-base font-semibold text-grey mb-2 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(typeFormResult.data.title, 15) : toEndDottedStr(typeFormResult.data.title, 30)}</p>
-                )}
-                {typeFormResult.data.description && (
-                    <p className="max-w-[360px] text-sm text-softBlue mb-2 p-0 w-full">
-                        {['xs', 'sm'].indexOf(breakpoint) !== -1
-                            ? toEndDottedStr(typeFormResult.data.description, 45)
-                            : ['md'].indexOf(breakpoint) !== -1
-                            ? toEndDottedStr(typeFormResult.data.description, 80)
-                            : toEndDottedStr(typeFormResult.data.description, 140)}
-                    </p>
-                )}
-
+            <div className="flex flex-col space-y-5 min-h-[200px] w-full">
+                <div>
+                    {typeFormResult.data.title && (
+                        <p className="max-w-[360px] text-sm md:text-base font-semibold text-grey mb-2 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(typeFormResult.data.title, 15) : toEndDottedStr(typeFormResult.data.title, 30)}</p>
+                    )}
+                    {typeFormResult.data.description && (
+                        <p className="max-w-[360px] text-sm text-softBlue mb-2 p-0 w-full">
+                            {['xs', 'sm'].indexOf(breakpoint) !== -1
+                                ? toEndDottedStr(typeFormResult.data.description, 45)
+                                : ['md'].indexOf(breakpoint) !== -1
+                                ? toEndDottedStr(typeFormResult.data.description, 80)
+                                : toEndDottedStr(typeFormResult.data.description, 140)}
+                        </p>
+                    )}
+                    <hr />
+                </div>
                 {typeFormResult?.data?.fields && Array.isArray(typeFormResult?.data?.fields) && (
-                    <>
-                        <hr />
-                        <p className="max-w-[360px] text-sm font-semibold text-grey my-2">Select another data response owner if collect emails is disabled in your form</p>
+                    <div className="space-y-2">
+                        <div className="flex font-bold text-lg space-x-5">
+                            <div>Response Data Owner Field</div>
+                        </div>
+                        <p className="max-w-[360px] text-sm text-gray-700">Select a response owner field to identify the form responder (Optional)</p>
                         <FormControl fullWidth>
                             <Select placeholder="Select one of the fields" value={responseDataOwner} onChange={handleSelectDataResponseOwner}>
                                 {typeFormResult?.data?.fields
@@ -122,7 +133,7 @@ export default function ImportTypeForms() {
                                     )}
                             </Select>
                         </FormControl>
-                    </>
+                    </div>
                 )}
             </div>
         );

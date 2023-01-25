@@ -11,9 +11,7 @@ import ImportFormsMenu from '@app/components/dashboard/import-forms-menu';
 import { Google } from '@app/components/icons/brands/google';
 import { useModal } from '@app/components/modal-views/context';
 import Layout from '@app/components/sidebar/layout';
-import Button from '@app/components/ui/button/button';
 import environments from '@app/configs/environments';
-import useUser from '@app/lib/hooks/use-authuser';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -21,13 +19,6 @@ import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function CreatorDashboard({ workspace, hasCustomDomain }: { workspace: any; hasCustomDomain: boolean }) {
-    const { openModal } = useModal();
-    const router = useRouter();
-
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-    const open = Boolean(anchorEl);
-
     const workspaceQuery = {
         workspace_id: workspace.id
     };
@@ -51,7 +42,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                 <h1 className="font-extrabold text-3xl mb-3">Welcome to {workspace.title}!</h1>
             </div>
             <div className="flex items-center flex-col md:flex-row w-full md:w-auto md:space-x-5 space-y-5 md:space-y-0 mb-3 md:mb-0">
-                <a href={getWorkspaceUrl()} className="rounded-xl w-full text-center text-sm  bg-blue-500 text-white px-5 py-3">
+                <a href={getWorkspaceUrl()} referrerPolicy="no-referrer" target="_blank" className="rounded-xl w-full text-center text-sm  bg-blue-500 text-white px-5 py-3" rel="noreferrer">
                     Go to Workspace
                 </a>
                 <ImportFormsMenu />
