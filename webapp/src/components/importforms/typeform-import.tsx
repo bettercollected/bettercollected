@@ -200,7 +200,7 @@ export default function ImportTypeForms() {
                                     });
                                     closeModal();
                                 }
-                                if (result.isError) {
+                                if (result.error) {
                                     toast('Error importing form !!!', {
                                         type: 'error'
                                     });
