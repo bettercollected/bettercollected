@@ -1,0 +1,21 @@
+# Changes here will be overwritten by Copier
+_commit: 0.3.0
+_src_path: https://github.com/fastapi-mvc/copier-project.git
+aiohttp: true
+author: Bibishan Pandey
+chart_name: bettercollected-backend-server
+container_image_name: bettercollected-backend-server
+copyright_date: 2023
+email: bibishan.b.pandey@gmail.com
+fastapi_mvc_version: 0.24.0
+github_actions: true
+helm: true
+license: 'no'
+nix: true
+package_name: bettercollected_backend_server
+project_description: ''
+project_name: bettercollected-backend-server
+redis: true
+repo_url: ''
+script_name: bettercollected-backend-server
+version: 0.1.0
