@@ -4,8 +4,8 @@ import Router from 'next/router';
 
 import { Feed, Settings } from '@mui/icons-material';
 
-import { FormTabContent } from '@app/components/dashboard/form-overview';
-import FormSubmissionsTab from '@app/components/dashboard/form-responses';
+import FormSubmissionsTab from '@app/components/dashboard/dahsboard-responses-tab-content';
+import { DashboardFormsTabContent } from '@app/components/dashboard/dashboard-forms-tab-content';
 import FormSettingsTab from '@app/components/dashboard/form-settings';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import { HistoryIcon } from '@app/components/icons/history';
@@ -72,7 +72,7 @@ export default function FormPage(props: any) {
             <div className="flex flex-col w-full m-auto justify-center">
                 <ParamTab tabMenu={tabs}>
                     <TabPanel className="focus:outline-none" key="form">
-                        <FormTabContent form={form} />
+                        <DashboardFormsTabContent form={form} />
                     </TabPanel>
                     <TabPanel className="focus:outline-none" key="submissions">
                         <FormSubmissionsTab workspace={props.workspace} workspaceName={props?.workspace?.workspaceName} workspaceId={props?.workspace?.id ?? ''} formId={formId} />

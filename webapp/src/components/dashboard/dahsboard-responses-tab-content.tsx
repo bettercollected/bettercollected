@@ -51,7 +51,7 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
     }
 }));
 
-function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: any) {
+function DashboardResponsesTabContent({ workspaceId, formId, workspaceName, workspace }: any) {
     const router = useRouter();
     const breakpoint = useBreakpoint();
 
@@ -184,4 +184,4 @@ function FormSubmissionsTab({ workspaceId, formId, workspaceName, workspace }: a
     );
 }
 
-export default React.memo(FormSubmissionsTab);
+export default React.memo(DashboardResponsesTabContent);

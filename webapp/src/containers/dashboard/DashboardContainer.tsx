@@ -2,16 +2,16 @@ import React, { useMemo } from 'react';
 
 import ModeEditIcon from '@mui/icons-material/ModeEdit';
 
+import FormsAndSubmissionsTabContainer from '@app/components/forms-and-submisions-tabs/forms-and-submisisons-tab-container';
 import { HomeIcon } from '@app/components/icons/home';
 import { Logout } from '@app/components/icons/logout-icon';
+import WorkspaceFooter from '@app/components/layout/workspace-footer';
 import { useModal } from '@app/components/modal-views/context';
-import SubmissionTabContainer from '@app/components/submissions-tab/submissions-tab-container';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Image from '@app/components/ui/image';
-import ActiveLink from '@app/components/ui/links/active-link';
-import Logo from '@app/components/ui/logo';
 import MarkdownText from '@app/components/ui/markdown-text';
+import WorkspaceHeader from '@app/components/workspace/workspace-header';
 import environments from '@app/configs/environments';
 import ContentLayout from '@app/layouts/_content-layout';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -20,7 +20,7 @@ import { useAppSelector } from '@app/store/hooks';
 
 interface IDashboardContainer {
     workspace: WorkspaceDto;
-    isCustomDomain: Boolean;
+    isCustomDomain: boolean;
 }
 
 export default function DashboardContainer({ workspace, isCustomDomain }: IDashboardContainer) {
@@ -42,27 +42,6 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
 
     const handleCheckMyData = () => {
         openModal('LOGIN_VIEW', { isCustomDomain: true });
-    };
-
-    const Footer = () => {
-        return (
-            <div className="absolute left-0 bottom-0 w-full flex flex-col justify-start md:flex-row md:justify-between md:items-center px-6 sm:px-8 lg:px-12 py-2 border-t-[1.5px] border-[#eaeaea] bg-transparent drop-shadow-main mb-0">
-                <div className="flex justify-between mb-4">
-                    <ActiveLink target={'_blank'} className="mt-6 md:mt-0 text-sm md:text-lg mr-6 hover:text-gray-600" href={workspace.terms_of_service_url ?? ''}>
-                        Terms of service
-                    </ActiveLink>
-                    <ActiveLink target={'_blank'} className="mt-6 md:mt-0 text-sm md:text-lg hover:text-gray-600" href={workspace.privacy_policy_url ?? ''}>
-                        Privacy Policy
-                    </ActiveLink>
-                </div>
-                {isCustomDomain && (
-                    <div className="mb-2">
-                        <p>Powered by</p>
-                        <Logo className="!text-lg" />
-                    </div>
-                )}
-            </div>
-        );
     };
 
     return (
@@ -128,15 +107,9 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                         )}
                     </div>
                 </div>
-
-                <div className="relative h-full w-full mt-10 sm:mt-16 md:mt-20 xl:mt-[88px] 2xl:mt-24">
-                    <div className="py-4 md:py-6 xl:py-8 2xl:py-12 w-full md:w-9/12 xl:w-4/6 2xl:w-3/6">
-                        <h1 className="font-semibold text-darkGrey text-xl sm:text-2xl md:text-3xl xl:text-4xl 2xl:text-[40px]">{workspace.title}</h1>
-                        <MarkdownText description={workspace.description} contentStripLength={1000} markdownClassName="pt-3 md:pt-7 text-base text-grey" textClassName="text-base" />
-                    </div>
-                </div>
-                <SubmissionTabContainer workspace={workspace} workspaceId={workspace.id} showResponseBar={!!selectGetStatus.error} />
-                <Footer />
+                <WorkspaceHeader workspace={workspace} />
+                <FormsAndSubmissionsTabContainer workspace={workspace} workspaceId={workspace.id} showResponseBar={!!selectGetStatus.error} />
+                <WorkspaceFooter workspace={workspace} isCustomDomain={isCustomDomain} />
             </ContentLayout>
         </div>
     );

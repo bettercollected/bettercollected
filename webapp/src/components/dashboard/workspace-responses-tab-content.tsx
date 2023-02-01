@@ -15,7 +15,7 @@ interface IResponseCard {
     workspaceId: string;
 }
 
-export default function ResponseCard({ workspace }: any) {
+export default function WorkspaceResponsesTabContent({ workspace }: any) {
     const workspaceId = workspace.id;
     const { isLoading, data, isError } = useGetWorkspaceSubmissionsQuery(workspaceId, { pollingInterval: 30000 });
     const breakpoint = useBreakpoint();
