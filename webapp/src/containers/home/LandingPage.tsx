@@ -2,13 +2,13 @@ import { useEffect } from 'react';
 
 import Cal, { getCalApi } from '@calcom/embed-react';
 
-import Banner from '@app/components/homepage/banner';
-import Features from '@app/components/homepage/features';
-import Waitlist from '@app/components/homepage/waitlist';
 import Footer from '@app/components/landingpage/Footer';
+import Banner from '@app/components/landingpage/banner';
+import Features from '@app/components/landingpage/features';
+import Waitlist from '@app/components/landingpage/waitlist';
 import Layout from '@app/layouts/_layout';
 
-export default function HomeContainer() {
+export default function LandingPage() {
     useEffect(() => {
         (async function () {
             const cal: any = await getCalApi();

@@ -5,14 +5,14 @@ import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 
-const HomeContainer = dynamic(() => import('@app/containers/home/HomeContainer'), { ssr: false });
-const DashboardContainer = dynamic(() => import('@app/containers/dashboard/DashboardContainer'), { ssr: false });
+const LandingPage = dynamic(() => import('@app/containers/home/LandingPage'), { ssr: false });
+const WorkspaceHomeContainer = dynamic(() => import('@app/containers/dashboard/WorkspaceHomeContainer'), { ssr: false });
 
 interface IHome extends IServerSideProps {}
 
-const Home = ({ hasCustomDomain, workspace, workspaceId, ...props }: IHome) => {
-    if (hasCustomDomain && workspace) return <DashboardContainer workspace={workspace} isCustomDomain={true} />;
-    return <HomeContainer />;
+const Home = ({ hasCustomDomain, workspace }: IHome) => {
+    if (hasCustomDomain && workspace) return <WorkspaceHomeContainer workspace={workspace} isCustomDomain={true} />;
+    return <LandingPage />;
 };
 
 export default Home;
