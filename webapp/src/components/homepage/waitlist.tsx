@@ -14,12 +14,14 @@ export default function Waitlist() {
     useEffect(() => {
         (async function () {
             const cal = await getCalApi();
-            cal('ui', {
-                theme: 'light',
-                styles: {
-                    branding: { brandColor: '#3B82F6' }
-                }
-            });
+            if (cal) {
+                cal('ui', {
+                    theme: 'light',
+                    styles: {
+                        branding: { brandColor: '#3B82F6' }
+                    }
+                });
+            }
         })();
     }, []);
 

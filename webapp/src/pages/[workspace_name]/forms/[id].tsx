@@ -9,7 +9,7 @@ import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
-import ContentLayout from '@app/layouts/_content-layout';
+import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
@@ -26,27 +26,21 @@ export default function SingleFormPage(props: any) {
     const responderUri = form.settings.embedUrl;
 
     return (
-        <div className="relative">
-            <div className="absolute overflow-hidden inset-0">
-                <div className="absolute top-[60%] left-[-100px] w-[359px] h-[153px] bg-gradient-to-r from-orange-200 via-orange-300 to-orange-400 rotate-90 blur-dashboardBackground opacity-[20%]" />
-                <div className="absolute top-[35%] left-[65%] w-[765px] h-[765px] bg-gradient-to-r from-cyan-300 via-sky-300 to-cyan-400 blur-dashboardBackground opacity-[15%]" />
-                <div className="absolute bottom-0 left-[50%] w-[599px] h-[388px] bg-gradient-to-r from-rose-200 via-rose-300 to-rose-400 rotate-180 blur-dashboardBackground opacity-[20%]" />
-            </div>
+        <Layout className="relative  !min-h-screen">
             {back && (
                 <Button className="!absolute !top-0 !left-0 w-auto z-10 !h-8 mx-4 mt-0 sm:mt-1 md:mt-3 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => router.push(`/${props.workspace.workspaceName}?view=forms`)}>
                     <LongArrowLeft width={15} height={15} />
                 </Button>
             )}
-
-            <ContentLayout className={'absolute left-0 !min-h-screen right-0 top-0 bottom-0 !p-0 !m-0'}>
+            <div className={'absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
                 {form.settings.provider === 'google' && !!responderUri && (
                     <iframe ref={iframeRef} src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0">
                         <Loader />
                     </iframe>
                 )}
                 {form.settings.provider === 'typeform' && <Widget id={form.formId} style={{ height: '100vh' }} className="my-form" />}
-            </ContentLayout>
-        </div>
+            </div>
+        </Layout>
     );
 }
 

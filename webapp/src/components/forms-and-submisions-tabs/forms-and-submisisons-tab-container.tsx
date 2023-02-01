@@ -1,5 +1,5 @@
-import FormCard from '@app/components/dashboard/form-card';
-import ResponseCard from '@app/components/dashboard/response-card';
+import WorkspaceFormsTabContent from '@app/components/dashboard/workspace-forms-tab-content';
+import WorkspaceResponsesTabContent from '@app/components/dashboard/workspace-responses-tab-content';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 
 interface ISubmissionTabContainer {
@@ -8,7 +8,7 @@ interface ISubmissionTabContainer {
     workspace: any;
 }
 
-export default function SubmissionTabContainer({ workspaceId, showResponseBar, workspace }: ISubmissionTabContainer) {
+export default function FormsAndSubmissionsTabContainer({ showResponseBar, workspace }: ISubmissionTabContainer) {
     const paramTabs = [
         {
             title: 'Forms',
@@ -21,17 +21,17 @@ export default function SubmissionTabContainer({ workspaceId, showResponseBar, w
             title: 'My Submissions',
             path: 'mySubmissions'
         });
-    } else if (!!showResponseBar && paramTabs.length === 2) {
+    } else if (showResponseBar && paramTabs.length === 2) {
         paramTabs.pop();
     }
 
     return (
         <ParamTab tabMenu={paramTabs}>
             <TabPanel className="focus:outline-none" key="forms">
-                <FormCard workspace={workspace} />
+                <WorkspaceFormsTabContent workspace={workspace} />
             </TabPanel>
             <TabPanel className="focus:outline-none" key="mySubmissions">
-                <ResponseCard workspace={workspace} />
+                <WorkspaceResponsesTabContent workspace={workspace} />
             </TabPanel>
         </ParamTab>
     );

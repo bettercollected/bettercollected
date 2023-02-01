@@ -1,7 +1,5 @@
 import { useState } from 'react';
 
-import { useRouter } from 'next/router';
-
 import FormControl from '@mui/material/FormControl';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
@@ -33,8 +31,6 @@ export default function ImportForms() {
     const [googleFormTrigger, googleFormResult] = useLazyGetGoogleFormQuery();
 
     const [importForm, importFormResult] = useImportFormMutation();
-
-    const router = useRouter();
 
     if (minifiedForms.isLoading) return <FullScreenLoader />;
 
