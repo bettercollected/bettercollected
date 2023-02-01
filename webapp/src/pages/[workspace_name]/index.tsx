@@ -1,9 +1,9 @@
-import DashboardContainer from '@app/containers/dashboard/DashboardContainer';
+import WorkspaceHomeContainer from '@app/containers/dashboard/WorkspaceHomeContainer';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 
 export default function WorkspacePage({ workspace }: { workspace: any }) {
-    return <DashboardContainer workspace={workspace} isCustomDomain={false} />;
+    return <WorkspaceHomeContainer workspace={workspace} isCustomDomain={false} />;
 }
 
 export async function getServerSideProps(_context: any) {

@@ -22,7 +22,7 @@ interface IDashboardContainer {
     isCustomDomain: boolean;
 }
 
-export default function DashboardContainer({ workspace, isCustomDomain }: IDashboardContainer) {
+export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: IDashboardContainer) {
     const [trigger] = useLazyGetLogoutQuery();
 
     const authStatus = useGetStatusQuery('status');

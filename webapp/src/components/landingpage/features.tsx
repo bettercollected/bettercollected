@@ -1,7 +1,5 @@
 import React from 'react';
 
-import { useTranslation } from 'next-i18next';
-
 import featureImage from '@app/assets/images/Diagram.png';
 import brand from '@app/assets/svgs/brand.svg';
 import builder from '@app/assets/svgs/builder.svg';
@@ -13,8 +11,6 @@ import Image from '@app/components/ui/image';
 import AnchorLink from '../ui/links/anchor-link';
 
 export default function Features() {
-    const { t } = useTranslation();
-
     return (
         <LandingPageSectionContainer sectionId="features">
             <div className="w-full h-full flex flex-col justify-center items-center my-10">
