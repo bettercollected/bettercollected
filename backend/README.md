@@ -20,7 +20,7 @@ To build docs manually:
 make docs
 ```
 
-Use poetry version `1.3.2` and python version `3.10`.
+Use poetry version `1.3.2` and python version `3.10`. Before running `make install` or `poetry install`, fetch git submodule `common` as it is set as package here.
 
 Then open `./site/index.html` with any browser.
 

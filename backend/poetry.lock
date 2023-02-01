@@ -320,6 +320,20 @@ files = [
 ]
 
 [[package]]
+name = "common"
+version = "0.0.1"
+description = "Better collected common library."
+category = "main"
+optional = false
+python-versions = ">=3"
+files = []
+develop = false
+
+[package.source]
+type = "directory"
+url = "common"
+
+[[package]]
 name = "copier"
 version = "6.2.0"
 description = "A library for rendering project templates."
@@ -2177,4 +2191,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "9fb3fb61aecffa691cdded844b57b57998af38818f505e98876987cda682cdce"
+content-hash = "ab5bdc2823fef24959e57f8a68ce51afcd0ba1521c558ab8046cca19378488d6"
