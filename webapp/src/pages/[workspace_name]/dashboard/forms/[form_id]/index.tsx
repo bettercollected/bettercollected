@@ -10,7 +10,7 @@ import FormSettingsTab from '@app/components/dashboard/form-settings';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import { HistoryIcon } from '@app/components/icons/history';
 import { HomeIcon } from '@app/components/icons/home';
-import Layout from '@app/components/sidebar/layout';
+import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import ParamTab from '@app/components/ui/param-tab';
 import { TabPanel } from '@app/components/ui/tab';
 import environments from '@app/configs/environments';
@@ -67,7 +67,7 @@ export default function FormPage(props: any) {
     ];
 
     return (
-        <Layout>
+        <SidebarLayout>
             <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />
             <div className="flex flex-col w-full m-auto justify-center">
                 <ParamTab tabMenu={tabs}>
@@ -82,7 +82,7 @@ export default function FormPage(props: any) {
                     </TabPanel>
                 </ParamTab>
             </div>
-        </Layout>
+        </SidebarLayout>
     );
 }
 

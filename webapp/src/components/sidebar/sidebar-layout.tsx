@@ -12,7 +12,7 @@ import Hamburger from '../ui/hamburger';
 import Logo from '../ui/logo';
 import SidebarExpandable from './_expandable';
 
-export default function Layout(props: any) {
+export default function SidebarLayout(props: any) {
     const children = props.children;
     const isNavbarRequired = props.children;
     const { openDrawer, isOpen } = useDrawer();

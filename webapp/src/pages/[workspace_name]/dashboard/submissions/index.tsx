@@ -8,7 +8,7 @@ import EmptyFormsView from '@app/components/dashboard/empty-form';
 import BreadcrumbRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { HomeIcon } from '@app/components/icons/home';
-import Layout from '@app/components/sidebar/layout';
+import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { ToastId } from '@app/constants/toastId';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
@@ -149,7 +149,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
     if (isLoading) return <FullScreenLoader />;
 
     return (
-        <Layout>
+        <SidebarLayout>
             {!sub_id ? (
                 <>
                     <MyRecentSubmissions />
@@ -161,7 +161,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
                     <FormRenderer form={form} />
                 </>
             )}
-        </Layout>
+        </SidebarLayout>
     );
 }
 

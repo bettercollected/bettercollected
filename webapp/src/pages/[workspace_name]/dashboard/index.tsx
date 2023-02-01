@@ -10,7 +10,7 @@ import EmptyFormsView from '@app/components/dashboard/empty-form';
 import ImportFormsMenu from '@app/components/dashboard/import-forms-menu';
 import { Google } from '@app/components/icons/brands/google';
 import { useModal } from '@app/components/modal-views/context';
-import Layout from '@app/components/sidebar/layout';
+import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
@@ -110,10 +110,10 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
     };
 
     return (
-        <Layout>
+        <SidebarLayout>
             <Header />
             <MyRecentForms />
-        </Layout>
+        </SidebarLayout>
     );
 }
 

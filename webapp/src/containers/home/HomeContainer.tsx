@@ -17,7 +17,7 @@ export default function HomeContainer() {
     }, []);
     return (
         <>
-            <Layout className="min-h-full">
+            <Layout className="min-h-full" showNavbar>
                 <Banner />
                 <Features />
                 <Waitlist />

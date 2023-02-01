@@ -10,10 +10,9 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Image from '@app/components/ui/image';
-import MarkdownText from '@app/components/ui/markdown-text';
 import WorkspaceHeader from '@app/components/workspace/workspace-header';
 import environments from '@app/configs/environments';
-import ContentLayout from '@app/layouts/_content-layout';
+import Layout from '@app/layouts/_layout';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { authApi, useGetStatusQuery, useLazyGetLogoutQuery } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
@@ -49,7 +48,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
             <div>
                 <div className="product-image relative h-44 w-full overflow-hidden md:h-80 xl:h-[380px]">
                     {workspace.bannerImage && <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />}
-                    {selectGetStatus.data.payload.content.user.id === workspace.ownerId && (
+                    {selectGetStatus.data?.payload.content.user.id === workspace.ownerId && (
                         <div className="absolute bottom-4 right-4">
                             <div className="p-1 ml-2 my-19 bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-md">
                                 <ModeEditIcon className="!w-5 !h-5 text-white" />
@@ -58,12 +57,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                     )}
                 </div>
             </div>
-            <ContentLayout className="!pt-0 relative min-h-screen bg-[#FBFBFB] pb-40">
-                <div className="absolute overflow-hidden inset-0">
-                    <div className="absolute top-[60%] left-[-100px] w-[359px] h-[153px] bg-gradient-to-r from-orange-200 via-orange-300 to-orange-400 rotate-90 blur-dashboardBackground opacity-[20%]" />
-                    <div className="absolute top-[35%] left-[65%] w-[765px] h-[765px] bg-gradient-to-r from-cyan-300 via-sky-300 to-cyan-400 blur-dashboardBackground opacity-[15%]" />
-                    <div className="absolute bottom-0 left-[50%] w-[599px] h-[388px] bg-gradient-to-r from-rose-200 via-rose-300 to-rose-400 rotate-180 blur-dashboardBackground opacity-[20%]" />
-                </div>
+            <Layout className="!pt-0 relative min-h-screen bg-[#FBFBFB] pb-40">
                 <div className="flex justify-between items-center">
                     <div className="product-box">
                         <div className="product-image bg-white absolute border-[1px] border-neutral-300 hover:border-neutral-400 rounded-full z-10 h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 xl:h-40 xl:w-40 2xl:h-[180px] 2xl:w-[180px] overflow-hidden -top-12 sm:-top-16 md:-top-20 xl:-top-[88px] 2xl:-top-24">
@@ -77,7 +71,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                             </Button>
                         ) : (
                             <>
-                                {selectGetStatus.data.payload.content.user.id === workspace.ownerId && (
+                                {selectGetStatus.data?.payload?.content.user.id === workspace.ownerId && (
                                     <a
                                         target="_blank"
                                         referrerPolicy="no-referrer"
@@ -110,7 +104,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                 <WorkspaceHeader workspace={workspace} />
                 <FormsAndSubmissionsTabContainer workspace={workspace} workspaceId={workspace.id} showResponseBar={!!selectGetStatus.error} />
                 <WorkspaceFooter workspace={workspace} isCustomDomain={isCustomDomain} />
-            </ContentLayout>
+            </Layout>
         </div>
     );
 }

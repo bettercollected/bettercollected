@@ -10,7 +10,7 @@ import Layout from '@app/layouts/_layout';
 const Collector = () => {
     const router = useRouter();
     return (
-        <Layout className="h-[100vh]" hideSignIn={true}>
+        <Layout className="h-[100vh]" hideSignIn showNavbar>
             <div className="flex flex-col justify-between items-center my-auto">
                 <div className="my-5 py-5">
                     <Image src={oop} className={'rounded-lg'} alt={'not a collector'} height={450} />

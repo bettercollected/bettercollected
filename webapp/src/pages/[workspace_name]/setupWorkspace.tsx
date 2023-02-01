@@ -80,7 +80,7 @@ const SetUpWorkspace = (props: any) => {
     };
 
     return (
-        <Layout className="h-[100vh]" hideSignIn={true}>
+        <Layout className="h-[100vh]" hideSignIn showNavbar>
             <div className="flex flex-col  items-center justify-center px-4 mt-10 py-8 mx-auto lg:py-0">
                 <div className="w-full rounded-lg shadow-md md:mt-0 sm:max-w-lg xl:p-0">
                     <div className="p-6 space-y-4 md:space-y-6 sm:p-8">

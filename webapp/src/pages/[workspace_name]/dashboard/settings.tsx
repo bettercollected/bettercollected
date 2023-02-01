@@ -3,7 +3,7 @@ import React from 'react';
 import SettingsPrivacy from '@app/components/settings/workspace/settings-privacy';
 import SettingsProfile from '@app/components/settings/workspace/settings-profile';
 import { WorkspaceDangerZoneSettings } from '@app/components/settings/workspace/workspace-danger-zone-settings';
-import Layout from '@app/components/sidebar/layout';
+import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 
@@ -36,7 +36,7 @@ export default function MySettings(props: any) {
     ];
 
     return (
-        <Layout>
+        <SidebarLayout>
             <Header />
             <ParamTab tabMenu={paramTabs}>
                 <TabPanel className="focus:outline-none" key="settings-profile">
@@ -49,7 +49,7 @@ export default function MySettings(props: any) {
                     <WorkspaceDangerZoneSettings />
                 </TabPanel>
             </ParamTab>
-        </Layout>
+        </SidebarLayout>
     );
 }
 
