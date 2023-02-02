@@ -51,21 +51,22 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
     }
 }));
 
-function DashboardResponsesTabContent({ workspaceId, formId, workspaceName, workspace }: any) {
+function DashboardResponsesTabContent({ workspaceId, formId }: any) {
     const router = useRouter();
     const breakpoint = useBreakpoint();
 
-    const [trigger, { isLoading, isError, data, error }] = useLazyGetWorkspaceSubmissionQuery();
+    const [trigger, { isLoading, isError, error }] = useLazyGetWorkspaceSubmissionQuery();
 
     if (isError) {
-        toast.error(!!error.error ? error.error : 'Something went wrong', { toastId: ToastId.ERROR_TOAST });
+        // @ts-ignore
+        toast.error(!!error?.error ? error?.error : 'Something went wrong', { toastId: ToastId.ERROR_TOAST });
     }
 
     const [form, setForm] = useState([]);
 
     const [page, setPage] = useState(0);
 
-    const submissionId = router?.query?.sub_id ?? '';
+    let submissionId: string = (router?.query?.sub_id as string) ?? '';
 
     const [responses, setResponses] = useState<Array<any>>([]);
 
@@ -178,7 +179,7 @@ function DashboardResponsesTabContent({ workspaceId, formId, workspaceName, work
     return (
         <>
             {!!submissionId && <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />}
-            {!submissionId && <AllSubmissionsRenderer />}
+            {!submissionId && <AllSubmissionsRenderer data-testid="all-submissions-renderer" />}
             {!!form && !!submissionId && <FormRenderer form={form} />}
         </>
     );
