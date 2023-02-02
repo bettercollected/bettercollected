@@ -53,3 +53,7 @@ body {
 .attachment {
     height: 250px;
 }
+
+.bannerdiv:hover .editbannerdiv {
+    display: block;
+}
