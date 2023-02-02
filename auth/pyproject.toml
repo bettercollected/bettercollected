@@ -1,0 +1,60 @@
+[tool.poetry]
+name = "auth"
+version = "0.1.0"
+description = "This project was generated with fastapi-mvc."
+authors = ["nabin6246 <nabin62246@gmail.com>"]
+license = "no"
+readme = "README.md"
+repository = "https://your.repo.url.here"
+classifiers = [
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+fastapi = "~0.88.0"
+uvicorn = {extras = ["standard"], version = "~0.20.0"}
+gunicorn = "~20.1.0"
+click = "~8.1.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "~7.2.0"
+pytest-cov = "~4.0.0"
+pytest-asyncio = "~0.20.3"
+requests = "~2.28.1"
+httpx = "~0.23.1"
+flake8 = "~5.0.4"
+flake8-docstrings = "~1.6.0"
+flake8-import-order = "~0.18.1"
+flake8-todo = "^0.7"
+black = "~22.8.0"
+Sphinx = "~5.3.0"
+Pallets-Sphinx-Themes = "~2.0.2"
+myst-parser = "~0.18.1"
+
+[tool.poetry.scripts]
+auth = 'auth.cli:cli'
+
+[tool.poetry.urls]
+"Issues" = "https://your.repo.url.here/issues"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.run]
+omit = [
+    "auth/config/gunicorn.py",
+    "auth/__main__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pass",
+]
