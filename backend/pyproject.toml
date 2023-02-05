@@ -39,8 +39,6 @@ flake8-docstrings = "~1.6.0"
 flake8-import-order = "~0.18.1"
 flake8-todo = "^0.7"
 black = "~22.8.0"
-Sphinx = "~5.3.0"
-Pallets-Sphinx-Themes = "~2.0.2"
 myst-parser = "~0.18.1"
 
 [tool.poetry.scripts]
@@ -48,6 +46,11 @@ bettercollected-backend-server = 'bettercollected_backend_server.cli:cli'
 
 [tool.poetry.urls]
 "Issues" = "/issues"
+
+[tool.poetry.group.dev.dependencies]
+sphinx-material = {git = "https://github.com/bashtage/sphinx-material.git"}
+pallets-sphinx-themes = "^2.0.3"
+sphinx = "^5.3.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
