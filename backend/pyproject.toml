@@ -27,7 +27,13 @@ aiohttp = "~3.8.3"
 fastapi-mvc = "^0.24.0"
 common = {path = "common"}
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.scripts]
+bettercollected-backend-server = 'bettercollected_backend_server.cli:cli'
+
+[tool.poetry.urls]
+"Issues" = "/issues"
+
+[tool.poetry.group.dev.dependencies]
 pytest = "~7.2.0"
 pytest-cov = "~4.0.0"
 pytest-asyncio = "~0.20.3"
@@ -40,14 +46,6 @@ flake8-import-order = "~0.18.1"
 flake8-todo = "^0.7"
 black = "~22.8.0"
 myst-parser = "~0.18.1"
-
-[tool.poetry.scripts]
-bettercollected-backend-server = 'bettercollected_backend_server.cli:cli'
-
-[tool.poetry.urls]
-"Issues" = "/issues"
-
-[tool.poetry.group.dev.dependencies]
 sphinx-material = {git = "https://github.com/bashtage/sphinx-material.git"}
 pallets-sphinx-themes = "^2.0.3"
 sphinx = "^5.3.0"
