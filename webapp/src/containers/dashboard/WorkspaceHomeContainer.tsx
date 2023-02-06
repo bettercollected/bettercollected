@@ -60,7 +60,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                         Terms of service
                     </ActiveLink>
                     <ActiveLink target={'_blank'} className="mt-6 md:mt-0 text-sm md:text-lg hover:text-gray-600" href={workspace.privacy_policy_url ?? ''}>
-                        Privacy Policy
+                        Privacy policy
                     </ActiveLink>
                 </div>
                 {isCustomDomain && (
