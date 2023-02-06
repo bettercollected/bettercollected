@@ -58,6 +58,20 @@ Controllers
 
 .. autofunction:: bettercollected_backend_server.app.controllers.ready.readiness_check
 
+Handlers
+~~~~~~~~
+
+.. automodule:: bettercollected_backend_server.app.handlers
+
+.. autofunction:: bettercollected_backend_server.app.handlers.init_logging
+
+Middlewares
+~~~~~~~~~~~
+
+.. automodule:: bettercollected_backend_server.app.middlewares
+
+.. autofunction:: bettercollected_backend_server.app.middlewares.include_middlewares
+
 Models
 ~~~~~~
 

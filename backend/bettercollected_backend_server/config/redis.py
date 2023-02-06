@@ -10,14 +10,14 @@ class Redis(BaseSettings):
     still be used if the matching environment variable is not set.
 
     Environment variables:
-        * FASTAPI_REDIS_HOTS
+        * FASTAPI_REDIS_HOSTS
         * FASTAPI_REDIS_PORT
         * FASTAPI_REDIS_USERNAME
         * FASTAPI_REDIS_PASSWORD
         * FASTAPI_REDIS_USE_SENTINEL
 
     Attributes:
-        REDIS_HOTS (str): Redis host.
+        REDIS_HOST (str): Redis host.
         REDIS_PORT (int): Redis port.
         REDIS_USERNAME (str): Redis username.
         REDIS_PASSWORD (str): Redis password.
