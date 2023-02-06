@@ -12,7 +12,7 @@ import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
 import Image from '@app/components/ui/image';
 import { ToastId } from '@app/constants/toastId';
-import { BannerImageComponentPropType } from '@app/containers/dashboard/DashboardContainer';
+import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 
 export default function BannerImageComponent(props: BannerImageComponentPropType) {

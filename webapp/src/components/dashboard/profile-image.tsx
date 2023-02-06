@@ -11,9 +11,10 @@ import { toast } from 'react-toastify';
 import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
 import { ToastId } from '@app/constants/toastId';
+import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 
-export default function ProfileImageComponent(props: any) {
+export default function ProfileImageComponent(props: BannerImageComponentPropType) {
     const { workspace, isFormCreator } = props;
     const [uploadImage, setUploadImage] = useState('');
     const [scale, setScale] = useState(1);
