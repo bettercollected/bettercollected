@@ -51,10 +51,12 @@ export default function ProfileImageComponent(props: any) {
         } else return;
     };
 
+    const timeStamp = new Date().getTime();
+
     return (
         <div className="product-box">
             <div className="bannerdiv product-image bg-white absolute border-[1px] border-neutral-300 hover:border-neutral-400 rounded-full z-10 h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 xl:h-40 xl:w-40 2xl:h-[180px] 2xl:w-[180px] overflow-hidden -top-12 sm:-top-16 md:-top-20 xl:-top-[88px] 2xl:-top-24">
-                {workspace.profileImage && <Image src={workspace.profileImage} layout="fill" objectFit="contain" alt={workspace.title} />}
+                {workspace.profileImage && <Image src={workspace.profileImage + '?' + timeStamp} layout="fill" objectFit="contain" alt={workspace.title} />}
                 {isFormCreator() && (
                     <>
                         <div className="absolute hidden w-full h-full bg-gray-700 p-2 !align-middle !text-center cursor-pointer text-gray-500 bottom-0 rounded-md opacity-50 editbannerdiv" onClick={onEditButtonClick}>
