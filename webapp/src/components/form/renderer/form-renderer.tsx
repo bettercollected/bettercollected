@@ -83,7 +83,6 @@ enum VideoEmbedProvider {
 // you will need two api calls conditionally based on questions or responses.
 
 export default function FormRenderer({ form }: any) {
-    const resolveQuestionTextById = (filed_id: string) => {};
     const getQuestionType = (question: any) => {
         if (question.isMediaContent && 'video' in question.type) return QUESTION_TYPE.VIDEO_CONTENT;
         if (question.isMediaContent && 'image' in question.type) return QUESTION_TYPE.IMAGE_CONTENT;
@@ -389,7 +388,7 @@ export default function FormRenderer({ form }: any) {
     }
 
     return (
-        <div className="relative container mx-auto px-6 md:px-0">
+        <div data-testid="form-renderer" className="relative container mx-auto px-6 md:px-0">
             <div className="pb-14 pt-4">
                 <h1 className="font-semibold text-darkGrey mb-3 text-xl sm:text-2xl md:text-3xl xl:text-4xl 2xl:text-[40px]">{form?.title}</h1>
                 {form?.description && (

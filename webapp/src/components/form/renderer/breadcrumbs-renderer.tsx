@@ -4,7 +4,7 @@ function BreadcrumbRenderer(props: any) {
     const { breadcrumbsItem } = props;
 
     return (
-        <div className="max-h-[100vh] overflow-auto mb-4">
+        <div data-testid="breadcrumbs-renderer" className="max-h-[100vh] overflow-auto mb-4">
             <nav className="flex mt-3 px-6 md:px-0" aria-label="Breadcrumb">
                 <ol className="flex items-center space-x-1 md:space-x-3">
                     {breadcrumbsItem.map((item: any, idx: number) => {
