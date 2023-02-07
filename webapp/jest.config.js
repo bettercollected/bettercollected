@@ -10,4 +10,11 @@ const customJestConfig = {
     testEnvironment: 'jest-environment-jsdom',
     testMatch: ['**/__test__/*.ts?(x)']
 };
-module.exports = createJestConfig(customJestConfig);
+
+async function jestConfig() {
+    const nextJestConfig = await createJestConfig(customJestConfig)();
+    nextJestConfig.transformIgnorePatterns[0] = '/node_modules/(?!uuid)/';
+    return nextJestConfig;
+}
+
+module.exports = jestConfig;

@@ -10,7 +10,12 @@ function BreadcrumbRenderer(props: any) {
                     {breadcrumbsItem.map((item: any, idx: number) => {
                         return (
                             <li key={idx} className="inline-flex items-center">
-                                <span aria-hidden onClick={!!item.onClick ? item.onClick : () => {}} className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                                <span
+                                    data-testid={'item' + idx}
+                                    aria-hidden
+                                    onClick={!!item.onClick ? item.onClick : () => {}}
+                                    className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                                >
                                     {item.icon}
                                     {item.title}
                                     {idx !== breadcrumbsItem.length - 1 && (
