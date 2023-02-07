@@ -25,7 +25,9 @@ const formObject = {
                 href: 'https://images.typeform.com/images/WMALzu59xbXQ',
                 type: 'image',
                 embed_provider: 'no_embed',
-                properties: {}
+                properties: {
+                    description: 'alt_text'
+                }
             }
         },
         {
@@ -85,5 +87,12 @@ describe('Form renderer test', () => {
     it('renders the title', () => {
         const { getByText } = render(<FormRenderer form={formObject} />);
         expect(getByText('form_title')).toBeInTheDocument();
+        expect(getByText('This is a form.')).toBeInTheDocument();
+    });
+
+    it('uses correct src', () => {
+        const { getByAltText } = render(<FormRenderer form={formObject} />);
+        const image = getByAltText('alt_text');
+        expect(image.src).toContain('https://images.typeform.com/images/WMALzu59xbXQ');
     });
 });
