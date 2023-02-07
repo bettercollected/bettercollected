@@ -53,3 +53,9 @@ body {
 .attachment {
     height: 250px;
 }
+
+.bannerdiv:hover .editbannerdiv {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

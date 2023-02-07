@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 
-import ModeEditIcon from '@mui/icons-material/ModeEdit';
-
+import BannerImageComponent from '@app/components/dashboard/banner-image';
+import ProfileImageComponent from '@app/components/dashboard/profile-image';
 import FormsAndSubmissionsTabContainer from '@app/components/forms-and-submisions-tabs/forms-and-submisisons-tab-container';
 import { HomeIcon } from '@app/components/icons/home';
 import { Logout } from '@app/components/icons/logout-icon';
@@ -9,7 +9,6 @@ import WorkspaceFooter from '@app/components/layout/workspace-footer';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import Image from '@app/components/ui/image';
 import WorkspaceHeader from '@app/components/workspace/workspace-header';
 import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
@@ -22,7 +21,12 @@ interface IDashboardContainer {
     isCustomDomain: boolean;
 }
 
-export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: IDashboardContainer) {
+export interface BannerImageComponentPropType {
+    workspace: WorkspaceDto;
+    isFormCreator: () => Boolean;
+}
+
+export default function DashboardContainer({ workspace, isCustomDomain }: IDashboardContainer) {
     const [trigger] = useLazyGetLogoutQuery();
 
     const authStatus = useGetStatusQuery('status');
@@ -32,6 +36,10 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
     const selectGetStatus = useAppSelector(statusQuerySelect);
 
     if (!workspace || authStatus.isLoading) return <FullScreenLoader />;
+
+    function isFormCreator(): Boolean {
+        return selectGetStatus.data.payload.content.user.id === workspace.ownerId;
+    }
 
     const handleLogout = async () => {
         trigger().finally(() => {
@@ -45,25 +53,12 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
 
     return (
         <div className="relative min-h-screen">
-            <div>
-                <div className="product-image relative h-44 w-full overflow-hidden md:h-80 xl:h-[380px]">
-                    {workspace.bannerImage && <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />}
-                    {selectGetStatus.data?.payload.content.user.id === workspace.ownerId && (
-                        <div className="absolute bottom-4 right-4">
-                            <div className="p-1 ml-2 my-19 bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-md">
-                                <ModeEditIcon className="!w-5 !h-5 text-white" />
-                            </div>
-                        </div>
-                    )}
-                </div>
+            <div className="relative overflow-hidden h-44 w-full md:h-80 xl:h-[380px] bannerdiv">
+                <BannerImageComponent workspace={workspace} isFormCreator={isFormCreator} />
             </div>
             <Layout className="!pt-0 relative min-h-screen bg-[#FBFBFB] pb-40">
                 <div className="flex justify-between items-center">
-                    <div className="product-box">
-                        <div className="product-image bg-white absolute border-[1px] border-neutral-300 hover:border-neutral-400 rounded-full z-10 h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 xl:h-40 xl:w-40 2xl:h-[180px] 2xl:w-[180px] overflow-hidden -top-12 sm:-top-16 md:-top-20 xl:-top-[88px] 2xl:-top-24">
-                            {workspace.profileImage && <Image src={workspace.profileImage} layout="fill" objectFit="contain" alt={workspace.title} />}
-                        </div>
-                    </div>
+                    <ProfileImageComponent workspace={workspace} isFormCreator={isFormCreator} />
                     <div className="mt-2 mb-0 flex items-center">
                         {!!selectGetStatus.error ? (
                             <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
