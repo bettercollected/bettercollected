@@ -120,7 +120,7 @@ export default function FormSettingsTab() {
                         className="ml-4 cursor-pointer"
                         onClick={() => {
                             copyToClipboard(`${environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`);
-                            toast('Copied Form Url', {
+                            toast('Form URL Copied', {
                                 type: 'info'
                             });
                         }}
@@ -137,7 +137,7 @@ export default function FormSettingsTab() {
                             className="ml-4 cursor-pointer"
                             onClick={() => {
                                 copyToClipboard(`${environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`);
-                                toast('Form Url Copied', {
+                                toast('Form URL Copied', {
                                     type: 'info'
                                 });
                             }}

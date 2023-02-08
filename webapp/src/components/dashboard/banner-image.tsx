@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useState } from 'react';
 
 import { useRouter } from 'next/router';
@@ -18,6 +18,8 @@ import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 export default function BannerImageComponent(props: BannerImageComponentPropType) {
     const { workspace, isFormCreator } = props;
     const router = useRouter();
+    const transformComponentRef = useRef(null);
+
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const [bannerImage, setBannerImage] = useState('');
     const bannerImageInputRef = useRef<HTMLInputElement>(null);
@@ -54,32 +56,36 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
         });
     };
 
-    function ConditionalImageRendering() {
-        switch (!!bannerImage) {
-            case false:
-                return <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />;
-            case true:
-                return (
-                    <TransformWrapper centerOnInit>
-                        <TransformComponent wrapperStyle={{ maxHeight: 'calc(100vh)', maxWidth: '100%', height: '100%', width: '100%' }}>
-                            <img src={bannerImage} alt="test" />
-                        </TransformComponent>
-                    </TransformWrapper>
-                );
-            default:
-                return <></>;
-        }
-    }
+    // function ConditionalImageRendering() {
+    //     switch (!!bannerImage) {
+    //         case false:
+    //             return <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />;
+    //         case true:
+    //             return (
+    //                 <TransformWrapper ref={transformComponentRef}>
+    //                     <TransformComponent wrapperStyle={{ maxHeight: 'calc(100vh)', maxWidth: '100%', height: '100%', width: '100%' }}>
+    //                         <img src={bannerImage} alt="test" />
+    //                     </TransformComponent>
+    //                 </TransformWrapper>
+    //             );
+    //         default:
+    //             return <></>;
+    //     }
+    // }
 
     const timeStamp = new Date().getTime();
 
     return (
         <div className="relative overflow-hidden h-44 w-full md:h-80 xl:h-[380px] bannerdiv">
             {!!bannerImage ? (
-                <TransformWrapper centerOnInit>
-                    <TransformComponent wrapperStyle={{ maxHeight: 'calc(100vh)', maxWidth: '100%', height: '100%', width: '100%' }}>
-                        <img src={bannerImage} alt="test" />
-                    </TransformComponent>
+                <TransformWrapper centerOnInit ref={transformComponentRef}>
+                    {({ resetTransform }) => {
+                        return (
+                            <TransformComponent wrapperStyle={{ maxHeight: '100%', maxWidth: '100%', height: '100%', width: '100%' }}>
+                                <img style={{ width: '100%', height: '100%' }} src={bannerImage} alt="test" />
+                            </TransformComponent>
+                        );
+                    }}
                 </TransformWrapper>
             ) : (
                 <Image src={workspace.bannerImage + '?' + timeStamp} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />

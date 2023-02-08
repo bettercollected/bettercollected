@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import Google from '@mui/icons-material/Google';
+import PersonIcon from '@mui/icons-material/Person';
 import { toast } from 'react-toastify';
 
 import EmptyFormsView from '@app/components/dashboard/empty-form';
@@ -14,6 +18,7 @@ import { ToastId } from '@app/constants/toastId';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useGetWorkspaceAllSubmissionsQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { toMonthDateYearStr } from '@app/utils/dateUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function MySubmissions({ workspace }: { workspace: any }) {
@@ -94,8 +99,6 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
         }
     ];
 
-    /** UI Portion **/
-
     const CardRenderer = () => {
         return (
             <>
@@ -116,15 +119,27 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
                                                 className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]"
                                             >
                                                 <div className="flex flex-col justify-start h-full overflow-hidden">
-                                                    <p className="text-sm text-gray-400 italic ">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.responseId, 15) : toEndDottedStr(form.responseId, 30)}</p>
-                                                    <p className="text-xl text-grey mb-4 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.formTitle, 15) : toEndDottedStr(form.formTitle, 30)}</p>
-                                                    {form?.description && (
-                                                        <p className="text-base text-softBlue m-0 p-0 w-full">
-                                                            {['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 45) : ['md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 80) : toEndDottedStr(form.description, 140)}
-                                                        </p>
-                                                    )}
-                                                    {!form?.description && <p className="text-base text-softBlue m-0 p-0 w-full italic">Form description not available.</p>}
-                                                    <p className="italic w-fit bg-blue-100 text-gray-700 text-[10px] px-2 py-1 rounded-lg">{!form.dataOwnerIdentifier ? 'Anonymous' : form.dataOwnerIdentifier}</p>
+                                                    <div className="flex mb-2 w-full items-center space-x-4">
+                                                        <div>
+                                                            {form.provider === 'typeform' ? (
+                                                                <div className="rounded-full border h-[24px] w-[28px] border-white relative">
+                                                                    <Image src="/tf.png" className="rounded-full" layout="fill" alt={'T'} />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="rounded-full bg-white p-1">
+                                                                    <Google />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-sm text-gray-400 italic ">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.responseId, 15) : toEndDottedStr(form.responseId, 30)}</p>
+                                                    </div>
+                                                    <div className="flex items-center mb-2">
+                                                        <div className="pl-1 text-2xl text-grey font-bold">{!!form.dataOwnerIdentifier ? form.dataOwnerIdentifier : <p className="italic">Anonymous</p>}</div>
+                                                    </div>
+                                                    <div className="flex items-center">
+                                                        <CalendarMonthIcon className="text-gray-400 text-[20px]" />
+                                                        <div className="pl-1 text-sm font-bold text-gray-400">{!!form.createdAt ? toMonthDateYearStr(new Date(form.createdAt)) : 'N/A'}</div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
