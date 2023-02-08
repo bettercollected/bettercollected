@@ -92,7 +92,7 @@ describe('Form renderer test', () => {
 
     it('uses correct src', () => {
         const { getByAltText } = render(<FormRenderer form={formObject} />);
-        const image = getByAltText('alt_text');
+        const image: any = getByAltText('alt_text');
         expect(image.src).toContain('https://images.typeform.com/images/WMALzu59xbXQ');
     });
 });
