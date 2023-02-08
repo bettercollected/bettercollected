@@ -75,14 +75,14 @@ export default function FormSettingsTab() {
                 <div className="text-xl font-bold text-black">Pinned</div>
                 <div className="flex w-full justify-between items-center h-14 text-gray-800">
                     <div>Show this form in pinned section</div>
-                    <Switch checked={isPinned} onClick={onPinnedChange} />
+                    <Switch data-testid="pinned-switch" checked={isPinned} onClick={onPinnedChange} />
                 </div>
             </div>
             <div className=" flex flex-col">
                 <div className="text-xl font-bold text-black">Hide Form</div>
                 <div className="flex w-full justify-between items-center h-14 text-gray-800">
                     <div>Do not show this form in workspace page.</div>
-                    <Switch checked={isPrivate} onClick={onPrivateChanged} />
+                    <Switch data-testid="private-switch" checked={isPrivate} onClick={onPrivateChanged} />
                 </div>
             </div>
             <Divider className="mb-6 mt-2" />

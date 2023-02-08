@@ -30,7 +30,7 @@ const FormCards = ({ title, formsArray, workspace }: FormCardsProps) => {
 
     if (formsArray.length === 0) return <></>;
     return (
-        <div className="mb-6">
+        <div data-testid="form-cards-container" className="mb-6">
             {!!title && <h1 className=" text-gray-700 font-semibold text-md md:text-lg mb-4">{title}</h1>}
             <FormsContainer>
                 {formsArray.map((form: StandardFormDto) => {

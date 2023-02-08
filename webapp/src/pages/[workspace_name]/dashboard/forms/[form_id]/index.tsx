@@ -4,7 +4,7 @@ import Router from 'next/router';
 
 import { Feed, Settings } from '@mui/icons-material';
 
-import FormSubmissionsTab from '@app/components/dashboard/dahsboard-responses-tab-content';
+import FormSubmissionsTab from '@app/components/dashboard/dashboard-responses-tab-content';
 import FormSettingsTab from '@app/components/dashboard/form-settings';
 import { FormTabContent } from '@app/components/dashboard/form-tab-content';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
