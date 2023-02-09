@@ -73,8 +73,6 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
     //     }
     // }
 
-    const timeStamp = new Date().getTime();
-
     return (
         <div className="relative overflow-hidden h-44 w-full md:h-80 xl:h-[380px] bannerdiv">
             {!!bannerImage ? (
@@ -88,7 +86,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                     }}
                 </TransformWrapper>
             ) : (
-                <Image src={workspace.bannerImage + '?' + timeStamp} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
+                <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
             )}
             {isFormCreator() && (
                 <div className={`absolute bottom-2 right-4 hidden ${!!bannerImage ? '!block' : 'editbannerdiv'}`}>
