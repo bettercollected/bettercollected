@@ -8,22 +8,11 @@ import TextField from '@mui/material/TextField';
 
 import EmptyTray from '@app/assets/svgs/empty-tray.svg';
 import FormCards from '@app/components/dashboard/form-cards';
-import { Google } from '@app/components/icons/brands/google';
 import { SearchIcon } from '@app/components/icons/search';
-import { ShareIcon } from '@app/components/icons/share-icon';
 import Image from '@app/components/ui/image';
-import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
-import MuiSnackbar from '@app/components/ui/mui-snackbar';
-import environments from '@app/configs/environments';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
-import { toEndDottedStr } from '@app/utils/stringUtils';
-
-import FormsCard from '../cards/form-card';
-import FormsContainer from '../cards/form-container';
 
 interface IFormCard {
     workspaceId: string;

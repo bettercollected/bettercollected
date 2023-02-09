@@ -73,7 +73,7 @@ export default function ImportFormsMenu() {
                             openModal('IMPORT_GOOGLE_FORMS_VIEW');
                         }}
                     >
-                        <div className="rounded-full bg-white p-2">
+                        <div data-testid="google-menu-item" className="rounded-full bg-white p-2">
                             <Google />
                         </div>
                         Google
@@ -85,7 +85,7 @@ export default function ImportFormsMenu() {
                             openModal('IMPORT_TYPE_FORMS_VIEW');
                         }}
                     >
-                        <div className="rounded-full border h-[24px] w-[28px] border-white relative">
+                        <div data-testid="typeform-menu-item" className="rounded-full border h-[24px] w-[28px] border-white relative">
                             <Image src="/tf.png" className="rounded-full" layout="fill" alt={'T'} />
                         </div>
                         Typeform

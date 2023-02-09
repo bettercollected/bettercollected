@@ -6,15 +6,19 @@ const customJestConfig = {
     moduleNameMapper: {
         '^@app/(.*)$': '<rootDir>/src/$1'
     },
+    setupFilesAfterEnv: ['<rootDir>/src/utils/__test_utils__/setupTests.ts'],
     moduleDirectories: ['node_modules', '<rootDir>/'],
     testEnvironment: 'jest-environment-jsdom',
-    testMatch: ['**/__test__/*.ts?(x)']
+    testMatch: ['**/__test__/*.ts?(x)'],
+    transform: {
+        '^.+\\.(ts|tsx)?$': 'ts-jest'
+    }
 };
 
 async function jestConfig() {
     const nextJestConfig = await createJestConfig(customJestConfig)();
-    nextJestConfig.transformIgnorePatterns[0] = '/node_modules/(?!uuid)/';
+    nextJestConfig.transformIgnorePatterns = ['/node_modules/(?!uuid)/'];
     return nextJestConfig;
 }
 
-module.exports = jestConfig;
+module.exports = jestConfig();

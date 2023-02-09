@@ -60,12 +60,12 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
                 {workspace.profileImage && <Image src={workspace.profileImage + '?' + timeStamp} layout="fill" objectFit="contain" alt={workspace.title} />}
                 {isFormCreator() && (
                     <>
-                        <div className="absolute hidden w-full h-full bg-gray-700 p-2 !align-middle !text-center cursor-pointer text-gray-500 bottom-0 rounded-md opacity-50 editbannerdiv" onClick={onEditButtonClick}>
+                        <div data-testid="profile-image-edit" className="absolute hidden w-full h-full bg-gray-700 p-2 !align-middle !text-center cursor-pointer text-gray-500 bottom-0 rounded-md opacity-50 editbannerdiv" onClick={onEditButtonClick}>
                             <ModeEditIcon className="!w-6 !h-6 text-white" />
                         </div>
-                        <input ref={profileInputRef} type="file" accept="image/*" className="hidden" onChange={onUploadFileChange} />
+                        <input data-testid="file-upload-profile" ref={profileInputRef} type="file" accept="image/*" className="hidden" onChange={onUploadFileChange} />
                         <Dialog open={!!uploadImage} onClose={() => setUploadImage('')} aria-labelledby="modal-modal-title" aria-describedby="modal-modal-description">
-                            <div className="p-4">
+                            <div data-testid="profile-edit-dialog" className="p-4">
                                 <h1 className="font-bold text-lg mb-2">Update your profile picture</h1>
                                 <AvatarEditor crossOrigin="anonymous" ref={profileEditorRef} image={uploadImage} width={250} height={250} border={50} borderRadius={10000} color={[0, 0, 0, 0.6]} scale={scale} rotate={0} />
                                 <div className="flex mb-2 gap-1 text-3xl text-gray-600 justify-center items-center">
@@ -77,7 +77,7 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
                                     <Button variant="solid" color="info" className="hover:!translate-y-0 !rounded-md !shadow-none" onClick={() => profileInputRef.current?.click()}>
                                         Change Image
                                     </Button>
-                                    <Button isLoading={isLoading} variant="solid" color="info" className="hover:!translate-y-0 !rounded-md shadow-none" onClick={onProfileUpdateButtonClick}>
+                                    <Button data-testid="save-button" isLoading={isLoading} variant="solid" color="info" className="hover:!translate-y-0 !rounded-md shadow-none" onClick={onProfileUpdateButtonClick}>
                                         Save Image
                                     </Button>
                                 </div>

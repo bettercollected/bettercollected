@@ -112,7 +112,7 @@ export default function FormRenderer({ form }: any) {
         const gridAnswers = question.answer ? question.answer : [];
 
         return (
-            <div className="">
+            <div className="" data-testid="form-renderer">
                 <div className={`grid grid-flow-col grid-cols-${gridColumnCount + 1} gap-4`}>
                     <p></p>
                     {gridColumnOptions.map((gcp: any, idx: any) => (

@@ -16,3 +16,22 @@ export interface WorkspaceDto {
     mailSettings: string;
     id: string;
 }
+
+export const initWorkspaceDto: WorkspaceDto = {
+    title: '',
+    workspaceName: '',
+    description: '',
+    ownerId: '',
+    profileImage: '/favicon.ico',
+    bannerImage: '/favicon.ico',
+    customDomain: '',
+    theme: {
+        primary_color: '',
+        accent_color: '',
+        text_color: ''
+    },
+    privacy_policy_url: '',
+    terms_of_service_url: '',
+    mailSettings: '',
+    id: ''
+};

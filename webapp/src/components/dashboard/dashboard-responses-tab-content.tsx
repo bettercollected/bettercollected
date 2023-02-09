@@ -72,6 +72,8 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
 
     useEffect(() => {
         if (!!submissionId) {
+            console.log('Use effect triggered');
+
             const submissionQuery: IGetWorkspaceSubmissionQuery = {
                 workspace_id: workspaceId,
                 submission_id: submissionId
@@ -83,7 +85,7 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
                 .catch((e) => {
                     toast.error('Error fetching submission data.', { toastId: 'errorToast' });
                 });
-        } else return;
+        }
     }, [submissionId]);
 
     useEffect(() => {
@@ -141,7 +143,9 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
     const AllSubmissionsRenderer = () => {
         return (
             <>
-                <h1 className="text-2xl font-extrabold mb-4">Total Submissions ({responses.length})</h1>
+                <h1 data-testid="all-submissions-renderer" className="text-2xl font-extrabold mb-4">
+                    Total Submissions ({responses.length})
+                </h1>
                 {responses.length === 0 && <EmptyFormsView />}
                 {responses.length !== 0 && (
                     <>
@@ -179,7 +183,7 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
     return (
         <>
             {!!submissionId && <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />}
-            {!submissionId && <AllSubmissionsRenderer data-testid="all-submissions-renderer" />}
+            {!submissionId && <AllSubmissionsRenderer />}
             {!!form && !!submissionId && <FormRenderer form={form} />}
         </>
     );

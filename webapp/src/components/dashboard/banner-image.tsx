@@ -101,6 +101,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                         )}
                         {!!bannerImage && (
                             <div
+                                data-testid="save-button"
                                 style={{ pointerEvents: isLoading ? 'none' : 'auto' }}
                                 className={`p-2 ml-2 ${isLoading ? 'bg-gray-500' : '!bg-blue-600'} my-19 flex justify-center items-center  hover:bg-blue-700 cursor-pointer rounded-md`}
                                 onClick={onClickFileSaveButton}
@@ -111,7 +112,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                             </div>
                         )}
                     </div>
-                    <input ref={bannerImageInputRef} type="file" accept="image/*" className="hidden" onChange={onuploadFileChange} />
+                    <input ref={bannerImageInputRef} data-testid="file-upload" type="file" accept="image/*" className="hidden" onChange={onuploadFileChange} />
                 </div>
             )}
         </div>

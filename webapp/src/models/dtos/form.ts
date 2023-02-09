@@ -1,8 +1,8 @@
 export interface StandardFormQuestionDto {
     questionId: string;
-    formId: string;
+    formId?: string;
     title: string;
-    description: string | null | undefined;
+    description?: string | null;
     type:
         | {
               type: string;
@@ -10,11 +10,11 @@ export interface StandardFormQuestionDto {
           }
         | any;
     required: boolean | null | undefined;
-    isMediaContent: boolean;
-    mediaContent: boolean;
-    isGroupQuestion: boolean;
-    groupQuestion: any;
-    answer: any;
+    isMediaContent?: boolean;
+    mediaContent?: boolean;
+    isGroupQuestion?: boolean;
+    groupQuestion?: any;
+    answer?: any;
 }
 
 export interface StandardFormDto {
@@ -23,11 +23,11 @@ export interface StandardFormDto {
     description: string | null | undefined;
     settings: {
         pinned: boolean;
-        embedUrl: string;
+        embedUrl?: string;
         customUrl: string;
         private?: boolean;
         provider: string;
-        roles: Array<string>;
+        roles?: Array<string>;
     };
     questions: Array<StandardFormQuestionDto>;
     createdTime: string | Date;

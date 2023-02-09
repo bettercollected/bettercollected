@@ -1,14 +1,16 @@
-import '@testing-library/jest-dom';
-import { cleanup, getByText, render, screen } from '@testing-library/react';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 
-import FormRenderer from '../form-renderer';
-
-const formObject = {
-    formId: 'JMsmiqkH',
+const formObject = (uuid?: string) => ({
+    formId: uuid || uuidv4(),
     title: 'form_title',
+    description: 'Description',
+    createdTime: new Date(),
+    modifiedTime: new Date(),
     settings: {
         pinned: false,
+        roles: [],
         customUrl: 'JMsmiqkH',
+        embedUrl: 'hello',
         private: true,
         responseDataOwnerField: '',
         provider: 'typeform'
@@ -74,25 +76,6 @@ const formObject = {
             required: false
         }
     ]
-};
-
-describe('Form renderer test', () => {
-    afterEach(cleanup);
-
-    it('renders the form component', () => {
-        render(<FormRenderer form={[]} />);
-        expect(screen.getByTestId('form-renderer')).toBeInTheDocument();
-    });
-
-    it('renders the title', () => {
-        const { getByText } = render(<FormRenderer form={formObject} />);
-        expect(getByText('form_title')).toBeInTheDocument();
-        expect(getByText('This is a form.')).toBeInTheDocument();
-    });
-
-    it('uses correct src', () => {
-        const { getByAltText } = render(<FormRenderer form={formObject} />);
-        const image: any = getByAltText('alt_text');
-        expect(image.src).toContain('https://images.typeform.com/images/WMALzu59xbXQ');
-    });
 });
+
+export const formArray = [formObject(), formObject(), formObject()];

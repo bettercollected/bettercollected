@@ -22,14 +22,14 @@ export default function WorkspaceResponsesTabContent({ workspace }: any) {
 
     if (isLoading)
         return (
-            <div className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
+            <div data-testid="loader" className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
                 <Loader />
             </div>
         );
 
     if ((data?.payload?.content && Array.isArray(data?.payload?.content) && data?.payload?.content?.length === 0) || isError)
         return (
-            <div className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
+            <div data-testid="empty-forms-view" className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
                 <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />
                 <p className="mt-4 p-0">0 forms</p>
             </div>
