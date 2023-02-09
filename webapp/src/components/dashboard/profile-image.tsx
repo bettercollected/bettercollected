@@ -17,6 +17,7 @@ import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 export default function ProfileImageComponent(props: BannerImageComponentPropType) {
     const { workspace, isFormCreator } = props;
     const [uploadImage, setUploadImage] = useState('');
+    const [openDialog, setOpenDialog] = useState(false);
     const [scale, setScale] = useState(1);
     const profileInputRef = useRef<HTMLInputElement>(null);
     const profileEditorRef = useRef<AvatarEditor>(null);
@@ -29,7 +30,8 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
     };
 
     const onEditButtonClick = () => {
-        if (!!profileInputRef.current) profileInputRef.current.click();
+        setOpenDialog(true);
+        setUploadImage(workspace.profileImage);
     };
 
     const onProfileUpdateButtonClick = async () => {
@@ -46,25 +48,23 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
             }
             if (response.data) {
                 toast('Workspace Updated', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
-                setUploadImage('');
+                setOpenDialog(false);
                 router.push(router.asPath, undefined);
             }
         } else return;
     };
 
-    const timeStamp = new Date().getTime();
-
     return (
         <div className="product-box">
             <div className="bannerdiv product-image bg-white absolute border-[1px] border-neutral-300 hover:border-neutral-400 rounded-full z-10 h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 xl:h-40 xl:w-40 2xl:h-[180px] 2xl:w-[180px] overflow-hidden -top-12 sm:-top-16 md:-top-20 xl:-top-[88px] 2xl:-top-24">
-                {workspace.profileImage && <Image src={workspace.profileImage + '?' + timeStamp} layout="fill" objectFit="contain" alt={workspace.title} />}
+                {workspace.profileImage && <Image src={workspace.profileImage} layout="fill" objectFit="contain" alt={workspace.title} />}
                 {isFormCreator() && (
                     <>
                         <div data-testid="profile-image-edit" className="absolute hidden w-full h-full bg-gray-700 p-2 !align-middle !text-center cursor-pointer text-gray-500 bottom-0 rounded-md opacity-50 editbannerdiv" onClick={onEditButtonClick}>
                             <ModeEditIcon className="!w-6 !h-6 text-white" />
                         </div>
                         <input data-testid="file-upload-profile" ref={profileInputRef} type="file" accept="image/*" className="hidden" onChange={onUploadFileChange} />
-                        <Dialog open={!!uploadImage} onClose={() => setUploadImage('')} aria-labelledby="modal-modal-title" aria-describedby="modal-modal-description">
+                        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} aria-labelledby="modal-modal-title" aria-describedby="modal-modal-description">
                             <div data-testid="profile-edit-dialog" className="p-4">
                                 <h1 className="font-bold text-lg mb-2">Update your profile picture</h1>
                                 <AvatarEditor crossOrigin="anonymous" ref={profileEditorRef} image={uploadImage} width={250} height={250} border={50} borderRadius={10000} color={[0, 0, 0, 0.6]} scale={scale} rotate={0} />
@@ -74,7 +74,7 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
                                     <p>+</p>
                                 </div>
                                 <div className="flex justify-between">
-                                    <Button variant="solid" color="info" className="hover:!translate-y-0 !rounded-md !shadow-none" onClick={() => profileInputRef.current?.click()}>
+                                    <Button variant="solid" color="info" disabled={isLoading} className="hover:!translate-y-0 !rounded-md !shadow-none" onClick={() => profileInputRef.current?.click()}>
                                         Change Image
                                     </Button>
                                     <Button data-testid="save-button" isLoading={isLoading} variant="solid" color="info" className="hover:!translate-y-0 !rounded-md shadow-none" onClick={onProfileUpdateButtonClick}>
