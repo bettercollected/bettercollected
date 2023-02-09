@@ -9,7 +9,7 @@ export interface StandardFormQuestionDto {
               options: Array<any>;
           }
         | any;
-    required: boolean | null | undefined;
+    required?: boolean | null | undefined;
     isMediaContent?: boolean;
     mediaContent?: boolean;
     isGroupQuestion?: boolean;
@@ -20,18 +20,24 @@ export interface StandardFormQuestionDto {
 export interface StandardFormDto {
     formId: string;
     title: string;
-    description: string | null | undefined;
-    settings: {
+    description?: string | null | undefined;
+    provider?: string;
+    dataOwnerIdentifier?: string;
+    settings?: {
         pinned: boolean;
         embedUrl?: string;
         customUrl: string;
+        responseDataOwnerField?: string;
         private?: boolean;
         provider: string;
         roles?: Array<string>;
     };
     questions: Array<StandardFormQuestionDto>;
-    createdTime: string | Date;
-    modifiedTime: string | Date;
+    createdTime?: string | Date;
+    modifiedTime?: string | Date;
+    responseId?: string;
+    responseCreatedAt?: string;
+    responseUpdatedAt?: string;
 }
 
 export interface StandardFormResponseDto {

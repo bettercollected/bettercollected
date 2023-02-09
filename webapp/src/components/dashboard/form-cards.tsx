@@ -34,7 +34,7 @@ const FormCards = ({ title, formsArray, workspace }: FormCardsProps) => {
             {!!title && <h1 className=" text-gray-700 font-semibold text-md md:text-lg mb-4">{title}</h1>}
             <FormsContainer>
                 {formsArray.map((form: StandardFormDto) => {
-                    const slug = form.settings.customUrl;
+                    const slug = form.settings?.customUrl;
                     let shareUrl = '';
                     if (window && typeof window !== 'undefined') {
                         shareUrl = isCustomDomain ? `${window.location.origin}/forms/${slug}` : `${window.location.origin}/${workspace.workspaceName}/forms/${slug}`;
@@ -51,7 +51,7 @@ const FormCards = ({ title, formsArray, workspace }: FormCardsProps) => {
                                 <div className="flex flex-col justify-start h-full">
                                     <div className="flex mb-4 w-full items-center space-x-4">
                                         <div>
-                                            {form?.settings.provider === 'typeform' ? (
+                                            {form?.settings?.provider === 'typeform' ? (
                                                 <div className="rounded-full border h-[24px] w-[28px] border-white relative">
                                                     <Image src="/tf.png" className="rounded-full" layout="fill" alt={'T'} />
                                                 </div>
