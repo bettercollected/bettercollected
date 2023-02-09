@@ -4,13 +4,12 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import Google from '@mui/icons-material/Google';
-import PersonIcon from '@mui/icons-material/Person';
 import { toast } from 'react-toastify';
 
 import EmptyFormsView from '@app/components/dashboard/empty-form';
 import BreadcrumbRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
+import { Google } from '@app/components/icons/brands/google';
 import { HomeIcon } from '@app/components/icons/home';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
@@ -137,8 +136,8 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
                                                         <div className="pl-1 text-2xl text-grey font-bold">{!!form.dataOwnerIdentifier ? form.dataOwnerIdentifier : <p className="italic">Anonymous</p>}</div>
                                                     </div>
                                                     <div className="flex items-center">
-                                                        <CalendarMonthIcon className="text-gray-400 text-[20px]" />
-                                                        <div className="pl-1 text-sm font-bold text-gray-400">{!!form.createdAt ? toMonthDateYearStr(new Date(form.createdAt)) : 'N/A'}</div>
+                                                        <CalendarMonthIcon className="text-gray-400 text-[18px]" />
+                                                        <div className="pl-1 text-sm italic text-gray-400">Last submitted on {!!form.updatedAt ? toMonthDateYearStr(new Date(form.updatedAt)) : 'N/A'}</div>
                                                     </div>
                                                 </div>
                                             </div>
