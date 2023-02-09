@@ -118,7 +118,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
                                                 className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]"
                                             >
                                                 <div className="flex flex-col justify-start h-full overflow-hidden">
-                                                    <div className="flex mb-2 w-full items-center space-x-4">
+                                                    <div className="flex mb-2 w-full items-center space-x-2">
                                                         <div>
                                                             {form.provider === 'typeform' ? (
                                                                 <div className="rounded-full border h-[24px] w-[28px] border-white relative">
@@ -130,11 +130,9 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <p className="text-sm text-gray-400 italic ">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.responseId, 15) : toEndDottedStr(form.responseId, 30)}</p>
+                                                        <div className="text-2xl text-grey font-bold">{!!form.dataOwnerIdentifier ? form.dataOwnerIdentifier : <p className="italic">Anonymous</p>}</div>
                                                     </div>
-                                                    <div className="flex items-center mb-2">
-                                                        <div className="pl-1 text-2xl text-grey font-bold">{!!form.dataOwnerIdentifier ? form.dataOwnerIdentifier : <p className="italic">Anonymous</p>}</div>
-                                                    </div>
+                                                    <div className="flex items-center mb-2"></div>
                                                     <div className="flex items-center">
                                                         <CalendarMonthIcon className="text-gray-400 text-[18px]" />
                                                         <div className="pl-1 text-sm italic text-gray-400">Last submitted on {!!form.updatedAt ? toMonthDateYearStr(new Date(form.updatedAt)) : 'N/A'}</div>
