@@ -5,33 +5,33 @@ export interface WorkspaceDto {
     ownerId: string;
     profileImage: string;
     bannerImage: string;
-    customDomain: string;
-    theme: {
+    customDomain?: string;
+    theme?: {
         primary_color: string;
         accent_color: string;
         text_color: string;
     };
     privacy_policy_url: string;
     terms_of_service_url: string;
-    mailSettings: string;
+    mailSettings?: string;
     id: string;
 }
 
 export const initWorkspaceDto: WorkspaceDto = {
-    title: '',
-    workspaceName: '',
-    description: '',
-    ownerId: '',
-    profileImage: '/favicon.ico',
-    bannerImage: '/favicon.ico',
+    title: 'My title',
+    workspaceName: 'ankit-sapkota',
+    description: 'Description',
+    ownerId: '63ca5518b613f81e118e3d8c',
+    profileImage: '',
+    bannerImage: '',
     customDomain: '',
     theme: {
         primary_color: '',
         accent_color: '',
         text_color: ''
     },
-    privacy_policy_url: '',
-    terms_of_service_url: '',
+    privacy_policy_url: 'https://bettercollected.com/legal/privacy-policy-2022.pdf',
+    terms_of_service_url: 'https://bettercollected.com/legal/terms-and-conditions-2022.pdf',
     mailSettings: '',
-    id: ''
+    id: '63ca5518b613f81e118e3d8d'
 };

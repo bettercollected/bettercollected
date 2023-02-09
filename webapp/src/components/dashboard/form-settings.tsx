@@ -55,10 +55,10 @@ export default function FormSettingsTab() {
 
     const onBlur = () => {
         if (!customUrl) {
-            setCustomUrl(form.settings.customUrl);
+            setCustomUrl(form.settings?.customUrl || form.formId);
             setError(false);
         }
-        if (error || form.settings.customUrl === customUrl || !customUrl) return;
+        if (error || form.settings?.customUrl === customUrl || !customUrl) return;
 
         patchSettings({ customUrl }).catch((e) => {});
     };

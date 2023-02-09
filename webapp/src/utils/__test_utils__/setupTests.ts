@@ -3,6 +3,14 @@ import 'whatwg-fetch';
 
 import { server } from '@app/mock/api/server';
 
+jest.mock('@app/configs/environments', () => ({
+    ENABLE_GOOGLE: true,
+    ENABLE_TYPEFORM: true,
+    CLIENT_HOST: 'localhost:3000',
+    // api host configs
+    API_ENDPOINT_HOST: 'http://localhost:8000'
+}));
+
 // Establish API mocking before all tests.
 beforeAll(() => {
     server.listen();

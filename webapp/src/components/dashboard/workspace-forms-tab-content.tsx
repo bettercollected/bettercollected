@@ -50,8 +50,8 @@ export default function WorkspaceFormsTabContent({ workspace }: any) {
 
     useEffect(() => {
         if (!!data) {
-            const pinnedForms = data.payload.content.filter((form) => form.settings.pinned);
-            const unpinnedForms = data.payload.content.filter((form) => !form.settings.pinned);
+            const pinnedForms = data.payload.content.filter((form) => form.settings?.pinned);
+            const unpinnedForms = data.payload.content.filter((form) => !form.settings?.pinned);
             setPinnedForms(pinnedForms);
             setUnpinnedForms(unpinnedForms);
             setShowUnpinnedForms(unpinnedForms.length > 0);
@@ -79,29 +79,22 @@ export default function WorkspaceFormsTabContent({ workspace }: any) {
 
     if (isLoading)
         return (
-            <div className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
+            <div data-testid="loader" className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
                 <Loader />
             </div>
         );
+    const forms: Array<StandardFormDto> = data?.payload?.content ?? [];
 
-    if ((data?.payload?.content && Array.isArray(data?.payload?.content) && data?.payload?.content?.length === 0) || isError)
+    if ((data?.payload?.content && Array.isArray(data?.payload?.content) && data?.payload?.content?.length === 0) || isError || forms.length === 0)
         return (
-            <div className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
+            <div data-testid="empty-view" className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
                 <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />
                 <p className="mt-4 p-0">0 forms</p>
             </div>
         );
 
-    const forms: Array<StandardFormDto> = data?.payload?.content ?? [];
-
     return (
         <>
-            {forms.length === 0 && (
-                <div className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
-                    <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />
-                    <p className="mt-4 p-0">0 forms</p>
-                </div>
-            )}
             {pinnedForms.length !== 0 && <FormCards title="Pinned Forms" workspace={workspace} formsArray={pinnedForms} />}
             {showUnpinnedForms && (
                 <>

@@ -1,18 +1,6 @@
-import { rest } from 'msw';
+import { workspace_forms_handlers } from '@app/mock/api/workspace_forms_handlers';
+import { workspace_handlers } from '@app/mock/api/workspace_handlers';
+import { workspace_import_handlers } from '@app/mock/api/workspace_import_handlers';
+import { workspace_responses_handlers } from '@app/mock/api/workspace_responses_handlers';
 
-export const handlers = [
-    rest.get('http://localhost:8000/workspaces/abc/submissions/', (req, res, ctx) => {
-        // successful response
-        return res(
-            ctx.status(200),
-            ctx.json([
-                { id: 1, name: 'Xabi Alonzo' },
-                { id: 2, name: 'Lionel Messi' },
-                { id: 3, name: 'Lionel Love' },
-                { id: 4, name: 'Lionel Poe' },
-                { id: 5, name: 'Lionel Gink' }
-            ]),
-            ctx.delay(30)
-        );
-    })
-];
+export const handlers = [...workspace_handlers, ...workspace_forms_handlers, workspace_responses_handlers, ...workspace_import_handlers];

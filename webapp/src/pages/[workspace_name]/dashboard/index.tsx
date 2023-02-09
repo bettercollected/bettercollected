@@ -2,23 +2,22 @@ import React, { useState } from 'react';
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 
 import { PushPin } from '@mui/icons-material';
 
 import EmptyFormsView from '@app/components/dashboard/empty-form';
 import ImportFormsMenu from '@app/components/dashboard/import-forms-menu';
 import { Google } from '@app/components/icons/brands/google';
-import { useModal } from '@app/components/modal-views/context';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
-export default function CreatorDashboard({ workspace, hasCustomDomain }: { workspace: any; hasCustomDomain: boolean }) {
+export default function CreatorDashboard({ workspace, hasCustomDomain }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
     const workspaceQuery = {
         workspace_id: workspace.id
     };
@@ -63,7 +62,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                 <div className="grid grid-cols-1 pb-4 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
                     {forms?.length !== 0 &&
                         forms?.map((form: StandardFormDto) => {
-                            const slug = form.settings.customUrl;
+                            const slug = form.settings?.customUrl;
                             let shareUrl = '';
                             if (window && typeof window !== 'undefined') {
                                 shareUrl = hasCustomDomain ? `${window.location.origin}/forms/${slug}` : `https://`;
@@ -75,7 +74,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                                             <div className="w-full ">
                                                 <div className="flex mb-4 w-full items-center space-x-4">
                                                     <div>
-                                                        {form?.settings.provider === 'typeform' ? (
+                                                        {form?.settings?.provider === 'typeform' ? (
                                                             <div className="rounded-full border h-[24px] w-[28px] border-white relative">
                                                                 <Image src="/tf.png" className="rounded-full" layout="fill" alt={'T'} />
                                                             </div>
@@ -96,8 +95,8 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                                             </div>
 
                                             <div className="flex pt-3 justify-between">
-                                                {<div className="rounded space-x-2 text-xs px-2 flex py-1 items-center text-gray-500 bg-gray-100">{form?.settings.private ? 'Hidden' : 'Public'}</div>}
-                                                {form.settings.pinned && <PushPin className="rotate-45" />}
+                                                {<div className="rounded space-x-2 text-xs px-2 flex py-1 items-center text-gray-500 bg-gray-100">{form?.settings?.private ? 'Hidden' : 'Public'}</div>}
+                                                {form.settings?.pinned && <PushPin className="rotate-45" />}
                                             </div>
                                         </div>
                                     </div>
