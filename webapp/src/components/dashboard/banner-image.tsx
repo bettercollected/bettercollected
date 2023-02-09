@@ -69,7 +69,13 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                     }}
                 </TransformWrapper>
             ) : (
-                <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
+                <>
+                    {!!workspace.bannerImage ? (
+                        <Image src={workspace?.bannerImage ?? ''} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
+                    ) : (
+                        <div className="flex h-full justify-center items-center">No image available</div>
+                    )}
+                </>
             )}
             {isFormCreator() && (
                 <div className={`absolute bottom-2 right-4 hidden ${!!bannerImage ? '!block' : 'editbannerdiv'}`}>
