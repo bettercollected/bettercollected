@@ -6,6 +6,7 @@ import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
 import { Copy } from '@app/components/icons/copy';
+import { ShareIcon } from '@app/components/icons/share-icon';
 import environments from '@app/configs/environments';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { setFormSettings } from '@app/store/forms/slice';
@@ -110,14 +111,14 @@ export default function FormSettingsTab() {
             </div>
             <div className="mt-5 space-y-2">
                 <div className="text-gray-700 font-bold">Form URLs</div>
-                <div className="text-gray-800 underline w-fit items-center rounded px-4 py-2 flex bg-gray-100">
+                <div className="text-gray-800 space-x-4 underline w-fit items-center rounded px-4 py-2 flex bg-gray-100">
                     <p>
                         {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{environments.CLIENT_HOST}/{workspace.workspaceName}/forms/{getFirstFiveSlugName(customUrl)}
                     </p>
                     <Copy
                         width="16px"
                         height="16px"
-                        className="ml-4 cursor-pointer"
+                        className="cursor-pointer"
                         onClick={() => {
                             copyToClipboard(`${environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`);
                             toast('Form URL Copied', {
@@ -125,16 +126,19 @@ export default function FormSettingsTab() {
                             });
                         }}
                     />
+                    <a href={`${environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`} target="_blank" referrerPolicy="no-referrer-when-downgrade" rel="noreferrer">
+                        <ShareIcon width={19} height={19} />
+                    </a>
                 </div>
                 {isCustomDomain && (
-                    <div className="text-gray-800 underline w-fit items-center rounded px-4 py-2 flex bg-gray-100">
+                    <div className="text-gray-800 underline space-x-4 w-fit items-center rounded px-4 py-2 flex bg-gray-100">
                         <p className="text-ellipsis whitespace-pre-wrap">
                             {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{workspace.customDomain}/forms/{getFirstFiveSlugName(customUrl)}
                         </p>
                         <Copy
                             width="16px"
                             height="16px"
-                            className="ml-4 cursor-pointer"
+                            className="cursor-pointer"
                             onClick={() => {
                                 copyToClipboard(`${environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`);
                                 toast('Form URL Copied', {
@@ -142,6 +146,9 @@ export default function FormSettingsTab() {
                                 });
                             }}
                         />
+                        <a href={`${environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`} target="_blank" referrerPolicy="no-referrer-when-downgrade" rel="noreferrer">
+                            <ShareIcon width={19} height={19} />
+                        </a>
                     </div>
                 )}
             </div>

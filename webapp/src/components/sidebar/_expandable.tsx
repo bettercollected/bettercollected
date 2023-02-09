@@ -80,7 +80,7 @@ export default function SidebarExpandable() {
                 <div className="h-full px-6 pb-5 2xl:px-8">
                     {!open ? (
                         <div className="flex h-full flex-col justify-between">
-                            <div className="mt-8 mb-2">
+                            <div className="mt-6 mb-2">
                                 {menuItems.map((item, index) => (
                                     <MenuItem key={index} link={!!item.href} href={item.href} icon={item.icon} />
                                 ))}
