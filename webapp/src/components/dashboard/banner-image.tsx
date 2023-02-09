@@ -56,23 +56,6 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
         });
     };
 
-    // function ConditionalImageRendering() {
-    //     switch (!!bannerImage) {
-    //         case false:
-    //             return <Image src={workspace.bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />;
-    //         case true:
-    //             return (
-    //                 <TransformWrapper ref={transformComponentRef}>
-    //                     <TransformComponent wrapperStyle={{ maxHeight: 'calc(100vh)', maxWidth: '100%', height: '100%', width: '100%' }}>
-    //                         <img src={bannerImage} alt="test" />
-    //                     </TransformComponent>
-    //                 </TransformWrapper>
-    //             );
-    //         default:
-    //             return <></>;
-    //     }
-    // }
-
     return (
         <div className="relative overflow-hidden h-44 w-full md:h-80 xl:h-[380px] bannerdiv">
             {!!bannerImage ? (
