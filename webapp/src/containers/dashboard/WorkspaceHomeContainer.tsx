@@ -23,7 +23,7 @@ interface IDashboardContainer {
 
 export interface BannerImageComponentPropType {
     workspace: WorkspaceDto;
-    isFormCreator: () => Boolean;
+    isFormCreator: Boolean;
 }
 
 export default function DashboardContainer({ workspace, isCustomDomain }: IDashboardContainer) {
@@ -32,15 +32,9 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
     const authStatus = useGetStatusQuery('status');
     const { openModal } = useModal();
 
-    const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
-    const selectGetStatus = useAppSelector(statusQuerySelect);
-
     if (!workspace || authStatus.isLoading) return <FullScreenLoader />;
 
-    function isFormCreator(): Boolean {
-        if (!selectGetStatus?.data?.payload?.content?.user?.id || !workspace?.ownerId) return false;
-        return selectGetStatus?.data?.payload?.content?.user?.id === workspace?.ownerId;
-    }
+    const isFormCreator = authStatus.isSuccess && authStatus?.data?.payload?.content?.user?.id === workspace?.ownerId;
 
     const handleLogout = async () => {
         trigger().finally(() => {
@@ -61,13 +55,13 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                 <div className="flex justify-between items-center">
                     <ProfileImageComponent workspace={workspace} isFormCreator={isFormCreator} />
                     <div className="mt-2 mb-0 flex items-center">
-                        {!!selectGetStatus.error ? (
+                        {!!authStatus.error ? (
                             <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
                                 Check My Data
                             </Button>
                         ) : (
                             <>
-                                {isFormCreator() && (
+                                {isFormCreator && (
                                     <a
                                         target="_blank"
                                         referrerPolicy="no-referrer"
@@ -81,10 +75,10 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                                         </div>
                                     </a>
                                 )}
-                                {!!selectGetStatus.data.payload.content.user.sub && (
+                                {!!authStatus.data?.payload.content.user.sub && (
                                     <>
-                                        <div className="px-5 py-3 bg-gray-100 md:hidden mr-2 md:mr-5 text-gray-800 rounded-xl capitalize">{selectGetStatus.data.payload.content.user.sub[0]}</div>
-                                        <div className="py-3 px-5 hidden sm:flex rounded-full text-gray-700 border-solid italic border-[1px] border-[#eaeaea]">{selectGetStatus.data.payload.content.user.sub}</div>
+                                        <div className="px-5 py-3 bg-gray-100 md:hidden mr-2 md:mr-5 text-gray-800 rounded-xl capitalize">{authStatus.data.payload.content.user.sub[0]}</div>
+                                        <div className="py-3 px-5 hidden sm:flex rounded-full text-gray-700 border-solid italic border-[1px] border-[#eaeaea]">{authStatus.data.payload.content.user.sub}</div>
                                     </>
                                 )}
                                 <Button variant="solid" className="ml-3 !px-3 !py-6 !rounded-xl !bg-[#ffe0e0]" onClick={handleLogout}>
@@ -98,7 +92,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                     </div>
                 </div>
                 <WorkspaceHeader workspace={workspace} />
-                <FormsAndSubmissionsTabContainer workspace={workspace} workspaceId={workspace.id} showResponseBar={!!selectGetStatus.error} />
+                <FormsAndSubmissionsTabContainer workspace={workspace} workspaceId={workspace.id} showResponseBar={!!authStatus.error} />
                 <WorkspaceFooter workspace={workspace} isCustomDomain={isCustomDomain} />
             </Layout>
         </div>
