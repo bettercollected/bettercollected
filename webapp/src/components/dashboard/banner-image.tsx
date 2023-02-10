@@ -77,7 +77,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                     )}
                 </>
             )}
-            {isFormCreator() && (
+            {isFormCreator && (
                 <div className={`absolute bottom-2 right-4 hidden ${!!bannerImage ? '!block' : 'editbannerdiv'}`}>
                     <div className="flex justify-between">
                         {!isLoading && (

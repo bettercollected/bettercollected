@@ -1,7 +1,5 @@
 import React, { useRef, useState } from 'react';
 
-import { useRouter } from 'next/router';
-
 import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
