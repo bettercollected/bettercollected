@@ -77,6 +77,10 @@ Models
 
 .. automodule:: bettercollected_backend_server.app.models
 
+.. autoclass:: bettercollected_backend_server.app.models.workspace.Workspace
+   :members:
+   :show-inheritance:
+
 Views
 ~~~~~
 
