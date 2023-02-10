@@ -1,6 +1,6 @@
 import { StandardFormDto } from '@app/models/dtos/form';
 
-export const dashboard_form: StandardFormDto = {
+export const dashboardFormMock: StandardFormDto = {
     formId: '1HsoSajeOrNZhdddDwquVzwIHp1b9UHccZp8AiYFNslk',
     title: 'Contact information',
     settings: {
@@ -73,8 +73,8 @@ export const dashboard_form: StandardFormDto = {
     ]
 };
 
-export const dashboard_forms_array = [
-    dashboard_form,
+export const dashboardFormsArrayMock = [
+    dashboardFormMock,
     {
         formId: '1lWq-fpqmuxt3iKuz7h_siwc9y_vGkpgnoNxXg0cZNXc',
         title: 'Event registration',
