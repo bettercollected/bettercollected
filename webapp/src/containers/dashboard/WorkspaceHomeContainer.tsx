@@ -38,7 +38,8 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
     if (!workspace || authStatus.isLoading) return <FullScreenLoader />;
 
     function isFormCreator(): Boolean {
-        return selectGetStatus.data.payload.content.user.id === workspace.ownerId;
+        if (!selectGetStatus?.data?.payload?.content?.user?.id || !workspace?.ownerId) return false;
+        return selectGetStatus?.data?.payload?.content?.user?.id === workspace?.ownerId;
     }
 
     const handleLogout = async () => {
@@ -66,7 +67,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                             </Button>
                         ) : (
                             <>
-                                {selectGetStatus.data?.payload?.content.user.id === workspace.ownerId && (
+                                {isFormCreator() && (
                                     <a
                                         target="_blank"
                                         referrerPolicy="no-referrer"
