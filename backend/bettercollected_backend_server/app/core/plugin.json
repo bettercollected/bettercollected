@@ -1,0 +1,15 @@
+{
+  "plugins": ["plugins.google", "plugins.typeform"],
+  "providers": [
+    {
+      "enabled": "true",
+      "provider": "google",
+      "type": "oauth2",
+      "scope": "",
+      "token_endpoint": ""
+    },
+    {
+      "provider": "typeform"
+    }
+  ]
+}
