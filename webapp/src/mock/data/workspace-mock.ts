@@ -1,6 +1,6 @@
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
-const workspace: WorkspaceDto = {
+export const workspaceMock: WorkspaceDto = {
     title: 'My title',
     workspaceName: 'ankit-sapkota',
     description: 'Description',
