@@ -38,7 +38,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
     if (!workspace || authStatus.isLoading) return <FullScreenLoader />;
 
     function isFormCreator(): Boolean {
-        if (!selectGetStatus?.data?.payload?.content?.user?.id || workspace?.ownerId) return false;
+        if (!selectGetStatus?.data?.payload?.content?.user?.id || !workspace?.ownerId) return false;
         return selectGetStatus?.data?.payload?.content?.user?.id === workspace?.ownerId;
     }
 
