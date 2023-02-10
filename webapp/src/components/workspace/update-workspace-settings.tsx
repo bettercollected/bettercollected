@@ -62,7 +62,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             dispatch(setWorkspace(response.data));
             toast.info(updateDomain ? 'Updated custom Domain of workspace!' : 'Updated workspace handle', { toastId: ToastId.SUCCESS_TOAST });
             if (!updateDomain) {
-                router.push(router.asPath, undefined, { shallow: true });
+                router.replace(`/${response.data.workspaceName}/dashboard/settings?view=settings-advanced`);
             }
             closeModal();
         } else if (response.error) {
@@ -75,7 +75,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
         const res: any = await deleteWorkspaceDomain(workspace.id);
         if (res.data) {
             dispatch(setWorkspace(res.data));
-            router.push(router.asPath, undefined, { shallow: true });
+            router.push(router.asPath);
         } else {
             toast('Error Deleting Workspace', {
                 type: 'error'
@@ -116,7 +116,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                                 }}
                                 className="font-bold"
                             />
-                            {workspace.customDomain && (
+                            {workspace.customDomain && updateDomain && (
                                 <button onClick={delete_custom_domain}>
                                     <DeleteOutline className="text-red-500 bg-red-100 h-[35px] w-[35px] rounded p-1.5" />
                                 </button>
