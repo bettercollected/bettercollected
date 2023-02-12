@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 from click import BadParameter
-from integrations_typeform.cli.utils import validate_directory
+from typeform.cli.utils import validate_directory
 
 
 class TestValidateDirectory:

@@ -2,10 +2,10 @@
 import logging
 
 import click
-from integrations_typeform.cli.serve import serve
+from typeform.cli.serve import serve
 
 
-cmd_help = "Integrations-typeform CLI root."
+cmd_help = "typeform CLI root."
 
 
 @click.group(help=cmd_help)

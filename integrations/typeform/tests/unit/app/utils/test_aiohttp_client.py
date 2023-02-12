@@ -1,7 +1,7 @@
 import pytest
 import aiohttp
 from aioresponses import aioresponses
-from integrations_typeform.app.utils import AiohttpClient
+from typeform.app.utils import AiohttpClient
 
 
 class TestAiohttpClient:

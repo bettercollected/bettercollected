@@ -8,19 +8,19 @@ This package exposes simple CLI for easier interaction:
 
 .. code-block:: bash
 
-    $ integrations-typeform --help
-    Usage: integrations-typeform [OPTIONS] COMMAND [ARGS]...
+    $ typeform --help
+    Usage: typeform [OPTIONS] COMMAND [ARGS]...
 
-      Integrations-typeform CLI root.
+      typeform CLI root.
 
     Options:
       -v, --verbose  Enable verbose logging.
       --help         Show this message and exit.
 
     Commands:
-      serve  integrations-typeform CLI serve command.
-    $ integrations-typeform serve --help
-    Usage: integrations-typeform serve [OPTIONS]
+      serve  typeform CLI serve command.
+    $ typeform serve --help
+    Usage: typeform serve [OPTIONS]
 
       Run production gunicorn (WSGI) server with uvicorn (ASGI) workers.
 
@@ -44,7 +44,7 @@ To run production unicorn + uvicorn (WSGI + ASGI) server you can use project CLI
 
 .. code-block:: bash
 
-    integrations-typeform serve
+    typeform serve
     [2022-04-23 20:21:49 +0000] [4769] [INFO] Start gunicorn WSGI with ASGI workers.
     [2022-04-23 20:21:49 +0000] [4769] [INFO] Starting gunicorn 20.1.0
     [2022-04-23 20:21:49 +0000] [4769] [INFO] Listening at: http://127.0.0.1:8000 (4769)
@@ -76,11 +76,11 @@ This project provides Dockerfile for containerized environment.
 .. code-block:: bash
 
     $ make image
-    $ podman run -dit --name integrations-typeform -p 8000:8000 integrations-typeform:$(cat TAG)
+    $ podman run -dit --name typeform -p 8000:8000 typeform:$(cat TAG)
     f41e5fa7ffd512aea8f1aad1c12157bf1e66f961aeb707f51993e9ac343f7a4b
     $ podman ps
     CONTAINER ID  IMAGE                                 COMMAND               CREATED        STATUS            PORTS                   NAMES
-    f41e5fa7ffd5  localhost/integrations-typeform:0.1.0  /usr/bin/fastapi ...  2 seconds ago  Up 3 seconds ago  0.0.0.0:8000->8000/tcp  integrations-typeform
+    f41e5fa7ffd5  localhost/typeform:0.1.0  /usr/bin/fastapi ...  2 seconds ago  Up 3 seconds ago  0.0.0.0:8000->8000/tcp  typeform
     $ curl localhost:8000/api/ready
     {"status":"ok"}
 
@@ -90,7 +90,7 @@ This project provides Dockerfile for containerized environment.
 Development
 -----------
 
-You can implement your own web routes logic straight away in ``integrations_typeform.controllers`` submodule. For more information please see `FastAPI documentation <https://fastapi.tiangolo.com/tutorial/>`__.
+You can implement your own web routes logic straight away in ``typeform.controllers`` submodule. For more information please see `FastAPI documentation <https://fastapi.tiangolo.com/tutorial/>`__.
 
 Makefile
 ~~~~~~~~
@@ -102,13 +102,13 @@ Provided Makefile is a starting point for application and infrastructure develop
     Usage:
       make <target>
       help             Display this help
-      image            Build integrations-typeform image
-      clean-image      Clean integrations-typeform image
-      install          Install integrations-typeform with poetry
-      metrics          Run integrations-typeform metrics checks
-      unit-test        Run integrations-typeform unit tests
-      integration-test  Run integrations-typeform integration tests
-      docs             Build integrations-typeform documentation
+      image            Build typeform image
+      clean-image      Clean typeform image
+      install          Install typeform with poetry
+      metrics          Run typeform metrics checks
+      unit-test        Run typeform unit tests
+      integration-test  Run typeform integration tests
+      docs             Build typeform documentation
       dev-env          Start a local Kubernetes cluster using minikube and deploy application
       clean            Remove .cache directory and cached minikube
 
@@ -117,8 +117,8 @@ Utilities
 
 Available utilities:
 
-* RedisClient ``integrations_typeform.app.utils.redis``
-* AiohttpClient ``integrations_typeform.app.utils.aiohttp_client``
+* RedisClient ``typeform.app.utils.redis``
+* AiohttpClient ``typeform.app.utils.aiohttp_client``
 
 They're initialized in ``asgi.py`` on FastAPI startup event handler:
 
@@ -159,7 +159,7 @@ Example:
 
 .. code-block:: python
 
-    from integrations_typeform.app.utils import RedisClient
+    from typeform.app.utils import RedisClient
 
     response = RedisClient.get("Key")
 
@@ -168,7 +168,7 @@ Exceptions
 
 **HTTPException and handler**
 
-.. literalinclude:: ../integrations_typeform/app/exceptions/http.py
+.. literalinclude:: ../typeform/app/exceptions/http.py
     :language: python
 
 This exception combined with ``http_exception_handler`` method allows you to use it the same manner as you'd use ``FastAPI.HTTPException`` with one difference.
@@ -196,7 +196,7 @@ Priority of overriding configuration:
 2. environment variables
 3. ``gunicorn.py``
 
-All application configuration is available in ``integrations_typeform.config`` submodule.
+All application configuration is available in ``typeform.config`` submodule.
 
 Environment variables
 ~~~~~~~~~~~~~~~~~~~~~
@@ -220,7 +220,7 @@ Environment variables
      - ``"True"``
      - FastAPI logging level. You should disable this for production.
    * - FASTAPI_PROJECT_NAME
-     - ``"integrations_typeform"``
+     - ``"typeform"``
      - FastAPI project name.
    * - FASTAPI_VERSION
      - ``"0.1.0"``
@@ -268,13 +268,13 @@ Gunicorn
 
 `Gunicorn configuration file documentation <https://docs.gunicorn.org/en/latest/settings.html>`__
 
-.. literalinclude:: ../integrations_typeform/config/gunicorn.py
+.. literalinclude:: ../typeform/config/gunicorn.py
     :language: python
 
 Routes
 ~~~~~~
 
-Endpoints are defined in ``integrations_typeform.app.router`` submodule. Just simply import your controller and include it to FastAPI router:
+Endpoints are defined in ``typeform.app.router`` submodule. Just simply import your controller and include it to FastAPI router:
 
-.. literalinclude:: ../integrations_typeform/app/router.py
+.. literalinclude:: ../typeform/app/router.py
     :language: python

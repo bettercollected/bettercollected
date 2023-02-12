@@ -1,5 +1,5 @@
 import pytest
-from integrations_typeform.cli import cli
+from typeform.cli import cli
 
 
 class TestCliRoot:

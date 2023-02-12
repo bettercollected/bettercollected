@@ -2,14 +2,15 @@
 import logging
 
 from fastapi import FastAPI
-from integrations_typeform.config import settings
-from integrations_typeform.app.router import root_api_router
-from integrations_typeform.app.utils import AiohttpClient
-from integrations_typeform.app.exceptions import (
+
+import typeform
+from typeform.app.container import AppContainer
+from typeform.config import settings
+from typeform.app.router import root_api_router
+from typeform.app.exceptions import (
     HTTPException,
     http_exception_handler,
 )
-
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ async def on_startup():
 
     """
     log.debug("Execute FastAPI startup event handler.")
-    AiohttpClient.get_aiohttp_client()
+    pass
 
 
 async def on_shutdown():
@@ -33,8 +34,9 @@ async def on_shutdown():
 
     """
     log.debug("Execute FastAPI shutdown event handler.")
+    await AppContainer.http_client.aclose()
     # Gracefully close utilities.
-    await AiohttpClient.close_aiohttp_client()
+    pass
 
 
 def get_application():
@@ -45,6 +47,12 @@ def get_application():
 
     """
     log.debug("Initialize FastAPI application node.")
+    container = AppContainer()
+    container.wire(packages=[
+        typeform.app.services,
+        typeform.app.controllers,
+        typeform.app.repositories,
+    ])
     app = FastAPI(
         title=settings.PROJECT_NAME,
         debug=settings.DEBUG,

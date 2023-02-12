@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
-from integrations_typeform.app import get_application
-from integrations_typeform.config import settings
+from typeform.app import get_application
+from typeform.config import settings
 
 
 @pytest.fixture

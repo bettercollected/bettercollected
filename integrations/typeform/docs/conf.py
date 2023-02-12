@@ -3,12 +3,12 @@
 # This file only contains a selection of the most common options. For a full
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
-from integrations_typeform import __version__
+from typeform import __version__
 from pallets_sphinx_themes import ProjectLink
 
 # Project --------------------------------------------------------------
 
-project = "integrations-typeform"
+project = "typeform"
 copyright = "2022, nabin6246"
 author = "nabin6246"
 release = __version__
@@ -52,6 +52,6 @@ html_sidebars = {
 }
 singlehtml_sidebars = {"index": ["project.html", "localtoc.html"]}
 html_logo = "_static/logo.png"
-html_title = f"integrations-typeform Documentation ({__version__})"
+html_title = f"typeform Documentation ({__version__})"
 html_show_sourcelink = False
 html_static_path = ["_static"]

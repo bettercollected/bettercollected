@@ -1,5 +1,5 @@
 """Application implementation - exceptions."""
-from integrations_typeform.app.exceptions.http import (
+from typeform.app.exceptions.http import (
     HTTPException,
     http_exception_handler,
 )

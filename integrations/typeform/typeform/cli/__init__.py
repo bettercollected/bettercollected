@@ -10,7 +10,7 @@ Resources:
     https://click.palletsprojects.com/en/8.1.x/
 
 """
-from integrations_typeform.cli.cli import cli
+from typeform.cli.cli import cli
 
 
 __all__ = ("cli",)

@@ -33,7 +33,7 @@ Once development cluster is up and running you should see summary listing applic
 
     Kubernetes cluster ready
 
-    fastapi-mvc available under: http://integrations-typeform.192.168.49.2.nip.io/
+    fastapi-mvc available under: http://typeform.192.168.49.2.nip.io/
 
     You can delete dev-env by issuing: minikube delete
 
@@ -51,21 +51,21 @@ Deployed application stack in Kubernetes:
     ...
     ...
     Kubernetes cluster ready
-    FastAPI available under: http://integrations-typeform.192.168.49.2.nip.io/
+    FastAPI available under: http://typeform.192.168.49.2.nip.io/
     You can delete dev-env by issuing: make clean
-    vagrant@ubuntu-focal:/syncd$ kubectl get all -n integrations-typeform
+    vagrant@ubuntu-focal:/syncd$ kubectl get all -n typeform
     NAME                        READY   STATUS    RESTARTS   AGE
-    pod/integrations-typeform-649966bb7f-r694l   1/1     Running   0          114s
+    pod/typeform-649966bb7f-r694l   1/1     Running   0          114s
 
     NAME           TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)    AGE
-    service/integrations-typeform   ClusterIP   10.97.16.46   <none>        8000/TCP   114s
+    service/typeform   ClusterIP   10.97.16.46   <none>        8000/TCP   114s
 
     NAME                   READY   UP-TO-DATE   AVAILABLE   AGE
-    deployment.apps/integrations-typeform   1/1     1            1           114s
+    deployment.apps/typeform   1/1     1            1           114s
 
     NAME                              DESIRED   CURRENT   READY   AGE
-    replicaset.apps/integrations-typeform-649966bb7f   1         1         1       114s
-    vagrant@ubuntu-focal:/syncd$ curl http://integrations-typeform.192.168.49.2.nip.io/api/ready
+    replicaset.apps/typeform-649966bb7f   1         1         1       114s
+    vagrant@ubuntu-focal:/syncd$ curl http://typeform.192.168.49.2.nip.io/api/ready
     {"status":"ok"}
 Documentation
 -------------

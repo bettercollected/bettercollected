@@ -42,11 +42,11 @@ echo "[install] Begin installing project."
 cat << 'EOF'
 Project successfully installed.
 To activate virtualenv run: $ poetry shell
-Now you should access CLI script: $ integrations-typeform --help
-Alternatively you can access CLI script via poetry run: $ poetry run integrations-typeform --help
+Now you should access CLI script: $ typeform --help
+Alternatively you can access CLI script via poetry run: $ poetry run typeform --help
 To deactivate virtualenv simply type: $ deactivate
 To activate shell completion:
- - for bash: $ echo 'eval "$(_INTEGRATIONS_TYPEFORM_COMPLETE=source_bash integrations-typeform)' >> ~/.bashrc
- - for zsh: $ echo 'eval "$(_INTEGRATIONS_TYPEFORM_COMPLETE=source_zsh integrations-typeform)' >> ~/.zshrc
- - for fish: $ echo 'eval "$(_INTEGRATIONS_TYPEFORM_COMPLETE=source_fish integrations-typeform)' >> ~/.config/fish/completions/integrations-typeform.fish
+ - for bash: $ echo 'eval "$(_typeform_COMPLETE=source_bash typeform)' >> ~/.bashrc
+ - for zsh: $ echo 'eval "$(_typeform_COMPLETE=source_zsh typeform)' >> ~/.zshrc
+ - for fish: $ echo 'eval "$(_typeform_COMPLETE=source_fish typeform)' >> ~/.config/fish/completions/typeform.fish
 EOF

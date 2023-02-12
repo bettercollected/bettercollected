@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 import pytest
 from pydantic.error_wrappers import ValidationError
-from integrations_typeform.app.views.error import ErrorModel, ErrorResponse
+from typeform.app.views.error import ErrorModel, ErrorResponse
 
 
 class TestErrorModel:

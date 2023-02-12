@@ -14,7 +14,7 @@ Resources:
     https://docs.gunicorn.org/en/20.1.0/
 
 """
-from integrations_typeform.config.application import settings
+from typeform.config.application import settings
 
 
 __all__ = ("settings",)

@@ -1,8 +1,8 @@
 """This project was generated with fastapi-mvc."""
 import logging
 
-from integrations_typeform.wsgi import ApplicationLoader
-from integrations_typeform.version import __version__
+from typeform.wsgi import ApplicationLoader
+from typeform.version import __version__
 
 # initialize logging
 log = logging.getLogger(__name__)

@@ -1,4 +1,4 @@
-from integrations_typeform.config import settings
+from typeform.config import settings
 
 
 class TestReadyController:

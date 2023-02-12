@@ -1,11 +1,11 @@
-from integrations_typeform.config import settings
-from integrations_typeform.app.router import root_api_router
-from integrations_typeform.app.asgi import (
+from typeform.config import settings
+from typeform.app.router import root_api_router
+from typeform.app.asgi import (
     get_application,
     on_startup,
     on_shutdown,
 )
-from integrations_typeform.app.exceptions import (
+from typeform.app.exceptions import (
     HTTPException,
     http_exception_handler,
 )

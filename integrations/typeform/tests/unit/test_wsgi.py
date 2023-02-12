@@ -1,5 +1,5 @@
 import pytest
-from integrations_typeform import ApplicationLoader
+from typeform import ApplicationLoader
 
 
 class TestApplicationLoader:

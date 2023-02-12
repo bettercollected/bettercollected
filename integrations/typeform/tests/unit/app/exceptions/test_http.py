@@ -2,7 +2,7 @@ from unittest import mock
 
 import pytest
 from starlette.requests import Request
-from integrations_typeform.app.exceptions import (
+from typeform.app.exceptions import (
     HTTPException,
     http_exception_handler,
 )

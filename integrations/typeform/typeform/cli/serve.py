@@ -2,9 +2,9 @@
 from multiprocessing import cpu_count
 
 import click
-from integrations_typeform import ApplicationLoader
-from integrations_typeform.app import get_application
-from integrations_typeform.cli.utils import validate_directory
+from typeform import ApplicationLoader
+from typeform.app import get_application
+from typeform.cli.utils import validate_directory
 
 
 cmd_short_help = "Run production server."

@@ -7,94 +7,94 @@ This part of the documentation lists the full API reference of all classes and f
 WSGI
 ----
 
-.. autoclass:: integrations_typeform.wsgi.ApplicationLoader
+.. autoclass:: typeform.wsgi.ApplicationLoader
    :members:
    :show-inheritance:
 
 Config
 ------
 
-.. automodule:: integrations_typeform.config
+.. automodule:: typeform.config
 
-.. autoclass:: integrations_typeform.config.application.Application
+.. autoclass:: typeform.config.application.Application
    :members:
    :show-inheritance:
 
-.. autoclass:: integrations_typeform.config.redis.Redis
+.. autoclass:: typeform.config.redis.Redis
    :members:
    :show-inheritance:
 
-.. automodule:: integrations_typeform.config.gunicorn
+.. automodule:: typeform.config.gunicorn
 
 CLI
 ---
 
-.. automodule:: integrations_typeform.cli
+.. automodule:: typeform.cli
 
-.. autofunction:: integrations_typeform.cli.cli.cli
+.. autofunction:: typeform.cli.cli.cli
 
-.. autofunction:: integrations_typeform.cli.utils.validate_directory
+.. autofunction:: typeform.cli.utils.validate_directory
 
-.. autofunction:: integrations_typeform.cli.serve.serve
+.. autofunction:: typeform.cli.serve.serve
 
 App
 ---
 
-.. automodule:: integrations_typeform.app
+.. automodule:: typeform.app
 
-.. autofunction:: integrations_typeform.app.asgi.on_startup
+.. autofunction:: typeform.app.asgi.on_startup
 
-.. autofunction:: integrations_typeform.app.asgi.on_shutdown
+.. autofunction:: typeform.app.asgi.on_shutdown
 
-.. autofunction:: integrations_typeform.app.asgi.get_application
+.. autofunction:: typeform.app.asgi.get_application
 
-.. automodule:: integrations_typeform.app.router
+.. automodule:: typeform.app.router
 
 Controllers
 ~~~~~~~~~~~
 
-.. automodule:: integrations_typeform.app.controllers
+.. automodule:: typeform.app.controllers
 
-.. autofunction:: integrations_typeform.app.controllers.ready.readiness_check
+.. autofunction:: typeform.app.controllers.ready.readiness_check
 
 Models
 ~~~~~~
 
-.. automodule:: integrations_typeform.app.models
+.. automodule:: typeform.app.models
 
 Views
 ~~~~~
 
-.. automodule:: integrations_typeform.app.views
+.. automodule:: typeform.app.views
 
-.. autoclass:: integrations_typeform.app.views.error.ErrorModel
+.. autoclass:: typeform.app.views.error.ErrorModel
    :members:
    :show-inheritance:
 
-.. autoclass:: integrations_typeform.app.views.error.ErrorResponse
+.. autoclass:: typeform.app.views.error.ErrorResponse
    :members:
    :show-inheritance:
 
 Exceptions
 ~~~~~~~~~~
 
-.. automodule:: integrations_typeform.app.exceptions
+.. automodule:: typeform.app.exceptions
 
-.. autoclass:: integrations_typeform.app.exceptions.http.HTTPException
+.. autoclass:: typeform.app.exceptions.http.HTTPException
    :members:
    :show-inheritance:
 
-.. autofunction:: integrations_typeform.app.exceptions.http.http_exception_handler
+.. autofunction:: typeform.app.exceptions.http.http_exception_handler
 
 Utils
 ~~~~~
 
-.. automodule:: integrations_typeform.app.utils
+.. automodule:: typeform.app.utils
 
-.. autoclass:: integrations_typeform.app.utils.aiohttp_client.AiohttpClient
+.. autoclass:: typeform.app.utils.aiohttp_client.AiohttpClient
    :members:
    :show-inheritance:
 
-.. autoclass:: integrations_typeform.app.utils.redis.RedisClient
+.. autoclass:: typeform.app.utils.redis.RedisClient
    :members:
    :show-inheritance:

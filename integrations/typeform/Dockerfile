@@ -64,6 +64,6 @@ EXPOSE 8000/tcp
 
 STOPSIGNAL SIGINT
 
-ENTRYPOINT ["integrations-typeform"]
+ENTRYPOINT ["typeform"]
 
 CMD ["serve", "--bind", "0.0.0.0:8000"]

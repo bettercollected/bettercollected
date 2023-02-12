@@ -14,7 +14,6 @@ Resources:
     https://pydantic-docs.helpmanual.io/
 
 """
-from integrations_typeform.app.asgi import get_application
-
+from typeform.app.asgi import get_application
 
 __all__ = ("get_application",)

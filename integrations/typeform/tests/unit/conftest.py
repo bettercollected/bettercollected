@@ -1,7 +1,7 @@
 from unittest import mock
 
 import pytest
-from integrations_typeform.app import get_application
+from typeform.app import get_application
 
 
 @pytest.fixture

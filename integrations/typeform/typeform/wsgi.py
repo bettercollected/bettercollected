@@ -2,7 +2,7 @@
 import logging
 
 from gunicorn.app.base import BaseApplication
-from integrations_typeform.config import gunicorn
+from typeform.config import gunicorn
 
 
 class ApplicationLoader(BaseApplication):
@@ -56,7 +56,7 @@ class ApplicationLoader(BaseApplication):
     def load_config(self):
         """Load gunicorn configuration."""
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.cfg.set("default_proc_name", "integrations-typeform")
+        self.cfg.set("default_proc_name", "typeform")
 
         cfg = vars(gunicorn)
         cfg.update(self._overrides)

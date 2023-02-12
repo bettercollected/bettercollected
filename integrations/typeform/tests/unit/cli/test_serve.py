@@ -3,8 +3,8 @@ import copy
 from unittest import mock
 
 import pytest
-from integrations_typeform import ApplicationLoader
-from integrations_typeform.cli.serve import serve
+from typeform import ApplicationLoader
+from typeform.cli.serve import serve
 
 fake_pid_file = os.path.join(
     os.path.dirname(__file__), "test.pid",

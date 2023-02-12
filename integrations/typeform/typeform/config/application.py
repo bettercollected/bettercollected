@@ -1,6 +1,6 @@
 """Application configuration - FastAPI."""
 from pydantic import BaseSettings
-from integrations_typeform.version import __version__
+from typeform.version import __version__
 
 
 class Application(BaseSettings):
@@ -28,10 +28,20 @@ class Application(BaseSettings):
     """
 
     DEBUG: bool = True
-    PROJECT_NAME: str = "integrations-typeform"
+    PROJECT_NAME: str = "typeform"
     VERSION: str = __version__
     DOCS_URL: str = "/"
     USE_REDIS: bool = False
+    AES_HEX_KEY: str
+
+    AUTH_URI = ""
+    TOKEN_URI = ""
+    SCOPE = ""
+    CLIENT_ID = ""
+    CLIENT_SECRET = ""
+    REDIRECT_URI = ""
+    API_URI = ""
+
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 
