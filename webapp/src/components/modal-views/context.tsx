@@ -14,7 +14,7 @@ export function useModal() {
             modalProps
         });
     const closeModal = () => {
-        setState({ ...state, isOpen: false, modalProps: null });
+        setState({ ...state, isOpen: false, modalProps: null, view: '' });
     };
 
     return {

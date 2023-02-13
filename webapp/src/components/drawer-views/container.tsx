@@ -14,6 +14,8 @@ function renderDrawerContent(view: string) {
     switch (view) {
         case 'DASHBOARD_SIDEBAR':
             return <Sidebar />;
+        default:
+            return <></>;
     }
 }
 
@@ -44,7 +46,9 @@ export default function DrawersContainer() {
                     leaveFrom="translate-x-0"
                     leaveTo="-translate-x-full"
                 >
-                    <div className="fixed inset-y-0 left-0 flex w-full max-w-full xs:w-auto">{view && renderDrawerContent(view)}</div>
+                    <div data-testid="drawer-view" className="fixed inset-y-0 left-0 flex w-full max-w-full xs:w-auto">
+                        {view && renderDrawerContent(view)}
+                    </div>
                 </Transition.Child>
             </Dialog>
         </Transition>

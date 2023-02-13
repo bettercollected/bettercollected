@@ -36,7 +36,7 @@ export default function ImportForms() {
 
     if (minifiedForms.isError)
         return (
-            <div className="text-sm relative min-h-[500px] flex items-center justify-center flex-col min-w-screen md:min-w-[400px] p-4 rounded-md shadow-md bg-white">
+            <div data-testid="error-component" className="text-sm relative min-h-[500px] flex items-center justify-center flex-col min-w-screen md:min-w-[400px] p-4 rounded-md shadow-md bg-white">
                 <div onClick={() => closeModal()} className="border-[1.5px] absolute right-5 top-5 border-gray-200 hover:shadow hover:text-black cursor-pointer rounded-full p-3">
                     <Close className="cursor-pointer text-gray-600 hover:text-black" />
                 </div>
@@ -72,6 +72,7 @@ export default function ImportForms() {
     const GoogleFormMinifiedCard = ({ form }: { form: GoogleMinifiedFormDto }) => {
         return (
             <div
+                data-testid={`google-minified-form` + form.id}
                 onClick={() => setSelectedForm(form.id)}
                 className={`flex border-[1.5px] cursor-pointer justify-between items-center p-2 mb-2 mr-3 rounded-lg ${selectedForm === form.id ? 'border-blue-500' : 'border-gray-100 hover:bg-gray-50 hover:border-gray-50'} `}
             >
@@ -86,14 +87,14 @@ export default function ImportForms() {
     const GoogleFormData = () => {
         if (googleFormResult.isFetching)
             return (
-                <div className="flex w-full h-full items-center justify-center">
+                <div data-testid="loader" className="flex w-full h-full items-center justify-center">
                     <Loader />
                 </div>
             );
         if (googleFormResult.isError) return <p className="text-sm text-red-500">Oops! We&apos;ve encountered an issue.</p>;
         const form = googleFormResult?.data?.payload?.content;
         return (
-            <div className="flex flex-col w-full">
+            <div data-testid="google-single-form-import" className="flex flex-col w-full">
                 {form?.info?.title && <p className="max-w-[360px] text-sm md:text-base font-semibold text-grey mb-2 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.info?.title, 15) : toEndDottedStr(form?.info?.title, 30)}</p>}
                 {form?.info?.description && (
                     <p className="max-w-[360px] text-sm text-softBlue mb-2 p-0 w-full">
@@ -144,22 +145,23 @@ export default function ImportForms() {
                 </div>
                 <div className="w-full h-[250px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-300 overflow-y-scroll scrollbar-thumb-rounded-full scrollbar-track-rounded-full">
                     {!stepCount ? (
-                        <>
+                        <div data-testid="google-minified-forms">
                             {minifiedForms?.data?.payload?.content.map((form: GoogleMinifiedFormDto, idx: any) => (
                                 <GoogleFormMinifiedCard key={form.id} form={form} />
                             ))}
-                        </>
+                        </div>
                     ) : (
                         <GoogleFormData />
                     )}
                 </div>
                 <div className="flex w-full justify-between">
                     {!stepCount ? (
-                        <Button isLoading={minifiedForms.isLoading} disabled={!selectedForm} variant="solid" className={`!rounded-lg !h-10 !m-0 ${!selectedForm ? '' : '!bg-blue-500'}`} onClick={handleNext}>
+                        <Button data-testid="next-button" isLoading={minifiedForms.isLoading} disabled={!selectedForm} variant="solid" className={`!rounded-lg !h-10 !m-0 ${!selectedForm ? '' : '!bg-blue-500'}`} onClick={handleNext}>
                             Next
                         </Button>
                     ) : (
                         <Button
+                            data-testid="import-button"
                             isLoading={importFormResult.isLoading}
                             disabled={!googleFormResult?.data?.payload?.content}
                             variant="solid"
