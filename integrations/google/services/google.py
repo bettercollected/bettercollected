@@ -1,6 +1,6 @@
 from googleapiclient.discovery import build
 
-from utils.google import dict_to_credential
+from utilities.google import dict_to_credential
 
 
 class GoogleService:

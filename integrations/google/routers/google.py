@@ -1,20 +1,15 @@
-from http import HTTPStatus
 from typing import Optional
 
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
 
+from common.base.plugin import BasePluginRoute
 from common.enums.form_provider import FormProvider
 from common.models.form_scheduler_config import AddNewFormImportJobRequest
-from common.utils.cbv import cbv
 from dependencies import Container
-from settings.router import CustomAPIRouter
-
-router = CustomAPIRouter(prefix="/google")
 
 
-@cbv(router=router)
-class GoogleRouter:
+class GoogleRouter(BasePluginRoute):
     def __init__(self):
         """
         This class defines the routes for interacting with the Google forms.
@@ -28,16 +23,14 @@ class GoogleRouter:
         self.form_response_service = Container.form_response_service()
         self.fsc_service = Container.fsc_service()
 
-    @router.get("/authorize", status_code=HTTPStatus.OK)
-    async def _authorize_google(self, email: str, request: Request):
+    async def authorize(self, email: str, request: Request):
         client_referer_url = request.headers.get("referer")
         authorization_url, state = self.oauth_google_service.authorize(
             email, client_referer_url
         )
         return RedirectResponse(authorization_url)
 
-    @router.get("/oauth2callback", status_code=HTTPStatus.OK)
-    async def _oauth2callback(self, request: Request):
+    async def callback(self, request: Request):
         url = str(request.url)
         (
             json_credentials,
@@ -47,23 +40,19 @@ class GoogleRouter:
             return RedirectResponse(client_referer_url)
         return json_credentials
 
-    @router.post("/revoke", status_code=HTTPStatus.ACCEPTED)
-    async def _revoke(self, email: str):
+    async def revoke(self, email: str):
         credential = await self.oauth_credential_service.verify_oauth_token(email)
         return await self.oauth_google_service.revoke(credential)
 
-    @router.get("/import", status_code=HTTPStatus.OK)
-    async def _list_google_forms(self, email: str):
+    async def list_forms(self, email: str):
         credential = await self.oauth_credential_service.verify_oauth_token(email)
         return self.google_service.get_form_list(credential.credentials)
 
-    @router.get("/import/{form_id}", status_code=HTTPStatus.OK)
-    async def _get_google_form(self, form_id: str, email: str):
+    async def get_form(self, form_id: str, email: str):
         credential = await self.oauth_credential_service.verify_oauth_token(email)
         return self.google_service.get_form(form_id, credential.credentials)
 
-    @router.post("/import/{form_id}", status_code=HTTPStatus.OK)
-    async def _import_google_form(
+    async def import_form(
         self, form_id: str, email: str, data_owner_field: Optional[str] = None
     ):
         credential = await self.oauth_credential_service.verify_oauth_token(email)

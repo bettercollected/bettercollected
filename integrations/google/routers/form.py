@@ -1,10 +1,11 @@
 from http import HTTPStatus
 
 from common.utils.cbv import cbv
+from common.utils.router import CustomAPIRouter
 from dependencies import Container
-from settings.router import CustomAPIRouter
+from settings import settings
 
-router = CustomAPIRouter(prefix="/google/forms")
+router = CustomAPIRouter(prefix=settings.api_settings.root_path + "/google/forms")
 
 
 @cbv(router=router)

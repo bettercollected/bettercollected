@@ -23,7 +23,7 @@ from common.constants import (
 from repositories.oauth_credential import OauthCredentialRepository
 from common.schemas.oauth_credential import Oauth2CredentialDocument
 from settings import settings
-from utils.google import dict_to_credential
+from utilities.google import dict_to_credential
 
 _crypto = Crypto(settings.google_settings.aes_key)
 
