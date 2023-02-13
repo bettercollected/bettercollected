@@ -12,7 +12,7 @@ mockUseRouter({}, '/abc');
 
 describe('Banner Image Component', () => {
     it('should render component', async function () {
-        renderWithProviders(<ProfileImageComponent workspace={initWorkspaceDto} isFormCreator={() => true} />);
+        renderWithProviders(<ProfileImageComponent workspace={initWorkspaceDto} isFormCreator={true} />);
         expect(screen.getByTestId('profile-image-edit')).toBeInTheDocument();
         fireEvent.change(screen.getByTestId('file-upload-profile'), {
             target: {

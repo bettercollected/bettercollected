@@ -20,7 +20,7 @@ mockUseRouter({ sub_id: '123456' }, '/ankit/dashboard');
 describe('Banner Image Component', () => {
     it('should render component', async function () {
         fetchMock.mockResponse(JSON.stringify('Hello Wrold'));
-        renderWithProviders(<BannerImageComponent workspace={initWorkspaceDto} isFormCreator={() => true} />);
+        renderWithProviders(<BannerImageComponent workspace={initWorkspaceDto} isFormCreator={true} />);
         expect(screen.getByText('update image')).toBeInTheDocument();
         fireEvent.change(screen.getByTestId('file-upload'), {
             target: {
