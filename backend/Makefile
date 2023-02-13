@@ -70,12 +70,12 @@ test: unit-test integration-test  ## Run bettercollected-backend-server tests
 .PHONY: format
 format: install  ## Formats the python files with black
 	echo "[format] Formatting the files."
-	${POETRY_BINARY} run black . --exclude=venv,common
+	${POETRY_BINARY} run black . --exclude=venv --extend-exclude=common
 
 .PHONY: flake8
 flake8: install  ## Checks code standards with flake8
 	echo "[flake8] Checking code standards with flake8."
-	${POETRY_BINARY} run flake8 . --exclude=venv,common,.github,build,charts,manifests,site
+	${POETRY_BINARY} run flake8 . --exclude=venv,common,.github,build,charts,manifests,site --extend-exclude=common
 
 .PHONY: docs
 docs: install ## Build bettercollected-backend-server documentation

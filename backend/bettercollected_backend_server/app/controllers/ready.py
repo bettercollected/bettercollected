@@ -1,20 +1,19 @@
 """Application implementation - Ready controller."""
 import logging
 
-from fastapi import APIRouter
 from bettercollected_backend_server.config import settings
 from bettercollected_backend_server.app.utils import RedisClient
 from bettercollected_backend_server.app.views import ReadyResponse, ErrorResponse
 from bettercollected_backend_server.app.exceptions import HTTPException
+from common.utils.router import CustomAPIRouter
 
-
-router = APIRouter()
+router = CustomAPIRouter(prefix="/ready")
 log = logging.getLogger(__name__)
 
 
 @router.get(
-    "/ready",
-    tags=["ready"],
+    "",
+    tags=["Ready"],
     response_model=ReadyResponse,
     summary="Simple health check.",
     status_code=200,

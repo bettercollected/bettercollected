@@ -7,7 +7,7 @@ class TestReadyController:
         settings.USE_REDIS = False
 
         # when
-        response = app_runner.get("/api/ready")
+        response = app_runner.get("/ready")
 
         # then
         assert response.status_code == 200
@@ -15,7 +15,7 @@ class TestReadyController:
 
     def test_should_return_not_found_when_invalid_uri(self, app_runner):
         # given / when
-        response = app_runner.get("/api/ready/123")
+        response = app_runner.get("/ready/123")
 
         # then
         assert response.status_code == 404
@@ -25,7 +25,7 @@ class TestReadyController:
         settings.USE_REDIS = True
 
         # when
-        response = app_runner.get("/api/ready")
+        response = app_runner.get("/ready")
 
         # then
         assert response.status_code == 502
