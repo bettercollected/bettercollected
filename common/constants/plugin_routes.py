@@ -1,0 +1,6 @@
+PLUGIN_ROUTE_AUTHORIZE = "/oauth/authorize"
+PLUGIN_ROUTE_CALLBACK = "/oauth/callback"
+PLUGIN_ROUTE_REVOKE = "/oauth/revoke"
+PLUGIN_ROUTE_LIST_FORMS = "/forms"
+PLUGIN_ROUTE_GET_FORM = "/forms/{form_id}"
+PLUGIN_ROUTE_IMPORT_FORM = "/forms/{form_id}/import"
