@@ -3,6 +3,8 @@ from typing import Dict, Optional, List
 from beanie import PydanticObjectId
 from pydantic import BaseModel, EmailStr, Field
 
+from common.enums.form_provider import FormProvider
+
 UserIdentifier = str
 
 
@@ -79,3 +81,15 @@ class AuthenticationStatus(BaseModel):
     """
 
     user: User = Field()
+
+
+class Token(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+    expires_in: int
+
+
+class UserInfo(Token):
+    email: str
+    provider: FormProvider.TYPEFORM
