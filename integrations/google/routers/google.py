@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import Any, Dict, Optional
 
+from fastapi import Body
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
 
@@ -80,3 +81,29 @@ class GoogleRouter(BasePluginRoute):
         )  # Adding the form import in scheduler job
 
         return form
+
+    async def create_form(self, email: str, request_body: Dict[str, Any] = Body(...)):
+        # TODO: Add implementation
+        return {"email": email, "request_body": request_body}
+
+    async def update_form(
+        self, form_id: str, email: str, request_body: Dict[str, Any] = Body(...)
+    ):
+        # TODO: Add implementation
+        return {"form_id": form_id, "email": email, "request_body": request_body}
+
+    async def delete_form(self, form_id: str, email: str):
+        # TODO: Add implementation
+        return {"form_id": form_id, "email": email}
+
+    async def list_form_responses(self, form_id: str, email: str):
+        # TODO: Add implementation
+        return {"form_id": form_id, "email": email}
+
+    async def get_form_response(self, form_id: str, email: str, response_id: str):
+        # TODO: Add implementation
+        return {"form_id": form_id, "email": email, "response_id": response_id}
+
+    async def delete_form_response(self, form_id: str, email: str, response_id: str):
+        # TODO: Add implementation
+        return {"form_id": form_id, "email": email, "response_id": response_id}
