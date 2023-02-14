@@ -1,13 +1,18 @@
 # flake8: noqa
 from abc import abstractmethod
 from http import HTTPStatus
-from typing import List, Optional, Protocol
+from typing import Any, Dict, List, Optional, Protocol
+
+from fastapi import Body
+
 from constants.plugin_routes import (
     PLUGIN_ROUTE_AUTHORIZE,
     PLUGIN_ROUTE_CALLBACK,
-    PLUGIN_ROUTE_GET_FORM,
+    PLUGIN_ROUTE_FORM,
+    PLUGIN_ROUTE_FORMS,
+    PLUGIN_ROUTE_FORM_RESPONSE,
+    PLUGIN_ROUTE_FORM_RESPONSES,
     PLUGIN_ROUTE_IMPORT_FORM,
-    PLUGIN_ROUTE_LIST_FORMS,
     PLUGIN_ROUTE_REVOKE,
 )
 
@@ -50,6 +55,32 @@ class BasePluginRoute(Protocol):
     ):
         raise NotImplementedError
 
+    @abstractmethod
+    async def create_form(self, email: str, request_body: Dict[str, Any] = Body(...)):
+        raise NotImplementedError
+
+    @abstractmethod
+    async def update_form(
+        self, form_id: str, email: str, request_body: Dict[str, Any] = Body(...)
+    ):
+        raise NotImplementedError
+
+    @abstractmethod
+    async def delete_form(self, form_id: str, email: str):
+        raise NotImplementedError
+
+    @abstractmethod
+    async def list_form_responses(self, form_id: str, email: str):
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_form_response(self, form_id: str, email: str, response_id: str):
+        raise NotImplementedError
+
+    @abstractmethod
+    async def delete_form_response(self, form_id: str, email: str, response_id: str):
+        raise NotImplementedError
+
 
 def register_plugin_class(
     router: CustomAPIRouter, route: BasePluginRoute, tags: List[str]
@@ -60,11 +91,15 @@ def register_plugin_class(
     class based router in the `include_router` as:
 
     ```
+    google_router = CustomAPIRouter(prefix=settings.api_settings.root_path + "")
+    google_tags = ["Google API"]
     register_plugin_class(
-        router=CustomAPIRouter(prefix="/google"),
-        route=GoogleRouter,
-        tags=["Google API"]
+        router=google_router,
+        route=GoogleRouter(),
+        tags=google_tags,
     )
+
+    server.include_router(google_router, tags=google_tags)
     ```
 
     Args:
@@ -102,7 +137,7 @@ def register_plugin_class(
 
     # GET: List Forms from the provider
     router.add_api_route(
-        PLUGIN_ROUTE_LIST_FORMS,
+        PLUGIN_ROUTE_FORMS,
         endpoint=route.list_forms,
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
@@ -111,7 +146,7 @@ def register_plugin_class(
 
     # GET: Get Single Form from the provider
     router.add_api_route(
-        PLUGIN_ROUTE_GET_FORM,
+        PLUGIN_ROUTE_FORM,
         endpoint=route.get_form,
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
@@ -124,5 +159,59 @@ def register_plugin_class(
         endpoint=route.import_form,
         status_code=HTTPStatus.CREATED,
         methods=[HTTPMethods.POST],
+        tags=tags,
+    )
+
+    # POST: Creates form in the provider and our platform
+    router.add_api_route(
+        PLUGIN_ROUTE_FORMS,
+        endpoint=route.create_form,
+        status_code=HTTPStatus.CREATED,
+        methods=[HTTPMethods.POST],
+        tags=tags,
+    )
+
+    # PATCH: Updates form in the provider and our platform
+    router.add_api_route(
+        PLUGIN_ROUTE_FORM,
+        endpoint=route.update_form,
+        status_code=HTTPStatus.OK,
+        methods=[HTTPMethods.PATCH],
+        tags=tags,
+    )
+
+    # DELETE: Delete form from the provider and our platform
+    router.add_api_route(
+        PLUGIN_ROUTE_FORM,
+        endpoint=route.delete_form,
+        status_code=HTTPStatus.NO_CONTENT,
+        methods=[HTTPMethods.DELETE],
+        tags=tags,
+    )
+
+    # GET: List form responses from the provider
+    router.add_api_route(
+        PLUGIN_ROUTE_FORM_RESPONSES,
+        endpoint=route.list_form_responses,
+        status_code=HTTPStatus.OK,
+        methods=[HTTPMethods.GET],
+        tags=tags,
+    )
+
+    # GET: Get Single Form Response from the provider
+    router.add_api_route(
+        PLUGIN_ROUTE_FORM_RESPONSE,
+        endpoint=route.get_form_response,
+        status_code=HTTPStatus.OK,
+        methods=[HTTPMethods.GET],
+        tags=tags,
+    )
+
+    # DELETE: Delete form response from the provider and our platform
+    router.add_api_route(
+        PLUGIN_ROUTE_FORM_RESPONSE,
+        endpoint=route.delete_form_response,
+        status_code=HTTPStatus.NO_CONTENT,
+        methods=[HTTPMethods.DELETE],
         tags=tags,
     )
