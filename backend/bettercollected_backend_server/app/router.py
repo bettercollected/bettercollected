@@ -7,11 +7,16 @@ Resources:
 
 """
 
-from bettercollected_backend_server.app.controllers import plugin_proxy
 from bettercollected_backend_server.app.controllers import ready
+from bettercollected_backend_server.app.controllers.plugin_proxy import PluginProxy
+from common.base.plugin import register_plugin_class
 from common.utils.router import CustomAPIRouter
 
 root_api_router = CustomAPIRouter(prefix="")
 
 root_api_router.include_router(ready.router, tags=["Ready"])
-root_api_router.include_router(plugin_proxy.router, tags=["Plugin Proxy"])
+
+plugin_proxy_router_tags = ["Form Provider Plugin Proxy"]
+register_plugin_class(
+    router=root_api_router, route=PluginProxy(), tags=plugin_proxy_router_tags
+)

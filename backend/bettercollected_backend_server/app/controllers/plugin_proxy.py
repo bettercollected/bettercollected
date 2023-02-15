@@ -1,86 +1,74 @@
 """Plugin proxy controller implementation."""
 import logging
-from http import HTTPStatus
+from typing import Any, Dict, Optional
 
-from common.constants.plugin_routes import (
-    PLUGIN_ROUTE_AUTHORIZE,
-    PLUGIN_ROUTE_CALLBACK,
-    PLUGIN_ROUTE_GET_FORM,
-    PLUGIN_ROUTE_IMPORT_FORM,
-    PLUGIN_ROUTE_LIST_FORMS,
-    PLUGIN_ROUTE_REVOKE,
-)
-from common.utils.cbv import cbv
-from common.utils.router import CustomAPIRouter
+from fastapi import Body
+from starlette.requests import Request
 
-router = CustomAPIRouter(prefix="")
+from common.enums.form_provider import FormProvider
+from common.base.plugin import BasePluginRoute
+
 log = logging.getLogger(__name__)
 
 
-@cbv(router=router)
-class PluginProxy:
-    @router.get(
-        PLUGIN_ROUTE_AUTHORIZE,
-        status_code=HTTPStatus.OK,
-        # Decorator options:
-        # https://fastapi.tiangolo.com/tutorial/path-operation-configuration/
-    )
-    async def authorize(self):
-        """Define plugin proxy authorize endpoint."""
-        # Implement endpoint logic here.
-        return {"hello": "world"}
+class PluginProxy(BasePluginRoute):
+    async def authorize(
+        self, request: Request, email: str, provider: str | FormProvider
+    ):
+        pass
 
-    @router.get(
-        PLUGIN_ROUTE_CALLBACK,
-        status_code=HTTPStatus.OK,
-        # Decorator options:
-        # https://fastapi.tiangolo.com/tutorial/path-operation-configuration/
-    )
-    async def callback(self):
-        """Define plugin proxy callback endpoint."""
-        # Implement endpoint logic here.
-        return {"hello": "world"}
+    async def callback(self, request: Request, provider: str | FormProvider):
+        pass
 
-    @router.post(
-        PLUGIN_ROUTE_REVOKE,
-        status_code=HTTPStatus.ACCEPTED,
-        # Decorator options:
-        # https://fastapi.tiangolo.com/tutorial/path-operation-configuration/
-    )
-    async def revoke(self):
-        """Define plugin proxy revoke endpoint."""
-        # Implement endpoint logic here.
-        return {"hello": "world"}
+    async def revoke(self, email: str, provider: str | FormProvider):
+        pass
 
-    @router.get(
-        PLUGIN_ROUTE_LIST_FORMS,
-        status_code=HTTPStatus.OK,
-        # Decorator options:
-        # https://fastapi.tiangolo.com/tutorial/path-operation-configuration/
-    )
-    async def list_forms(self):
-        """Define plugin proxy list_forms endpoint."""
-        # Implement endpoint logic here.
-        return {"hello": "world"}
+    async def list_forms(self, email: str, provider: str | FormProvider):
+        pass
 
-    @router.get(
-        PLUGIN_ROUTE_GET_FORM,
-        status_code=HTTPStatus.OK,
-        # Decorator options:
-        # https://fastapi.tiangolo.com/tutorial/path-operation-configuration/
-    )
-    async def get_form(self):
-        """Define plugin proxy get_form endpoint."""
-        # Implement endpoint logic here.
-        return {"hello": "world"}
+    async def get_form(self, form_id: str, email: str, provider: str | FormProvider):
+        pass
 
-    @router.post(
-        PLUGIN_ROUTE_IMPORT_FORM,
-        status_code=HTTPStatus.CREATED,
-        # Decorator options:
-        # https://fastapi.tiangolo.com/tutorial/path-operation-configuration/
-    )
-    async def import_form(self):
-        """Define plugin proxy import_form endpoint."""
-        # Implement endpoint logic here.
-        return {"hello": "world"}
+    async def import_form(
+        self,
+        form_id: str,
+        email: str,
+        provider: str | FormProvider,
+        data_owner_field: Optional[str] = None,
+    ):
+        pass
+
+    async def create_form(
+        self,
+        email: str,
+        provider: str | FormProvider,
+        request_body: Dict[str, Any] = Body(...),
+    ):
+        pass
+
+    async def update_form(
+        self,
+        form_id: str,
+        email: str,
+        provider: str | FormProvider,
+        request_body: Dict[str, Any] = Body(...),
+    ):
+        pass
+
+    async def delete_form(self, form_id: str, email: str, provider: str | FormProvider):
+        pass
+
+    async def list_form_responses(
+        self, form_id: str, email: str, provider: str | FormProvider
+    ):
+        pass
+
+    async def get_form_response(
+        self, form_id: str, email: str, response_id: str, provider: str | FormProvider
+    ):
+        pass
+
+    async def delete_form_response(
+        self, form_id: str, email: str, response_id: str, provider: str | FormProvider
+    ):
+        pass
