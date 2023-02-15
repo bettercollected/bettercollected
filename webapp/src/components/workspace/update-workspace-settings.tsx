@@ -2,16 +2,16 @@ import { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
-import { DeleteForeverOutlined, DeleteOutline } from '@mui/icons-material';
+import { DeleteOutline } from '@mui/icons-material';
 import { TextField } from '@mui/material';
 import { toast } from 'react-toastify';
 
+import { useModal } from '@app/components/modal-views/context';
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceDomainMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
-import { useModal } from '../modal-views/context';
 import Button from '../ui/button/button';
 
 export default function UpdateWorkspaceSettings({ updateDomain = false }: { updateDomain: boolean }) {
@@ -77,9 +77,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             dispatch(setWorkspace(res.data));
             router.push(router.asPath);
         } else {
-            toast('Error Deleting Workspace', {
-                type: 'error'
-            });
+            toast.error('Error Deleting Workspace');
         }
     };
 
@@ -107,6 +105,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                         </div>
                         <div className="flex items-center justify-center space-x-5 w-full">
                             <TextField
+                                inputProps={{ 'data-testid': 'update-field' }}
                                 error={error}
                                 helperText={error ? (updateDomain ? 'Invalid domain' : 'Invalid Workspace Handle') : ''}
                                 placeholder={updateDomain ? 'Enter your custom domain' : 'Enter workspace handle'}
@@ -117,7 +116,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                                 className="font-bold"
                             />
                             {workspace.customDomain && updateDomain && (
-                                <button onClick={delete_custom_domain}>
+                                <button data-testid="delete-button" onClick={delete_custom_domain}>
                                     <DeleteOutline className="text-red-500 bg-red-100 h-[35px] w-[35px] rounded p-1.5" />
                                 </button>
                             )}
@@ -125,6 +124,8 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
 
                         <div className="flex space-x-5 space-between">
                             <Button
+                                data-testid="save-button"
+                                disabled={isLoading || error}
                                 isLoading={isLoading}
                                 onClick={handleSubmit}
                                 className="text-white bg-blue-700 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
