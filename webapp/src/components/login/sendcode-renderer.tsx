@@ -35,7 +35,7 @@ export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustom
             <h2 className="text-lg font-bold text-center">Enter your Gmail</h2>
             <p className="text-gray-400 text-xs mb-4">An OTP code will be sent to your gmail account</p>
             <FormInput inputFieldType="email" value={emailInput} placeholder={'Enter your email'} onChange={handleChangeOnInput} handleValidation={handleValidation} />
-            <Button type="submit" disabled={!emailValid} isLoading={isLoading} variant="solid" className={`mt-2 w-full mb-0 !rounded-lg !h-10`} onClick={handleClick}>
+            <Button data-testid="get-in-button" type="submit" disabled={!emailValid} isLoading={isLoading} variant="solid" className={`mt-2 w-full mb-0 !rounded-lg !h-10`} onClick={handleClick}>
                 Get in
             </Button>
             <div className="flex py-5 items-center justify-center">

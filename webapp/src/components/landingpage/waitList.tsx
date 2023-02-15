@@ -1,16 +1,10 @@
 import React, { useEffect } from 'react';
 
-import { useTranslation } from 'next-i18next';
-
 import { getCalApi } from '@calcom/embed-react';
 
 import LandingPageSectionContainer from '@app/components/landingpage/LandingPageSectionContainer';
-import ActiveLink from '@app/components/ui/links/active-link';
-import environments from '@app/configs/environments';
 
-export default function Waitlist() {
-    const { t } = useTranslation();
-
+export default function WaitList() {
     useEffect(() => {
         (async function () {
             const cal = await getCalApi();

@@ -5,7 +5,7 @@ import Cal, { getCalApi } from '@calcom/embed-react';
 import Footer from '@app/components/landingpage/Footer';
 import Banner from '@app/components/landingpage/banner';
 import Features from '@app/components/landingpage/features';
-import Waitlist from '@app/components/landingpage/waitlist';
+import WaitList from '@app/components/landingpage/waitList';
 import Layout from '@app/layouts/_layout';
 
 export default function LandingPage() {
@@ -20,7 +20,7 @@ export default function LandingPage() {
             <Layout className="min-h-full" showNavbar>
                 <Banner />
                 <Features />
-                <Waitlist />
+                <WaitList />
                 <Footer />
             </Layout>
         </>

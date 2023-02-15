@@ -16,7 +16,6 @@ import { useAppSelector } from '@app/store/hooks';
 
 export default function Footer() {
     const router = useRouter();
-
     function SectionLink(props: any) {
         const { title, path } = props;
         return (

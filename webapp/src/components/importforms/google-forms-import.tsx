@@ -60,9 +60,17 @@ export default function ImportForms() {
 
     const handleImportForm = async () => {
         const form: any = { ...googleFormResult?.data?.payload?.content, provider: 'google' };
-        await importForm({ body: { form, response_data_owner: responseDataOwner }, workspaceId: workspace.id })
-            .then(() => closeModal())
-            .catch((e) => toast.error('Could not import the form.'));
+        const response: any = await importForm({
+            body: { form, response_data_owner: responseDataOwner },
+            workspaceId: workspace.id
+        });
+        if (response.data) {
+            toast.success('Form Imported Successfully!!');
+            closeModal();
+        } else {
+            toast.error('Could not import the form.');
+            closeModal();
+        }
     };
 
     const handleSelectDataResponseOwner = (e: any) => {
@@ -95,7 +103,11 @@ export default function ImportForms() {
         const form = googleFormResult?.data?.payload?.content;
         return (
             <div data-testid="google-single-form-import" className="flex flex-col w-full">
-                {form?.info?.title && <p className="max-w-[360px] text-sm md:text-base font-semibold text-grey mb-2 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.info?.title, 15) : toEndDottedStr(form?.info?.title, 30)}</p>}
+                {form?.info?.title ? (
+                    <p className="max-w-[360px] text-sm md:text-base font-semibold text-grey mb-2 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.info?.title, 15) : toEndDottedStr(form?.info?.title, 30)}</p>
+                ) : (
+                    <p>Untitled Form</p>
+                )}
                 {form?.info?.description && (
                     <p className="max-w-[360px] text-sm text-softBlue mb-2 p-0 w-full">
                         {['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.info?.description, 45) : ['md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.info?.description, 80) : toEndDottedStr(form?.info?.description, 140)}

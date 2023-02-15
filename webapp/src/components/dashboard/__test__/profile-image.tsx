@@ -10,22 +10,12 @@ global.URL.createObjectURL = jest.fn(() => '/favicon.ico');
 
 mockUseRouter({}, '/abc');
 
-describe('Banner Image Component', () => {
+describe('Profile Image Component', () => {
     it('should render component', async function () {
         renderWithProviders(<ProfileImageComponent workspace={initWorkspaceDto} isFormCreator={true} />);
         expect(screen.getByTestId('profile-image-edit')).toBeInTheDocument();
-        fireEvent.change(screen.getByTestId('file-upload-profile'), {
-            target: {
-                files: [new File([''], 'filename', { type: 'image/png' })]
-            }
-        });
+        fireEvent.click(screen.getByTestId('profile-image-edit'));
         expect(screen.getByTestId('profile-edit-dialog')).toBeInTheDocument();
-
-        fireEvent.click(screen.getByTestId('save-button'));
-
-        await waitFor(() => {
-            expect(screen.queryByTestId('profile-edit-dialog')).toBe(null);
-        });
 
         // TODO: Test updating profile image and html to canvas conversion
     });

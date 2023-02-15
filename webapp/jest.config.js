@@ -6,7 +6,7 @@ const customJestConfig = {
     moduleNameMapper: {
         '^@app/(.*)$': '<rootDir>/src/$1'
     },
-    setupFilesAfterEnv: ['<rootDir>/src/utils/__test_utils__/setupTests.ts'],
+    setupFilesAfterEnv: ['<rootDir>/src/utils/__test_utils__/setupTests.ts', 'jest-canvas-mock'],
     moduleDirectories: ['node_modules', '<rootDir>/'],
     testEnvironment: 'jest-environment-jsdom',
     testMatch: ['**/__test__/*.ts?(x)'],

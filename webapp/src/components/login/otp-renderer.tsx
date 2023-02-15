@@ -80,6 +80,7 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
         <form className={'flex flex-col text-center'}>
             <HeaderRenderer />
             <input
+                data-testid="otp-input"
                 spellCheck={false}
                 className={`border-solid tracking-[0.5rem] font-bold placeholder:font-normal placeholder:text-sm placeholder:tracking-normal mb-4 h-[40px] text-gray-900 rounded-lg w-full p-2.5`}
                 value={otp}
@@ -87,7 +88,7 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
                 placeholder={'Enter the OTP code'}
                 onChange={handleChange}
             />
-            <Button isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} className="w-full !h-10 !rounded-lg">
+            <Button data-testid="verify-button" isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} className="w-full !h-10 !rounded-lg">
                 Verify
             </Button>
             <ResendButtonRenderer />

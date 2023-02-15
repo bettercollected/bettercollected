@@ -50,7 +50,6 @@ describe('render drawer view when open drawer modal is called', () => {
         act(() => {
             result.current.openModal('LOGIN_VIEW');
         });
-        screen.debug();
 
         expect(screen.getByTestId('modal-view')).toBeInTheDocument();
 

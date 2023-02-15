@@ -73,6 +73,7 @@ export default function ImportTypeForms() {
     const TypeFormMinifiedCard = ({ form }: { form: any }) => {
         return (
             <div
+                data-testid={`typeform-minified-form` + form.id}
                 onClick={() => setSelectedForm(form.id)}
                 className={`flex border-[1.5px] cursor-pointer justify-between items-center p-2 mb-2 mr-3 rounded-lg ${selectedForm === form.id ? 'border-blue-500' : 'border-gray-100 hover:bg-gray-50 hover:border-gray-50'} `}
             >
@@ -90,7 +91,7 @@ export default function ImportTypeForms() {
     const TypeFormData = () => {
         if (typeFormResult.isFetching)
             return (
-                <div className="flex w-full h-full min-h-[200px] items-center justify-center">
+                <div data-testid="loader" className="flex w-full h-full min-h-[200px] items-center justify-center">
                     <Loader />
                 </div>
             );
@@ -102,7 +103,7 @@ export default function ImportTypeForms() {
         }
 
         return (
-            <div className="flex flex-col space-y-5 min-h-[200px] w-full">
+            <div data-testid="typeform-single-form-import" className="flex flex-col space-y-5 min-h-[200px] w-full">
                 <div>
                     {typeFormResult.data.title && (
                         <p className="max-w-[360px] text-sm md:text-base font-semibold text-grey mb-2 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(typeFormResult.data.title, 15) : toEndDottedStr(typeFormResult.data.title, 30)}</p>
@@ -174,6 +175,7 @@ export default function ImportTypeForms() {
                 <div className="flex w-full justify-between">
                     {!showSingleFormImport ? (
                         <Button
+                            data-testid="next-button"
                             isLoading={typeforms.isLoading}
                             disabled={!selectedForm}
                             variant="solid"
@@ -187,6 +189,7 @@ export default function ImportTypeForms() {
                         </Button>
                     ) : (
                         <Button
+                            data-testid="import-button"
                             isLoading={typeFormResult.isLoading || importTypeFormResult.isLoading}
                             variant="solid"
                             className={`!rounded-lg !h-10 !m-0 !bg-blue-500`}

@@ -72,8 +72,6 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
 
     useEffect(() => {
         if (!!submissionId) {
-            console.log('Use effect triggered');
-
             const submissionQuery: IGetWorkspaceSubmissionQuery = {
                 workspace_id: workspaceId,
                 submission_id: submissionId

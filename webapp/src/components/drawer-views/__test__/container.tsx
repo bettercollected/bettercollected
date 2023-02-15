@@ -48,7 +48,6 @@ describe('render drawer view when open drawer modal is called', () => {
         act(() => {
             result.current.openDrawer('DASHBOARD_SIDEBAR');
         });
-        screen.debug();
 
         expect(screen.getByTestId('drawer-view')).toBeInTheDocument();
 
