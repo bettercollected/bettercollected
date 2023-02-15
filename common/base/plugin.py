@@ -21,6 +21,8 @@ from starlette.requests import Request
 from enums.http_methods import HTTPMethods
 from utils.router import CustomAPIRouter
 
+from enums.form_provider import FormProvider
+
 
 class BasePluginRoute(Protocol):
     """
@@ -30,55 +32,76 @@ class BasePluginRoute(Protocol):
     """
 
     @abstractmethod
-    async def authorize(self, email: str, request: Request):
+    async def authorize(
+        self, request: Request, email: str, provider: str | FormProvider
+    ):
         raise NotImplementedError
 
     @abstractmethod
-    async def callback(self, request: Request):
+    async def callback(self, request: Request, provider: str | FormProvider):
         raise NotImplementedError
 
     @abstractmethod
-    async def revoke(self, email: str):
+    async def revoke(self, email: str, provider: str | FormProvider):
         raise NotImplementedError
 
     @abstractmethod
-    async def list_forms(self, email: str):
+    async def list_forms(self, email: str, provider: str | FormProvider):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_form(self, form_id: str, email: str):
+    async def get_form(self, form_id: str, email: str, provider: str | FormProvider):
         raise NotImplementedError
 
     @abstractmethod
     async def import_form(
-        self, form_id: str, email: str, data_owner_field: Optional[str] = None
+        self,
+        form_id: str,
+        email: str,
+        provider: str | FormProvider,
+        data_owner_field: Optional[str] = None,
     ):
         raise NotImplementedError
 
     @abstractmethod
-    async def create_form(self, email: str, request_body: Dict[str, Any] = Body(...)):
+    async def create_form(
+        self,
+        email: str,
+        provider: str | FormProvider,
+        request_body: Dict[str, Any] = Body(...),
+    ):
         raise NotImplementedError
 
     @abstractmethod
     async def update_form(
-        self, form_id: str, email: str, request_body: Dict[str, Any] = Body(...)
+        self,
+        form_id: str,
+        email: str,
+        provider: str | FormProvider,
+        request_body: Dict[str, Any] = Body(...),
     ):
         raise NotImplementedError
 
     @abstractmethod
-    async def delete_form(self, form_id: str, email: str):
+    async def delete_form(self, form_id: str, email: str, provider: str | FormProvider):
         raise NotImplementedError
 
     @abstractmethod
-    async def list_form_responses(self, form_id: str, email: str):
+    async def list_form_responses(
+        self, form_id: str, email: str, provider: str | FormProvider
+    ):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_form_response(self, form_id: str, email: str, response_id: str):
+    async def get_form_response(
+        self, form_id: str, email: str, response_id: str, provider: str | FormProvider
+    ):
         raise NotImplementedError
 
     @abstractmethod
-    async def delete_form_response(self, form_id: str, email: str, response_id: str):
+    async def delete_form_response(
+        self, form_id: str, email: str, response_id: str, provider: str | FormProvider
+    ):
         raise NotImplementedError
 
 
