@@ -146,7 +146,15 @@ class OauthGoogleService:
             state_json = dict(json.loads(_crypto.decrypt(state)))
             client_referer_url = state_json.get("client_referer_url")
             email = state_json.get("email_address")
-            await self.oauth_credential_repo.add(email, json.loads(json_credentials))
+            db_credentials = await self.oauth_credential_repo.get(email)
+            if db_credentials:
+                db_credentials.updated_at = datetime.now()
+                db_credentials.credentials = json.loads(json_credentials)
+                await self.oauth_credential_repo.update(email, db_credentials)
+            else:
+                await self.oauth_credential_repo.add(
+                    email, json.loads(json_credentials)
+                )
             return json_credentials, client_referer_url
         except InvalidGrantError:
             raise HTTPException(

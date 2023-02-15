@@ -3,7 +3,6 @@ from typing import Any, Dict, Optional
 
 from fastapi import Body
 from starlette.requests import Request
-from starlette.responses import RedirectResponse
 
 from common.base.plugin import BasePluginRoute
 from common.enums.form_provider import FormProvider
@@ -32,7 +31,7 @@ class GoogleRouter(BasePluginRoute):
         authorization_url, state = self.oauth_google_service.authorize(
             email, client_referer_url
         )
-        return RedirectResponse(authorization_url)
+        return authorization_url
 
     async def callback(
         self, request: Request, provider: FormProvider = FormProvider.GOOGLE
@@ -42,9 +41,7 @@ class GoogleRouter(BasePluginRoute):
             json_credentials,
             client_referer_url,
         ) = await self.oauth_google_service.oauth2callback(url)
-        if client_referer_url is not None:
-            return RedirectResponse(client_referer_url)
-        return json_credentials
+        return json_credentials, client_referer_url
 
     async def revoke(self, email: str, provider: FormProvider = FormProvider.GOOGLE):
         credential = await self.oauth_credential_service.verify_oauth_token(email)
