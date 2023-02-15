@@ -1,4 +1,4 @@
-import Router from 'next/router';
+import { useRouter } from 'next/router';
 
 import { Close } from '@app/components/icons/close';
 import Image from '@app/components/ui/image';
@@ -12,10 +12,11 @@ export default function LogoutView(props: any) {
 
     const [trigger] = useLazyGetLogoutQuery();
 
+    const router = useRouter();
     const handleLogout = async () => {
         await trigger();
+        router.push('/');
         closeModal();
-        Router.push('/');
     };
 
     function DialogBox() {
@@ -23,7 +24,7 @@ export default function LogoutView(props: any) {
             <>
                 <h5 className="text-lg font-semibold leading-normal text-left ">Are you sure to logout?</h5>
                 <div className="flex w-full gap-4 justify-between">
-                    <Button variant="solid" className="!rounded-xl !m-0 !bg-blue-500" onClick={handleLogout}>
+                    <Button data-testid="logout-button" variant="solid" className="!rounded-xl !m-0 !bg-blue-500" onClick={handleLogout}>
                         Logout
                     </Button>
                     <Button variant="transparent" className="!rounded-xl !m-0 !border-gray border-[1px] !border-solid" onClick={() => closeModal()}>
@@ -42,7 +43,7 @@ export default function LogoutView(props: any) {
         );
     }
 
-    function LoginContainer() {
+    function LogoutContainer() {
         const { closeModal } = useModal();
 
         return (
@@ -56,14 +57,11 @@ export default function LogoutView(props: any) {
                 </div>
             </div>
         );
-
-        // return <DialogBox/>
     }
 
     return (
         <div className="relative z-50 mx-auto max-w-full min-w-full md:max-w-[600px] lg:max-w-[600px]" {...props}>
-            <LoginContainer />
-            {/* <LogoutView /> */}
+            <LogoutContainer />
         </div>
     );
 }

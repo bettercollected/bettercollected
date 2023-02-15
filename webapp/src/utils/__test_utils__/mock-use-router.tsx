@@ -1,4 +1,4 @@
-export default function mockUseRouter(query: any, path: any) {
+export default function mockUseRouter(path: any = '', query: any = null) {
     jest.mock('next/router', () => ({
         useRouter() {
             return {

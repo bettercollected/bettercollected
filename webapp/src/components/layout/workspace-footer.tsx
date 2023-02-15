@@ -21,7 +21,7 @@ export default function WorkspaceFooter({ workspace, isCustomDomain }: FooterPro
                 </ActiveLink>
             </div>
             {isCustomDomain && (
-                <div className="mb-2">
+                <div data-testid="logo" className="mb-2">
                     <p>Powered by</p>
                     <Logo className="!text-lg" />
                 </div>

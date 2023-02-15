@@ -2,17 +2,13 @@ import React, { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Cal, { getCalApi } from '@calcom/embed-react';
+import { getCalApi } from '@calcom/embed-react';
 
 import bettercollected from '@app/assets/svgs/bettercollected.svg';
 import LandingPageSectionContainer from '@app/components/landingpage/LandingPageSectionContainer';
 import Image from '@app/components/ui/image';
 
-import AnchorLink from '../ui/links/anchor-link';
-
 export default function Banner() {
-    const { t } = useTranslation();
-
     useEffect(() => {
         (async function () {
             const cal = await getCalApi();

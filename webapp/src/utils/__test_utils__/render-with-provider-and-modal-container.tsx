@@ -3,11 +3,11 @@ import React from 'react';
 import { render } from '@testing-library/react';
 import { Provider } from 'react-redux';
 
-import { initWorkspaceDto } from '@app/models/dtos/workspaceDto';
+import DrawersContainer from '@app/components/drawer-views/container';
+import ModalContainer from '@app/components/modal-views/container';
 import { store as st } from '@app/store/store';
-import { setWorkspace } from '@app/store/workspaces/slice';
 
-export function renderWithProviders(
+export function renderWithContainers(
     ui: any,
     {
         preloadedState: any = {},
@@ -16,9 +16,14 @@ export function renderWithProviders(
         ...renderOptions
     }: any = {}
 ) {
-    st.dispatch(setWorkspace(initWorkspaceDto));
     function Wrapper({ children }: any) {
-        return <Provider store={store}>{children}</Provider>;
+        return (
+            <Provider store={store}>
+                {children}
+                <ModalContainer />
+                <DrawersContainer />
+            </Provider>
+        );
     }
 
     return { store, ...render(ui, { wrapper: Wrapper, ...renderOptions }) };

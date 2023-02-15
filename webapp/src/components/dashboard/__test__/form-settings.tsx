@@ -11,7 +11,6 @@ jest.mock('react-toastify', () => ({
 describe('Form Settings Tab', () => {
     it('should show toast on copying url', function () {
         renderWithProviders(<FormSettingsTab />);
-        screen.debug();
         fireEvent.click(screen.getByTestId('copy-svg'));
         expect(toast).toBeCalledTimes(1);
     });

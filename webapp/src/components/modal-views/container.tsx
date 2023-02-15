@@ -70,7 +70,9 @@ export default function ModalContainer() {
                 </div>
 
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
-                    <div className="relative z-50 inline-block w-full text-left align-middle xs:w-auto">{view && renderModalContent(view, modalProps)}</div>
+                    <div data-testid="modal-view" className="relative z-50 inline-block w-full text-left align-middle xs:w-auto">
+                        {view && renderModalContent(view, modalProps)}
+                    </div>
                 </Transition.Child>
             </Dialog>
         </Transition>
