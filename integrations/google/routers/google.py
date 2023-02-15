@@ -1,3 +1,4 @@
+# flake8: noqa: U100
 from typing import Any, Dict, Optional
 
 from fastapi import Body
@@ -24,14 +25,18 @@ class GoogleRouter(BasePluginRoute):
         self.form_response_service = Container.form_response_service()
         self.fsc_service = Container.fsc_service()
 
-    async def authorize(self, email: str, request: Request):
+    async def authorize(
+        self, request: Request, email: str, provider: FormProvider = FormProvider.GOOGLE
+    ):
         client_referer_url = request.headers.get("referer")
         authorization_url, state = self.oauth_google_service.authorize(
             email, client_referer_url
         )
         return RedirectResponse(authorization_url)
 
-    async def callback(self, request: Request):
+    async def callback(
+        self, request: Request, provider: FormProvider = FormProvider.GOOGLE
+    ):
         url = str(request.url)
         (
             json_credentials,
@@ -41,20 +46,28 @@ class GoogleRouter(BasePluginRoute):
             return RedirectResponse(client_referer_url)
         return json_credentials
 
-    async def revoke(self, email: str):
+    async def revoke(self, email: str, provider: FormProvider = FormProvider.GOOGLE):
         credential = await self.oauth_credential_service.verify_oauth_token(email)
         return await self.oauth_google_service.revoke(credential)
 
-    async def list_forms(self, email: str):
+    async def list_forms(
+        self, email: str, provider: FormProvider = FormProvider.GOOGLE
+    ):
         credential = await self.oauth_credential_service.verify_oauth_token(email)
         return self.google_service.get_form_list(credential.credentials)
 
-    async def get_form(self, form_id: str, email: str):
+    async def get_form(
+        self, form_id: str, email: str, provider: FormProvider = FormProvider.GOOGLE
+    ):
         credential = await self.oauth_credential_service.verify_oauth_token(email)
         return self.google_service.get_form(form_id, credential.credentials)
 
     async def import_form(
-        self, form_id: str, email: str, data_owner_field: Optional[str] = None
+        self,
+        form_id: str,
+        email: str,
+        provider: FormProvider = FormProvider.GOOGLE,
+        data_owner_field: Optional[str] = None,
     ):
         credential = await self.oauth_credential_service.verify_oauth_token(email)
         form = self.google_service.get_form(form_id, credential.credentials)
@@ -82,28 +95,53 @@ class GoogleRouter(BasePluginRoute):
 
         return form
 
-    async def create_form(self, email: str, request_body: Dict[str, Any] = Body(...)):
+    async def create_form(
+        self,
+        email: str,
+        provider: FormProvider = FormProvider.GOOGLE,
+        request_body: Dict[str, Any] = Body(...),
+    ):
         # TODO: Add implementation
         return {"email": email, "request_body": request_body}
 
     async def update_form(
-        self, form_id: str, email: str, request_body: Dict[str, Any] = Body(...)
+        self,
+        form_id: str,
+        email: str,
+        provider: FormProvider = FormProvider.GOOGLE,
+        request_body: Dict[str, Any] = Body(...),
     ):
         # TODO: Add implementation
         return {"form_id": form_id, "email": email, "request_body": request_body}
 
-    async def delete_form(self, form_id: str, email: str):
+    async def delete_form(
+        self, form_id: str, email: str, provider: FormProvider = FormProvider.GOOGLE
+    ):
         # TODO: Add implementation
         return {"form_id": form_id, "email": email}
 
-    async def list_form_responses(self, form_id: str, email: str):
+    async def list_form_responses(
+        self, form_id: str, email: str, provider: FormProvider = FormProvider.GOOGLE
+    ):
         # TODO: Add implementation
         return {"form_id": form_id, "email": email}
 
-    async def get_form_response(self, form_id: str, email: str, response_id: str):
+    async def get_form_response(
+        self,
+        form_id: str,
+        email: str,
+        response_id: str,
+        provider: FormProvider = FormProvider.GOOGLE,
+    ):
         # TODO: Add implementation
         return {"form_id": form_id, "email": email, "response_id": response_id}
 
-    async def delete_form_response(self, form_id: str, email: str, response_id: str):
+    async def delete_form_response(
+        self,
+        form_id: str,
+        email: str,
+        response_id: str,
+        provider: FormProvider = FormProvider.GOOGLE,
+    ):
         # TODO: Add implementation
         return {"form_id": form_id, "email": email, "response_id": response_id}

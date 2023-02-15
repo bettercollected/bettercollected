@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 
 from common.base.plugin import register_plugin_class
-from common.enums.form_provider import FormProvider
 from common.utils.router import CustomAPIRouter
 from routers import form, form_response
 from routers.google import GoogleRouter
@@ -16,9 +15,7 @@ def include_routers(server: "FastAPI"):
         server (FastAPI): FastAPI server instance to include routers in.
     """
 
-    google_router = CustomAPIRouter(
-        prefix=settings.api_settings.root_path + "/" + FormProvider.GOOGLE
-    )
+    google_router = CustomAPIRouter(prefix=settings.api_settings.root_path + "")
     google_tags = ["Google API"]
     register_plugin_class(
         router=google_router,
