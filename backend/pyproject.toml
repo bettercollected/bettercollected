@@ -34,6 +34,7 @@ fastapi-pagination = "^0.11.3"
 fastapi-utils = "^0.2.1"
 beanie = "^1.17.0"
 dependency-injector = "^4.41.0"
+httpx = "^0.23.3"
 
 [tool.poetry.scripts]
 bettercollected-backend-server = 'bettercollected_backend_server.cli:cli'
