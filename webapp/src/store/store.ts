@@ -9,7 +9,6 @@ import formSlice from '@app/store/forms/slice';
 import workspaceSlice from '@app/store/workspaces/slice';
 
 import { authApi } from './auth/api';
-import searchReducerObj, { searchSlice } from './search/searchSlice';
 import { workspacesApi } from './workspaces/api';
 
 const loggerMiddleware = createLogger();
@@ -22,7 +21,6 @@ const middlewares = [authApi.middleware, workspacesApi.middleware];
 const reducers = {
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
     [formSlice.reducerPath]: formSlice.reducer,
-    [searchReducerObj.reducerPath]: searchSlice.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [workspacesApi.reducerPath]: workspacesApi.reducer
 };
