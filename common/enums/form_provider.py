@@ -8,3 +8,7 @@ class FormProvider(str, enum.Enum):
 
     GOOGLE: str = "google"
     TYPEFORM: str = "typeform"
+
+    @classmethod
+    def list_providers(cls):
+        return [v.value for p, v in cls.__members__.items()]
