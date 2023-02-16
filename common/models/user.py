@@ -92,7 +92,7 @@ class Token(BaseModel):
 
 class UserInfo(Token):
     email: str
-    provider: FormProvider.TYPEFORM
+    provider: str
 
 
 class OAuthState(BaseModel):
