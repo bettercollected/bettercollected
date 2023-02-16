@@ -147,6 +147,8 @@ export default function Settingsprivacy() {
                 <div className="flex items-center h-24 justify-between">
                     <StyledTextField>
                         <TextField
+                            label="privacy-policy"
+                            data-testid="privacy-policy"
                             error={!handleEmailValidation(policies.privacy_policy_url)}
                             onChange={handleChange}
                             size="medium"
@@ -158,11 +160,11 @@ export default function Settingsprivacy() {
                     </StyledTextField>
                     {!editMode.privacy_policy_editMode ? (
                         <IconContainer>
-                            <ModeEditIcon className="!w-5 !h-5 text-white" onClick={() => setEditMode({ ...editMode, privacy_policy_editMode: true })} />
+                            <ModeEditIcon data-testid="privacy-policy-edit-button" className="!w-5 !h-5 text-white" onClick={() => setEditMode({ ...editMode, privacy_policy_editMode: true })} />
                         </IconContainer>
                     ) : (
                         <IconContainer>
-                            <SaveIcon className="!w-5 !h-5 text-white" onClick={handleSavePrivacyPolicy} />
+                            <SaveIcon data-testid="privacy-policy-save-button" className="!w-5 !h-5 text-white" onClick={handleSavePrivacyPolicy} />
                         </IconContainer>
                     )}
                 </div>
@@ -173,6 +175,8 @@ export default function Settingsprivacy() {
                 <div className="flex items-center h-24 justify-between">
                     <StyledTextField>
                         <TextField
+                            data-testid="terms-of-service"
+                            label="terms-of-service"
                             error={!handleEmailValidation(policies.terms_of_service_url)}
                             onChange={handleChange}
                             size="medium"
