@@ -93,3 +93,9 @@ class Token(BaseModel):
 class UserInfo(Token):
     email: str
     provider: FormProvider.TYPEFORM
+
+
+class OAuthState(BaseModel):
+    # Redirect uri for saving user after successful typeform authentication
+    auth_redirect_uri: str
+    client_referer_uri: Optional[str]
