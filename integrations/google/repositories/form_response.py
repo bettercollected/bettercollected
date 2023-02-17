@@ -11,8 +11,8 @@ from starlette.exceptions import HTTPException
 
 from common.constants import MESSAGE_DATABASE_EXCEPTION
 from common.enums.form_provider import FormProvider
-from common.schemas.google_form_response import GoogleFormResponseDocument
 from repositories.base import BaseRepository
+from schemas.google_form_response import GoogleFormResponseDocument
 
 
 class FormResponseRepository(BaseRepository):

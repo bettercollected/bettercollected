@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from common.constants import MESSAGE_NOT_FOUND, MESSAGE_OAUTH_MISSING_REFRESH_TOKEN
 from common.enums.form_provider import FormProvider
 from repositories.oauth_credential import OauthCredentialRepository
-from common.schemas.oauth_credential import Oauth2CredentialDocument
+from schemas.oauth_credential import Oauth2CredentialDocument
 from services.oauth_google import OauthGoogleService
 
 

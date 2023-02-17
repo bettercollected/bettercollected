@@ -1,8 +1,8 @@
 from typing import Any, Dict, Optional
 
 from common.enums.form_provider import FormProvider
-from common.schemas.google_form_response import GoogleFormResponseDocument
 from repositories.form_response import FormResponseRepository
+from schemas.google_form_response import GoogleFormResponseDocument
 
 
 class FormResponseService:

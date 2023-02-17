@@ -1,8 +1,8 @@
 from typing import Any, Dict, Optional
 
 from common.enums.form_provider import FormProvider
-from common.schemas.google_form import GoogleFormDocument
 from repositories.form import FormRepository
+from schemas.google_form import GoogleFormDocument
 
 
 class FormService:

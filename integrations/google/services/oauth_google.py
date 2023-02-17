@@ -21,7 +21,7 @@ from common.constants import (
     MESSAGE_OAUTH_MISSING_TOKEN_OR_EXPIRY,
 )
 from repositories.oauth_credential import OauthCredentialRepository
-from common.schemas.oauth_credential import Oauth2CredentialDocument
+from schemas.oauth_credential import Oauth2CredentialDocument
 from settings import settings
 from utilities.google import dict_to_credential
 
@@ -265,6 +265,8 @@ class OauthGoogleService:
                     "grant_type": "refresh_token",
                 }
                 token = requests.post(credentials.token_uri, data).json()
+                if token.get("error"):
+                    raise InvalidGrantError()
                 if not token.get("access_token") or not token.get("expires_in"):
                     raise HttpError()
                 oauth_credential.credentials["token"] = token.get("access_token")
@@ -281,6 +283,10 @@ class OauthGoogleService:
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
                 detail=MESSAGE_OAUTH_MISSING_TOKEN_OR_EXPIRY,
+            )
+        except InvalidGrantError:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail=MESSAGE_OAUTH_INVALID_GRANT
             )
         except Exception as error:
             logger.error(error)

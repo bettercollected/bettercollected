@@ -13,7 +13,7 @@ from pymongo.errors import (
 from common.constants import MESSAGE_DATABASE_EXCEPTION
 from common.enums.form_provider import FormProvider
 from repositories.base import AbstractOauthRepository
-from common.schemas.oauth_credential import Oauth2CredentialDocument
+from schemas.oauth_credential import Oauth2CredentialDocument
 
 
 class OauthCredentialRepository(AbstractOauthRepository):

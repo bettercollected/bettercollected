@@ -6,9 +6,9 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import InvalidOperation
 
 from common.schemas.form_scheduler_config import SchedulerFormConfigDocument
-from common.schemas.google_form import GoogleFormDocument
-from common.schemas.google_form_response import GoogleFormResponseDocument
-from common.schemas.oauth_credential import Oauth2CredentialDocument
+from schemas.google_form import GoogleFormDocument
+from schemas.google_form_response import GoogleFormResponseDocument
+from schemas.oauth_credential import Oauth2CredentialDocument
 
 
 async def init_db(db: str, client: AsyncIOMotorClient):
