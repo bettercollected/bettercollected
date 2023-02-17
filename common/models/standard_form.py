@@ -1,36 +1,142 @@
 import datetime as dt
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
 
-class SettingsPatchDto(BaseModel):
-    """
-    Data transfer object for patching form settings.
-    """
+class QuestionFieldType(str, Enum):
+    ADDRESS = "address"
+    CONTACT_INFO = "contact_info"
+    DATE = "date"
+    DROPDOWN = "dropdown"
+    EMAIL = "email"
+    MATRIX = "matrix"
+    FILE_UPLOAD = "file_upload"
+    GROUP = "group"
+    GRID = "grid"
+    LEGAL = "legal"
+    LONG_TEXT = "long_text"
+    MULTIPLE_CHOICE = "multiple_choice"
+    NUMBER = "number"
+    OPINION_SCALE = "opinion_scale"
+    PAYMENT = "payment"
+    PHONE_NUMBER = "phone_number"
+    NPS = "nps"
+    PICTURE_CHOICE = "picture_choice"
+    RATING = "rating"
+    SHORT_TEXT = "short_text"
+    STATEMENT = "statement"
+    WEBSITE = "website"
+    YES_NO = "yes_no"
+    RANKING = "ranking"
 
-    pinned: Optional[bool]
-    customUrl: Optional[str]
-    responseDataOwnerField: Optional[str]
+
+class ResponseType(str, Enum):
+    TEXT = "text"
+    CHOICE = "choice"
+    CHOICES = "choices"
+    NUMBER = "number"
+    BOOLEAN = "boolean"
+    MATRIX = "matrix"
+    EMAIL = "email"
+    DATE = "date"
+    URL = "url"
+    PHONE_NUMBER = "phone_number"
+    FILE_URL = "file_url"
+    PAYMENT = "payment"
 
 
-class StandardFormSettingDto(SettingsPatchDto):
+class AttachmentProperties(BaseModel):
+    description: Optional[str]
+
+
+class Attachment(BaseModel):
+    type: Optional[str]
+    href: Optional[str]
+    scale: Optional[float]
+    properties: Optional[AttachmentProperties] = AttachmentProperties()
+
+
+class Choice(BaseModel):
+    ref: Optional[str]
+    label: Optional[str]
+    attachment: Optional[Attachment]
+
+
+class AnswerField(BaseModel):
+    id: str
+    ref: Optional[str]
+    type: Optional[QuestionFieldType]
+
+
+class PaymentAnswer(BaseModel):
+    amount: Optional[str]
+    last4: Optional[str]
+    name: Optional[str]
+
+
+class ChoiceAnswer(BaseModel):
+    label: Optional[str]
+    other: Optional[str]
+
+
+class ChoicesAnswer(BaseModel):
+    labels: Optional[List[str]]
+    other: Optional[str]
+
+
+class StandardFormSettingsDto:
     """
     Data transfer object for standard form settings.
     """
 
-    embedUrl: Optional[str]
+    embed_url: Optional[str]
     provider: Optional[str]
-    roles: Optional[List[str]]
+    language: Optional[str]
+    is_public: Optional[bool]
+    is_trial: Optional[bool]
+    response_data_owner_fields: Optional[List[str]]
+    screens: Optional[Dict[str, List[Dict[str, Any]]]]
 
 
-class StandardQuestionDto(BaseModel):
-    """
-    Data transfer object for standard questions.
-    """
+class StandardQuestionPropertyDto(BaseModel):
+    description: Optional[str]
+    choices: Optional[List[Choice]]
+    questions: Optional[List["StandardFormQuestionDto"]]
+    allow_multiple_selection: Optional[bool]
+    allow_other_choice: Optional[bool]
+    hide_marks: Optional[bool]
+    button_text: Optional[str]
+    steps: Optional[int]
+    shape: Optional[str]
+    labels: Optional[Dict[str, str]]
+    start_at_one: Optional[bool]
+    structure: Optional[str]
+    separator: Optional[str]
 
-    type: Optional[str]
-    options: Optional[List[Any]]
+
+class StandardQuestionValidationDto(BaseModel):
+    required: Optional[bool]
+    max_length: Optional[int]
+    min_value: Optional[float]
+    max_value: Optional[float]
+
+
+class StandardFormAnswerDto(BaseModel):
+    field: AnswerField
+    type: Optional[ResponseType]
+    text: Optional[str]
+    choice: Optional[ChoiceAnswer]
+    choices: Optional[ChoicesAnswer]
+    number: Optional[int]
+    boolean: Optional[bool]
+    email: Optional[str]
+    date: Optional[str]
+    url: Optional[str]
+    file_url: Optional[str]
+    payment: Optional[PaymentAnswer]
+    phone_number: Optional[str]
 
 
 class StandardFormQuestionDto(BaseModel):
@@ -38,40 +144,29 @@ class StandardFormQuestionDto(BaseModel):
     Data transfer object for questions in a standard form.
     """
 
-    questionId: Optional[str]
-    formId: Optional[str]
+    id: Optional[str]
+    ref: Optional[str]
     title: Optional[str]
     description: Optional[str]
-    type: Optional[Any]
-    required: Optional[bool]
-    isMediaContent: Optional[bool]
-    mediaContent: Optional[bool]
-    isGroupQuestion: Optional[bool]
-    groupQuestion: Optional[Any]
-    answer: Optional[Any]
+    type: Optional[QuestionFieldType]
+    properties: Optional[StandardQuestionPropertyDto] = StandardQuestionPropertyDto()
+    validations: Optional[StandardQuestionValidationDto]
+    attachment: Optional[Attachment] = None
+
+
+StandardQuestionPropertyDto.update_forward_refs()
 
 
 class StandardFormDto(BaseModel):
-    """
-    Data transfer object for a standard form.
-    """
-
-    formId: Optional[str]
+    form_id: Optional[str]
+    type: Optional[str]
     title: Optional[str]
     description: Optional[str]
-    settings: Optional[StandardFormSettingDto]
     questions: Optional[List[StandardFormQuestionDto]]
-    createdTime: Optional[str]
-    modifiedTime: Optional[str]
-
-
-class StandardFormResponseAnswerDto(BaseModel):
-    """
-    Data transfer object for an answer in a standard form response.
-    """
-
-    questionId: Optional[str]
-    answer: Optional[Any]
+    settings: Optional[StandardFormSettingsDto]
+    created_at: Optional[dt.datetime]
+    updated_at: Optional[dt.datetime]
+    published_at: Optional[dt.datetime]
 
 
 class StandardFormResponseDto(BaseModel):
@@ -79,26 +174,11 @@ class StandardFormResponseDto(BaseModel):
     Data transfer object for a standard form response.
     """
 
-    responseId: Optional[str]
-    formId: Optional[str]
-    formTitle: Optional[str]
-    formCustomUrl: Optional[str]
+    response_id: Optional[str]
+    form_id: Optional[str]
     provider: Optional[str]
-    dataOwnerIdentifierType: Optional[str]
-    dataOwnerIdentifier: Optional[str]
-    responses: Optional[Dict[str, StandardFormResponseAnswerDto]]
-    createdAt: Optional[dt.datetime]
-    updatedAt: Optional[dt.datetime]
-
-
-class StandardFormResponseTransformerDto(StandardFormDto):
-    """
-    Data transfer object for transforming a standard form response into a standard form.
-    """
-
-    responseId: Optional[str]
-    provider: Optional[str]
-    dataOwnerIdentifierType: Optional[str]
-    dataOwnerIdentifier: Optional[str]
-    responseCreatedAt: Optional[dt.datetime]
-    responseUpdatedAt: Optional[dt.datetime]
+    respondent_email: Optional[str]
+    answers: Optional[List[StandardFormAnswerDto]]
+    created_at: Optional[dt.datetime]
+    updated_at: Optional[dt.datetime]
+    published_at: Optional[dt.datetime]
