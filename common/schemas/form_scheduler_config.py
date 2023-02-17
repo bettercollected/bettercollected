@@ -25,10 +25,10 @@ class SchedulerFormConfigDocument(MongoDocument, FormSchedulerConfigQuery):
     imported_at: Optional[dt.datetime] = dt.datetime.utcnow()
 
     class Collection:
-        name = "schedulerFormConfigs"
+        name = "scheduler_form_configs"
 
     class Settings:
-        name = "schedulerFormConfigs"
+        name = "scheduler_form_configs"
         bson_encoders = {
             dt.datetime: lambda o: dt.datetime.isoformat(o),
             dt.date: lambda o: dt.date.isoformat(o),
