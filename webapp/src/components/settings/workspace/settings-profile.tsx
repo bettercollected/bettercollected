@@ -199,7 +199,7 @@ export default function SettingsProfile() {
             <div>
                 <div className=" relative">
                     <div className="product-image h-44 w-full overflow-hidden md:h-80 xl:h-[380px]">
-                        <Image src={bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
+                        <Image data-testid="banner-image-display" src={bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
                     </div>
                 </div>
                 <div className="product-box relative top-0 bottom-0 pb-24">
@@ -223,6 +223,7 @@ export default function SettingsProfile() {
                     <div className="flex w-full flex-col">
                         Banner Image
                         <input
+                            data-testid="workspace-banner"
                             accept="image/png, image/jpeg"
                             className="block z-10 w-full text-sm text-gray-900 border border-gray-300 rounded-md cursor-pointer bg-gray-50 file:rounded-l-md file:py-3 file:px-3 file:bg-gray-500 file:text-white file:border-none "
                             id="banner"
@@ -238,6 +239,7 @@ export default function SettingsProfile() {
                     <h1 className="text-lg">Workspace title</h1>
                     <div className=" flex flex-col justify-between w-full">
                         <TextField
+                            label="workspace-title"
                             error={false}
                             helperText=""
                             size="medium"
@@ -257,6 +259,7 @@ export default function SettingsProfile() {
                 <div className="pb-6">
                     <h1 className="text-lg">Workspace Description</h1>
                     <textarea
+                        id="workspace-description"
                         name="description"
                         value={patchReq.description}
                         onChange={(event) => {
