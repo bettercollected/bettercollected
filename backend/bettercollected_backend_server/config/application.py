@@ -1,5 +1,9 @@
 """Application configuration - FastAPI."""
+import dotenv
+
 from pydantic import BaseSettings
+
+from bettercollected_backend_server.config.provider_plugin import ProviderPluginSettings
 from bettercollected_backend_server.version import __version__
 
 
@@ -32,6 +36,8 @@ class Application(BaseSettings):
     VERSION: str = __version__
     DOCS_URL: str = "/docs"
     USE_REDIS: bool = False
+
+    provider_plugin: ProviderPluginSettings = ProviderPluginSettings()
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 
@@ -49,7 +55,6 @@ class Application(BaseSettings):
         """
 
         case_sensitive = True
-        env_prefix = "FASTAPI_"
 
 
 settings = Application()

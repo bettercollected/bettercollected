@@ -1,11 +1,11 @@
 import datetime as dt
 from beanie import PydanticObjectId
 
-from configs.mongo_document import MongoDocument
-from models.workspace import WorkspaceFormSettings
+from bettercollected_backend_server.app.models.workspace import WorkspaceFormSettings
+from common.configs.mongo_document import MongoDocument
 
 
-class WorkspaceForms(MongoDocument):
+class WorkspaceFormDocument(MongoDocument):
     """
     WorkspaceForms is a subclass of MongoDocument. It represents a collection of forms in a workspace stored in a
     MongoDB database.
@@ -28,10 +28,10 @@ class WorkspaceForms(MongoDocument):
     settings: WorkspaceFormSettings
 
     class Collection:
-        name = "workspaceForms"
+        name = "workspace_forms"
 
     class Settings:
-        name = "workspaceForms"
+        name = "workspace_forms"
         bson_encoders = {
             dt.datetime: lambda o: dt.datetime.isoformat(o),
             dt.date: lambda o: dt.date.isoformat(o),

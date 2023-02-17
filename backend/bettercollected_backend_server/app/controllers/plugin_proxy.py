@@ -8,6 +8,7 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse
 
 from bettercollected_backend_server.app.utils.httpx import plugin_proxy_service
+from bettercollected_backend_server.config import settings
 from common.enums.form_provider import FormProvider
 from common.base.plugin import BasePluginRoute
 
@@ -16,7 +17,7 @@ log = logging.getLogger(__name__)
 
 # noinspection PyMethodOverriding,PyProtocol
 class PluginProxy(BasePluginRoute):
-    proxy_url = "http://localhost:8001/api/v1/"
+    proxy_url = settings.provider_plugin.GOOGLE_SERVICE
 
     async def authorize(
         self, request: Request, email: str, provider: str | FormProvider
@@ -84,7 +85,11 @@ class PluginProxy(BasePluginRoute):
         provider: str | FormProvider,
         request_body: Dict[str, Any] = Body(...),
     ):
-        pass
+        proxies = {f"{request.base_url}{provider}": f"{self.proxy_url}{provider}"}
+        proxy = plugin_proxy_service(
+            proxies, request, f"{self.proxy_url}{provider}/forms", data=request_body
+        )
+        return json.loads(proxy.content)
 
     async def update_form(
         self,

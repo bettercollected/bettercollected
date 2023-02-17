@@ -17,10 +17,10 @@ class AllowedOriginsDocument(MongoDocument):
     origin: str
 
     class Collection:
-        name = "allowedOrigins"
+        name = "allowed_origins"
 
     class Settings:
-        name = "allowedOrigins"
+        name = "allowed_origins"
         bson_encoders = {
             dt.datetime: lambda o: dt.datetime.isoformat(o),
             dt.date: lambda o: dt.date.isoformat(o),

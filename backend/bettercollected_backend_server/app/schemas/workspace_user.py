@@ -2,10 +2,10 @@ import datetime as dt
 from typing import List
 from beanie import PydanticObjectId
 
-from configs.mongo_document import MongoDocument
+from common.configs.mongo_document import MongoDocument
 
 
-class WorkspaceUsers(MongoDocument):
+class WorkspaceUserDocument(MongoDocument):
     """
     WorkspaceUsers is a subclass of MongoDocument. It represents a collection of users in a workspace stored in a
     MongoDB database.
@@ -28,10 +28,10 @@ class WorkspaceUsers(MongoDocument):
     roles: List[str] = ["FORM_CREATOR"]
 
     class Collection:
-        name = "workspaceUsers"
+        name = "workspace_users"
 
     class Settings:
-        name = "workspaceUsers"
+        name = "workspace_users"
         bson_encoders = {
             dt.datetime: lambda o: dt.datetime.isoformat(o),
             dt.date: lambda o: dt.date.isoformat(o),

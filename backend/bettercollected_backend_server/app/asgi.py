@@ -26,6 +26,9 @@ async def on_startup():
     if settings.USE_REDIS:
         await RedisClient.open_redis_client()
 
+    # Initialize database
+    # await init_db(db, client)
+
     AiohttpClient.get_aiohttp_client()
 
 
@@ -40,6 +43,8 @@ async def on_shutdown():
     # Gracefully close utilities.
     if settings.USE_REDIS:
         await RedisClient.close_redis_client()
+
+    # await close_db(client)
 
     await AiohttpClient.close_aiohttp_client()
 

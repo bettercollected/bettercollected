@@ -9,12 +9,12 @@ class WorkspaceRequestDto(BaseModel):
     """Model for creating or updating a workspace."""
 
     title: Optional[str]
-    workspaceName: Optional[str]
+    workspace_name: Optional[str]
     description: Optional[str]
-    ownerId: Optional[PydanticObjectId]
-    profileImage: Optional[str]
-    bannerImage: Optional[str]
-    customDomain: Optional[str]
+    owner_id: Optional[PydanticObjectId]
+    profile_image: Optional[str]
+    banner_image: Optional[str]
+    custom_domain: Optional[str]
 
 
 class Workspace(WorkspaceRequestDto):
@@ -27,10 +27,10 @@ class Workspace(WorkspaceRequestDto):
 class WorkspaceFormSettings(BaseModel):
     """Model for storing the form settings of a workspace."""
 
-    customUrl: Optional[str]
-    responseDataOwnerField: Optional[str]
-    pinned: bool = False
-    roles: List[str] = []
+    pinned: Optional[bool]
+    custom_url: Optional[str]
+    private: Optional[bool] = False
+    response_data_owner_field: Optional[str]
 
 
 class WorkspaceResponseDto(WorkspaceRequestDto):

@@ -6,9 +6,9 @@ from bettercollected_backend_server.app import get_application
 from common.constants.plugin_routes import (
     PLUGIN_ROUTE_AUTHORIZE,
     PLUGIN_ROUTE_CALLBACK,
-    PLUGIN_ROUTE_GET_FORM,
+    PLUGIN_ROUTE_FORM,
     PLUGIN_ROUTE_IMPORT_FORM,
-    PLUGIN_ROUTE_LIST_FORMS,
+    PLUGIN_ROUTE_FORMS,
     PLUGIN_ROUTE_REVOKE,
 )
 
@@ -49,7 +49,7 @@ class TestPlugin_proxyController:
 
     def test_shouldlist_forms_return_ok(self, client):
         # given / when
-        response = client.get(PLUGIN_ROUTE_LIST_FORMS)
+        response = client.get(PLUGIN_ROUTE_FORMS)
 
         # then
         assert response.status_code == HTTPStatus.OK
@@ -57,7 +57,7 @@ class TestPlugin_proxyController:
 
     def test_shouldget_form_return_ok(self, client):
         # given / when
-        response = client.get(PLUGIN_ROUTE_GET_FORM)
+        response = client.get(PLUGIN_ROUTE_FORM)
 
         # then
         assert response.status_code == HTTPStatus.OK

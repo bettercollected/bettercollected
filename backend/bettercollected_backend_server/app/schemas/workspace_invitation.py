@@ -5,8 +5,8 @@ from typing import Optional
 from beanie import PydanticObjectId
 from pymongo import IndexModel
 
-from configs.mongo_document import MongoDocument
-from enums.workspace_invitation_status import InvitationStatus
+from common.configs.mongo_document import MongoDocument
+from common.enums.workspace_invitation_status import InvitationStatus
 
 
 _time_delta = timedelta()
@@ -56,11 +56,11 @@ class WorkspaceUserInvitesDocument(MongoDocument):
     invitationToken: str
 
     class Collection:
-        name = "workspaceInvites"
-        indexes = [IndexModel([("workspaceId", 1), ("userId", 1)], unique=True)]
+        name = "workspace_invites"
+        indexes = [IndexModel([("workspace_id", 1), ("user_id", 1)], unique=True)]
 
     class Settings:
-        name = "workspaceInvites"
+        name = "workspace_invites"
         bson_encoders = {
             datetime: lambda o: datetime.isoformat(o),
         }

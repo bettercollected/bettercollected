@@ -3,8 +3,8 @@ import datetime as dt
 
 from beanie import Indexed
 
-from configs.mongo_document import MongoDocument
-from models.workspace import Workspace
+from bettercollected_backend_server.app.models.workspace import Workspace
+from common.configs.mongo_document import MongoDocument
 
 
 class WorkspaceDocument(MongoDocument, Workspace):
@@ -13,8 +13,8 @@ class WorkspaceDocument(MongoDocument, Workspace):
     in a MongoDB database.
 
     Attributes:
-        workspaceName (str): The name of the workspace. This field is indexed and unique.
-        customDomain (str, optional): The custom domain of the workspace. This field is indexed.
+        workspace_name (str): The name of the workspace. This field is indexed and unique.
+        custom_domain (str, optional): The custom domain of the workspace. This field is indexed.
         default (bool): A flag indicating whether the workspace is the default workspace. Defaults to False.
 
     Classes Attributes:
@@ -25,15 +25,15 @@ class WorkspaceDocument(MongoDocument, Workspace):
             bson_encoders (dict): A dictionary of bson encoders for specific data types.
     """
 
-    workspaceName: Indexed(str, unique=True)
-    customDomain: Optional[Indexed(str)]
+    workspace_name: Indexed(str, unique=True)
+    custom_domain: Optional[Indexed(str)]
     default: bool = False
 
     class Collection:
-        name = "workspace"
+        name = "workspaces"
 
     class Settings:
-        name = "workspace"
+        name = "workspaces"
         bson_encoders = {
             dt.datetime: lambda o: dt.datetime.isoformat(o),
             dt.date: lambda o: dt.date.isoformat(o),
