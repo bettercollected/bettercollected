@@ -97,6 +97,6 @@ class UserInfo(Token):
 
 class OAuthState(BaseModel):
     # Redirect uri for saving user after successful typeform authentication
-    auth_server_redirect_uri: str
-    backend_auth_redirect_uri: str
+    auth_server_redirect_uri: Optional[str]
+    backend_auth_redirect_uri: Optional[str]
     client_referer_uri: Optional[str]
