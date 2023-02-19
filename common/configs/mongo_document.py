@@ -17,7 +17,7 @@ from beanie.odm.documents import DocType
 from pymongo.client_session import ClientSession
 from pymongo.collection import Collection
 
-from common.exceptions import NotFoundError
+from exceptions import NotFoundError
 
 IntStr = Union[int, str]
 AbstractSetIntStr = AbstractSet[IntStr]

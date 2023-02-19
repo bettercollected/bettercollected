@@ -3,8 +3,8 @@ import typing
 
 from httpx import AsyncClient
 
-from common.exceptions.http import HTTPException
-from common.constants import messages
+from exceptions.http import HTTPException
+from constants import messages
 
 log = logging.getLogger(__name__)
 

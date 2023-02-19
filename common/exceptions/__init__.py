@@ -1,7 +1,7 @@
 import warnings
 from typing import Optional
 
-from common.constants import (
+from constants import (
     MESSAGE_CONVERSION_WARNING,
     MESSAGE_DATA_TO_ITEM_ERROR,
     MESSAGE_FORBIDDEN,

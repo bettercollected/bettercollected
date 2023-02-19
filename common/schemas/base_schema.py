@@ -2,7 +2,7 @@ import abc
 import datetime as dt
 from typing import Optional
 
-from common.configs.mongo_document import MongoDocument
+from configs.mongo_document import MongoDocument
 
 
 class BaseDocument(abc.ABC, MongoDocument):

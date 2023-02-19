@@ -3,8 +3,6 @@ from typing import Dict, Optional, List
 from beanie import PydanticObjectId
 from pydantic import BaseModel, EmailStr, Field
 
-from common.enums.form_provider import FormProvider
-
 UserIdentifier = str
 
 

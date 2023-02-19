@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Protocol
 from fastapi import Body
 from starlette.requests import Request
 
-from common.constants.plugin_routes import (
+from constants.plugin_routes import (
     PLUGIN_ROUTE_AUTHORIZE,
     PLUGIN_ROUTE_CALLBACK,
     PLUGIN_ROUTE_FORM,
@@ -16,9 +16,9 @@ from common.constants.plugin_routes import (
     PLUGIN_ROUTE_IMPORT_FORM,
     PLUGIN_ROUTE_REVOKE,
 )
-from common.enums.form_provider import FormProvider
-from common.enums.http_methods import HTTPMethods
-from common.utils.router import CustomAPIRouter
+from enums.form_provider import FormProvider
+from enums.http_methods import HTTPMethods
+from utils.router import CustomAPIRouter
 
 
 class BasePluginRoute(Protocol):
