@@ -1,3 +1,4 @@
+import datetime
 from typing import Dict, Optional, List
 
 from beanie import PydanticObjectId
@@ -98,3 +99,13 @@ class OAuthState(BaseModel):
     auth_server_redirect_uri: Optional[str]
     backend_auth_redirect_uri: Optional[str]
     client_referer_uri: Optional[str]
+
+
+class Credential(BaseModel):
+    updated_at: Optional[datetime.datetime]
+    email: str
+    access_token: str
+    refresh_token: Optional[str]
+    access_token_expires: Optional[int]
+    refresh_token_expires: Optional[int]
+
