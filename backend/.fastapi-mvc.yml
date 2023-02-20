@@ -12,7 +12,7 @@ github_actions: true
 helm: true
 license: 'no'
 nix: true
-package_name: bettercollected_backend_server
+package_name: backend
 project_description: ''
 project_name: bettercollected-backend-server
 redis: true

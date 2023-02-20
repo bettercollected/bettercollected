@@ -8,94 +8,112 @@ This part of the documentation lists the full API reference of all classes and f
 WSGI
 ----
 
-.. autoclass:: bettercollected_backend_server.wsgi.ApplicationLoader
+.. autoclass:: backend.wsgi.ApplicationLoader
    :members:
    :show-inheritance:
 
 Config
 ------
 
-.. automodule:: bettercollected_backend_server.config
+.. automodule:: backend.config
 
-.. autoclass:: bettercollected_backend_server.config.application.Application
+.. autoclass:: backend.config.application.Application
    :members:
    :show-inheritance:
 
-.. autoclass:: bettercollected_backend_server.config.redis.Redis
+.. autoclass:: backend.config.redis.Redis
    :members:
    :show-inheritance:
 
-.. automodule:: bettercollected_backend_server.config.gunicorn
+.. automodule:: backend.config.gunicorn
 
 CLI
 ---
 
-.. automodule:: bettercollected_backend_server.cli
+.. automodule:: backend.cli
 
-.. autofunction:: bettercollected_backend_server.cli.cli.cli
+.. autofunction:: backend.cli.cli.cli
 
-.. autofunction:: bettercollected_backend_server.cli.utils.validate_directory
+.. autofunction:: backend.cli.utils.validate_directory
 
-.. autofunction:: bettercollected_backend_server.cli.serve.serve
+.. autofunction:: backend.cli.serve.serve
 
 App
 ---
 
-.. automodule:: bettercollected_backend_server.app
+.. automodule:: backend.app
 
-.. autofunction:: bettercollected_backend_server.app.asgi.on_startup
+.. autofunction:: backend.app.asgi.on_startup
 
-.. autofunction:: bettercollected_backend_server.app.asgi.on_shutdown
+.. autofunction:: backend.app.asgi.on_shutdown
 
-.. autofunction:: bettercollected_backend_server.app.asgi.get_application
+.. autofunction:: backend.app.asgi.get_application
 
-.. automodule:: bettercollected_backend_server.app.router
+.. automodule:: backend.app.router
 
 Controllers
 ~~~~~~~~~~~
 
-.. automodule:: bettercollected_backend_server.app.controllers
+.. automodule:: backend.app.controllers
 
-.. autofunction:: bettercollected_backend_server.app.controllers.ready.readiness_check
+.. autofunction:: backend.app.controllers.ready.readiness_check
+
+Handlers
+~~~~~~~~
+
+.. automodule:: backend.app.handlers
+
+.. autofunction:: backend.app.handlers.init_logging
+
+Middlewares
+~~~~~~~~~~~
+
+.. automodule:: backend.app.middlewares
+
+.. autofunction:: backend.app.middlewares.include_middlewares
 
 Models
 ~~~~~~
 
-.. automodule:: bettercollected_backend_server.app.models
+.. automodule:: backend.app.models
+
+.. autoclass:: backend.app.models.workspace.Workspace
+   :members:
+   :show-inheritance:
 
 Views
 ~~~~~
 
-.. automodule:: bettercollected_backend_server.app.views
+.. automodule:: backend.app.views
 
-.. autoclass:: bettercollected_backend_server.app.views.error.ErrorModel
+.. autoclass:: backend.app.views.error.ErrorModel
    :members:
    :show-inheritance:
 
-.. autoclass:: bettercollected_backend_server.app.views.error.ErrorResponse
+.. autoclass:: backend.app.views.error.ErrorResponse
    :members:
    :show-inheritance:
 
 Exceptions
 ~~~~~~~~~~
 
-.. automodule:: bettercollected_backend_server.app.exceptions
+.. automodule:: backend.app.exceptions
 
-.. autoclass:: bettercollected_backend_server.app.exceptions.http.HTTPException
+.. autoclass:: backend.app.exceptions.http.HTTPException
    :members:
    :show-inheritance:
 
-.. autofunction:: bettercollected_backend_server.app.exceptions.http.http_exception_handler
+.. autofunction:: backend.app.exceptions.http.http_exception_handler
 
 Utils
 ~~~~~
 
-.. automodule:: bettercollected_backend_server.app.utils
+.. automodule:: backend.app.utils
 
-.. autoclass:: bettercollected_backend_server.app.utils.aiohttp_client.AiohttpClient
+.. autoclass:: backend.app.utils.aiohttp_client.AiohttpClient
    :members:
    :show-inheritance:
 
-.. autoclass:: bettercollected_backend_server.app.utils.redis.RedisClient
+.. autoclass:: backend.app.utils.redis.RedisClient
    :members:
    :show-inheritance:

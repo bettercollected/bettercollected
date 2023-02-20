@@ -1,5 +1,5 @@
 import pytest
-from bettercollected_backend_server import ApplicationLoader
+from backend import ApplicationLoader
 
 
 class TestApplicationLoader:

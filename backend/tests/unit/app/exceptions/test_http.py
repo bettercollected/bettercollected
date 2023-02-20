@@ -2,7 +2,7 @@ from unittest import mock
 
 import pytest
 from starlette.requests import Request
-from bettercollected_backend_server.app.exceptions import (
+from backend.app.exceptions import (
     HTTPException,
     http_exception_handler,
 )

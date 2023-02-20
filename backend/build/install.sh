@@ -22,8 +22,8 @@ fi
 
 PYTHON_MAJOR_VERSION=$($PYTHON -c 'import sys; print(sys.version_info[0])')
 PYTHON_MINOR_VERSION=$($PYTHON -c 'import sys; print(sys.version_info[1])')
-if [[ "$PYTHON_MAJOR_VERSION" -lt 3 ]] || [[ "$PYTHON_MINOR_VERSION" -lt 8 ]]; then
-  echo "[install] Python version 3.8.0 or higher is required."
+if [[ "$PYTHON_MAJOR_VERSION" -lt 3 ]] || [[ "$PYTHON_MINOR_VERSION" -lt 10 ]]; then
+  echo "[install] Python version 3.10.0 or higher is required."
   exit 1
 fi
 
@@ -46,7 +46,7 @@ Now you should access CLI script: $ bettercollected-backend-server --help
 Alternatively you can access CLI script via poetry run: $ poetry run bettercollected-backend-server --help
 To deactivate virtualenv simply type: $ deactivate
 To activate shell completion:
- - for bash: $ echo 'eval "$(_BETTERCOLLECTED_BACKEND_SERVER_COMPLETE=source_bash bettercollected-backend-server)' >> ~/.bashrc
- - for zsh: $ echo 'eval "$(_BETTERCOLLECTED_BACKEND_SERVER_COMPLETE=source_zsh bettercollected-backend-server)' >> ~/.zshrc
- - for fish: $ echo 'eval "$(_BETTERCOLLECTED_BACKEND_SERVER_COMPLETE=source_fish bettercollected-backend-server)' >> ~/.config/fish/completions/bettercollected-backend-server.fish
+ - for bash: $ echo 'eval "$(_backend_COMPLETE=source_bash bettercollected-backend-server)' >> ~/.bashrc
+ - for zsh: $ echo 'eval "$(_backend_COMPLETE=source_zsh bettercollected-backend-server)' >> ~/.zshrc
+ - for fish: $ echo 'eval "$(_backend_COMPLETE=source_fish bettercollected-backend-server)' >> ~/.config/fish/completions/bettercollected-backend-server.fish
 EOF
