@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 from click import BadParameter
-from bettercollected_backend_server.cli.utils import validate_directory
+from backend.cli.utils import validate_directory
 
 
 class TestValidateDirectory:

@@ -2,8 +2,8 @@ from unittest import mock
 
 import pytest
 from redis import asyncio as aioredis
-from bettercollected_backend_server.app.utils import RedisClient
-from bettercollected_backend_server.config import redis as redis_conf
+from backend.app.utils import RedisClient
+from backend.config import redis as redis_conf
 
 
 class TestRedisClient:

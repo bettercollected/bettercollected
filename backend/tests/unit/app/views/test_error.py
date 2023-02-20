@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 import pytest
 from pydantic.error_wrappers import ValidationError
-from bettercollected_backend_server.app.views.error import ErrorModel, ErrorResponse
+from backend.app.views.error import ErrorModel, ErrorResponse
 
 
 class TestErrorModel:

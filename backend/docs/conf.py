@@ -3,7 +3,7 @@
 # This file only contains a selection of the most common options. For a full
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
-from bettercollected_backend_server import __version__
+from backend import __version__
 from pallets_sphinx_themes import ProjectLink
 
 # Project --------------------------------------------------------------

@@ -3,8 +3,8 @@ import copy
 from unittest import mock
 
 import pytest
-from bettercollected_backend_server import ApplicationLoader
-from bettercollected_backend_server.cli.serve import serve
+from backend import ApplicationLoader
+from backend.cli.serve import serve
 
 fake_pid_file = os.path.join(
     os.path.dirname(__file__),
@@ -17,11 +17,11 @@ class TestCliServeCommand:
     def patched_serve(self, asgi_app):
         cmd = copy.deepcopy(serve)
         wsgi_patch = mock.patch(
-            "bettercollected_backend_server.cli.serve.ApplicationLoader",
+            "backend.cli.serve.ApplicationLoader",
             spec=ApplicationLoader,
         )
         get_app_patch = mock.patch(
-            "bettercollected_backend_server.cli.serve.get_application",
+            "backend.cli.serve.get_application",
             return_value=asgi_app,
         )
         cmd.wsgi_mock = wsgi_patch.start()

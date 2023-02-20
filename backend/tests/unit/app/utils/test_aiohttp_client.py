@@ -1,7 +1,7 @@
 import pytest
 import aiohttp
 from aioresponses import aioresponses
-from bettercollected_backend_server.app.utils import AiohttpClient
+from backend.app.utils import AiohttpClient
 
 
 class TestAiohttpClient:
