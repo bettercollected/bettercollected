@@ -28,15 +28,15 @@ class AuthProxyService:
         response = await self.http_client.get(
             authorization_url, params=oauth_state.dict(exclude_none=True), timeout=60
         )
-        oauth_url = await response.text()
-        return oauth_url
+        oauth_url = await response.json()
+        return oauth_url.get("oauth_url", "")
 
     async def get_credential_of_provider(
         self, provider_name: str, jwt_token: str
     ) -> Dict[str, Any]:
-        provider_config = container.enabled_forms().get_form_provider(provider_name)
+        # provider_config = container.enabled_forms().get_form_provider(provider_name)
         response = await self.http_client.get(
-            f"{provider_config.api_uri}/{provider_name}/credentials",
+            f"{settings.AUTH_BASE_URL}/{provider_name}/credentials",
             params={"jwt_token": jwt_token},
         )
         return await response.json()

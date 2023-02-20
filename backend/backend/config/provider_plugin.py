@@ -2,7 +2,7 @@ from pydantic import BaseSettings
 
 
 class ProviderPluginSettings(BaseSettings):
-    GOOGLE_SERVICE: str = ""
+    GOOGLE_SERVICE: str = "http://localhost:8003"
     TYPEFORM_SERVICE: str = "http://localhost:8002"
 
     # All your additional application configuration should go either here or in
