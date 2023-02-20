@@ -6,7 +6,6 @@ from typeform.app.views.error import ErrorModel, ErrorResponse
 
 
 class TestErrorModel:
-
     @pytest.mark.parametrize(
         "code, message, details",
         [
@@ -51,7 +50,6 @@ class TestErrorModel:
 
 
 class TestErrorResponse:
-
     @pytest.mark.parametrize(
         "code, message, details",
         [

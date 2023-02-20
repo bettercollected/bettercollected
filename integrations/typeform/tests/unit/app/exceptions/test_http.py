@@ -9,16 +9,15 @@ from typeform.app.exceptions import (
 
 
 class TestHttpException:
-
     @pytest.mark.parametrize(
         "status_code, content, headers",
         [
             (400, "test msg", None),
             (403, "test msg", [{"key": 123, "key2": 123.123, "foo": "bar"}]),
             (
-                    404,
-                    {"key": 123, "key2": 123.123, "foo": "bar"},
-                    {"key": {"foo": "bar"}, "key2": [1, 2, 3]},
+                404,
+                {"key": 123, "key2": 123.123, "foo": "bar"},
+                {"key": {"foo": "bar"}, "key2": [1, 2, 3]},
             ),
         ],
     )
@@ -55,7 +54,6 @@ class TestHttpException:
 
 
 class TestHttpExceptionHandler:
-
     @pytest.fixture
     def fastapi_request(self):
         yield mock.Mock(spec=Request)

@@ -4,7 +4,6 @@ from typeform.app.views import ReadyResponse
 
 
 class TestReadyResponse:
-
     @pytest.mark.parametrize(
         "value",
         [

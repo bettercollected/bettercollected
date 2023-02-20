@@ -1,10 +1,12 @@
 """Auth controller implementation."""
+import json
 import logging
 
 from classy_fastapi import Routable, get
 from fastapi import Depends
 
 from common.models.user import OAuthState
+
 # from typeform.app.router import router
 from typeform.app.services import auth_service
 

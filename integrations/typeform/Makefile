@@ -67,6 +67,16 @@ coverage: install  ## Run typeform tests coverage
 .PHONY: test
 test: unit-test integration-test  ## Run typeform tests
 
+.PHONY: format
+format: install  ## Formats the python files with black
+	echo "[format] Formatting the files."
+	${POETRY_BINARY} run black . --exclude=venv --extend-exclude=common
+
+.PHONY: flake8
+flake8: install  ## Checks code standards with flake8
+	echo "[flake8] Checking code standards with flake8."
+	${POETRY_BINARY} run flake8 . --exclude=venv,common,.github,build,charts,manifests,site --extend-exclude=common
+
 .PHONY: docs
 docs: install ## Build typeform documentation
 	echo "[docs] Build typeform documentation."
