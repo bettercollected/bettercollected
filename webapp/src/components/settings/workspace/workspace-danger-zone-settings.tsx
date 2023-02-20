@@ -26,6 +26,7 @@ export function WorkspaceDangerZoneSettings() {
                         </div>
                     </div>
                     <Button
+                        data-testid="workspace-custom-domain"
                         isLoading={false}
                         className=" !bg-gray-100 !px-8 !py-1 hover:text-white !font-normal hover:!bg-red-800 text-red-800 rounded border !border-gray-300"
                         onClick={() => {
@@ -46,6 +47,7 @@ export function WorkspaceDangerZoneSettings() {
                         </div>
                     </div>
                     <Button
+                        data-testid="workspace-handle"
                         isLoading={false}
                         className=" !bg-gray-100 !h-auto !px-8 !py-3 hover:text-white !font-normal hover:!bg-red-800 text-red-800 rounded border !border-gray-300"
                         onClick={() => {

@@ -32,21 +32,9 @@ jest.mock('html2canvas', () => ({
 }));
 
 describe('Banner Image Component', () => {
-    beforeAll(() => {
-        window.getComputedStyle = () => {};
-    });
     it('should render component', async function () {
         fetchMock.mockResponse(JSON.stringify('Hello Wrold'));
         renderWithProviders(<BannerImageComponent workspace={initWorkspaceDto} isFormCreator={true} />);
         expect(screen.getByText('update image')).toBeInTheDocument();
-        // fireEvent.change(screen.getByTestId('file-upload'), {
-        //     target: {
-        //         files: [imgFile]
-        //     }
-        // });
-        // const button = screen.getByText('Save image');
-        // fireEvent.click(button);
-        // screen.debug();
-        // await waitFor(() => {});
     });
 });
