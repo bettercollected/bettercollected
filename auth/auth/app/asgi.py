@@ -48,8 +48,7 @@ def get_application():
 
     """
     log.debug("Initialize FastAPI application node.")
-    container.wire(packages=[
-        auth.app.controllers])
+    container.wire(packages=[auth.app.controllers])
     app = FastAPI(
         title=settings.PROJECT_NAME,
         debug=settings.DEBUG,

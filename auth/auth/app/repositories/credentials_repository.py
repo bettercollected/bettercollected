@@ -7,7 +7,6 @@ from common.models.user import UserInfo
 
 # TODO : Refactor this
 class CredentialRepository:
-
     @staticmethod
     async def get_credential(email: str, provider: str):
         return await CredentialDocument.find_one({"email": email, "provider": provider})
@@ -19,7 +18,9 @@ class CredentialRepository:
 
     @staticmethod
     async def save_credentials(user_info: UserInfo):
-        credential = await CredentialRepository.get_credential(email=user_info.email, provider=user_info.provider)
+        credential = await CredentialRepository.get_credential(
+            email=user_info.email, provider=user_info.provider
+        )
         if not credential:
             credential = CredentialDocument()
             credential.created_at = datetime.utcnow()
@@ -33,7 +34,9 @@ class CredentialRepository:
 
     @staticmethod
     async def revoke_credentials(email: str, provider: str):
-        exists = await CredentialRepository.get_credential(email=email, provider=provider)
+        exists = await CredentialRepository.get_credential(
+            email=email, provider=provider
+        )
         if exists:
             return await exists.delete()
         return None

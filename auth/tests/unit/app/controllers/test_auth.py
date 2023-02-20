@@ -4,7 +4,6 @@ from auth.app import get_application
 
 
 class TestAuthController:
-
     @pytest.fixture
     def client(self):
         # This is an example fixture for generated test sake.

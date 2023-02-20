@@ -1,1 +1,3 @@
-auth_connection_failed = "Error internal communication with provider for auth url failed."
+auth_connection_failed = (
+    "Error internal communication with provider for auth url failed."
+)

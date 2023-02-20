@@ -11,16 +11,26 @@ from auth.app.container import AppContainer
 from auth.app.repositories import credentials_repository
 from auth.app.router import router
 from auth.app.services.auth_service import AuthService
-from common.models.user import AuthenticationStatus, UserInfo, OAuthState, User, Credential
+from common.models.user import (
+    AuthenticationStatus,
+    UserInfo,
+    OAuthState,
+    User,
+    Credential,
+)
 
 log = logging.getLogger(__name__)
 
 
 @router(prefix="/auth")
 class AuthRoutes(Routable):
-
     @inject
-    def __init__(self, auth_service: AuthService = Provide[AppContainer.auth_service], *args, **kwargs):
+    def __init__(
+        self,
+        auth_service: AuthService = Provide[AppContainer.auth_service],
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.auth_service = auth_service
 
@@ -49,9 +59,9 @@ class AuthRoutes(Routable):
         await self.auth_service.handle_auth_callback(jwt_token)
 
     @get("{provider_name}/credentials")
-    async def get_credentials_of_provider(self,
-                                          provider_name: str,
-                                          user: User =
-                                          Depends(AuthService.get_logged_user)) -> Credential:
-        return await self.auth_service.get_credential(email=user.sub,
-                                                      provider=provider_name)
+    async def get_credentials_of_provider(
+        self, provider_name: str, user: User = Depends(AuthService.get_logged_user)
+    ) -> Credential:
+        return await self.auth_service.get_credential(
+            email=user.sub, provider=provider_name
+        )

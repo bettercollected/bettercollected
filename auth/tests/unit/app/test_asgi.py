@@ -12,7 +12,6 @@ from auth.app.exceptions import (
 
 
 class TestGetApplication:
-
     def test_should_create_app_and_populate_defaults(self):
         # given / when
         app = get_application()

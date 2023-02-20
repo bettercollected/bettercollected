@@ -2,7 +2,6 @@ from auth.config import settings
 
 
 class TestReadyController:
-
     def test_should_return_ok(self, app_runner):
         # given
         settings.USE_REDIS = False

@@ -3,7 +3,6 @@ from auth.cli import cli
 
 
 class TestCliRoot:
-
     def test_should_exit_zero_when_invoked_empty(self, cli_runner):
         # given / when
         result = cli_runner.invoke(cli)
@@ -25,10 +24,9 @@ class TestCliRoot:
         # then
         assert result.exit_code == 2
 
-    @pytest.mark.parametrize("args", [
-        ["serve", "--help"],
-        ["--verbose", "serve", "--help"]
-    ])
+    @pytest.mark.parametrize(
+        "args", [["serve", "--help"], ["--verbose", "serve", "--help"]]
+    )
     def test_should_exit_zero_when_invoked_with_options(self, cli_runner, args):
         # given / when
         result = cli_runner.invoke(cli, args)
