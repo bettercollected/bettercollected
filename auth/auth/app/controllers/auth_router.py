@@ -58,7 +58,7 @@ class AuthRoutes(Routable):
     async def _auth_callback(self, jwt_token: str):
         await self.auth_service.handle_auth_callback(jwt_token)
 
-    @get("{provider_name}/credentials")
+    @get("/{provider_name}/credentials")
     async def get_credentials_of_provider(
         self, provider_name: str, user: User = Depends(AuthService.get_logged_user)
     ) -> Credential:
