@@ -1,71 +1,64 @@
-import datetime
-import json
-from typing import Tuple, Dict, Any, List
+from typing import Dict, Any, Optional
 
+import jwt
 import requests
-from common.models.dtos.auth import User
-from common.models.schemas.credentials import Provider
-from common.models.schemas.form_responses import TypeFormResponseDocument
-from common.models.schemas.forms import TypeFormDocument
-from common.models.schemas.user import Roles, UserDocument
-from common.models.schemas.workspace import WorkspaceDocument
-from common.models.schemas.workspace_users import WorkspaceUsers
-from common.repositories import credentials_repository
-from typeform.config import settings
 from fastapi import HTTPException
-from pydantic import BaseModel
-from common.configs import crypto
 
-typeform_settings = settings.typeform_settings
+from common.configs.crypto import Crypto
+from common.enums.form_provider import FormProvider
+from common.models.user import Token, UserInfo, OAuthState
+from typeform.app.container import AppContainer, container
+from typeform.config import settings
 
-crypto = crypto.Crypto(settings.AES_HEX_KEY)
-
-
-class TypeformTokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str
-    expires_in: int
+crypto = Crypto(settings.AES_HEX_KEY)
 
 
-async def typeform_auth(client_referer_url: str) -> str:
-    state_json = json.dumps({"client_referer_url": client_referer_url})
-    state = crypto.encrypt(state_json)
-    authorization_url = typeform_settings.auth_uri.format(
+async def get_oauth_url(*, oauth_state: OAuthState) -> str:
+    state = crypto.encrypt(oauth_state.json())
+    oauth_url = settings.TYPEFORM_AUTH_URI.format(
         state=state,
-        client_id=typeform_settings.client_id,
-        redirect_uri=typeform_settings.redirect_uri,
-        scope=typeform_settings.scope
+        client_id=settings.TYPEFORM_CLIENT_ID,
+        redirect_uri=settings.TYPEFORM_REDIRECT_URI,
+        scope=settings.TYPEFORM_SCOPE
     )
-    return authorization_url
+    return oauth_url
 
 
-async def typeform_callback(code: str, state: str) -> Tuple[UserDocument, str]:
+async def handle_oauth_callback(code: str, *, state: str):
     data = {
         'grant_type': 'authorization_code',
         'code': code,
-        'client_id': typeform_settings.client_id,
-        'client_secret': typeform_settings.client_secret,
-        'redirect_uri': typeform_settings.redirect_uri
+        'client_id': settings.TYPEFORM_CLIENT_ID,
+        'client_secret': settings.TYPEFORM_CLIENT_SECRET,
+        # Here type form uses this redirect uri just to verify
+        # that it is register in this application
+        'redirect_uri': settings.TYPEFORM_REDIRECT_URI
     }
-    typeform_response = requests.post(typeform_settings.token_uri, data=data)
+    typeform_response = requests.post(settings.TYPEFORM_TOKEN_URI, data=data)
     if not typeform_response.json():
         raise HTTPException(500, "Could not fetch token from typeform!")
-    token_response = TypeformTokenResponse(**typeform_response.json())
-    me_response = perform_typeform_request(token_response.access_token, "/me")
-    await credentials_repository.save_credentials(email=me_response['email'],
-                                                  credentials=token_response.dict(),
-                                                  state=state,
-                                                  provider=Provider.TYPEFORM)
-    # TODO Refactor this
-    user_document = await save_user_with_workspace(me_response['email'])
-    state = json.loads(crypto.decrypt(state))
-    client_referer_url = state.get('client_referer_url', '')
-    return user_document, client_referer_url
+    token = Token(**typeform_response.json())
+
+    me_response = perform_typeform_request(token.access_token, "/me")
+    email = me_response['email']
+    user_info = UserInfo(**token.dict(), email=email, provider=FormProvider.TYPEFORM)
+    oauth_state = OAuthState.parse_raw(crypto.decrypt(state))
+
+    token = jwt.encode(
+        {
+            "user_info": user_info.dict(),
+            "oauth_state": oauth_state.dict(),
+        },
+        settings.JWT_SECRET
+    )
+
+    await container.http_client.get(oauth_state.auth_server_redirect_uri,
+                                    params={"jwt_token": token}
+                                    )
 
 
 def perform_typeform_request(access_token: str, path: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
-    api_response = requests.get(f'{typeform_settings.api_uri}{path}',
+    api_response = requests.get(f'{settings.TYPEFORM_API_URI}{path}',
                                 headers={
                                     'Authorization': f'Bearer {access_token}'
                                 },

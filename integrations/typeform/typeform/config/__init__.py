@@ -16,5 +16,4 @@ Resources:
 """
 from typeform.config.application import settings
 
-
 __all__ = ("settings",)

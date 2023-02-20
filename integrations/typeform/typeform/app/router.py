@@ -11,7 +11,13 @@ from typing import Type
 from classy_fastapi import Routable
 from fastapi import APIRouter
 
-root_api_router = APIRouter(prefix="/api")
+from common.utils.router import CustomAPIRouter
+from typeform.app.controllers import form_router
+from typeform.app.controllers.auth_router import AuthRoutes
+
+root_api_router = CustomAPIRouter(prefix="")
+root_api_router.include_router(AuthRoutes().router, prefix="/typeform")
+root_api_router.include_router(form_router.router)
 
 
 # Decorator for automatically inserting routes defined in routable class

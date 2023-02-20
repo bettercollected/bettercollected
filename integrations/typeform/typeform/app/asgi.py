@@ -1,10 +1,9 @@
 """Application implementation - ASGI."""
 import logging
-
 from fastapi import FastAPI
 
 import typeform
-from typeform.app.container import AppContainer
+from typeform.app.container import AppContainer, container
 from typeform.config import settings
 from typeform.app.router import root_api_router
 from typeform.app.exceptions import (
@@ -34,7 +33,7 @@ async def on_shutdown():
 
     """
     log.debug("Execute FastAPI shutdown event handler.")
-    await AppContainer.http_client.aclose()
+    await container.http_client().aclose()
     # Gracefully close utilities.
     pass
 
@@ -47,12 +46,6 @@ def get_application():
 
     """
     log.debug("Initialize FastAPI application node.")
-    container = AppContainer()
-    container.wire(packages=[
-        typeform.app.services,
-        typeform.app.controllers,
-        typeform.app.repositories,
-    ])
     app = FastAPI(
         title=settings.PROJECT_NAME,
         debug=settings.DEBUG,

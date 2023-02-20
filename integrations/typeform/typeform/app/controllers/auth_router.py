@@ -2,15 +2,16 @@
 import logging
 
 from classy_fastapi import Routable, get
-from starlette.requests import Request
+from fastapi import Depends
 
-from typeform.app.router import router
+from common.models.user import OAuthState
+# from typeform.app.router import router
 from typeform.app.services import auth_service
 
 log = logging.getLogger(__name__)
 
 
-@router(prefix="/auth")
+# @router(prefix="/typeform")
 class AuthRoutes(Routable):
 
     # @inject
@@ -18,10 +19,11 @@ class AuthRoutes(Routable):
     #     super().__init__(*args, **kwargs)
     #     self.auth_service = auth_service
 
-    @get(
-        "/oauth"
-    )
-    async def _get_oauth(self, request: Request) -> str:
-        client_referer_url = request.headers.get('referer')
-        authorization_url = await auth_service.typeform_auth(client_referer_url)
-        return authorization_url
+    @get("/oauth/authorize")
+    async def _get_oauth_url(self, oauth_state: OAuthState = Depends()) -> str:
+        oauth_url = await auth_service.get_oauth_url(oauth_state=oauth_state)
+        return oauth_url
+
+    @get("oauth/callback")
+    async def _oauth_callback(self, code: str, state: str):
+        await auth_service.handle_oauth_callback(code, state=state)

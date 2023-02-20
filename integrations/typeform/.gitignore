@@ -39,3 +39,4 @@ site/
 
 # Nix build result
 result
+.env

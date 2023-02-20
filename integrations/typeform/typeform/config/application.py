@@ -1,6 +1,16 @@
 """Application configuration - FastAPI."""
 from pydantic import BaseSettings
+
+from typeform.config.database import MongoSettings
 from typeform.version import __version__
+
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+default_dot_env_path = Path(os.path.abspath(os.path.dirname(__file__))).parent.parent.absolute().joinpath(".env")
+load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
 
 class Application(BaseSettings):
@@ -30,17 +40,21 @@ class Application(BaseSettings):
     DEBUG: bool = True
     PROJECT_NAME: str = "typeform"
     VERSION: str = __version__
-    DOCS_URL: str = "/"
+    DOCS_URL: str = "/docs"
     USE_REDIS: bool = False
     AES_HEX_KEY: str
 
-    AUTH_URI = ""
-    TOKEN_URI = ""
-    SCOPE = ""
-    CLIENT_ID = ""
-    CLIENT_SECRET = ""
-    REDIRECT_URI = ""
-    API_URI = ""
+    TYPEFORM_SCOPE = ""
+    TYPEFORM_CLIENT_ID = ""
+    TYPEFORM_CLIENT_SECRET = ""
+    TYPEFORM_REDIRECT_URI = ""
+    TYPEFORM_API_URI = ""
+    TYPEFORM_AUTH_URI = ""
+    TYPEFORM_TOKEN_URI = ""
+
+    mongo_settings: MongoSettings = MongoSettings()
+
+    JWT_SECRET: str
 
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
@@ -59,7 +73,6 @@ class Application(BaseSettings):
         """
 
         case_sensitive = True
-        env_prefix = "FASTAPI_"
 
 
 settings = Application()
