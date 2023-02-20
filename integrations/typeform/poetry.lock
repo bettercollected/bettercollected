@@ -600,24 +600,6 @@ colorama = {version = "*", markers = "sys_platform == \"win32\""}
 development = ["black", "flake8", "mypy", "pytest", "types-colorama"]
 
 [[package]]
-name = "common"
-version = "0.1.0"
-description = "This project was generated with fastapi-mvc."
-category = "main"
-optional = false
-python-versions = "^3.10"
-files = []
-develop = false
-
-[package.dependencies]
-beanie = "^1.17.0"
-fastapi = "~0.92.0"
-
-[package.source]
-type = "directory"
-url = "common"
-
-[[package]]
 name = "coverage"
 version = "7.1.0"
 description = "Code coverage measurement for Python"
@@ -2739,4 +2721,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "4e9fcda69a73208511345919b6762f1a0124c2700b7c932779dc3a0ebe58ce23"
+content-hash = "e5141bd09a7374376a5376a18259c39c3670090caf50948f3e7818042c9ee5a9"
