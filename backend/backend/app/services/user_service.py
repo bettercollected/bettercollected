@@ -12,10 +12,11 @@ from backend.config import settings
 
 def get_logged_user(request: Request) -> User:
     try:
-        jwt_response = jwt.decode(request.cookies.get("Authorization"),
-                                  key=settings.JWT_SECRET,
-                                  algorithms=["HS256"]
-                                  )
+        jwt_response = jwt.decode(
+            request.cookies.get("Authorization"),
+            key=settings.JWT_SECRET,
+            algorithms=["HS256"],
+        )
         user = User(**jwt_response)
         return user
     # TODO : Handle specific exceptions

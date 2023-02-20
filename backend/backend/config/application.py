@@ -12,7 +12,11 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-default_dot_env_path = Path(os.path.abspath(os.path.dirname(__file__))).parent.parent.absolute().joinpath(".env")
+default_dot_env_path = (
+    Path(os.path.abspath(os.path.dirname(__file__)))
+    .parent.parent.absolute()
+    .joinpath(".env")
+)
 load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
 

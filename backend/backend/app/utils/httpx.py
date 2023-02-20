@@ -10,11 +10,11 @@ from common.constants import MESSAGE_NOT_FOUND
 
 
 async def plugin_proxy_service(
-        proxies: Dict[str, str],
-        request: Request,
-        path: str,
-        data: Mapping[str, Any] = None,
-        extra_params: Dict[str, Any] = None,
+    proxies: Dict[str, str],
+    request: Request,
+    path: str,
+    data: Mapping[str, Any] = None,
+    extra_params: Dict[str, Any] = None,
 ):
     http_client = AiohttpClient.get_aiohttp_client()
     proxy_args = {
@@ -25,7 +25,7 @@ async def plugin_proxy_service(
         # "follow_redirects": True,
         "timeout": 60,
         "proxies": proxies,
-        "data": data
+        "data": data,
     }
     try:
         if request.method == "GET":

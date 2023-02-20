@@ -22,11 +22,12 @@ log = logging.getLogger(__name__)
 
 # TODO merge this to plugin interface
 # TODO Extract out separate interface for oauth and use it
-@router(prefix="/auth",tags=["Auth"])
+@router(prefix="/auth", tags=["Auth"])
 class AuthRoutes(Routable):
-
     @get("/status")
-    async def status(self, user: User = Depends(get_logged_user)) -> AuthenticationStatus:
+    async def status(
+        self, user: User = Depends(get_logged_user)
+    ) -> AuthenticationStatus:
         """Define auth status endpoint."""
         # Implement endpoint logic here.
         return AuthenticationStatus(user=user)
@@ -34,8 +35,10 @@ class AuthRoutes(Routable):
     # TODO : Merge with plugin proxy currently it is handled for typeform only
     @get("/{provider_name}/oauth")
     async def _oauth_provider(self, provider_name: str, request: Request):
-        client_referer_url = request.headers.get('referer')
-        oauth_url = await AuthProxyService().get_oauth_url(provider_name, client_referer_url)
+        client_referer_url = request.headers.get("referer")
+        oauth_url = await AuthProxyService().get_oauth_url(
+            provider_name, client_referer_url
+        )
         return RedirectResponse(oauth_url)
 
     # @get("/{provider}/basic")

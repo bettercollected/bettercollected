@@ -4,7 +4,9 @@ from pydantic import BaseModel
 
 from backend.app.exceptions import HTTPException
 from backend.app.constants import messages
-from backend.app.exceptions.provider_config_exception import MultipleProviderConfigException
+from backend.app.exceptions.provider_config_exception import (
+    MultipleProviderConfigException,
+)
 
 
 class FormProvider(BaseModel):
@@ -33,9 +35,15 @@ class FormPluginConfig:
         self.current_form_providers = [f for f in self.form_providers if f.enabled]
 
     def get_form_provider(self, provider_name: str) -> FormProvider:
-        form_provider = list(filter(lambda f: f.provider_name == provider_name, self.current_form_providers))
+        form_provider = list(
+            filter(
+                lambda f: f.provider_name == provider_name, self.current_form_providers
+            )
+        )
         if not form_provider:
             raise HTTPException(400, messages.provider_is_not_enabled_error)
         if len(form_provider) > 1:
-            raise MultipleProviderConfigException(500, messages.multiple_provider_config_found)
+            raise MultipleProviderConfigException(
+                500, messages.multiple_provider_config_found
+            )
         return form_provider[0]

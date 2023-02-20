@@ -11,33 +11,41 @@ from common.models.user import User
 
 
 # TODO move this to auth server
-def set_token_to_response(user: User, expiry_after: timedelta, cookie_key: str, response: Response):
+def set_token_to_response(
+    user: User, expiry_after: timedelta, cookie_key: str, response: Response
+):
     expiry = get_expiry_epoch_after(expiry_after)
     token = jwt.encode(
         {
-            'id': user.id,
-            'sub': user.sub,
-            'roles': user.roles,
-            'services': user.services,
-            'exp': expiry,
-            'jti': str(uuid.uuid4())},
+            "id": user.id,
+            "sub": user.sub,
+            "roles": user.roles,
+            "services": user.services,
+            "exp": expiry,
+            "jti": str(uuid.uuid4()),
+        },
         settings.JWT_SECRET,
-        algorithm="HS256")
+        algorithm="HS256",
+    )
     set_token_cookie(response, cookie_key, token)
 
 
 def set_access_token_to_response(user: User, response: Response):
-    set_token_to_response(user,
-                          timedelta(minutes=settings.ACCESS_TOKEN_EXPIRY_IN_MINUTES),
-                          "Authorization",
-                          response)
+    set_token_to_response(
+        user,
+        timedelta(minutes=settings.ACCESS_TOKEN_EXPIRY_IN_MINUTES),
+        "Authorization",
+        response,
+    )
 
 
 def set_refresh_token_to_response(user: User, response: Response):
-    set_token_to_response(user,
-                          timedelta(days=settings.REFRESH_TOKEN_EXPIRY_IN_DAYS),
-                          "RefreshToken",
-                          response)
+    set_token_to_response(
+        user,
+        timedelta(days=settings.REFRESH_TOKEN_EXPIRY_IN_DAYS),
+        "RefreshToken",
+        response,
+    )
 
 
 def set_tokens_to_response(user: User, response: Response):
@@ -50,16 +58,16 @@ def get_expiry_epoch_after(time_delta: timedelta = timedelta()):
 
 
 def set_cookie(
-        response: Response,
-        key: str,
-        value: str = "",
-        max_age: int = None,
-        expires: int = None,
-        path: str = "/",
-        domain: str = None,
-        secure: bool = False,
-        httponly: bool = False,
-        samesite: str = "lax",
+    response: Response,
+    key: str,
+    value: str = "",
+    max_age: int = None,
+    expires: int = None,
+    path: str = "/",
+    domain: str = None,
+    secure: bool = False,
+    httponly: bool = False,
+    samesite: str = "lax",
 ) -> None:
     cookie: http.cookies.BaseCookie = http.cookies.SimpleCookie()
     cookie[key] = value
@@ -87,13 +95,13 @@ def set_cookie(
 
 
 def delete_cookie(
-        response: Response,
-        key: str,
-        path: str = "/",
-        domain: str = None,
-        secure: bool = False,
-        httponly: bool = False,
-        samesite: str = "lax",
+    response: Response,
+    key: str,
+    path: str = "/",
+    domain: str = None,
+    secure: bool = False,
+    httponly: bool = False,
+    samesite: str = "lax",
 ) -> None:
     response.set_cookie(
         key,
@@ -118,7 +126,7 @@ def set_token_cookie(response: Response, key: str, token: str):
         secure=should_be_secure,
         # TODO prevent against csrf with same site after fix
         samesite=same_site,
-        max_age=settings.REFRESH_TOKEN_EXPIRY_IN_DAYS * 24 * 60 * 60
+        max_age=settings.REFRESH_TOKEN_EXPIRY_IN_DAYS * 24 * 60 * 60,
     )
 
 
@@ -131,7 +139,7 @@ def delete_token_cookie(response: Response):
         httponly=True,
         secure=should_be_secure,
         # TODO prevent against csrf with same site after fix
-        samesite=same_site
+        samesite=same_site,
     )
     delete_cookie(
         response=response,
@@ -139,5 +147,5 @@ def delete_token_cookie(response: Response):
         httponly=True,
         secure=should_be_secure,
         # TODO prevent against csrf with same site after fix
-        samesite=same_site
+        samesite=same_site,
     )

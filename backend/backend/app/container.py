@@ -13,22 +13,18 @@ current_path = Path(os.path.abspath(os.path.dirname(__file__))).absolute()
 
 class AppContainer(containers.DeclarativeContainer):
     forms_config: FormPluginConfig = providers.Configuration(
-        json_files=[current_path.joinpath("core/plugin.json")],
-        strict=True)
+        json_files=[current_path.joinpath("core/plugin.json")], strict=True
+    )
 
     enabled_forms = providers.Singleton(
-        FormPluginConfig,
-        form_providers=forms_config.form_providers
+        FormPluginConfig, form_providers=forms_config.form_providers
     )
 
     # Define non-decorated objects here
-    http_client: HttpClient = providers.Singleton(
-        HttpClient
-    )
+    http_client: HttpClient = providers.Singleton(HttpClient)
 
     database_client: AsyncIOMotorClient = providers.Singleton(
-        AsyncIOMotorClient,
-        settings.mongo_settings.URI
+        AsyncIOMotorClient, settings.mongo_settings.URI
     )
 
 
