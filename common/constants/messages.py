@@ -1,1 +1,1 @@
-connection_failed = "Failed to connect to the url {url}"
+connection_failed = "Error occurred while processing performing proxy request."

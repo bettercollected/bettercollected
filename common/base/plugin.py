@@ -27,11 +27,11 @@ class BasePluginRoute(Protocol):
     """
 
     @abstractmethod
-    async def list_forms(self, provider: str, request: Request, user: User):
+    async def list_forms(self, provider: str, request: Request):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_form(self, form_id: str, email: str, provider: str | FormProvider):
+    async def get_form(self, form_id: str, email: str, provider: str | FormProvider, request: Request):
         raise NotImplementedError
 
     @abstractmethod
