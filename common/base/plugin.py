@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Protocol
 from fastapi import Body
 from starlette.requests import Request
 
-from constants.plugin_routes import (
+from common.constants.plugin_routes import (
     PLUGIN_ROUTE_AUTHORIZE,
     PLUGIN_ROUTE_CALLBACK,
     PLUGIN_ROUTE_FORM,
@@ -17,8 +17,9 @@ from constants.plugin_routes import (
     PLUGIN_ROUTE_REVOKE,
 )
 from enums.form_provider import FormProvider
-from enums.http_methods import HTTPMethods
-from utils.router import CustomAPIRouter
+from common.enums.http_methods import HTTPMethods
+from common.models.user import User
+from common.utils.router import CustomAPIRouter
 
 
 class BasePluginRoute(Protocol):
@@ -43,7 +44,7 @@ class BasePluginRoute(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    async def list_forms(self, email: str, provider: str | FormProvider):
+    async def list_forms(self, provider: str, request: Request, user: User):
         raise NotImplementedError
 
     @abstractmethod
