@@ -11,7 +11,7 @@ log = logging.getLogger(__name__)
 
 class HttpClient(AsyncClient):
 
-    async def get(self, *args, **kwargs) -> typing.Any:
+    async def get(self, *args, **kwargs) -> typing.Mapping[str, typing.Any]:
         response = await super().get(*args, **kwargs)
         if response.status_code != 200:
             raise HTTPException(500, messages.connection_failed.format(

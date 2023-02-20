@@ -7,14 +7,11 @@ from fastapi import Body
 from starlette.requests import Request
 
 from common.constants.plugin_routes import (
-    PLUGIN_ROUTE_AUTHORIZE,
-    PLUGIN_ROUTE_CALLBACK,
     PLUGIN_ROUTE_FORM,
     PLUGIN_ROUTE_FORMS,
     PLUGIN_ROUTE_FORM_RESPONSE,
     PLUGIN_ROUTE_FORM_RESPONSES,
     PLUGIN_ROUTE_IMPORT_FORM,
-    PLUGIN_ROUTE_REVOKE,
 )
 from common.enums.form_provider import FormProvider
 from common.enums.http_methods import HTTPMethods
@@ -28,20 +25,6 @@ class BasePluginRoute(Protocol):
 
     Defines `abstractmethods` that other form provider implements.
     """
-
-    @abstractmethod
-    async def authorize(
-            self, request: Request, email: str, provider: str | FormProvider
-    ):
-        raise NotImplementedError
-
-    @abstractmethod
-    async def callback(self, request: Request, provider: str | FormProvider):
-        raise NotImplementedError
-
-    @abstractmethod
-    async def revoke(self, email: str, provider: str | FormProvider):
-        raise NotImplementedError
 
     @abstractmethod
     async def list_forms(self, provider: str, request: Request, user: User):
@@ -128,33 +111,6 @@ def register_plugin_class(
         route (BasePluginRoute): An instance of `BasePluginRoute`.
         tags (List[str]): Route tags.
     """
-
-    # GET: Authorize Endpoint
-    router.add_api_route(
-        PLUGIN_ROUTE_AUTHORIZE,
-        endpoint=route.authorize,
-        status_code=HTTPStatus.OK,
-        methods=[HTTPMethods.GET],
-        tags=tags,
-    )
-
-    # GET: Callback Endpoint
-    router.add_api_route(
-        PLUGIN_ROUTE_CALLBACK,
-        endpoint=route.callback,
-        status_code=HTTPStatus.OK,
-        methods=[HTTPMethods.GET],
-        tags=tags,
-    )
-
-    # POST: Revoke Endpoint
-    router.add_api_route(
-        PLUGIN_ROUTE_REVOKE,
-        endpoint=route.revoke,
-        status_code=HTTPStatus.ACCEPTED,
-        methods=[HTTPMethods.POST],
-        tags=tags,
-    )
 
     # GET: List Forms from the provider
     router.add_api_route(
