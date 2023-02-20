@@ -13,6 +13,7 @@ class FormProvider(BaseModel):
     enabled: bool
     provider_name: str
     provider_url: str
+    auth_callback_url: str
     type: Optional[str]
     scope: Optional[str]
     client_id: Optional[str]
@@ -24,7 +25,7 @@ class FormProvider(BaseModel):
     revoke_uri: Optional[str]
 
 
-class FormPluginConfig:
+class FormProvidersConfig:
     # Holds all the form providers that are present
     form_providers: List[FormProvider]
     # Holds only those form providers which are enabled

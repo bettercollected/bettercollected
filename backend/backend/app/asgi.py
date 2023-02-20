@@ -14,7 +14,7 @@ from backend.app.handlers.database import init_db, close_db
 from backend.app.middlewares import include_middlewares
 from backend.config import settings
 from backend.app.router import root_api_router
-from backend.app.utils import RedisClient, AiohttpClient
+from backend.app.utils import AiohttpClient
 from backend.app.exceptions import (
     HTTPException,
     http_exception_handler,
@@ -29,11 +29,6 @@ async def on_startup():
 
     """
     logger.info("Execute FastAPI startup event handler.")
-    if settings.USE_REDIS:
-        await RedisClient.open_redis_client()
-
-    # Initialize database
-    # await init_db(db, client)
 
     AiohttpClient.get_aiohttp_client()
     # TODO merge with container
@@ -50,8 +45,6 @@ async def on_shutdown():
     """
     logger.info("Execute FastAPI shutdown event handler.")
     # Gracefully close utilities.
-    if settings.USE_REDIS:
-        await RedisClient.close_redis_client()
 
     # TODO merge with container
     client = container.database_client()

@@ -4,16 +4,16 @@ from common.models.user import User
 
 
 async def create_workspace(user: User):
-    workspace = await WorkspaceDocument.find_one({"ownerId": user.id, "default": True})
+    workspace = await WorkspaceDocument.find_one({"owner_id": user.id, "default": True})
     if not workspace:
         workspace = WorkspaceDocument(
             title="Untitled",
             description="",
-            ownerId=user.id,
+            owner_id=user.id,
             default=True,
-            workspaceName=str(user.id),
-            customDomain=None,
+            workspace_name=str(user.id),
+            custom_domain=None,
         )
         await workspace.save()
-        workspace_user = WorkspaceUserDocument(workspaceId=workspace.id, userId=user.id)
+        workspace_user = WorkspaceUserDocument(workspace_id=workspace.id, user_id=user.id)
         await workspace_user.save()

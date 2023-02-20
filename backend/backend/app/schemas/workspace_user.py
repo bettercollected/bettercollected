@@ -24,7 +24,7 @@ class WorkspaceUserDocument(MongoDocument):
     """
 
     workspace_id: PydanticObjectId
-    userId: PydanticObjectId
+    user_id: PydanticObjectId
     roles: List[str] = ["FORM_CREATOR"]
 
     class Settings:
