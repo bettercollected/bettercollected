@@ -38,7 +38,9 @@ describe('Render settings profile tab ', () => {
         );
         renderWithProviders(<SettingsProfile />);
         const workspaceTitle = 'Test workspace';
-        const workspaceTitleInput = screen.getByRole('textbox', { name: /workspace-title/i }) as HTMLInputElement;
+        // const workspaceTitleInput = screen.getByRole('textbox', { name: /workspace-title/i }) as HTMLInputElement;
+        const workspaceTitleInput = screen.getByTestId('workspace-title').querySelector('input') as HTMLInputElement;
+
         fireEvent.change(workspaceTitleInput, { target: { value: workspaceTitle } });
         expect(workspaceTitleInput).toHaveValue(workspaceTitle);
         const updateWorkspaceButton = screen.getByRole('button', {
@@ -60,7 +62,8 @@ describe('Render settings profile tab ', () => {
         const workspaceTitle = 'Test workspace';
 
         // test for workspace title
-        const workspaceTitleInput = screen.getByRole('textbox', { name: /workspace-title/i }) as HTMLInputElement;
+        // const workspaceTitleInput = screen.getByRole('textbox', { name: /workspace-title/i }) as HTMLInputElement;
+        const workspaceTitleInput = screen.getByTestId('workspace-title').querySelector('input') as HTMLInputElement;
         fireEvent.change(workspaceTitleInput, { target: { value: workspaceTitle } });
         expect(workspaceTitleInput).toHaveValue(workspaceTitle);
 

@@ -239,7 +239,7 @@ export default function SettingsProfile() {
                     <h1 className="text-lg">Workspace title</h1>
                     <div className=" flex flex-col justify-between w-full">
                         <TextField
-                            label="workspace-title"
+                            data-testid="workspace-title"
                             error={false}
                             helperText=""
                             size="medium"

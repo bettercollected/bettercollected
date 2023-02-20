@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { MutableRefObject, useEffect, useRef, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
@@ -22,8 +22,9 @@ const StyledTextField = styled.div`
     .MuiFormControl-root {
         width: 100%;
         background: white;
-        border-radius: 14px;
+        border-radius: 4px;
         outline: none;
+        background-color: #f0f8ff;
     }
 
     .MuiOutlinedInput-notchedOutline {
@@ -71,6 +72,9 @@ export default function Settingsprivacy() {
     const workspace = useAppSelector((state) => state.workspace);
     const [patchWorkspacePolicies, { isLoading }] = usePatchWorkspacePoliciesMutation();
 
+    const privacyPolicyInputRef = useRef() as MutableRefObject<HTMLInputElement>;
+    const termsOfServiceInputRef = useRef() as MutableRefObject<HTMLInputElement>;
+
     const [editMode, setEditMode] = useState({ privacy_policy_editMode: false, terms_of_service_editMode: false });
     const router = useRouter();
 
@@ -80,6 +84,18 @@ export default function Settingsprivacy() {
         const termsAndConditionsUrl = workspace.terms_of_service_url ? workspace.terms_of_service_url : `${domain}${environments.TERMS_AND_CONDITIONS}`;
         setPolicies({ privacy_policy_url: privacyPolicyUrl, terms_of_service_url: termsAndConditionsUrl });
     }, []);
+
+    useEffect(() => {
+        if (editMode.privacy_policy_editMode) {
+            privacyPolicyInputRef.current.focus();
+        }
+    }, [editMode.privacy_policy_editMode]);
+
+    useEffect(() => {
+        if (editMode.terms_of_service_editMode) {
+            termsOfServiceInputRef.current.focus();
+        }
+    }, [editMode.terms_of_service_editMode]);
 
     const handleEmailValidation = (str: string) => {
         if (!str) return;
@@ -147,11 +163,12 @@ export default function Settingsprivacy() {
                 <div className="flex items-center h-24 justify-between">
                     <StyledTextField>
                         <TextField
-                            label="privacy-policy"
+                            inputRef={privacyPolicyInputRef}
                             data-testid="privacy-policy"
                             error={!handleEmailValidation(policies.privacy_policy_url)}
                             onChange={handleChange}
                             size="medium"
+                            InputLabelProps={{ shrink: false }}
                             disabled={!editMode.privacy_policy_editMode}
                             value={policies.privacy_policy_url}
                             name="privacy_policy_url"
@@ -175,10 +192,11 @@ export default function Settingsprivacy() {
                 <div className="flex items-center h-24 justify-between">
                     <StyledTextField>
                         <TextField
+                            inputRef={termsOfServiceInputRef}
                             data-testid="terms-of-service"
-                            label="terms-of-service"
                             error={!handleEmailValidation(policies.terms_of_service_url)}
                             onChange={handleChange}
+                            InputLabelProps={{ shrink: false }}
                             size="medium"
                             disabled={!editMode.terms_of_service_editMode}
                             value={policies.terms_of_service_url}
