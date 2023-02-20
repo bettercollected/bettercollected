@@ -24,8 +24,8 @@ class AuthRoutes(Routable):
     @get("/oauth/authorize")
     async def _get_oauth_url(self, oauth_state: OAuthState = Depends()) -> str:
         oauth_url = await auth_service.get_oauth_url(oauth_state=oauth_state)
-        return oauth_url
+        return {"oauth_url": oauth_url}
 
-    @get("oauth/callback")
+    @get("/oauth/callback")
     async def _oauth_callback(self, code: str, state: str):
         await auth_service.handle_oauth_callback(code, state=state)
