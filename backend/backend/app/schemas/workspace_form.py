@@ -11,8 +11,8 @@ class WorkspaceFormDocument(MongoDocument):
     MongoDB database.
 
     Attributes:
-        workspaceId (PydanticObjectId): The ID of the workspace.
-        formId (str): The ID of the form.
+        workspace_id (PydanticObjectId): The ID of the workspace.
+        form_id (str): The ID of the form.
         settings (WorkspaceFormSettings): The settings for the form in the workspace.
 
     Classes Attributes:
@@ -23,8 +23,8 @@ class WorkspaceFormDocument(MongoDocument):
             bson_encoders (dict): A dictionary of bson encoders for specific data types.
     """
 
-    workspaceId: PydanticObjectId
-    formId: str
+    workspace_id: PydanticObjectId
+    form_id: str
     settings: WorkspaceFormSettings
 
     class Settings:

@@ -29,7 +29,7 @@ class PluginProxy(BasePluginRoute):
         self, request: Request, email: str, provider: str | FormProvider
     ):
         proxies = {f"{request.base_url}{provider}": f"{self.proxy_url}{provider}"}
-        proxy = plugin_proxy_service(
+        proxy = await plugin_proxy_service(
             proxies, request, f"{self.proxy_url}{provider}/oauth/authorize"
         )
         authorization_url = json.loads(proxy.content)
@@ -37,7 +37,7 @@ class PluginProxy(BasePluginRoute):
 
     async def callback(self, request: Request, provider: str | FormProvider):
         proxies = {f"{request.base_url}{provider}": f"{self.proxy_url}{provider}"}
-        proxy = plugin_proxy_service(
+        proxy = await plugin_proxy_service(
             proxies, request, f"{self.proxy_url}{provider}/oauth/callback"
         )
         json_credentials, client_referer_url = json.loads(proxy.content)
@@ -47,7 +47,7 @@ class PluginProxy(BasePluginRoute):
 
     async def revoke(self, request: Request, email: str, provider: str | FormProvider):
         proxies = {f"{request.base_url}{provider}": f"{self.proxy_url}{provider}"}
-        proxy = plugin_proxy_service(
+        proxy = await plugin_proxy_service(
             proxies, request, f"{self.proxy_url}{provider}/oauth/revoke"
         )
         return proxy.content
@@ -60,6 +60,7 @@ class PluginProxy(BasePluginRoute):
     ):
         # TODO : Inject auth services
         proxy_url = container.enabled_forms().get_form_provider(provider).provider_url
+        print(proxy_url)
         credential = await AuthProxyService().get_credential_of_provider(
             provider, request.cookies["Authorization"]
         )

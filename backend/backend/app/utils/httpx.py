@@ -41,6 +41,6 @@ async def plugin_proxy_service(
         if request.method == "HEAD":
             return await http_client.head(**proxy_args)
         if request.method == "OPTIONS":
-            return http_client.options(**proxy_args)
+            return await http_client.options(**proxy_args)
     except ConnectError:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
