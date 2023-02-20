@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "bettercollected-backend-server"
+name = "backend"
 version = "0.1.0"
 description = ""
 authors = ["Bibishan Pandey <bibishan.b.pandey@gmail.com>"]
@@ -23,7 +23,6 @@ click = "~8.1.3"
 redis = "~4.4.0"
 aiohttp = "~3.8.3"
 fastapi-mvc = "^0.24.0"
-common = {path = "common"}
 pycryptodome = "^3.17"
 base58 = "^2.1.1"
 fastapi-mail = "^1.2.5"
@@ -39,7 +38,7 @@ classy-fastapi = "^0.3.0"
 pyjwt = "^2.6.0"
 
 [tool.poetry.scripts]
-bettercollected-backend-server = 'backend.cli:cli'
+backend = 'backend.cli:cli'
 
 [tool.poetry.urls]
 "Issues" = "/issues"

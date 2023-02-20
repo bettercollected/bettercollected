@@ -42,11 +42,11 @@ echo "[install] Begin installing project."
 cat << 'EOF'
 Project successfully installed.
 To activate virtualenv run: $ poetry shell
-Now you should access CLI script: $ bettercollected-backend-server --help
-Alternatively you can access CLI script via poetry run: $ poetry run bettercollected-backend-server --help
+Now you should access CLI script: $ backend --help
+Alternatively you can access CLI script via poetry run: $ poetry run backend --help
 To deactivate virtualenv simply type: $ deactivate
 To activate shell completion:
- - for bash: $ echo 'eval "$(_backend_COMPLETE=source_bash bettercollected-backend-server)' >> ~/.bashrc
- - for zsh: $ echo 'eval "$(_backend_COMPLETE=source_zsh bettercollected-backend-server)' >> ~/.zshrc
- - for fish: $ echo 'eval "$(_backend_COMPLETE=source_fish bettercollected-backend-server)' >> ~/.config/fish/completions/bettercollected-backend-server.fish
+ - for bash: $ echo 'eval "$(_backend_COMPLETE=source_bash backend)' >> ~/.bashrc
+ - for zsh: $ echo 'eval "$(_backend_COMPLETE=source_zsh backend)' >> ~/.zshrc
+ - for fish: $ echo 'eval "$(_backend_COMPLETE=source_fish backend)' >> ~/.config/fish/completions/backend.fish
 EOF

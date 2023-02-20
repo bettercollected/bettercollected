@@ -28,11 +28,11 @@ Or with concrete Python version, should you choose:
 .. code-block:: bash
 
     # Build with Python38
-    nix build .#bettercollected-backend-server-py38
+    nix build .#backend-py38
     # Build with Python39
-    nix build .#bettercollected-backend-server-py39
+    nix build .#backend-py39
     # Build with Python310
-    nix build .#bettercollected-backend-server-py310
+    nix build .#backend-py310
 
 Lastly, to spawn shell for development environment run:
 

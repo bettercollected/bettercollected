@@ -64,6 +64,6 @@ EXPOSE 8000/tcp
 
 STOPSIGNAL SIGINT
 
-ENTRYPOINT ["bettercollected-backend-server"]
+ENTRYPOINT ["backend"]
 
 CMD ["serve", "--bind", "0.0.0.0:8000"]

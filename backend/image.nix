@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> { }
 , app
-, name ? "bettercollected-backend-server"
+, name ? "backend"
 , tag ? "latest"
 }:
 
@@ -36,6 +36,6 @@ pkgs.dockerTools.buildImage {
     ];
     User = "nonroot";
     WorkingDir = "/workspace";
-    Entrypoint = [ "${app}/bin/bettercollected-backend-server" ];
+    Entrypoint = [ "${app}/bin/backend" ];
   };
 }

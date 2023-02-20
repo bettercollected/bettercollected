@@ -8,7 +8,7 @@ This package exposes simple CLI for easier interaction:
 
 .. code-block:: bash
 
-    $ bettercollected-backend-server --help
+    $ backend --help
     Usage: bettercollected-backend-server [OPTIONS] COMMAND [ARGS]...
 
       Bettercollected-backend-server CLI root.

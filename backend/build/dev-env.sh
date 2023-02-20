@@ -50,13 +50,13 @@ done
 INGRESS_HOST="$(minikube ip).nip.io"
 
 echo "[dev-env] pushing app image"
-minikube image load "bettercollected-backend-server:${TAG}"
+minikube image load "backend:${TAG}"
 
-echo "[dev-env] creating bettercollected-backend-server namespace"
-kubectl create namespace bettercollected-backend-server
+echo "[dev-env] creating backend namespace"
+kubectl create namespace backend
 
 ATTEMPTS=0
-ROLLOUT_STATUS_CMD="kubectl get namespace bettercollected-backend-server -n bettercollected-backend-server"
+ROLLOUT_STATUS_CMD="kubectl get namespace backend -n backend"
 until $ROLLOUT_STATUS_CMD 2>/dev/null || [ $ATTEMPTS -eq 60 ]; do
   ATTEMPTS=$((ATTEMPTS + 1))
   sleep 10
@@ -73,31 +73,31 @@ until $ROLLOUT_STATUS_CMD 2>/dev/null || [ $ATTEMPTS -eq 60 ]; do
   sleep 10
 done
 
-kubectl create -f manifests/persistent-storage-no-pvc-deletion.yaml -n bettercollected-backend-server
+kubectl create -f manifests/persistent-storage-no-pvc-deletion.yaml -n backend
 
 ATTEMPTS=0
-ROLLOUT_STATUS_CMD="kubectl rollout status deployment.apps/rfs-redisfailover-persistent-keep -n bettercollected-backend-server"
+ROLLOUT_STATUS_CMD="kubectl rollout status deployment.apps/rfs-redisfailover-persistent-keep -n backend"
 until $ROLLOUT_STATUS_CMD || [ $ATTEMPTS -eq 60 ]; do
   ATTEMPTS=$((ATTEMPTS + 1))
   sleep 10
 done
 
 echo "[dev-env] Checking redis-operator statefulset replicas status to be ready"
-STATEFULSET_REPLICAS=$(kubectl get statefulset rfr-redisfailover-persistent-keep -o jsonpath='{.spec.replicas}' -n bettercollected-backend-server)
+STATEFULSET_REPLICAS=$(kubectl get statefulset rfr-redisfailover-persistent-keep -o jsonpath='{.spec.replicas}' -n backend)
 ATTEMPTS=0
-until [[ ${STATEFULSET_REPLICAS} -eq $(kubectl get statefulset rfr-redisfailover-persistent-keep -o jsonpath='{.status.readyReplicas}' -n bettercollected-backend-server) ]] || [ $ATTEMPTS -eq 60 ]; do
+until [[ ${STATEFULSET_REPLICAS} -eq $(kubectl get statefulset rfr-redisfailover-persistent-keep -o jsonpath='{.status.readyReplicas}' -n backend) ]] || [ $ATTEMPTS -eq 60 ]; do
   ATTEMPTS=$((ATTEMPTS + 1))
   sleep 10
 done
 
-echo "[dev-env] installing bettercollected-backend-server charts"
+echo "[dev-env] installing backend charts"
 helm upgrade --install \
-    bettercollected-backend-server charts/bettercollected-backend-server \
-    --namespace bettercollected-backend-server \
-    --set ingress.host.name="bettercollected-backend-server.${INGRESS_HOST}"
+    backend charts/backend \
+    --namespace backend \
+    --set ingress.host.name="backend.${INGRESS_HOST}"
 
 ATTEMPTS=0
-ROLLOUT_STATUS_CMD="kubectl rollout status deployment/bettercollected-backend-server -n bettercollected-backend-server"
+ROLLOUT_STATUS_CMD="kubectl rollout status deployment/backend -n backend"
 until $ROLLOUT_STATUS_CMD || [ $ATTEMPTS -eq 60 ]; do
   ATTEMPTS=$((ATTEMPTS + 1))
   sleep 10
@@ -105,6 +105,6 @@ done
 
 cat <<EOF
 Kubernetes cluster ready
-FastAPI available under: http://bettercollected-backend-server.${INGRESS_HOST}/
+FastAPI available under: http://backend.${INGRESS_HOST}/
 You can delete dev-env by issuing: make clean
 EOF

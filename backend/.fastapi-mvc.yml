@@ -3,8 +3,8 @@ _commit: 0.3.0
 _src_path: https://github.com/fastapi-mvc/copier-project.git
 aiohttp: true
 author: Bibishan Pandey
-chart_name: bettercollected-backend-server
-container_image_name: bettercollected-backend-server
+chart_name: backend
+container_image_name: backend
 copyright_date: 2023
 email: bibishan.b.pandey@gmail.com
 fastapi_mvc_version: 0.24.0
@@ -14,8 +14,8 @@ license: 'no'
 nix: true
 package_name: backend
 project_description: ''
-project_name: bettercollected-backend-server
+project_name: backend
 redis: true
 repo_url: ''
-script_name: bettercollected-backend-server
+script_name: backend
 version: 0.1.0

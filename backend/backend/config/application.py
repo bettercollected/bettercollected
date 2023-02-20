@@ -41,7 +41,7 @@ class Application(BaseSettings):
     """
 
     DEBUG: bool = True
-    PROJECT_NAME: str = "bettercollected-backend-server"
+    PROJECT_NAME: str = "backend"
     VERSION: str = __version__
     DOCS_URL: str = "/docs"
     USE_REDIS: bool = False

@@ -1,5 +1,5 @@
 import datetime as dt
-from configs.mongo_document import MongoDocument
+from common.configs.mongo_document import MongoDocument
 
 
 class AllowedOriginsDocument(MongoDocument):

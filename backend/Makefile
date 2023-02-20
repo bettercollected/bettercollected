@@ -22,50 +22,50 @@ show-version:  ## Display version
 	echo -n "${TAG}"
 
 .PHONY: build
-build: ## Build bettercollected-backend-server package
-	echo "[build] Build bettercollected-backend-server package."
+build: ## Build backend package
+	echo "[build] Build backend package."
 	${POETRY_BINARY} build
 
 .PHONY: install
-install:  ## Install bettercollected-backend-server with poetry
+install:  ## Install backend with poetry
 	@build/install.sh
 
 .PHONY: image
-image:  ## Build bettercollected-backend-server image
+image:  ## Build backend image
 	@build/image.sh
 
 .PHONY: metrics
-metrics: install ## Run bettercollected-backend-server metrics checks
-	echo "[metrics] Run bettercollected-backend-server PEP 8 checks."
+metrics: install ## Run backend metrics checks
+	echo "[metrics] Run backend PEP 8 checks."
 	${POETRY_BINARY} run flake8 --select=E,W,I --max-line-length 88 --import-order-style pep8 --statistics --count backend
-	echo "[metrics] Run bettercollected-backend-server PEP 257 checks."
+	echo "[metrics] Run backend PEP 257 checks."
 	${POETRY_BINARY} run flake8 --select=D --ignore D301 --statistics --count backend
-	echo "[metrics] Run bettercollected-backend-server pyflakes checks."
+	echo "[metrics] Run backend pyflakes checks."
 	${POETRY_BINARY} run flake8 --select=F --statistics --count backend
-	echo "[metrics] Run bettercollected-backend-server code complexity checks."
+	echo "[metrics] Run backend code complexity checks."
 	${POETRY_BINARY} run flake8 --select=C901 --statistics --count backend
-	echo "[metrics] Run bettercollected-backend-server open TODO checks."
+	echo "[metrics] Run backend open TODO checks."
 	${POETRY_BINARY} run flake8 --select=T --statistics --count backend tests
-	echo "[metrics] Run bettercollected-backend-server black checks."
+	echo "[metrics] Run backend black checks."
 	${POETRY_BINARY} run black -l 88 --check backend
 
 .PHONY: unit-test
-unit-test: install ## Run bettercollected-backend-server unit tests
-	echo "[unit-test] Run bettercollected-backend-server unit tests."
+unit-test: install ## Run backend unit tests
+	echo "[unit-test] Run backend unit tests."
 	${POETRY_BINARY} run pytest tests/unit
 
 .PHONY: integration-test
-integration-test: install ## Run bettercollected-backend-server integration tests
-	echo "[unit-test] Run bettercollected-backend-server integration tests."
+integration-test: install ## Run backend integration tests
+	echo "[unit-test] Run backend integration tests."
 	${POETRY_BINARY} run pytest tests/integration
 
 .PHONY: coverage
-coverage: install  ## Run bettercollected-backend-server tests coverage
-	echo "[coverage] Run bettercollected-backend-server tests coverage."
+coverage: install  ## Run backend tests coverage
+	echo "[coverage] Run backend tests coverage."
 	${POETRY_BINARY} run pytest --cov=backend --cov-fail-under=90 --cov-report=xml --cov-report=term-missing tests
 
 .PHONY: test
-test: unit-test integration-test  ## Run bettercollected-backend-server tests
+test: unit-test integration-test  ## Run backend tests
 
 .PHONY: format
 format: install  ## Formats the python files with black
@@ -78,8 +78,8 @@ flake8: install  ## Checks code standards with flake8
 	${POETRY_BINARY} run flake8 . --exclude=venv,common,.github,build,charts,manifests,site --extend-exclude=common
 
 .PHONY: docs
-docs: install ## Build bettercollected-backend-server documentation
-	echo "[docs] Build bettercollected-backend-server documentation."
+docs: install ## Build backend documentation
+	echo "[docs] Build backend documentation."
 	${POETRY_BINARY} run sphinx-build docs site
 
 .PHONY: dev-env

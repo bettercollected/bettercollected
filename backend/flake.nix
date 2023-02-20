@@ -1,5 +1,5 @@
 {
-  description = "bettercollected-backend-server flake";
+  description = "backend flake";
   nixConfig.bash-prompt = ''\n\[\033[1;32m\][nix-develop:\w]\$\[\033[0m\] '';
 
   inputs = {
@@ -17,11 +17,11 @@
         poetry2nix.overlay
         (import ./overlay.nix)
         (final: prev: {
-          bettercollected-backend-server = prev.callPackage ./default.nix {
+          backend = prev.callPackage ./default.nix {
             python = final.python3;
             poetry2nix = final.poetry2nix;
           };
-          bettercollected-backend-server-dev = prev.callPackage ./editable.nix {
+          backend-dev = prev.callPackage ./editable.nix {
             python = final.python3;
             poetry2nix = final.poetry2nix;
           };
@@ -36,38 +36,38 @@
       in
       rec {
         packages = {
-          default = pkgs.bettercollected-backend-server;
-          bettercollected-backend-server-py38 = pkgs.bettercollected-backend-server.override { python = pkgs.python38; };
-          bettercollected-backend-server-py39 = pkgs.bettercollected-backend-server.override { python = pkgs.python39; };
-          bettercollected-backend-server-py310 = pkgs.bettercollected-backend-server.override { python = pkgs.python310; };
-          poetryEnv = pkgs.bettercollected-backend-server-dev;
+          default = pkgs.backend;
+          backend-py38 = pkgs.backend.override { python = pkgs.python38; };
+          backend-py39 = pkgs.backend.override { python = pkgs.python39; };
+          backend-py310 = pkgs.backend.override { python = pkgs.python310; };
+          poetryEnv = pkgs.backend-dev;
         } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
           image = pkgs.callPackage ./image.nix {
             inherit pkgs;
-            app = pkgs.bettercollected-backend-server;
+            app = pkgs.backend;
           };
         };
 
         apps = {
-          bettercollected-backend-server = flake-utils.lib.mkApp { drv = pkgs.bettercollected-backend-server; };
+          backend = flake-utils.lib.mkApp { drv = pkgs.backend; };
           metrics = {
             type = "app";
             program = toString (pkgs.writeScript "metrics" ''
               export PATH="${pkgs.lib.makeBinPath [
-                  pkgs.bettercollected-backend-server-dev
+                  pkgs.backend-dev
                   pkgs.git
               ]}"
-              echo "[nix][metrics] Run bettercollected-backend-server PEP 8 checks."
+              echo "[nix][metrics] Run backend PEP 8 checks."
               flake8 --select=E,W,I --max-line-length 88 --import-order-style pep8 --statistics --count backend
-              echo "[nix][metrics] Run bettercollected-backend-server PEP 257 checks."
+              echo "[nix][metrics] Run backend PEP 257 checks."
               flake8 --select=D --ignore D301 --statistics --count backend
-              echo "[nix][metrics] Run bettercollected-backend-server pyflakes checks."
+              echo "[nix][metrics] Run backend pyflakes checks."
               flake8 --select=F --statistics --count backend
-              echo "[nix][metrics] Run bettercollected-backend-server code complexity checks."
+              echo "[nix][metrics] Run backend code complexity checks."
               flake8 --select=C901 --statistics --count backend
-              echo "[nix][metrics] Run bettercollected-backend-server open TODO checks."
+              echo "[nix][metrics] Run backend open TODO checks."
               flake8 --select=T --statistics --count backend tests
-              echo "[nix][metrics] Run bettercollected-backend-server black checks."
+              echo "[nix][metrics] Run backend black checks."
               black -l 80 --check backend
             '');
           };
@@ -75,10 +75,10 @@
             type = "app";
             program = toString (pkgs.writeScript "docs" ''
               export PATH="${pkgs.lib.makeBinPath [
-                  pkgs.bettercollected-backend-server-dev
+                  pkgs.backend-dev
                   pkgs.git
               ]}"
-              echo "[nix][docs] Build bettercollected-backend-server documentation."
+              echo "[nix][docs] Build backend documentation."
               sphinx-build docs site
             '');
           };
@@ -86,10 +86,10 @@
             type = "app";
             program = toString (pkgs.writeScript "unit-test" ''
               export PATH="${pkgs.lib.makeBinPath [
-                  pkgs.bettercollected-backend-server-dev
+                  pkgs.backend-dev
                   pkgs.git
               ]}"
-              echo "[nix][unit-test] Run bettercollected-backend-server unit tests."
+              echo "[nix][unit-test] Run backend unit tests."
               pytest tests/unit
             '');
           };
@@ -97,11 +97,11 @@
             type = "app";
             program = toString (pkgs.writeScript "integration-test" ''
               export PATH="${pkgs.lib.makeBinPath [
-                  pkgs.bettercollected-backend-server-dev
+                  pkgs.backend-dev
                   pkgs.git
                   pkgs.coreutils
               ]}"
-              echo "[nix][integration-test] Run bettercollected-backend-server unit tests."
+              echo "[nix][integration-test] Run backend unit tests."
               pytest tests/integration
             '');
           };
@@ -109,7 +109,7 @@
             type = "app";
             program = toString (pkgs.writeScript "coverage" ''
               export PATH="${pkgs.lib.makeBinPath [
-                  pkgs.bettercollected-backend-server-dev
+                  pkgs.backend-dev
                   pkgs.git
                   pkgs.coreutils
               ]}"
