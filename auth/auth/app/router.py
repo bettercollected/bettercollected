@@ -11,7 +11,9 @@ from typing import Type
 from classy_fastapi import Routable
 from fastapi import APIRouter
 
-root_api_router = APIRouter(prefix="/api")
+from auth.config import settings
+
+root_api_router = APIRouter(prefix=settings.API_ROOT_PATH)
 
 
 # Decorator for automatically inserting routes defined in routable class

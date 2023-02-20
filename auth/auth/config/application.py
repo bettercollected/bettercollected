@@ -11,8 +11,8 @@ from dotenv import load_dotenv
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
-    .parent.parent.absolute()
-    .joinpath(".env")
+        .parent.parent.absolute()
+        .joinpath(".env")
 )
 load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
@@ -42,16 +42,15 @@ class Application(BaseSettings):
     """
 
     DEBUG: bool = True
-    PROJECT_NAME: str = "auth"
-    VERSION: str = __version__
-    DOCS_URL: str = "/"
-    USE_REDIS: bool = False
+    API_TITLE: str = "auth"
+    API_VERSION: str = __version__
+    API_ROOT_PATH: str = "/api/v1"
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
     mongo_settings: MongoSettings = MongoSettings()
 
     AUTH_REDIRECT_URI: str = "http://localhost:8001/auth/callback"
-    JWT_SECRET: str
+    AUTH_JWT_SECRET: str
 
     class Config:
         """Config sub-class needed to customize BaseSettings settings.
