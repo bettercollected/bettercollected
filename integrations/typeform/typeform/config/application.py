@@ -11,8 +11,8 @@ from dotenv import load_dotenv
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
-    .parent.parent.absolute()
-    .joinpath(".env")
+        .parent.parent.absolute()
+        .joinpath(".env")
 )
 load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
@@ -44,9 +44,9 @@ class Application(BaseSettings):
     DEBUG: bool = True
     PROJECT_NAME: str = "typeform"
     VERSION: str = __version__
-    DOCS_URL: str = "/docs"
     USE_REDIS: bool = False
-    AES_HEX_KEY: str
+
+    API_ROOT_PATH: str = "/api/v1"
 
     TYPEFORM_SCOPE = ""
     TYPEFORM_CLIENT_ID = ""
@@ -58,7 +58,7 @@ class Application(BaseSettings):
 
     mongo_settings: MongoSettings = MongoSettings()
 
-    JWT_SECRET: str
+    AUTH_JWT_SECRET: str
 
     # All your additional application configuration should go either here or in
     # separate file in this submodule.

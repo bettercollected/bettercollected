@@ -1,20 +1,15 @@
-from typing import Dict, Any, Optional
+import logging
+from typing import Dict, Any
 
-import jwt
 import requests
 from fastapi import HTTPException
 
-from common.configs.crypto import Crypto
-from common.enums.form_provider import FormProvider
-from common.models.user import Token, UserInfo, OAuthState
-from typeform.app.container import AppContainer, container
+from common.models.user import Token, UserInfo
+from typeform.app.repositories.credentials_repository import CredentialRepository
 from typeform.config import settings
 
-crypto = Crypto(settings.AES_HEX_KEY)
 
-
-async def get_oauth_url(*, oauth_state: OAuthState) -> str:
-    state = crypto.encrypt(oauth_state.json())
+async def get_oauth_url(state: str) -> str:
     oauth_url = settings.TYPEFORM_AUTH_URI.format(
         state=state,
         client_id=settings.TYPEFORM_CLIENT_ID,
@@ -24,7 +19,7 @@ async def get_oauth_url(*, oauth_state: OAuthState) -> str:
     return oauth_url
 
 
-async def handle_oauth_callback(code: str, *, state: str):
+async def handle_oauth_callback(code: str) -> UserInfo:
     data = {
         "grant_type": "authorization_code",
         "code": code,
@@ -38,27 +33,15 @@ async def handle_oauth_callback(code: str, *, state: str):
     if not typeform_response.json():
         raise HTTPException(500, "Could not fetch token from typeform!")
     token = Token(**typeform_response.json())
-
     me_response = perform_typeform_request(token.access_token, "/me")
     email = me_response["email"]
-    user_info = UserInfo(**token.dict(), email=email, provider=FormProvider.TYPEFORM)
-    oauth_state = OAuthState.parse_raw(crypto.decrypt(state))
-
-    token = jwt.encode(
-        {
-            "user_info": user_info.dict(),
-            "oauth_state": oauth_state.dict(),
-        },
-        settings.JWT_SECRET,
-    )
-
-    await container.http_client.get(
-        oauth_state.auth_server_redirect_uri, params={"jwt_token": token}
-    )
+    user_info = UserInfo(email=email)
+    await CredentialRepository.save_credentials(user_info, token)
+    return user_info
 
 
 def perform_typeform_request(
-    access_token: str, path: str, params: Dict[str, Any] = None
+        access_token: str, path: str, params: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     api_response = requests.get(
         f"{settings.TYPEFORM_API_URI}{path}",
@@ -66,7 +49,10 @@ def perform_typeform_request(
         params=params,
     )
     if api_response.status_code != 200:
+        logging.error(api_response.url)
+        logging.error(api_response.status_code)
+        logging.error(api_response.content)
         raise HTTPException(
-            status_code=400, detail="Error while fetching forms from typeform."
+            status_code=400, detail="Error while performing typeform request."
         )
     return api_response.json()

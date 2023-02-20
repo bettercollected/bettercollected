@@ -14,8 +14,10 @@ from fastapi import APIRouter
 from common.utils.router import CustomAPIRouter
 from typeform.app.controllers import form_router
 from typeform.app.controllers.auth_router import AuthRoutes
+from typeform.config import settings
 
-root_api_router = CustomAPIRouter(prefix="")
+root_api_router = CustomAPIRouter(prefix=settings.API_ROOT_PATH)
+
 root_api_router.include_router(AuthRoutes().router, prefix="/typeform")
 root_api_router.include_router(form_router.router)
 

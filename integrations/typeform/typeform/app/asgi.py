@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 import typeform
 from typeform.app.container import AppContainer, container
+from typeform.app.services.database_service import init_db, close_db
 from typeform.config import settings
 from typeform.app.router import root_api_router
 from typeform.app.exceptions import (
@@ -50,9 +51,10 @@ def get_application():
         title=settings.PROJECT_NAME,
         debug=settings.DEBUG,
         version=settings.VERSION,
-        docs_url=settings.DOCS_URL,
-        on_startup=[on_startup],
-        on_shutdown=[on_shutdown],
+        docs_url=settings.API_ROOT_PATH + "/docs",
+        openapi_url=settings.API_ROOT_PATH + "/openapi.json",
+        on_startup=[on_startup, init_db],
+        on_shutdown=[on_shutdown, close_db],
     )
     log.debug("Add application routes.")
     app.include_router(root_api_router)
