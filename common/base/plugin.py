@@ -16,7 +16,7 @@ from common.constants.plugin_routes import (
     PLUGIN_ROUTE_IMPORT_FORM,
     PLUGIN_ROUTE_REVOKE,
 )
-from enums.form_provider import FormProvider
+from common.enums.form_provider import FormProvider
 from common.enums.http_methods import HTTPMethods
 from common.models.user import User
 from common.utils.router import CustomAPIRouter
