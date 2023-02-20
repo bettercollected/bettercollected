@@ -58,17 +58,17 @@
                   pkgs.git
               ]}"
               echo "[nix][metrics] Run bettercollected-backend-server PEP 8 checks."
-              flake8 --select=E,W,I --max-line-length 88 --import-order-style pep8 --statistics --count bettercollected_backend_server
+              flake8 --select=E,W,I --max-line-length 88 --import-order-style pep8 --statistics --count backend
               echo "[nix][metrics] Run bettercollected-backend-server PEP 257 checks."
-              flake8 --select=D --ignore D301 --statistics --count bettercollected_backend_server
+              flake8 --select=D --ignore D301 --statistics --count backend
               echo "[nix][metrics] Run bettercollected-backend-server pyflakes checks."
-              flake8 --select=F --statistics --count bettercollected_backend_server
+              flake8 --select=F --statistics --count backend
               echo "[nix][metrics] Run bettercollected-backend-server code complexity checks."
-              flake8 --select=C901 --statistics --count bettercollected_backend_server
+              flake8 --select=C901 --statistics --count backend
               echo "[nix][metrics] Run bettercollected-backend-server open TODO checks."
-              flake8 --select=T --statistics --count bettercollected_backend_server tests
+              flake8 --select=T --statistics --count backend tests
               echo "[nix][metrics] Run bettercollected-backend-server black checks."
-              black -l 80 --check bettercollected_backend_server
+              black -l 80 --check backend
             '');
           };
           docs = {
@@ -114,7 +114,7 @@
                   pkgs.coreutils
               ]}"
               echo "[nix][coverage] Run bettercollected-backend-server tests coverage."
-              pytest --cov=bettercollected_backend_server --cov-fail-under=90 --cov-report=xml --cov-report=term-missing tests
+              pytest --cov=backend --cov-fail-under=90 --cov-report=xml --cov-report=term-missing tests
             '');
           };
           test = {

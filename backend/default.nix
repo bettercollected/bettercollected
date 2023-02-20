@@ -10,7 +10,7 @@ poetry2nix.mkPoetryApplication {
   pyproject = ./pyproject.toml;
   poetrylock = ./poetry.lock;
 
-  pythonImportsCheck = [ "bettercollected_backend_server" ];
+  pythonImportsCheck = [ "backend" ];
 
   meta = with lib; {
     homepage = "";

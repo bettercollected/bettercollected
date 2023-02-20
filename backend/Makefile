@@ -37,17 +37,17 @@ image:  ## Build bettercollected-backend-server image
 .PHONY: metrics
 metrics: install ## Run bettercollected-backend-server metrics checks
 	echo "[metrics] Run bettercollected-backend-server PEP 8 checks."
-	${POETRY_BINARY} run flake8 --select=E,W,I --max-line-length 88 --import-order-style pep8 --statistics --count bettercollected_backend_server
+	${POETRY_BINARY} run flake8 --select=E,W,I --max-line-length 88 --import-order-style pep8 --statistics --count backend
 	echo "[metrics] Run bettercollected-backend-server PEP 257 checks."
-	${POETRY_BINARY} run flake8 --select=D --ignore D301 --statistics --count bettercollected_backend_server
+	${POETRY_BINARY} run flake8 --select=D --ignore D301 --statistics --count backend
 	echo "[metrics] Run bettercollected-backend-server pyflakes checks."
-	${POETRY_BINARY} run flake8 --select=F --statistics --count bettercollected_backend_server
+	${POETRY_BINARY} run flake8 --select=F --statistics --count backend
 	echo "[metrics] Run bettercollected-backend-server code complexity checks."
-	${POETRY_BINARY} run flake8 --select=C901 --statistics --count bettercollected_backend_server
+	${POETRY_BINARY} run flake8 --select=C901 --statistics --count backend
 	echo "[metrics] Run bettercollected-backend-server open TODO checks."
-	${POETRY_BINARY} run flake8 --select=T --statistics --count bettercollected_backend_server tests
+	${POETRY_BINARY} run flake8 --select=T --statistics --count backend tests
 	echo "[metrics] Run bettercollected-backend-server black checks."
-	${POETRY_BINARY} run black -l 88 --check bettercollected_backend_server
+	${POETRY_BINARY} run black -l 88 --check backend
 
 .PHONY: unit-test
 unit-test: install ## Run bettercollected-backend-server unit tests
@@ -62,7 +62,7 @@ integration-test: install ## Run bettercollected-backend-server integration test
 .PHONY: coverage
 coverage: install  ## Run bettercollected-backend-server tests coverage
 	echo "[coverage] Run bettercollected-backend-server tests coverage."
-	${POETRY_BINARY} run pytest --cov=bettercollected_backend_server --cov-fail-under=90 --cov-report=xml --cov-report=term-missing tests
+	${POETRY_BINARY} run pytest --cov=backend --cov-fail-under=90 --cov-report=xml --cov-report=term-missing tests
 
 .PHONY: test
 test: unit-test integration-test  ## Run bettercollected-backend-server tests

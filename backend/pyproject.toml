@@ -35,9 +35,11 @@ fastapi-utils = "^0.2.1"
 beanie = "^1.17.0"
 dependency-injector = "^4.41.0"
 httpx = "^0.23.3"
+classy-fastapi = "^0.3.0"
+pyjwt = "^2.6.0"
 
 [tool.poetry.scripts]
-bettercollected-backend-server = 'bettercollected_backend_server.cli:cli'
+bettercollected-backend-server = 'backend.cli:cli'
 
 [tool.poetry.urls]
 "Issues" = "/issues"
@@ -65,8 +67,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.coverage.run]
 omit = [
-    "bettercollected_backend_server/config/gunicorn.py",
-    "bettercollected_backend_server/__main__.py",
+    "backend/config/gunicorn.py",
+    "backend/__main__.py",
 ]
 
 [tool.coverage.report]

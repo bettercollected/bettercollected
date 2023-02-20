@@ -1,4 +1,4 @@
-from bettercollected_backend_server.config import settings
+from backend.config import settings
 
 
 class TestReadyController:

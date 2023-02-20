@@ -90,7 +90,7 @@ This project provides Dockerfile for containerized environment.
 Development
 -----------
 
-You can implement your own web routes logic straight away in ``bettercollected_backend_server.controllers`` submodule. For more information please see `FastAPI documentation <https://fastapi.tiangolo.com/tutorial/>`__.
+You can implement your own web routes logic straight away in ``backend.controllers`` submodule. For more information please see `FastAPI documentation <https://fastapi.tiangolo.com/tutorial/>`__.
 
 Makefile
 ~~~~~~~~
@@ -117,8 +117,8 @@ Utilities
 
 Available utilities:
 
-* RedisClient ``bettercollected_backend_server.app.utils.redis``
-* AiohttpClient ``bettercollected_backend_server.app.utils.aiohttp_client``
+* RedisClient ``backend.app.utils.redis``
+* AiohttpClient ``backend.app.utils.aiohttp_client``
 
 They're initialized in ``asgi.py`` on FastAPI startup event handler:
 
@@ -159,7 +159,7 @@ Example:
 
 .. code-block:: python
 
-    from bettercollected_backend_server.app.utils import RedisClient
+    from backend.app.utils import RedisClient
 
     response = RedisClient.get("Key")
 
@@ -168,7 +168,7 @@ Exceptions
 
 **HTTPException and handler**
 
-.. literalinclude:: ../bettercollected_backend_server/app/exceptions/http.py
+.. literalinclude:: ../backend/app/exceptions/http.py
     :language: python
 
 This exception combined with ``http_exception_handler`` method allows you to use it the same manner as you'd use ``FastAPI.HTTPException`` with one difference.
@@ -196,7 +196,7 @@ Priority of overriding configuration:
 2. environment variables
 3. ``gunicorn.py``
 
-All application configuration is available in ``bettercollected_backend_server.config`` submodule.
+All application configuration is available in ``backend.config`` submodule.
 
 Environment variables
 ~~~~~~~~~~~~~~~~~~~~~
@@ -220,7 +220,7 @@ Environment variables
      - ``"True"``
      - FastAPI logging level. You should disable this for production.
    * - FASTAPI_PROJECT_NAME
-     - ``"bettercollected_backend_server"``
+     - ``"backend"``
      - FastAPI project name.
    * - FASTAPI_VERSION
      - ``"0.1.0"``
@@ -268,13 +268,13 @@ Gunicorn
 
 `Gunicorn configuration file documentation <https://docs.gunicorn.org/en/latest/settings.html>`__
 
-.. literalinclude:: ../bettercollected_backend_server/config/gunicorn.py
+.. literalinclude:: ../backend/config/gunicorn.py
     :language: python
 
 Routes
 ~~~~~~
 
-Endpoints are defined in ``bettercollected_backend_server.app.router`` submodule. Just simply import your controller and include it to FastAPI router:
+Endpoints are defined in ``backend.app.router`` submodule. Just simply import your controller and include it to FastAPI router:
 
-.. literalinclude:: ../bettercollected_backend_server/app/router.py
+.. literalinclude:: ../backend/app/router.py
     :language: python

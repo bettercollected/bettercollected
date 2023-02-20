@@ -1,5 +1,5 @@
 import pytest
-from bettercollected_backend_server.cli import cli
+from backend.cli import cli
 
 
 class TestCliRoot:

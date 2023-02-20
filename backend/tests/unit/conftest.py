@@ -1,7 +1,7 @@
 from unittest import mock
 
 import pytest
-from bettercollected_backend_server.app import get_application
+from backend.app import get_application
 
 
 @pytest.fixture

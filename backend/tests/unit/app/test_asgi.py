@@ -1,11 +1,11 @@
-from bettercollected_backend_server.config import settings
-from bettercollected_backend_server.app.router import root_api_router
-from bettercollected_backend_server.app.asgi import (
+from backend.config import settings
+from backend.app.router import root_api_router
+from backend.app.asgi import (
     get_application,
     on_startup,
     on_shutdown,
 )
-from bettercollected_backend_server.app.exceptions import (
+from backend.app.exceptions import (
     HTTPException,
     http_exception_handler,
 )

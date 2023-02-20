@@ -1,6 +1,6 @@
 import pytest
 from pydantic.error_wrappers import ValidationError
-from bettercollected_backend_server.app.views import ReadyResponse
+from backend.app.views import ReadyResponse
 
 
 class TestReadyResponse:

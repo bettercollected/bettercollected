@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 import pytest
 from fastapi.testclient import TestClient
-from bettercollected_backend_server.app import get_application
+from backend.app import get_application
 from common.constants.plugin_routes import (
     PLUGIN_ROUTE_AUTHORIZE,
     PLUGIN_ROUTE_CALLBACK,
