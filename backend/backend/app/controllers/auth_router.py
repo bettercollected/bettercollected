@@ -8,7 +8,7 @@ from fastapi import Depends
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 
-from backend.app.container import AppContainer
+from backend.app.container import AppContainer, container
 from backend.app.router import router
 from backend.app.services import backend_auth_service
 from backend.app.services.auth_cookie_service import set_tokens_to_response
@@ -24,6 +24,11 @@ log = logging.getLogger(__name__)
 # TODO Extract out separate interface for oauth and use it
 @router(prefix="/auth", tags=["Auth"])
 class AuthRoutes(Routable):
+
+    def __init__(self, auth_service=container.auth_service(), *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.auth_service = auth_service
+
     @get("/status")
     async def status(
         self, user: User = Depends(get_logged_user)
@@ -47,8 +52,8 @@ class AuthRoutes(Routable):
     #     basic_auth_url = await self.auth_service.get_basic_auth_url(provider_name, client_referer_url)
     #     return RedirectResponse(basic_auth_url)
 
-    @get("/callback")
-    async def _auth_callback(self, jwt_token: str, response: Response):
-        user, state = await backend_auth_service.handle_backend_auth_callback(jwt_token)
+    @get("/{provider_name}/oauth/callback")
+    async def _auth_callback(self, request: Request, response: Response):
+        user, state = await self.auth_service.handle_backend_auth_callback(request)
         set_tokens_to_response(user, response)
         return RedirectResponse(state.client_referer_uri)

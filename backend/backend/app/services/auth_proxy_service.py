@@ -17,8 +17,6 @@ class AuthProxyService:
     async def get_oauth_url(self, provider_name: str, client_referer_url: str):
         provider_config = container.enabled_forms().get_form_provider(provider_name)
         oauth_state = OAuthState(
-            backend_auth_redirect_uri=settings.BACKEND_AUTH_REDIRECT_URI,
-            auth_server_redirect_uri=settings.AUTH_SERVER_REDIRECT_URI,
             client_referer_uri=client_referer_url,
         )
         authorization_url = (

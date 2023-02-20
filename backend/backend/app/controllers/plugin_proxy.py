@@ -60,11 +60,10 @@ class PluginProxy(BasePluginRoute):
     ):
         # TODO : Inject auth services
         proxy_url = container.enabled_forms().get_form_provider(provider).provider_url
-        print(proxy_url)
         credential = await AuthProxyService().get_credential_of_provider(
             provider, request.cookies["Authorization"]
         )
-        jwt_token = jwt.encode(credential, key=settings.JWT_SECRET)
+        jwt_token = jwt.encode(credential, key=settings.auth_settings.JWT_SECRET)
         proxies = {f"{request.base_url}{provider}": f"{proxy_url}{provider}"}
         proxy = await plugin_proxy_service(
             proxies,

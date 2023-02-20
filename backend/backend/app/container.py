@@ -5,6 +5,7 @@ from dependency_injector import containers, providers
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from backend.app.core.form_plugin_config import FormPluginConfig
+from backend.app.services.backend_auth_service import AuthService
 from backend.config import settings
 from common.services.http_client import HttpClient
 
@@ -25,6 +26,11 @@ class AppContainer(containers.DeclarativeContainer):
 
     database_client: AsyncIOMotorClient = providers.Singleton(
         AsyncIOMotorClient, settings.mongo_settings.URI
+    )
+
+    auth_service: AuthService = providers.Singleton(
+        AuthService,
+        http_client=http_client
     )
 
 

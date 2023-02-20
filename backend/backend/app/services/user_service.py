@@ -14,7 +14,7 @@ def get_logged_user(request: Request) -> User:
     try:
         jwt_response = jwt.decode(
             request.cookies.get("Authorization"),
-            key=settings.JWT_SECRET,
+            key=settings.auth_settings.JWT_SECRET,
             algorithms=["HS256"],
         )
         user = User(**jwt_response)

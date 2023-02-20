@@ -24,7 +24,7 @@ def set_token_to_response(
             "exp": expiry,
             "jti": str(uuid.uuid4()),
         },
-        settings.JWT_SECRET,
+        settings.auth_settings.JWT_SECRET,
         algorithm="HS256",
     )
     set_token_cookie(response, cookie_key, token)
@@ -33,7 +33,7 @@ def set_token_to_response(
 def set_access_token_to_response(user: User, response: Response):
     set_token_to_response(
         user,
-        timedelta(minutes=settings.ACCESS_TOKEN_EXPIRY_IN_MINUTES),
+        timedelta(minutes=settings.auth_settings.ACCESS_TOKEN_EXPIRY_IN_MINUTES),
         "Authorization",
         response,
     )
@@ -42,7 +42,7 @@ def set_access_token_to_response(user: User, response: Response):
 def set_refresh_token_to_response(user: User, response: Response):
     set_token_to_response(
         user,
-        timedelta(days=settings.REFRESH_TOKEN_EXPIRY_IN_DAYS),
+        timedelta(days=settings.auth_settings.REFRESH_TOKEN_EXPIRY_IN_DAYS),
         "RefreshToken",
         response,
     )
@@ -116,7 +116,7 @@ def delete_cookie(
 
 
 def set_token_cookie(response: Response, key: str, token: str):
-    should_be_secure = False if "localhost" in settings.API_HOST else True
+    should_be_secure = False if "localhost" in settings.api_settings.HOST else True
     same_site = "none" if should_be_secure else "lax"
     set_cookie(
         response=response,
@@ -126,12 +126,12 @@ def set_token_cookie(response: Response, key: str, token: str):
         secure=should_be_secure,
         # TODO prevent against csrf with same site after fix
         samesite=same_site,
-        max_age=settings.REFRESH_TOKEN_EXPIRY_IN_DAYS * 24 * 60 * 60,
+        max_age=settings.auth_settings.REFRESH_TOKEN_EXPIRY_IN_DAYS * 24 * 60 * 60,
     )
 
 
 def delete_token_cookie(response: Response):
-    should_be_secure = False if "localhost" in settings.HOST else True
+    should_be_secure = False if "localhost" in settings.auth_settings.HOST else True
     same_site = "none" if should_be_secure else "lax"
     delete_cookie(
         response=response,
