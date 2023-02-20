@@ -15,6 +15,6 @@ Resources:
 
 """
 from auth.app.asgi import get_application
+from auth.app import controllers
 
-
-__all__ = ("get_application",)
+__all__ = ("get_application", "controllers")

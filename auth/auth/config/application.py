@@ -1,6 +1,16 @@
 """Application configuration - FastAPI."""
 from pydantic import BaseSettings
+
+from auth.config.database import MongoSettings
 from auth.version import __version__
+
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+default_dot_env_path = Path(os.path.abspath(os.path.dirname(__file__))).parent.parent.absolute().joinpath(".env")
+load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
 
 class Application(BaseSettings):
@@ -34,6 +44,10 @@ class Application(BaseSettings):
     USE_REDIS: bool = False
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
+    mongo_settings: MongoSettings = MongoSettings()
+
+    AUTH_REDIRECT_URI: str = "http://localhost:8001/auth/callback"
+    JWT_SECRET: str
 
     class Config:
         """Config sub-class needed to customize BaseSettings settings.
@@ -49,7 +63,6 @@ class Application(BaseSettings):
         """
 
         case_sensitive = True
-        env_prefix = "FASTAPI_"
 
 
 settings = Application()

@@ -14,7 +14,11 @@ Resources:
     https://docs.gunicorn.org/en/20.1.0/
 
 """
-from auth.config.application import settings
+import os
+from dotenv import load_dotenv
 
+load_dotenv(dotenv_path=os.getenv("DOTENV_PATH", ".env"))
+
+from auth.config.application import settings
 
 __all__ = ("settings",)
