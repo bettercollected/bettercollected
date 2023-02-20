@@ -43,7 +43,8 @@ describe('Render settings privacy tab ', () => {
 
     it('checks the validity of url for privacy policy text input', async function () {
         renderWithProviders(<Settingsprivacy />);
-        const privacyInput = screen.getByRole('textbox', { name: /privacy-policy/i }) as HTMLInputElement;
+        // const privacyInput = screen.getByRole('textbox', { name: /privacy-policy/i }) as HTMLInputElement;
+        const privacyInput = screen.getByTestId('privacy-policy').querySelector('input') as HTMLInputElement;
 
         // when a url format is proper, the aria-invalid is false
         const correctPrivacyPolicyUrl = 'https://b.com';
@@ -59,7 +60,8 @@ describe('Render settings privacy tab ', () => {
     it('checks the validity of url for terms of service text input', async function () {
         // when a url format is proper, the aria-invalid is false
         renderWithProviders(<Settingsprivacy />);
-        const termsofServiceInput = screen.getByRole('textbox', { name: /terms-of-service/i }) as HTMLInputElement;
+        // const termsofServiceInput = screen.getByRole('textbox', { name: /terms-of-service/i }) as HTMLInputElement;
+        const termsofServiceInput = screen.getByTestId('terms-of-service').querySelector('input') as HTMLInputElement;
 
         const correctTermsOfServiceUrl = 'https://b.com';
         fireEvent.change(termsofServiceInput, { target: { value: correctTermsOfServiceUrl } });
@@ -81,7 +83,9 @@ describe('Render settings privacy tab ', () => {
             })
         );
         renderWithProviders(<Settingsprivacy />);
-        const privacyInput = screen.getByRole('textbox', { name: /privacy-policy/i }) as HTMLInputElement;
+        // const privacyInput = screen.getByRole('textbox', { name: /privacy-policy/i }) as HTMLInputElement;
+        const privacyInput = screen.getByTestId('privacy-policy').querySelector('input') as HTMLInputElement;
+
         const editButton = screen.getByTestId('privacy-policy-edit-button');
         fireEvent.click(editButton);
         const correctPrivacyPolicyUrl = 'https://better.com';
