@@ -11,6 +11,11 @@ from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.workspace_service import WorkspaceService
+from backend.app.core.form_plugin_config import FormPluginConfig
+from backend.app.repositories.form_plugin_provider_repository import (
+    FormPluginProviderRepository,
+)
+from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.config import settings
 from common.services.http_client import HttpClient
 
@@ -32,17 +37,27 @@ class AppContainer(containers.DeclarativeContainer):
         AsyncIOMotorClient, settings.mongo_settings.URI
     )
 
+    # Repositories
+    workspace_user_repo: WorkspaceUserRepository = providers.Singleton(
+        WorkspaceUserRepository
+    )
+
+    workspace_repo: WorkspaceRepository = providers.Singleton(WorkspaceRepository)
+
+    form_provider_repo: FormPluginProviderRepository = providers.Singleton(
+        FormPluginProviderRepository
+    )
+
+    # Services
     aws_service: AWSS3Service = providers.Singleton(
         AWSS3Service,
         settings.aws_settings.access_key_id,
         settings.aws_settings.secret_access_key,
     )
 
-    workspace_user_repo: WorkspaceUserRepository = providers.Singleton(
-        WorkspaceUserRepository
+    form_provider_service: FormPluginProviderService = providers.Singleton(
+        FormPluginProviderService, form_provider_repo=form_provider_repo
     )
-
-    workspace_repo: WorkspaceRepository = providers.Singleton(WorkspaceRepository)
 
     workspace_service: WorkspaceService = providers.Singleton(
         WorkspaceService,
@@ -59,6 +74,7 @@ class AppContainer(containers.DeclarativeContainer):
         AuthService,
         http_client=http_client,
         plugin_proxy_service=plugin_proxy_service,
+        form_providers=form_providers,
         form_providers=form_providers,
     )
 
