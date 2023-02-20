@@ -4,8 +4,9 @@ from http import HTTPStatus
 from typing import Any, Dict, List, Optional, Protocol
 
 from fastapi import Body
+from starlette.requests import Request
 
-from constants.plugin_routes import (
+from common.constants.plugin_routes import (
     PLUGIN_ROUTE_AUTHORIZE,
     PLUGIN_ROUTE_CALLBACK,
     PLUGIN_ROUTE_FORM,
@@ -15,13 +16,10 @@ from constants.plugin_routes import (
     PLUGIN_ROUTE_IMPORT_FORM,
     PLUGIN_ROUTE_REVOKE,
 )
-
-from starlette.requests import Request
-
-from enums.http_methods import HTTPMethods
-from utils.router import CustomAPIRouter
-
 from enums.form_provider import FormProvider
+from common.enums.http_methods import HTTPMethods
+from common.models.user import User
+from common.utils.router import CustomAPIRouter
 
 
 class BasePluginRoute(Protocol):
@@ -33,7 +31,7 @@ class BasePluginRoute(Protocol):
 
     @abstractmethod
     async def authorize(
-        self, request: Request, email: str, provider: str | FormProvider
+            self, request: Request, email: str, provider: str | FormProvider
     ):
         raise NotImplementedError
 
@@ -46,7 +44,7 @@ class BasePluginRoute(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    async def list_forms(self, email: str, provider: str | FormProvider):
+    async def list_forms(self, provider: str, request: Request, user: User):
         raise NotImplementedError
 
     @abstractmethod
@@ -55,30 +53,30 @@ class BasePluginRoute(Protocol):
 
     @abstractmethod
     async def import_form(
-        self,
-        form_id: str,
-        email: str,
-        provider: str | FormProvider,
-        data_owner_field: Optional[str] = None,
+            self,
+            form_id: str,
+            email: str,
+            provider: str | FormProvider,
+            data_owner_field: Optional[str] = None,
     ):
         raise NotImplementedError
 
     @abstractmethod
     async def create_form(
-        self,
-        email: str,
-        provider: str | FormProvider,
-        request_body: Dict[str, Any] = Body(...),
+            self,
+            email: str,
+            provider: str | FormProvider,
+            request_body: Dict[str, Any] = Body(...),
     ):
         raise NotImplementedError
 
     @abstractmethod
     async def update_form(
-        self,
-        form_id: str,
-        email: str,
-        provider: str | FormProvider,
-        request_body: Dict[str, Any] = Body(...),
+            self,
+            form_id: str,
+            email: str,
+            provider: str | FormProvider,
+            request_body: Dict[str, Any] = Body(...),
     ):
         raise NotImplementedError
 
@@ -88,25 +86,25 @@ class BasePluginRoute(Protocol):
 
     @abstractmethod
     async def list_form_responses(
-        self, form_id: str, email: str, provider: str | FormProvider
+            self, form_id: str, email: str, provider: str | FormProvider
     ):
         raise NotImplementedError
 
     @abstractmethod
     async def get_form_response(
-        self, form_id: str, email: str, response_id: str, provider: str | FormProvider
+            self, form_id: str, email: str, response_id: str, provider: str | FormProvider
     ):
         raise NotImplementedError
 
     @abstractmethod
     async def delete_form_response(
-        self, form_id: str, email: str, response_id: str, provider: str | FormProvider
+            self, form_id: str, email: str, response_id: str, provider: str | FormProvider
     ):
         raise NotImplementedError
 
 
 def register_plugin_class(
-    router: CustomAPIRouter, route: BasePluginRoute, tags: List[str]
+        router: CustomAPIRouter, route: BasePluginRoute, tags: List[str]
 ):
     """Registers plugin class with required endpoints and method call.
 

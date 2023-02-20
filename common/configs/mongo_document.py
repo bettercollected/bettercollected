@@ -17,7 +17,7 @@ from beanie.odm.documents import DocType
 from pymongo.client_session import ClientSession
 from pymongo.collection import Collection
 
-from exceptions import NotFoundError
+from common.exceptions import NotFoundError
 
 IntStr = Union[int, str]
 AbstractSetIntStr = AbstractSet[IntStr]
@@ -65,13 +65,13 @@ class MongoDocument(Document):
 
     @classmethod
     async def get(
-        cls: Type[DocType],
-        document_id: PydanticObjectId,
-        session: Optional[ClientSession] = None,
-        ignore_cache: bool = False,
-        fetch_links: bool = False,
-        with_children: bool = False,
-        **pymongo_kwargs,
+            cls: Type[DocType],
+            document_id: PydanticObjectId,
+            session: Optional[ClientSession] = None,
+            ignore_cache: bool = False,
+            fetch_links: bool = False,
+            with_children: bool = False,
+            **pymongo_kwargs,
     ) -> Optional["DocType"]:
         """
         Asynchronously gets a single document by its ID.
@@ -133,12 +133,12 @@ class MongoDocument(Document):
 
     @classmethod
     async def find_one_by_args(
-        cls: Type[DocType],
-        *args: Union[Mapping[str, Any], bool],
-        projection_model: None = None,
-        session: Optional[ClientSession] = None,
-        ignore_cache: bool = False,
-        fetch_links: bool = False,
+            cls: Type[DocType],
+            *args: Union[Mapping[str, Any], bool],
+            projection_model: None = None,
+            session: Optional[ClientSession] = None,
+            ignore_cache: bool = False,
+            fetch_links: bool = False,
     ) -> DocType:
         """
         Asynchronously finds a single document by the specified criteria.
@@ -164,14 +164,14 @@ class MongoDocument(Document):
         return cls.verify_doc_exists(doc, *args)
 
     def _iter(
-        self,
-        to_dict: bool = False,
-        by_alias: bool = False,
-        include: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
-        exclude: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
-        exclude_none: bool = True,
+            self,
+            to_dict: bool = False,
+            by_alias: bool = False,
+            include: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
+            exclude: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
+            exclude_unset: bool = False,
+            exclude_defaults: bool = False,
+            exclude_none: bool = True,
     ) -> "TupleGenerator":
         """
         Iterates over the fields and their values of the document.

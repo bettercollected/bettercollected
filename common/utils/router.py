@@ -18,12 +18,11 @@ from fastapi.encoders import DictIntStrAny, SetIntStr
 from fastapi.openapi.models import Response
 from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
-from loguru import logger
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
 from starlette.types import ASGIApp
-
+import logging
 
 _response_class = Default(JSONResponse)
 _generate_unique_id_function = Default(generate_unique_id)
@@ -66,7 +65,7 @@ class RequestWithLogger(Request):
                 chunks.append(chunk)
             self._body = b"".join(chunks)
 
-        logger.info(f"Request body : {self._body}")
+        logging.info(f"Request body : {self._body}")
 
         return self._body
 
@@ -135,36 +134,36 @@ class CustomAPIRoute(APIRoute):
     """
 
     def __init__(
-        self,
-        path: str,
-        endpoint: Callable[..., Any],
-        *,
-        response_model: Optional[Type[Any]] = None,
-        status_code: Optional[int] = None,
-        tags: Optional[List[Union[str, Enum]]] = None,
-        dependencies: Optional[Sequence[params.Depends]] = None,
-        summary: Optional[str] = None,
-        description: Optional[str] = None,
-        response_description: str = "Successful Response",
-        responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
-        deprecated: Optional[bool] = None,
-        name: Optional[str] = None,
-        methods: Optional[Union[Set[str], List[str]]] = None,
-        operation_id: Optional[str] = None,
-        response_model_include: Optional[Union[SetIntStr, DictIntStrAny]] = None,
-        response_model_exclude: Optional[Union[SetIntStr, DictIntStrAny]] = None,
-        response_model_by_alias: bool = True,
-        response_model_exclude_unset: bool = False,
-        response_model_exclude_defaults: bool = False,
-        response_model_exclude_none=True,
-        include_in_schema: bool = True,
-        response_class: Union[Type[Response], DefaultPlaceholder] = _response_class,
-        dependency_overrides_provider: Optional[Any] = None,
-        callbacks: Optional[List[BaseRoute]] = None,
-        openapi_extra: Optional[Dict[str, Any]] = None,
-        generate_unique_id_function: Callable[
-            [APIRoute], str
-        ] = _generate_unique_id_function,
+            self,
+            path: str,
+            endpoint: Callable[..., Any],
+            *,
+            response_model: Optional[Type[Any]] = None,
+            status_code: Optional[int] = None,
+            tags: Optional[List[Union[str, Enum]]] = None,
+            dependencies: Optional[Sequence[params.Depends]] = None,
+            summary: Optional[str] = None,
+            description: Optional[str] = None,
+            response_description: str = "Successful Response",
+            responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+            deprecated: Optional[bool] = None,
+            name: Optional[str] = None,
+            methods: Optional[Union[Set[str], List[str]]] = None,
+            operation_id: Optional[str] = None,
+            response_model_include: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+            response_model_exclude: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+            response_model_by_alias: bool = True,
+            response_model_exclude_unset: bool = False,
+            response_model_exclude_defaults: bool = False,
+            response_model_exclude_none=True,
+            include_in_schema: bool = True,
+            response_class: Union[Type[Response], DefaultPlaceholder] = _response_class,
+            dependency_overrides_provider: Optional[Any] = None,
+            callbacks: Optional[List[BaseRoute]] = None,
+            openapi_extra: Optional[Dict[str, Any]] = None,
+            generate_unique_id_function: Callable[
+                [APIRoute], str
+            ] = _generate_unique_id_function,
     ):
         super().__init__(
             path,
@@ -227,7 +226,7 @@ class CustomAPIRoute(APIRoute):
             request = RequestWithLogger(request.scope, request.receive)
             response = await original_route_handler(request)
 
-            logger.info(
+            logger(
                 f"Response body : {response.body if response.__dict__.get('body') else ''}"
             )
             return response
@@ -249,26 +248,26 @@ class CustomAPIRouter(APIRouter):
     """
 
     def __init__(
-        self,
-        *,
-        prefix: str,
-        tags: Optional[List[Union[str, Enum]]] = None,
-        dependencies: Optional[Sequence[params.Depends]] = None,
-        default_response_class: Type[Response] = _response_class,
-        responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
-        callbacks: Optional[List[BaseRoute]] = None,
-        routes: Optional[List[routing.BaseRoute]] = None,
-        redirect_slashes: bool = True,
-        default: Optional[ASGIApp] = None,
-        dependency_overrides_provider: Optional[Any] = None,
-        route_class: Type[APIRoute] = CustomAPIRoute,
-        on_startup: Optional[Sequence[Callable[[], Any]]] = None,
-        on_shutdown: Optional[Sequence[Callable[[], Any]]] = None,
-        deprecated: Optional[bool] = None,
-        include_in_schema: bool = True,
-        generate_unique_id_function: Callable[
-            [APIRoute], str
-        ] = _generate_unique_id_function,
+            self,
+            *,
+            prefix: str,
+            tags: Optional[List[Union[str, Enum]]] = None,
+            dependencies: Optional[Sequence[params.Depends]] = None,
+            default_response_class: Type[Response] = _response_class,
+            responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+            callbacks: Optional[List[BaseRoute]] = None,
+            routes: Optional[List[routing.BaseRoute]] = None,
+            redirect_slashes: bool = True,
+            default: Optional[ASGIApp] = None,
+            dependency_overrides_provider: Optional[Any] = None,
+            route_class: Type[APIRoute] = CustomAPIRoute,
+            on_startup: Optional[Sequence[Callable[[], Any]]] = None,
+            on_shutdown: Optional[Sequence[Callable[[], Any]]] = None,
+            deprecated: Optional[bool] = None,
+            include_in_schema: bool = True,
+            generate_unique_id_function: Callable[
+                [APIRoute], str
+            ] = _generate_unique_id_function,
     ):
         super().__init__(
             tags=tags,

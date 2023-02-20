@@ -86,7 +86,7 @@ class ChoicesAnswer(BaseModel):
     other: Optional[str]
 
 
-class StandardFormSettingsDto:
+class StandardFormSettingsDto(BaseModel):
     """
     Data transfer object for standard form settings.
     """
