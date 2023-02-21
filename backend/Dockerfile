@@ -16,8 +16,8 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_NO_INTERACTION=1 \
     POETRY_VERSION=1.3.2 \
     POETRY_INSTALL_OPTS="--no-interaction --without dev --no-root" \
-    PYSETUP_PATH="/pysetup" \
-    VENV_PATH="/pysetup/.venv"
+    PYSETUP_PATH="/api" \
+    VENV_PATH="/api/.venv"
 
 ENV PATH="${POETRY_HOME}/bin:${VENV_PATH}/bin:${PATH}"
 
@@ -40,30 +40,6 @@ RUN make install && \
     poetry build && \
     $VENV_PATH/bin/pip install --no-deps dist/*.whl
 
-# Override virtualenv Python symlink to Python path in gcr.io/distroless/python3 image
-RUN ln -fns /usr/bin/python $VENV_PATH/bin/python
-
-
-# Use distroless Python3 image, locked to digest SHA in order to have deterministic Python version - 3.9.2.
-# For the time being, gcr.io/distroless/python3 doesn't have any tags to particular minor version.
-# This digest SHA points to python3:nonroot
-FROM gcr.io/distroless/python3
-LABEL maintainer="Bibishan Pandey, bibishan.b.pandey@gmail.com"
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    VENV_PATH="/pysetup/.venv"
-
-COPY --from=builder $VENV_PATH $VENV_PATH
-
-ENV PATH="${VENV_PATH}/bin:${PATH}"
-
-USER nonroot
-
 EXPOSE 8000/tcp
 
-STOPSIGNAL SIGINT
-
-ENTRYPOINT ["backend"]
-
-CMD ["serve", "--bind", "0.0.0.0:8000"]
+CMD ["uvicorn", "backend.app:get_application", "--host", "0.0.0.0", "--port", "8000"]
