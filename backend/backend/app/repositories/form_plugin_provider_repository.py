@@ -1,0 +1,70 @@
+from http import HTTPStatus
+from typing import List
+
+from pymongo.errors import (
+    InvalidOperation,
+    InvalidURI,
+    NetworkTimeout,
+    OperationFailure,
+)
+
+from backend.app.core.form_plugin_config import FormProvider
+from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
+from common.base.repo import BaseRepository
+from common.constants import MESSAGE_DATABASE_EXCEPTION
+from common.exceptions.http import HTTPException
+
+
+class FormPluginProviderRepository(BaseRepository):
+    async def list(self) -> List[FormPluginConfigDocument]:
+        try:
+            document = await FormPluginConfigDocument.find_many().to_list()
+            if document:
+                return document
+            return []
+        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                content=MESSAGE_DATABASE_EXCEPTION,
+            )
+
+    # noinspection PyMethodOverriding
+    async def get(self, provider_name: str) -> FormPluginConfigDocument | None:
+        try:
+            document = await FormPluginConfigDocument.find_one(
+                {"provider_name": provider_name}
+            )
+            if document:
+                return document
+            return None
+        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                content=MESSAGE_DATABASE_EXCEPTION,
+            )
+
+    async def add(self, item: FormPluginConfigDocument) -> FormPluginConfigDocument:
+        try:
+            return await item.save()
+        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                content=MESSAGE_DATABASE_EXCEPTION,
+            )
+
+    async def update(
+        self, provider_name: str, item: FormPluginConfigDocument
+    ) -> FormPluginConfigDocument:
+        try:
+            document = await self.get(provider_name)
+            if document:
+                item.id = document.id
+            return await item.save()
+        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                content=MESSAGE_DATABASE_EXCEPTION,
+            )
+
+    async def delete(self, provider_name: str, provider: FormPluginConfigDocument):
+        pass

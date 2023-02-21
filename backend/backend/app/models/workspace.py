@@ -6,7 +6,7 @@ from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
 
 
-class WorkspaceRequestDto(BaseModel, CamelModel):
+class WorkspaceRequestDto(CamelModel):
     """Model for creating or updating a workspace."""
 
     title: Optional[str]

@@ -8,6 +8,7 @@ from pymongo.errors import InvalidOperation
 from backend.app.schemas.allowed_origin import (
     AllowedOriginsDocument,
 )
+from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
@@ -48,6 +49,7 @@ async def init_db(db: str, client: AsyncIOMotorClient):
             AllowedOriginsDocument,
             FormDocument,
             FormResponseDocument,
+            FormPluginConfigDocument,
             WorkspaceDocument,
             WorkspaceFormDocument,
             WorkspaceUserInvitesDocument,
