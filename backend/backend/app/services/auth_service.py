@@ -16,12 +16,12 @@ crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
 
 
 class AuthService:
-
-    def __init__(self,
-                 http_client: HttpClient,
-                 plugin_proxy_service: PluginProxyService,
-                 form_providers: FormProvidersConfig
-                 ):
+    def __init__(
+        self,
+        http_client: HttpClient,
+        plugin_proxy_service: PluginProxyService,
+        form_providers: FormProvidersConfig,
+    ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
         self.form_providers = form_providers
@@ -42,11 +42,8 @@ class AuthService:
         return oauth_url
 
     async def handle_backend_auth_callback(
-            self,
-            *,
-            provider_name: str,
-            state: str,
-            request: Request) -> Tuple[User, OAuthState]:
+        self, *, provider_name: str, state: str, request: Request
+    ) -> Tuple[User, OAuthState]:
         provider_config = self.form_providers.get_form_provider(provider_name)
         response_data = await self.plugin_proxy_service.pass_request(
             request,
@@ -57,8 +54,7 @@ class AuthService:
         jwt_token = JwtService.encode(user_info)
 
         response_data = await self.http_client.get(
-            settings.auth_settings.AUTH_CALLBACK_URI,
-            params={"jwt_token": jwt_token}
+            settings.auth_settings.AUTH_CALLBACK_URI, params={"jwt_token": jwt_token}
         )
         user = User(**response_data)
         await workspace_service.create_workspace(user)

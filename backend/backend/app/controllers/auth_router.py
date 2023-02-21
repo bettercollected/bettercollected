@@ -19,14 +19,13 @@ log = logging.getLogger(__name__)
 # TODO Extract out separate interface for oauth and use it
 @router(prefix="/auth", tags=["Auth"])
 class AuthRoutes(Routable):
-
     def __init__(self, auth_service=container.auth_service(), *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.auth_service = auth_service
 
     @get("/status")
     async def status(
-            self, user: User = Depends(get_logged_user)
+        self, user: User = Depends(get_logged_user)
     ) -> AuthenticationStatus:
         return AuthenticationStatus(user=user)
 
@@ -40,11 +39,12 @@ class AuthRoutes(Routable):
         return RedirectResponse(oauth_url)
 
     @get("/{provider_name}/oauth/callback")
-    async def _auth_callback(self, provider_name: str, state: str, request: Request, response: Response):
+    async def _auth_callback(
+        self, provider_name: str, state: str, request: Request, response: Response
+    ):
         user, state_data = await self.auth_service.handle_backend_auth_callback(
-            provider_name=provider_name,
-            state=state,
-            request=request)
+            provider_name=provider_name, state=state, request=request
+        )
         set_tokens_to_response(user, response)
         if state_data.client_referer_uri:
             return RedirectResponse(state_data.client_referer_uri)

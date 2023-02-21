@@ -12,15 +12,14 @@ from common.services.http_client import HttpClient
 
 
 class PluginProxyService:
-
     def __init__(self, http_client: HttpClient):
         self.http_client = http_client
 
     async def pass_request(
-            self,
-            request: Request,
-            url: str,
-            data: Mapping[str, Any] = None,
+        self,
+        request: Request,
+        url: str,
+        data: Mapping[str, Any] = None,
     ) -> Mapping[str, Any]:
         # Merge query params if params is not none
         try:
@@ -37,7 +36,11 @@ class PluginProxyService:
                 logging.error(response.url)
                 logging.error(response.status_code)
                 logging.error(response.content)
-                raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, messages.proxy_server_error)
+                raise HTTPException(
+                    HTTPStatus.INTERNAL_SERVER_ERROR, messages.proxy_server_error
+                )
             return response.json()
         except ConnectError:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
+            )

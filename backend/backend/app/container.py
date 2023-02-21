@@ -52,15 +52,14 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     plugin_proxy_service: PluginProxyService = providers.Singleton(
-        PluginProxyService,
-        http_client=http_client
+        PluginProxyService, http_client=http_client
     )
 
     auth_service: AuthService = providers.Singleton(
         AuthService,
         http_client=http_client,
         plugin_proxy_service=plugin_proxy_service,
-        form_providers=form_providers
+        form_providers=form_providers,
     )
 
 

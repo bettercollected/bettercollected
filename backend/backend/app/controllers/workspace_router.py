@@ -47,10 +47,10 @@ class WorkspaceRouter:
     ) -> WorkspaceResponseDto:
         workspace_request = WorkspaceRequestDto(
             title=title,
-            workspaceName=workspace_name,
+            workspace_name=workspace_name,
             description=description,
-            customDomain=custom_domain,
-            ownerId=owner_id,
+            custom_domain=custom_domain,
+            owner_id=owner_id,
         )
         return await self._workspace_service.patch_workspace(
             profile_image, banner_image, workspace_id, workspace_request, user

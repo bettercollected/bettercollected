@@ -74,7 +74,7 @@ class WorkspaceService:
             if exists_by_handle:
                 raise HTTPException(409, "Workspace with given handle already exists.")
 
-        workspace_document.workspaceName = (
+        workspace_document.workspace_name = (
             workspace_patch.workspace_name
             if workspace_patch.workspace_name
             else workspace_document.workspace_name
@@ -144,5 +144,7 @@ async def create_workspace(user: User):
             custom_domain=None,
         )
         await workspace.save()
-        workspace_user = WorkspaceUserDocument(workspace_id=workspace.id, user_id=user.id)
+        workspace_user = WorkspaceUserDocument(
+            workspace_id=workspace.id, user_id=user.id
+        )
         await workspace_user.save()

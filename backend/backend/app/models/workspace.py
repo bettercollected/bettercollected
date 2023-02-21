@@ -2,10 +2,11 @@ from typing import List, Optional
 import datetime as dt
 
 from beanie import PydanticObjectId
+from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
 
 
-class WorkspaceRequestDto(BaseModel):
+class WorkspaceRequestDto(BaseModel, CamelModel):
     """Model for creating or updating a workspace."""
 
     title: Optional[str]

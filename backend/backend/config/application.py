@@ -43,8 +43,7 @@ class Application(BaseSettings):
     # separate file in this submodule.
 
     class Config:
-        """Config sub class needed to customize BaseSettings settings.
-        """
+        """Config sub class needed to customize BaseSettings settings."""
 
         case_sensitive = True
 
