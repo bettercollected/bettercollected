@@ -8,7 +8,7 @@ Resources:
 """
 from typing import Type
 
-from backend.app.controllers import plugin_provider, ready
+from backend.app.controllers import plugin_provider
 from backend.app.controllers.plugin_proxy import PluginProxy
 from classy_fastapi import Routable
 
@@ -18,7 +18,6 @@ from common.utils.router import CustomAPIRouter
 
 root_api_router = CustomAPIRouter(prefix=settings.api_settings.ROOT_PATH)
 
-root_api_router.include_router(ready.router, tags=["Ready"])
 root_api_router.include_router(plugin_provider.router, tags=["Form Providers"])
 
 plugin_proxy_router_tags = ["Form Provider Plugin Proxy"]

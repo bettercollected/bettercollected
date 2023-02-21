@@ -14,7 +14,9 @@ router = CustomAPIRouter(prefix="/providers")
 @cbv(router=router)
 class PluginProviderRouter:
     def __init__(self):
-        self._provider_service: FormPluginProviderService = container.form_provider_service()
+        self._provider_service: FormPluginProviderService = (
+            container.form_provider_service()
+        )
 
     @router.get("", status_code=HTTPStatus.OK)
     async def _get_providers(self):

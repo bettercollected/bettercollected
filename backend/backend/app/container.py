@@ -11,7 +11,6 @@ from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.workspace_service import WorkspaceService
-from backend.app.core.form_plugin_config import FormPluginConfig
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
 )
@@ -75,9 +74,7 @@ class AppContainer(containers.DeclarativeContainer):
         http_client=http_client,
         plugin_proxy_service=plugin_proxy_service,
         form_providers=form_providers,
-        form_providers=form_providers,
     )
 
 
 container = AppContainer()
-print("Debug")

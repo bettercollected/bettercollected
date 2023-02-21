@@ -1,7 +1,12 @@
 from http import HTTPStatus
 from typing import List
 
-from pymongo.errors import InvalidOperation, InvalidURI, NetworkTimeout, OperationFailure
+from pymongo.errors import (
+    InvalidOperation,
+    InvalidURI,
+    NetworkTimeout,
+    OperationFailure,
+)
 
 from backend.app.core.form_plugin_config import FormProvider
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
@@ -47,7 +52,9 @@ class FormPluginProviderRepository(BaseRepository):
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
 
-    async def update(self, provider_name: str, item: FormPluginConfigDocument) -> FormPluginConfigDocument:
+    async def update(
+        self, provider_name: str, item: FormPluginConfigDocument
+    ) -> FormPluginConfigDocument:
         try:
             document = await self.get(provider_name)
             if document:
@@ -59,5 +66,5 @@ class FormPluginProviderRepository(BaseRepository):
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
 
-    async def delete(self, item_id: str, provider: FormPluginConfigDocument):
+    async def delete(self, provider_name: str, provider: FormPluginConfigDocument):
         pass
