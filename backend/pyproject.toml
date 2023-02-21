@@ -36,6 +36,8 @@ dependency-injector = "^4.41.0"
 httpx = "^0.23.3"
 classy-fastapi = "^0.3.0"
 pyjwt = "^2.6.0"
+boto3 = "^1.26.75"
+python-multipart = "^0.0.5"
 
 [tool.poetry.scripts]
 backend = 'backend.cli:cli'

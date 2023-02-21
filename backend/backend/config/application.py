@@ -1,4 +1,5 @@
 """Application configuration - FastAPI."""
+from backend.config.aws import AWSSettings
 
 import os
 from pathlib import Path
@@ -35,6 +36,11 @@ class Application(BaseSettings):
     auth_settings: AuthSettings = AuthSettings()
     api_settings: ApiSettings = ApiSettings()
     mongo_settings: MongoSettings = MongoSettings()
+
+    aws_settings: AWSSettings = AWSSettings()
+
+    # All your additional application configuration should go either here or in
+    # separate file in this submodule.
 
     class Config:
         """Config sub class needed to customize BaseSettings settings.
