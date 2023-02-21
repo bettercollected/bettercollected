@@ -50,13 +50,6 @@ class AppContainer(containers.DeclarativeContainer):
         FormPluginProviderService, form_provider_repo=form_provider_repo
     )
 
-    workspace_service: WorkspaceService = providers.Singleton(
-        WorkspaceService,
-        workspace_repo=workspace_repo,
-        aws_service=aws_service,
-        workspace_user_repo=workspace_user_repo,
-    )
-
     plugin_proxy_service: PluginProxyService = providers.Singleton(
         PluginProxyService, http_client=http_client
     )
@@ -66,6 +59,13 @@ class AppContainer(containers.DeclarativeContainer):
         http_client=http_client,
         plugin_proxy_service=plugin_proxy_service,
         form_provider_service=form_provider_service,
+    )
+
+    workspace_service: WorkspaceService = providers.Singleton(
+        WorkspaceService,
+        workspace_repo=workspace_repo,
+        aws_service=aws_service,
+        workspace_user_repo=workspace_user_repo,
     )
 
 
