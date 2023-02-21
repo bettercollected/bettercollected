@@ -1,12 +1,10 @@
 class A:
-
     @staticmethod
     def ok():
         print("A")
 
 
 class B(A):
-
     @staticmethod
     def ok():
         print("B")

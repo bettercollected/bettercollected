@@ -75,7 +75,7 @@ format: install  ## Formats the python files with black
 .PHONY: flake8
 flake8: install  ## Checks code standards with flake8
 	echo "[flake8] Checking code standards with flake8."
-	${POETRY_BINARY} run flake8 . --exclude=venv,common,.github,build,charts,manifests,site --extend-exclude=common
+	${POETRY_BINARY} run flake8 . --exclude=venv,common,tests,.github,build,charts,manifests,site --extend-exclude=common
 
 .PHONY: docs
 docs: install ## Build backend documentation

@@ -9,12 +9,11 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class JwtService:
-
     @staticmethod
     def encode(model: BaseModel) -> str:
         return jwt.encode(
-            model.dict(exclude_none=True),
-            key=settings.auth_settings.JWT_SECRET)
+            model.dict(exclude_none=True), key=settings.auth_settings.JWT_SECRET
+        )
 
     @staticmethod
     def decode(token: str, model: Type[T]) -> T:
