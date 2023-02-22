@@ -25,7 +25,7 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
 
     const onUploadFileChange = (e: any) => {
-        if (!e.target.files) return;
+        if (e.target.files.length === 0) return;
         setUploadImage(e.target.files[0]);
     };
 
