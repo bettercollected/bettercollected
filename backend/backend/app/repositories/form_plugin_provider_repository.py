@@ -16,11 +16,11 @@ from common.exceptions.http import HTTPException
 
 
 class FormPluginProviderRepository(BaseRepository):
-    async def list(self) -> List[FormPluginConfigDocument]:
+    async def list(self) -> List[FormProvider]:
         try:
             document = await FormPluginConfigDocument.find_many().to_list()
             if document:
-                return document
+                return [FormProvider(**provider.dict()) for provider in document]
             return []
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(
