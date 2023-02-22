@@ -22,14 +22,6 @@ current_path = Path(os.path.abspath(os.path.dirname(__file__))).absolute()
 
 
 class AppContainer(containers.DeclarativeContainer):
-    forms_config = providers.Configuration(
-        json_files=[current_path.joinpath("core/plugin.json")], strict=True
-    )
-
-    form_providers: FormProvidersConfig = providers.Singleton(
-        FormProvidersConfig, form_providers=forms_config.form_providers
-    )
-
     http_client: HttpClient = providers.Singleton(HttpClient)
 
     database_client: AsyncIOMotorClient = providers.Singleton(
@@ -73,7 +65,7 @@ class AppContainer(containers.DeclarativeContainer):
         AuthService,
         http_client=http_client,
         plugin_proxy_service=plugin_proxy_service,
-        form_providers=form_providers,
+        form_provider_service=form_provider_service,
     )
 
 
