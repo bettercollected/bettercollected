@@ -1,20 +1,20 @@
 import { atom, useAtom } from 'jotai';
 
-// export type MODAL_VIEW = 'SEARCH_VIEW' | 'SHARE_VIEW' |'LOGIN_VIEW';
+export type MODAL_VIEW = 'SEARCH_VIEW' | 'SHARE_VIEW' | 'LOGIN_VIEW' | 'IMPORT_GOOGLE_FORMS_VIEW' | 'IMPORT_TYPE_FORMS_VIEW' | 'LOGOUT_VIEW' | 'UPDATE_WORKSPACE_DOMAIN' | 'UPDATE_WORKSPACE_HANDLE';
 
-export enum MODAL_VIEW {
-    SEARCH_VIEW,
-    SHARE_VIEW,
-    LOGIN_VIEW
-}
-
-const modalAtom = atom({ isOpen: false, view: MODAL_VIEW.LOGIN_VIEW, modalProps: null });
+const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 
 export function useModal() {
     const [state, setState] = useAtom(modalAtom);
-    const openModal = (view: MODAL_VIEW, modalProps: any = null) => setState({ ...state, isOpen: true, view, modalProps });
+    const openModal = (view: MODAL_VIEW, modalProps: any = null) =>
+        setState({
+            ...state,
+            isOpen: true,
+            view,
+            modalProps
+        });
     const closeModal = () => {
-        setState({ ...state, isOpen: false, modalProps: null });
+        setState({ ...state, isOpen: false, modalProps: null, view: '' });
     };
 
     return {

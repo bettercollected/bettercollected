@@ -14,6 +14,15 @@ export const lightTheme = createTheme({
         primary: { main: '#007AFF' },
         secondary: { main: '#f04444' },
         mode: 'light'
+    },
+    components: {
+        MuiPaper: {
+            styleOverrides: {
+                root: {
+                    borderRadius: '10px'
+                }
+            }
+        }
     }
 });
 

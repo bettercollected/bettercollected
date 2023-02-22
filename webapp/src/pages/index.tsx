@@ -1,60 +1,70 @@
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import dynamic from 'next/dynamic';
 
 import environments from '@app/configs/environments';
-import { CompanyJsonDto } from '@app/models/dtos/customDomain';
+import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
+import { IServerSideProps } from '@app/models/dtos/serverSideProps';
+import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 
-const HomeContainer = dynamic(() => import('@app/containers/home/HomeContainer'), { ssr: false });
-const DashboardContainer = dynamic(() => import('@app/containers/dashboard/DashboardContainer'), { ssr: false });
-const Banner = dynamic(() => import('@app/components/landingpage/Banner'), { ssr: false });
-const Features = dynamic(() => import('@app/components/landingpage/Features'), { ssr: false });
-const Footer = dynamic(() => import('@app/components/landingpage/Footer'), { ssr: false });
-const Navbar = dynamic(() => import('@app/components/landingpage/Navbar'), { ssr: false });
-const Payment = dynamic(() => import('@app/components/landingpage/Payment'), { ssr: false });
+const LandingPage = dynamic(() => import('@app/containers/home/LandingPage'), { ssr: false });
+const WorkspaceHomeContainer = dynamic(() => import('@app/containers/dashboard/WorkspaceHomeContainer'), { ssr: false });
 
-interface IHome {
-    hasCustomDomain: boolean;
-    companyJson: CompanyJsonDto | null;
-}
+interface IHome extends IServerSideProps {}
 
-const Home = ({ hasCustomDomain, companyJson }: IHome) => {
-    if (hasCustomDomain) return <DashboardContainer companyJson={companyJson} />;
-    return <HomeContainer />;
-
-    return (
-        <>
-            <Navbar />
-            <Banner />
-            {/*<WaitlistForm/>*/}
-            <Features />
-            {/*<TimelineContainer/>*/}
-            {/* <Payment /> */}
-            {/*<ContactUs/>*/}
-            <Footer />
-        </>
-    );
+const Home = ({ hasCustomDomain, workspace }: IHome) => {
+    if (hasCustomDomain && workspace) return <WorkspaceHomeContainer workspace={workspace} isCustomDomain={true} />;
+    return <LandingPage />;
 };
 
 export default Home;
 
-export async function getServerSideProps({ locale }: any) {
-    const hasCustomDomain = !!environments.IS_CUSTOM_DOMAIN;
-    let companyJson: CompanyJsonDto | null = null;
+export async function getServerSideProps(_context: any) {
+    const { cookies } = _context.req;
+    const hasCustomDomain = checkHasCustomDomain(_context);
+    if (hasCustomDomain) {
+        const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
+        if (!globalProps?.workspace?.id) {
+            return {
+                notFound: true
+            };
+        }
+        return {
+            props: { ...globalProps }
+        };
+    }
+
+    const auth = !!cookies.Authorization ? `Authorization=${cookies.Authorization}` : '';
+    const refresh = !!cookies.RefreshToken ? `RefreshToken=${cookies.RefreshToken}` : '';
+
+    const config = {
+        method: 'GET',
+        headers: {
+            cookie: `${auth};${refresh}`
+        }
+    };
 
     try {
-        if (hasCustomDomain && !!environments.CUSTOM_DOMAIN_JSON) {
-            const json = await fetch(environments.CUSTOM_DOMAIN_JSON).catch((e) => e);
-            companyJson = (await json.json().catch((e: any) => e)) ?? null;
+        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
+        const user = (await userStatus?.json().catch((e: any) => e)) ?? null;
+        if (user?.user?.roles?.includes('FORM_CREATOR')) {
+            const userWorkspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/mine`, config);
+            const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e)) ?? null;
+            if (!userWorkspace || userWorkspace.length < 1) {
+                return {
+                    redirect: {
+                        permanent: false,
+                        destination: `/setupWorkspace`
+                    }
+                };
+            }
+            return {
+                redirect: {
+                    permanent: false,
+                    destination: `/${userWorkspace[0].workspaceName}/dashboard`
+                }
+            };
         }
-    } catch (err) {
-        companyJson = null;
-        console.error(err);
-    }
+    } catch (e) {}
     return {
-        props: {
-            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
-            hasCustomDomain,
-            companyJson
-        }
+        props: {}
     };
 }

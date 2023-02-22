@@ -1,0 +1,228 @@
+import { useState } from 'react';
+
+import { SyncProblem } from '@mui/icons-material';
+import HelpIcon from '@mui/icons-material/Help';
+import { Tooltip } from '@mui/material';
+import FormControl from '@mui/material/FormControl';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import { toast } from 'react-toastify';
+
+import EmptyFormsView from '@app/components/dashboard/empty-form';
+import { Close } from '@app/components/icons/close';
+import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
+import { useModal } from '@app/components/modal-views/context';
+import Button from '@app/components/ui/button';
+import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import Loader from '@app/components/ui/loader';
+import environments from '@app/configs/environments';
+import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import { useAppSelector } from '@app/store/hooks';
+import { useGetTypeformsQuery, useImportTypeFormMutation, useLazyGetTypeformQuery } from '@app/store/workspaces/api';
+import { toEndDottedStr } from '@app/utils/stringUtils';
+
+const emailFieldsArray = ['short_text', 'long_text', 'phone_number', 'email'];
+
+export default function ImportTypeForms() {
+    const { closeModal } = useModal();
+
+    const typeforms = useGetTypeformsQuery();
+
+    const breakpoint = useBreakpoint();
+
+    const [importTypeFormTrigger, importTypeFormResult] = useImportTypeFormMutation();
+
+    const [typeFormTrigger, typeFormResult] = useLazyGetTypeformQuery();
+
+    const workspace = useAppSelector((state) => state.workspace);
+
+    const [showSingleFormImport, setShowSingleFormImport] = useState(false);
+
+    const [selectedForm, setSelectedForm] = useState('');
+
+    const [responseDataOwner, setResponseDataOwner] = useState('');
+
+    if (typeforms.isLoading)
+        return (
+            <div className="min-h-48">
+                <FullScreenLoader />
+            </div>
+        );
+
+    if (typeforms.isError)
+        return (
+            <div className="text-sm relative py-10 px-10 flex items-center justify-center flex-col space-y-5 min-w-screen md:min-w-[400px] p-4 rounded-md shadow-md bg-white">
+                <div onClick={() => closeModal()} className="border-[1.5px] absolute right-5 top-5 border-gray-200 hover:shadow hover:text-black cursor-pointer rounded-full p-3">
+                    <Close className="cursor-pointer text-gray-600 hover:text-black" />
+                </div>
+                <SyncProblem className="w-[100px] h-[110px] text-red-600" />
+                <h2 className="text-gray-700 text-xl ">Your typeform authorization has expired</h2>
+                <h6 className="text-gray-500 text-center">
+                    Please click the link below <br /> to authorize typeform.
+                </h6>
+                <a className="ml-3 items-center flex justify-center !rounded-xl px-8 py-3 text-white !bg-blue-500" href={`${environments.API_ENDPOINT_HOST}/auth/typeform/oauth?creator=true`}>
+                    Authorize typeform
+                </a>
+            </div>
+        );
+
+    const handleBack = () => {
+        setShowSingleFormImport(false);
+    };
+
+    const TypeFormMinifiedCard = ({ form }: { form: any }) => {
+        return (
+            <div
+                data-testid={`typeform-minified-form` + form.id}
+                onClick={() => setSelectedForm(form.id)}
+                className={`flex border-[1.5px] cursor-pointer justify-between items-center p-2 mb-2 mr-3 rounded-lg ${selectedForm === form.id ? 'border-blue-500' : 'border-gray-100 hover:bg-gray-50 hover:border-gray-50'} `}
+            >
+                <div className="w-full mr-2">
+                    <p className="text-[9px] md:text-sm !m-0 !p-0 text-gray-400 italic">{toEndDottedStr(form.id, 30)}</p>
+                    <p className="text-xs md:text-base font-semibold text-grey p-0">{toEndDottedStr(form.title, 40)}</p>
+                </div>
+            </div>
+        );
+    };
+
+    const handleSelectDataResponseOwner = (e: any) => {
+        setResponseDataOwner(e.target.value);
+    };
+    const TypeFormData = () => {
+        if (typeFormResult.isFetching)
+            return (
+                <div data-testid="loader" className="flex w-full h-full min-h-[200px] items-center justify-center">
+                    <Loader />
+                </div>
+            );
+
+        if (typeFormResult.isError) return <p className="text-sm text-red-500">Oops! We&apos;ve encountered an issue.</p>;
+
+        if (!typeFormResult.data) {
+            return <EmptyFormsView />;
+        }
+
+        return (
+            <div data-testid="typeform-single-form-import" className="flex flex-col space-y-5 min-h-[200px] w-full">
+                <div>
+                    {typeFormResult.data.title && (
+                        <p className="max-w-[360px] text-sm md:text-base font-semibold text-grey mb-2 p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(typeFormResult.data.title, 15) : toEndDottedStr(typeFormResult.data.title, 30)}</p>
+                    )}
+                    {typeFormResult.data.description && (
+                        <p className="max-w-[360px] text-sm text-softBlue mb-2 p-0 w-full">
+                            {['xs', 'sm'].indexOf(breakpoint) !== -1
+                                ? toEndDottedStr(typeFormResult.data.description, 45)
+                                : ['md'].indexOf(breakpoint) !== -1
+                                ? toEndDottedStr(typeFormResult.data.description, 80)
+                                : toEndDottedStr(typeFormResult.data.description, 140)}
+                        </p>
+                    )}
+                    <hr />
+                </div>
+                {typeFormResult?.data?.fields && Array.isArray(typeFormResult?.data?.fields) && (
+                    <div className="space-y-2">
+                        <div className="flex font-bold text-lg space-x-5">
+                            <div>Response Data Owner Field</div>
+                        </div>
+                        <p className="max-w-[360px] text-sm text-gray-700">Select a response owner field to identify the form responder (Optional)</p>
+                        <FormControl fullWidth>
+                            <Select placeholder="Select one of the fields" value={responseDataOwner} onChange={handleSelectDataResponseOwner}>
+                                {typeFormResult?.data?.fields
+                                    .filter((field: any) => emailFieldsArray.includes(field.type))
+                                    .map(
+                                        (item: any) =>
+                                            item?.id && (
+                                                <MenuItem key={item.id} value={item?.id}>
+                                                    {item.title}
+                                                </MenuItem>
+                                            )
+                                    )}
+                            </Select>
+                        </FormControl>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    return (
+        <div className="m-auto w-full items-start justify-between rounded-lg bg-white">
+            <div className="flex flex-col items-center gap-8 justify-between p-10">
+                <div className="flex flex-row items-start border-b-[1px] pb-1 border-[#eaeaea] justify-between">
+                    <div className="flex flex-col">
+                        {showSingleFormImport ? (
+                            <Button className="w-fit z-10 !h-[34px] mb-3 rounded-lg hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={handleBack}>
+                                <LongArrowLeft width={15} height={15} />
+                            </Button>
+                        ) : (
+                            <div className="!h-[34px] mb-3" />
+                        )}
+                        <h2 className="text-md md:text-lg text-left font-bold">Import Forms</h2>
+                        <p className="text-[#00000082] text-sm md:text-md">Select the forms you wish to import to Better Collected.</p>
+                    </div>
+                    <div onClick={() => closeModal()} className="border-[1.5px] border-gray-200 hover:shadow hover:text-black cursor-pointer rounded-full p-3">
+                        <Close className="cursor-pointer text-gray-600 hover:text-black" />
+                    </div>
+                </div>
+                {!showSingleFormImport &&
+                    typeforms.data.map((typeform: any) => (
+                        <div className="w-full" key={typeform.id}>
+                            <TypeFormMinifiedCard form={typeform} />
+                        </div>
+                    ))}
+                {showSingleFormImport && <TypeFormData />}
+
+                <div className="flex w-full justify-between">
+                    {!showSingleFormImport ? (
+                        <Button
+                            data-testid="next-button"
+                            isLoading={typeforms.isLoading}
+                            disabled={!selectedForm}
+                            variant="solid"
+                            className={`!rounded-lg !h-10 !m-0 ${!selectedForm ? '' : '!bg-blue-500'}`}
+                            onClick={() => {
+                                setShowSingleFormImport(true);
+                                typeFormTrigger(selectedForm);
+                            }}
+                        >
+                            Next
+                        </Button>
+                    ) : (
+                        <Button
+                            data-testid="import-button"
+                            isLoading={typeFormResult.isLoading || importTypeFormResult.isLoading}
+                            variant="solid"
+                            className={`!rounded-lg !h-10 !m-0 !bg-blue-500`}
+                            onClick={async () => {
+                                const result: any = await importTypeFormTrigger({
+                                    workspaceId: workspace.id,
+                                    body: {
+                                        form: typeFormResult.data,
+                                        response_data_owner: responseDataOwner
+                                    }
+                                });
+
+                                if (result.data) {
+                                    toast('Form Imported!!!', {
+                                        type: 'success'
+                                    });
+                                    closeModal();
+                                }
+                                if (result.error) {
+                                    toast('Error importing form !!!', {
+                                        type: 'error'
+                                    });
+                                }
+                            }}
+                        >
+                            Import
+                        </Button>
+                    )}
+                    <Button variant="transparent" className="!rounded-lg !h-10 !m-0 !border-gray border-[1px] !border-solid" onClick={() => closeModal()}>
+                        Cancel
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}

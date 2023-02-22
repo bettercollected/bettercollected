@@ -17,9 +17,9 @@ export default function FormInput(props: any) {
     }, [validInputFormat]);
 
     const checkValidation = (e: any) => {
-        const fieldValue = e.target.value;
+        const fieldValue = e.target.value.toLowerCase();
 
-        const pattern = /^\w+@gmail+?\.com$/;
+        const pattern = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
         if (!!fieldValue.match(pattern)) {
             setValidInputFormat(true);
         } else {
@@ -31,6 +31,7 @@ export default function FormInput(props: any) {
     return (
         <div className={'flex items-center mb-4'}>
             <input
+                data-testid="form-input"
                 className={`border-solid ${value?.length !== 0 ? (validInputFormat ? '!border-green-500' : '!border-red-500') : ''} h-[40px] text-gray-900 text-sm rounded-lg w-full p-2.5`}
                 value={value}
                 type="text"

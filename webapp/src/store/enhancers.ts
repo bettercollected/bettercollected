@@ -11,7 +11,7 @@ export const monitorReducerEnhancer: any =
             const end = performance.now();
             const diff = round(end - start);
 
-            console.log(`%c${action.type} Reducer process time ${diff} seconds`, consoleStyle);
+            // console.log(`%c${action.type} Reducer process time ${diff} seconds`, consoleStyle);
 
             return newState;
         };

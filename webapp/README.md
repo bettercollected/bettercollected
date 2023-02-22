@@ -26,3 +26,10 @@ Please refer to the [.env.example](.env.example) file for updated environment va
 ### Development
 
 For the development of the project, please refer to the [DEVELOPERS GUIDE](DEVELOPERS_GUIDE.md) documentation.
+
+### Default and Custom Domain Configuration
+
+1. Set `CLIENT_HOST` as the default domain.
+2. To Set up Custom Domain Follow the process below
+    - Update a worksapce's custom domain e.g. `localhost:3001` to set up localhost:3001 as a custom domain
+    - run the app in `localhost:3001` and you can access your custom domain at `localhost:3001`

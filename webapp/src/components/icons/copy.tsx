@@ -2,7 +2,7 @@ import React from 'react';
 
 export const Copy: React.FC<React.SVGAttributes<{}>> = (props) => {
     return (
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" {...props}>
+        <svg data-testid="copy-svg" width="12" height="12" viewBox="0 0 12 12" fill="none" {...props}>
             <path
                 d="M4.00501 0C1.79311 0 0 1.79311 0 4.00501V8.95512C0 9.24363 0.233883 9.47751 0.522393 9.47751C0.810903 9.47751 1.04479 9.24363 1.04479 8.95512V4.00501C1.04479 2.37013 2.37013 1.04479 4.00501 1.04479H8.88964C9.17815 1.04479 9.41203 0.810903 9.41203 0.522393C9.41203 0.233883 9.17815 0 8.88964 0H4.00501Z"
                 fill="currentColor"

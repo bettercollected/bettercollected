@@ -4,8 +4,8 @@ import { appWithTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { ThemeProvider } from 'next-themes';
 import type { AppProps } from 'next/app';
-import { useRouter } from 'next/router';
 
+import initApm from '@elastic/apm-rum';
 import { CacheProvider, EmotionCache, css } from '@emotion/react';
 import { GlobalStyles } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -19,30 +19,38 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 
 import '@app/assets/css/globals.css';
+import DrawersContainer from '@app/components/drawer-views/container';
+import WorkspaceHoc from '@app/components/hoc/workspace-hoc';
 import ModalContainer from '@app/components/modal-views/container';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import NextNProgress from '@app/components/ui/nprogress';
 import createEmotionCache from '@app/configs/createEmotionCache';
 import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
-import { consoleTextStyle, consoleWarningStyle } from '@app/constants/styles';
 import MuiThemeProvider from '@app/layouts/_mui-theme-provider';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
+
+// const apm = initApm({
+//     serviceName: 'FormIntegrator',
+//     serverUrl: 'https://apm.sireto.io'
+// });
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
 
+interface IWorkspacePageProps {
+    workspace: WorkspaceDto | null;
+}
+
 type AppPropsWithLayout = AppProps & {
     Component: NextPageWithLayout;
     emotionCache?: EmotionCache;
-    pageProps: any;
+    pageProps: IWorkspacePageProps | any;
 };
 
 function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }: AppPropsWithLayout) {
-    console.info(globalConstants.consoleWarningTitle, consoleWarningStyle);
-    console.info(globalConstants.consoleWarningDescription, consoleTextStyle);
-
     const getLayout = Component.getLayout ?? ((page: any) => page);
 
     //TODO: configure NextSEO component for all pages
@@ -52,20 +60,23 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
     let imageUrl = globalConstants.socialPreview.image;
 
     const hasCustomDomain = !!pageProps?.hasCustomDomain;
-    if (hasCustomDomain && !!pageProps?.companyJson) {
-        title = pageProps?.companyJson?.companyTitle ?? title;
-        imageUrl = pageProps?.companyJson?.companyProfile ?? imageUrl;
-        url = pageProps?.companyJson?.companyDomain ?? url;
-        description = pageProps?.companyJson?.companyDescription ?? description;
+    const workspace: WorkspaceDto | null = pageProps?.workspace;
+    if (hasCustomDomain && !!workspace) {
+        title = workspace?.title ?? title;
+        imageUrl = workspace?.profileImage ?? imageUrl;
+        url = workspace?.customDomain ?? url;
+        description = workspace?.description ?? description;
     }
-
-    const router = useRouter();
 
     useEffect(() => {
         if (!!environments.GA_MEASUREMENT_ID) {
             ReactGA.initialize(environments.GA_MEASUREMENT_ID);
             ReactGA.send('pageview');
         }
+        // const transaction = apm.startTransaction('page-load', 'page-load');
+        // return () => {
+        //     transaction?.end();
+        // };
     }, []);
 
     return (
@@ -116,19 +127,29 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                             cardType: 'summary_large_image'
                         }}
                     />
-                    <CookieConsent location="bottom" buttonText="I understand" cookieName="BetterCookie" style={{ background: '#007AFF' }} buttonStyle={{ color: '#4e503b', fontSize: '13px', borderRadius: '3px' }} expires={150}>
+                    <CookieConsent
+                        location="bottom"
+                        buttonText="I understand"
+                        cookieName="BetterCookie"
+                        style={{ background: '#5492f7', display: 'flex', alignItems: 'center' }}
+                        buttonStyle={{ color: '#4e503b', fontSize: '13px', borderRadius: '3px' }}
+                        expires={150}
+                    >
                         This website uses cookies to enhance the user experience.{' '}
-                        <p className={'cursor-pointer mt-2 text-white hover:text-gray-300'} onClick={() => router.push('https://www.termsfeed.com/blog/cookies/')}>
+                        <a href="https://www.termsfeed.com/blog/cookies/" target="_blank" rel="noreferrer" className={'cursor-pointer mt-2 text-white hover:text-gray-300'}>
                             What are cookies?
-                        </p>
+                        </a>
                     </CookieConsent>
                     <NextNProgress color="#f04444" startPosition={0} stopDelayMs={400} height={5} options={{ easing: 'ease' }} />
                     <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
                     <Provider store={store}>
-                        <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
-                            {getLayout(<Component {...pageProps} />)}
-                            <ModalContainer />
-                        </PersistGate>
+                        <WorkspaceHoc {...pageProps}>
+                            <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
+                                {getLayout(<Component {...pageProps} />)}
+                                <ModalContainer />
+                                <DrawersContainer />
+                            </PersistGate>
+                        </WorkspaceHoc>
                     </Provider>
                 </MuiThemeProvider>
             </CacheProvider>

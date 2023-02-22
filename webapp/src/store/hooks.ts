@@ -1,3 +1,5 @@
+import { Dispatch } from 'react';
+
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 
 import type { AppDispatch, RootState } from '@app/store/store';

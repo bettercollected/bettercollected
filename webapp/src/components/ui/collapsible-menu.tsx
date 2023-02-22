@@ -7,12 +7,16 @@ import { motion } from 'framer-motion';
 
 import { ChevronDown } from '@app/components/icons/chevron-down';
 import ActiveLink from '@app/components/ui/links/active-link';
+import environments from '@app/configs/environments';
 import { useMeasure } from '@app/lib/hooks/use-measure';
+import { useAppSelector } from '@app/store/hooks';
+import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 
 type MenuItemProps = {
-    name: string;
+    name?: string;
     icon: React.ReactNode;
     href: string;
+    link: boolean;
     dropdownItems?: DropdownItemProps[];
 };
 
@@ -21,18 +25,19 @@ type DropdownItemProps = {
     href: string;
 };
 
-export function MenuItem({ name, icon, href, dropdownItems }: MenuItemProps) {
+export function MenuItem({ name, icon, href, link, dropdownItems }: MenuItemProps) {
     let [isOpen, setIsOpen] = useState(false);
     let [ref, { height }] = useMeasure<HTMLUListElement>();
-    let { pathname } = useRouter();
+    let { asPath } = useRouter();
 
-    let isChildrenActive = dropdownItems && dropdownItems.some((item) => item.href === pathname);
+    const workspace = useAppSelector((state) => state.workspace);
+
+    let isChildrenActive = dropdownItems && dropdownItems.some((item) => item.href === asPath);
 
     useEffect(() => {
         if (isChildrenActive) {
             setIsOpen(true);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
@@ -40,7 +45,7 @@ export function MenuItem({ name, icon, href, dropdownItems }: MenuItemProps) {
             {dropdownItems?.length ? (
                 <>
                     <div
-                        className={cn('relative flex h-12 cursor-pointer items-center justify-between whitespace-nowrap  rounded-lg px-4 text-sm transition-all', isChildrenActive ? 'text-white' : 'text-gray-500 hover:text-brand dark:hover:text-white')}
+                        className={cn('relative flex h-12 cursor-pointer items-center justify-between whitespace-nowrap rounded-lg px-4 text-sm transition-all', isChildrenActive ? 'text-white' : 'text-gray-500 hover:text-brand dark:hover:text-white')}
                         onClick={() => setIsOpen(!isOpen)}
                     >
                         <span className="z-[1] flex items-center ltr:mr-3 rtl:ml-3">
@@ -64,7 +69,7 @@ export function MenuItem({ name, icon, href, dropdownItems }: MenuItemProps) {
                             {dropdownItems.map((item, index) => (
                                 <li className="first:pt-2" key={index}>
                                     <ActiveLink
-                                        href={item.href}
+                                        href={'/' + workspace.workspaceName + item.href}
                                         className="flex items-center rounded-lg p-3 text-sm text-gray-500 transition-all before:h-1 before:w-1 before:rounded-full before:bg-gray-500 hover:text-brand ltr:pl-6 before:ltr:mr-5 rtl:pr-6 before:rtl:ml-5 dark:hover:text-white"
                                         activeClassName="!text-brand dark:!text-white dark:before:!bg-white before:!bg-brand before:!w-2 before:!h-2 before:-ml-0.5 before:ltr:!mr-[18px] before:rtl:!ml-[18px] !font-medium"
                                     >
@@ -76,12 +81,21 @@ export function MenuItem({ name, icon, href, dropdownItems }: MenuItemProps) {
                     </div>
                 </>
             ) : (
-                <ActiveLink href={href} className="relative flex h-12 items-center whitespace-nowrap rounded-lg px-4 text-sm text-gray-500 transition-all hover:text-brand dark:hover:text-white" activeClassName=" !text-white">
-                    <span className="relative z-[1] ltr:mr-3 rtl:ml-3">{icon}</span>
-                    <span className="relative z-[1]"> {name}</span>
+                <>
+                    {link && (
+                        <ActiveLink
+                            href={'/' + workspace.workspaceName + href}
+                            className="relative flex h-12 items-center hover:border-blue-400 hover:bg-blue-50 hover:text-blue-500 whitespace-nowrap rounded-lg px-3 text-sm text-gray-500 transition-all dark:hover:text-white"
+                            activeClassName="!text-blue-500"
+                        >
+                            <span className={`relative z-[1] ${!!name ? 'ltr:mr-3 rtl:ml-3' : 'flex justify-center items-center w-full h-full'}`}>{icon}</span>
+                            <span className="relative z-[1]"> {name}</span>
 
-                    {href === pathname && <motion.span className="absolute bottom-0 left-0 right-0 h-full w-full rounded-lg bg-brand shadow-large" layoutId="menu-item-active-indicator" />}
-                </ActiveLink>
+                            {`/${workspace.workspaceName}${href}` === asPath && <motion.span className="absolute bottom-0 left-0 right-0 h-full w-full border-[1px] border-blue-400 rounded-md bg-blue-50" layoutId="menu-item-active-indicator" />}
+                            {/* {asPath.includes(`/${workspace.workspaceName}${href}`) && <motion.span className="absolute bottom-0 left-0 right-0 h-full w-full border-[1px] border-blue-400 rounded-md bg-blue-50" layoutId="menu-item-active-indicator" />} */}
+                        </ActiveLink>
+                    )}
+                </>
             )}
         </div>
     );

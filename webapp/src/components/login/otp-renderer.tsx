@@ -2,23 +2,25 @@ import { useEffect, useState } from 'react';
 
 import { toast } from 'react-toastify';
 
-import { usePostAuthEmailMutation, usePostVerifyOtpMutation } from '@app/store/otp/api';
+import { useModal } from '@app/components/modal-views/context';
+import Button from '@app/components/ui/button/button';
+import { ToastId } from '@app/constants/toastId';
+import { useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
+import { useAppSelector } from '@app/store/hooks';
 
-import { useModal } from '../modal-views/context';
-import Button from '../ui/button/button';
-
-export default function OtpRenderer({ email }: any) {
+export default function OtpRenderer({ email, isCustomDomain }: any) {
     const { closeModal } = useModal();
-
+    const workspace = useAppSelector((state) => state.workspace);
     const [counter, setCounter] = useState(0);
     const [otp, setOtp] = useState('');
-    const [postAuthEmail, response] = usePostAuthEmailMutation();
+    const [postSendOtp, response] = usePostSendOtpMutation();
 
     const [postVerifyOtp, result] = usePostVerifyOtpMutation();
-
     const { isLoading } = result;
 
-    const emailRequest = { receiver_email: email };
+    const [trigger] = useLazyGetStatusQuery();
+
+    const emailRequest: any = { receiver_email: email };
 
     useEffect(() => {
         counter > 0 && setTimeout(() => setCounter(counter - 1), 1000);
@@ -27,29 +29,29 @@ export default function OtpRenderer({ email }: any) {
     const handleVerifyButtonClick = async (e: any) => {
         e.preventDefault();
         if (otp.length === 0) {
-            toast.error('Otp field cannot be empty!');
+            toast.error('OTP field cannot be empty!', { toastId: ToastId.ERROR_TOAST });
             return;
         }
         const response = { email: email, otp_code: otp };
-        const result = await postVerifyOtp(response).unwrap();
-        if (result.status_code === 200) {
-            toast.info(result.detail);
-            closeModal();
-        } else {
-            toast.error(result.detail);
-        }
+        await postVerifyOtp(response)
+            .unwrap()
+            .then(async () => await trigger('status'))
+            .then(() => closeModal())
+            .catch((err) => toast.error(err, { toastId: ToastId.ERROR_TOAST }));
     };
 
     const ResendButtonRenderer = () => {
         return (
             <div className={'text-md align flex mt-4 cursor-pointer  items-center justify-center text-primary hover:text-blue-500 hover:underline'}>
                 {counter !== 0 && <div className="text-gray-500 underline-offset-0 border-none">Resend code ({counter})</div>}
-
                 {counter === 0 && (
                     <div
                         className="hover:underline-offset-1"
                         onClick={() => {
-                            postAuthEmail(emailRequest);
+                            if (isCustomDomain) {
+                                emailRequest.workspace_id = workspace.id;
+                            }
+                            postSendOtp(emailRequest);
                             setCounter(60);
                         }}
                     >
@@ -63,22 +65,30 @@ export default function OtpRenderer({ email }: any) {
     const HeaderRenderer = () => {
         return (
             <>
-                <div className={'font-semibold text-darkGrey rounded-md text-xl'}>Enter OTP code to Verify</div>
-
-                <div className={'text-sm mb-2 text-gray-400 md:text-base'}>
-                    {' '}
-                    We have just send a verification code to <span className="text-black font-bold">{email}</span>
-                    <br />
-                </div>
+                <div className={'font-semibold text-darkGrey rounded-md text-md'}>Enter OTP code</div>
+                <p className={'text-xs text-gray-500 md:text-base'}> We have just send a verification code to</p>
+                <p className="text-gray-500 text-xs md:text-base font-semibold mb-2">{email}</p>
             </>
         );
     };
 
+    const handleChange = (e: any) => {
+        setOtp(e.target.value.toUpperCase());
+    };
+
     return (
-        <form className={' flex flex-col text-center'}>
+        <form className={'flex flex-col text-center'}>
             <HeaderRenderer />
-            <input className={`border-solid mb-4 h-[40px] text-gray-900 text-sm rounded-lg w-full p-2.5`} value={otp} type="text" placeholder={'Enter the OTP code'} onChange={(e: any) => setOtp(e.target.value)} />
-            <Button isLoading={isLoading} onClick={handleVerifyButtonClick} className="w-full">
+            <input
+                data-testid="otp-input"
+                spellCheck={false}
+                className={`border-solid tracking-[0.5rem] font-bold placeholder:font-normal placeholder:text-sm placeholder:tracking-normal mb-4 h-[40px] text-gray-900 rounded-lg w-full p-2.5`}
+                value={otp}
+                type="text"
+                placeholder={'Enter the OTP code'}
+                onChange={handleChange}
+            />
+            <Button data-testid="verify-button" isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} className="w-full !h-10 !rounded-lg">
                 Verify
             </Button>
             <ResendButtonRenderer />
