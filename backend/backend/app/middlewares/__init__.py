@@ -17,8 +17,6 @@ def include_middlewares(app: "FastAPI"):
         app: A FastAPI app instance.
     """
 
-    app.add_middleware(DynamicCORSMiddleware)
-
     @app.middleware("http")
     async def request_logger(request: "Request", call_next):
         """
