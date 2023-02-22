@@ -6,8 +6,10 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from backend.app.core.form_plugin_config import FormProvidersConfig
 from backend.app.repositories.form_repository import FormRepository
+from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.services.auth_service import AuthService
+from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.repositories.workspace_repository import WorkspaceRepository
@@ -39,6 +41,9 @@ class AppContainer(containers.DeclarativeContainer):
     workspace_repo: WorkspaceRepository = providers.Singleton(WorkspaceRepository)
 
     form_repo: FormRepository = providers.Singleton(FormRepository)
+    form_response_repo: FormResponseRepository = providers.Singleton(
+        FormResponseRepository
+    )
     workspace_form_repo: WorkspaceFormRepository = providers.Singleton(
         WorkspaceFormRepository
     )
@@ -80,6 +85,12 @@ class AppContainer(containers.DeclarativeContainer):
         FormService,
         workspace_user_repo=workspace_user_repo,
         form_repo=form_repo,
+        workspace_form_repo=workspace_form_repo,
+    )
+
+    form_response_service: FormResponseService = providers.Singleton(
+        FormResponseService,
+        form_response_repo=form_response_repo,
         workspace_form_repo=workspace_form_repo,
     )
 

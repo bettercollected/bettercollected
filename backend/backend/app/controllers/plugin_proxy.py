@@ -4,15 +4,17 @@ import logging
 from http import HTTPStatus
 from typing import Any, Dict, Optional
 
-from fastapi import Body
+from fastapi import Body, Depends
 from starlette.requests import Request
 
 from backend.app.container import container
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.plugin_proxy_service import PluginProxyService
+from backend.app.services.user_service import get_logged_user
 from common.base.plugin import BasePluginRoute
 from common.enums.form_provider import FormProvider
 from common.exceptions.http import HTTPException
+from common.models.user import User
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +33,7 @@ class PluginProxy(BasePluginRoute):
         self,
         provider: str | FormProvider,
         request: Request,
+        user: User = Depends(get_logged_user),
     ):
         proxy_url = (
             await self.form_provider_service.get_provider(provider, True)
@@ -41,7 +44,12 @@ class PluginProxy(BasePluginRoute):
         return data
 
     async def get_form(
-        self, form_id: str, email: str, provider: str | FormProvider, request: Request
+        self,
+        form_id: str,
+        email: str,
+        provider: str | FormProvider,
+        request: Request,
+        user: User = Depends(get_logged_user),
     ):
         proxy_url = (
             await self.form_provider_service.get_provider(provider, True)
@@ -58,6 +66,7 @@ class PluginProxy(BasePluginRoute):
         email: str,
         provider: str | FormProvider,
         data_owner_field: Optional[str] = None,
+        user: User = Depends(get_logged_user),
     ):
         proxy_url = (
             await self.form_provider_service.get_provider(provider, True)
@@ -73,6 +82,7 @@ class PluginProxy(BasePluginRoute):
         email: str,
         provider: str | FormProvider,
         request_body: Dict[str, Any] = Body(...),
+        user: User = Depends(get_logged_user),
     ):
         proxy_url = (
             await self.form_provider_service.get_provider(provider, True)
@@ -89,16 +99,27 @@ class PluginProxy(BasePluginRoute):
         email: str,
         provider: str | FormProvider,
         request_body: Dict[str, Any] = Body(...),
+        user: User = Depends(get_logged_user),
     ):
         raise HTTPException(status_code=HTTPStatus.NOT_IMPLEMENTED)
 
     async def delete_form(
-        self, request: Request, form_id: str, email: str, provider: str | FormProvider
+        self,
+        request: Request,
+        form_id: str,
+        email: str,
+        provider: str | FormProvider,
+        user: User = Depends(get_logged_user),
     ):
         raise HTTPException(status_code=HTTPStatus.NOT_IMPLEMENTED)
 
     async def list_form_responses(
-        self, request: Request, form_id: str, email: str, provider: str | FormProvider
+        self,
+        request: Request,
+        form_id: str,
+        email: str,
+        provider: str | FormProvider,
+        user: User = Depends(get_logged_user),
     ):
         raise HTTPException(status_code=HTTPStatus.NOT_IMPLEMENTED)
 
@@ -109,6 +130,7 @@ class PluginProxy(BasePluginRoute):
         email: str,
         response_id: str,
         provider: str | FormProvider,
+        user: User = Depends(get_logged_user),
     ):
         raise HTTPException(status_code=HTTPStatus.NOT_IMPLEMENTED)
 
@@ -119,5 +141,6 @@ class PluginProxy(BasePluginRoute):
         email: str,
         response_id: str,
         provider: str | FormProvider,
+        user: User = Depends(get_logged_user),
     ):
         raise HTTPException(status_code=HTTPStatus.NOT_IMPLEMENTED)
