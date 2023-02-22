@@ -1,0 +1,77 @@
+services:
+  - docker:dind
+
+cache:
+  paths:
+    - .venv
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  image: docker:latest
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE:nightly .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE:nightly
+  only:
+    - develop
+
+deploy_develop:
+  stage: deploy
+  image: docker:latest
+  variables:
+    DOCKER_HOST: 172.31.0.6:2376
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker service update --force --with-registry-auth --image  $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA bettercollected-new_dev_backend
+  only:
+    - develop
+
+docker_build_master:
+  stage: build
+  image: docker:latest
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE:latest .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE:latest
+  only:
+    - master
+
+deploy_staging:
+  stage: deploy
+  image: docker:latest
+  variables:
+    DOCKER_HOST: 172.31.0.7:2376
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker service update --force --with-registry-auth --image  $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA bettercollected-new_staging_backend
+  only:
+    - master
+
+docker_build_release:
+  stage: build
+  image: docker:latest
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE:release .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE:release
+  only:
+    - release
+
+deploy_release:
+  stage: deploy
+  image: docker:latest
+  variables:
+    DOCKER_HOST: 172.31.0.7:2376
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker service update --force --with-registry-auth --image  $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA bettercollected-new_backend
+  only:
+    - release
+
