@@ -15,29 +15,32 @@ from common.models.user import User
 
 
 class WorkspaceService:
-    def __int__(
-        self,
-        workspace_repo: WorkspaceRepository,
-        aws_service: AWSS3Service,
-        workspace_user_repo: WorkspaceUserRepository,
+
+    def __init__(
+            self,
+            workspace_repo: WorkspaceRepository,
+            aws_service: AWSS3Service,
+            workspace_user_repo: WorkspaceUserRepository,
     ):
         self._workspace_repo = workspace_repo
         self._aws_service = aws_service
         self._workspace_user_repo = workspace_user_repo
 
     async def get_workspace_by_id(self, workspace_id: PydanticObjectId):
-        return await self._workspace_repo.get_workspace_by_id(workspace_id=workspace_id)
+        workspace = await self._workspace_repo.get_workspace_by_id(workspace_id=workspace_id)
+        return WorkspaceResponseDto(**workspace.dict())
 
     async def get_workspace_by_query(self, query: str):
-        return await self._workspace_repo.get_workspace_by_query(query)
+        workspace = await self._workspace_repo.get_workspace_by_query(query)
+        return WorkspaceResponseDto(**workspace.dict())
 
     async def patch_workspace(
-        self,
-        profile_image_file: UploadFile,
-        banner_image_file: UploadFile,
-        workspace_id,
-        workspace_patch: WorkspaceRequestDto,
-        user: User,
+            self,
+            profile_image_file: UploadFile,
+            banner_image_file: UploadFile,
+            workspace_id,
+            workspace_patch: WorkspaceRequestDto,
+            user: User,
     ):
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id
@@ -87,10 +90,10 @@ class WorkspaceService:
             if workspace_patch.description
             else workspace_document.description
         )
-        workspace_document.ownerId = (
+        workspace_document.owner_id = (
             workspace_patch.owner_id
             if workspace_patch.owner_id
-            else workspace_document.ownerId
+            else workspace_document.owner_id
         )
 
         if workspace_patch.custom_domain:
@@ -115,7 +118,7 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.dict())
 
     async def delete_custom_domain_of_workspace(
-        self, workspace_id: PydanticObjectId, user: User
+            self, workspace_id: PydanticObjectId, user: User
     ):
         await self._workspace_user_repo.check_user_is_admin_in_workspace(
             workspace_id, user
@@ -128,6 +131,10 @@ class WorkspaceService:
             workspace_id, workspace_document
         )
         return WorkspaceResponseDto(**saved_workspace.dict())
+
+    async def get_mine_workspaces(self, user: User):
+        workspaces = await self._workspace_repo.get_user_workspaces(user.id)
+        return [WorkspaceResponseDto(**workspace.dict()) for workspace in workspaces]
 
 
 async def create_workspace(user: User):

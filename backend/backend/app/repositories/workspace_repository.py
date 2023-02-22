@@ -23,7 +23,7 @@ class WorkspaceRepository(BaseRepository):
         pass
 
     async def update(
-        self, item_id: PydanticObjectId, item: WorkspaceDocument
+            self, item_id: PydanticObjectId, item: WorkspaceDocument
     ) -> WorkspaceDocument:
         document = await WorkspaceDocument.find_one(WorkspaceDocument.id == item_id)
         if document:
@@ -31,10 +31,16 @@ class WorkspaceRepository(BaseRepository):
         else:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Workspace not found")
 
-    async def get_workspace_by_id(self, workspace_id) -> WorkspaceDocument:
-        return await WorkspaceDocument.find_one({"_id": workspace_id})
+    async def get_workspace_by_id(self, workspace_id: PydanticObjectId) -> WorkspaceDocument:
+        return await WorkspaceDocument.find_one(WorkspaceDocument.id == workspace_id)
 
     async def get_workspace_by_query(self, query: str):
-        return await WorkspaceDocument.find_one(
-            {"$or": [{"workspace_name": query}, {"custom_domain": query}]}
+        workspace = await WorkspaceDocument.find_one(
+            {"$or": [{"workspaceName": query}, {"customDomain": query}]}
         )
+        if not workspace:
+            raise HTTPException(HTTPStatus.NOT_FOUND)
+        return workspace
+
+    async def get_user_workspaces(self, owner_id: str):
+        return await WorkspaceDocument.find({"ownerId": owner_id}).to_list()
