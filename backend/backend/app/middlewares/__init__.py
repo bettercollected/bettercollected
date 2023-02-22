@@ -4,8 +4,9 @@ from loguru import logger
 from starlette.requests import Request
 from starlette.responses import Response
 
-
 __all__ = ("include_middlewares",)
+
+from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 
 
 def include_middlewares(app: "FastAPI"):

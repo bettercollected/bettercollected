@@ -9,6 +9,9 @@ stages:
   - build
   - deploy
 
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
 build:
   stage: build
   image: docker:latest

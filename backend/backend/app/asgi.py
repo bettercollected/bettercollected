@@ -11,7 +11,7 @@ import backend
 from backend.app.container import AppContainer, container
 from backend.app.handlers import init_logging
 from backend.app.handlers.database import init_db, close_db
-from backend.app.middlewares import include_middlewares
+from backend.app.middlewares import include_middlewares, DynamicCORSMiddleware
 from backend.config import settings
 from backend.app.router import root_api_router
 from backend.app.utils import AiohttpClient
@@ -74,6 +74,10 @@ def get_application(is_test_mode: bool = False):
         on_startup=[on_startup],
         on_shutdown=[on_shutdown],
     )
+    app.add_middleware(DynamicCORSMiddleware,
+                       allow_credentials=True,
+                       allow_methods=["*"],
+                       allow_headers=["*"])
     logger.info("Add application routes.")
     app.include_router(root_api_router)
     logger.info("Register global exception handler for custom HTTPException.")
