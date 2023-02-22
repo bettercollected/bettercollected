@@ -15,10 +15,10 @@ from common.services.http_client import HttpClient
 
 class AuthService:
     def __init__(
-            self,
-            provider_repository: ProviderRepository,
-            user_repository: UserRepository,
-            http_client: HttpClient,
+        self,
+        provider_repository: ProviderRepository,
+        user_repository: UserRepository,
+        http_client: HttpClient,
     ):
         self.provider_repository = provider_repository
         self.user_repository = user_repository
