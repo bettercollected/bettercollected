@@ -5,7 +5,10 @@ from dependency_injector import containers, providers
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from backend.app.core.form_plugin_config import FormProvidersConfig
+from backend.app.repositories.form_repository import FormRepository
+from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.services.auth_service import AuthService
+from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
@@ -34,6 +37,11 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     workspace_repo: WorkspaceRepository = providers.Singleton(WorkspaceRepository)
+
+    form_repo: FormRepository = providers.Singleton(FormRepository)
+    workspace_form_repo: WorkspaceFormRepository = providers.Singleton(
+        WorkspaceFormRepository
+    )
 
     form_provider_repo: FormPluginProviderRepository = providers.Singleton(
         FormPluginProviderRepository
@@ -66,6 +74,13 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
         aws_service=aws_service,
         workspace_user_repo=workspace_user_repo,
+    )
+
+    form_service: FormService = providers.Singleton(
+        FormService,
+        workspace_user_repo=workspace_user_repo,
+        form_repo=form_repo,
+        workspace_form_repo=workspace_form_repo,
     )
 
 
