@@ -17,10 +17,7 @@ log = logging.getLogger(__name__)
 @router(prefix="/auth")
 class AuthRoutes(Routable):
     def __init__(
-            self,
-            auth_service: AuthService = container.auth_service(),
-            *args,
-            **kwargs
+        self, auth_service: AuthService = container.auth_service(), *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.auth_service = auth_service
