@@ -8,7 +8,7 @@ from fastapi import Body
 from starlette.requests import Request
 
 from backend.app.container import container
-from backend.app.core.form_plugin_config import FormProvidersConfig
+from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from common.base.plugin import BasePluginRoute
 from common.enums.form_provider import FormProvider
@@ -22,17 +22,19 @@ class PluginProxy(BasePluginRoute):
     def __init__(
         self,
         plugin_proxy_service: PluginProxyService = container.plugin_proxy_service(),
-        form_providers: FormProvidersConfig = container.form_providers(),
+        form_provider_service: FormPluginProviderService = container.form_provider_service(),
     ):
         self.plugin_proxy_service = plugin_proxy_service
-        self.form_providers = form_providers
+        self.form_provider_service = form_provider_service
 
     async def list_forms(
         self,
         provider: str | FormProvider,
         request: Request,
     ):
-        proxy_url = self.form_providers.get_form_provider(provider).provider_url
+        proxy_url = (
+            await self.form_provider_service.get_provider(provider, True)
+        ).provider_url
         data = await self.plugin_proxy_service.pass_request(
             request, f"{proxy_url}/{provider}/forms"
         )
@@ -41,7 +43,9 @@ class PluginProxy(BasePluginRoute):
     async def get_form(
         self, form_id: str, email: str, provider: str | FormProvider, request: Request
     ):
-        proxy_url = self.form_providers.get_form_provider(provider).provider_url
+        proxy_url = (
+            await self.form_provider_service.get_provider(provider, True)
+        ).provider_url
         data = await self.plugin_proxy_service.pass_request(
             request, f"{proxy_url}/{provider}/forms/{form_id}"
         )
@@ -55,7 +59,9 @@ class PluginProxy(BasePluginRoute):
         provider: str | FormProvider,
         data_owner_field: Optional[str] = None,
     ):
-        proxy_url = self.form_providers.get_form_provider(provider).provider_url
+        proxy_url = (
+            await self.form_provider_service.get_provider(provider, True)
+        ).provider_url
         data = await self.plugin_proxy_service.pass_request(
             request, f"{proxy_url}/{provider}/forms/{form_id}/import"
         )
@@ -68,7 +74,9 @@ class PluginProxy(BasePluginRoute):
         provider: str | FormProvider,
         request_body: Dict[str, Any] = Body(...),
     ):
-        proxy_url = self.form_providers.get_form_provider(provider).provider_url
+        proxy_url = (
+            await self.form_provider_service.get_provider(provider, True)
+        ).provider_url
         data = await self.plugin_proxy_service.pass_request(
             request, f"{proxy_url}/{provider}/forms", data=request_body
         )

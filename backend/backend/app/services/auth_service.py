@@ -3,8 +3,8 @@ from typing import Tuple
 
 from starlette.requests import Request
 
-from backend.app.core.form_plugin_config import FormProvidersConfig
 from backend.app.services import workspace_service
+from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.jwt_service import JwtService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.config import settings
@@ -20,14 +20,16 @@ class AuthService:
         self,
         http_client: HttpClient,
         plugin_proxy_service: PluginProxyService,
-        form_providers: FormProvidersConfig,
+        form_provider_service: FormPluginProviderService,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
-        self.form_providers = form_providers
+        self.form_provider_service = form_provider_service
 
     async def get_oauth_url(self, provider_name: str, client_referer_url: str):
-        provider_config = self.form_providers.get_form_provider(provider_name)
+        provider_config = await self.form_provider_service.get_provider(
+            provider_name, True
+        )
         oauth_state = OAuthState(
             client_referer_uri=client_referer_url,
         )
@@ -44,7 +46,9 @@ class AuthService:
     async def handle_backend_auth_callback(
         self, *, provider_name: str, state: str, request: Request
     ) -> Tuple[User, OAuthState]:
-        provider_config = self.form_providers.get_form_provider(provider_name)
+        provider_config = await self.form_provider_service.get_provider(
+            provider_name, True
+        )
         response_data = await self.plugin_proxy_service.pass_request(
             request,
             provider_config.auth_callback_url,

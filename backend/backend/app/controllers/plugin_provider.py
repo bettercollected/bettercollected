@@ -4,7 +4,7 @@ from http import HTTPStatus
 from classy_fastapi import Routable, get, patch, post
 
 from backend.app.container import container
-from backend.app.core.form_plugin_config import FormProvider
+from backend.app.models.form_plugin_config import FormProviderConfigDto
 from backend.app.router import router
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 
@@ -26,12 +26,14 @@ class PluginProviderRouter(Routable):
         return await self._provider_service.get_providers(is_admin)
 
     @post("", status_code=HTTPStatus.CREATED)
-    async def _add_provider(self, provider: FormProvider):
+    async def _add_provider(self, provider: FormProviderConfigDto):
         # TODO: Check admin user
         return await self._provider_service.add_provider(provider)
 
     @patch("/{provider_name}", status_code=HTTPStatus.ACCEPTED)
-    async def _update_provider(self, provider_name: str, provider: FormProvider):
+    async def _update_provider(
+        self, provider_name: str, provider: FormProviderConfigDto
+    ):
         # TODO: Check admin user
         return await self._provider_service.update_provider(provider_name, provider)
 

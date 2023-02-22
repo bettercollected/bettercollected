@@ -8,7 +8,7 @@ from pymongo.errors import (
     OperationFailure,
 )
 
-from backend.app.core.form_plugin_config import FormProvider
+from backend.app.models.form_plugin_config import FormProviderConfigDto
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
 from common.base.repo import BaseRepository
 from common.constants import MESSAGE_DATABASE_EXCEPTION
@@ -16,11 +16,13 @@ from common.exceptions.http import HTTPException
 
 
 class FormPluginProviderRepository(BaseRepository):
-    async def list(self) -> List[FormProvider]:
+    async def list(self) -> List[FormProviderConfigDto]:
         try:
             document = await FormPluginConfigDocument.find_many().to_list()
             if document:
-                return [FormProvider(**provider.dict()) for provider in document]
+                return [
+                    FormProviderConfigDto(**provider.dict()) for provider in document
+                ]
             return []
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(
