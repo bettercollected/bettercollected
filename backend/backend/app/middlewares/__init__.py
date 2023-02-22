@@ -4,8 +4,9 @@ from loguru import logger
 from starlette.requests import Request
 from starlette.responses import Response
 
-
 __all__ = ("include_middlewares",)
+
+from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 
 
 def include_middlewares(app: "FastAPI"):
@@ -15,6 +16,8 @@ def include_middlewares(app: "FastAPI"):
     Parameters:
         app: A FastAPI app instance.
     """
+
+    app.add_middleware(DynamicCORSMiddleware)
 
     @app.middleware("http")
     async def request_logger(request: "Request", call_next):
