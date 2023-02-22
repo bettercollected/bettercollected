@@ -21,14 +21,22 @@ class WorkspaceRouter(Routable):
         self.workspace_service: WorkspaceService = container.workspace_service()
 
     @get("")
-    async def _get_workspace_by_query(self, workspace_name: Optional[str] = None, custom_domain: Optional[str] = None):
-        if (workspace_name and custom_domain) or (not workspace_name and not custom_domain):
-            raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, "Provide only one query")
+    async def _get_workspace_by_query(
+        self, workspace_name: Optional[str] = None, custom_domain: Optional[str] = None
+    ):
+        if (workspace_name and custom_domain) or (
+            not workspace_name and not custom_domain
+        ):
+            raise HTTPException(
+                HTTPStatus.UNPROCESSABLE_ENTITY, "Provide only one query"
+            )
         query = workspace_name if workspace_name else custom_domain
         return await self.workspace_service.get_workspace_by_query(query)
 
     @get("/mine")
-    async def _get_mine_workspaces(self, user: User = Depends(get_logged_user)) -> List[WorkspaceResponseDto]:
+    async def _get_mine_workspaces(
+        self, user: User = Depends(get_logged_user)
+    ) -> List[WorkspaceResponseDto]:
         return await self.workspace_service.get_mine_workspaces(user)
 
     @get("/{workspace_id}")
@@ -39,16 +47,16 @@ class WorkspaceRouter(Routable):
 
     @patch("/{workspace_id}")
     async def patch_workspace(
-            self,
-            workspace_id: PydanticObjectId,
-            profile_image: UploadFile = None,
-            banner_image: UploadFile = None,
-            title: Optional[str] = Form(None),
-            workspace_name: Optional[str] = Form(None),
-            description: Optional[str] = Form(None),
-            custom_domain: Optional[str] = Form(None),
-            owner_id: Optional[str] = Form(None),
-            user: User = Depends(get_logged_user),
+        self,
+        workspace_id: PydanticObjectId,
+        profile_image: UploadFile = None,
+        banner_image: UploadFile = None,
+        title: Optional[str] = Form(None),
+        workspace_name: Optional[str] = Form(None),
+        description: Optional[str] = Form(None),
+        custom_domain: Optional[str] = Form(None),
+        owner_id: Optional[str] = Form(None),
+        user: User = Depends(get_logged_user),
     ) -> WorkspaceResponseDto:
         workspace_request = WorkspaceRequestDto(
             title=title,
@@ -63,7 +71,7 @@ class WorkspaceRouter(Routable):
 
     @delete("/{workspace_id}/custom_domain")
     async def delete_custom_domain_of_workspace(
-            self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
     ):
         return await self.workspace_service.delete_custom_domain_of_workspace(
             workspace_id=workspace_id, user=user

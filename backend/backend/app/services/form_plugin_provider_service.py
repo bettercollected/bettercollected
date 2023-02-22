@@ -38,7 +38,7 @@ class FormPluginProviderService:
 
     async def get_provider(self, provider_name: str, is_admin: bool):
         provider = await self._form_provider_repo.get(provider_name)
-        if is_admin:
+        if provider and is_admin:
             return provider
         if provider and provider.enabled:
             return {"provider_name": provider.provider_name}

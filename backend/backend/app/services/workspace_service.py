@@ -15,19 +15,20 @@ from common.models.user import User
 
 
 class WorkspaceService:
-
     def __init__(
-            self,
-            workspace_repo: WorkspaceRepository,
-            aws_service: AWSS3Service,
-            workspace_user_repo: WorkspaceUserRepository,
+        self,
+        workspace_repo: WorkspaceRepository,
+        aws_service: AWSS3Service,
+        workspace_user_repo: WorkspaceUserRepository,
     ):
         self._workspace_repo = workspace_repo
         self._aws_service = aws_service
         self._workspace_user_repo = workspace_user_repo
 
     async def get_workspace_by_id(self, workspace_id: PydanticObjectId):
-        workspace = await self._workspace_repo.get_workspace_by_id(workspace_id=workspace_id)
+        workspace = await self._workspace_repo.get_workspace_by_id(
+            workspace_id=workspace_id
+        )
         return WorkspaceResponseDto(**workspace.dict())
 
     async def get_workspace_by_query(self, query: str):
@@ -35,12 +36,12 @@ class WorkspaceService:
         return WorkspaceResponseDto(**workspace.dict())
 
     async def patch_workspace(
-            self,
-            profile_image_file: UploadFile,
-            banner_image_file: UploadFile,
-            workspace_id,
-            workspace_patch: WorkspaceRequestDto,
-            user: User,
+        self,
+        profile_image_file: UploadFile,
+        banner_image_file: UploadFile,
+        workspace_id,
+        workspace_patch: WorkspaceRequestDto,
+        user: User,
     ):
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id
@@ -118,7 +119,7 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.dict())
 
     async def delete_custom_domain_of_workspace(
-            self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: PydanticObjectId, user: User
     ):
         await self._workspace_user_repo.check_user_is_admin_in_workspace(
             workspace_id, user
@@ -138,7 +139,7 @@ class WorkspaceService:
 
 
 async def create_workspace(user: User):
-    workspace = await WorkspaceDocument.find_one({"owner_id": user.id, "default": True})
+    workspace = await WorkspaceDocument.find_one({"ownerId": user.id, "default": True})
     if not workspace:
         workspace = WorkspaceDocument(
             title="Untitled",
