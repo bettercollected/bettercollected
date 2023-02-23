@@ -92,6 +92,7 @@ class AppContainer(containers.DeclarativeContainer):
         FormResponseService,
         form_response_repo=form_response_repo,
         workspace_form_repo=workspace_form_repo,
+        workspace_user_repo=workspace_user_repo,
     )
 
 
