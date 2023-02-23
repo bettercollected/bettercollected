@@ -8,6 +8,7 @@ from starlette.requests import Request
 from backend.app.constants import messages
 from backend.app.exceptions import HTTPException
 from common.constants import MESSAGE_NOT_FOUND
+from common.enums.http_methods import HTTPMethods
 from common.services.http_client import HttpClient
 
 
@@ -16,17 +17,19 @@ class PluginProxyService:
         self.http_client = http_client
 
     async def pass_request(
-        self,
-        request: Request,
-        url: str,
-        data: Mapping[str, Any] = None,
+            self,
+            request: Request,
+            url: str,
+            *,
+            method: HTTPMethods = None,
+            data: Mapping[str, Any] = None,
     ) -> Mapping[str, Any]:
         # Merge query params if params is not none
         try:
             response = await self.http_client.request(
-                method=request.method,
+                method=method if method else request.method,
                 url=url,
-                data=data,
+                json=data,
                 params=request.query_params,
                 headers=request.headers,
                 cookies=request.cookies,
