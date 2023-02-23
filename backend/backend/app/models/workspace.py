@@ -28,10 +28,11 @@ class Workspace(WorkspaceRequestDto):
 class WorkspaceFormSettings(BaseModel):
     """Model for storing the form settings of a workspace."""
 
-    pinned: Optional[bool]
+    pinned: Optional[bool] = False
     custom_url: Optional[str]
     private: Optional[bool] = False
     response_data_owner_field: Optional[str]
+    provider: Optional[str]
 
 
 class WorkspaceResponseDto(WorkspaceRequestDto):

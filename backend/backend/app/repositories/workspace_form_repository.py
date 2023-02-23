@@ -9,17 +9,39 @@ from pymongo.errors import (
 )
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
 
 
 class WorkspaceFormRepository:
+
+    async def save_workspace_form(self,
+                                  workspace_id: PydanticObjectId,
+                                  form_id: str,
+                                  user_id: str,
+                                  workspace_form_settings: WorkspaceFormSettings
+                                  ):
+        workspace_form = await WorkspaceFormDocument.find_one({
+            "workspace_id": workspace_id,
+            "form_id": form_id,
+            "user_id": user_id})
+        if not workspace_form:
+            workspace_form = WorkspaceFormDocument(
+                workspace_id=workspace_id,
+                form_id=form_id,
+                user_id=user_id,
+            )
+        workspace_form.settings = workspace_form_settings
+        await workspace_form.save()
+
+    # TODO : Refactor this functions  to include repo related only not related to services
     async def get_workspace_form_in_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        query: str,
-        throw_if_absent=True,
-        is_admin=True,
+            self,
+            workspace_id: PydanticObjectId,
+            query: str,
+            throw_if_absent=True,
+            is_admin=True,
     ):
         try:
             query = {
@@ -41,7 +63,7 @@ class WorkspaceFormRepository:
             )
 
     async def get_form_ids_in_workspace(
-        self, workspace_id: PydanticObjectId, public_only: bool = False
+            self, workspace_id: PydanticObjectId, public_only: bool = False
     ):
         try:
             query = {"workspace_id": workspace_id}
@@ -49,10 +71,10 @@ class WorkspaceFormRepository:
                 query["settings.private"] = False
             workspace_forms = (
                 await WorkspaceFormDocument.find(query)
-                .aggregate([{"$project": {"formId": 1, "_id": 0}}])
-                .to_list()
+                    .aggregate([{"$project": {"form_id": 1, "_id": 0}}])
+                    .to_list()
             )
-            return [a["formId"] for a in workspace_forms]
+            return [a["form_id"] for a in workspace_forms]
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,

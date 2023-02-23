@@ -1,4 +1,6 @@
 import datetime as dt
+from typing import Optional
+
 from beanie import PydanticObjectId
 
 from backend.app.models.workspace import WorkspaceFormSettings
@@ -25,7 +27,8 @@ class WorkspaceFormDocument(MongoDocument):
 
     workspace_id: PydanticObjectId
     form_id: str
-    settings: WorkspaceFormSettings
+    user_id: str
+    settings: Optional[WorkspaceFormSettings]
 
     class Settings:
         name = "workspace_forms"
