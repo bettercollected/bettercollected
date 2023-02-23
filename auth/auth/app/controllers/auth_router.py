@@ -2,7 +2,7 @@
 import logging
 
 from classy_fastapi import Routable, get
-from dependency_injector.wiring import Provide, inject
+from starlette.requests import Request
 
 from auth.app.container import AppContainer, container
 from auth.app.router import router
@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 @router(prefix="/auth")
 class AuthRoutes(Routable):
     def __init__(
-        self, auth_service: AuthService = container.auth_service(), *args, **kwargs
+            self, auth_service: AuthService = container.auth_service(), *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.auth_service = auth_service
@@ -30,11 +30,11 @@ class AuthRoutes(Routable):
     #     oauth_url = await self.auth_service.get_oauth_url(provider_name, oauth_state)
     #     return oauth_url
     #
-    # @get("/{provider_name}/basic")
-    # async def _basic_auth(self, provider_name: str, request: Request):
-    #     client_referer_url = request.headers.get('referer')
-    #     basic_auth_url = await self.auth_service.get_basic_auth_url(provider_name, client_referer_url)
-    #     return RedirectResponse(basic_auth_url)
+    @get("/{provider_name}/basic")
+    async def _basic_auth(self, provider_name: str, request: Request):
+        client_referer_url = request.headers.get('referer')
+        basic_auth_url = await self.auth_service.get_basic_auth_url(provider_name, client_referer_url)
+        return basic_auth_url
 
     @get("/callback")
     async def _auth_callback(self, jwt_token: str) -> User:
