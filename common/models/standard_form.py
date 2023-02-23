@@ -1,11 +1,18 @@
 import datetime as dt
+import enum
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
 
-class QuestionFieldType(str, Enum):
+class EmbedProvider(str, enum.Enum):
+    YOUTUBE = 'youtube'
+    VIEMO = 'vimeo'
+    NO_EMBED = 'no_embed'
+
+
+class StandardQuestionFieldType(str, Enum):
     ADDRESS = "address"
     CONTACT_INFO = "contact_info"
     DATE = "date"
@@ -32,7 +39,7 @@ class QuestionFieldType(str, Enum):
     RANKING = "ranking"
 
 
-class ResponseType(str, Enum):
+class StandardResponseType(str, Enum):
     TEXT = "text"
     CHOICE = "choice"
     CHOICES = "choices"
@@ -47,41 +54,41 @@ class ResponseType(str, Enum):
     PAYMENT = "payment"
 
 
-class AttachmentProperties(BaseModel):
+class StandardAttachmentProperties(BaseModel):
     description: Optional[str]
 
 
-class Attachment(BaseModel):
+class StandardAttachment(BaseModel):
     type: Optional[str]
     href: Optional[str]
     scale: Optional[float]
-    properties: Optional[AttachmentProperties] = AttachmentProperties()
+    properties: Optional[StandardAttachmentProperties] = StandardAttachmentProperties()
 
 
-class Choice(BaseModel):
+class StandardChoice(BaseModel):
     ref: Optional[str]
     label: Optional[str]
-    attachment: Optional[Attachment]
+    attachment: Optional[StandardAttachment]
 
 
-class AnswerField(BaseModel):
+class StandardAnswerField(BaseModel):
     id: str
     ref: Optional[str]
-    type: Optional[QuestionFieldType]
+    type: Optional[StandardQuestionFieldType]
 
 
-class PaymentAnswer(BaseModel):
+class StandardPaymentAnswer(BaseModel):
     amount: Optional[str]
     last4: Optional[str]
     name: Optional[str]
 
 
-class ChoiceAnswer(BaseModel):
+class StandardChoiceAnswer(BaseModel):
     label: Optional[str]
     other: Optional[str]
 
 
-class ChoicesAnswer(BaseModel):
+class StandardChoicesAnswer(BaseModel):
     labels: Optional[List[str]]
     other: Optional[str]
 
@@ -102,7 +109,7 @@ class StandardFormSettingsDto(BaseModel):
 
 class StandardQuestionPropertyDto(BaseModel):
     description: Optional[str]
-    choices: Optional[List[Choice]]
+    choices: Optional[List[StandardChoice]]
     questions: Optional[List["StandardFormQuestionDto"]]
     allow_multiple_selection: Optional[bool]
     allow_other_choice: Optional[bool]
@@ -124,18 +131,18 @@ class StandardQuestionValidationDto(BaseModel):
 
 
 class StandardFormAnswerDto(BaseModel):
-    field: AnswerField
-    type: Optional[ResponseType]
+    field: StandardAnswerField
+    type: Optional[StandardResponseType]
     text: Optional[str]
-    choice: Optional[ChoiceAnswer]
-    choices: Optional[ChoicesAnswer]
+    choice: Optional[StandardChoiceAnswer]
+    choices: Optional[StandardChoicesAnswer]
     number: Optional[int]
     boolean: Optional[bool]
     email: Optional[str]
     date: Optional[str]
     url: Optional[str]
     file_url: Optional[str]
-    payment: Optional[PaymentAnswer]
+    payment: Optional[StandardPaymentAnswer]
     phone_number: Optional[str]
 
 
@@ -148,10 +155,10 @@ class StandardFormQuestionDto(BaseModel):
     ref: Optional[str]
     title: Optional[str]
     description: Optional[str]
-    type: Optional[QuestionFieldType]
+    type: Optional[StandardQuestionFieldType]
     properties: Optional[StandardQuestionPropertyDto] = StandardQuestionPropertyDto()
     validations: Optional[StandardQuestionValidationDto]
-    attachment: Optional[Attachment] = None
+    attachment: Optional[StandardAttachment] = None
 
 
 StandardQuestionPropertyDto.update_forward_refs()
