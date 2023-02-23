@@ -7,7 +7,6 @@ from common.models.standard_form import StandardFormDto, StandardFormResponseDto
 
 class FormImportRequestBody(BaseModel):
     form: Dict[str, Any]
-    provider: str
     response_data_owner: Optional[str]
 
 
