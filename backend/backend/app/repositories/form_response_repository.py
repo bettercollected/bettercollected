@@ -20,15 +20,15 @@ from common.models.standard_form import StandardFormResponseDto
 class FormResponseRepository(BaseRepository):
     async def list(self, form_id: str) -> List[StandardFormResponseDto]:
         try:
-            document = (
-                await FormResponseDocument.find({"form_id": form_id})
-                .aggregate(
+            form_responses = (
+                await FormResponseDocument.find({"formId": form_id})
+                    .aggregate(
                     [
                         {
                             "$lookup": {
                                 "from": "forms",
-                                "localField": "form_id",
-                                "foreignField": "form_id",
+                                "localField": "formId",
+                                "foreignField": "formId",
                                 "as": "form",
                             },
                         },
@@ -36,10 +36,10 @@ class FormResponseRepository(BaseRepository):
                         {"$unwind": "$title"},
                         {"$sort": {"created_at": -1}},
                     ]
-                )
-                .to_list()
+                ).to_list()
             )
-            return [StandardFormResponseDto(**element.dict()) for element in document]
+            return [StandardFormResponseDto(**form_response) for form_response in form_responses]
+        # TODO : Handle specific exception on global exception handler
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -52,7 +52,7 @@ class FormResponseRepository(BaseRepository):
                 await FormResponseDocument.find(
                     {"form_id": form_id, "response_id": response_id}
                 )
-                .aggregate(
+                    .aggregate(
                     [
                         {
                             "$lookup": {
@@ -86,7 +86,7 @@ class FormResponseRepository(BaseRepository):
                         {"$unwind": "$formCustomUrl"},
                     ]
                 )
-                .to_list()
+                    .to_list()
             )
             if not document:
                 raise HTTPException(
@@ -109,7 +109,7 @@ class FormResponseRepository(BaseRepository):
         pass
 
     async def update(
-        self, item_id: str, item: FormResponseDocument
+            self, item_id: str, item: FormResponseDocument
     ) -> StandardFormResponseDto:
         pass
 
