@@ -25,3 +25,4 @@ site
 .git
 .github
 result
+.env
