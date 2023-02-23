@@ -33,3 +33,15 @@ class WorkspaceResponsesRouter(Routable):
         return await self._form_response_service.get_workspace_submissions(
             workspace_id, form_id, user
         )
+
+    @get("/{submission_id}")
+    async def _get_workspace_form_response(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        submission_id: str,
+        user: User = Depends(get_logged_user),
+    ):
+        return await self._form_response_service.get_workspace_submission(
+            workspace_id, form_id, submission_id, user
+        )

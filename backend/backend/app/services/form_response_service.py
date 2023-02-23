@@ -49,3 +49,25 @@ class FormResponseService:
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
+
+    async def get_workspace_submission(
+        self, workspace_id: PydanticObjectId, form_id: str, response_id: str, user: User
+    ):
+        try:
+            workspace_form = (
+                await self._workspace_form_repo.get_workspace_form_in_workspace(
+                    workspace_id, form_id
+                )
+            )
+            if not workspace_form:
+                raise HTTPException(
+                    HTTPStatus.NOT_FOUND, "Form not found in the workspace."
+                )
+            form_response = await self._form_response_repo.get(form_id, response_id)
+            return form_response
+        except Exception as exc:
+            logger.error(exc)
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                content=MESSAGE_DATABASE_EXCEPTION,
+            )
