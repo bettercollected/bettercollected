@@ -1,19 +1,29 @@
-# Google Forms Integration Repository
-**_Contains a git submodule `common`_**
+# googleform
+[![CI](/actions/workflows/main.yml/badge.svg?branch=master)](/actions/workflows/main.yml)
+[![K8s integration](/actions/workflows/integration.yml/badge.svg)](/actions/workflows/integration.yml)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+![GitHub](https://img.shields.io/badge/fastapi-v.0.88.0-blue)
+![GitHub](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)
+![GitHub](https://img.shields.io/badge/license-no-blue)
 
-This repository contains only the Google forms API integration logic. If in case you need to update this repository, please follow the instructions below:
+---
 
-### Steps to run the project
-1. The python version: `3.10`, so a python version manager is a good choice for maintaining different version of python and different environments. <br/> [PyEnv](https://github.com/pyenv/pyenv) and [PyEnv VirtualEnv](https://github.com/pyenv/pyenv-virtualenv)
-2. Activate the `virtualenv` and install the required packages from [requirements.txt](requirements.txt) with `pip install -r requirements.txt`.
-3. Read all the below instructions carefully and please follow our [DEVELOPERS_GUIDE](DEVELOPERS_GUIDE.md).
+## This project was generated with [fastapi-mvc](https://github.com/fastapi-mvc/fastapi-mvc)
 
-    #### Steps to keep submodules in sync
-   1. Initialize submodule: `git submodule init`.
-   2. Run the command: `git submodule sync --recursive`.
-   3. Update the submodule changes to your local: `git submodule update --recursive`.
-   4. You may need to go into `submodule` directory and checkout to appropriate branch before continuing, `git checkout master`.
+### Documentation
 
-    #### IMPORTANT NOTE
-    After updating the `submodule` you need to install that submodule as a dependency. Locally, you can do it with: 
-    `pip install ./common`.
+
+You should have documentation deployed to your project GitHub pages via [Build Docs workflow](/actions/workflows/docs.yml)
+
+**NOTE!** You might need to enable GitHub pages for this project first.
+
+To build docs manually:
+```shell
+make docs
+```
+
+Then open `./site/index.html` with any browser.
+
+## License
+
+This project is licensed under the terms of the no license.
