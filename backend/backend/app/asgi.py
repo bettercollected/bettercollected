@@ -51,7 +51,7 @@ async def on_shutdown():
     await close_db(client)
 
     await AiohttpClient.close_aiohttp_client()
-    await container.http_client.aclose()
+    await container.http_client().aclose()
 
 
 def get_application(is_test_mode: bool = False):
