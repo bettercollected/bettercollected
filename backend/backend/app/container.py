@@ -15,11 +15,13 @@ from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
 )
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
+from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
 from common.services.http_client import HttpClient
 
@@ -93,6 +95,20 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_repo=form_response_repo,
         workspace_form_repo=workspace_form_repo,
         workspace_user_repo=workspace_user_repo,
+    )
+
+    workspace_user_service: WorkspaceUserService = providers.Singleton(
+        WorkspaceUserService,
+        workspace_user_repository=workspace_user_repo
+    )
+
+    workspace_form_service: WorkspaceFormService = providers.Singleton(
+        WorkspaceFormService,
+        form_provider_service=form_provider_service,
+        plugin_proxy_service=plugin_proxy_service,
+        workspace_user_service=workspace_user_service,
+        form_service=form_service,
+        workspace_form_repository=workspace_form_repo
     )
 
 
