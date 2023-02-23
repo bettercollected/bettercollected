@@ -30,12 +30,13 @@ class FormPluginProviderService:
         )
 
     async def update_provider(
-        self, provider_name: str, provider: FormProviderConfigDto
+            self, provider_name: str, provider: FormProviderConfigDto
     ):
         return await self._form_provider_repo.update(
             provider_name, FormPluginConfigDocument(**provider.dict())
         )
 
+    # TODO : Avoid boolean params, Refactor
     async def get_provider(self, provider_name: str, is_admin: bool):
         provider = await self._form_provider_repo.get(provider_name)
         if provider and is_admin:
@@ -43,3 +44,7 @@ class FormPluginProviderService:
         if provider and provider.enabled:
             return {"provider_name": provider.provider_name}
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
+
+    async def get_provider_url(self, provider_name) -> str:
+        provider = await self._form_provider_repo.get_provider_url(provider_name)
+        return provider.provider_url

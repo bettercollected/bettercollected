@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from typing import List
 
+from pydantic import BaseModel
 from pymongo.errors import (
     InvalidOperation,
     InvalidURI,
@@ -45,6 +46,15 @@ class FormPluginProviderRepository(BaseRepository):
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
 
+    class ProviderUrlProject(BaseModel):
+        provider_url: str
+
+    async def get_provider_url(self, provider_name) -> ProviderUrlProject:
+        return await FormPluginConfigDocument.find_one(
+            {"provider_name": provider_name},
+            projection_model=self.ProviderUrlProject
+        )
+
     async def add(self, item: FormPluginConfigDocument) -> FormPluginConfigDocument:
         try:
             return await item.save()
@@ -55,7 +65,7 @@ class FormPluginProviderRepository(BaseRepository):
             )
 
     async def update(
-        self, provider_name: str, item: FormPluginConfigDocument
+            self, provider_name: str, item: FormPluginConfigDocument
     ) -> FormPluginConfigDocument:
         try:
             document = await self.get(provider_name)
