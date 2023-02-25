@@ -65,3 +65,20 @@ class AuthService:
         decrypted_data = json.loads(crypto.decrypt(state))
         state = OAuthState(**decrypted_data)
         return user, state
+
+    async def get_basic_auth_url(self, provider: str, client_referer_url: str):
+        response_data = await self.http_client.get(
+            settings.auth_settings.AUTH_BASE_URL + f"/auth/{provider}/basic",
+            params={"client_referer_url": client_referer_url},
+        )
+        return response_data.get("auth_url")
+
+    async def basic_auth_callback(self, provider: str, code: str, state: str):
+        response_data = await self.http_client.get(
+            settings.auth_settings.AUTH_BASE_URL + f"/auth/{provider}/basic/callback",
+            params={"code": code, "state": state},
+        )
+        user = response_data.get("user")
+        if user:
+            await workspace_service.create_workspace(User(**user))
+        return user, response_data.get("client_referer_url", "")

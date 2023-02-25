@@ -2,6 +2,7 @@ from pydantic import BaseSettings
 
 
 class AuthSettings(BaseSettings):
+    HOST: str = "http://localhost:3000"
     AES_HEX_KEY: str
     JWT_SECRET: str
     ACCESS_TOKEN_EXPIRY_IN_MINUTES: int = 60

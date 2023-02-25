@@ -2,7 +2,7 @@
 import logging
 from typing import Optional
 
-from classy_fastapi import Routable, get
+from classy_fastapi import Routable, get, post
 from fastapi import Depends
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
@@ -10,7 +10,10 @@ from starlette.responses import RedirectResponse, Response
 from backend.app.container import container
 from backend.app.models.generic_models import GenericResponseModel, generate_generic_pageable_response
 from backend.app.router import router
-from backend.app.services.auth_cookie_service import set_tokens_to_response
+from backend.app.services.auth_cookie_service import (
+    set_tokens_to_response,
+    delete_token_cookie,
+)
 from backend.app.services.user_service import get_logged_user
 from common.models.user import AuthenticationStatus, User
 
@@ -54,8 +57,25 @@ class AuthRoutes(Routable):
             return response
         return {"message": "Token saved successfully."}
 
-    # @get("/{provider}/basic")
-    # async def _basic_auth(self, provider_name: str, request: Request):
-    #     client_referer_url = request.headers.get('referer')
-    #     basic_auth_url = await self.auth_service.get_basic_auth_url(provider_name, client_referer_url)
-    #     return RedirectResponse(basic_auth_url)
+    @get("/{provider}/basic")
+    async def _basic_auth(self, provider: str, request: Request):
+        client_referer_url = request.headers.get("referer")
+        basic_auth_url = await self.auth_service.get_basic_auth_url(
+            provider, client_referer_url
+        )
+        return RedirectResponse(basic_auth_url)
+
+    @get("/{provider}/basic/callback")
+    async def _basic_auth_callback(self, provider: str, code: str, state: str):
+        user, client_referer_url = await self.auth_service.basic_auth_callback(
+            provider, code, state
+        )
+        response = RedirectResponse(client_referer_url)
+        if user:
+            set_tokens_to_response(User(**user), response)
+        return response
+
+    @get("/logout")
+    async def logout(self, response: Response):
+        delete_token_cookie(response=response)
+        return "Logged out successfully!!!"
