@@ -17,10 +17,10 @@ from requests import Response
 
 class AuthService:
     def __init__(
-            self,
-            auth_provider_factory: AuthProviderFactory,
-            user_repository: UserRepository,
-            http_client: HttpClient,
+        self,
+        auth_provider_factory: AuthProviderFactory,
+        user_repository: UserRepository,
+        http_client: HttpClient,
     ):
         self.auth_provider_factory = auth_provider_factory
         self.user_repository = user_repository
@@ -54,5 +54,15 @@ class AuthService:
         )
 
     async def get_basic_auth_url(self, provider: str, client_referer_url: str):
-        url = await self.auth_provider_factory.get_auth_provider(provider).get_basic_auth_url(client_referer_url)
+        url = await self.auth_provider_factory.get_auth_provider(
+            provider
+        ).get_basic_auth_url(client_referer_url)
         return {"auth_url": url}
+
+    async def basic_auth_callback(
+        self, provider: str, code: str, state: str, *args, **kwargs
+    ):
+        request = kwargs.get("request")
+        return await self.auth_provider_factory.get_auth_provider(
+            provider
+        ).basic_auth_callback(code, state, request=request)

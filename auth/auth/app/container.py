@@ -16,7 +16,9 @@ class AppContainer(containers.DeclarativeContainer):
     provider_repository: ProviderRepository = providers.Singleton(ProviderRepository)
     user_repository: UserRepository = providers.Singleton(UserRepository)
 
-    auth_provider_factory: AuthProviderFactory = providers.Singleton(AuthProviderFactory)
+    auth_provider_factory: AuthProviderFactory = providers.Singleton(
+        AuthProviderFactory
+    )
 
     auth_service: AuthService = providers.Singleton(
         AuthService,

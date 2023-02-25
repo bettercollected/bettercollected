@@ -6,7 +6,6 @@ from auth.app.services.typeform_auth_provider import TypeformAuthProvider
 
 
 class AuthProviderFactory:
-
     def __init__(self):
         self._google_auth_provider = GoogleAuthProvider()
         self._typeform_auth_provider = TypeformAuthProvider()
