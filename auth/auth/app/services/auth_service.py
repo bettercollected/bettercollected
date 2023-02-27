@@ -6,21 +6,23 @@ import jwt
 from auth.app.models.user import UserDocument
 from auth.app.repositories.provider_repository import ProviderRepository
 from auth.app.repositories.user_repository import UserRepository
+from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.config import settings
 from common.enums.roles import Roles
 from common.models.user import User
 from common.models.user import UserInfo, OAuthState
 from common.services.http_client import HttpClient
+from requests import Response
 
 
 class AuthService:
     def __init__(
         self,
-        provider_repository: ProviderRepository,
+        auth_provider_factory: AuthProviderFactory,
         user_repository: UserRepository,
         http_client: HttpClient,
     ):
-        self.provider_repository = provider_repository
+        self.auth_provider_factory = auth_provider_factory
         self.user_repository = user_repository
         self.http_client = http_client
 
@@ -50,3 +52,17 @@ class AuthService:
             roles=user_document.roles,
             services=user_document.services,
         )
+
+    async def get_basic_auth_url(self, provider: str, client_referer_url: str):
+        url = await self.auth_provider_factory.get_auth_provider(
+            provider
+        ).get_basic_auth_url(client_referer_url)
+        return {"auth_url": url}
+
+    async def basic_auth_callback(
+        self, provider: str, code: str, state: str, *args, **kwargs
+    ):
+        request = kwargs.get("request")
+        return await self.auth_provider_factory.get_auth_provider(
+            provider
+        ).basic_auth_callback(code, state, request=request)
