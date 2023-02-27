@@ -5,10 +5,9 @@ from common.models.user import User
 
 
 class WorkspaceUserRepository:
-
     @staticmethod
     async def is_user_admin_in_workspace(
-            workspace_id: PydanticObjectId, user: User
+        workspace_id: PydanticObjectId, user: User
     ) -> bool:
         if not user or not workspace_id:
             return False

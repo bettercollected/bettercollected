@@ -25,7 +25,7 @@ class Workspace(WorkspaceRequestDto):
     updated_at: Optional[dt.datetime]
 
 
-class WorkspaceFormSettings(BaseModel):
+class WorkspaceFormSettings(CamelModel):
     """Model for storing the form settings of a workspace."""
 
     pinned: Optional[bool] = False
@@ -39,10 +39,3 @@ class WorkspaceResponseDto(WorkspaceRequestDto):
     """Model for returning information about a workspace."""
 
     id: Optional[PydanticObjectId]
-
-
-class WorkspaceFormPatch(BaseModel):
-    """Model for patching the form settings of a workspace."""
-
-    form_id: str
-    pinned: Optional[bool] = False

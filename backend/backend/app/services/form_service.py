@@ -13,10 +13,10 @@ from common.models.user import User
 
 class FormService:
     def __init__(
-            self,
-            workspace_user_repo: WorkspaceUserRepository,
-            form_repo: FormRepository,
-            workspace_form_repo: WorkspaceFormRepository,
+        self,
+        workspace_user_repo: WorkspaceUserRepository,
+        form_repo: FormRepository,
+        workspace_form_repo: WorkspaceFormRepository,
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
@@ -41,7 +41,7 @@ class FormService:
         return [MinifiedForm(**form) for form in forms]
 
     async def get_form_by_id(
-            self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self, workspace_id: PydanticObjectId, form_id: str, user: User
     ):
         is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
             workspace_id=workspace_id, user=user

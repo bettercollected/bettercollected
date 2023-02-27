@@ -98,8 +98,7 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     workspace_user_service: WorkspaceUserService = providers.Singleton(
-        WorkspaceUserService,
-        workspace_user_repository=workspace_user_repo
+        WorkspaceUserService, workspace_user_repository=workspace_user_repo
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(
@@ -108,7 +107,7 @@ class AppContainer(containers.DeclarativeContainer):
         plugin_proxy_service=plugin_proxy_service,
         workspace_user_service=workspace_user_service,
         form_service=form_service,
-        workspace_form_repository=workspace_form_repo
+        workspace_form_repository=workspace_form_repo,
     )
 
 

@@ -4,8 +4,8 @@ from typing import Generic, Optional, TypeVar, Any
 from pydantic import BaseModel
 from pydantic.generics import GenericModel
 
-DataT = TypeVar('DataT')
-Content = TypeVar('Content')
+DataT = TypeVar("DataT")
+Content = TypeVar("Content")
 
 
 class PageableModel(BaseModel):
@@ -27,7 +27,7 @@ class DataModel(BaseModel):
 
 # TODO Remove
 class GenericResponseModel(GenericModel, Generic[Content]):
-    apiVersion: str = 'v1'
+    apiVersion: str = "v1"
     payload: Optional[DataModel | Content] = None
     # error: Optional[ErrorModel] = None
     timestamp: datetime = datetime.now().isoformat()

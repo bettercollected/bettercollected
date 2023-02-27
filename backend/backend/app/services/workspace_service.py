@@ -16,10 +16,10 @@ from common.models.user import User
 
 class WorkspaceService:
     def __init__(
-            self,
-            workspace_repo: WorkspaceRepository,
-            aws_service: AWSS3Service,
-            workspace_user_repo: WorkspaceUserRepository,
+        self,
+        workspace_repo: WorkspaceRepository,
+        aws_service: AWSS3Service,
+        workspace_user_repo: WorkspaceUserRepository,
     ):
         self._workspace_repo = workspace_repo
         self._aws_service = aws_service
@@ -36,12 +36,12 @@ class WorkspaceService:
         return WorkspaceResponseDto(**workspace.dict())
 
     async def patch_workspace(
-            self,
-            profile_image_file: UploadFile,
-            banner_image_file: UploadFile,
-            workspace_id,
-            workspace_patch: WorkspaceRequestDto,
-            user: User,
+        self,
+        profile_image_file: UploadFile,
+        banner_image_file: UploadFile,
+        workspace_id,
+        workspace_patch: WorkspaceRequestDto,
+        user: User,
     ):
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id
@@ -119,11 +119,9 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.dict())
 
     async def delete_custom_domain_of_workspace(
-            self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: PydanticObjectId, user: User
     ):
-        await self._workspace_user_repo.is_user_admin_in_workspace(
-            workspace_id, user
-        )
+        await self._workspace_user_repo.is_user_admin_in_workspace(workspace_id, user)
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id=workspace_id
         )
@@ -153,8 +151,9 @@ async def create_workspace(user: User):
         )
         await workspace.save()
         # Save new workspace user if it is not associated yet
-        existing_workspace_user = WorkspaceUserDocument.find_one(
-            {"workspaceId": workspace.id, "userId": user.id})
+        existing_workspace_user = await WorkspaceUserDocument.find_one(
+            {"workspace_id": workspace.id, "user_id": user.id}
+        )
         if not existing_workspace_user:
             workspace_user = WorkspaceUserDocument(
                 workspace_id=workspace.id, user_id=user.id

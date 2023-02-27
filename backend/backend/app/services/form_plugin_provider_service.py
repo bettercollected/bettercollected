@@ -30,7 +30,7 @@ class FormPluginProviderService:
         )
 
     async def update_provider(
-            self, provider_name: str, provider: FormProviderConfigDto
+        self, provider_name: str, provider: FormProviderConfigDto
     ):
         return await self._form_provider_repo.update(
             provider_name, FormPluginConfigDocument(**provider.dict())

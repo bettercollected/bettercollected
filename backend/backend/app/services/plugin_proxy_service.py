@@ -17,12 +17,12 @@ class PluginProxyService:
         self.http_client = http_client
 
     async def pass_request(
-            self,
-            request: Request,
-            url: str,
-            *,
-            method: HTTPMethods = None,
-            data: Mapping[str, Any] = None,
+        self,
+        request: Request,
+        url: str,
+        *,
+        method: HTTPMethods = None,
+        data: Mapping[str, Any] = None,
     ) -> Mapping[str, Any]:
         # Merge query params if params is not none
         try:

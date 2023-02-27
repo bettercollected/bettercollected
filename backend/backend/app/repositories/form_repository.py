@@ -7,11 +7,11 @@ from backend.app.schemas.standard_form import FormDocument
 
 class FormRepository:
     async def get_forms_in_workspace(
-            self, workspace_id: PydanticObjectId, form_id_list: List[str]
+        self, workspace_id: PydanticObjectId, form_id_list: List[str]
     ):
         return (
             await FormDocument.find({"formId": {"$in": form_id_list}})
-                .aggregate(
+            .aggregate(
                 [
                     {
                         "$lookup": {
@@ -26,7 +26,7 @@ class FormRepository:
                     {"$set": {"settings": "$workspace_form.settings"}},
                 ]
             )
-                .to_list()
+            .to_list()
         )
 
     async def save_form(self, form: FormDocument):

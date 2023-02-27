@@ -51,8 +51,7 @@ class FormPluginProviderRepository(BaseRepository):
 
     async def get_provider_url(self, provider_name) -> ProviderUrlProject:
         return await FormPluginConfigDocument.find_one(
-            {"provider_name": provider_name},
-            projection_model=self.ProviderUrlProject
+            {"provider_name": provider_name}, projection_model=self.ProviderUrlProject
         )
 
     async def add(self, item: FormPluginConfigDocument) -> FormPluginConfigDocument:
@@ -65,7 +64,7 @@ class FormPluginProviderRepository(BaseRepository):
             )
 
     async def update(
-            self, provider_name: str, item: FormPluginConfigDocument
+        self, provider_name: str, item: FormPluginConfigDocument
     ) -> FormPluginConfigDocument:
         try:
             document = await self.get(provider_name)
