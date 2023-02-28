@@ -22,10 +22,10 @@ from common.utils.asyncio_run import asyncio_run
 
 class AuthService:
     def __init__(
-            self,
-            auth_provider_factory: AuthProviderFactory,
-            user_repository: UserRepository,
-            http_client: HttpClient,
+        self,
+        auth_provider_factory: AuthProviderFactory,
+        user_repository: UserRepository,
+        http_client: HttpClient,
     ):
         self.auth_provider_factory = auth_provider_factory
         self.user_repository = user_repository
@@ -58,10 +58,12 @@ class AuthService:
             services=user_document.services,
         )
 
-    async def get_basic_auth_url(self, provider: str, client_referer_url: str):
+    async def get_basic_auth_url(
+        self, provider: str, client_referer_url: str, creator: bool
+    ):
         url = await self.auth_provider_factory.get_auth_provider(
             provider
-        ).get_basic_auth_url(client_referer_url)
+        ).get_basic_auth_url(client_referer_url, creator=creator)
         return {"auth_url": url}
 
     async def validate_otp(self, email, otp_code):
@@ -69,19 +71,28 @@ class AuthService:
             user = await self.user_repository.get_user_by_email(email)
             if user and user.otp_code and user.otp_expiry:
                 if user.otp_code != otp_code:
-                    raise HTTPException(status_code=400, content="Error Invalid Verification code.")
+                    raise HTTPException(
+                        status_code=400, content="Error Invalid Verification code."
+                    )
                 if user.otp_expiry < self.get_expiry_epoch_after():
-                    raise HTTPException(status_code=400,
-                                        content="Error Verification code is expired. Please request for new code.")
+                    raise HTTPException(
+                        status_code=400,
+                        content="Error Verification code is expired. Please request for new code.",
+                    )
                 await UserRepository.clear_user_otp(user)
-                return User(id=str(user.id), sub=user.email, username=user.username, roles=user.roles)
+                return User(
+                    id=str(user.id),
+                    sub=user.email,
+                    username=user.username,
+                    roles=user.roles,
+                )
             else:
                 raise HTTPException(status_code=404, content="Error user not found.")
         except HTTPException as error:
             return None
 
     async def basic_auth_callback(
-            self, provider: str, code: str, state: str, *args, **kwargs
+        self, provider: str, code: str, state: str, *args, **kwargs
     ):
         request = kwargs.get("request")
         return await self.auth_provider_factory.get_auth_provider(
@@ -89,7 +100,7 @@ class AuthService:
         ).basic_auth_callback(code, state, request=request)
 
     def send_code_to_user_for_workspace_sync(
-            self, receiver_mail: EmailStr, workspace_title: str
+        self, receiver_mail: EmailStr, workspace_title: str
     ):
         asyncio_run(
             self.send_otp_to_mail(
