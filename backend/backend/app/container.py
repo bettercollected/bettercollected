@@ -78,6 +78,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     workspace_service: WorkspaceService = providers.Singleton(
         WorkspaceService,
+        http_client=http_client,
         workspace_repo=workspace_repo,
         aws_service=aws_service,
         workspace_user_repo=workspace_user_repo,
