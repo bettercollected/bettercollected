@@ -18,7 +18,7 @@ from backend.app.services.auth_cookie_service import (
     delete_token_cookie,
 )
 from backend.app.services.user_service import get_logged_user
-from common.models.user import AuthenticationStatus, User
+from common.models.user import AuthenticationStatus, User, UserLoginWithOTP
 
 log = logging.getLogger(__name__)
 
@@ -39,10 +39,16 @@ class AuthRoutes(Routable):
             )
         )
 
+    @post("/otp/validate")
+    async def _validate_otp(self, login_details: UserLoginWithOTP, response: Response):
+        user = await self.auth_service.validate_otp(login_details)
+        set_tokens_to_response(user, response)
+        return GenericResponseModel(payload="Logged In successfully")
+
     # TODO : Merge with plugin proxy currently it is handled for typeform only
     @get("/{provider_name}/oauth")
     async def _oauth_provider(
-        self, provider_name: str, request: Request, creator: Optional[str] = True
+            self, provider_name: str, request: Request, creator: Optional[str] = True
     ):
         client_referer_url = request.headers.get("referer")
         oauth_url = await self.auth_service.get_oauth_url(

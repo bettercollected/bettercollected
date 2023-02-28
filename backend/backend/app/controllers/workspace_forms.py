@@ -10,7 +10,6 @@ from backend.app.models.generic_models import (
     generate_generic_pageable_response,
     GenericResponseModel,
 )
-from backend.app.models.minified_form import MinifiedForm
 from backend.app.router import router
 from backend.app.services.form_service import FormService
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in

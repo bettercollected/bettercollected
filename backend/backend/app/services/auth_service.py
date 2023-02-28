@@ -1,15 +1,17 @@
 import json
+from http import HTTPStatus
 from typing import Tuple
 
 from starlette.requests import Request
 
+from backend.app.exceptions import HTTPException
 from backend.app.services import workspace_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.jwt_service import JwtService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.config import settings
 from common.configs.crypto import Crypto
-from common.models.user import User, OAuthState, UserInfo
+from common.models.user import User, OAuthState, UserInfo, UserLoginWithOTP
 from common.services.http_client import HttpClient
 
 crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
@@ -17,14 +19,24 @@ crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
 
 class AuthService:
     def __init__(
-        self,
-        http_client: HttpClient,
-        plugin_proxy_service: PluginProxyService,
-        form_provider_service: FormPluginProviderService,
+            self,
+            http_client: HttpClient,
+            plugin_proxy_service: PluginProxyService,
+            form_provider_service: FormPluginProviderService,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
         self.form_provider_service = form_provider_service
+
+    async def validate_otp(self, login_details: UserLoginWithOTP):
+        response_data = await self.http_client.get(
+            settings.auth_settings.AUTH_BASE_URL + "/auth/otp/validate",
+            params={"email": login_details.email, "otp_code": login_details.otp_code}
+        )
+        user = response_data.get("user", None)
+        if not user:
+            raise HTTPException(HTTPStatus.UNAUTHORIZED, content="Invalid Otp Code")
+        return User(**user)
 
     async def get_oauth_url(self, provider_name: str, client_referer_url: str):
         provider_config = await self.form_provider_service.get_provider(
@@ -44,7 +56,7 @@ class AuthService:
         return oauth_url
 
     async def handle_backend_auth_callback(
-        self, *, provider_name: str, state: str, request: Request
+            self, *, provider_name: str, state: str, request: Request
     ) -> Tuple[User, OAuthState]:
         provider_config = await self.form_provider_service.get_provider(
             provider_name, True
