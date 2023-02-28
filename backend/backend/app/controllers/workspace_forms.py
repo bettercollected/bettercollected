@@ -13,7 +13,7 @@ from backend.app.models.generic_models import (
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.router import router
 from backend.app.services.form_service import FormService
-from backend.app.services.user_service import get_logged_user
+from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from common.models.form_import import FormImportRequestBody
 from common.models.user import User
@@ -37,7 +37,7 @@ class WorkspaceFormsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         form_id: str = None,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_user_if_logged_in),
     ) -> GenericResponseModel[Any]:  # TODO Refactor Any
         # TODO : Refactor this to below endpoint after fixes in frontend
         if form_id:
