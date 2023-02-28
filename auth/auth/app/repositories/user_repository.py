@@ -11,7 +11,7 @@ class UserRepository:
 
     @staticmethod
     async def save_user(
-        email: str, otp_code: [Optional] = None, otp_expiry: Optional[int] = None
+            email: str, otp_code: [Optional] = None, otp_expiry: Optional[int] = None
     ) -> UserDocument:
         user_document = await UserRepository.get_user_by_email(email)
         if not user_document:
@@ -23,3 +23,9 @@ class UserRepository:
             )
             user_document = await user_document.save()
         return user_document
+
+    @staticmethod
+    async def clear_user_otp(user: UserDocument):
+        user.otp_code = None
+        user.otp_expiry = None
+        await user.save()
