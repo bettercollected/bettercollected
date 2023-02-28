@@ -54,7 +54,7 @@ class WorkspaceFormsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         form_id: str,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_user_if_logged_in),
     ):
         form = await self._form_service.get_form_by_id(workspace_id, form_id, user)
         return GenericResponseModel(

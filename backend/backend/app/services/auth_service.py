@@ -11,6 +11,7 @@ from backend.app.services.jwt_service import JwtService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.config import settings
 from common.configs.crypto import Crypto
+from common.enums.roles import Roles
 from common.models.user import User, OAuthState, UserInfo, UserLoginWithOTP
 from common.services.http_client import HttpClient
 
@@ -78,10 +79,10 @@ class AuthService:
         state = OAuthState(**decrypted_data)
         return user, state
 
-    async def get_basic_auth_url(self, provider: str, client_referer_url: str):
+    async def get_basic_auth_url(self, provider: str, client_referer_url: str, creator: bool = False):
         response_data = await self.http_client.get(
             settings.auth_settings.AUTH_BASE_URL + f"/auth/{provider}/basic",
-            params={"client_referer_url": client_referer_url},
+            params={"client_referer_url": client_referer_url, "creator": creator},
         )
         return response_data.get("auth_url")
 
@@ -89,8 +90,9 @@ class AuthService:
         response_data = await self.http_client.get(
             settings.auth_settings.AUTH_BASE_URL + f"/auth/{provider}/basic/callback",
             params={"code": code, "state": state},
+            timeout=120
         )
         user = response_data.get("user")
-        if user:
+        if user and Roles.FORM_CREATOR in user.get("roles"):
             await workspace_service.create_workspace(User(**user))
         return user, response_data.get("client_referer_url", "")

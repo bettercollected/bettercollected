@@ -22,21 +22,21 @@ from common.utils.logger import logger
 
 class FormResponseService:
     def __init__(
-        self,
-        form_response_repo: FormResponseRepository,
-        workspace_form_repo: WorkspaceFormRepository,
-        workspace_user_repo: WorkspaceUserRepository,
+            self,
+            form_response_repo: FormResponseRepository,
+            workspace_form_repo: WorkspaceFormRepository,
+            workspace_user_repo: WorkspaceUserRepository,
     ):
         self._form_response_repo = form_response_repo
         self._workspace_form_repo = workspace_form_repo
         self._workspace_user_repo = workspace_user_repo
 
     async def get_all_workspace_responses(
-        self, workspace_id: PydanticObjectId, user: User
+            self, workspace_id: PydanticObjectId, user: User
     ):
         try:
             if not await self._workspace_user_repo.is_user_admin_in_workspace(
-                workspace_id=workspace_id, user=user
+                    workspace_id=workspace_id, user=user
             ):
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_UNAUTHORIZED
@@ -68,11 +68,11 @@ class FormResponseService:
             )
 
     async def get_workspace_submissions(
-        self, workspace_id: PydanticObjectId, form_id: str, user: User
+            self, workspace_id: PydanticObjectId, form_id: str, user: User
     ):
         try:
             if not await self._workspace_user_repo.is_user_admin_in_workspace(
-                workspace_id, user
+                    workspace_id, user
             ):
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_UNAUTHORIZED
@@ -97,15 +97,10 @@ class FormResponseService:
             )
 
     async def get_workspace_submission(
-        self, workspace_id: PydanticObjectId, response_id: str, user: User
+            self, workspace_id: PydanticObjectId, response_id: str, user: User
     ):
-        # TODO : Handle is_admin by decorator
-        if not await self._workspace_user_repo.is_user_admin_in_workspace(
-            workspace_id, user
-        ):
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_UNAUTHORIZED
-            )
+
+        is_admin = self._workspace_user_repo.is_user_admin_in_workspace(workspace_id, user)
         # TODO : Handle case for multiple form import by other user
         response = await FormResponseDocument.find_one({"responseId": response_id})
         form = await FormDocument.find_one({"formId": response.formId})
@@ -117,10 +112,8 @@ class FormResponseService:
         ).to_list()
         if not workspace_form:
             raise HTTPException(404, "Form not found in this workspace")
-        workspace_user = await WorkspaceUserDocument.find_one(
-            {"workspace_id": workspace_id, "user_id": PydanticObjectId(user.id)}
-        )
-        if not (workspace_user or response["dataOwnerIdentifier"] == user.sub):
+
+        if not (is_admin or response["dataOwnerIdentifier"] == user.sub):
             raise HTTPException(403, "You are not authorized to perform this action.")
 
         response.formTitle = form.title
@@ -151,7 +144,7 @@ class FormResponseService:
 
     @staticmethod
     def _map_typeform_form_and_response(
-        form: StandardFormDto, response: StandardFormResponseDto
+            form: StandardFormDto, response: StandardFormResponseDto
     ) -> StandardFormResponseTransformerDto:
         mapped_form_response = StandardFormResponseTransformerDto(**form.dict())
         mapped_form_response.responseId = response.responseId
@@ -165,9 +158,9 @@ class FormResponseService:
         for question in mapped_form_response.questions:
             question_id = question.questionId
             if (
-                question.isGroupQuestion
-                and question.type
-                and question.type.get("questions")
+                    question.isGroupQuestion
+                    and question.type
+                    and question.type.get("questions")
             ):
                 if not question.type.get("type") == "GROUP":
                     answer = []
@@ -175,8 +168,8 @@ class FormResponseService:
                         ques_id = t["questionId"]
                         ques = {"questionId": ques_id}
                         if (
-                            response.responses.get(ques_id)
-                            and response.responses.get(ques_id).answer
+                                response.responses.get(ques_id)
+                                and response.responses.get(ques_id).answer
                         ):
                             ques["answer"] = response.responses.get(ques_id).answer
                         answer.append(ques)
@@ -217,24 +210,24 @@ class FormResponseService:
 
             else:
                 if (
-                    response.responses.get(question_id)
-                    and response.responses.get(question_id).answer
-                    and type(response.responses.get(question_id).answer) is list
+                        response.responses.get(question_id)
+                        and response.responses.get(question_id).answer
+                        and type(response.responses.get(question_id).answer) is list
                 ):
                     answer = []
                     for a in response.responses.get(question_id).answer:
                         answer.append(a.get("value") if type(a) is dict else a)
                     question.answer = answer
                 elif (
-                    response.responses.get(question_id)
-                    and response.responses.get(question_id).answer
-                    and not response.responses.get(question_id).answer
+                        response.responses.get(question_id)
+                        and response.responses.get(question_id).answer
+                        and not response.responses.get(question_id).answer
                 ):
                     question.answer = response.responses.get(question_id).answer
                 elif (
-                    response.responses.get(question_id)
-                    and response.responses.get(question_id).answer
-                    and response.responses.get(question_id).answer
+                        response.responses.get(question_id)
+                        and response.responses.get(question_id).answer
+                        and response.responses.get(question_id).answer
                 ):
                     question.answer = response.responses.get(question_id).answer
                 else:

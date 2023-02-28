@@ -68,10 +68,10 @@ class AuthRoutes(Routable):
         return {"message": "Token saved successfully."}
 
     @get("/{provider}/basic")
-    async def _basic_auth(self, provider: str, request: Request):
+    async def _basic_auth(self, provider: str, request: Request, creator: bool = False):
         client_referer_url = request.headers.get("referer")
         basic_auth_url = await self.auth_service.get_basic_auth_url(
-            provider, client_referer_url
+            provider, client_referer_url, creator=creator
         )
         return RedirectResponse(basic_auth_url)
 
