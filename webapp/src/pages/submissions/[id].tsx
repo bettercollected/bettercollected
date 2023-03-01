@@ -36,7 +36,7 @@ export default function Submission({ workspace, submissionId }: ISubmission) {
         router
             .push(
                 {
-                    pathname: '/',
+                    pathname: `/${router.query.workspace_name}`,
                     query: { view: 'mySubmissions' }
                 },
                 undefined,
@@ -50,7 +50,7 @@ export default function Submission({ workspace, submissionId }: ISubmission) {
         {
             title: 'Home',
             icon: <HomeIcon className="w-4 h-4 mr-2" />,
-            onClick: () => router.push(`/`, undefined, { scroll: false, shallow: true })
+            onClick: () => router.push(`/${router.query.workspace_name}`, undefined, { scroll: false, shallow: true })
         },
         {
             title: 'Submissions',
