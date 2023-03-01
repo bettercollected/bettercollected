@@ -11,8 +11,11 @@ class DynamicCORSMiddleware(CORSMiddleware):
     time = datetime.datetime.utcnow()
 
     def is_allowed_origin(self, origin: str) -> bool:
-        if datetime.datetime.utcnow().timestamp() < (
-                self.time.timestamp() + float(60 * 60)) and origin in self.allowedOrigins:
+        if (
+            datetime.datetime.utcnow().timestamp()
+            < (self.time.timestamp() + float(60 * 60))
+            and origin in self.allowedOrigins
+        ):
             return True
         origins = asyncio_run(AllowedOriginsDocument.find().to_list())
         all_origins = [o.origin for o in origins]

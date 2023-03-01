@@ -40,6 +40,12 @@ class FormService:
         )
         return [MinifiedForm(**form) for form in forms]
 
+    async def search_form_in_workspace(self, workspace_id: PydanticObjectId, query: str):
+        form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(workspace_id, True)
+        forms = await self._form_repo.search_form_in_workspace(workspace_id=workspace_id, form_ids=form_ids,
+                                                               query=query)
+        return [StandardFormDto(**form) for form in forms]
+
     async def get_form_by_id(
             self, workspace_id: PydanticObjectId, form_id: str, user: User
     ):

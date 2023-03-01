@@ -26,6 +26,13 @@ def get_logged_user(request: Request) -> User:
         raise HTTPException(401, "No user logged in.")
 
 
+def get_user_if_logged_in(request: Request) -> User | None:
+    try:
+        return get_logged_user(request=request)
+    except HTTPException as e:
+        return None
+
+
 def get_user_token(request: Request) -> str:
     access_token = request.cookies.get("Authorization")
     if not access_token:

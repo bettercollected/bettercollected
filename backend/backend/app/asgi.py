@@ -74,10 +74,12 @@ def get_application(is_test_mode: bool = False):
         on_startup=[on_startup],
         on_shutdown=[on_shutdown],
     )
-    app.add_middleware(DynamicCORSMiddleware,
-                       allow_credentials=True,
-                       allow_methods=["*"],
-                       allow_headers=["*"])
+    app.add_middleware(
+        DynamicCORSMiddleware,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     logger.info("Add application routes.")
     app.include_router(root_api_router)
     logger.info("Register global exception handler for custom HTTPException.")

@@ -14,6 +14,7 @@ from common.base.repo import BaseRepository, T, U
 from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
 from common.enums.form_provider import FormProvider
 from common.models.standard_form import StandardFormResponseDto
+from common.models.user import User
 
 
 # noinspection PyMethodOverriding
@@ -22,7 +23,7 @@ class FormResponseRepository(BaseRepository):
         try:
             form_responses = (
                 await FormResponseDocument.find({"formId": form_id})
-                    .aggregate(
+                .aggregate(
                     [
                         {
                             "$lookup": {
@@ -36,10 +37,81 @@ class FormResponseRepository(BaseRepository):
                         {"$unwind": "$title"},
                         {"$sort": {"created_at": -1}},
                     ]
-                ).to_list()
+                )
+                .to_list()
             )
-            return [StandardFormResponseDto(**form_response) for form_response in form_responses]
+            return [
+                StandardFormResponseDto(**form_response)
+                for form_response in form_responses
+            ]
         # TODO : Handle specific exception on global exception handler
+        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                content=MESSAGE_DATABASE_EXCEPTION,
+            )
+
+    async def list_by_form_ids(
+        self, form_ids: List[str]
+    ) -> List[StandardFormResponseDto]:
+        try:
+            form_responses = (
+                await FormResponseDocument.find({"formId": {"$in": form_ids}})
+                .aggregate(
+                    [
+                        {
+                            "$lookup": {
+                                "from": "forms",
+                                "localField": "formId",
+                                "foreignField": "formId",
+                                "as": "form",
+                            },
+                        },
+                        {"$set": {"formTitle": "$form.title"}},
+                        {"$unwind": "$formTitle"},
+                        {"$sort": {"created_at": -1}},
+                    ]
+                )
+                .to_list()
+            )
+            return [
+                StandardFormResponseDto(**form_response)
+                for form_response in form_responses
+            ]
+        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                content=MESSAGE_DATABASE_EXCEPTION,
+            )
+
+    async def get_user_submissions(self, form_ids, user: User):
+        try:
+            form_responses = (
+                await FormResponseDocument.find(
+                    {"dataOwnerIdentifier": user.sub, "formId": {"$in": form_ids}}
+                )
+                .aggregate(
+                    [
+                        {
+                            "$lookup": {
+                                "from": "forms",
+                                "localField": "formId",
+                                "foreignField": "formId",
+                                "as": "form",
+                            },
+                        },
+                        {"$set": {"formTitle": "$form.title"}},
+                        {"$unwind": "$formTitle"},
+                        {"$sort": {"created_at": -1}},
+                    ]
+                )
+                .to_list()
+            )
+            return [
+                StandardFormResponseDto(**form_response)
+                for form_response in form_responses
+            ]
+
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -52,7 +124,7 @@ class FormResponseRepository(BaseRepository):
                 await FormResponseDocument.find(
                     {"form_id": form_id, "response_id": response_id}
                 )
-                    .aggregate(
+                .aggregate(
                     [
                         {
                             "$lookup": {
@@ -86,7 +158,7 @@ class FormResponseRepository(BaseRepository):
                         {"$unwind": "$formCustomUrl"},
                     ]
                 )
-                    .to_list()
+                .to_list()
             )
             if not document:
                 raise HTTPException(
@@ -109,7 +181,7 @@ class FormResponseRepository(BaseRepository):
         pass
 
     async def update(
-            self, item_id: str, item: FormResponseDocument
+        self, item_id: str, item: FormResponseDocument
     ) -> StandardFormResponseDto:
         pass
 

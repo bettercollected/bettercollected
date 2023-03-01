@@ -16,14 +16,14 @@ from common.models.user import User
 
 
 class WorkspaceFormService:
-
-    def __init__(self,
-                 form_provider_service: FormPluginProviderService,
-                 plugin_proxy_service: PluginProxyService,
-                 workspace_user_service: WorkspaceUserService,
-                 form_service: FormService,
-                 workspace_form_repository: WorkspaceFormRepository
-                 ):
+    def __init__(
+        self,
+        form_provider_service: FormPluginProviderService,
+        plugin_proxy_service: PluginProxyService,
+        workspace_user_service: WorkspaceUserService,
+        form_service: FormService,
+        workspace_form_repository: WorkspaceFormRepository,
+    ):
         self.form_provider_service = form_provider_service
         self.plugin_proxy_service = plugin_proxy_service
         self.workspace_user_service = workspace_user_service
@@ -31,19 +31,23 @@ class WorkspaceFormService:
         self.workspace_form_repository = workspace_form_repository
 
     # TODO : Use plugin interface for importing for now endpoint is used here
-    async def import_form_to_workspace(self,
-                                       workspace_id: PydanticObjectId,
-                                       provider: str,
-                                       form_import: FormImportRequestBody,
-                                       user: User,
-                                       request: Request):
-        await self.workspace_user_service.check_user_is_admin_in_workspace(workspace_id, user)
+    async def import_form_to_workspace(
+        self,
+        workspace_id: PydanticObjectId,
+        provider: str,
+        form_import: FormImportRequestBody,
+        user: User,
+        request: Request,
+    ):
+        await self.workspace_user_service.check_user_is_admin_in_workspace(
+            workspace_id, user
+        )
         provider_url = await self.form_provider_service.get_provider_url(provider)
         response = await AiohttpClient.get_aiohttp_client().get(
             url=f"{provider_url}/{provider}/forms/convert/standard_form",
             json=form_import.dict(),
             cookies=request.cookies,
-            timeout=60
+            timeout=60,
         )
         response_data = await response.json()
         form_data = FormImportResponse.parse_obj(response_data)
@@ -59,18 +63,24 @@ class WorkspaceFormService:
                 # TODO : Refactor repeated information provider is only saved on form
                 #  as it doesn't change with workspaces
                 provider=standard_form.settings.provider,
-                private=standard_form.settings.private
-            ))
+                private=standard_form.settings.private,
+            ),
+        )
         responses = form_data.responses
         # TODO : Make this scalable in case of large number of responses
         for response in responses:
-            existing_response = await FormResponseDocument.find_one({'responseId': response.responseId})
+            existing_response = await FormResponseDocument.find_one(
+                {"responseId": response.responseId}
+            )
             response_document = FormResponseDocument(**response.dict())
             if existing_response:
                 response_document.id = existing_response.id
             response_document.formId = standard_form.formId
             # TODO : Handle data owner identifier in workspace
             data_owner_answer = response_document.responses.get(
-                form_import.response_data_owner)
-            response_document.dataOwnerIdentifier = data_owner_answer.answer if data_owner_answer else None
+                form_import.response_data_owner
+            )
+            response_document.dataOwnerIdentifier = (
+                data_owner_answer.answer if data_owner_answer else None
+            )
             await response_document.save()

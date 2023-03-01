@@ -3,6 +3,7 @@ from http import HTTPStatus
 
 from beanie import PydanticObjectId
 from fastapi import UploadFile
+from pydantic import EmailStr
 
 from backend.app.models.workspace import WorkspaceRequestDto, WorkspaceResponseDto
 from backend.app.repositories.workspace_repository import WorkspaceRepository
@@ -10,17 +11,21 @@ from backend.app.repositories.workspace_user_repository import WorkspaceUserRepo
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
+from backend.config import settings
 from common.exceptions.http import HTTPException
 from common.models.user import User
+from common.services.http_client import HttpClient
 
 
 class WorkspaceService:
     def __init__(
             self,
+            http_client: HttpClient,
             workspace_repo: WorkspaceRepository,
             aws_service: AWSS3Service,
             workspace_user_repo: WorkspaceUserRepository,
     ):
+        self.http_client = http_client
         self._workspace_repo = workspace_repo
         self._aws_service = aws_service
         self._workspace_user_repo = workspace_user_repo
@@ -121,9 +126,7 @@ class WorkspaceService:
     async def delete_custom_domain_of_workspace(
             self, workspace_id: PydanticObjectId, user: User
     ):
-        await self._workspace_user_repo.is_user_admin_in_workspace(
-            workspace_id, user
-        )
+        await self._workspace_user_repo.is_user_admin_in_workspace(workspace_id, user)
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id=workspace_id
         )
@@ -136,6 +139,15 @@ class WorkspaceService:
     async def get_mine_workspaces(self, user: User):
         workspaces = await self._workspace_repo.get_user_workspaces(user.id)
         return [WorkspaceResponseDto(**workspace.dict()) for workspace in workspaces]
+
+    async def send_otp_for_workspace(self, workspace_id: PydanticObjectId, receiver_email: EmailStr):
+        workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
+        response_data = await self.http_client.get(
+            settings.auth_settings.AUTH_BASE_URL + "/auth/otp/send",
+            params={"receiver_email": receiver_email, "workspace_title": workspace.title},
+            timeout=180
+        )
+        return {"message": "Otp sent successfully"}
 
 
 async def create_workspace(user: User):
@@ -153,8 +165,9 @@ async def create_workspace(user: User):
         )
         await workspace.save()
         # Save new workspace user if it is not associated yet
-        existing_workspace_user = WorkspaceUserDocument.find_one(
-            {"workspaceId": workspace.id, "userId": user.id})
+        existing_workspace_user = await WorkspaceUserDocument.find_one(
+            {"workspace_id": workspace.id, "user_id": user.id}
+        )
         if not existing_workspace_user:
             workspace_user = WorkspaceUserDocument(
                 workspace_id=workspace.id, user_id=user.id
