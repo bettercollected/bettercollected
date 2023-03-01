@@ -1,4 +1,5 @@
 """Application configuration - FastAPI."""
+from auth.config.mail_settings import MailSettings
 from auth.config.typeform_settings import TypeformSettings
 from pydantic import BaseSettings
 
@@ -52,6 +53,8 @@ class Application(BaseSettings):
     mongo_settings: MongoSettings = MongoSettings()
     google_settings: GoogleSettings = GoogleSettings()
     typeform_settings: TypeformSettings = TypeformSettings()
+    mail_settings: MailSettings = MailSettings()
+    organization_name: str = "Better Collected"
 
     AUTH_REDIRECT_URI: str = "http://localhost:8001/auth/callback"
     AUTH_JWT_SECRET: str
