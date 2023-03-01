@@ -44,10 +44,10 @@ export async function getServerSideProps(_context: any) {
 
     try {
         const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
-        const user = (await userStatus?.json().catch((e: any) => e)) ?? null;
+        const user = (await userStatus?.json().catch((e: any) => e))?.payload?.content ?? null;
         if (user?.user?.roles?.includes('FORM_CREATOR')) {
             const userWorkspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/mine`, config);
-            const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e)) ?? null;
+            const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
             if (!userWorkspace || userWorkspace.length < 1) {
                 return {
                     redirect: {
