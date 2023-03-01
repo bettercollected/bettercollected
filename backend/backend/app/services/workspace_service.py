@@ -19,11 +19,11 @@ from common.services.http_client import HttpClient
 
 class WorkspaceService:
     def __init__(
-            self,
-            http_client: HttpClient,
-            workspace_repo: WorkspaceRepository,
-            aws_service: AWSS3Service,
-            workspace_user_repo: WorkspaceUserRepository,
+        self,
+        http_client: HttpClient,
+        workspace_repo: WorkspaceRepository,
+        aws_service: AWSS3Service,
+        workspace_user_repo: WorkspaceUserRepository,
     ):
         self.http_client = http_client
         self._workspace_repo = workspace_repo
@@ -41,12 +41,12 @@ class WorkspaceService:
         return WorkspaceResponseDto(**workspace.dict())
 
     async def patch_workspace(
-            self,
-            profile_image_file: UploadFile,
-            banner_image_file: UploadFile,
-            workspace_id,
-            workspace_patch: WorkspaceRequestDto,
-            user: User,
+        self,
+        profile_image_file: UploadFile,
+        banner_image_file: UploadFile,
+        workspace_id,
+        workspace_patch: WorkspaceRequestDto,
+        user: User,
     ):
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id
@@ -124,7 +124,7 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.dict())
 
     async def delete_custom_domain_of_workspace(
-            self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: PydanticObjectId, user: User
     ):
         await self._workspace_user_repo.is_user_admin_in_workspace(workspace_id, user)
         workspace_document = await self._workspace_repo.get_workspace_by_id(
@@ -140,12 +140,17 @@ class WorkspaceService:
         workspaces = await self._workspace_repo.get_user_workspaces(user.id)
         return [WorkspaceResponseDto(**workspace.dict()) for workspace in workspaces]
 
-    async def send_otp_for_workspace(self, workspace_id: PydanticObjectId, receiver_email: EmailStr):
+    async def send_otp_for_workspace(
+        self, workspace_id: PydanticObjectId, receiver_email: EmailStr
+    ):
         workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
         response_data = await self.http_client.get(
             settings.auth_settings.AUTH_BASE_URL + "/auth/otp/send",
-            params={"receiver_email": receiver_email, "workspace_title": workspace.title},
-            timeout=180
+            params={
+                "receiver_email": receiver_email,
+                "workspace_title": workspace.title,
+            },
+            timeout=180,
         )
         return {"message": "Otp sent successfully"}
 

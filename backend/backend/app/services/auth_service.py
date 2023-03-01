@@ -20,10 +20,10 @@ crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
 
 class AuthService:
     def __init__(
-            self,
-            http_client: HttpClient,
-            plugin_proxy_service: PluginProxyService,
-            form_provider_service: FormPluginProviderService,
+        self,
+        http_client: HttpClient,
+        plugin_proxy_service: PluginProxyService,
+        form_provider_service: FormPluginProviderService,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
@@ -32,7 +32,7 @@ class AuthService:
     async def validate_otp(self, login_details: UserLoginWithOTP):
         response_data = await self.http_client.get(
             settings.auth_settings.AUTH_BASE_URL + "/auth/otp/validate",
-            params={"email": login_details.email, "otp_code": login_details.otp_code}
+            params={"email": login_details.email, "otp_code": login_details.otp_code},
         )
         user = response_data.get("user", None)
         if not user:
@@ -57,7 +57,7 @@ class AuthService:
         return oauth_url
 
     async def handle_backend_auth_callback(
-            self, *, provider_name: str, state: str, request: Request
+        self, *, provider_name: str, state: str, request: Request
     ) -> Tuple[User, OAuthState]:
         provider_config = await self.form_provider_service.get_provider(
             provider_name, True
@@ -79,7 +79,9 @@ class AuthService:
         state = OAuthState(**decrypted_data)
         return user, state
 
-    async def get_basic_auth_url(self, provider: str, client_referer_url: str, creator: bool = False):
+    async def get_basic_auth_url(
+        self, provider: str, client_referer_url: str, creator: bool = False
+    ):
         response_data = await self.http_client.get(
             settings.auth_settings.AUTH_BASE_URL + f"/auth/{provider}/basic",
             params={"client_referer_url": client_referer_url, "creator": creator},
@@ -90,7 +92,7 @@ class AuthService:
         response_data = await self.http_client.get(
             settings.auth_settings.AUTH_BASE_URL + f"/auth/{provider}/basic/callback",
             params={"code": code, "state": state},
-            timeout=120
+            timeout=120,
         )
         user = response_data.get("user")
         if user and Roles.FORM_CREATOR in user.get("roles"):
