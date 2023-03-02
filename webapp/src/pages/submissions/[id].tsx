@@ -19,7 +19,9 @@ interface ISubmission extends IServerSideProps {
     form: StandardFormDto;
 }
 
-export default function Submission({ workspace, submissionId }: ISubmission) {
+export default function Submission(props: any) {
+    const { workspace, submissionId, hasCustomDomain }: ISubmission = props;
+
     const router = useRouter();
     const breakpoint = useBreakpoint();
 
@@ -33,10 +35,17 @@ export default function Submission({ workspace, submissionId }: ISubmission) {
     if (isLoading || isError || !data) return <FullScreenLoader />;
 
     const goToSubmissions = () => {
+        let pathName = undefined;
+        if (hasCustomDomain) {
+            pathName = '/';
+        } else {
+            pathName = `/${router.query.workspace_name}`;
+        }
+
         router
             .push(
                 {
-                    pathname: `/${router.query.workspace_name}`,
+                    pathname: pathName,
                     query: { view: 'mySubmissions' }
                 },
                 undefined,
@@ -50,7 +59,7 @@ export default function Submission({ workspace, submissionId }: ISubmission) {
         {
             title: 'Home',
             icon: <HomeIcon className="w-4 h-4 mr-2" />,
-            onClick: () => router.push(`/${router.query.workspace_name}`, undefined, { scroll: false, shallow: true })
+            onClick: () => (hasCustomDomain ? router.push('/', undefined, { scroll: false, shallow: true }) : router.push(`/${router.query.workspace_name}`, undefined, { scroll: false, shallow: true }))
         },
         {
             title: 'Submissions',
