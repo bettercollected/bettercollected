@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from fastapi import Depends, APIRouter
 
@@ -26,9 +26,10 @@ async def _get_single_form(
     return await form_service.get_single_form(form_id, credential)
 
 
-@router.get("/convert/standard_form")
+@router.post("/convert/standard_form")
 async def _convert_form(
-        form_import: FormImportRequestBody,
+        form_import: Dict[str, Any],
+        convert_responses: Optional[bool] = True,
         credential: Credential = Depends(get_user_credential)
 ):
-    return await form_service.convert_form(form_import, credential)
+    return await form_service.convert_form(form_import, convert_responses, credential)
