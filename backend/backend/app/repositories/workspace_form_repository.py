@@ -15,6 +15,13 @@ from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
 
 
 class WorkspaceFormRepository:
+
+    async def update(self, item_id: str, item: WorkspaceFormDocument) -> WorkspaceFormDocument:
+        workspace_form = await WorkspaceFormDocument.find_one(WorkspaceFormDocument.id == item_id)
+        if not workspace_form:
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in ")
+        return await item.save()
+
     async def save_workspace_form(
         self,
         workspace_id: PydanticObjectId,
@@ -45,7 +52,7 @@ class WorkspaceFormRepository:
         try:
             query = {
                 "workspace_id": workspace_id,
-                "$or": [{"form_id": query}, {"settings.custom_url": query}],
+                "$or": [{"form_id": query}, {"settings.customUrl": query}],
             }
             if not is_admin:
                 query["settings.private"] = False
@@ -79,3 +86,11 @@ class WorkspaceFormRepository:
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
+
+    async def get_workspace_form_with_custom_slug(self, workspace_id: PydanticObjectId, custom_url: str):
+        return (
+            await WorkspaceFormDocument.find_one(
+                {"workspaceId": workspace_id, 'settings.customUrl': custom_url}
+            )
+        )
+
