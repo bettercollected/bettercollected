@@ -5,6 +5,9 @@ from common.models.standard_form import StandardFormDto
 
 
 class FormDocument(MongoDocument, StandardFormDto):
+    # user_email: str
+    # provider: str
+
     class Settings:
         name = "forms"
         bson_encoders = {
