@@ -115,14 +115,13 @@ class AppContainer(containers.DeclarativeContainer):
         default=job_store
     )
 
-    executors = providers.Dict(
-        default=ThreadPoolExecutor(1000)
-    )
+    # executors = providers.Dict(
+    #     default=ThreadPoolExecutor(100)
+    # )
 
     schedular = providers.Singleton(
         AsyncIOScheduler,
         jobstores=job_stores,
-        executors=executors,
     )
 
     form_import_service: FormImportService = providers.Singleton(
