@@ -208,6 +208,10 @@ class StandardFormSettingDto(SettingsPatchDto):
     provider: Optional[str]
     private: Optional[bool] = False
     roles: Optional[List[str]]
+    # If responses are set to editable then it can be used for tracking responses
+    is_response_editable: Optional[bool]
+    # State whether the form is accepting new responses
+    is_closed: Optional[bool]
 
 
 class StandardQuestionDto(BaseModel):
@@ -252,7 +256,7 @@ class StandardFormDto(BaseModel):
     formId: Optional[str]
     title: Optional[str]
     description: Optional[str]
-    settings: Optional[StandardFormSettingDto]
+    settings: Optional[StandardFormSettingDto] = StandardFormSettingDto()
     questions: Optional[List[StandardFormQuestionDto]]
     createdTime: Optional[str]
     modifiedTime: Optional[str]
