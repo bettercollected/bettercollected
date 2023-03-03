@@ -13,8 +13,8 @@ from backend.config.database import MongoSettings
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
-    .parent.parent.absolute()
-    .joinpath(".env")
+        .parent.parent.absolute()
+        .joinpath(".env")
 )
 load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
@@ -38,6 +38,8 @@ class Application(BaseSettings):
     mongo_settings: MongoSettings = MongoSettings()
 
     aws_settings: AWSSettings = AWSSettings()
+
+    form_schedular_interval_minutes: int = 2
 
     # All your additional application configuration should go either here or in
     # separate file in this submodule.

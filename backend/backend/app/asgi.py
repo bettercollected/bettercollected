@@ -4,21 +4,18 @@ from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 from fastapi_utils.timing import add_timing_middleware
 from loguru import logger
-from motor.motor_asyncio import AsyncIOMotorClient
-from starlette.responses import JSONResponse
 
-import backend
-from backend.app.container import AppContainer, container
-from backend.app.handlers import init_logging
-from backend.app.handlers.database import init_db, close_db
-from backend.app.middlewares import include_middlewares, DynamicCORSMiddleware
-from backend.config import settings
-from backend.app.router import root_api_router
-from backend.app.utils import AiohttpClient
+from backend.app.container import container
 from backend.app.exceptions import (
     HTTPException,
     http_exception_handler,
 )
+from backend.app.handlers import init_logging
+from backend.app.handlers.database import init_db, close_db
+from backend.app.middlewares import include_middlewares, DynamicCORSMiddleware
+from backend.app.router import root_api_router
+from backend.app.utils import AiohttpClient
+from backend.config import settings
 
 
 async def on_startup():
@@ -34,6 +31,7 @@ async def on_startup():
     # TODO merge with container
     client = container.database_client()
     await init_db(settings.mongo_settings.DB, client)
+    container.schedular().start()
 
 
 async def on_shutdown():
@@ -52,6 +50,7 @@ async def on_shutdown():
 
     await AiohttpClient.close_aiohttp_client()
     await container.http_client().aclose()
+    container.schedular().shutdown()
 
 
 def get_application(is_test_mode: bool = False):
@@ -62,7 +61,7 @@ def get_application(is_test_mode: bool = False):
 
     """
     init_logging()
-    container.wire(packages=[backend.app])
+    container.wire(packages=["backend.app"])
     logger.info("Initialize FastAPI application node.")
     api_settings = settings.api_settings
     app = FastAPI(
