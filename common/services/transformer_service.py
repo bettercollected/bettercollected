@@ -1,7 +1,7 @@
 import abc
 from typing import List, TypeVar
 
-from common.models.standard_form import StandardFormDto
+from common.models.standard_form import StandardForm
 
 FormDocumentType = TypeVar("FormDocumentType")
 FormResponseDocumentType = TypeVar("FormResponseDocumentType")
@@ -13,7 +13,7 @@ class FormTransformerService(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def transform_form(self, form: FormDocumentType) -> StandardFormDto:
+    def transform_form(self, form: FormDocumentType) -> StandardForm:
         """
         Transforms single form into more usable format
         """
