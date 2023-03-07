@@ -2,7 +2,7 @@ from typing import Dict, Any, Optional, List
 
 from pydantic import BaseModel
 
-from common.models.standard_form import StandardFormDto, StandardFormResponseDto
+from common.models.standard_form import StandardForm, StandardFormResponse
 
 
 class FormImportRequestBody(BaseModel):
@@ -11,5 +11,5 @@ class FormImportRequestBody(BaseModel):
 
 
 class FormImportResponse(BaseModel):
-    form: StandardFormDto
-    responses: List[StandardFormResponseDto]
+    form: StandardForm
+    responses: List[StandardFormResponse]
