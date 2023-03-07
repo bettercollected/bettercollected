@@ -13,13 +13,13 @@ from backend.app.schemas.standard_form_response import FormResponseDocument
 from common.base.repo import BaseRepository, T, U
 from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
 from common.enums.form_provider import FormProvider
-from common.models.standard_form import StandardFormResponseDto
+from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 
 
 # noinspection PyMethodOverriding
 class FormResponseRepository(BaseRepository):
-    async def list(self, form_id: str) -> List[StandardFormResponseDto]:
+    async def list(self, form_id: str) -> List[StandardFormResponse]:
         try:
             form_responses = (
                 await FormResponseDocument.find({"form_id": form_id})
@@ -41,7 +41,7 @@ class FormResponseRepository(BaseRepository):
                 .to_list()
             )
             return [
-                StandardFormResponseDto(**form_response)
+                StandardFormResponse(**form_response)
                 for form_response in form_responses
             ]
         # TODO : Handle specific exception on global exception handler
@@ -53,7 +53,7 @@ class FormResponseRepository(BaseRepository):
 
     async def list_by_form_ids(
         self, form_ids: List[str]
-    ) -> List[StandardFormResponseDto]:
+    ) -> List[StandardFormResponse]:
         try:
             form_responses = (
                 await FormResponseDocument.find({"form_id": {"$in": form_ids}})
@@ -75,7 +75,7 @@ class FormResponseRepository(BaseRepository):
                 .to_list()
             )
             return [
-                StandardFormResponseDto(**form_response)
+                StandardFormResponse(**form_response)
                 for form_response in form_responses
             ]
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
@@ -118,7 +118,7 @@ class FormResponseRepository(BaseRepository):
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
 
-    async def get(self, form_id: str, response_id: str) -> StandardFormResponseDto:
+    async def get(self, form_id: str, response_id: str) -> StandardFormResponse:
         try:
             document = (
                 await FormResponseDocument.find(
@@ -170,19 +170,19 @@ class FormResponseRepository(BaseRepository):
                     status_code=HTTPStatus.CONFLICT,
                     content="Found multiple form response document with the provided response id.",
                 )
-            return StandardFormResponseDto(**document[0].dict())
+            return StandardFormResponse(**document[0].dict())
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
 
-    async def add(self, item: FormResponseDocument) -> StandardFormResponseDto:
+    async def add(self, item: FormResponseDocument) -> StandardFormResponse:
         pass
 
     async def update(
         self, item_id: str, item: FormResponseDocument
-    ) -> StandardFormResponseDto:
+    ) -> StandardFormResponse:
         pass
 
     async def delete(self, item_id: str, provider: FormProvider):

@@ -6,9 +6,6 @@ from common.models.standard_form import StandardFormResponse
 
 
 class FormResponseDocument(MongoDocument, StandardFormResponse):
-    dataOwnerIdentifierType: Optional[str]
-    dataOwnerIdentifier: Optional[str]
-
     class Settings:
         name = "form_responses"
         bson_encoders = {

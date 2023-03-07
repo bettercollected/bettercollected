@@ -3,7 +3,7 @@ from typing import Dict, Any
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.services.form_service import FormService
 from common.models.form_import import FormImportResponse
-from common.models.standard_form import StandardFormDto
+from common.models.standard_form import StandardForm
 
 
 class FormImportService:
@@ -15,7 +15,7 @@ class FormImportService:
             self,
             response_data: Dict[str, Any],
             form_response_data_owner: str
-    ) -> StandardFormDto:
+    ) -> StandardForm:
         form_data = FormImportResponse.parse_obj(response_data)
         standard_form = form_data.form
         await self.form_service.save_form(standard_form)

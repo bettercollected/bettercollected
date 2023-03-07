@@ -45,7 +45,7 @@ class WorkspaceFormService:
                                        user: User,
                                        request: Request):
         await self.workspace_user_service.check_user_is_admin_in_workspace(workspace_id, user)
-        response_data = self.convert_form(
+        response_data = await self.convert_form(
             provider=provider,
             request=request,
             form_import=form_import)
@@ -61,7 +61,7 @@ class WorkspaceFormService:
                 # TODO : Refactor repeated information provider is only saved on form
                 #  as it doesn't change with workspaces
                 provider=standard_form.settings.provider,
-                private=standard_form.settings.private
+                private=not standard_form.settings.is_public
             ))
         self.schedular.add_job(self.form_schedular.update_form,
                                'interval',
@@ -76,7 +76,7 @@ class WorkspaceFormService:
                                },
                                minutes=settings.form_schedular_interval_minutes)
 
-    def convert_form(self, *, provider, request, form_import):
+    async def convert_form(self, *, provider, request, form_import):
         provider_url = await self.form_provider_service.get_provider_url(provider)
         response = await AiohttpClient.get_aiohttp_client().post(
             url=f"{provider_url}/{provider}/forms/convert/standard_form",

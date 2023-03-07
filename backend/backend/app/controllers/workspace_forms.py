@@ -6,10 +6,6 @@ from fastapi import Depends
 from starlette.requests import Request
 
 from backend.app.container import container
-from backend.app.models.generic_models import (
-    generate_generic_pageable_response,
-    GenericResponseModel,
-)
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.router import router
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
@@ -39,17 +35,13 @@ class WorkspaceFormsRouter(Routable):
             workspace_id: PydanticObjectId,
             form_id: str = None,
             user: User = Depends(get_user_if_logged_in),
-    ) -> GenericResponseModel[Any]:  # TODO Refactor Any
+    ) :  # TODO Refactor Any
         # TODO : Refactor this to below endpoint after fixes in frontend
         if form_id:
             form = await self._form_service.get_form_by_id(workspace_id, form_id, user)
-            return GenericResponseModel(
-                payload=generate_generic_pageable_response(data=form)
-            )
+            return form
         forms = await self._form_service.get_forms_in_workspace(workspace_id, user)
-        return GenericResponseModel(
-            payload=generate_generic_pageable_response(data=forms)
-        )
+        return forms
 
     @post("/search")
     async def search_forms_in_workspace(
@@ -58,9 +50,7 @@ class WorkspaceFormsRouter(Routable):
             query: str,
     ):
         forms = await self._form_service.search_form_in_workspace(workspace_id, query)
-        return GenericResponseModel(
-            payload=generate_generic_pageable_response(data=forms)
-        )
+        return forms
 
     @get("/{form_id}")
     async def _get_form_by_id(
@@ -70,16 +60,16 @@ class WorkspaceFormsRouter(Routable):
             user: User = Depends(get_user_if_logged_in),
     ):
         form = await self._form_service.get_form_by_id(workspace_id, form_id, user)
-        return GenericResponseModel(
-            payload=generate_generic_pageable_response(data=form)
-        )
+        return form(
+            data=form)
+
 
     @patch('/{form_id}/settings')
     async def patch_settings_for_workspace(self, workspace_id: PydanticObjectId, form_id: str,
                                            settings: SettingsPatchDto,
                                            user: User = Depends(get_logged_user)):
         data = await self._form_service.patch_settings_in_workspace_form(workspace_id, form_id, settings, user)
-        return GenericResponseModel[WorkspaceFormDocument](payload=generate_generic_pageable_response(data))
+        return data
 
     @post("/import/{provider}")
     async def _import_form_to_workspace(

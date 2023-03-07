@@ -8,10 +8,6 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 
 from backend.app.container import container
-from backend.app.models.generic_models import (
-    GenericResponseModel,
-    generate_generic_pageable_response,
-)
 from backend.app.router import router
 from backend.app.services.auth_cookie_service import (
     set_tokens_to_response,
@@ -33,17 +29,14 @@ class AuthRoutes(Routable):
 
     @get("/status")
     async def status(self, user: User = Depends(get_logged_user)):
-        return GenericResponseModel[AuthenticationStatus](
-            payload=generate_generic_pageable_response(
-                data=AuthenticationStatus(user=user)
-            )
-        )
+        return AuthenticationStatus(user=user)
+
 
     @post("/otp/validate")
     async def _validate_otp(self, login_details: UserLoginWithOTP, response: Response):
         user = await self.auth_service.validate_otp(login_details)
         set_tokens_to_response(user, response)
-        return GenericResponseModel(payload="Logged In successfully")
+        return "Logged In successfully"
 
     # TODO : Merge with plugin proxy currently it is handled for typeform only
     @get("/{provider_name}/oauth")

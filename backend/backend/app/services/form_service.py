@@ -9,7 +9,7 @@ from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.standard_form import FormDocument
-from common.models.standard_form import StandardFormDto
+from common.models.standard_form import StandardForm
 from common.models.user import User
 
 
@@ -51,7 +51,7 @@ class FormService:
         forms = await self._form_repo.search_form_in_workspace(
             workspace_id=workspace_id, form_ids=form_ids, query=query
         )
-        return [StandardFormDto(**form) for form in forms]
+        return [StandardForm(**form) for form in forms]
 
     async def patch_settings_in_workspace_form(self, workspace_id: PydanticObjectId, form_id: str,
                                                settings: SettingsPatchDto, user: User):
@@ -91,9 +91,9 @@ class FormService:
         form = await self._form_repo.get_forms_in_workspace(
             workspace_id=workspace_id, form_id_list=[workspace_form.form_id]
         )
-        return StandardFormDto(**form[0])
+        return StandardForm(**form[0])
 
-    async def save_form(self, form: StandardFormDto):
+    async def save_form(self, form: StandardForm):
         existing_form = await FormDocument.find_one({"form_id": form.form_id})
         form_document = FormDocument(**form.dict())
         if existing_form:
