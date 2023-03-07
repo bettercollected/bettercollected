@@ -1,6 +1,21 @@
 """Application configuration - FastAPI."""
+import os
+
+from dotenv import load_dotenv
 from pydantic import BaseSettings
+
+from googleform.config.database import MongoSettings
 from googleform.version import __version__
+
+from pathlib import Path
+
+
+default_dot_env_path = (
+    Path(os.path.abspath(os.path.dirname(__file__)))
+    .parent.parent.absolute()
+    .joinpath(".env")
+)
+load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
 
 class Application(BaseSettings):
@@ -30,8 +45,29 @@ class Application(BaseSettings):
     DEBUG: bool = True
     PROJECT_NAME: str = "googleform"
     VERSION: str = __version__
-    DOCS_URL: str = "/"
     USE_REDIS: bool = False
+
+    API_ROOT_PATH: str = "/api/v1"
+
+    AUTH_JWT_SECRET: str
+
+    GOOGLE_CLIENT_TYPE = "web"
+    GOOGLE_CLIENT_ID = ""
+    GOOGLE_PROJECT_ID = ""
+    GOOGLE_AUTH_URI = ""
+    GOOGLE_TOKEN_URI = ""
+    GOOGLE_AUTH_PROVIDER_X509_CERT_URL = ""
+    GOOGLE_CLIENT_SECRET = ""
+    GOOGLE_REDIRECT_URIS = ""
+    GOOGLE_JAVASCRIPT_ORIGINS = ""
+    GOOGLE_SCOPES = ""
+    GOOGLE_API_SERVICE_NAME = "drive"
+    GOOGLE_API_VERSION = "v2"
+    GOOGLE_REVOKE_CREDENTIALS_URL = ""
+    GOOGLE_AES_KEY = ""
+
+    mongo_settings: MongoSettings = MongoSettings()
+
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 
@@ -49,7 +85,6 @@ class Application(BaseSettings):
         """
 
         case_sensitive = True
-        env_prefix = "FASTAPI_"
 
 
 settings = Application()

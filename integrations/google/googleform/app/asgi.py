@@ -2,6 +2,8 @@
 import logging
 
 from fastapi import FastAPI
+
+from googleform.app.services.database_service import close_db, init_db
 from googleform.config import settings
 from googleform.app.router import root_api_router
 from googleform.app.utils import RedisClient, AiohttpClient
@@ -55,9 +57,10 @@ def get_application():
         title=settings.PROJECT_NAME,
         debug=settings.DEBUG,
         version=settings.VERSION,
-        docs_url=settings.DOCS_URL,
-        on_startup=[on_startup],
-        on_shutdown=[on_shutdown],
+        docs_url=settings.API_ROOT_PATH + "/docs",
+        openapi_url=settings.API_ROOT_PATH + "/openapi.json",
+        on_startup=[on_startup, init_db],
+        on_shutdown=[on_shutdown, close_db],
     )
     log.debug("Add application routes.")
     app.include_router(root_api_router)
