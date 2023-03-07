@@ -111,7 +111,6 @@ class StandardFormSettings(BaseModel):
     is_closed: Optional[bool]
 
 
-
 class StandardFieldProperty(BaseModel):
     description: Optional[str]
     choices: Optional[List[StandardChoice]]
@@ -193,3 +192,7 @@ class StandardFormResponse(BaseModel):
     created_at: Optional[dt.datetime]
     updated_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
+
+    # TODO : Get data owner from workspace form settings from this response
+    dataOwnerIdentifierType: Optional[str]
+    dataOwnerIdentifier: Optional[str]
