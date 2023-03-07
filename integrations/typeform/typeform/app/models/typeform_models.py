@@ -98,13 +98,13 @@ class Validation(BaseModel):
 
 
 class TypeFormField(BaseModel):
-    id: Optional[str] = None
-    ref: Optional[str] = None
-    title: Optional[str] = None
-    type: Optional[str] = None
+    id: Optional[str]
+    ref: Optional[str]
+    title: Optional[str]
+    type: Optional[str]
     properties: Optional[FieldProperties] = FieldProperties()
-    validations: Optional[Validation] = None
-    attachment: Optional[Attachment] = None
+    validations: Optional[Validation] = Validation()
+    attachment: Optional[Attachment] = Attachment()
 
 
 FieldProperties.update_forward_refs()
@@ -116,7 +116,7 @@ class TypeFormDto(BaseModel):
     title: str
     last_updated_at: Optional[str]
     created_at: Optional[str]
-    settings: Optional[TypeFormSettings]
+    settings: Optional[TypeFormSettings] = TypeFormSettings()
     _links: Optional[TypeFormLink]
     theme: Optional[JsonObject]
     self: Optional[TypeFormSelfHref] = TypeFormSelfHref()
@@ -174,15 +174,15 @@ class Answer(BaseModel):
     field: AnswerField
     type: Optional[ResponseType]
     text: Optional[str]
-    choice: Optional[ChoiceAnswer]
-    choices: Optional[ChoicesAnswer]
+    choice: Optional[ChoiceAnswer] = ChoiceAnswer()
+    choices: Optional[ChoicesAnswer] = ChoicesAnswer()
     number: Optional[int]
     boolean: Optional[bool]
     email: Optional[str]
     date: Optional[str]
     url: Optional[str]
     file_url: Optional[str]
-    payment: Optional[PaymentAnswer]
+    payment: Optional[PaymentAnswer] = PaymentAnswer()
     phone_number: Optional[str]
 
 
