@@ -18,7 +18,7 @@ export interface StandardFormQuestionDto {
 }
 
 export interface StandardFormDto {
-    formId: string;
+    form_id: string;
     title: string;
     description?: string | null | undefined;
     provider?: string;
@@ -32,7 +32,7 @@ export interface StandardFormDto {
         provider: string;
         roles?: Array<string>;
     };
-    questions: Array<StandardFormQuestionDto>;
+    fields: Array<StandardFormQuestionDto>;
     createdTime?: string | Date;
     modifiedTime?: string | Date;
     responseId?: string;
@@ -41,8 +41,8 @@ export interface StandardFormDto {
 }
 
 export interface StandardFormResponseDto {
-    responseId: string;
-    formId: string;
+    response_id: string;
+    form_id: string;
     formTitle: string;
     formCustomUrl: string;
     provider: string;

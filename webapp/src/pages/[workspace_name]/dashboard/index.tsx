@@ -26,7 +26,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
 
     const breakpoint = useBreakpoint();
 
-    const forms = workspaceForms?.data?.payload?.content;
+    const forms = workspaceForms?.data;
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://';
@@ -68,7 +68,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                                 shareUrl = hasCustomDomain ? `${window.location.origin}/forms/${slug}` : `https://`;
                             }
                             return (
-                                <Link key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
+                                <Link key={form.form_id} href={`/${workspace.workspaceName}/dashboard/forms/${form.form_id}`}>
                                     <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
                                         <div className="flex flex-col w-full justify-between h-full">
                                             <div className="w-full ">
