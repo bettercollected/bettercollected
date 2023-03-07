@@ -7,7 +7,7 @@ from backend.app.models.workspace import WorkspaceFormSettings
 
 
 class MinifiedForm(BaseModel):
-    formId: str
+    form_id: str
     title: Optional[str]
     description: Optional[str]
     type: Optional[str]

@@ -22,14 +22,14 @@ class FormResponseRepository(BaseRepository):
     async def list(self, form_id: str) -> List[StandardFormResponseDto]:
         try:
             form_responses = (
-                await FormResponseDocument.find({"formId": form_id})
+                await FormResponseDocument.find({"form_id": form_id})
                 .aggregate(
                     [
                         {
                             "$lookup": {
                                 "from": "forms",
-                                "localField": "formId",
-                                "foreignField": "formId",
+                                "localField": "form_id",
+                                "foreignField": "form_id",
                                 "as": "form",
                             },
                         },
@@ -56,19 +56,19 @@ class FormResponseRepository(BaseRepository):
     ) -> List[StandardFormResponseDto]:
         try:
             form_responses = (
-                await FormResponseDocument.find({"formId": {"$in": form_ids}})
+                await FormResponseDocument.find({"form_id": {"$in": form_ids}})
                 .aggregate(
                     [
                         {
                             "$lookup": {
                                 "from": "forms",
-                                "localField": "formId",
-                                "foreignField": "formId",
+                                "localField": "form_id",
+                                "foreignField": "form_id",
                                 "as": "form",
                             },
                         },
-                        {"$set": {"formTitle": "$form.title"}},
-                        {"$unwind": "$formTitle"},
+                        {"$set": {"form_title": "$form.title"}},
+                        {"$unwind": "$form_title"},
                         {"$sort": {"created_at": -1}},
                     ]
                 )
@@ -88,20 +88,20 @@ class FormResponseRepository(BaseRepository):
         try:
             form_responses = (
                 await FormResponseDocument.find(
-                    {"dataOwnerIdentifier": user.sub, "formId": {"$in": form_ids}}
+                    {"dataOwnerIdentifier": user.sub, "form_id": {"$in": form_ids}}
                 )
                 .aggregate(
                     [
                         {
                             "$lookup": {
                                 "from": "forms",
-                                "localField": "formId",
-                                "foreignField": "formId",
+                                "localField": "form_id",
+                                "foreignField": "form_id",
                                 "as": "form",
                             },
                         },
-                        {"$set": {"formTitle": "$form.title"}},
-                        {"$unwind": "$formTitle"},
+                        {"$set": {"form_title": "$form.title"}},
+                        {"$unwind": "$form_title"},
                         {"$sort": {"created_at": -1}},
                     ]
                 )

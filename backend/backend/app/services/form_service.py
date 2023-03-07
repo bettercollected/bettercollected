@@ -94,7 +94,7 @@ class FormService:
         return StandardFormDto(**form[0])
 
     async def save_form(self, form: StandardFormDto):
-        existing_form = await FormDocument.find_one({"formId": form.formId})
+        existing_form = await FormDocument.find_one({"form_id": form.form_id})
         form_document = FormDocument(**form.dict())
         if existing_form:
             form_document.id = existing_form.id

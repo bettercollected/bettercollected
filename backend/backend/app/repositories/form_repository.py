@@ -10,13 +10,13 @@ class FormRepository:
         self, workspace_id: PydanticObjectId, form_id_list: List[str]
     ):
         return (
-            await FormDocument.find({"formId": {"$in": form_id_list}})
+            await FormDocument.find({"form_id": {"$in": form_id_list}})
             .aggregate(
                 [
                     {
                         "$lookup": {
                             "from": "workspace_forms",
-                            "localField": "formId",
+                            "localField": "form_id",
                             "foreignField": "form_id",
                             "as": "workspace_form",
                         }
@@ -35,7 +35,7 @@ class FormRepository:
         return (
             await FormDocument.find(
                 {
-                    "formId": {"$in": form_ids},
+                    "form_id": {"$in": form_ids},
                     "$or": [
                         {"title": {"$regex": query, "$options": "i"}},
                         {"description": {"$regex": query, "$options": "i"}},
@@ -47,7 +47,7 @@ class FormRepository:
                     {
                         "$lookup": {
                             "from": "workspace_forms",
-                            "localField": "formId",
+                            "localField": "form_id",
                             "foreignField": "form_id",
                             "as": "workspace_form",
                         }

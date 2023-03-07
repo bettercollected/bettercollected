@@ -23,11 +23,11 @@ class FormImportService:
         responses = form_data.responses
         # TODO : Make this scalable in case of large number of responses
         for response in responses:
-            existing_response = await FormResponseDocument.find_one({'responseId': response.responseId})
+            existing_response = await FormResponseDocument.find_one({'response_id': response.response_id})
             response_document = FormResponseDocument(**response.dict())
             if existing_response:
                 response_document.id = existing_response.id
-            response_document.formId = standard_form.formId
+            response_document.form_id = standard_form.form_id
             # TODO : Handle data owner identifier in workspace
             data_owner_answer = response_document.responses.get(
                 form_response_data_owner)

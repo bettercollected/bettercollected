@@ -1,12 +1,11 @@
 import datetime as dt
 
 from common.configs.mongo_document import MongoDocument
-from common.models.standard_form import StandardFormDto
+from common.models.standard_form import StandardForm
 
 
-class FormDocument(MongoDocument, StandardFormDto):
-    # user_email: str
-    # provider: str
+class FormDocument(MongoDocument, StandardForm):
+    pass
 
     class Settings:
         name = "forms"

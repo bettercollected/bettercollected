@@ -45,22 +45,18 @@ class WorkspaceFormService:
                                        user: User,
                                        request: Request):
         await self.workspace_user_service.check_user_is_admin_in_workspace(workspace_id, user)
-        provider_url = await self.form_provider_service.get_provider_url(provider)
-        response = await AiohttpClient.get_aiohttp_client().post(
-            url=f"{provider_url}/{provider}/forms/convert/standard_form",
-            json=form_import.form,
-            cookies=request.cookies,
-            timeout=60,
-        )
-        response_data = await response.json()
+        response_data = self.convert_form(
+            provider=provider,
+            request=request,
+            form_import=form_import)
         standard_form = await self.form_import_service.save_converted_form_and_responses(response_data,
                                                                                          form_import.response_data_owner)
         await self.workspace_form_repository.save_workspace_form(
             workspace_id=workspace_id,
-            form_id=standard_form.formId,
+            form_id=standard_form.form_id,
             user_id=user.id,
             workspace_form_settings=WorkspaceFormSettings(
-                custom_url=standard_form.formId,
+                custom_url=standard_form.form_id,
                 response_data_owner_field=form_import.response_data_owner,
                 # TODO : Refactor repeated information provider is only saved on form
                 #  as it doesn't change with workspaces
@@ -69,13 +65,24 @@ class WorkspaceFormService:
             ))
         self.schedular.add_job(self.form_schedular.update_form,
                                'interval',
-                               id=f"{provider}_{standard_form.formId}",
+                               id=f"{provider}_{standard_form.form_id}",
                                coalesce=True,
                                replace_existing=True,
                                kwargs={
                                    "user": user,
                                    "provider": provider,
-                                   "form_id": standard_form.formId,
+                                   "form_id": standard_form.form_id,
                                    "response_data_owner": form_import.response_data_owner
                                },
                                minutes=settings.form_schedular_interval_minutes)
+
+    def convert_form(self, *, provider, request, form_import):
+        provider_url = await self.form_provider_service.get_provider_url(provider)
+        response = await AiohttpClient.get_aiohttp_client().post(
+            url=f"{provider_url}/{provider}/forms/convert/standard_form",
+            json=form_import.form,
+            cookies=request.cookies,
+            timeout=60,
+        )
+        response_data = await response.json()
+        return response_data
