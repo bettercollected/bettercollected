@@ -13,14 +13,7 @@ class FormTransformerService(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def transform_forms(self, forms: List[FormDocumentType]) -> List[StandardFormDto]:
-        """
-        Transforms all the imported forms into more usable format
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def transform_single_form(self, form: FormDocumentType) -> StandardFormDto:
+    def transform_form(self, form: FormDocumentType) -> StandardFormDto:
         """
         Transforms single form into more usable format
         """
