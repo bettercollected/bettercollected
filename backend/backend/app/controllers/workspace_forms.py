@@ -35,7 +35,7 @@ class WorkspaceFormsRouter(Routable):
             workspace_id: PydanticObjectId,
             form_id: str = None,
             user: User = Depends(get_user_if_logged_in),
-    ) :  # TODO Refactor Any
+    ):
         # TODO : Refactor this to below endpoint after fixes in frontend
         if form_id:
             form = await self._form_service.get_form_by_id(workspace_id, form_id, user)
@@ -62,7 +62,6 @@ class WorkspaceFormsRouter(Routable):
         form = await self._form_service.get_form_by_id(workspace_id, form_id, user)
         return form(
             data=form)
-
 
     @patch('/{form_id}/settings')
     async def patch_settings_for_workspace(self, workspace_id: PydanticObjectId, form_id: str,

@@ -29,9 +29,9 @@ class FormImportService:
                 response_document.id = existing_response.id
             response_document.form_id = standard_form.form_id
             # TODO : Handle data owner identifier in workspace
-            data_owner_answer = response_document.responses.get(
+            data_owner_answer = response_document.answers.get(
                 form_response_data_owner)
-            response_document.dataOwnerIdentifier = data_owner_answer.answer if data_owner_answer else None
+            response_document.dataOwnerIdentifier = data_owner_answer.text if data_owner_answer else None
             await response_document.save()
 
         return standard_form
