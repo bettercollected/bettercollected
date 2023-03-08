@@ -10,8 +10,7 @@ from common.models.standard_form import (
     StandardFormResponseAnswer, StandardAnswerField, StandardChoiceAnswer, StandardChoicesAnswer, StandardPaymentAnswer)
 from common.services.transformer_service import FormTransformerService
 from typeform.app.models.typeform_models import \
-    TypeFormField, FieldType, Answer, ResponseType, \
-    Attachment, TypeFormResponse, TypeFormDto
+    TypeFormField, Answer, Attachment, TypeFormResponse, TypeFormDto
 
 
 class TypeFormTransformerService(FormTransformerService):
@@ -28,8 +27,7 @@ class TypeFormTransformerService(FormTransformerService):
             )
             return standard_form
         except Exception as error:
-            logging.getLogger(__name__).exception(error)
-            raise HTTPException(status_code=500, detail=f"Data transformation failed.")
+            raise HTTPException(status_code=500, detail=f"Data transformation failed. {error}")
 
     def transform_form_responses(self, responses: List[Dict[str, Any]]) -> List[StandardFormResponse]:
         standard_form_responses = [self.transform_single_form_response(response) for response in responses]
@@ -49,12 +47,11 @@ class TypeFormTransformerService(FormTransformerService):
             )
             return standard_form_response
         except Exception as error:
-            logging.getLogger(__name__).exception(error)
-            raise HTTPException(status_code=500, detail=f"Data transformation failed.")
+            raise HTTPException(status_code=500, detail=f"Data transformation failed. {error}")
 
     def _transform_fields(self, fields: List[TypeFormField]) -> List[StandardFormField]:
-        transformed_questions = list(map(self._transform_field, fields))
-        return transformed_questions
+        transformed_fields = list(map(self._transform_field, fields))
+        return transformed_fields
 
     @staticmethod
     def _transform_attachment(attachment: Attachment) -> StandardFieldAttachment:
@@ -62,12 +59,13 @@ class TypeFormTransformerService(FormTransformerService):
         std_attachment.type = attachment.type
         std_attachment.href = attachment.href
         std_attachment.properties = StandardAttachmentProperties(description=attachment.properties.description)
-        if EmbedProvider.YOUTUBE in attachment.href:
-            std_attachment.embed_provider = EmbedProvider.YOUTUBE
-        elif EmbedProvider.VIEMO in attachment.href:
-            std_attachment.embed_provider = EmbedProvider.VIEMO
-        else:
-            std_attachment.embed_provider = EmbedProvider.NO_EMBED
+        if attachment.href:
+            if EmbedProvider.YOUTUBE in attachment.href:
+                std_attachment.embed_provider = EmbedProvider.YOUTUBE
+            elif EmbedProvider.VIEMO in attachment.href:
+                std_attachment.embed_provider = EmbedProvider.VIEMO
+            else:
+                std_attachment.embed_provider = EmbedProvider.NO_EMBED
         return std_attachment
 
     def _transform_field(self, typeform_field: TypeFormField) -> StandardFormField:
@@ -109,23 +107,24 @@ class TypeFormTransformerService(FormTransformerService):
     # Transform date for typeform for eg YYYYMMDD's into YYYY/MM/DD format
     @staticmethod
     def _format_typeform_date(date_format: str, date_separator: str) -> str:
-        combined_format = ""
-        prev_char = None
-        for char in date_format:
-            # if the previous character is not None and is different from the current character
-            if prev_char is not None and prev_char != char:
-                combined_format += date_separator
-            combined_format += char
-            prev_char = char
-        return combined_format
+        if date_format and date_separator:
+            combined_format = ""
+            prev_char = None
+            for char in date_format:
+                # if the previous character is not None and is different from the current character
+                if prev_char is not None and prev_char != char:
+                    combined_format += date_separator
+                combined_format += char
+                prev_char = char
+            return combined_format
 
     @staticmethod
     def _transform_form_settings(form: TypeFormDto):
         setting = StandardFormSettings()
         setting.provider = FormProvider.TYPEFORM
-        setting.customUrl = form.id
-        setting.embedUrl = form.self.href
-        setting.private = not form.settings.is_public
+        setting.custom_url = form.id
+        setting.embed_url = form.self.href
+        setting.is_public = form.settings.is_public
         return setting
 
     def _transform_single_answer(self, answer: Answer) -> StandardFormResponseAnswer:
@@ -143,7 +142,7 @@ class TypeFormTransformerService(FormTransformerService):
             ),
             choices=StandardChoicesAnswer(
                 values=answer.choices.labels,
-                other=answer.choices.value
+                other=answer.choices.other
             ),
             number=answer.number,
             boolean=answer.boolean,

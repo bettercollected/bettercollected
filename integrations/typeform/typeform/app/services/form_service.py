@@ -133,9 +133,9 @@ async def convert_form(
         credential: Credential):
     access_token = get_latest_token(credential)
     transformer = TypeFormTransformerService()
-    standard_form = transformer.transform_single_form(form_import)
+    standard_form = transformer.transform_form(form_import)
     if convert_responses:
-        form_responses = await get_form_responses(access_token, standard_form.formId)
+        form_responses = await get_form_responses(access_token, standard_form.form_id)
         standard_responses = transformer.transform_form_responses(form_responses)
     else:
         standard_responses = []

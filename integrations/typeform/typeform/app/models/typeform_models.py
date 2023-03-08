@@ -1,10 +1,8 @@
 import enum
 from enum import Enum
-from typing import Optional, List, Any, Dict, ForwardRef
+from typing import Optional, List, Any, Dict
 
 from pydantic import BaseModel
-
-from common.models.standard_form import StandardFormSettingDto
 
 
 class TypeFormLink(BaseModel):
@@ -63,7 +61,7 @@ class Attachment(BaseModel):
 class Choice(BaseModel):
     ref: Optional[str]
     label: Optional[str]
-    attachment: Optional[Attachment]
+    attachment: Optional[Attachment] = Attachment()
 
 
 # TypeFormField = ForwardRef('TypeFormField')
@@ -71,8 +69,8 @@ class Choice(BaseModel):
 
 class FieldProperties(BaseModel):
     description: Optional[str]
-    choices: Optional[List[Choice]]
-    fields: Optional[List['TypeFormField']]
+    choices: Optional[List[Choice]] = []
+    fields: Optional[List['TypeFormField']] = []
     allow_multiple_selection: Optional[bool]
     randomize: Optional[bool]
     allow_other_choice: Optional[bool]
@@ -124,13 +122,6 @@ class TypeFormDto(BaseModel):
     hidden: Optional[List[str]]
     language: Optional[str]
     variables: Optional[JsonObject]
-
-
-# TODO Move info type definition to Typeform document schema
-class TypeFormTransformerDto(BaseModel):
-    info: TypeFormDto
-    formId: str
-    settings: Optional[StandardFormSettingDto]
 
 
 class ResponseType(str, enum.Enum):
@@ -193,13 +184,3 @@ class TypeFormResponse(BaseModel):
     hidden: Optional[JsonObject]
     calculated: Optional[JsonObject]
     answers: Optional[List[Answer]]
-
-
-class TypeFormResponseTransformDto(BaseModel):
-    formId: str
-    responseId: str
-    provider: str
-    dataOwnerIdentifier: Optional[str]
-    response_data: TypeFormResponse
-    formTitle: str
-    formCustomUrl: Optional[str]
