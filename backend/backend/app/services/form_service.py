@@ -29,14 +29,9 @@ class FormService:
         is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        query = {
-            "workspace_id": workspace_id,
-        }
-        if not is_admin:
-            query["settings.private"] = False
 
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
-            workspace_id
+            workspace_id, not is_admin
         )
         forms = await self._form_repo.get_forms_in_workspace(
             workspace_id=workspace_id, form_id_list=workspace_form_ids
