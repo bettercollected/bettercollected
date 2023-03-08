@@ -37,7 +37,7 @@ class WorkspaceFormsRouter(Routable):
         # TODO : Refactor this to below endpoint after fixes in frontend
         if form_id:
             form = await self._form_service.get_form_by_id(workspace_id, form_id, user)
-            return StandardFormCamelModel(**form.dict())
+            return form
         forms = await self._form_service.get_forms_in_workspace(workspace_id, user)
         return forms
 

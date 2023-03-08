@@ -90,7 +90,7 @@ class WorkspaceFormRepository:
     async def get_workspace_form_with_custom_slug(self, workspace_id: PydanticObjectId, custom_url: str):
         return (
             await WorkspaceFormDocument.find_one(
-                {"workspaceId": workspace_id, 'settings.customUrl': custom_url}
+                {"workspace_id": workspace_id, 'settings.custom_url': custom_url}
             )
         )
 
