@@ -78,7 +78,7 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
             };
             trigger(submissionQuery)
                 .then((d) => {
-                    setForm(d.data?.payload?.content);
+                    setForm(d.data);
                 })
                 .catch((e) => {
                     toast.error('Error fetching submission data.', { toastId: 'errorToast' });

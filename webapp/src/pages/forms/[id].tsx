@@ -71,11 +71,10 @@ export async function getServerSideProps(_context: any) {
     try {
         if (globalProps.hasCustomDomain && globalProps.workspaceId) {
             const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${slug}`, config).catch((e) => e);
-            form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
+            form = (await formResponse?.json().catch((e: any) => e)) ?? null;
         }
     } catch (err) {
         form = null;
-        console.error(err);
     }
 
     if (!form) {

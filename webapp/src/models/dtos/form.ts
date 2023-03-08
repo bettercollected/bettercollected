@@ -18,7 +18,7 @@ export interface StandardFormQuestionDto {
 }
 
 export interface StandardFormDto {
-    form_id: string;
+    formId: string;
     title: string;
     description?: string | null | undefined;
     provider?: string;
