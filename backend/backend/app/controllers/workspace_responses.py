@@ -1,14 +1,12 @@
-from typing import List
-
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get
 from fastapi import Depends
 
 from backend.app.container import container
+from backend.app.models.response_dtos import StandardFormResponseCamelModel
 from backend.app.router import router
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.user_service import get_logged_user
-from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 
 
@@ -33,9 +31,11 @@ class WorkspaceResponsesRouter(Routable):
             form_id: str,
             user: User = Depends(get_logged_user),
     ):
-        return await self._form_response_service.get_workspace_submissions(
+        responses = await self._form_response_service.get_workspace_submissions(
             workspace_id, form_id, user
         )
+
+        return [StandardFormResponseCamelModel(**response.dict()) for response in responses]
 
     @get("/allSubmissions")
     async def _get_all_workspace_responses(
@@ -63,7 +63,6 @@ class WorkspaceResponsesRouter(Routable):
             submission_id: str,
             user: User = Depends(get_logged_user),
     ):
-        workspace_submission = await self._form_response_service.get_workspace_submission(
+        return await self._form_response_service.get_workspace_submission(
             workspace_id, submission_id, user
         )
-        return workspace_submission

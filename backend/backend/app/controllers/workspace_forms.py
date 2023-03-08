@@ -1,14 +1,12 @@
-from typing import List, Any
-
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, post, patch
 from fastapi import Depends
 from starlette.requests import Request
 
 from backend.app.container import container
+from backend.app.models.response_dtos import StandardFormCamelModel
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.router import router
-from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.form_service import FormService
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_form_service import WorkspaceFormService
@@ -39,7 +37,7 @@ class WorkspaceFormsRouter(Routable):
         # TODO : Refactor this to below endpoint after fixes in frontend
         if form_id:
             form = await self._form_service.get_form_by_id(workspace_id, form_id, user)
-            return form
+            return StandardFormCamelModel(**form.dict())
         forms = await self._form_service.get_forms_in_workspace(workspace_id, user)
         return forms
 
@@ -60,8 +58,8 @@ class WorkspaceFormsRouter(Routable):
             user: User = Depends(get_user_if_logged_in),
     ):
         form = await self._form_service.get_form_by_id(workspace_id, form_id, user)
-        return form(
-            data=form)
+        return StandardFormCamelModel(**form.dict())
+
 
     @patch('/{form_id}/settings')
     async def patch_settings_for_workspace(self, workspace_id: PydanticObjectId, form_id: str,

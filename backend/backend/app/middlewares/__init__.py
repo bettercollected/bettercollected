@@ -33,6 +33,7 @@ def include_middlewares(app: "FastAPI"):
             f"Request : Host {request.method} {request.url.path} {request.url.query}"
         )
         response: Response = await call_next(request)
+        logger.info(response)
 
         try:
             if hasattr(response, "body"):

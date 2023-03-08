@@ -9,6 +9,7 @@ from pymongo.errors import (
 )
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.response_dtos import StandardFormResponseCamelModel
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from common.base.repo import BaseRepository, T, U
 from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
@@ -75,7 +76,7 @@ class FormResponseRepository(BaseRepository):
                 .to_list()
             )
             return [
-                StandardFormResponse(**form_response)
+                StandardFormResponseCamelModel(**form_response)
                 for form_response in form_responses
             ]
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
