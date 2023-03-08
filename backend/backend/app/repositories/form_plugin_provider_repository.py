@@ -9,11 +9,11 @@ from pymongo.errors import (
     OperationFailure,
 )
 
+from backend.app.exceptions import HTTPException
 from backend.app.models.form_plugin_config import FormProviderConfigDto
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
 from common.base.repo import BaseRepository
 from common.constants import MESSAGE_DATABASE_EXCEPTION
-from common.exceptions.http import HTTPException
 
 
 class FormPluginProviderRepository(BaseRepository):
