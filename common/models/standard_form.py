@@ -63,6 +63,7 @@ class StandardFieldAttachment(BaseModel):
     href: Optional[str]
     scale: Optional[float]
     properties: Optional[StandardAttachmentProperties] = StandardAttachmentProperties()
+    embed_provider: Optional[EmbedProvider]
 
 
 class StandardChoice(BaseModel):
@@ -99,6 +100,7 @@ class StandardFormSettings(BaseModel):
     """
 
     embed_url: Optional[str]
+    custom_url: Optional[str]
     provider: Optional[str]
     language: Optional[str]
     is_public: Optional[bool]
