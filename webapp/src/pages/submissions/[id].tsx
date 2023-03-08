@@ -35,7 +35,7 @@ export default function Submission(props: any) {
     if (isLoading || isError || !data) return <FullScreenLoader />;
 
     const goToSubmissions = () => {
-        let pathName = undefined;
+        let pathName;
         if (hasCustomDomain) {
             pathName = '/';
         } else {
@@ -66,7 +66,7 @@ export default function Submission(props: any) {
             onClick: goToSubmissions
         },
         {
-            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.formId, 10) : form.formId,
+            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.form.formId, 10) : form.formId,
             icon: ''
         }
     ];
@@ -74,7 +74,7 @@ export default function Submission(props: any) {
     return (
         <div className="relative container mx-auto px-6 md:px-0">
             <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />
-            <FormRenderer form={form} />
+            <FormRenderer form={form.form} response={form.response} />
         </div>
     );
 }

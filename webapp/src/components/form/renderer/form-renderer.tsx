@@ -81,8 +81,12 @@ enum VideoEmbedProvider {
 
 //TODO: fetch the data using api slice and set the form...
 // you will need two api calls conditionally based on questions or responses.
+interface FormRendererProps {
+    form: any;
+    response?: any;
+}
 
-export default function FormRenderer({ form }: any) {
+export default function FormRenderer({ form, response }: FormRendererProps) {
     const getQuestionType = (question: any) => {
         if (question.isMediaContent && 'video' in question.type) return QUESTION_TYPE.VIDEO_CONTENT;
         if (question.isMediaContent && 'image' in question.type) return QUESTION_TYPE.IMAGE_CONTENT;

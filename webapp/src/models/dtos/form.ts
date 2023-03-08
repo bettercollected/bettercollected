@@ -41,8 +41,8 @@ export interface StandardFormDto {
 }
 
 export interface StandardFormResponseDto {
-    response_id: string;
-    form_id: string;
+    responseId: string;
+    formId: string;
     formTitle: string;
     formCustomUrl: string;
     provider: string;
