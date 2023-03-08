@@ -109,7 +109,7 @@ class FormResponseRepository(BaseRepository):
                 .to_list()
             )
             return [
-                StandardFormResponseDto(**form_response)
+                StandardFormResponseCamelModel(**form_response)
                 for form_response in form_responses
             ]
 

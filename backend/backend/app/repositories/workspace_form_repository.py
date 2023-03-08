@@ -52,7 +52,7 @@ class WorkspaceFormRepository:
         try:
             query = {
                 "workspace_id": workspace_id,
-                "$or": [{"form_id": query}, {"settings.customUrl": query}],
+                "$or": [{"form_id": query}, {"settings.custom_url": query}],
             }
             if not is_admin:
                 query["settings.private"] = False
