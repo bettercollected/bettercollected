@@ -75,6 +75,8 @@ enum QUESTION_TYPE {
 
     ADDRESS = 'address',
 
+    CONTACT_INFO = 'contact_info',
+
     MATRIX = 'matrix',
 
     VIDEO_CONTENT = 'VIDEO_CONTENT',
@@ -174,13 +176,13 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
         );
     }
 
-    const renderQuestionTypeField = (question: StandardFormQuestionDto) => {
+    const renderQuestionTypeField = (question: StandardFormQuestionDto, ans?: any, response?: any) => {
         const questionType: QUESTION_TYPE = question.type;
         switch (questionType) {
             case QUESTION_TYPE.SHORT_TEXT:
                 return (
                     <StyledTextField>
-                        <TextareaAutosize value={question.answer} disabled />
+                        <TextareaAutosize value={ans?.text} disabled />
                     </StyledTextField>
                 );
             case QUESTION_TYPE.MULTIPLE_CHOICE:
@@ -196,20 +198,20 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 );
             case QUESTION_TYPE.DATE:
                 const date_format = question.properties?.date_format ?? 'MM/DD/YYYY';
-                const answer = question.answer ?? '';
+                const answer = ans?.date ?? '';
                 return (
                     <LocalizationProvider dateAdapter={AdapterDayjs}>
                         <DatePicker label="" renderInput={(params) => <TextField {...params} />} onChange={(e) => {}} inputFormat={date_format} value={answer} disabled={true} />
                     </LocalizationProvider>
                 );
             case QUESTION_TYPE.NPS:
-                const npsNumbers: any = question.answer ? parseInt(question.answer) : 0;
+                const npsNumbers: any = ans?.number;
                 const npsArray = Array.from(Array(question.properties?.steps).keys());
 
                 return (
                     <StyledTextField className="mt-2">
                         {npsArray.map((nps) => (
-                            <span key={nps} className="border border-gray-900 rounded mx-1 px-2 py-1 bg-gray-200 text-gray-900">
+                            <span key={nps} className={`border border-gray-900 rounded mx-1 px-2 py-1 ${npsNumbers !== undefined && npsNumbers === nps ? 'bg-gray-900 text-gray-200' : 'bg-gray-200 text-gray-900'}`}>
                                 {nps}
                             </span>
                         ))}
@@ -217,11 +219,10 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 );
 
             case QUESTION_TYPE.RANKING:
-                if (!!question.answer) {
-                    const answer = question.answer;
+                if (ans) {
                     return (
                         <>
-                            {answer.map((answer: any, idx: number) => {
+                            {ans?.choices?.values?.map((answer: any, idx: number) => {
                                 return (
                                     <div key={idx} className="p-3 mt-3 mb-3 rounded-md border-[1px] border-gray-300">
                                         <span className="ml-2">
@@ -259,20 +260,20 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 }
 
             case QUESTION_TYPE.RATING:
-                return <Rating name="size-large" size="large" defaultValue={0} precision={1} max={!!question.properties.steps ? parseInt(question.properties.steps) : 3} readOnly />;
+                return <Rating name="size-large" size="large" defaultValue={ans?.number || 0} precision={1} max={!!question.properties.steps ? parseInt(question.properties.steps) : 3} readOnly />;
 
             case QUESTION_TYPE.LONG_TEXT:
                 return (
                     <StyledTextField>
-                        <TextField value={question.answer} disabled={!question.answer} fullWidth variant="standard" />
+                        <TextField value={ans?.text} disabled fullWidth variant="standard" />
                     </StyledTextField>
                 );
 
             case QUESTION_TYPE.YES_NO:
                 return (
                     <>
-                        <FormControlLabel control={<Radio checked={false} />} label={'Yes'} />
-                        <FormControlLabel control={<Radio checked={false} />} label={'No'} />
+                        <FormControlLabel control={<Radio checked={ans?.boolean} />} label={'Yes'} />
+                        <FormControlLabel control={<Radio checked={ans?.boolean === false} />} label={'No'} />
                     </>
                 );
 
@@ -280,7 +281,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 return (
                     <>
                         <StyledTextField>
-                            <TextField value={question.answer} disabled={!question.answer} fullWidth variant="standard" />
+                            <TextField value={ans?.email} disabled fullWidth variant="standard" />
                         </StyledTextField>
                     </>
                 );
@@ -289,7 +290,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 return (
                     <>
                         <StyledTextField>
-                            <TextField value={question.answer} disabled={!question.answer} fullWidth variant="standard" />
+                            <TextField value={ans?.url} disabled fullWidth variant="standard" />
                         </StyledTextField>
                     </>
                 );
@@ -298,7 +299,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 return (
                     <>
                         <StyledTextField>
-                            <TextField value={question.answer} disabled={!question.answer} fullWidth variant="standard" />
+                            <TextField value={ans?.phone_number} disabled fullWidth variant="standard" />
                         </StyledTextField>
                     </>
                 );
@@ -307,13 +308,11 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 if (question.properties?.choices && Array.isArray(question.properties?.choices)) {
                     dropdownOptions = [...question.properties?.choices];
                 }
-                const dropdownAnswers: any = question.answer ? question.answer : [];
-                const dropdownAnswer = Array.isArray(dropdownAnswers) && dropdownAnswers.length !== 0 ? dropdownAnswers[0] : '';
                 return (
                     <StyledTextField>
                         <Select
                             defaultValue={''}
-                            value={dropdownAnswer}
+                            value={ans?.text}
                             inputProps={{
                                 className: 'min-w-20'
                             }}
@@ -330,20 +329,32 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
             case QUESTION_TYPE.ADDRESS:
                 return (
                     <>
-                        {question.properties.fields.map((question: any) => (
+                        {question.properties?.fields?.map((question: any) => (
                             <div className="my-5" key={question.id}>
-                                {renderQuestionField(question)}
+                                {renderQuestionField(question, response)}
+                            </div>
+                        ))}
+                    </>
+                );
+
+            case QUESTION_TYPE.CONTACT_INFO:
+                return (
+                    <>
+                        {question.properties?.fields?.map((question: any) => (
+                            <div className="my-5" key={question.id}>
+                                {renderQuestionField(question, response)}
                             </div>
                         ))}
                     </>
                 );
 
             case QUESTION_TYPE.GROUP:
+                console.log(ans);
                 return (
                     <>
                         {question.properties.fields.map((question: any) => (
                             <div className="my-5" key={question.id}>
-                                {renderQuestionField(question)}
+                                {renderQuestionField(question, response)}
                             </div>
                         ))}
                     </>
@@ -463,12 +474,12 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
         return <p className="text-gray-300">Couldn&apos;t display media Unsupported Type.</p>;
     }
 
-    const renderQuestionField = (question: StandardFormQuestionDto) => (
+    const renderQuestionField = (question: StandardFormQuestionDto, response?: any) => (
         <>
             <h1 className="font-semibold text-lg text-gray-600">{question.title}</h1>
             {question?.description && <MarkdownText description={question.description} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />}
             {question.attachment?.type && renderQuestionAttachment(question.attachment)}
-            {renderQuestionTypeField(question)}
+            {renderQuestionTypeField(question, response ? response[question.id || ''] : undefined, response)}
         </>
     );
 
@@ -484,7 +495,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 <hr className="my-6" />
                 {form?.fields?.map((question: any, idx: number) => (
                     <div key={question?.id} className="p-6 border-[1.5px] border-gray-200 rounded-lg mb-4">
-                        {renderQuestionField(question)}
+                        {renderQuestionField(question, response?.answers)}
                     </div>
                 ))}
             </div>
