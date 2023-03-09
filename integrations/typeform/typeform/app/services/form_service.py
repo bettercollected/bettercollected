@@ -137,8 +137,8 @@ async def convert_form(
     if convert_responses:
         form_responses = await get_form_responses(access_token, standard_form.form_id)
         standard_responses = transformer.transform_form_responses(form_responses)
+        return FormImportResponse(
+            form=standard_form, responses=standard_responses
+        )
     else:
-        standard_responses = []
-    return FormImportResponse(
-        form=standard_form, responses=standard_responses
-    )
+        return standard_form
