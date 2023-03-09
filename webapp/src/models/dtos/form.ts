@@ -1,6 +1,10 @@
 export interface StandardFormQuestionDto {
     questionId: string;
     formId?: string;
+
+    properties?: any;
+
+    attachment?: any;
     title: string;
     description?: string | null;
     type:

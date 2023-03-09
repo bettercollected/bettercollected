@@ -51,22 +51,42 @@ interface ISubmission extends IServerSideProps {
 }
 
 enum QUESTION_TYPE {
+    DATE = 'date',
+    SHORT_TEXT = 'short_text',
+    MULTIPLE_CHOICE = 'multiple_choice',
+    NPS = 'nps',
+    RANKING = 'ranking',
+    RATING = 'rating',
+
+    LONG_TEXT = 'long_text',
+
+    YES_NO = 'yes_no',
+
+    EMAIL = 'email',
+
+    PHONE_NUMBER = 'phone_number',
+
     INPUT_FIELD = 'INPUT_FIELD',
     TEXT_AREA = 'TEXT_AREA',
+
+    WEBSITE = 'website',
+
+    DROP_DOWN = 'dropdown',
+
+    ADDRESS = 'address',
+
+    MATRIX = 'matrix',
+
     VIDEO_CONTENT = 'VIDEO_CONTENT',
     IMAGE_CONTENT = 'IMAGE_CONTENT',
     GROUP_RADIO_QUESTION = 'GROUP_RADIO_QUESTION',
     GROUP_CHECKBOX_QUESTION = 'GROUP_CHECKBOX_QUESTION',
     RADIO = 'RADIO',
     CHECKBOX = 'CHECKBOX',
-    DROP_DOWN = 'DROP_DOWN',
     FILE_UPLOAD = 'FILE_UPLOAD',
     LINEAR_SCALE = 'LINEAR_SCALE',
-    RATING = 'RATING',
-    GROUP = 'GROUP',
-    DATE = 'DATE',
-    STATEMENT = 'STATEMENT',
-    RANKING = 'RANKING'
+    GROUP = 'group',
+    STATEMENT = 'statement'
 }
 
 enum AttachmentType {
@@ -87,32 +107,12 @@ interface FormRendererProps {
 }
 
 export default function FormRenderer({ form, response }: FormRendererProps) {
-    const getQuestionType = (question: any) => {
-        if (question.isMediaContent && 'video' in question.type) return QUESTION_TYPE.VIDEO_CONTENT;
-        if (question.isMediaContent && 'image' in question.type) return QUESTION_TYPE.IMAGE_CONTENT;
-        if (question.isGroupQuestion && 'grid' in question.type) {
-            if (question.type?.grid?.columns?.type === QUESTION_TYPE.RADIO) return QUESTION_TYPE.GROUP_RADIO_QUESTION;
-            if (question.type?.grid?.columns?.type === QUESTION_TYPE.CHECKBOX) return QUESTION_TYPE.GROUP_CHECKBOX_QUESTION;
-        }
-        if (!!question.type && 'type' in question.type && question.type.type === 'GROUP') return QUESTION_TYPE.GROUP;
-        if (!!question.type && 'paragraph' in question.type && !!question.type.paragraph) return QUESTION_TYPE.TEXT_AREA;
-        if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.RANKING) return QUESTION_TYPE.RANKING;
-        if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.INPUT_FIELD) return QUESTION_TYPE.INPUT_FIELD;
-        if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.DROP_DOWN) return QUESTION_TYPE.DROP_DOWN;
-        if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.RADIO) return QUESTION_TYPE.RADIO;
-        if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.CHECKBOX) return QUESTION_TYPE.CHECKBOX;
-        if (!!question.type && 'type' in question.type && question.type.type === QUESTION_TYPE.RATING) return QUESTION_TYPE.RATING;
-        if ('type' in question.type && question.type.type === QUESTION_TYPE.DATE) return QUESTION_TYPE.DATE;
-        if (!!question.type && 'folderId' in question.type && !!question.type.folderId) return QUESTION_TYPE.FILE_UPLOAD;
-        if ((!!question.type && 'high' in question.type) || (!!question.type && 'low' in question.type)) return QUESTION_TYPE.LINEAR_SCALE;
-        if ('type' in question.type && question.type.type === 'STATEMENT') return QUESTION_TYPE.STATEMENT;
-        return QUESTION_TYPE.INPUT_FIELD;
-    };
+    const renderGridRowColumns = (question: any) => {
+        const gridRowQuestions = question.properties?.fields;
+        const gridColumnOptions = question.properties?.fields[0].properties.choices;
+        const Component = gridRowQuestions[0].properties.allow_multiple_selection ? Checkbox : Radio;
 
-    const renderGridRowColumns = (question: any, Component: any) => {
-        const gridRowQuestions = question.type?.questions;
-        const gridColumnOptions = question.type?.grid?.columns?.options;
-        const gridColumnCount = question.type?.grid?.columns?.options && Array.isArray(question.type?.grid?.columns?.options) ? question.type?.grid?.columns?.options.length : 0;
+        const gridColumnCount = gridColumnOptions && Array.isArray(gridColumnOptions) ? gridColumnOptions.length : 0;
         const gridAnswers = question.answer ? question.answer : [];
 
         return (
@@ -121,14 +121,14 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                     <p></p>
                     {gridColumnOptions.map((gcp: any, idx: any) => (
                         <p key={idx} className="font-semibold">
-                            {gcp?.value}
+                            {gcp?.label}
                         </p>
                     ))}
                 </div>
                 {gridRowQuestions.map((grq: any, idx: any) => {
                     return (
                         <div key={idx} className={`grid grid-flow-col grid-cols-${gridColumnCount + 1} gap-4`}>
-                            <p className="font-semibold w-fit">{grq?.rowQuestion?.title}</p>
+                            <p className="font-semibold w-fit">{grq?.title}</p>
                             {gridColumnOptions.map((gcp: any, idx: any) => {
                                 const handleCheckedAnswer = (gcp: any): boolean => {
                                     const questionId = grq?.questionId;
@@ -175,24 +175,182 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
     }
 
     const renderQuestionTypeField = (question: StandardFormQuestionDto) => {
-        const questionType: QUESTION_TYPE = getQuestionType(question);
+        const questionType: QUESTION_TYPE = question.type;
         switch (questionType) {
-            case QUESTION_TYPE.VIDEO_CONTENT:
-                const youtubeUri = question?.type?.video?.youtubeUri;
-                const description = question?.type?.caption;
-                return youtubeUri && renderYoutubeVideo(youtubeUri, description);
-            case QUESTION_TYPE.IMAGE_CONTENT:
-                if (question?.type?.image?.contentUri)
+            case QUESTION_TYPE.SHORT_TEXT:
+                return (
+                    <StyledTextField>
+                        <TextareaAutosize value={question.answer} disabled />
+                    </StyledTextField>
+                );
+            case QUESTION_TYPE.MULTIPLE_CHOICE:
+                return (
+                    <StyledTextField>
+                        {question.properties.choices?.map((option: any, idx: number) => (
+                            <div key={idx} className="flex items-center gap-3">
+                                {option?.attachment?.href && <img width={80} height={80} src={option?.attachment?.href} />}
+                                <FormControlLabel control={question.properties?.allow_multiple_selection ? <Checkbox /> : <Radio checked={false} />} label={option?.label} />
+                            </div>
+                        ))}
+                    </StyledTextField>
+                );
+            case QUESTION_TYPE.DATE:
+                const date_format = question.properties?.date_format ?? 'MM/DD/YYYY';
+                const answer = question.answer ?? '';
+                return (
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <DatePicker label="" renderInput={(params) => <TextField {...params} />} onChange={(e) => {}} inputFormat={date_format} value={answer} disabled={true} />
+                    </LocalizationProvider>
+                );
+            case QUESTION_TYPE.NPS:
+                const npsNumbers: any = question.answer ? parseInt(question.answer) : 0;
+                const npsArray = Array.from(Array(question.properties?.steps).keys());
+
+                return (
+                    <StyledTextField className="mt-2">
+                        {npsArray.map((nps) => (
+                            <span key={nps} className="border border-gray-900 rounded mx-1 px-2 py-1 bg-gray-200 text-gray-900">
+                                {nps}
+                            </span>
+                        ))}
+                    </StyledTextField>
+                );
+
+            case QUESTION_TYPE.RANKING:
+                if (!!question.answer) {
+                    const answer = question.answer;
                     return (
-                        <div className="w-full">
-                            <img src={question?.type?.image?.contentUri} width="100%" alt={question?.type?.image?.altText} />
-                        </div>
+                        <>
+                            {answer.map((answer: any, idx: number) => {
+                                return (
+                                    <div key={idx} className="p-3 mt-3 mb-3 rounded-md border-[1px] border-gray-300">
+                                        <span className="ml-2">
+                                            {idx + 1}. {answer}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </>
                     );
-                return <div className="w-full">{question?.type?.image?.altText && <MarkdownText description={question.type.image.altText} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />}</div>;
-            case QUESTION_TYPE.GROUP_RADIO_QUESTION:
-                return renderGridRowColumns(question, Radio);
-            case QUESTION_TYPE.GROUP_CHECKBOX_QUESTION:
-                return renderGridRowColumns(question, Checkbox);
+                } else {
+                    const choices = question?.properties?.choices ?? [];
+                    const choicesArray: Array<number> = [];
+                    for (let i = 0; i < choices.length; i++) {
+                        choicesArray.push(i + 1);
+                    }
+                    return (
+                        <>
+                            {choices.map((choice: any, idx: number) => {
+                                return (
+                                    <div key={idx} className="p-3 mt-3 mb-3 rounded-md border-[1px] border-gray-300">
+                                        <Select defaultValue={''} className="h-6" value={''} disabled>
+                                            {choicesArray.map((dd: number) => (
+                                                <MenuItem key={dd} value={''}>
+                                                    {dd}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                        <span className="ml-2">{choice.label}</span>
+                                    </div>
+                                );
+                            })}
+                        </>
+                    );
+                }
+
+            case QUESTION_TYPE.RATING:
+                return <Rating name="size-large" size="large" defaultValue={0} precision={1} max={!!question.properties.steps ? parseInt(question.properties.steps) : 3} readOnly />;
+
+            case QUESTION_TYPE.LONG_TEXT:
+                return (
+                    <StyledTextField>
+                        <TextField value={question.answer} disabled={!question.answer} fullWidth variant="standard" />
+                    </StyledTextField>
+                );
+
+            case QUESTION_TYPE.YES_NO:
+                return (
+                    <>
+                        <FormControlLabel control={<Radio checked={false} />} label={'Yes'} />
+                        <FormControlLabel control={<Radio checked={false} />} label={'No'} />
+                    </>
+                );
+
+            case QUESTION_TYPE.EMAIL:
+                return (
+                    <>
+                        <StyledTextField>
+                            <TextField value={question.answer} disabled={!question.answer} fullWidth variant="standard" />
+                        </StyledTextField>
+                    </>
+                );
+
+            case QUESTION_TYPE.WEBSITE:
+                return (
+                    <>
+                        <StyledTextField>
+                            <TextField value={question.answer} disabled={!question.answer} fullWidth variant="standard" />
+                        </StyledTextField>
+                    </>
+                );
+
+            case QUESTION_TYPE.PHONE_NUMBER:
+                return (
+                    <>
+                        <StyledTextField>
+                            <TextField value={question.answer} disabled={!question.answer} fullWidth variant="standard" />
+                        </StyledTextField>
+                    </>
+                );
+            case QUESTION_TYPE.DROP_DOWN:
+                let dropdownOptions: any = [];
+                if (question.properties?.choices && Array.isArray(question.properties?.choices)) {
+                    dropdownOptions = [...question.properties?.choices];
+                }
+                const dropdownAnswers: any = question.answer ? question.answer : [];
+                const dropdownAnswer = Array.isArray(dropdownAnswers) && dropdownAnswers.length !== 0 ? dropdownAnswers[0] : '';
+                return (
+                    <StyledTextField>
+                        <Select
+                            defaultValue={''}
+                            value={dropdownAnswer}
+                            inputProps={{
+                                className: 'min-w-20'
+                            }}
+                        >
+                            {dropdownOptions.map((dd: any, idx: any) => (
+                                <MenuItem key={idx} value={dd?.label}>
+                                    {dd?.label}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </StyledTextField>
+                );
+
+            case QUESTION_TYPE.ADDRESS:
+                return (
+                    <>
+                        {question.properties.fields.map((question: any) => (
+                            <div className="my-5" key={question.id}>
+                                {renderQuestionField(question)}
+                            </div>
+                        ))}
+                    </>
+                );
+
+            case QUESTION_TYPE.GROUP:
+                return (
+                    <>
+                        {question.properties.fields.map((question: any) => (
+                            <div className="my-5" key={question.id}>
+                                {renderQuestionField(question)}
+                            </div>
+                        ))}
+                    </>
+                );
+
+            case QUESTION_TYPE.MATRIX:
+                return renderGridRowColumns(question);
             case QUESTION_TYPE.RADIO:
                 let radioOptions: any = [];
                 if (question.type?.options && Array.isArray(question.type?.options)) {
@@ -225,71 +383,14 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                         ))}
                     </StyledTextField>
                 );
-            case QUESTION_TYPE.RANKING:
-                if (!!question.answer) {
-                    const answer = question.answer;
-                    return (
-                        <>
-                            {answer.map((answer: any, idx: number) => {
-                                return (
-                                    <div key={idx} className="p-3 mt-3 mb-3 rounded-md border-[1px] border-gray-300">
-                                        <span className="ml-2">
-                                            {idx + 1}. {answer}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </>
-                    );
-                } else {
-                    const choices = question?.type?.options ?? [];
-                    const choicesArray: Array<number> = [];
-                    for (let i = 0; i < choices.length; i++) {
-                        choicesArray.push(i + 1);
-                    }
-                    return (
-                        <>
-                            {choices.map((choice: any, idx: number) => {
-                                return (
-                                    <div key={idx} className="p-3 mt-3 mb-3 rounded-md border-[1px] border-gray-300">
-                                        <Select defaultValue={''} className="h-6" value={''}>
-                                            {choicesArray.map((dd: number) => (
-                                                <MenuItem key={dd} value={''}>
-                                                    {dd}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                        <span className="ml-2">{choice.value}</span>
-                                    </div>
-                                );
-                            })}
-                        </>
-                    );
-                }
+
             case QUESTION_TYPE.TEXT_AREA:
                 return (
                     <StyledTextField>
                         <TextareaAutosize value={question.answer} />
                     </StyledTextField>
                 );
-            case QUESTION_TYPE.DROP_DOWN:
-                let dropdownOptions: any = [];
-                if (question.type?.options && Array.isArray(question.type?.options)) {
-                    dropdownOptions = [...question.type?.options];
-                }
-                const dropdownAnswers: any = question.answer ? question.answer : [];
-                const dropdownAnswer = Array.isArray(dropdownAnswers) && dropdownAnswers.length !== 0 ? dropdownAnswers[0] : '';
-                return (
-                    <StyledTextField>
-                        <Select defaultValue={''} value={dropdownAnswer}>
-                            {dropdownOptions.map((dd: any, idx: any) => (
-                                <MenuItem key={idx} value={dd?.value}>
-                                    {dd?.value}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </StyledTextField>
-                );
+
             case QUESTION_TYPE.FILE_UPLOAD:
                 return (
                     <Button variant="solid" className="mt-3">
@@ -297,29 +398,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                         <input type="file" hidden />
                     </Button>
                 );
-            case QUESTION_TYPE.RATING:
-                const ratingAnswers: any = question.answer ? parseInt(question.answer) : 0;
-                return <Rating name="size-large" size="large" defaultValue={ratingAnswers} precision={1} max={!!question.type.steps ? parseInt(question.type.steps) : 3} readOnly />;
-            case QUESTION_TYPE.GROUP:
-                const map = new Map();
 
-                question.type.questions.map((q: any) => map.set(q.questionId, q));
-
-                const questionsWithAnswersArray =
-                    question?.answer?.map((a: any) => {
-                        return { ...map.get(a.questionId), answer: a.answer };
-                    }) ?? [];
-
-                return (
-                    <>
-                        {questionsWithAnswersArray?.map((q: any, idx: number) => (
-                            <div key={idx}>
-                                <h1 className="text-gray-500 font-semibold mt-4">{q?.title}</h1>
-                                {renderQuestionTypeField(q)}
-                            </div>
-                        ))}
-                    </>
-                );
             case QUESTION_TYPE.LINEAR_SCALE:
                 const linearScaleLowValue = question.type?.low;
                 const linearScaleHightValue = question.type?.high;
@@ -333,14 +412,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 const linearScaleAnswer = Array.isArray(linearScaleAnswers) && linearScaleAnswers.length !== 0 ? Number(linearScaleAnswers[0]) : undefined;
 
                 return <Slider value={linearScaleAnswer} min={linearScaleLowValue} step={1} max={linearScaleHightValue} marks={followerMarks} />;
-            case QUESTION_TYPE.DATE:
-                const date_format = question.type?.date_format ?? 'MM/DD/YYYY';
-                const answer = question.answer ?? '';
-                return (
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                        <DatePicker label="" renderInput={(params) => <TextField {...params} />} onChange={(e) => {}} inputFormat={date_format} value={answer} disabled={true} />
-                    </LocalizationProvider>
-                );
+
             case QUESTION_TYPE.STATEMENT:
                 // Render no input element for statement
                 return <></>;
@@ -348,7 +420,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
             default:
                 return (
                     <StyledTextField>
-                        <TextField value={question.answer} fullWidth variant="standard" />
+                        <TextField value={question.answer} disabled={!question.answer} fullWidth variant="standard" />
                     </StyledTextField>
                 );
         }
@@ -391,6 +463,15 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
         return <p className="text-gray-300">Couldn&apos;t display media Unsupported Type.</p>;
     }
 
+    const renderQuestionField = (question: StandardFormQuestionDto) => (
+        <>
+            <h1 className="font-semibold text-lg text-gray-600">{question.title}</h1>
+            {question?.description && <MarkdownText description={question.description} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />}
+            {question.attachment?.type && renderQuestionAttachment(question.attachment)}
+            {renderQuestionTypeField(question)}
+        </>
+    );
+
     return (
         <div data-testid="form-renderer" className="relative container mx-auto px-6 md:px-0">
             <div className="pb-14 pt-4">
@@ -401,12 +482,9 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                     </div>
                 )}
                 <hr className="my-6" />
-                {form?.questions?.map((question: any, idx: number) => (
-                    <div key={question?.questionId ?? `${question.formId}_${idx}`} className="p-6 border-[1.5px] border-gray-200 rounded-lg mb-4">
-                        <h1 className="font-semibold text-lg text-gray-600">{question.title}</h1>
-                        {question?.description && <MarkdownText description={question.description} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />}
-                        {question.attachment && renderQuestionAttachment(question.attachment)}
-                        {renderQuestionTypeField(question)}
+                {form?.fields?.map((question: any, idx: number) => (
+                    <div key={question?.id} className="p-6 border-[1.5px] border-gray-200 rounded-lg mb-4">
+                        {renderQuestionField(question)}
                     </div>
                 ))}
             </div>
