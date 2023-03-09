@@ -50,8 +50,8 @@ export default function WorkspaceFormsTabContent({ workspace }: any) {
 
     useEffect(() => {
         if (!!data) {
-            const pinnedForms = data.payload.content.filter((form) => form.settings?.pinned);
-            const unpinnedForms = data.payload.content.filter((form) => !form.settings?.pinned);
+            const pinnedForms = data.filter((form) => form.settings?.pinned);
+            const unpinnedForms = data.filter((form) => !form.settings?.pinned);
             setPinnedForms(pinnedForms);
             setUnpinnedForms(unpinnedForms);
             setShowUnpinnedForms(unpinnedForms.length > 0);
@@ -64,9 +64,9 @@ export default function WorkspaceFormsTabContent({ workspace }: any) {
             query: escapeRegExp(event.target.value)
         });
         if (event.target.value) {
-            setUnpinnedForms(response?.data?.payload?.content);
+            setUnpinnedForms(response?.data);
         } else {
-            setUnpinnedForms(response?.data?.payload?.content.filter((form: any) => !form.settings.pinned) || []);
+            setUnpinnedForms(response?.data.filter((form: any) => !form.settings.pinned) || []);
         }
     };
     const debouncedResults = useMemo(() => {
@@ -83,9 +83,9 @@ export default function WorkspaceFormsTabContent({ workspace }: any) {
                 <Loader />
             </div>
         );
-    const forms: Array<StandardFormDto> = data?.payload?.content ?? [];
+    const forms: Array<StandardFormDto> = data ?? [];
 
-    if ((data?.payload?.content && Array.isArray(data?.payload?.content) && data?.payload?.content?.length === 0) || isError || forms.length === 0)
+    if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0)
         return (
             <div data-testid="empty-view" className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
                 <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />

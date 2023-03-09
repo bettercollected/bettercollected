@@ -30,8 +30,8 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
     const { sub_id }: any = router.query;
 
     useEffect(() => {
-        if (!submissionsQuery?.isLoading && !!submissionsQuery?.data?.payload?.content) {
-            const responseMapObject = convertToClientForm(submissionsQuery?.data?.payload?.content);
+        if (!submissionsQuery?.isLoading && !!submissionsQuery?.data) {
+            const responseMapObject = convertToClientForm(submissionsQuery?.data);
             setResponseObject(responseMapObject);
         }
     }, [submissionsQuery]);
@@ -44,7 +44,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
             };
             trigger(submissionQuery)
                 .then((d: any) => {
-                    setForm(d.data?.payload?.content);
+                    setForm(d.data);
                 })
                 .catch((e) => {
                     toast.error('Error fetching submission data.', { toastId: ToastId.ERROR_TOAST });
@@ -53,7 +53,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
     }, [sub_id]);
 
     const convertToClientForm = (formsArray: Array<any>) => {
-        const responseMap = formsArray.reduce(function (accumulator, value) {
+        return formsArray.reduce(function (accumulator, value) {
             if (!accumulator[value.formId]) {
                 accumulator[value.formId] = {
                     title: value.formTitle,
@@ -64,8 +64,6 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
             }
             return accumulator;
         }, Object.create(null));
-
-        return responseMap;
     };
 
     const handleSubmissionClick = (responseId: any) => {

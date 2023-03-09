@@ -30,12 +30,12 @@ export default function Submission(props: any) {
         submission_id: submissionId
     });
 
-    const form: any = data?.payload?.content ?? [];
+    const form: any = data ?? [];
 
     if (isLoading || isError || !data) return <FullScreenLoader />;
 
     const goToSubmissions = () => {
-        let pathName = undefined;
+        let pathName;
         if (hasCustomDomain) {
             pathName = '/';
         } else {
@@ -66,7 +66,7 @@ export default function Submission(props: any) {
             onClick: goToSubmissions
         },
         {
-            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.formId, 10) : form.formId,
+            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.form.formId, 10) : form.formId,
             icon: ''
         }
     ];
@@ -74,7 +74,7 @@ export default function Submission(props: any) {
     return (
         <div className="relative container mx-auto px-6 md:px-0">
             <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />
-            <FormRenderer form={form} />
+            <FormRenderer form={form.form} response={form.response} />
         </div>
     );
 }
@@ -100,7 +100,7 @@ export async function getServerSideProps(_context: any) {
     try {
         if (globalProps.hasCustomDomain && globalProps.workspaceId) {
             const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/submissions/${submissionId}`, config).catch((e) => e);
-            form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
+            form = (await formResponse?.json().catch((e: any) => e)) ?? null;
         }
     } catch (err) {
         form = null;

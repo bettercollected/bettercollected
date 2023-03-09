@@ -1,6 +1,11 @@
 export interface StandardFormQuestionDto {
+    id?: string;
     questionId: string;
     formId?: string;
+
+    properties?: any;
+
+    attachment?: any;
     title: string;
     description?: string | null;
     type:
@@ -18,7 +23,7 @@ export interface StandardFormQuestionDto {
 }
 
 export interface StandardFormDto {
-    form_id: string;
+    formId: string;
     title: string;
     description?: string | null | undefined;
     provider?: string;
@@ -41,8 +46,8 @@ export interface StandardFormDto {
 }
 
 export interface StandardFormResponseDto {
-    response_id: string;
-    form_id: string;
+    responseId: string;
+    formId: string;
     formTitle: string;
     formCustomUrl: string;
     provider: string;

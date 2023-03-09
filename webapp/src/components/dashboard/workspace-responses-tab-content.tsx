@@ -27,7 +27,7 @@ export default function WorkspaceResponsesTabContent({ workspace }: any) {
             </div>
         );
 
-    if ((data?.payload?.content && Array.isArray(data?.payload?.content) && data?.payload?.content?.length === 0) || isError)
+    if ((data && Array.isArray(data) && data.length === 0) || isError)
         return (
             <div data-testid="empty-forms-view" className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
                 <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />
@@ -35,7 +35,7 @@ export default function WorkspaceResponsesTabContent({ workspace }: any) {
             </div>
         );
 
-    const submissions: Array<StandardFormResponseDto> = data?.payload?.content ?? [];
+    const submissions: Array<StandardFormResponseDto> = data ?? [];
 
     const isCustomDomain = window?.location.host !== environments.CLIENT_HOST;
 
@@ -50,11 +50,11 @@ export default function WorkspaceResponsesTabContent({ workspace }: any) {
             <div className="grid grid-cols-1 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
                 {submissions?.length !== 0 &&
                     submissions?.map((submission: StandardFormResponseDto) => {
-                        const slug = submission.response_id;
+                        const slug = submission.responseId;
                         const submittedAt = `${toMonthDateYearStr(parseDateStrToDate(submission.updatedAt))} ${toHourMinStr(parseDateStrToDate(submission.updatedAt))}`;
                         return (
                             <ActiveLink
-                                key={submission.response_id}
+                                key={submission.responseId}
                                 href={{
                                     pathname: isCustomDomain ? `/submissions/[slug]` : `${workspace.workspaceName}/submissions/[slug]`,
                                     query: { slug }
@@ -62,7 +62,7 @@ export default function WorkspaceResponsesTabContent({ workspace }: any) {
                             >
                                 <div className="flex flex-row overflow-hidden items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
                                     <div className="flex flex-col justify-start h-full">
-                                        <p className="text-sm text-gray-400 italic">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submission.form_id, 30) : submission.form_id}</p>
+                                        <p className="text-sm text-gray-400 italic">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submission.formId, 30) : submission.formId}</p>
                                         <p className="text-xl text-grey mb-4 p-0">{submission.formTitle}</p>
                                         <p className="text-sm text-gray-400 italic">
                                             <span>Last submitted at {submittedAt}</span>
