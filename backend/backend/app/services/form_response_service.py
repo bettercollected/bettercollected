@@ -3,7 +3,7 @@ from http import HTTPStatus
 from beanie import PydanticObjectId
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.response_dtos import StandardFormResponseCamelModel
+from backend.app.models.response_dtos import StandardFormResponseCamelModel, StandardFormCamelModel
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
@@ -114,6 +114,7 @@ class FormResponseService:
             raise HTTPException(403, "You are not authorized to perform this action.")
 
         response = StandardFormResponseCamelModel(**response.dict())
+        form = StandardFormCamelModel(**form.dict())
 
         response.form_title = form.title
         return {"form": form, "response": response}
