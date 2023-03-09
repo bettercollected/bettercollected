@@ -38,3 +38,11 @@ def get_user_token(request: Request) -> str:
     if not access_token:
         raise HTTPException(401, "Authorization token is missing.")
     return access_token
+
+
+def get_logged_admin(request: Request):
+    user = get_logged_user(request)
+    if user.is_admin():
+        return user
+    else:
+        raise HTTPException(403, "You are not authorized to perform this action.")
