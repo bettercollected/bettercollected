@@ -3,10 +3,10 @@ from typing import List
 
 from beanie import PydanticObjectId
 
+from backend.app.exceptions import HTTPException
 from backend.app.schemas.workspace import WorkspaceDocument
 from common.base.repo import BaseRepository, U, T
 from common.enums.form_provider import FormProvider
-from common.exceptions.http import HTTPException
 
 
 class WorkspaceRepository(BaseRepository):

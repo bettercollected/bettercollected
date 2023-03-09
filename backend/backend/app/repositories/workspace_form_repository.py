@@ -52,7 +52,7 @@ class WorkspaceFormRepository:
         try:
             query = {
                 "workspace_id": workspace_id,
-                "$or": [{"form_id": query}, {"settings.customUrl": query}],
+                "$or": [{"form_id": query}, {"settings.custom_url": query}],
             }
             if not is_admin:
                 query["settings.private"] = False
@@ -90,7 +90,7 @@ class WorkspaceFormRepository:
     async def get_workspace_form_with_custom_slug(self, workspace_id: PydanticObjectId, custom_url: str):
         return (
             await WorkspaceFormDocument.find_one(
-                {"workspaceId": workspace_id, 'settings.customUrl': custom_url}
+                {"workspace_id": workspace_id, 'settings.custom_url': custom_url}
             )
         )
 

@@ -25,7 +25,7 @@ class Workspace(WorkspaceRequestDto):
     updated_at: Optional[dt.datetime]
 
 
-class WorkspaceFormSettings(CamelModel):
+class WorkspaceFormSettings(BaseModel):
     """Model for storing the form settings of a workspace."""
 
     pinned: Optional[bool] = False

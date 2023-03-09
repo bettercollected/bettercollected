@@ -5,6 +5,7 @@ from beanie import PydanticObjectId
 from fastapi import UploadFile
 from pydantic import EmailStr
 
+from backend.app.exceptions import HTTPException
 from backend.app.models.workspace import WorkspaceRequestDto, WorkspaceResponseDto
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
@@ -12,7 +13,6 @@ from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
 from backend.config import settings
-from common.exceptions.http import HTTPException
 from common.models.user import User
 from common.services.http_client import HttpClient
 
