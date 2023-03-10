@@ -65,7 +65,6 @@ class StandardChoice(BaseModel):
 class StandardAnswerField(BaseModel):
     id: str
     ref: Optional[str]
-    type: Optional[StandardFormFieldType]
 
 
 class StandardPaymentAnswer(BaseModel):
