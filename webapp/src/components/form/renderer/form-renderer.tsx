@@ -177,6 +177,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
     }
 
     const renderQuestionTypeField = (question: StandardFormQuestionDto, ans?: any, response?: any) => {
+        console.log(question, ans, response);
         const questionType: QUESTION_TYPE = question.type;
         switch (questionType) {
             case QUESTION_TYPE.SHORT_TEXT:
@@ -186,12 +187,13 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                     </StyledTextField>
                 );
             case QUESTION_TYPE.MULTIPLE_CHOICE:
+                const choiceAnswer = ans?.choice?.value ?? ans?.choices?.values;
                 return (
                     <StyledTextField>
                         {question.properties.choices?.map((option: any, idx: number) => (
                             <div key={idx} className="flex items-center gap-3">
                                 {option?.attachment?.href && <img width={80} height={80} src={option?.attachment?.href} />}
-                                <FormControlLabel control={question.properties?.allow_multiple_selection ? <Checkbox /> : <Radio checked={false} />} label={option?.label} />
+                                <FormControlLabel control={question.properties?.allow_multiple_selection ? <Checkbox checked={choiceAnswer?.includes(option?.label)} /> : <Radio checked={option?.label == choiceAnswer} />} label={option?.label} />
                             </div>
                         ))}
                     </StyledTextField>
@@ -395,7 +397,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                     </StyledTextField>
                 );
 
-            case QUESTION_TYPE.TEXT_AREA:
+            case QUESTION_TYPE.LONG_TEXT:
                 return (
                     <StyledTextField>
                         <TextareaAutosize value={question.answer} />
