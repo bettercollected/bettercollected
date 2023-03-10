@@ -1,9 +1,13 @@
 """Application implementation - ASGI."""
 import logging
 from fastapi import FastAPI
+from fastapi_utils.timing import add_timing_middleware
+from loguru import logger
 
 import typeform
 from typeform.app.container import AppContainer, container
+from typeform.app.handlers import init_logging
+from typeform.app.middlewares import include_middlewares
 from typeform.app.services.database_service import init_db, close_db
 from typeform.config import settings
 from typeform.app.router import root_api_router
@@ -46,6 +50,7 @@ def get_application():
        FastAPI: Application object instance.
 
     """
+    init_logging()
     log.debug("Initialize FastAPI application node.")
     app = FastAPI(
         title=settings.PROJECT_NAME,
@@ -60,5 +65,8 @@ def get_application():
     app.include_router(root_api_router)
     log.debug("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
+
+    include_middlewares(app)
+    add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
 
     return app

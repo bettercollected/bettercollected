@@ -2,6 +2,7 @@ import logging
 from typing import Any, Dict, List
 
 from fastapi import HTTPException
+from loguru import logger
 
 from common.enums.form_provider import FormProvider
 from common.models.standard_form import (
@@ -28,6 +29,7 @@ class TypeFormTransformerService(FormTransformerService):
             )
             return standard_form
         except Exception as error:
+            logger.error(f"Error transforming single form response: {error}")
             raise HTTPException(status_code=500, detail=f"Data transformation failed. {error}")
 
     def transform_form_responses(self, responses: List[Dict[str, Any]]) -> List[StandardFormResponse]:
@@ -48,6 +50,7 @@ class TypeFormTransformerService(FormTransformerService):
             )
             return standard_form_response
         except Exception as error:
+            logger.error(f"Error transforming single form response: {error}")
             raise HTTPException(status_code=500, detail=f"Data transformation failed. {error}")
 
     def _transform_fields(self, fields: List[TypeFormField]) -> List[StandardFormField]:
@@ -156,7 +159,6 @@ class TypeFormTransformerService(FormTransformerService):
             field=StandardAnswerField(
                 id=answer.field.id,
                 ref=answer.field.ref,
-                type=answer.field.type,
             ),
             type=answer.type,
             text=answer.text,
