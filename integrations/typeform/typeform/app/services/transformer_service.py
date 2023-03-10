@@ -7,10 +7,11 @@ from common.enums.form_provider import FormProvider
 from common.models.standard_form import (
     StandardForm, StandardFormSettings, StandardFormField, StandardFieldAttachment, StandardAttachmentProperties,
     EmbedProvider, StandardFieldProperty, StandardFieldValidations, StandardChoice, StandardFormResponse,
-    StandardFormResponseAnswer, StandardAnswerField, StandardChoiceAnswer, StandardChoicesAnswer, StandardPaymentAnswer)
+    StandardFormResponseAnswer, StandardAnswerField, StandardChoiceAnswer, StandardChoicesAnswer, StandardPaymentAnswer,
+    StandardFormFieldType)
 from common.services.transformer_service import FormTransformerService
 from typeform.app.models.typeform_models import \
-    TypeFormField, Answer, Attachment, TypeFormResponse, TypeFormDto
+    TypeFormField, Answer, Attachment, TypeFormResponse, TypeFormDto, FieldType, FieldProperties, Validation
 
 
 class TypeFormTransformerService(FormTransformerService):
@@ -69,21 +70,45 @@ class TypeFormTransformerService(FormTransformerService):
         return std_attachment
 
     def _transform_field(self, typeform_field: TypeFormField) -> StandardFormField:
-        field = StandardFormField()
-        field.id = typeform_field.id
-        field.ref = typeform_field.ref
-        field.title = typeform_field.title
-        field.description = typeform_field.properties.description
-        field.type = typeform_field.type
-        field.validations = StandardFieldValidations(
-            required=typeform_field.validations.required,
-            max_length=typeform_field.validations.max_length,
-            min_value=typeform_field.validations.min_value,
-            max_value=typeform_field.validations.max_value
+        return StandardFormField(
+            id=typeform_field.id,
+            ref=typeform_field.ref,
+            title=typeform_field.title,
+            description=typeform_field.properties.description,
+            validations=self._transform_validations(typeform_field.validations),
+            attachment=self._transform_attachment(typeform_field.attachment),
+            properties=self._transform_properties(typeform_field.properties),
+            type=self._transform_type(typeform_field.type)
         )
-        field.attachment = self._transform_attachment(typeform_field.attachment)
-        typeform_field_properties = typeform_field.properties
-        field.properties = StandardFieldProperty(
+
+    @staticmethod
+    def _transform_type(typeform_field_type: FieldType) -> StandardFormFieldType:
+        match typeform_field_type:
+            case FieldType.CONTACT_INFO | FieldType.ADDRESS:
+                standard_type = StandardFormFieldType.GROUP
+            case FieldType.EMAIL \
+                 | FieldType.PHONE_NUMBER \
+                 | FieldType.WEBSITE:
+                standard_type = StandardFormFieldType.SHORT_TEXT
+            case FieldType.LEGAL | FieldType.YES_NO:
+                standard_type = StandardFormFieldType.MULTIPLE_CHOICE
+            case FieldType.NPS:
+                standard_type = StandardFormFieldType.OPINION_SCALE
+            case _:
+                standard_type = typeform_field_type
+        return standard_type
+
+    @staticmethod
+    def _transform_validations(typeform_field_validations: Validation) -> StandardFieldValidations:
+        return StandardFieldValidations(
+            required=typeform_field_validations.required,
+            max_length=typeform_field_validations.max_length,
+            min_value=typeform_field_validations.min_value,
+            max_value=typeform_field_validations.max_value
+        )
+
+    def _transform_properties(self, typeform_field_properties: FieldProperties) -> StandardFieldProperty:
+        return StandardFieldProperty(
             description=typeform_field_properties.description,
             choices=[StandardChoice(
                 ref=choice.ref,
@@ -102,7 +127,6 @@ class TypeFormTransformerService(FormTransformerService):
             date_format=self._format_typeform_date(typeform_field_properties.structure,
                                                    typeform_field_properties.separator)
         )
-        return field
 
     # Transform date for typeform for eg YYYYMMDD's into YYYY/MM/DD format
     @staticmethod

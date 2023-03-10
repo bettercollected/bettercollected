@@ -99,7 +99,7 @@ class TypeFormField(BaseModel):
     id: Optional[str]
     ref: Optional[str]
     title: Optional[str]
-    type: Optional[str]
+    type: Optional[FieldType]
     properties: Optional[FieldProperties] = FieldProperties()
     validations: Optional[Validation] = Validation()
     attachment: Optional[Attachment] = Attachment()
