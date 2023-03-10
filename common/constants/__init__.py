@@ -54,3 +54,4 @@ MESSAGE_OAUTH_MISSING_REFRESH_TOKEN = (
     "Oauth is missing Refresh Token from the credentials!"
 )
 MESSAGE_OAUTH_FETCH_TOKEN_ERROR = "Could not fetch oauth token!"
+MESSAGE_PROVIDER_IS_NOT_ENABLED = "Provider {provider} is not supported."
