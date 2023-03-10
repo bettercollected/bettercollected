@@ -1,4 +1,5 @@
 import datetime
+import json
 from typing import Dict, Optional, List
 
 from beanie import PydanticObjectId
@@ -95,6 +96,7 @@ class UserInfo(BaseModel):
 
 class OAuthState(BaseModel):
     client_referer_uri: Optional[str]
+    email: Optional[str]
 
 
 class Credential(BaseModel):
