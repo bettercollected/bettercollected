@@ -111,7 +111,7 @@ class StandardFieldProperty(BaseModel):
     hide_marks: Optional[bool]
     button_text: Optional[str]
     steps: Optional[int]
-    start_at_one: Optional[bool]
+    start_form: Optional[int]
     rating_shape: Optional[str]
     labels: Optional[Dict[str, str]]
     date_format: Optional[str]
