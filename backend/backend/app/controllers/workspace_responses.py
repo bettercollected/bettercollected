@@ -1,5 +1,5 @@
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, get
+from classy_fastapi import Routable, delete, get
 from fastapi import Depends
 
 from backend.app.container import container
@@ -66,5 +66,16 @@ class WorkspaceResponsesRouter(Routable):
         user: User = Depends(get_logged_user),
     ):
         return await self._form_response_service.get_workspace_submission(
+            workspace_id, submission_id, user
+        )
+
+    @delete("/submissions/{submission_id}")
+    async def _request_workspace_form_response_delete(
+        self,
+        workspace_id: PydanticObjectId,
+        submission_id: str,
+        user: User = Depends(get_logged_user),
+    ):
+        return await self._form_response_service.request_for_response_deletion(
             workspace_id, submission_id, user
         )

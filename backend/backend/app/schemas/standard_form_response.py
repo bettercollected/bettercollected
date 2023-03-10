@@ -6,6 +6,8 @@ from common.models.standard_form import StandardFormResponse
 
 
 class FormResponseDocument(MongoDocument, StandardFormResponse):
+    request_for_deletion: bool = False
+
     class Settings:
         name = "form_responses"
         bson_encoders = {

@@ -97,7 +97,7 @@ class FormResponseService:
     async def get_workspace_submission(
         self, workspace_id: PydanticObjectId, response_id: str, user: User
     ):
-        is_admin = self._workspace_user_repo.is_user_admin_in_workspace(
+        is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
             workspace_id, user
         )
         # TODO : Handle case for multiple form import by other user
@@ -112,7 +112,7 @@ class FormResponseService:
         if not workspace_form:
             raise HTTPException(404, "Form not found in this workspace")
 
-        if not (is_admin or response["dataOwnerIdentifier"] == user.sub):
+        if not (is_admin or response.dataOwnerIdentifier == user.sub):
             raise HTTPException(403, "You are not authorized to perform this action.")
 
         response = StandardFormResponseCamelModel(**response.dict())
@@ -120,3 +120,18 @@ class FormResponseService:
 
         response.form_title = form.title
         return {"form": form, "response": response}
+
+    async def request_for_response_deletion(
+        self, workspace_id: PydanticObjectId, response_id: str, user: User
+    ):
+        is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
+            workspace_id, user
+        )
+        # TODO : Handle case for multiple form import by other user
+        response = await FormResponseDocument.find_one({"response_id": response_id})
+
+        if not (is_admin or response.dataOwnerIdentifier == user.sub):
+            raise HTTPException(403, "You are not authorized to perform this action.")
+
+        response.request_for_deletion = True
+        return await FormResponseDocument.save(response)

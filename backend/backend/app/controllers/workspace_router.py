@@ -8,7 +8,11 @@ from pydantic import EmailStr
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
-from backend.app.models.workspace import WorkspaceResponseDto, WorkspaceRequestDto, WorkspaceRequestDtoCamel
+from backend.app.models.workspace import (
+    WorkspaceResponseDto,
+    WorkspaceRequestDto,
+    WorkspaceRequestDtoCamel,
+)
 from backend.app.router import router
 from backend.app.services.user_service import get_logged_user
 from backend.app.services.workspace_service import WorkspaceService
@@ -23,10 +27,10 @@ class WorkspaceRouter(Routable):
 
     @get("")
     async def _get_workspace_by_query(
-            self, workspace_name: Optional[str] = None, custom_domain: Optional[str] = None
+        self, workspace_name: Optional[str] = None, custom_domain: Optional[str] = None
     ):
         if (workspace_name and custom_domain) or (
-                not workspace_name and not custom_domain
+            not workspace_name and not custom_domain
         ):
             raise HTTPException(
                 HTTPStatus.UNPROCESSABLE_ENTITY, "Provide only one query"
@@ -36,7 +40,7 @@ class WorkspaceRouter(Routable):
 
     @get("/mine")
     async def _get_mine_workspaces(
-            self, user: User = Depends(get_logged_user)
+        self, user: User = Depends(get_logged_user)
     ) -> List[WorkspaceResponseDto]:
         workspaces = await self.workspace_service.get_mine_workspaces(user)
         return workspaces
@@ -49,16 +53,16 @@ class WorkspaceRouter(Routable):
 
     @patch("/{workspace_id}")
     async def patch_workspace(
-            self,
-            workspace_id: PydanticObjectId,
-            profile_image: UploadFile = None,
-            banner_image: UploadFile = None,
-            title: Optional[str] = Form(None),
-            workspace_name: Optional[str] = Form(None),
-            description: Optional[str] = Form(None),
-            custom_domain: Optional[str] = Form(None),
-            owner_id: Optional[str] = Form(None),
-            user: User = Depends(get_logged_user),
+        self,
+        workspace_id: PydanticObjectId,
+        profile_image: UploadFile = None,
+        banner_image: UploadFile = None,
+        title: Optional[str] = Form(None),
+        workspace_name: Optional[str] = Form(None),
+        description: Optional[str] = Form(None),
+        custom_domain: Optional[str] = Form(None),
+        owner_id: Optional[str] = Form(None),
+        user: User = Depends(get_logged_user),
     ) -> WorkspaceResponseDto:
         workspace_request = WorkspaceRequestDtoCamel(
             title=title,
@@ -73,9 +77,9 @@ class WorkspaceRouter(Routable):
 
     @post("/{workspace_id}/auth/otp/send")
     async def send_otp_for_workspace(
-            self,
-            workspace_id: PydanticObjectId,
-            receiver_email: EmailStr,
+        self,
+        workspace_id: PydanticObjectId,
+        receiver_email: EmailStr,
     ):
         return await self.workspace_service.send_otp_for_workspace(
             workspace_id, receiver_email
@@ -83,7 +87,7 @@ class WorkspaceRouter(Routable):
 
     @delete("/{workspace_id}/custom_domain")
     async def delete_custom_domain_of_workspace(
-            self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
     ):
         return await self.workspace_service.delete_custom_domain_of_workspace(
             workspace_id=workspace_id, user=user
