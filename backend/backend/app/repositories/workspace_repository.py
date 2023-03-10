@@ -43,11 +43,11 @@ class WorkspaceRepository(BaseRepository):
 
     async def get_workspace_by_query(self, query: str):
         workspace = await WorkspaceDocument.find_one(
-            {"$or": [{"workspaceName": query}, {"customDomain": query}]}
+            {"$or": [{"workspace_name": query}, {"custom_domain": query}]}
         )
         if not workspace:
             raise HTTPException(HTTPStatus.NOT_FOUND)
         return workspace
 
     async def get_user_workspaces(self, owner_id: str):
-        return await WorkspaceDocument.find({"ownerId": owner_id}).to_list()
+        return await WorkspaceDocument.find({"owner_id": owner_id}).to_list()

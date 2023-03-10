@@ -6,7 +6,7 @@ from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
 
 
-class WorkspaceRequestDto(CamelModel):
+class WorkspaceRequestDto(BaseModel):
     """Model for creating or updating a workspace."""
 
     title: Optional[str]
@@ -16,6 +16,10 @@ class WorkspaceRequestDto(CamelModel):
     profile_image: Optional[str]
     banner_image: Optional[str]
     custom_domain: Optional[str]
+
+
+class WorkspaceRequestDtoCamel(WorkspaceRequestDto, CamelModel):
+    pass
 
 
 class Workspace(WorkspaceRequestDto):
@@ -35,7 +39,7 @@ class WorkspaceFormSettings(BaseModel):
     provider: Optional[str]
 
 
-class WorkspaceResponseDto(WorkspaceRequestDto):
+class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     """Model for returning information about a workspace."""
 
     id: Optional[PydanticObjectId]
