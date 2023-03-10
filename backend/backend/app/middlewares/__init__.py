@@ -33,12 +33,5 @@ def include_middlewares(app: "FastAPI"):
             f"Request : Host {request.method} {request.url.path} {request.url.query}"
         )
         response: Response = await call_next(request)
-        logger.info(response)
-
-        try:
-            if hasattr(response, "body"):
-                logger.info(f"Response: {response.status_code} {response.body}")
-        except Exception as e:
-            logger.error(f"Response Error: {e}")
-            return response
+        logger.info(response.status_code)
         return response
