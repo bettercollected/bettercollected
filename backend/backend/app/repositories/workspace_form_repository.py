@@ -15,9 +15,12 @@ from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
 
 
 class WorkspaceFormRepository:
-
-    async def update(self, item_id: str, item: WorkspaceFormDocument) -> WorkspaceFormDocument:
-        workspace_form = await WorkspaceFormDocument.find_one(WorkspaceFormDocument.id == item_id)
+    async def update(
+        self, item_id: str, item: WorkspaceFormDocument
+    ) -> WorkspaceFormDocument:
+        workspace_form = await WorkspaceFormDocument.find_one(
+            WorkspaceFormDocument.id == item_id
+        )
         if not workspace_form:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in ")
         return await item.save()
@@ -87,10 +90,9 @@ class WorkspaceFormRepository:
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
 
-    async def get_workspace_form_with_custom_slug(self, workspace_id: PydanticObjectId, custom_url: str):
-        return (
-            await WorkspaceFormDocument.find_one(
-                {"workspace_id": workspace_id, 'settings.custom_url': custom_url}
-            )
+    async def get_workspace_form_with_custom_slug(
+        self, workspace_id: PydanticObjectId, custom_url: str
+    ):
+        return await WorkspaceFormDocument.find_one(
+            {"workspace_id": workspace_id, "settings.custom_url": custom_url}
         )
-

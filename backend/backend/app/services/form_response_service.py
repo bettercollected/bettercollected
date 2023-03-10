@@ -3,7 +3,10 @@ from http import HTTPStatus
 from beanie import PydanticObjectId
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.response_dtos import StandardFormResponseCamelModel, StandardFormCamelModel
+from backend.app.models.response_dtos import (
+    StandardFormResponseCamelModel,
+    StandardFormCamelModel,
+)
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
@@ -17,21 +20,21 @@ from common.utils.logger import logger
 
 class FormResponseService:
     def __init__(
-            self,
-            form_response_repo: FormResponseRepository,
-            workspace_form_repo: WorkspaceFormRepository,
-            workspace_user_repo: WorkspaceUserRepository,
+        self,
+        form_response_repo: FormResponseRepository,
+        workspace_form_repo: WorkspaceFormRepository,
+        workspace_user_repo: WorkspaceUserRepository,
     ):
         self._form_response_repo = form_response_repo
         self._workspace_form_repo = workspace_form_repo
         self._workspace_user_repo = workspace_user_repo
 
     async def get_all_workspace_responses(
-            self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: PydanticObjectId, user: User
     ):
         try:
             if not await self._workspace_user_repo.is_user_admin_in_workspace(
-                    workspace_id=workspace_id, user=user
+                workspace_id=workspace_id, user=user
             ):
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_UNAUTHORIZED
@@ -63,11 +66,11 @@ class FormResponseService:
             )
 
     async def get_workspace_submissions(
-            self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self, workspace_id: PydanticObjectId, form_id: str, user: User
     ):
         try:
             if not await self._workspace_user_repo.is_user_admin_in_workspace(
-                    workspace_id, user
+                workspace_id, user
             ):
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_UNAUTHORIZED
@@ -92,9 +95,8 @@ class FormResponseService:
             )
 
     async def get_workspace_submission(
-            self, workspace_id: PydanticObjectId, response_id: str, user: User
+        self, workspace_id: PydanticObjectId, response_id: str, user: User
     ):
-
         is_admin = self._workspace_user_repo.is_user_admin_in_workspace(
             workspace_id, user
         )

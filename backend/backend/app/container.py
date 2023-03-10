@@ -106,14 +106,9 @@ class AppContainer(containers.DeclarativeContainer):
         WorkspaceUserService, workspace_user_repository=workspace_user_repo
     )
 
-    job_store = providers.Singleton(
-        MongoDBJobStore,
-        host=settings.mongo_settings.URI
-    )
+    job_store = providers.Singleton(MongoDBJobStore, host=settings.mongo_settings.URI)
 
-    job_stores = providers.Dict(
-        default=job_store
-    )
+    job_stores = providers.Dict(default=job_store)
 
     # executors = providers.Dict(
     #     default=ThreadPoolExecutor(100)
@@ -125,8 +120,7 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     form_import_service: FormImportService = providers.Singleton(
-        FormImportService,
-        form_service=form_service
+        FormImportService, form_service=form_service
     )
 
     form_schedular = providers.Singleton(
@@ -144,7 +138,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_repository=workspace_form_repo,
         form_schedular=form_schedular,
         form_import_service=form_import_service,
-        schedular=schedular
+        schedular=schedular,
     )
 
 

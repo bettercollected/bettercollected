@@ -1,5 +1,6 @@
 """Auth controller implementation."""
 import logging
+from http import HTTPStatus
 from typing import Optional
 
 from classy_fastapi import Routable, get, post
@@ -40,7 +41,7 @@ class AuthRoutes(Routable):
     # TODO : Merge with plugin proxy currently it is handled for typeform only
     @get("/{provider_name}/oauth")
     async def _oauth_provider(
-            self, provider_name: str, request: Request, creator: Optional[str] = True
+        self, provider_name: str, request: Request, creator: Optional[str] = True
     ):
         client_referer_url = request.headers.get("referer")
         oauth_url = await self.auth_service.get_oauth_url(
@@ -49,7 +50,11 @@ class AuthRoutes(Routable):
         return RedirectResponse(oauth_url)
 
     @get("/{provider_name}/oauth/callback")
-    async def _auth_callback(self, provider_name: str, state: str, request: Request):
+    async def _auth_callback(
+        self, request: Request, provider_name: str = None, state: str = None
+    ):
+        if not state:
+            return {"message": "You cancelled the authorization request."}
         user, state_data = await self.auth_service.handle_backend_auth_callback(
             provider_name=provider_name, state=state, request=request
         )

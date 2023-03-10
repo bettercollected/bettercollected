@@ -16,10 +16,10 @@ from common.models.user import User
 
 class FormService:
     def __init__(
-            self,
-            workspace_user_repo: WorkspaceUserRepository,
-            form_repo: FormRepository,
-            workspace_form_repo: WorkspaceFormRepository,
+        self,
+        workspace_user_repo: WorkspaceUserRepository,
+        form_repo: FormRepository,
+        workspace_form_repo: WorkspaceFormRepository,
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
@@ -39,7 +39,7 @@ class FormService:
         return [MinifiedForm(**form) for form in forms]
 
     async def search_form_in_workspace(
-            self, workspace_id: PydanticObjectId, query: str
+        self, workspace_id: PydanticObjectId, query: str
     ):
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id, True
@@ -49,13 +49,20 @@ class FormService:
         )
         return [StandardForm(**form) for form in forms]
 
-    async def patch_settings_in_workspace_form(self, workspace_id: PydanticObjectId, form_id: str,
-                                               settings: SettingsPatchDto, user: User):
+    async def patch_settings_in_workspace_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        settings: SettingsPatchDto,
+        user: User,
+    ):
         is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        workspace_form = await self._workspace_form_repo.get_workspace_form_in_workspace(
-            workspace_id=workspace_id, query=form_id, is_admin=is_admin
+        workspace_form = (
+            await self._workspace_form_repo.get_workspace_form_in_workspace(
+                workspace_id=workspace_id, query=form_id, is_admin=is_admin
+            )
         )
         if not workspace_form:
             raise HTTPException(404, "Form not found in workspace")
@@ -64,25 +71,33 @@ class FormService:
         if settings.pinned is not None:
             workspace_form.settings.pinned = settings.pinned
         if settings.customUrl is not None:
-            workspace_form_with_custom_slug = await self._workspace_form_repo.get_workspace_form_with_custom_slug(
-                workspace_id,
-                settings.customUrl)
+            workspace_form_with_custom_slug = (
+                await self._workspace_form_repo.get_workspace_form_with_custom_slug(
+                    workspace_id, settings.customUrl
+                )
+            )
             if workspace_form_with_custom_slug:
-                raise HTTPException(409, "Form with given custom slug already exists in the workspace!!")
+                raise HTTPException(
+                    409, "Form with given custom slug already exists in the workspace!!"
+                )
             workspace_form.settings.custom_url = settings.customUrl
         if settings.responseDataOwnerField is not None:
-            workspace_form.settings.response_data_owner_field = settings.responseDataOwnerField
+            workspace_form.settings.response_data_owner_field = (
+                settings.responseDataOwnerField
+            )
         return await self._workspace_form_repo.update(workspace_form.id, workspace_form)
 
     async def get_form_by_id(
-            self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self, workspace_id: PydanticObjectId, form_id: str, user: User
     ):
         is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
         # TODO : Refactor confusing function get but it instead throws inside
-        workspace_form = await self._workspace_form_repo.get_workspace_form_in_workspace(
-            workspace_id=workspace_id, query=form_id, is_admin=is_admin
+        workspace_form = (
+            await self._workspace_form_repo.get_workspace_form_in_workspace(
+                workspace_id=workspace_id, query=form_id, is_admin=is_admin
+            )
         )
         form = await self._form_repo.get_forms_in_workspace(
             workspace_id=workspace_id, form_id_list=[workspace_form.form_id]

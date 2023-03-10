@@ -17,17 +17,17 @@ from common.models.user import User
 
 
 class WorkspaceFormService:
-
-    def __init__(self,
-                 form_provider_service: FormPluginProviderService,
-                 plugin_proxy_service: PluginProxyService,
-                 workspace_user_service: WorkspaceUserService,
-                 form_service: FormService,
-                 workspace_form_repository: WorkspaceFormRepository,
-                 form_schedular: FormSchedular,
-                 form_import_service: FormImportService,
-                 schedular: AsyncIOScheduler
-                 ):
+    def __init__(
+        self,
+        form_provider_service: FormPluginProviderService,
+        plugin_proxy_service: PluginProxyService,
+        workspace_user_service: WorkspaceUserService,
+        form_service: FormService,
+        workspace_form_repository: WorkspaceFormRepository,
+        form_schedular: FormSchedular,
+        form_import_service: FormImportService,
+        schedular: AsyncIOScheduler,
+    ):
         self.form_provider_service = form_provider_service
         self.plugin_proxy_service = plugin_proxy_service
         self.workspace_user_service = workspace_user_service
@@ -38,19 +38,25 @@ class WorkspaceFormService:
         self.schedular = schedular
 
     # TODO : Use plugin interface for importing for now endpoint is used here
-    async def import_form_to_workspace(self,
-                                       workspace_id: PydanticObjectId,
-                                       provider: str,
-                                       form_import: FormImportRequestBody,
-                                       user: User,
-                                       request: Request):
-        await self.workspace_user_service.check_user_is_admin_in_workspace(workspace_id, user)
+    async def import_form_to_workspace(
+        self,
+        workspace_id: PydanticObjectId,
+        provider: str,
+        form_import: FormImportRequestBody,
+        user: User,
+        request: Request,
+    ):
+        await self.workspace_user_service.check_user_is_admin_in_workspace(
+            workspace_id, user
+        )
         response_data = await self.convert_form(
-            provider=provider,
-            request=request,
-            form_import=form_import)
-        standard_form = await self.form_import_service.save_converted_form_and_responses(response_data,
-                                                                                         form_import.response_data_owner)
+            provider=provider, request=request, form_import=form_import
+        )
+        standard_form = (
+            await self.form_import_service.save_converted_form_and_responses(
+                response_data, form_import.response_data_owner
+            )
+        )
         await self.workspace_form_repository.save_workspace_form(
             workspace_id=workspace_id,
             form_id=standard_form.form_id,
@@ -61,20 +67,23 @@ class WorkspaceFormService:
                 # TODO : Refactor repeated information provider is only saved on form
                 #  as it doesn't change with workspaces
                 provider=standard_form.settings.provider,
-                private=not standard_form.settings.is_public
-            ))
-        self.schedular.add_job(self.form_schedular.update_form,
-                               'interval',
-                               id=f"{provider}_{standard_form.form_id}",
-                               coalesce=True,
-                               replace_existing=True,
-                               kwargs={
-                                   "user": user,
-                                   "provider": provider,
-                                   "form_id": standard_form.form_id,
-                                   "response_data_owner": form_import.response_data_owner
-                               },
-                               minutes=settings.form_schedular_interval_minutes)
+                private=not standard_form.settings.is_public,
+            ),
+        )
+        self.schedular.add_job(
+            self.form_schedular.update_form,
+            "interval",
+            id=f"{provider}_{standard_form.form_id}",
+            coalesce=True,
+            replace_existing=True,
+            kwargs={
+                "user": user,
+                "provider": provider,
+                "form_id": standard_form.form_id,
+                "response_data_owner": form_import.response_data_owner,
+            },
+            minutes=settings.form_schedular_interval_minutes,
+        )
 
     async def convert_form(self, *, provider, request, form_import):
         provider_url = await self.form_provider_service.get_provider_url(provider)

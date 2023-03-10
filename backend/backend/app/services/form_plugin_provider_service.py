@@ -31,7 +31,7 @@ class FormPluginProviderService:
         )
 
     async def update_provider(
-            self, provider_name: str, provider: FormProviderConfigDto
+        self, provider_name: str, provider: FormProviderConfigDto
     ):
         return await self._form_provider_repo.update(
             provider_name, FormPluginConfigDocument(**provider.dict())
@@ -40,7 +40,9 @@ class FormPluginProviderService:
     async def get_provider(self, provider_name: str, user: User = None):
         provider = await self._form_provider_repo.get(provider_name)
         if not provider:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
+            )
         if user.is_admin():
             return provider
         if provider.enabled:
@@ -49,11 +51,16 @@ class FormPluginProviderService:
     async def get_provider_if_enabled(self, provider_name):
         provider = await self._form_provider_repo.get(provider_name)
         if not provider:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
+            )
         if not provider.enabled:
-            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, content=MESSAGE_PROVIDER_IS_NOT_ENABLED.format(
-                provider_name=provider.provider_name
-            ))
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                content=MESSAGE_PROVIDER_IS_NOT_ENABLED.format(
+                    provider_name=provider.provider_name
+                ),
+            )
         return provider
 
     async def get_provider_url(self, provider_name) -> str:

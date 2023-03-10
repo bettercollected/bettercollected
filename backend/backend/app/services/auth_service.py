@@ -20,10 +20,10 @@ crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
 
 class AuthService:
     def __init__(
-            self,
-            http_client: HttpClient,
-            plugin_proxy_service: PluginProxyService,
-            form_provider_service: FormPluginProviderService,
+        self,
+        http_client: HttpClient,
+        plugin_proxy_service: PluginProxyService,
+        form_provider_service: FormPluginProviderService,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
@@ -40,16 +40,12 @@ class AuthService:
         return User(**user)
 
     async def get_oauth_url(self, provider_name: str, client_referer_url: str):
-        provider_url = await self.form_provider_service.get_provider_url(
-            provider_name
-        )
+        provider_url = await self.form_provider_service.get_provider_url(provider_name)
         oauth_state = OAuthState(
             client_referer_uri=client_referer_url,
         )
         state = crypto.encrypt(oauth_state.json())
-        authorization_url = (
-            f"{provider_url}/{provider_name}/oauth/authorize"
-        )
+        authorization_url = f"{provider_url}/{provider_name}/oauth/authorize"
         response_data = await self.http_client.get(
             authorization_url, params={"state": state}, timeout=60
         )
@@ -57,7 +53,7 @@ class AuthService:
         return oauth_url
 
     async def handle_backend_auth_callback(
-            self, *, provider_name: str, state: str, request: Request
+        self, *, provider_name: str, state: str, request: Request
     ) -> Tuple[User, OAuthState]:
         provider_config = await self.form_provider_service.get_provider_if_enabled(
             provider_name
@@ -80,7 +76,7 @@ class AuthService:
         return user, state
 
     async def get_basic_auth_url(
-            self, provider: str, client_referer_url: str, creator: bool = False
+        self, provider: str, client_referer_url: str, creator: bool = False
     ):
         response_data = await self.http_client.get(
             settings.auth_settings.AUTH_BASE_URL + f"/auth/{provider}/basic",
