@@ -127,7 +127,7 @@ class TypeFormTransformerService(FormTransformerService):
             steps=typeform_field_properties.steps,
             rating_shape=typeform_field_properties.shape,
             labels=typeform_field_properties.labels,
-            start_at_one=typeform_field_properties.start_at_one,
+            start_form=1 if typeform_field_properties.start_at_one else 0,
             date_format=self._format_typeform_date(typeform_field_properties.structure,
                                                    typeform_field_properties.separator)
         )
