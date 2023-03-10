@@ -38,19 +38,19 @@ export const workspacesApi = createApi({
     endpoints: (builder) => ({
         getMinifiedForms: builder.query<Array<GoogleMinifiedFormDto>, void>({
             query: () => ({
-                url: '/forms/import',
+                url: '/google/import',
                 method: 'GET'
             })
         }),
         getGoogleForm: builder.query<GoogleFormDto, string>({
             query: (id) => ({
-                url: `/forms/import/${id}`,
+                url: `/google/import/${id}`,
                 method: 'GET'
             })
         }),
         importForm: builder.mutation<any, ImportFormQueryInterface>({
             query: (request) => ({
-                url: `/workspaces/${request.workspaceId}/forms/import`,
+                url: `/workspaces/${request.workspaceId}/forms/import/google`,
                 method: 'POST',
                 body: request.body
             }),

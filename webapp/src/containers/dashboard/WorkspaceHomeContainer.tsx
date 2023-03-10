@@ -23,7 +23,7 @@ interface IDashboardContainer {
 
 export interface BannerImageComponentPropType {
     workspace: WorkspaceDto;
-    isFormCreator: Boolean;
+    isFormCreator: boolean;
 }
 
 export default function DashboardContainer({ workspace, isCustomDomain }: IDashboardContainer) {
