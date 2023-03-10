@@ -5,11 +5,14 @@ import { useRouter } from 'next/router';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { HomeIcon } from '@app/components/icons/home';
+import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
+import { TrashIcon } from '@app/components/icons/trash';
+import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
-import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
+import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
@@ -33,6 +36,10 @@ export default function Submission(props: any) {
     const form: any = data ?? [];
 
     if (isLoading || isError || !data) return <FullScreenLoader />;
+
+    const handleRequestForDeletion = (event: any) => {
+        console.log('Request for deletion initiated!');
+    };
 
     const goToSubmissions = () => {
         let pathName;
@@ -73,6 +80,17 @@ export default function Submission(props: any) {
 
     return (
         <div className="relative container mx-auto px-6 md:px-0">
+            <div className="flex justify-between">
+                <Button className="w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => router.push(`/${props.workspace.workspaceName}?view=mySubmissions`)}>
+                    <LongArrowLeft width={15} height={15} />
+                </Button>
+                <Button className="w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded text-white bg-red-500 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={handleRequestForDeletion}>
+                    <span className="flex gap-2 items-center">
+                        <TrashIcon width={15} height={15} /> Request for deletion
+                    </span>
+                </Button>
+            </div>
+
             <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />
             <FormRenderer form={form.form} response={form.response} />
         </div>
