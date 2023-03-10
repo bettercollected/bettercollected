@@ -14,7 +14,7 @@ import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
-import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { useGetWorkspaceSubmissionQuery, useRequestWorkspaceSubmissionDeletionMutation } from '@app/store/workspaces/api';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
@@ -28,6 +28,8 @@ export default function Submission(props: any) {
     const router = useRouter();
     const breakpoint = useBreakpoint();
 
+    const [requestWorkspaceSubmissionDeletion] = useRequestWorkspaceSubmissionDeletionMutation();
+
     const { isLoading, isError, data } = useGetWorkspaceSubmissionQuery({
         workspace_id: workspace?.id ?? '',
         submission_id: submissionId
@@ -37,8 +39,17 @@ export default function Submission(props: any) {
 
     if (isLoading || isError || !data) return <FullScreenLoader />;
 
-    const handleRequestForDeletion = (event: any) => {
+    const handleRequestForDeletion = async () => {
         console.log('Request for deletion initiated!');
+        console.log('Old Submission: ', data);
+        if (workspace && workspace.id && submissionId) {
+            const query = {
+                workspace_id: workspace.id,
+                submission_id: submissionId
+            };
+            const submission = await requestWorkspaceSubmissionDeletion(query);
+            console.log('New Submission: ', submission);
+        }
     };
 
     const goToSubmissions = () => {

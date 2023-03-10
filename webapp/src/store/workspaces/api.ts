@@ -126,6 +126,17 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
+        requestWorkspaceSubmissionDeletion: builder.mutation<any, IGetWorkspaceSubmissionQuery>({
+            query: (query) => ({
+                url: `/workspaces/${query.workspace_id}/submissions/${query.submission_id}`,
+                method: 'DELETE',
+                credentials: 'include',
+                headers: {
+                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
+                }
+            })
+            // providesTags: [WORKSPACE_TAGS]
+        }),
         searchWorkspaceForms: builder.mutation<Array<StandardFormDto>, ISearchWorkspaceFormsQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspace_id}/forms/search?query=${query.query}`,
@@ -218,5 +229,6 @@ export const {
     usePatchThemeMutation,
     usePatchWorkspacePoliciesMutation,
     useGetAllMineWorkspacesQuery,
-    useLazyGetAllMineWorkspacesQuery
+    useLazyGetAllMineWorkspacesQuery,
+    useRequestWorkspaceSubmissionDeletionMutation
 } = workspacesApi;
