@@ -91,6 +91,7 @@ class TypeFormTransformerService(FormTransformerService):
                 standard_type = StandardFormFieldType.GROUP
             case FieldType.EMAIL \
                  | FieldType.PHONE_NUMBER \
+                 | FieldType.NUMBER \
                  | FieldType.WEBSITE:
                 standard_type = StandardFormFieldType.SHORT_TEXT
             case FieldType.LEGAL | FieldType.YES_NO:
