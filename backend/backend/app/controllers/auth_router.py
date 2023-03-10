@@ -31,7 +31,6 @@ class AuthRoutes(Routable):
     async def status(self, user: User = Depends(get_logged_user)):
         return AuthenticationStatus(user=user)
 
-
     @post("/otp/validate")
     async def _validate_otp(self, login_details: UserLoginWithOTP, response: Response):
         user = await self.auth_service.validate_otp(login_details)
@@ -41,7 +40,7 @@ class AuthRoutes(Routable):
     # TODO : Merge with plugin proxy currently it is handled for typeform only
     @get("/{provider_name}/oauth")
     async def _oauth_provider(
-        self, provider_name: str, request: Request, creator: Optional[str] = True
+            self, provider_name: str, request: Request, creator: Optional[str] = True
     ):
         client_referer_url = request.headers.get("referer")
         oauth_url = await self.auth_service.get_oauth_url(

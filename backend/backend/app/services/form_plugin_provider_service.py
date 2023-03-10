@@ -7,7 +7,7 @@ from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
 )
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
-from common.constants import MESSAGE_NOT_FOUND
+from common.constants import MESSAGE_NOT_FOUND, MESSAGE_PROVIDER_IS_NOT_ENABLED
 from common.models.user import User
 
 
@@ -37,7 +37,7 @@ class FormPluginProviderService:
             provider_name, FormPluginConfigDocument(**provider.dict())
         )
 
-    async def get_provider(self, provider_name: str, user: User):
+    async def get_provider(self, provider_name: str, user: User = None):
         provider = await self._form_provider_repo.get(provider_name)
         if not provider:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
@@ -45,6 +45,16 @@ class FormPluginProviderService:
             return provider
         if provider.enabled:
             return {"provider_name": provider.provider_name}
+
+    async def get_provider_if_enabled(self, provider_name):
+        provider = await self._form_provider_repo.get(provider_name)
+        if not provider:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
+        if not provider.enabled:
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, content=MESSAGE_PROVIDER_IS_NOT_ENABLED.format(
+                provider_name=provider.provider_name
+            ))
+        return provider
 
     async def get_provider_url(self, provider_name) -> str:
         provider = await self._form_provider_repo.get_provider_url(provider_name)
