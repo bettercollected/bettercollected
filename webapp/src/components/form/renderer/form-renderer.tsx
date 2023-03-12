@@ -54,39 +54,15 @@ enum QUESTION_TYPE {
     DATE = 'date',
     SHORT_TEXT = 'short_text',
     MULTIPLE_CHOICE = 'multiple_choice',
-    NPS = 'nps',
+    OPINION_SCALE = 'opinion_scale',
     RANKING = 'ranking',
     RATING = 'rating',
-
     LONG_TEXT = 'long_text',
-
-    YES_NO = 'yes_no',
-
-    EMAIL = 'email',
-
-    PHONE_NUMBER = 'phone_number',
-
-    INPUT_FIELD = 'INPUT_FIELD',
-    TEXT_AREA = 'TEXT_AREA',
-
-    WEBSITE = 'website',
-
     DROP_DOWN = 'dropdown',
-
-    ADDRESS = 'address',
-
-    CONTACT_INFO = 'contact_info',
-
     MATRIX = 'matrix',
-
     VIDEO_CONTENT = 'VIDEO_CONTENT',
     IMAGE_CONTENT = 'IMAGE_CONTENT',
-    GROUP_RADIO_QUESTION = 'GROUP_RADIO_QUESTION',
-    GROUP_CHECKBOX_QUESTION = 'GROUP_CHECKBOX_QUESTION',
-    RADIO = 'RADIO',
-    CHECKBOX = 'CHECKBOX',
     FILE_UPLOAD = 'FILE_UPLOAD',
-    LINEAR_SCALE = 'LINEAR_SCALE',
     GROUP = 'group',
     STATEMENT = 'statement'
 }
@@ -178,6 +154,8 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
 
     const renderQuestionTypeField = (question: StandardFormQuestionDto, ans?: any, response?: any) => {
         console.log(question, ans, response);
+        console.log(ans);
+        console.log(ans);
         const questionType: QUESTION_TYPE = question.type;
         switch (questionType) {
             case QUESTION_TYPE.SHORT_TEXT:
@@ -206,19 +184,21 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                         <DatePicker label="" renderInput={(params) => <TextField {...params} />} onChange={(e) => {}} inputFormat={date_format} value={answer} disabled={true} />
                     </LocalizationProvider>
                 );
-            case QUESTION_TYPE.NPS:
-                const npsNumbers: any = ans?.number;
-                const npsArray = Array.from(Array(question.properties?.steps).keys());
-
-                return (
-                    <StyledTextField className="mt-2">
-                        {npsArray.map((nps) => (
-                            <span key={nps} className={`border border-gray-900 rounded mx-1 px-2 py-1 ${npsNumbers !== undefined && npsNumbers === nps ? 'bg-gray-900 text-gray-200' : 'bg-gray-200 text-gray-900'}`}>
-                                {nps}
+            case QUESTION_TYPE.OPINION_SCALE:
+                const selected_answer: any = ans?.number;
+                const start_form = question?.properties?.start_form;
+                let steps = question?.properties?.steps;
+                steps = start_form != 0 ? steps + 1 : steps;
+                const numberBoxes = [];
+                for (let i = 0; i < steps; i++) {
+                    if (i >= start_form)
+                        numberBoxes.push(
+                            <span key={i} className={`border border-gray-900 rounded mx-1 px-2 py-1 ${selected_answer !== undefined && selected_answer === i ? 'bg-gray-900 text-gray-200' : 'bg-gray-200 text-gray-900'}`}>
+                                {i}
                             </span>
-                        ))}
-                    </StyledTextField>
-                );
+                        );
+                }
+                return <StyledTextField className="mt-2">{numberBoxes}</StyledTextField>;
 
             case QUESTION_TYPE.RANKING:
                 if (ans) {
@@ -264,47 +244,6 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
             case QUESTION_TYPE.RATING:
                 return <Rating name="size-large" size="large" defaultValue={ans?.number || 0} precision={1} max={!!question.properties.steps ? parseInt(question.properties.steps) : 3} readOnly />;
 
-            case QUESTION_TYPE.LONG_TEXT:
-                return (
-                    <StyledTextField>
-                        <TextField value={ans?.text} disabled fullWidth variant="standard" />
-                    </StyledTextField>
-                );
-
-            case QUESTION_TYPE.YES_NO:
-                return (
-                    <>
-                        <FormControlLabel control={<Radio checked={ans?.boolean} />} label={'Yes'} />
-                        <FormControlLabel control={<Radio checked={ans?.boolean === false} />} label={'No'} />
-                    </>
-                );
-
-            case QUESTION_TYPE.EMAIL:
-                return (
-                    <>
-                        <StyledTextField>
-                            <TextField value={ans?.email} disabled fullWidth variant="standard" />
-                        </StyledTextField>
-                    </>
-                );
-
-            case QUESTION_TYPE.WEBSITE:
-                return (
-                    <>
-                        <StyledTextField>
-                            <TextField value={ans?.url} disabled fullWidth variant="standard" />
-                        </StyledTextField>
-                    </>
-                );
-
-            case QUESTION_TYPE.PHONE_NUMBER:
-                return (
-                    <>
-                        <StyledTextField>
-                            <TextField value={ans?.phone_number} disabled fullWidth variant="standard" />
-                        </StyledTextField>
-                    </>
-                );
             case QUESTION_TYPE.DROP_DOWN:
                 let dropdownOptions: any = [];
                 if (question.properties?.choices && Array.isArray(question.properties?.choices)) {
@@ -328,28 +267,6 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                     </StyledTextField>
                 );
 
-            case QUESTION_TYPE.ADDRESS:
-                return (
-                    <>
-                        {question.properties?.fields?.map((question: any) => (
-                            <div className="my-5" key={question.id}>
-                                {renderQuestionField(question, response)}
-                            </div>
-                        ))}
-                    </>
-                );
-
-            case QUESTION_TYPE.CONTACT_INFO:
-                return (
-                    <>
-                        {question.properties?.fields?.map((question: any) => (
-                            <div className="my-5" key={question.id}>
-                                {renderQuestionField(question, response)}
-                            </div>
-                        ))}
-                    </>
-                );
-
             case QUESTION_TYPE.GROUP:
                 console.log(ans);
                 return (
@@ -364,39 +281,6 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
 
             case QUESTION_TYPE.MATRIX:
                 return renderGridRowColumns(question);
-            case QUESTION_TYPE.RADIO:
-                let radioOptions: any = [];
-                if (question.type?.options && Array.isArray(question.type?.options)) {
-                    radioOptions = [...question.type?.options];
-                }
-                const radioAnswers: any = question.answer ? question.answer : [];
-                return (
-                    <StyledTextField>
-                        {radioOptions.map((option: any, idx: any) => (
-                            <div key={idx} className="flex items-center gap-3">
-                                {option?.attachment?.href && <img width={80} height={80} src={option?.attachment?.href} />}
-                                <FormControlLabel control={<Radio checked={radioAnswers.includes(option?.value)} />} label={option?.value} />
-                            </div>
-                        ))}
-                    </StyledTextField>
-                );
-            case QUESTION_TYPE.CHECKBOX:
-                let checkboxOptions: any = [];
-                if (question.type?.options && Array.isArray(question.type?.options)) {
-                    checkboxOptions = [...question.type?.options];
-                }
-                const checkboxAnswers: any = question.answer ? question.answer : [];
-                return (
-                    <StyledTextField>
-                        {checkboxOptions.map((option: any, idx: any) => (
-                            <div key={idx} className="flex items-center gap-3">
-                                {option?.attachment?.href && <img width={80} height={80} src={option?.attachment?.href} />}
-                                <FormControlLabel control={<Checkbox checked={checkboxAnswers.includes(option?.value)} />} label={option?.value} />
-                            </div>
-                        ))}
-                    </StyledTextField>
-                );
-
             case QUESTION_TYPE.LONG_TEXT:
                 return (
                     <StyledTextField>
@@ -411,25 +295,9 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                         <input type="file" hidden />
                     </Button>
                 );
-
-            case QUESTION_TYPE.LINEAR_SCALE:
-                const linearScaleLowValue = question.type?.low;
-                const linearScaleHightValue = question.type?.high;
-                const followerMarks = [];
-
-                for (let i = linearScaleLowValue; i <= linearScaleHightValue; i++) {
-                    followerMarks.push({ value: i, label: i });
-                }
-
-                const linearScaleAnswers: any = question.answer ? question.answer : [];
-                const linearScaleAnswer = Array.isArray(linearScaleAnswers) && linearScaleAnswers.length !== 0 ? Number(linearScaleAnswers[0]) : undefined;
-
-                return <Slider value={linearScaleAnswer} min={linearScaleLowValue} step={1} max={linearScaleHightValue} marks={followerMarks} />;
-
             case QUESTION_TYPE.STATEMENT:
                 // Render no input element for statement
                 return <></>;
-            case QUESTION_TYPE.INPUT_FIELD:
             default:
                 return (
                     <StyledTextField>
