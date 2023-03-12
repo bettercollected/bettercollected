@@ -1,4 +1,3 @@
-import logging
 from typing import Any, Dict, List
 
 from fastapi import HTTPException
@@ -73,7 +72,7 @@ class TypeFormTransformerService(FormTransformerService):
         return std_attachment
 
     def _transform_field(self, typeform_field: TypeFormField) -> StandardFormField:
-        return StandardFormField(
+        standard_form_field = StandardFormField(
             id=typeform_field.id,
             ref=typeform_field.ref,
             title=typeform_field.title,
@@ -83,6 +82,7 @@ class TypeFormTransformerService(FormTransformerService):
             properties=self._transform_properties(typeform_field.properties),
             type=self._transform_type(typeform_field.type)
         )
+        return standard_form_field
 
     @staticmethod
     def _transform_type(typeform_field_type: FieldType) -> StandardFormFieldType:
@@ -98,6 +98,8 @@ class TypeFormTransformerService(FormTransformerService):
                 standard_type = StandardFormFieldType.MULTIPLE_CHOICE
             case FieldType.NPS:
                 standard_type = StandardFormFieldType.OPINION_SCALE
+            case FieldType.PICTURE_CHOICE:
+                standard_type = StandardFormFieldType.MULTIPLE_CHOICE
             case _:
                 standard_type = typeform_field_type
         return standard_type
