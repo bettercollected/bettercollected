@@ -14,19 +14,19 @@ class EmbedProvider(str, enum.Enum):
 
 class StandardFormFieldType(str, Enum):
     DATE = "date"
+    SHORT_TEXT = "short_text"
+    LONG_TEXT = "long_text"
+    MULTIPLE_CHOICE = "multiple_choice"
+    OPINION_SCALE = "opinion_scale"
+    RANKING = "ranking"
+    RATING = "rating"
     DROPDOWN = "dropdown"
     MATRIX = "matrix"
     FILE_UPLOAD = "file_upload"
     GROUP = "group"
-    LONG_TEXT = "long_text"
-    SHORT_TEXT = "short_text"
-    MULTIPLE_CHOICE = "multiple_choice"
-    OPINION_SCALE = "opinion_scale"
     PAYMENT = "payment"
-    PICTURE_CHOICE = "picture_choice"
-    RATING = "rating"
     STATEMENT = "statement"
-    RANKING = "ranking"
+
 
 
 class StandardResponseType(str, Enum):
