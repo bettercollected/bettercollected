@@ -167,13 +167,13 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
             case QUESTION_TYPE.SHORT_TEXT:
                 return (
                     <StyledTextField>
-                        <TextareaAutosize value={ans?.text} disabled />
+                        <TextField value={ans?.text} disabled={true} fullWidth variant="standard" />
                     </StyledTextField>
                 );
             case QUESTION_TYPE.LONG_TEXT:
                 return (
                     <StyledTextField>
-                        <TextareaAutosize value={question.answer} />
+                        <TextareaAutosize value={ans?.text} disabled />
                     </StyledTextField>
                 );
             case QUESTION_TYPE.MULTIPLE_CHOICE:
@@ -281,7 +281,6 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                     </Button>
                 );
             case QUESTION_TYPE.GROUP:
-                console.log(ans);
                 return (
                     <>
                         {question.properties.fields.map((question: any) => (
@@ -298,7 +297,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
             default:
                 return (
                     <StyledTextField>
-                        <TextField value={question.answer} disabled={!question.answer} fullWidth variant="standard" />
+                        <TextField value={ans?.text} disabled={true} fullWidth variant="standard" />
                     </StyledTextField>
                 );
         }
