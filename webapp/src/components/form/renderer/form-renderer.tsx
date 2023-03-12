@@ -154,15 +154,26 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
     }
 
     const renderQuestionTypeField = (question: StandardFormQuestionDto, ans?: any, response?: any) => {
-        console.log(question, ans, response);
-        console.log(ans);
-        console.log(ans);
         const questionType: QUESTION_TYPE = question.type;
         switch (questionType) {
+            case QUESTION_TYPE.DATE:
+                const date_format = question.properties?.date_format ?? 'MM/DD/YYYY';
+                const answer = ans?.date ?? '';
+                return (
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <DatePicker label="" renderInput={(params) => <TextField {...params} />} onChange={(e) => {}} inputFormat={date_format} value={answer} disabled={true} />
+                    </LocalizationProvider>
+                );
             case QUESTION_TYPE.SHORT_TEXT:
                 return (
                     <StyledTextField>
                         <TextareaAutosize value={ans?.text} disabled />
+                    </StyledTextField>
+                );
+            case QUESTION_TYPE.LONG_TEXT:
+                return (
+                    <StyledTextField>
+                        <TextareaAutosize value={question.answer} />
                     </StyledTextField>
                 );
             case QUESTION_TYPE.MULTIPLE_CHOICE:
@@ -176,14 +187,6 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                             </div>
                         ))}
                     </StyledTextField>
-                );
-            case QUESTION_TYPE.DATE:
-                const date_format = question.properties?.date_format ?? 'MM/DD/YYYY';
-                const answer = ans?.date ?? '';
-                return (
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                        <DatePicker label="" renderInput={(params) => <TextField {...params} />} onChange={(e) => {}} inputFormat={date_format} value={answer} disabled={true} />
-                    </LocalizationProvider>
                 );
             case QUESTION_TYPE.OPINION_SCALE:
                 const selected_answer: any = ans?.number;
@@ -268,6 +271,15 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                     </StyledTextField>
                 );
 
+            case QUESTION_TYPE.MATRIX:
+                return renderGridRowColumns(question);
+            case QUESTION_TYPE.FILE_UPLOAD:
+                return (
+                    <Button variant="solid" className="mt-3">
+                        Upload File
+                        <input type="file" hidden />
+                    </Button>
+                );
             case QUESTION_TYPE.GROUP:
                 console.log(ans);
                 return (
@@ -280,22 +292,6 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                     </>
                 );
 
-            case QUESTION_TYPE.MATRIX:
-                return renderGridRowColumns(question);
-            case QUESTION_TYPE.LONG_TEXT:
-                return (
-                    <StyledTextField>
-                        <TextareaAutosize value={question.answer} />
-                    </StyledTextField>
-                );
-
-            case QUESTION_TYPE.FILE_UPLOAD:
-                return (
-                    <Button variant="solid" className="mt-3">
-                        Upload File
-                        <input type="file" hidden />
-                    </Button>
-                );
             case QUESTION_TYPE.STATEMENT:
                 // Render no input element for statement
                 return <></>;
