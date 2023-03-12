@@ -53,18 +53,19 @@ interface ISubmission extends IServerSideProps {
 enum QUESTION_TYPE {
     DATE = 'date',
     SHORT_TEXT = 'short_text',
+    LONG_TEXT = 'long_text',
     MULTIPLE_CHOICE = 'multiple_choice',
     OPINION_SCALE = 'opinion_scale',
     RANKING = 'ranking',
     RATING = 'rating',
-    LONG_TEXT = 'long_text',
     DROP_DOWN = 'dropdown',
     MATRIX = 'matrix',
-    VIDEO_CONTENT = 'VIDEO_CONTENT',
-    IMAGE_CONTENT = 'IMAGE_CONTENT',
-    FILE_UPLOAD = 'FILE_UPLOAD',
+    FILE_UPLOAD = 'file_upload',
     GROUP = 'group',
-    STATEMENT = 'statement'
+    PAYMENT = 'payment',
+    STATEMENT = 'statement',
+    VIDEO_CONTENT = 'VIDEO_CONTENT',
+    IMAGE_CONTENT = 'IMAGE_CONTENT'
 }
 
 enum AttachmentType {
