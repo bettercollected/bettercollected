@@ -18,13 +18,9 @@ class CredentialRepository:
 
     @staticmethod
     async def save_credentials(user_info: UserInfo, token: Token):
-        credential = await CredentialRepository.get_credential(
-            email=user_info.email
-        )
+        credential = await CredentialRepository.get_credential(email=user_info.email)
         if not credential:
-            credential = CredentialDocument(
-                email=user_info.email
-            )
+            credential = CredentialDocument(email=user_info.email)
             credential.created_at = datetime.utcnow()
         credential.access_token = token.access_token
         credential.refresh_token = token.refresh_token
@@ -34,9 +30,7 @@ class CredentialRepository:
 
     @staticmethod
     async def revoke_credentials(email: str):
-        exists = await CredentialRepository.get_credential(
-            email=email
-        )
+        exists = await CredentialRepository.get_credential(email=email)
         if exists:
             return await exists.delete()
         return None

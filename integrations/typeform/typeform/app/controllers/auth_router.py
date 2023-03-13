@@ -4,6 +4,7 @@ import logging
 from classy_fastapi import Routable, get
 
 from common.models.user import UserInfo
+
 # from typeform.app.router import router
 from typeform.app.services import auth_service
 
@@ -11,7 +12,6 @@ log = logging.getLogger(__name__)
 
 
 class AuthRoutes(Routable):
-
     @get("/oauth/authorize")
     async def _get_oauth_url(self, state: str):
         oauth_url = await auth_service.get_oauth_url(state)

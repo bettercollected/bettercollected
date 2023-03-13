@@ -41,7 +41,7 @@ async def handle_oauth_callback(code: str) -> UserInfo:
 
 
 def perform_typeform_request(
-        access_token: str, path: str, params: Dict[str, Any] = None
+    access_token: str, path: str, params: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     api_response = requests.get(
         f"{settings.TYPEFORM_API_URI}{path}",

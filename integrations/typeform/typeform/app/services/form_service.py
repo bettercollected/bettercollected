@@ -2,17 +2,12 @@ import datetime
 from typing import Dict, Any, List
 
 import requests
-from common.models.user import User, Credential, Token
 from fastapi import HTTPException
 
+from common.models.form_import import FormImportRequestBody, FormImportResponse
+from common.models.user import Credential, Token
+from typeform.app.services.transformer_service import TypeFormTransformerService
 from typeform.config import settings
-
-
-async def import_forms(credential: Credential):
-    access_token = get_latest_token(credential)
-    page_size = 200
-    all_forms = get_all_data_without_pagination(page_size, access_token, "/forms")
-    return all_forms
 
 
 def refresh_typeform_token(refresh_token) -> Token:
@@ -29,7 +24,7 @@ def refresh_typeform_token(refresh_token) -> Token:
 
 
 def perform_typeform_request(
-    access_token: str, path: str, params: Dict[str, Any] = None
+        access_token: str, path: str, params: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     api_response = requests.get(
         f"{settings.TYPEFORM_API_URI}{path}",
@@ -78,17 +73,16 @@ def perform_typeform_request(
 #         await document.save()
 
 
-# async def get_form_responses(email, form_id) -> List[Dict[str, Any]]:
-#     access_token = await get_access_token(email)
-#     page_size = 1000
-#     typeform_responses = get_all_data_without_pagination(page_size,
-#                                                          access_token,
-#                                                          f"/forms/{form_id}/responses")
-#     return typeform_responses
+async def get_form_responses(access_token, form_id) -> List[Dict[str, Any]]:
+    page_size = 1000
+    typeform_responses = get_all_data_without_pagination(page_size,
+                                                         access_token,
+                                                         f"/forms/{form_id}/responses")
+    return typeform_responses
 
 
 def get_all_data_without_pagination(
-    page_size, access_token, path
+        page_size, access_token, path
 ) -> List[Dict[str, Any]]:
     page = 1
     all_data = []
@@ -120,7 +114,31 @@ def get_latest_token(credential: Credential):
     return token.access_token
 
 
-async def import_single_form(form_id: str, credential: Credential):
+async def get_forms(credential: Credential):
+    access_token = get_latest_token(credential)
+    page_size = 200
+    all_forms = get_all_data_without_pagination(page_size, access_token, "/forms")
+    return all_forms
+
+
+async def get_single_form(form_id: str, credential: Credential):
     access_token = get_latest_token(credential)
     form = perform_typeform_request(access_token, f"/forms/{form_id}")
     return form
+
+
+async def convert_form(
+        form_import: Dict[str, Any],
+        convert_responses: bool,
+        credential: Credential):
+    access_token = get_latest_token(credential)
+    transformer = TypeFormTransformerService()
+    standard_form = transformer.transform_form(form_import)
+    if convert_responses:
+        form_responses = await get_form_responses(access_token, standard_form.form_id)
+        standard_responses = transformer.transform_form_responses(form_responses)
+        return FormImportResponse(
+            form=standard_form, responses=standard_responses
+        )
+    else:
+        return standard_form
