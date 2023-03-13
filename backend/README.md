@@ -1,4 +1,4 @@
-# bettercollected-backend-server
+# backend
 [![CI](/actions/workflows/main.yml/badge.svg?branch=master)](/actions/workflows/main.yml)
 [![K8s integration](/actions/workflows/integration.yml/badge.svg)](/actions/workflows/integration.yml)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)

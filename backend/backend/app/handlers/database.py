@@ -8,6 +8,7 @@ from pymongo.errors import InvalidOperation
 from backend.app.schemas.allowed_origin import (
     AllowedOriginsDocument,
 )
+from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
@@ -22,6 +23,13 @@ from backend.app.schemas.workspace_invitation import (
 from backend.app.schemas.workspace_user import (
     WorkspaceUserDocument,
 )
+
+document_models = []
+
+
+def entity(cls):
+    document_models.append(cls)
+    return cls
 
 
 async def init_db(db: str, client: AsyncIOMotorClient):
@@ -44,10 +52,12 @@ async def init_db(db: str, client: AsyncIOMotorClient):
     await init_beanie(
         database=db,
         document_models=[
+            # TODO Merge on extend below
             # Add mongo schemas here
             AllowedOriginsDocument,
             FormDocument,
             FormResponseDocument,
+            FormPluginConfigDocument,
             WorkspaceDocument,
             WorkspaceFormDocument,
             WorkspaceUserInvitesDocument,

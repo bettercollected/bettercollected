@@ -27,7 +27,7 @@ Once development cluster is up and running you should see summary listing applic
 
     Kubernetes cluster ready
 
-    fastapi-mvc available under: http://bettercollected-backend-server.192.168.49.2.nip.io/
+    fastapi-mvc available under: http://backend.192.168.49.2.nip.io/
 
     You can delete dev-env by issuing: minikube delete
 
@@ -45,11 +45,11 @@ Deployed application stack in Kubernetes:
     ...
     ...
     Kubernetes cluster ready
-    FastAPI available under: http://bettercollected-backend-server.192.168.49.2.nip.io/
+    FastAPI available under: http://backend.192.168.49.2.nip.io/
     You can delete dev-env by issuing: make clean
-    vagrant@ubuntu-focal:/syncd$ kubectl get all -n bettercollected-backend-server
+    vagrant@ubuntu-focal:/syncd$ kubectl get all -n backend
     NAME                                                     READY   STATUS    RESTARTS   AGE
-    pod/bettercollected-backend-server-7f4dd8dc7f-p2kr7                1/1     Running   0          55s
+    pod/backend-7f4dd8dc7f-p2kr7                1/1     Running   0          55s
     pod/rfr-redisfailover-persistent-keep-0                  1/1     Running   0          3m39s
     pod/rfr-redisfailover-persistent-keep-1                  1/1     Running   0          3m39s
     pod/rfr-redisfailover-persistent-keep-2                  1/1     Running   0          3m39s
@@ -58,15 +58,15 @@ Deployed application stack in Kubernetes:
     pod/rfs-redisfailover-persistent-keep-5d46b5bcf8-sgtvv   1/1     Running   0          3m39s
 
     NAME                                        TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)     AGE
-    service/bettercollected-backend-server                ClusterIP   10.110.42.252   <none>        8000/TCP    56s
+    service/backend                ClusterIP   10.110.42.252   <none>        8000/TCP    56s
     service/rfs-redisfailover-persistent-keep   ClusterIP   10.110.4.24     <none>        26379/TCP   3m39s
 
     NAME                                                READY   UP-TO-DATE   AVAILABLE   AGE
-    deployment.apps/bettercollected-backend-server                1/1     1            1           55s
+    deployment.apps/backend                1/1     1            1           55s
     deployment.apps/rfs-redisfailover-persistent-keep   3/3     3            3           3m39s
 
     NAME                                                           DESIRED   CURRENT   READY   AGE
-    replicaset.apps/bettercollected-backend-server-7f4dd8dc7f                1         1         1       55s
+    replicaset.apps/backend-7f4dd8dc7f                1         1         1       55s
     replicaset.apps/rfs-redisfailover-persistent-keep-5d46b5bcf8   3         3         3       3m39s
 
     NAME                                                 READY   AGE
@@ -74,7 +74,7 @@ Deployed application stack in Kubernetes:
 
     NAME                                                                  AGE
     redisfailover.databases.spotahome.com/redisfailover-persistent-keep   3m39s
-    vagrant@ubuntu-focal:/syncd$ curl http://bettercollected-backend-server.192.168.49.2.nip.io/api/ready
+    vagrant@ubuntu-focal:/syncd$ curl http://backend.192.168.49.2.nip.io/api/ready
     {"status":"ok"}
 
 Documentation

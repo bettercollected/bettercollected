@@ -1,2 +1,2 @@
-"""bettercollected-backend-server version."""
+"""backend version."""
 __version__ = "0.1.0"

@@ -2,6 +2,7 @@ from typing import List, Optional
 import datetime as dt
 
 from beanie import PydanticObjectId
+from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
 
 
@@ -11,10 +12,14 @@ class WorkspaceRequestDto(BaseModel):
     title: Optional[str]
     workspace_name: Optional[str]
     description: Optional[str]
-    owner_id: Optional[PydanticObjectId]
+    owner_id: Optional[str]
     profile_image: Optional[str]
     banner_image: Optional[str]
     custom_domain: Optional[str]
+
+
+class WorkspaceRequestDtoCamel(WorkspaceRequestDto, CamelModel):
+    pass
 
 
 class Workspace(WorkspaceRequestDto):
@@ -27,20 +32,14 @@ class Workspace(WorkspaceRequestDto):
 class WorkspaceFormSettings(BaseModel):
     """Model for storing the form settings of a workspace."""
 
-    pinned: Optional[bool]
+    pinned: Optional[bool] = False
     custom_url: Optional[str]
     private: Optional[bool] = False
     response_data_owner_field: Optional[str]
+    provider: Optional[str]
 
 
-class WorkspaceResponseDto(WorkspaceRequestDto):
+class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     """Model for returning information about a workspace."""
 
     id: Optional[PydanticObjectId]
-
-
-class WorkspaceFormPatch(BaseModel):
-    """Model for patching the form settings of a workspace."""
-
-    form_id: str
-    pinned: Optional[bool] = False

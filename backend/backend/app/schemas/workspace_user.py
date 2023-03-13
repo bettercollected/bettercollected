@@ -11,7 +11,7 @@ class WorkspaceUserDocument(MongoDocument):
     MongoDB database.
 
     Attributes:
-        workspaceId (PydanticObjectId): The ID of the workspace.
+        workspace_id (PydanticObjectId): The ID of the workspace.
         userId (PydanticObjectId): The ID of the user.
         roles (List[str]): A list of roles that the user has in the workspace. Defaults to ["FORM_CREATOR"].
 
@@ -23,8 +23,8 @@ class WorkspaceUserDocument(MongoDocument):
             bson_encoders (dict): A dictionary of bson encoders for specific data types.
     """
 
-    workspaceId: PydanticObjectId
-    userId: PydanticObjectId
+    workspace_id: PydanticObjectId
+    user_id: PydanticObjectId
     roles: List[str] = ["FORM_CREATOR"]
 
     class Settings:

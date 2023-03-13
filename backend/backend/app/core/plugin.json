@@ -8,6 +8,7 @@
       "enabled": "true",
       "provider_name": "google",
       "provider_url": "http://localhost:8003",
+      "auth_callback_url": "http://localhost:8003/google/oauth/callback",
       "type": "oauth2",
       "scope": "",
       "client_id": "",
@@ -21,7 +22,8 @@
     {
       "enabled": "true",
       "provider_name": "typeform",
-      "provider_url": "http://localhost:8002",
+      "provider_url": "http://localhost:8002/api/v1",
+      "auth_callback_url": "http://localhost:8002/api/v1/typeform/oauth/callback",
       "type": "oauth2",
       "scope": "",
       "client_id": "",

@@ -57,7 +57,7 @@ Prerequisites:
 .. note::
     Makefile dev-env target uses docker for minikube, for other CRI you'll need to modify this line in ``build/dev-env.sh`` ``MINIKUBE_IN_STYLE=0 minikube start --driver=docker 2>/dev/null``
 
-To bootstrap local minikube Kubernetes cluster exposing ``bettercollected-backend-server`` application run:
+To bootstrap local minikube Kubernetes cluster exposing ``backend`` application run:
 
 .. code-block:: bash
 

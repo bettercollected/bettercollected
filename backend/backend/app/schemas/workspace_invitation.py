@@ -34,11 +34,11 @@ class WorkspaceUserInvitesDocument(MongoDocument):
     stored in a MongoDB database.
 
     Attributes:
-        workspaceId (PydanticObjectId): The ID of the workspace.
+        workspace_id (PydanticObjectId): The ID of the workspace.
         email (str): The email of the user being invited.
-        invitationStatus (InvitationStatus, optional): The status of the invitation. Defaults to InvitationStatus.PENDING.
+        invitation_status (InvitationStatus, optional): The status of the invitation. Defaults to InvitationStatus.PENDING.
         expiry (int): The expiration time of the invitation in seconds.
-        invitationToken (str): The token for the invitation.
+        invitation_token (str): The token for the invitation.
 
     Classes Attributes:
         Collection:
@@ -49,11 +49,11 @@ class WorkspaceUserInvitesDocument(MongoDocument):
             bson_encoders (dict): A dictionary of bson encoders for specific data types.
     """
 
-    workspaceId: PydanticObjectId
+    workspace_id: PydanticObjectId
     email: str
-    invitationStatus: Optional[InvitationStatus] = InvitationStatus.PENDING
+    invitation_status: Optional[InvitationStatus] = InvitationStatus.PENDING
     expiry: int = _expiry
-    invitationToken: str
+    invitation_token: str
 
     class Settings:
         name = "workspace_invites"

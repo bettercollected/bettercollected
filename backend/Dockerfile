@@ -16,19 +16,10 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_NO_INTERACTION=1 \
     POETRY_VERSION=1.3.2 \
     POETRY_INSTALL_OPTS="--no-interaction --without dev --no-root" \
-    PYSETUP_PATH="/pysetup" \
-    VENV_PATH="/pysetup/.venv"
+    PYSETUP_PATH="/api" \
+    VENV_PATH="/api/.venv"
 
 ENV PATH="${POETRY_HOME}/bin:${VENV_PATH}/bin:${PATH}"
-
-# Configure Debian snapshot archive
-RUN echo "deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20220124 bullseye main" > /etc/apt/sources.list && \
-    echo "deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20220124 bullseye-security main" >> /etc/apt/sources.list && \
-    echo "deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20220124 bullseye-updates main" >> /etc/apt/sources.list
-
-# Install build tools and dependencies
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y curl build-essential
 
 # Install project without root package, then build and install from wheel.
 # This is needed because Poetry doesn't support installing root package without
@@ -36,34 +27,8 @@ RUN apt-get update && \
 # Otherwise venv with source code would need to be copied to final image.
 COPY . $PYSETUP_PATH
 WORKDIR $PYSETUP_PATH
-RUN make install && \
-    poetry build && \
-    $VENV_PATH/bin/pip install --no-deps dist/*.whl
-
-# Override virtualenv Python symlink to Python path in gcr.io/distroless/python3 image
-RUN ln -fns /usr/bin/python $VENV_PATH/bin/python
-
-
-# Use distroless Python3 image, locked to digest SHA in order to have deterministic Python version - 3.9.2.
-# For the time being, gcr.io/distroless/python3 doesn't have any tags to particular minor version.
-# This digest SHA points to python3:nonroot
-FROM gcr.io/distroless/python3
-LABEL maintainer="Bibishan Pandey, bibishan.b.pandey@gmail.com"
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    VENV_PATH="/pysetup/.venv"
-
-COPY --from=builder $VENV_PATH $VENV_PATH
-
-ENV PATH="${VENV_PATH}/bin:${PATH}"
-
-USER nonroot
+RUN make install
 
 EXPOSE 8000/tcp
 
-STOPSIGNAL SIGINT
-
-ENTRYPOINT ["bettercollected-backend-server"]
-
-CMD ["serve", "--bind", "0.0.0.0:8000"]
+CMD ["uvicorn", "backend.app:get_application", "--host", "0.0.0.0", "--port", "8000"]

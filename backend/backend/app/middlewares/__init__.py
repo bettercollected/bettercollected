@@ -4,8 +4,9 @@ from loguru import logger
 from starlette.requests import Request
 from starlette.responses import Response
 
-
 __all__ = ("include_middlewares",)
+
+from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 
 
 def include_middlewares(app: "FastAPI"):
@@ -32,11 +33,5 @@ def include_middlewares(app: "FastAPI"):
             f"Request : Host {request.method} {request.url.path} {request.url.query}"
         )
         response: Response = await call_next(request)
-
-        try:
-            if hasattr(response, "body"):
-                logger.info(f"Response: {response.status_code} {response.body}")
-        except Exception as e:
-            logger.error(f"Response Error: {e}")
-            return response
+        logger.info(response.status_code)
         return response

@@ -56,7 +56,7 @@ class ApplicationLoader(BaseApplication):
     def load_config(self):
         """Load gunicorn configuration."""
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.cfg.set("default_proc_name", "bettercollected-backend-server")
+        self.cfg.set("default_proc_name", "backend")
 
         cfg = vars(gunicorn)
         cfg.update(self._overrides)

@@ -5,7 +5,7 @@ import click
 from backend.cli.serve import serve
 
 
-cmd_help = "Bettercollected-backend-server CLI root."
+cmd_help = "backend CLI root."
 
 
 @click.group(help=cmd_help)

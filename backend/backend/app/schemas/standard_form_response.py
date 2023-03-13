@@ -1,10 +1,13 @@
 import datetime as dt
+from typing import Optional
 
 from common.configs.mongo_document import MongoDocument
-from common.models.standard_form import StandardFormResponseDto
+from common.models.standard_form import StandardFormResponse
 
 
-class FormResponseDocument(MongoDocument, StandardFormResponseDto):
+class FormResponseDocument(MongoDocument, StandardFormResponse):
+    request_for_deletion: bool = False
+
     class Settings:
         name = "form_responses"
         bson_encoders = {

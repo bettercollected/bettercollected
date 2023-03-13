@@ -1,10 +1,10 @@
 import datetime as dt
 
 from common.configs.mongo_document import MongoDocument
-from common.models.standard_form import StandardFormDto
+from common.models.standard_form import StandardForm
 
 
-class FormDocument(MongoDocument, StandardFormDto):
+class FormDocument(MongoDocument, StandardForm):
     class Settings:
         name = "forms"
         bson_encoders = {
