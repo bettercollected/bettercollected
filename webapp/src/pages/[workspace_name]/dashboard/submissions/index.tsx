@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import Image from 'next/image';
 import { useRouter } from 'next/router';
@@ -11,8 +11,13 @@ import BreadcrumbRenderer from '@app/components/form/renderer/breadcrumbs-render
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { Google } from '@app/components/icons/brands/google';
 import { HomeIcon } from '@app/components/icons/home';
+import SettingsPrivacy from '@app/components/settings/workspace/settings-privacy';
+import SettingsProfile from '@app/components/settings/workspace/settings-profile';
+import { WorkspaceDangerZoneSettings } from '@app/components/settings/workspace/workspace-danger-zone-settings';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import ParamTab from '@app/components/ui/param-tab';
+import { TabPanel } from '@app/components/ui/tab';
 import { ToastId } from '@app/constants/toastId';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
@@ -68,33 +73,12 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
 
     const handleSubmissionClick = (responseId: any) => {
         router.push({
-            pathname: router.pathname,
+            pathname: router.pathname + '/' + responseId,
             query: {
-                ...router.query,
-                sub_id: responseId
+                ...router.query
             }
         });
     };
-
-    const handleRemoveSubmissionId = () => {
-        const updatedQuery = { ...router.query };
-        delete updatedQuery.sub_id;
-        router.push({
-            pathname: router.pathname,
-            query: updatedQuery
-        });
-    };
-
-    const breadcrumbsItem = [
-        {
-            title: 'Responses',
-            icon: <HomeIcon className="w-4 h-4 mr-2" />,
-            onClick: handleRemoveSubmissionId
-        },
-        {
-            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(sub_id, 10) : sub_id
-        }
-    ];
 
     const CardRenderer = () => {
         return (
@@ -111,7 +95,10 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
                                     {response.responses.map((form: any) => {
                                         return (
                                             <div
-                                                onClick={() => handleSubmissionClick(form.responseId)}
+                                                onClick={(event) => {
+                                                    event.preventDefault();
+                                                    handleSubmissionClick(form.responseId);
+                                                }}
                                                 key={form.responseId}
                                                 className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]"
                                             >
@@ -156,21 +143,30 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
         );
     };
 
+    const paramTabs = [
+        {
+            title: 'All Submissions',
+            path: 'all'
+        },
+        {
+            title: 'Requested For Deletion',
+            path: 'requested-for-deletion'
+        }
+    ];
+
     if (isLoading) return <FullScreenLoader />;
 
     return (
         <SidebarLayout>
-            {!sub_id ? (
-                <>
+            <ParamTab tabMenu={paramTabs}>
+                <TabPanel className="focus:outline-none" key="all">
                     <MyRecentSubmissions />
                     <CardRenderer />
-                </>
-            ) : (
-                <>
-                    <BreadcrumbRenderer breadcrumbsItem={breadcrumbsItem} />
-                    <FormRenderer form={form?.form} response={form?.response} />
-                </>
-            )}
+                </TabPanel>
+                <TabPanel className="focus:outline-none" key="requested-for-deletion">
+                    {/*<SettingsPrivacy />*/}
+                </TabPanel>
+            </ParamTab>
         </SidebarLayout>
     );
 }
