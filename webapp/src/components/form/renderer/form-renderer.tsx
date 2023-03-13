@@ -105,21 +105,20 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                     ))}
                 </div>
                 {gridRowQuestions.map((grq: any, idx: any) => {
+                    const ans = response?.answers[grq.id];
+                    let ansChoices: any;
+                    if (grq.properties?.allow_multiple_selection) {
+                        ansChoices = ans?.choices && Array.isArray(ans?.choices?.values) ? ans?.choices?.values : [];
+                    } else {
+                        ansChoices = ans?.choice?.value ? [ans?.choice?.value] : [];
+                    }
+
                     return (
                         <div key={idx} className={`grid grid-flow-col grid-cols-${gridColumnCount + 1} gap-4`}>
                             <p className="font-semibold w-fit">{grq?.title}</p>
                             {gridColumnOptions.map((gcp: any, idx: any) => {
-                                const handleCheckedAnswer = (gcp: any): boolean => {
-                                    const questionId = grq?.questionId;
-                                    let isSelected = false;
-                                    gridAnswers.map((gra: any) => {
-                                        if (!!gra?.questionId && gra?.questionId === questionId && gra?.answer && Array.isArray(gra.answer)) {
-                                            gra.answer.map((a: any) => {
-                                                if (!!a?.value && !!gcp?.value && a?.value === gcp?.value) isSelected = true;
-                                            });
-                                        }
-                                    });
-                                    return isSelected;
+                                const handleCheckedAnswer = (gcp: any) => {
+                                    return ansChoices.includes(gcp?.label);
                                 };
 
                                 return (
