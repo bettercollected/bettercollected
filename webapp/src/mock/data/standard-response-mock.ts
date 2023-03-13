@@ -3,7 +3,7 @@ import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form'
 export const standardResponseMock: StandardFormDto = {
     formId: '1HsoSajeOrNZhdddDwquVzwIHp1b9UHccZp8AiYFNslk',
     title: 'Contact information',
-    questions: [
+    fields: [
         {
             questionId: '778b574a',
             formId: '1HsoSajeOrNZhdddDwquVzwIHp1b9UHccZp8AiYFNslk',

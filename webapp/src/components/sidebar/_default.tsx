@@ -73,7 +73,7 @@ export default function Sidebar() {
                                 <MenuItem key={'default' + item.name + index} name={item.name} href={item.href} icon={item.icon} link={!!item.href} />
                             ))}
                         </div>
-                        <FooterRenderer icon={<Logout className={'!w-5 !h-5'} />} name={'Logout'} profileName={selectGetStatus?.data?.payload?.content?.user?.sub} />
+                        <FooterRenderer icon={<Logout className={'!w-5 !h-5'} />} name={'Logout'} profileName={selectGetStatus?.data?.user?.sub} />
                     </div>
                 </div>
             </Scrollbar>

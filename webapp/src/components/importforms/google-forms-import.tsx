@@ -40,8 +40,8 @@ export default function ImportForms() {
                 <div onClick={() => closeModal()} className="border-[1.5px] absolute right-5 top-5 border-gray-200 hover:shadow hover:text-black cursor-pointer rounded-full p-3">
                     <Close className="cursor-pointer text-gray-600 hover:text-black" />
                 </div>
-                <h2 className="mb-2 text-red-500 ">Oops! We&apos;ve encountered an issue.</h2>
-                <a className="ml-3 !w-full items-center flex justify-center !rounded-xl px-8 py-3 text-white !bg-blue-500" href={`${environments.API_ENDPOINT_HOST}/auth/google/connect`}>
+                <h2 className="mb-2 text-indigo-500 ">We need you to authorize the service in order to load the forms.</h2>
+                <a className="!w-full items-center flex justify-center !rounded-xl px-8 py-3 text-white !bg-blue-500" href={`${environments.API_ENDPOINT_HOST}/auth/google/oauth`}>
                     Authorize Google
                 </a>
             </div>
@@ -59,7 +59,7 @@ export default function ImportForms() {
     };
 
     const handleImportForm = async () => {
-        const form: any = { ...googleFormResult?.data?.payload?.content, provider: 'google' };
+        const form: any = { ...googleFormResult?.data, provider: 'google' };
         const response: any = await importForm({
             body: { form, response_data_owner: responseDataOwner },
             workspaceId: workspace.id
@@ -100,7 +100,7 @@ export default function ImportForms() {
                 </div>
             );
         if (googleFormResult.isError) return <p className="text-sm text-red-500">Oops! We&apos;ve encountered an issue.</p>;
-        const form = googleFormResult?.data?.payload?.content;
+        const form = googleFormResult?.data;
         return (
             <div data-testid="google-single-form-import" className="flex flex-col w-full">
                 {form?.info?.title ? (
@@ -158,7 +158,7 @@ export default function ImportForms() {
                 <div className="w-full h-[250px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-300 overflow-y-scroll scrollbar-thumb-rounded-full scrollbar-track-rounded-full">
                     {!stepCount ? (
                         <div data-testid="google-minified-forms">
-                            {minifiedForms?.data?.payload?.content.map((form: GoogleMinifiedFormDto, idx: any) => (
+                            {minifiedForms?.data?.map((form: GoogleMinifiedFormDto, idx: any) => (
                                 <GoogleFormMinifiedCard key={form.id} form={form} />
                             ))}
                         </div>
@@ -175,9 +175,9 @@ export default function ImportForms() {
                         <Button
                             data-testid="import-button"
                             isLoading={importFormResult.isLoading}
-                            disabled={!googleFormResult?.data?.payload?.content}
+                            disabled={!googleFormResult?.data}
                             variant="solid"
-                            className={`!rounded-lg !h-10 !m-0 ${!googleFormResult?.data?.payload?.content ? '' : '!bg-blue-500'}`}
+                            className={`!rounded-lg !h-10 !m-0 ${!googleFormResult?.data ? '' : '!bg-blue-500'}`}
                             onClick={handleImportForm}
                         >
                             Import

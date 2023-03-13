@@ -17,7 +17,7 @@ export default function ConnectWithGoogleButton(props: ConnectWithGoogleButtonPr
 
     return (
         <a
-            href={`${environments.API_ENDPOINT_HOST}/auth/google/basicAuth${creator ? '?creator=true' : ''}`}
+            href={`${environments.API_ENDPOINT_HOST}/auth/google/basic${creator ? '?creator=true' : ''}`}
             referrerPolicy="unsafe-url"
             className={`bg-[#1a73e8] hover:bg-blue-600 max-w-[250px] mx-auto flex w-full items-center rounded-2xl p-[2px] ${props.className}`}
         >

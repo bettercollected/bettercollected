@@ -32,12 +32,12 @@ export default function FormSettingsTab() {
             body: body
         });
         if (response.data) {
-            const settings = response.data.payload.content.settings;
+            const settings = response.data.settings;
             dispatch(setFormSettings(settings));
             toast('Form Updated!!', { type: 'success', toastId: 'successToast' });
         } else if (response.error) {
             setError(true);
-            toast(response.error.data?.message, { type: 'error', toastId: 'errorToast' });
+            toast(response.error.data, { type: 'error', toastId: 'errorToast' });
         }
     };
 

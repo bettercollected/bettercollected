@@ -48,7 +48,7 @@ export default function SidebarLayout(props: any) {
         }
     };
 
-    const profileName = selectGetStatus?.data?.payload?.content?.user?.sub ?? '';
+    const profileName = selectGetStatus?.data?.user?.sub ?? '';
 
     const handleClose = () => {
         setAnchorEl(null);

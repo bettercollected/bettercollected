@@ -23,7 +23,7 @@ interface IDashboardContainer {
 
 export interface BannerImageComponentPropType {
     workspace: WorkspaceDto;
-    isFormCreator: Boolean;
+    isFormCreator: boolean;
 }
 
 export default function DashboardContainer({ workspace, isCustomDomain }: IDashboardContainer) {
@@ -34,7 +34,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
 
     if (!workspace || authStatus.isLoading) return <FullScreenLoader />;
 
-    const isFormCreator = authStatus.isSuccess && authStatus?.data?.payload?.content?.user?.id === workspace?.ownerId;
+    const isFormCreator = authStatus.isSuccess && authStatus?.data?.user?.id === workspace?.ownerId;
 
     const handleLogout = async () => {
         trigger().finally(() => {
@@ -75,10 +75,10 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                                         </div>
                                     </a>
                                 )}
-                                {!!authStatus.data?.payload.content.user.sub && (
+                                {!!authStatus.data?.user.sub && (
                                     <>
-                                        <div className="px-5 py-3 bg-gray-100 md:hidden mr-2 md:mr-5 text-gray-800 rounded-xl capitalize">{authStatus.data.payload.content.user.sub[0]}</div>
-                                        <div className="py-3 px-5 hidden sm:flex rounded-full text-gray-700 border-solid italic border-[1px] border-[#eaeaea]">{authStatus.data.payload.content.user.sub}</div>
+                                        <div className="px-5 py-3 bg-gray-100 md:hidden mr-2 md:mr-5 text-gray-800 rounded-xl capitalize">{authStatus.data.user.sub[0]}</div>
+                                        <div className="py-3 px-5 hidden sm:flex rounded-full text-gray-700 border-solid italic border-[1px] border-[#eaeaea]">{authStatus.data.user.sub}</div>
                                     </>
                                 )}
                                 <Button variant="solid" className="ml-3 !px-3 !py-6 !rounded-xl !bg-[#ffe0e0]" onClick={handleLogout}>

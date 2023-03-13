@@ -5,13 +5,16 @@ import { useRouter } from 'next/router';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { HomeIcon } from '@app/components/icons/home';
+import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
+import { TrashIcon } from '@app/components/icons/trash';
+import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
-import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
+import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
-import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { useGetWorkspaceSubmissionQuery, useRequestWorkspaceSubmissionDeletionMutation } from '@app/store/workspaces/api';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
@@ -19,24 +22,48 @@ interface ISubmission extends IServerSideProps {
     form: StandardFormDto;
 }
 
-export default function Submission({ workspace, submissionId }: ISubmission) {
+export default function Submission(props: any) {
+    const { workspace, submissionId, hasCustomDomain }: ISubmission = props;
+
     const router = useRouter();
     const breakpoint = useBreakpoint();
+
+    const [requestWorkspaceSubmissionDeletion] = useRequestWorkspaceSubmissionDeletionMutation();
 
     const { isLoading, isError, data } = useGetWorkspaceSubmissionQuery({
         workspace_id: workspace?.id ?? '',
         submission_id: submissionId
     });
 
-    const form: any = data?.payload?.content ?? [];
+    const form: any = data ?? [];
 
     if (isLoading || isError || !data) return <FullScreenLoader />;
 
+    const handleRequestForDeletion = async () => {
+        console.log('Request for deletion initiated!');
+        console.log('Old Submission: ', data);
+        if (workspace && workspace.id && submissionId) {
+            const query = {
+                workspace_id: workspace.id,
+                submission_id: submissionId
+            };
+            const submission = await requestWorkspaceSubmissionDeletion(query);
+            console.log('New Submission: ', submission);
+        }
+    };
+
     const goToSubmissions = () => {
+        let pathName;
+        if (hasCustomDomain) {
+            pathName = '/';
+        } else {
+            pathName = `/${router.query.workspace_name}`;
+        }
+
         router
             .push(
                 {
-                    pathname: '/',
+                    pathname: pathName,
                     query: { view: 'mySubmissions' }
                 },
                 undefined,
@@ -50,14 +77,14 @@ export default function Submission({ workspace, submissionId }: ISubmission) {
         {
             title: 'Home',
             icon: <HomeIcon className="w-4 h-4 mr-2" />,
-            onClick: () => router.push(`/`, undefined, { scroll: false, shallow: true })
+            onClick: () => (hasCustomDomain ? router.push('/', undefined, { scroll: false, shallow: true }) : router.push(`/${router.query.workspace_name}`, undefined, { scroll: false, shallow: true }))
         },
         {
             title: 'Submissions',
             onClick: goToSubmissions
         },
         {
-            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.formId, 10) : form.formId,
+            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.form.formId, 10) : form.formId,
             icon: ''
         }
     ];
@@ -65,7 +92,7 @@ export default function Submission({ workspace, submissionId }: ISubmission) {
     return (
         <div className="relative container mx-auto px-6 md:px-0">
             <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />
-            <FormRenderer form={form} />
+            <FormRenderer form={form.form} response={form.response} />
         </div>
     );
 }
@@ -91,7 +118,7 @@ export async function getServerSideProps(_context: any) {
     try {
         if (globalProps.hasCustomDomain && globalProps.workspaceId) {
             const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/submissions/${submissionId}`, config).catch((e) => e);
-            form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
+            form = (await formResponse?.json().catch((e: any) => e)) ?? null;
         }
     } catch (err) {
         form = null;

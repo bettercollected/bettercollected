@@ -11,7 +11,6 @@ import { Google } from '@app/components/icons/brands/google';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
@@ -26,7 +25,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
 
     const breakpoint = useBreakpoint();
 
-    const forms = workspaceForms?.data?.payload?.content;
+    const forms = workspaceForms?.data;
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://';
@@ -116,6 +115,4 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
     );
 }
 
-export async function getServerSideProps(_context: any) {
-    return await getAuthUserPropsWithWorkspace(_context);
-}
+export { getAuthUserPropsWithWorkspace as getServerSideProps } from '@app/lib/serverSideProps';

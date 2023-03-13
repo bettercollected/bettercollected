@@ -53,6 +53,4 @@ export default function MySettings(props: any) {
     );
 }
 
-export async function getServerSideProps(_context: any) {
-    return await getAuthUserPropsWithWorkspace(_context);
-}
+export { getAuthUserPropsWithWorkspace as getServerSideProps } from '@app/lib/serverSideProps';

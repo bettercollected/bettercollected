@@ -62,7 +62,7 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
         toast.error(!!error?.error ? error?.error : 'Something went wrong', { toastId: ToastId.ERROR_TOAST });
     }
 
-    const [form, setForm] = useState([]);
+    const [form, setForm] = useState<any>([]);
 
     const [page, setPage] = useState(0);
 
@@ -78,7 +78,7 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
             };
             trigger(submissionQuery)
                 .then((d) => {
-                    setForm(d.data?.payload?.content);
+                    setForm(d.data);
                 })
                 .catch((e) => {
                     toast.error('Error fetching submission data.', { toastId: 'errorToast' });
@@ -182,7 +182,7 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
         <>
             {!!submissionId && <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />}
             {!submissionId && <AllSubmissionsRenderer />}
-            {!!form && !!submissionId && <FormRenderer form={form} />}
+            {!!form && !!submissionId && <FormRenderer form={form.form} response={form.response} />}
         </>
     );
 }

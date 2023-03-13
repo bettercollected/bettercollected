@@ -27,7 +27,7 @@ export default function WorkspaceResponsesTabContent({ workspace }: any) {
             </div>
         );
 
-    if ((data?.payload?.content && Array.isArray(data?.payload?.content) && data?.payload?.content?.length === 0) || isError)
+    if ((data && Array.isArray(data) && data.length === 0) || isError)
         return (
             <div data-testid="empty-forms-view" className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
                 <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />
@@ -35,7 +35,7 @@ export default function WorkspaceResponsesTabContent({ workspace }: any) {
             </div>
         );
 
-    const submissions: Array<StandardFormResponseDto> = data?.payload?.content ?? [];
+    const submissions: Array<StandardFormResponseDto> = data ?? [];
 
     const isCustomDomain = window?.location.host !== environments.CLIENT_HOST;
 

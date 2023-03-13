@@ -26,7 +26,7 @@ export default function SingleFormPage(props: any) {
     const responderUri = form.settings.embedUrl;
 
     return (
-        <Layout className="relative  !min-h-screen">
+        <Layout className="relative !min-h-screen">
             {back && (
                 <Button className="!absolute !top-0 !left-0 w-auto z-10 !h-8 mx-4 mt-0 sm:mt-1 md:mt-3 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => router.push(`/${props.workspace.workspaceName}?view=forms`)}>
                     <LongArrowLeft width={15} height={15} />
@@ -71,11 +71,10 @@ export async function getServerSideProps(_context: any) {
     try {
         if (globalProps.hasCustomDomain && globalProps.workspaceId) {
             const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${slug}`, config).catch((e) => e);
-            form = (await formResponse?.json().catch((e: any) => e))?.payload?.content ?? null;
+            form = (await formResponse?.json().catch((e: any) => e)) ?? null;
         }
     } catch (err) {
         form = null;
-        console.error(err);
     }
 
     if (!form) {
