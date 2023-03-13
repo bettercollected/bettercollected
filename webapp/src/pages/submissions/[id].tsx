@@ -91,17 +91,6 @@ export default function Submission(props: any) {
 
     return (
         <div className="relative container mx-auto px-6 md:px-0">
-            <div className="flex justify-between">
-                <Button className="w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => router.push(`/${props.workspace.workspaceName}?view=mySubmissions`)}>
-                    <LongArrowLeft width={15} height={15} />
-                </Button>
-                <Button className="w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded text-white bg-red-500 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={handleRequestForDeletion}>
-                    <span className="flex gap-2 items-center">
-                        <TrashIcon width={15} height={15} /> Request for deletion
-                    </span>
-                </Button>
-            </div>
-
             <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />
             <FormRenderer form={form.form} response={form.response} />
         </div>
