@@ -11,7 +11,7 @@ export const dashboardFormMock: StandardFormDto = {
         embedUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSfIZ_lfi9nIJiW1_KOZPHm2xgw1RHRMhUt0CLi8L_UQQis2SA/viewform',
         provider: 'google'
     },
-    questions: [
+    fields: [
         {
             questionId: '778b574a',
             formId: '1HsoSajeOrNZhdddDwquVzwIHp1b9UHccZp8AiYFNslk',
@@ -87,7 +87,7 @@ export const dashboardFormsArrayMock = [
             embedUrl: 'https://docs.google.com/forms/d/e/1FAIpQLScQSGmhAyDR8XlxyuCiKh_SN54IOikCDsVlNGLt76xcy46_oQ/viewform',
             provider: 'google'
         },
-        questions: [
+        fields: [
             {
                 questionId: '7cb5071a',
                 formId: '1lWq-fpqmuxt3iKuz7h_siwc9y_vGkpgnoNxXg0cZNXc',

@@ -67,7 +67,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                                 shareUrl = hasCustomDomain ? `${window.location.origin}/forms/${slug}` : `https://`;
                             }
                             return (
-                                <Link key={form.form_id} href={`/${workspace.workspaceName}/dashboard/forms/${form.form_id}`}>
+                                <Link key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
                                     <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
                                         <div className="flex flex-col w-full justify-between h-full">
                                             <div className="w-full ">
