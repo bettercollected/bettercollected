@@ -1,11 +1,13 @@
 import datetime as dt
 from typing import List, Optional
 
-from common.configs.mongo_document import MongoDocument
+from common.schemas.base_schema import BaseDocument
 from googleform.app.models.google_form import GoogleFormDto
+from googleform.app.services.database_service import entity
 
 
-class GoogleFormDocument(MongoDocument, GoogleFormDto):
+@entity
+class GoogleFormDocument(BaseDocument, GoogleFormDto):
     """
     GoogleFormDocument is a subclass of both MongoDocument and GoogleFormDto. It represents a collection of Google
     Forms stored in a MongoDB database.
@@ -24,14 +26,3 @@ class GoogleFormDocument(MongoDocument, GoogleFormDto):
 
     provider: Optional[str]
     dataOwnerFields: Optional[List[str]] = []
-
-    class Collection:
-        name = "forms"
-
-    class Settings:
-        name = "forms"
-        bson_encoders = {
-            dt.datetime: lambda o: dt.datetime.isoformat(o),
-            dt.date: lambda o: dt.date.isoformat(o),
-            dt.time: lambda o: dt.time.isoformat(o),
-        }

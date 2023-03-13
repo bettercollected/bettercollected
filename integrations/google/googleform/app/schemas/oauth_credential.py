@@ -1,10 +1,13 @@
 import datetime as dt
 from typing import Any, Optional
 
-from common.configs.mongo_document import MongoDocument
+from common.schemas.base_schema import BaseDocument
+from googleform.app.models.oauth_credential import GoogleCredentialResponse
+from googleform.app.services.database_service import entity
 
 
-class Oauth2CredentialDocument(MongoDocument):
+@entity
+class Oauth2CredentialDocument(BaseDocument):
     """
     Oauth2CredentialDocument is a subclass of MongoDocument. It represents a collection of OAuth2 credentials stored
     in a MongoDB database.
@@ -28,17 +31,4 @@ class Oauth2CredentialDocument(MongoDocument):
     email: Optional[str]
     state: Optional[str]
     provider: Optional[str]
-    credentials: Optional[Any]
-    created_at: Optional[dt.datetime]
-    updated_at: Optional[dt.datetime]
-
-    class Collection:
-        name = "oauth2credentials"
-
-    class Settings:
-        name = "oauth2credentials"
-        bson_encoders = {
-            dt.datetime: lambda o: dt.datetime.isoformat(o),
-            dt.date: lambda o: dt.date.isoformat(o),
-            dt.time: lambda o: dt.time.isoformat(o),
-        }
+    credentials: Optional[GoogleCredentialResponse]
