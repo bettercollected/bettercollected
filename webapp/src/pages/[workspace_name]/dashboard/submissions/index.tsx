@@ -25,7 +25,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
     const breakpoint = useBreakpoint();
     const [trigger, { isLoading, isError, data }] = useLazyGetWorkspaceSubmissionQuery();
     const [responseObject, setResponseObject] = useState({});
-    const [form, setForm] = useState([]);
+    const [form, setForm] = useState<any>([]);
     const router = useRouter();
     const { sub_id }: any = router.query;
 
@@ -168,7 +168,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
             ) : (
                 <>
                     <BreadcrumbRenderer breadcrumbsItem={breadcrumbsItem} />
-                    <FormRenderer form={form} />
+                    <FormRenderer form={form?.form} response={form?.response} />
                 </>
             )}
         </SidebarLayout>
