@@ -17,7 +17,7 @@ export const initialFormState: StandardFormDto = {
         provider: '',
         roles: []
     },
-    questions: [],
+    fields: [],
     modifiedTime: ''
 };
 

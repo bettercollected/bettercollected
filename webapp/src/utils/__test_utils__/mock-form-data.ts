@@ -15,7 +15,7 @@ const formObject = (uuid?: string) => ({
         responseDataOwnerField: '',
         provider: 'typeform'
     },
-    questions: [
+    fields: [
         {
             questionId: '6852VwIVRkuo',
             title: "Hello, what's your name?",
