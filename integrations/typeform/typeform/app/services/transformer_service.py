@@ -11,7 +11,7 @@ from common.models.standard_form import (
     StandardFormFieldType)
 from common.services.transformer_service import FormTransformerService
 from typeform.app.models.typeform_models import \
-    TypeFormField, Answer, Attachment, TypeFormResponse, TypeFormDto, FieldType, FieldProperties, Validation
+    TypeFormField, Answer, Attachment, TypeFormResponse, TypeFormDto, FieldType, FieldProperties, Validation, Choice
 
 
 class TypeFormTransformerService(FormTransformerService):
@@ -72,6 +72,7 @@ class TypeFormTransformerService(FormTransformerService):
         return std_attachment
 
     def _transform_field(self, typeform_field: TypeFormField) -> StandardFormField:
+        standard_type = self._transform_type(typeform_field)
         standard_form_field = StandardFormField(
             id=typeform_field.id,
             ref=typeform_field.ref,
@@ -80,13 +81,13 @@ class TypeFormTransformerService(FormTransformerService):
             validations=self._transform_validations(typeform_field.validations),
             attachment=self._transform_attachment(typeform_field.attachment),
             properties=self._transform_properties(typeform_field.properties),
-            type=self._transform_type(typeform_field.type)
+            type=standard_type
         )
         return standard_form_field
 
     @staticmethod
-    def _transform_type(typeform_field_type: FieldType) -> StandardFormFieldType:
-        match typeform_field_type:
+    def _transform_type(typeform_field: TypeFormField) -> StandardFormFieldType:
+        match typeform_field.type:
             case FieldType.CONTACT_INFO | FieldType.ADDRESS:
                 standard_type = StandardFormFieldType.GROUP
             case FieldType.EMAIL \
@@ -94,14 +95,24 @@ class TypeFormTransformerService(FormTransformerService):
                  | FieldType.NUMBER \
                  | FieldType.WEBSITE:
                 standard_type = StandardFormFieldType.SHORT_TEXT
-            case FieldType.LEGAL | FieldType.YES_NO:
+            case FieldType.LEGAL:
                 standard_type = StandardFormFieldType.MULTIPLE_CHOICE
+                typeform_field.properties.choices = [
+                    Choice(label="I accept"),
+                    Choice(label="I don't accept"),
+                ]
+            case FieldType.YES_NO:
+                standard_type = StandardFormFieldType.MULTIPLE_CHOICE
+                typeform_field.properties.choices = [
+                    Choice(label="Yes"),
+                    Choice(label="No"),
+                ]
             case FieldType.NPS:
                 standard_type = StandardFormFieldType.OPINION_SCALE
             case FieldType.PICTURE_CHOICE:
                 standard_type = StandardFormFieldType.MULTIPLE_CHOICE
             case _:
-                standard_type = typeform_field_type
+                standard_type = typeform_field.type
         return standard_type
 
     @staticmethod
