@@ -1,18 +1,26 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { toast } from 'react-toastify';
 
+import SubmissionsGrid from '@app/components/cards/submission-container';
+import AllSubmissionTab from '@app/components/dashboard/all-submission-tab';
 import EmptyFormsView from '@app/components/dashboard/empty-form';
 import BreadcrumbRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { Google } from '@app/components/icons/brands/google';
 import { HomeIcon } from '@app/components/icons/home';
+import SettingsPrivacy from '@app/components/settings/workspace/settings-privacy';
+import SettingsProfile from '@app/components/settings/workspace/settings-profile';
+import { WorkspaceDangerZoneSettings } from '@app/components/settings/workspace/workspace-danger-zone-settings';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import ParamTab from '@app/components/ui/param-tab';
+import { TabPanel } from '@app/components/ui/tab';
 import { ToastId } from '@app/constants/toastId';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
@@ -21,156 +29,28 @@ import { toMonthDateYearStr } from '@app/utils/dateUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function MySubmissions({ workspace }: { workspace: any }) {
-    const submissionsQuery = useGetWorkspaceAllSubmissionsQuery(workspace?.id || '', { pollingInterval: 30000 });
-    const breakpoint = useBreakpoint();
-    const [trigger, { isLoading, isError, data }] = useLazyGetWorkspaceSubmissionQuery();
-    const [responseObject, setResponseObject] = useState({});
-    const [form, setForm] = useState<any>([]);
-    const router = useRouter();
-    const { sub_id }: any = router.query;
-
-    useEffect(() => {
-        if (!submissionsQuery?.isLoading && !!submissionsQuery?.data) {
-            const responseMapObject = convertToClientForm(submissionsQuery?.data);
-            setResponseObject(responseMapObject);
-        }
-    }, [submissionsQuery]);
-
-    useEffect(() => {
-        if (!!sub_id) {
-            const submissionQuery = {
-                workspace_id: workspace.id,
-                submission_id: sub_id
-            };
-            trigger(submissionQuery)
-                .then((d: any) => {
-                    setForm(d.data);
-                })
-                .catch((e) => {
-                    toast.error('Error fetching submission data.', { toastId: ToastId.ERROR_TOAST });
-                });
-        }
-    }, [sub_id]);
-
-    const convertToClientForm = (formsArray: Array<any>) => {
-        return formsArray.reduce(function (accumulator, value) {
-            if (!accumulator[value.formId]) {
-                accumulator[value.formId] = {
-                    title: value.formTitle,
-                    responses: [value]
-                };
-            } else {
-                accumulator[value.formId].responses.push(value);
-            }
-            return accumulator;
-        }, Object.create(null));
-    };
-
-    const handleSubmissionClick = (responseId: any) => {
-        router.push({
-            pathname: router.pathname,
-            query: {
-                ...router.query,
-                sub_id: responseId
-            }
-        });
-    };
-
-    const handleRemoveSubmissionId = () => {
-        const updatedQuery = { ...router.query };
-        delete updatedQuery.sub_id;
-        router.push({
-            pathname: router.pathname,
-            query: updatedQuery
-        });
-    };
-
-    const breadcrumbsItem = [
+    const paramTabs = [
         {
-            title: 'Responses',
-            icon: <HomeIcon className="w-4 h-4 mr-2" />,
-            onClick: handleRemoveSubmissionId
+            title: 'All Submissions',
+            path: 'all'
         },
         {
-            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(sub_id, 10) : sub_id
+            title: 'Requested For Deletion',
+            path: 'requested-for-deletion'
         }
     ];
 
-    const CardRenderer = () => {
-        return (
-            <>
-                {Object.values(responseObject).length === 0 && <EmptyFormsView />}
-                {!!Object.values(responseObject).length &&
-                    Object.values(responseObject).map((response: any, idx: any) => {
-                        return (
-                            <div key={idx} className="mb-4">
-                                <h1 className="text-xl font-semibold text-gray-700 mb-6 mt-6 inline-block pb-3 border-b-[1px] border-gray-300">
-                                    {response.title} ({response.responses.length})
-                                </h1>
-                                <div className="grid grid-cols-1 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
-                                    {response.responses.map((form: any) => {
-                                        return (
-                                            <div
-                                                onClick={() => handleSubmissionClick(form.responseId)}
-                                                key={form.responseId}
-                                                className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]"
-                                            >
-                                                <div className="flex flex-col justify-start h-full overflow-hidden">
-                                                    <div className="flex mb-2 w-full items-center space-x-2">
-                                                        <div>
-                                                            {form.provider === 'typeform' ? (
-                                                                <div className="rounded-full border h-[24px] w-[28px] border-white relative">
-                                                                    <Image src="/tf.png" className="rounded-full" layout="fill" alt={'T'} />
-                                                                </div>
-                                                            ) : (
-                                                                <div className="rounded-full bg-white p-1">
-                                                                    <Google />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="text-2xl text-grey font-bold">{!!form.dataOwnerIdentifier ? form.dataOwnerIdentifier : <p className="italic">Anonymous</p>}</div>
-                                                    </div>
-                                                    <div className="flex items-center mb-2"></div>
-                                                    <div className="flex items-center">
-                                                        <CalendarMonthIcon className="text-gray-400 text-[18px]" />
-                                                        <div className="pl-1 text-sm italic text-gray-400">Last submitted on {!!form.updatedAt ? toMonthDateYearStr(new Date(form.updatedAt)) : 'N/A'}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        );
-                    })}
-            </>
-        );
-    };
-
-    // UI for forms
-    const MyRecentSubmissions = () => {
-        return (
-            <div>
-                <h1 className="font-semibold text-2xl mb-4">Submissions</h1>
-            </div>
-        );
-    };
-
-    if (isLoading) return <FullScreenLoader />;
-
     return (
         <SidebarLayout>
-            {!sub_id ? (
-                <>
-                    <MyRecentSubmissions />
-                    <CardRenderer />
-                </>
-            ) : (
-                <>
-                    <BreadcrumbRenderer breadcrumbsItem={breadcrumbsItem} />
-                    <FormRenderer form={form?.form} response={form?.response} />
-                </>
-            )}
+            <ParamTab tabMenu={paramTabs}>
+                <TabPanel className="focus:outline-none" key="all">
+                    {/*<MyRecentSubmissions/>*/}
+                    <AllSubmissionTab workspace_id={workspace.id} />
+                </TabPanel>
+                <TabPanel className="focus:outline-none" key="requested-for-deletion">
+                    <AllSubmissionTab workspace_id={workspace.id} requested_for_deletion_only={true} />
+                </TabPanel>
+            </ParamTab>
         </SidebarLayout>
     );
 }

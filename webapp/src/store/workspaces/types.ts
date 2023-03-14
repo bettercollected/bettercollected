@@ -18,3 +18,8 @@ export interface IPatchFormSettingsRequest {
     formId: string;
     body: any;
 }
+
+export interface IGetAllSubmissionsQuery {
+    workspaceId: string;
+    requestedForDeletionOly?: boolean;
+}
