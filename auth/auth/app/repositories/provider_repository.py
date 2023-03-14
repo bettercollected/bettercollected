@@ -1,4 +1,4 @@
-from auth.app.models.provider import Provider
+from auth.app.schemas.provider import Provider
 
 
 class ProviderRepository:

@@ -1,15 +1,17 @@
 from dependency_injector import containers, providers
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from auth.app.repositories.provider_repository import ProviderRepository
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.auth_service import AuthService
 from auth.config import settings
-from common.configs.crypto import Crypto
 from common.services.http_client import HttpClient
 
 
 class AppContainer(containers.DeclarativeContainer):
+    database_client = providers.Singleton(AsyncIOMotorClient(settings.mongo_settings.URI))
+
     # Define non-decorated objects here
     http_client: HttpClient = providers.Singleton(HttpClient)
 

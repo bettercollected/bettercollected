@@ -14,8 +14,8 @@ from dotenv import load_dotenv
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
-    .parent.parent.absolute()
-    .joinpath(".env")
+        .parent.parent.absolute()
+        .joinpath(".env")
 )
 load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
@@ -47,7 +47,7 @@ class Application(BaseSettings):
     DEBUG: bool = True
     API_TITLE: str = "auth"
     API_VERSION: str = __version__
-    API_ROOT_PATH: str = "/api/v1"
+    API_ROOT_PATH: str = ""
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
     mongo_settings: MongoSettings = MongoSettings()

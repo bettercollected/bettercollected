@@ -1,10 +1,18 @@
-from typing import Any
+from typing import List
+
+from dependency_injector import containers, providers
 
 
-def get_variable_name(var: Any):
-    return f"{var=}".split("=")[0]
+class C(containers.DeclarativeContainer):
+    ok: List[str] = providers.Object([])
 
 
 if __name__ == "__main__":
-    ok = "hello"
-    print(get_variable_name(ok))
+    c = C()
+    c.ok().append("ok")
+    print(c)
+    print(c.ok())
+    c2 = C()
+    c2.ok().append("ok2")
+    print(c2.__init__())
+    print(c2.ok())
