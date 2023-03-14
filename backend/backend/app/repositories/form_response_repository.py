@@ -52,10 +52,17 @@ class FormResponseRepository(BaseRepository):
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
 
-    async def list_by_form_ids(self, form_ids: List[str]) -> List[StandardFormResponse]:
+    async def list_by_form_ids(
+        self, form_ids: List[str], request_for_deletion: bool
+    ) -> List[StandardFormResponse]:
         try:
             form_responses = (
-                await FormResponseDocument.find({"form_id": {"$in": form_ids}})
+                await FormResponseDocument.find(
+                    {
+                        "form_id": {"$in": form_ids},
+                        "request_for_deletion": request_for_deletion,
+                    }
+                )
                 .aggregate(
                     [
                         {
