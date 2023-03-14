@@ -3,8 +3,6 @@ from typing import TypeVar, Type
 import jwt
 from pydantic import BaseModel
 
-from backend.config import settings
-
 T = TypeVar("T", bound=BaseModel)
 
 
