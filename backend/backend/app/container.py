@@ -28,6 +28,7 @@ from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
 from common.services.http_client import HttpClient
+from common.services.jwt_service import JwtService
 
 current_path = Path(os.path.abspath(os.path.dirname(__file__))).absolute()
 
@@ -65,6 +66,11 @@ class AppContainer(containers.DeclarativeContainer):
         settings.aws_settings.secret_access_key,
     )
 
+    jwt_service: JwtService = providers.Singleton(
+        JwtService,
+        settings.auth_settings.JWT_SECRET
+    )
+
     form_provider_service: FormPluginProviderService = providers.Singleton(
         FormPluginProviderService, form_provider_repo=form_provider_repo
     )
@@ -78,6 +84,7 @@ class AppContainer(containers.DeclarativeContainer):
         http_client=http_client,
         plugin_proxy_service=plugin_proxy_service,
         form_provider_service=form_provider_service,
+        jwt_service=jwt_service
     )
 
     workspace_service: WorkspaceService = providers.Singleton(
@@ -127,6 +134,7 @@ class AppContainer(containers.DeclarativeContainer):
         FormSchedular,
         form_provider_service=form_provider_service,
         form_import_service=form_import_service,
+        jwt_service=jwt_service
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(
