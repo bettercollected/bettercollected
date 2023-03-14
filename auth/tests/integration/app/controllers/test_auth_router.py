@@ -1,17 +1,27 @@
-from auth.config import settings
+from auth.app.container import container
+from auth.app.controllers.auth_router import AuthRoutes
+from auth.app.repositories.user_repository import UserRepository
+from common.models.user import UserInfo, User
 
 
-class TestReadyController:
-    def test_should_return_ok(self, app_runner):
+class TestAuthRouter:
+    def test_should_user_created_when_callback_called(self, app_runner):
+        # noinspection PyUnusedLocal
+        function_stub = AuthRoutes._auth_callback
 
-        response = app_runner.get("/api/auth/callback")
+        # given user email and jwt token
+        user_email = 'test@example.com'
+        jwt_token = container.jwt_service().encode(UserInfo(email=user_email))
 
+        # when calling auth/callback
+        response = app_runner.get("auth/callback",
+                                  params={"jwt_token": jwt_token}
+                                  )
+
+        # then Assert User is created in database, id exists and sub and email are same
         assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
 
-    def test_should_return_not_found_when_invalid_uri(self, app_runner):
-        # given / when
-        response = app_runner.get("/api/ready/123")
-
-        # then
-        assert response.status_code == 404
+        user = User(**response.json())
+        assert UserRepository.get_user_by_email(user.sub) is not None
+        assert user.id is not None
+        assert user.sub == user_email

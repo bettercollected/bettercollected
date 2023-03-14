@@ -7,6 +7,7 @@ from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.auth_service import AuthService
 from auth.config import settings
 from common.services.http_client import HttpClient
+from common.services.jwt_service import JwtService
 
 
 class AppContainer(containers.DeclarativeContainer):
@@ -22,6 +23,11 @@ class AppContainer(containers.DeclarativeContainer):
 
     auth_provider_factory: AuthProviderFactory = providers.Singleton(
         AuthProviderFactory
+    )
+
+    jwt_service = providers.Singleton(
+        JwtService,
+        settings.AUTH_JWT_SECRET
     )
 
     auth_service: AuthService = providers.Singleton(
