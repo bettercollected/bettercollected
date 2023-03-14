@@ -20,10 +20,14 @@ from common.models.user import User
 
 # noinspection PyMethodOverriding
 class FormResponseRepository(BaseRepository):
-    async def list(self, form_id: str) -> List[StandardFormResponse]:
+    async def list(
+        self, form_id: str, request_for_deletion: bool
+    ) -> List[StandardFormResponse]:
         try:
             form_responses = (
-                await FormResponseDocument.find({"form_id": form_id})
+                await FormResponseDocument.find(
+                    {"form_id": form_id, "request_for_deletion": request_for_deletion}
+                )
                 .aggregate(
                     [
                         {

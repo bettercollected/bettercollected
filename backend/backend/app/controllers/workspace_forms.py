@@ -4,7 +4,10 @@ from fastapi import Depends
 from starlette.requests import Request
 
 from backend.app.container import container
-from backend.app.models.response_dtos import StandardFormCamelModel
+from backend.app.models.response_dtos import (
+    StandardFormCamelModel,
+    WorkspaceFormPatchResponse,
+)
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.router import router
 from backend.app.services.form_service import FormService
@@ -71,7 +74,7 @@ class WorkspaceFormsRouter(Routable):
         data = await self._form_service.patch_settings_in_workspace_form(
             workspace_id, form_id, settings, user
         )
-        return data
+        return WorkspaceFormPatchResponse(**data.dict())
 
     @post("/import/{provider}")
     async def _import_form_to_workspace(
