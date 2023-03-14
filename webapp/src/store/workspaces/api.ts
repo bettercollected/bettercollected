@@ -4,11 +4,12 @@ import environments from '@app/configs/environments';
 import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { GoogleFormDto, GoogleMinifiedFormDto } from '@app/models/dtos/googleForm';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
+import { IGetAllSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
 const WORKSPACE_TAGS = 'WORKSPACE_TAG';
+const SUBMISSION_TAG = 'SUBMISSION_TAG';
 const WORKSPACE_UPDATE_TAG = 'WORKSPACE_UPDATE_TAG';
 
 interface ImportFormQueryInterface {
@@ -22,7 +23,7 @@ interface ImportFormQueryInterface {
 
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -112,11 +113,16 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
-        getWorkspaceAllSubmissions: builder.query<Array<StandardFormResponseDto>, string>({
-            query: (id) => ({
-                url: `/workspaces/${id}/allSubmissions`,
-                method: 'GET'
-            }),
+        getWorkspaceAllSubmissions: builder.query<Array<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
+            query: (query: IGetAllSubmissionsQuery) => {
+                return {
+                    url: `/workspaces/${query.workspaceId}/allSubmissions`,
+                    params: {
+                        request_for_deletion: query.requestedForDeletionOly
+                    },
+                    method: 'GET'
+                };
+            },
             providesTags: [WORKSPACE_TAGS]
         }),
         getWorkspaceSubmission: builder.query<any, IGetWorkspaceSubmissionQuery>({
@@ -124,7 +130,7 @@ export const workspacesApi = createApi({
                 url: `/workspaces/${query.workspace_id}/submissions/${query.submission_id}`,
                 method: 'GET'
             }),
-            providesTags: [WORKSPACE_TAGS]
+            providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]
         }),
         requestWorkspaceSubmissionDeletion: builder.mutation<any, IGetWorkspaceSubmissionQuery>({
             query: (query) => ({
@@ -134,8 +140,8 @@ export const workspacesApi = createApi({
                 headers: {
                     'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
-            })
-            // providesTags: [WORKSPACE_TAGS]
+            }),
+            invalidatesTags: [SUBMISSION_TAG]
         }),
         searchWorkspaceForms: builder.mutation<Array<StandardFormDto>, ISearchWorkspaceFormsQuery>({
             query: (query) => ({
