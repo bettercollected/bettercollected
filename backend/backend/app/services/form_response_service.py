@@ -30,7 +30,7 @@ class FormResponseService:
         self._workspace_user_repo = workspace_user_repo
 
     async def get_all_workspace_responses(
-        self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: PydanticObjectId, request_for_deletion: bool, user: User
     ):
         try:
             if not await self._workspace_user_repo.is_user_admin_in_workspace(
@@ -42,7 +42,9 @@ class FormResponseService:
             form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
                 workspace_id=workspace_id
             )
-            return await self._form_response_repo.list_by_form_ids(form_ids)
+            return await self._form_response_repo.list_by_form_ids(
+                form_ids, request_for_deletion
+            )
         except Exception as exc:
             logger.error(exc)
             raise HTTPException(

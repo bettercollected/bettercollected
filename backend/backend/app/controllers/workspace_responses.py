@@ -41,10 +41,13 @@ class WorkspaceResponsesRouter(Routable):
 
     @get("/allSubmissions")
     async def _get_all_workspace_responses(
-        self, workspace_id: PydanticObjectId, user=Depends(get_logged_user)
+        self,
+        workspace_id: PydanticObjectId,
+        request_for_deletion: bool = False,
+        user=Depends(get_logged_user),
     ):
         responses = await self._form_response_service.get_all_workspace_responses(
-            workspace_id, user
+            workspace_id, request_for_deletion, user
         )
         return responses
 
