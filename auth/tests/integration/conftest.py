@@ -1,9 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
+from mongomock_motor import AsyncMongoMockClient
 
 from auth.app import get_application
 from auth.app.container import container
-from mongomock_motor import AsyncMongoMockClient
+from auth.config import settings
 
 
 @pytest.fixture
@@ -11,5 +12,8 @@ def app_runner():
     container.database_client.override(AsyncMongoMockClient())
     app = get_application()
 
-    with TestClient(app) as client:
+    with TestClient(
+            app,
+            base_url=f"http://testserver{settings.API_ROOT_PATH}",
+    ) as client:
         yield client

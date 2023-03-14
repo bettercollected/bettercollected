@@ -14,4 +14,4 @@ class ReadyRoutes(Routable):
     @get("")
     async def ready(self):
         """Return true if server is ready to serve requests."""
-        return {"status": "Ok"}
+        return {"status": "OK"}

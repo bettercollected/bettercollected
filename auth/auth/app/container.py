@@ -10,7 +10,9 @@ from common.services.http_client import HttpClient
 
 
 class AppContainer(containers.DeclarativeContainer):
-    database_client = providers.Singleton(AsyncIOMotorClient(settings.mongo_settings.URI))
+    database_client: AsyncIOMotorClient = providers.Singleton(
+        AsyncIOMotorClient, settings.mongo_settings.URI
+    )
 
     # Define non-decorated objects here
     http_client: HttpClient = providers.Singleton(HttpClient)

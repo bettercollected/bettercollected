@@ -24,7 +24,8 @@ async def on_startup():
 
     """
     log.debug("Execute FastAPI startup event handler.")
-    pass
+    database_client = container.database_client()
+    await init_db(database_client)
 
 
 async def on_shutdown():
@@ -36,8 +37,9 @@ async def on_shutdown():
     """
     log.debug("Execute FastAPI shutdown event handler.")
     await container.http_client().aclose()
-    # Gracefully close utilities.
-    pass
+
+    database_client = container.database_client()
+    await close_db(database_client)
 
 
 def get_application():
@@ -55,12 +57,11 @@ def get_application():
         version=settings.API_VERSION,
         docs_url=settings.API_ROOT_PATH + "/docs",
         openapi_url=settings.API_ROOT_PATH + "/openapi.json",
-        on_startup=[on_startup, init_db],
-        on_shutdown=[on_shutdown, close_db],
+        on_startup=[on_startup],
+        on_shutdown=[on_shutdown],
     )
     log.debug("Add application routes.")
     app.include_router(root_api_router)
     log.debug("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
-
     return app

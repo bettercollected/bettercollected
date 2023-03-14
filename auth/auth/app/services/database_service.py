@@ -3,7 +3,6 @@ import logging
 
 from beanie import init_beanie
 
-from auth.app.container import container
 from auth.config import settings
 
 log = logging.getLogger(__name__)
@@ -16,17 +15,16 @@ def entity(cls):
     return cls
 
 
-async def init_db():
-    client = container.database_client()
-    client.get_io_loop = asyncio.get_running_loop
-    db = client[settings.mongo_settings.DB]
+async def init_db(database_client):
+    database_client.get_io_loop = asyncio.get_running_loop
+    db = database_client[settings.mongo_settings.DB]
     await init_beanie(database=db, document_models=document_models)
     log.info("Database connected successfully.")
 
 
-async def close_db():
+async def close_db(database_client):
     try:
-        container.database_client().close()
+        database_client().close()
         log.info("Database disconnected successfully.")
     except Exception as e:
         log.error("Database disconnect failure.")
