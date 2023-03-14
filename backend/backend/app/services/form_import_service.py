@@ -32,6 +32,7 @@ class FormImportService:
             response_document.dataOwnerIdentifier = (
                 data_owner_answer.text if data_owner_answer else None
             )
+            response_document.request_for_deletion = existing_response.request_for_deletion
             await response_document.save()
 
         return standard_form
