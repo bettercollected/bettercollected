@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -69,6 +71,7 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
     let submissionId: string = (router?.query?.sub_id as string) ?? '';
 
     const [responses, setResponses] = useState<Array<any>>([]);
+    const [requestedForDeletion, setRequestedForDeletion] = useState(false);
 
     useEffect(() => {
         if (!!submissionId) {
@@ -88,7 +91,7 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
 
     useEffect(() => {
         if (!!formId && !!workspaceId) {
-            fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${workspaceId}/forms/${formId}/submissions`, {
+            fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${workspaceId}/forms/${formId}/submissions?request_for_deletion=${requestedForDeletion}`, {
                 credentials: 'include',
                 headers: {
                     'Access-Control-Allow-origin': environments.API_ENDPOINT_HOST
@@ -101,7 +104,7 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
                 })
                 .catch((e) => console.log(e));
         }
-    }, [formId, workspaceId]);
+    }, [formId, workspaceId, requestedForDeletion]);
 
     const handleSubmissionClick = (responseId: any) => {
         router.push({
@@ -141,9 +144,24 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
     const AllSubmissionsRenderer = () => {
         return (
             <>
-                <h1 data-testid="all-submissions-renderer" className="text-2xl font-extrabold mb-4">
-                    Total Submissions ({responses.length})
-                </h1>
+                <div className="flex flex-col md:flex-row justify-between w-full">
+                    <h1 data-testid="all-submissions-renderer" className="text-2xl font-extrabold mb-4">
+                        Total Submissions ({responses.length})
+                    </h1>
+
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={requestedForDeletion}
+                                onChange={() => {
+                                    setRequestedForDeletion(!requestedForDeletion);
+                                }}
+                            />
+                        }
+                        label="Show requested for deletion ony."
+                    />
+                </div>
+
                 {responses.length === 0 && <EmptyFormsView />}
                 {responses.length !== 0 && (
                     <>
