@@ -35,13 +35,36 @@ class GoogleFormItemQuestionDto(BaseModel):
     question: Optional[GoogleQuestionDto]
 
 
+class GoogleOptionValue(BaseModel):
+    value: str
+
+
+class GoogleColumns(BaseModel):
+    type: Optional[str]
+    options: Optional[List[GoogleOptionValue]] = []
+
+
+class GoogleGrid(BaseModel):
+    columns: Optional[GoogleColumns] = GoogleColumns()
+
+
+class GoogleRowQuestion(BaseModel):
+    title: Optional[str]
+
+
+class GoogleGroupQuestion(BaseModel):
+    questionId: Optional[str]
+    required: Optional[bool]
+    rowQuestion: Optional[GoogleRowQuestion] = GoogleRowQuestion()
+
+
 class GoogleFormQuestionGroupItem(BaseModel):
     """
     Data transfer object for Google Forms question group items.
     """
 
-    questions: List[Any]
-    grid: Any
+    questions: List[GoogleGroupQuestion] = []
+    grid: Optional[GoogleGrid] = GoogleGrid()
 
 
 class GoogleInfoDto(BaseModel):
@@ -54,6 +77,28 @@ class GoogleInfoDto(BaseModel):
     documentTitle: Optional[str]
 
 
+class GoogleMediaProperties(BaseModel):
+    width: Optional[int]
+
+
+class GoogleImage(BaseModel):
+    contentUri: Optional[str]
+    properties: Optional[GoogleMediaProperties] = GoogleMediaProperties()
+
+
+class GoogleImageItem(BaseModel):
+    image: Optional[GoogleImage] = GoogleImage()
+
+
+class GoogleVideo(BaseModel):
+    youtubeUri: Optional[str]
+    properties: Optional[GoogleMediaProperties] = GoogleMediaProperties()
+
+
+class GoogleVideoItem(BaseModel):
+    video: Optional[GoogleVideo] = GoogleVideo()
+
+
 class GoogleFormItemsDto(BaseModel):
     """
     Data transfer object for items in a Google Form.
@@ -61,8 +106,8 @@ class GoogleFormItemsDto(BaseModel):
 
     itemId: Optional[str]
     title: Optional[str]
-    imageItem: Optional[Any]
-    videoItem: Optional[Any]
+    imageItem: Optional[GoogleImageItem]
+    videoItem: Optional[GoogleVideoItem]
     description: Optional[str]
     pageBreakItem: Optional[Any]
     questionItem: Optional[GoogleFormItemQuestionDto]
@@ -78,5 +123,5 @@ class GoogleFormDto(BaseModel):
     info: Optional[GoogleInfoDto]
     revisionId: Optional[str]
     responderUri: Optional[str]
-    items: Optional[List[GoogleFormItemsDto]]
+    items: Optional[List[GoogleFormItemsDto]] = []
     provider: Optional[str]
