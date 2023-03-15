@@ -31,25 +31,14 @@ class FormSchedular:
             method="GET",
             cookies=cookies,
         )
-        raw_converted_form = await self.perform_conversion_request(
-            provider=provider,
-            raw_form=raw_form,
-            convert_responses=False,
-            cookies=cookies,
-        )
-        form = FormDocument.parse_obj(raw_converted_form)
-
         # if the latest status of form is not closed then perform saving
-        if not form.settings.is_closed:
-            response_data = await self.perform_conversion_request(
-                provider=provider, raw_form=raw_form, cookies=cookies
-            )
-            await self.form_import_service.save_converted_form_and_responses(
-                response_data, response_data_owner
-            )
-            logger.info(f"Form {form_id} is updated successfully by schedular.")
-        else:
-            logger.info(f"Form {form_id} is not updated as it is now closed.")
+        response_data = await self.perform_conversion_request(
+            provider=provider, raw_form=raw_form, cookies=cookies
+        )
+        await self.form_import_service.save_converted_form_and_responses(
+            response_data, response_data_owner
+        )
+        logger.info(f"Form {form_id} is updated successfully by schedular.")
 
     async def perform_conversion_request(
         self,

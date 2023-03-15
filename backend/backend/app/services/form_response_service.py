@@ -11,7 +11,10 @@ from backend.app.repositories.form_response_repository import FormResponseReposi
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.standard_form import FormDocument
-from backend.app.schemas.standard_form_response import FormResponseDocument
+from backend.app.schemas.standard_form_response import (
+    FormResponseDocument,
+    FormResponseDeletionRequest,
+)
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_UNAUTHORIZED
 from common.models.user import User
@@ -141,5 +144,19 @@ class FormResponseService:
         if not (is_admin or response.dataOwnerIdentifier == user.sub):
             raise HTTPException(403, "You are not authorized to perform this action.")
 
-        response.request_for_deletion = True
-        return await FormResponseDocument.save(response)
+        deletion_request = await FormResponseDeletionRequest.find_one(
+            {"response_id": response_id}
+        )
+
+        if deletion_request:
+            raise HTTPException(
+                400,
+                "Error: Deletion request already exists for the response : "
+                + response_id,
+            )
+
+        await FormResponseDeletionRequest(
+            form_id=response.form_id,
+            response_id=response_id,
+            provider=response.provider,
+        ).save()

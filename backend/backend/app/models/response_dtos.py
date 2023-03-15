@@ -19,6 +19,7 @@ class StandardFormCamelModel(StandardForm, CamelModel):
 
 class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):
     form_title: Optional[str]
+    deletion_status: Optional[str]
 
 
 class WorkspaceFormPatchResponse(CamelModel):

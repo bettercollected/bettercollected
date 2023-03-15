@@ -1,13 +1,16 @@
 import datetime as dt
+import enum
 from typing import Optional
+
+import pymongo
+from beanie import Indexed
+from pymongo import IndexModel
 
 from common.configs.mongo_document import MongoDocument
 from common.models.standard_form import StandardFormResponse
 
 
 class FormResponseDocument(MongoDocument, StandardFormResponse):
-    request_for_deletion: bool = False
-
     class Settings:
         name = "form_responses"
         bson_encoders = {
@@ -15,3 +18,23 @@ class FormResponseDocument(MongoDocument, StandardFormResponse):
             dt.date: lambda o: dt.date.isoformat(o),
             dt.time: lambda o: dt.time.isoformat(o),
         }
+
+
+class DeletionRequestStatus(str, enum.Enum):
+    PENDING = "pending"
+    SUCCESS = "success"
+
+
+class FormResponseDeletionRequest(MongoDocument):
+    form_id: str
+    response_id: str
+    provider: str
+    status: DeletionRequestStatus = DeletionRequestStatus.PENDING
+
+    class Settings:
+        name = "responses_deletion_requests"
+        indexes = [
+            IndexModel(
+                [("form_id", 1), ("response_id", 1), ("provider", 1)], unique=True
+            )
+        ]
