@@ -169,7 +169,7 @@ class GoogleFormTransformerService(FormTransformerService):
     def _transform_answer(self, answer: GoogleAnswer) -> StandardFormResponseAnswer:
         standard_answer = StandardFormResponseAnswer()
 
-        if answer.textAnswers:
+        if answer.textAnswers and len(answer.textAnswers.answers) > 0:
             if len(answer.textAnswers.answers) > 1:
                 standard_answer.choices = StandardChoicesAnswer(
                     values=[choice.value for choice in answer.textAnswers.answers]
@@ -178,6 +178,9 @@ class GoogleFormTransformerService(FormTransformerService):
                 standard_answer.text = answer.textAnswers.answers[0].value
                 standard_answer.choice = StandardChoiceAnswer(
                     value=answer.textAnswers.answers[0].value
+                )
+                standard_answer.choices = StandardChoicesAnswer(
+                    values=[choice.value for choice in answer.textAnswers.answers]
                 )
 
         return standard_answer
@@ -188,4 +191,5 @@ class GoogleFormTransformerService(FormTransformerService):
         setting.provider = FormProvider.GOOGLE
         setting.custom_url = googleform.formId
         setting.embed_url = googleform.responderUri
+        setting.is_public = True
         return setting
