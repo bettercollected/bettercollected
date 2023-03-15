@@ -29,7 +29,7 @@ class BaseRepository(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    async def list(self) -> List[T]:
+    async def list(self, **kwargs) -> List[T]:
         """
         Returns a list of items stored in the repository.
 
