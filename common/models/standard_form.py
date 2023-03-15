@@ -152,7 +152,7 @@ class StandardForm(BaseModel):
     title: Optional[str]
     description: Optional[str]
     fields: Optional[List[StandardFormField]]
-    settings: Optional[StandardFormSettings]
+    settings: Optional[StandardFormSettings] = StandardFormSettings()
     created_at: Optional[dt.datetime]
     updated_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
