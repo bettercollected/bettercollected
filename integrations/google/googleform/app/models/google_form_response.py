@@ -1,6 +1,18 @@
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
+
+
+class GoogleTextAnswerValue(BaseModel):
+    value: Optional[str]
+
+
+class GoogleTextAnswer(BaseModel):
+    answers: List[GoogleTextAnswerValue] = []
+
+
+class GoogleAnswer(BaseModel):
+    textAnswers: Optional[GoogleTextAnswer] = GoogleTextAnswer()
 
 
 class GoogleFormResponseDto(BaseModel):
@@ -11,5 +23,5 @@ class GoogleFormResponseDto(BaseModel):
     responseId: Optional[str]
     createTime: Optional[str]
     lastSubmittedTime: Optional[str]
-    answers: Optional[Any]
+    answers: Optional[Dict[str, GoogleAnswer]]
     respondentEmail: Optional[str]
