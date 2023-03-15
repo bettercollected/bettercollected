@@ -4,8 +4,10 @@ from typing import Any, Dict, Optional
 from classy_fastapi import Routable, get, post
 from fastapi import APIRouter, Depends
 
+from common.models.form_import import FormImportResponse
 from googleform.app.containers import Container
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
+from googleform.app.services.transformer import GoogleFormTransformerService
 from googleform.app.services.user_service import get_user_credential
 
 
@@ -51,6 +53,12 @@ class GoogleFormRouter(Routable):
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
         )
-        return await self.form_service.convert_form(
-            form_import, convert_responses, credential
-        )
+        transformer = GoogleFormTransformerService()
+        standard_form = transformer.transform_form(form_import)
+        if convert_responses:
+            form_responses = self.google_service.get_form_response_list(
+                standard_form.form_id, credential.credentials.dict()
+            )
+            standard_responses = transformer.transform_form_responses(form_responses)
+            return FormImportResponse(form=standard_form, responses=standard_responses)
+        return standard_form
