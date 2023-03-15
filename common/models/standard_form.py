@@ -7,9 +7,9 @@ from pydantic import BaseModel
 
 
 class EmbedProvider(str, enum.Enum):
-    YOUTUBE = 'youtube'
-    VIEMO = 'vimeo'
-    NO_EMBED = 'no_embed'
+    YOUTUBE = "youtube"
+    VIEMO = "vimeo"
+    NO_EMBED = "no_embed"
 
 
 class StandardFormFieldType(str, Enum):
@@ -26,7 +26,6 @@ class StandardFormFieldType(str, Enum):
     GROUP = "group"
     PAYMENT = "payment"
     STATEMENT = "statement"
-
 
 
 class StandardResponseType(str, Enum):
@@ -48,8 +47,13 @@ class StandardAttachmentProperties(BaseModel):
     description: Optional[str]
 
 
+class StandardAttachmentType(str, enum.Enum):
+    IMAGE = "image"
+    VIDEO = "video"
+
+
 class StandardFieldAttachment(BaseModel):
-    type: Optional[str]
+    type: Optional[StandardAttachmentType]
     href: Optional[str]
     scale: Optional[float]
     properties: Optional[StandardAttachmentProperties] = StandardAttachmentProperties()
@@ -135,7 +139,7 @@ class StandardFormField(BaseModel):
     description: Optional[str]
     type: Optional[StandardFormFieldType]
     properties: Optional[StandardFieldProperty] = StandardFieldProperty()
-    validations: Optional[StandardFieldValidations]
+    validations: Optional[StandardFieldValidations] = StandardFieldValidations()
     attachment: Optional[StandardFieldAttachment] = None
 
 
