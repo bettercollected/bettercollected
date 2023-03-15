@@ -100,4 +100,5 @@ class GoogleService:
             .responses()
             .list(formId=form_id)
             .execute()
+            .get("responses", [])
         )
