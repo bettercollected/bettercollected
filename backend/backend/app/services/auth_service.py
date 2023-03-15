@@ -20,11 +20,11 @@ crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
 
 class AuthService:
     def __init__(
-            self,
-            http_client: HttpClient,
-            plugin_proxy_service: PluginProxyService,
-            form_provider_service: FormPluginProviderService,
-            jwt_service: JwtService
+        self,
+        http_client: HttpClient,
+        plugin_proxy_service: PluginProxyService,
+        form_provider_service: FormPluginProviderService,
+        jwt_service: JwtService,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
@@ -55,7 +55,7 @@ class AuthService:
         return oauth_url
 
     async def handle_backend_auth_callback(
-            self, *, provider_name: str, state: str, request: Request
+        self, *, provider_name: str, state: str, request: Request
     ) -> Tuple[User, OAuthState]:
         provider_config = await self.form_provider_service.get_provider_if_enabled(
             provider_name
@@ -78,7 +78,7 @@ class AuthService:
         return user, state
 
     async def get_basic_auth_url(
-            self, provider: str, client_referer_url: str, creator: bool = False
+        self, provider: str, client_referer_url: str, creator: bool = False
     ):
         response_data = await self.http_client.get(
             settings.auth_settings.AUTH_BASE_URL + f"/auth/{provider}/basic",

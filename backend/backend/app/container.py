@@ -67,8 +67,7 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     jwt_service: JwtService = providers.Singleton(
-        JwtService,
-        settings.auth_settings.JWT_SECRET
+        JwtService, settings.auth_settings.JWT_SECRET
     )
 
     form_provider_service: FormPluginProviderService = providers.Singleton(
@@ -84,7 +83,7 @@ class AppContainer(containers.DeclarativeContainer):
         http_client=http_client,
         plugin_proxy_service=plugin_proxy_service,
         form_provider_service=form_provider_service,
-        jwt_service=jwt_service
+        jwt_service=jwt_service,
     )
 
     workspace_service: WorkspaceService = providers.Singleton(
@@ -134,7 +133,7 @@ class AppContainer(containers.DeclarativeContainer):
         FormSchedular,
         form_provider_service=form_provider_service,
         form_import_service=form_import_service,
-        jwt_service=jwt_service
+        jwt_service=jwt_service,
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(

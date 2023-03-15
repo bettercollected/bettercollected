@@ -33,6 +33,7 @@ class WorkspaceFormSettings(BaseModel):
     """Model for storing the form settings of a workspace."""
 
     pinned: Optional[bool] = False
+    embed_url: Optional[str]
     custom_url: Optional[str]
     private: Optional[bool] = False
     response_data_owner_field: Optional[str]

@@ -57,12 +57,18 @@ class WorkspaceFormService:
                 response_data, form_import.response_data_owner
             )
         )
+        embed_url = (
+            standard_form.settings.embed_url
+            if standard_form.settings and standard_form.settings.embed_url
+            else ""
+        )
         await self.workspace_form_repository.save_workspace_form(
             workspace_id=workspace_id,
             form_id=standard_form.form_id,
             user_id=user.id,
             workspace_form_settings=WorkspaceFormSettings(
                 custom_url=standard_form.form_id,
+                embed_url=embed_url,
                 response_data_owner_field=form_import.response_data_owner,
                 # TODO : Refactor repeated information provider is only saved on form
                 #  as it doesn't change with workspaces

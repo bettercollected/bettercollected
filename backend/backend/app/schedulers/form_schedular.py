@@ -12,10 +12,10 @@ from common.services.jwt_service import JwtService
 
 class FormSchedular:
     def __init__(
-            self,
-            form_provider_service: FormPluginProviderService,
-            form_import_service: FormImportService,
-            jwt_service: JwtService,
+        self,
+        form_provider_service: FormPluginProviderService,
+        form_import_service: FormImportService,
+        jwt_service: JwtService,
     ):
         self.form_provider_service = form_provider_service
         self.form_import_service = form_import_service
@@ -52,12 +52,12 @@ class FormSchedular:
             logger.info(f"Form {form_id} is not updated as it is now closed.")
 
     async def perform_conversion_request(
-            self,
-            *,
-            provider: str,
-            raw_form: Dict[str, Any],
-            convert_responses: bool = True,
-            cookies: Dict = None,
+        self,
+        *,
+        provider: str,
+        raw_form: Dict[str, Any],
+        convert_responses: bool = True,
+        cookies: Dict = None,
     ):
         return await self.perform_request(
             provider=provider,
@@ -69,14 +69,14 @@ class FormSchedular:
         )
 
     async def perform_request(
-            self,
-            *,
-            provider: str,
-            append_url: str,
-            method: str,
-            cookies: Dict,
-            params: Dict = None,
-            json: Dict = None,
+        self,
+        *,
+        provider: str,
+        append_url: str,
+        method: str,
+        cookies: Dict,
+        params: Dict = None,
+        json: Dict = None,
     ):
         provider_url = await self.form_provider_service.get_provider_url(provider)
         # TODO Perform request from containers http client
