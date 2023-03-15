@@ -29,10 +29,11 @@ class WorkspaceResponsesRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         form_id: str,
+        request_for_deletion: bool = False,
         user: User = Depends(get_logged_user),
     ):
         responses = await self._form_response_service.get_workspace_submissions(
-            workspace_id, form_id, user
+            workspace_id, request_for_deletion, form_id, user
         )
 
         return [

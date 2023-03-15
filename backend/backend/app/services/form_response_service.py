@@ -68,7 +68,11 @@ class FormResponseService:
             )
 
     async def get_workspace_submissions(
-        self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self,
+        workspace_id: PydanticObjectId,
+        request_for_deletion: bool,
+        form_id: str,
+        user: User,
     ):
         try:
             if not await self._workspace_user_repo.is_user_admin_in_workspace(
@@ -87,7 +91,9 @@ class FormResponseService:
                     HTTPStatus.NOT_FOUND, "Form not found in the workspace."
                 )
             # TODO : Refactor with mongo query instead of python
-            form_responses = await self._form_response_repo.list(form_id)
+            form_responses = await self._form_response_repo.list(
+                form_id, request_for_deletion
+            )
             return form_responses
         except Exception as exc:
             logger.error(exc)
