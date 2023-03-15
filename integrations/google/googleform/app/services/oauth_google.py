@@ -8,6 +8,7 @@ import requests
 from fastapi import HTTPException
 from google.auth.exceptions import RefreshError
 from googleapiclient.errors import HttpError
+from googleapiclient.discovery import build
 from loguru import logger
 from oauthlib.oauth1 import InvalidClientError
 from oauthlib.oauth2 import InvalidGrantError
@@ -143,16 +144,18 @@ class OauthGoogleService:
             )
             json_credentials = credentials.to_json()
             state_json = dict(json.loads(_crypto.decrypt(state)))
-            email = state_json.get("email")
-            db_credentials = await self.oauth_credential_repo.get(email)
-            if db_credentials:
-                db_credentials.updated_at = datetime.now()
-                db_credentials.credentials = json.loads(json_credentials)
-                await self.oauth_credential_repo.update(email, db_credentials)
-            else:
-                await self.oauth_credential_repo.add(
-                    email, json.loads(json_credentials)
-                )
+            user = await self.get_google_user(credentials)
+            email = user.get("email")
+            if user.get("email") == state_json.get("email"):
+                db_credentials = await self.oauth_credential_repo.get(email)
+                if db_credentials:
+                    db_credentials.updated_at = datetime.now()
+                    db_credentials.credentials = json.loads(json_credentials)
+                    await self.oauth_credential_repo.update(email, db_credentials)
+                else:
+                    await self.oauth_credential_repo.add(
+                        email, json.loads(json_credentials)
+                    )
             user_info = UserInfo(email=email)
             return user_info
         except InvalidGrantError:
@@ -317,3 +320,28 @@ class OauthGoogleService:
         if credentials_revoked:
             await credentials.delete()
         return credentials_revoked
+
+    async def get_google_user(self, credentials):
+        try:
+            oauth_service = build(
+                serviceName="oauth2", version="v2", credentials=credentials
+            )
+            return oauth_service.userinfo().get().execute()
+        except HttpError as error:
+            raise HTTPException(
+                status_code=error.status_code, detail=error.error_details
+            )
+        except RefreshError:
+            raise HTTPException(
+                status_code=401, detail="Google auth token refresh error."
+            )
+        except InvalidClientError as error:
+            raise HTTPException(
+                status_code=401, detail="Google auth invalid client error."
+            )
+        except AttributeError:
+            raise HTTPException(
+                status_code=401, detail="State not found. Connect with google services."
+            )
+        except InvalidGrantError as e:
+            raise HTTPException(401, "Invalid Grant error.")
