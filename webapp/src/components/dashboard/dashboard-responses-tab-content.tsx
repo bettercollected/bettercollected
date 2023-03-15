@@ -163,7 +163,7 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
                 </div>
 
                 {responses.length === 0 && <EmptyFormsView />}
-                {responses.length !== 0 && (
+                {responses.length !== 0 && Array.isArray(responses) && (
                     <>
                         <TableContainer component={Paper}>
                             <StyledTableContainer>
