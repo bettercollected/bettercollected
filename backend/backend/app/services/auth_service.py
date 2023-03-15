@@ -41,11 +41,15 @@ class AuthService:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, content="Invalid Otp Code")
         return User(**user)
 
-    async def get_oauth_url(self, provider_name: str, client_referer_url: str):
+    async def get_oauth_url(
+        self, provider_name: str, client_referer_url: str, user: User
+    ):
         provider_url = await self.form_provider_service.get_provider_url(provider_name)
         oauth_state = OAuthState(
             client_referer_uri=client_referer_url,
         )
+        if user is not None and Roles.FORM_CREATOR in user.roles:
+            oauth_state.email = user.sub
         state = crypto.encrypt(oauth_state.json())
         authorization_url = f"{provider_url}/{provider_name}/oauth/authorize"
         response_data = await self.http_client.get(
@@ -75,6 +79,8 @@ class AuthService:
         await workspace_service.create_workspace(user)
         decrypted_data = json.loads(crypto.decrypt(state))
         state = OAuthState(**decrypted_data)
+        if state.email is not None and user.sub != state.email:
+            raise HTTPException(403, "Invalid User Authentication.")
         return user, state
 
     async def get_basic_auth_url(
