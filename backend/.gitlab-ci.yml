@@ -1,6 +1,9 @@
 services:
   - docker:dind
 
+before_script:
+  - poetry config virtualenvs.in-project true
+
 cache:
   paths:
     - .venv
