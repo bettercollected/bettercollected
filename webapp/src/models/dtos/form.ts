@@ -51,6 +51,9 @@ export interface StandardFormResponseDto {
     formTitle: string;
     formCustomUrl: string;
     provider: string;
+
+    deletionStatus?: string;
+    requestForDeletion?: boolean;
     dataOwnerIdentifierType: string | null | undefined;
     dataOwnerIdentifier: string | null | undefined;
     responses: Array<{ questionId: string; answer: any }>;
