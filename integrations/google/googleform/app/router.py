@@ -9,13 +9,13 @@ Resources:
 from typing import Type
 
 from classy_fastapi import Routable
+from fastapi import APIRouter
 
-from common.utils.router import CustomAPIRouter
 from googleform.app.controllers.auth_router import AuthRoutes
 from googleform.app.controllers.form_router import GoogleFormRouter
 from googleform.config import settings
 
-root_api_router = CustomAPIRouter(prefix=settings.API_ROOT_PATH)
+root_api_router = APIRouter(prefix=settings.API_ROOT_PATH)
 
 root_api_router.include_router(AuthRoutes().router, prefix="/google")
 root_api_router.include_router(GoogleFormRouter().router, prefix="/google/forms")
