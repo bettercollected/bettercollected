@@ -17,7 +17,7 @@ class MailService:
         sender=settings.mail_settings.sender,
         smtp_port=settings.mail_settings.smtp_port,
         smtp_server=settings.mail_settings.smtp_server,
-        organization_name=settings.organization_name,
+        organization_name=settings.ORGANIZATION_NAME,
         mail_tls=True,
         mail_ssl=False,
     ):
