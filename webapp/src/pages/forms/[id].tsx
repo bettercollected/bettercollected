@@ -7,6 +7,7 @@ import { Widget } from '@typeform/embed-react';
 import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
@@ -24,6 +25,45 @@ export default function SingleFormPage(props: any) {
     if (!form) return <FullScreenLoader />;
 
     const responderUri = form.settings.embedUrl;
+
+    const hasFileUpload = (fields: Array<any>) => {
+        let isUploadField = false;
+        if (fields && Array.isArray(fields) && fields.length > 0) {
+            fields.forEach((field: any) => {
+                if (field && field?.type && field.type === 'file_upload') {
+                    isUploadField = true;
+                }
+            });
+            return isUploadField;
+        }
+        return isUploadField;
+    };
+
+    // TODO: Update this component to be reusable
+    if (form?.settings?.provider && form.settings.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
+        return (
+            <Layout className="relative !min-h-screen">
+                {back && (
+                    <Button className="!absolute !top-0 !left-0 w-auto z-10 !h-8 mx-4 mt-0 sm:mt-1 md:mt-3 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => router.push(`/${props.workspace.workspaceName}?view=forms`)}>
+                        <LongArrowLeft width={15} height={15} />
+                    </Button>
+                )}
+                <div className={'absolute left-0 right-0 top-16 !mx-4 bottom-0 !p-0'}>
+                    <div className="p-4 mb-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300" role="alert">
+                        <span className="font-medium">Warning!</span> This form consists file upload. You may need to open it in a new tab to fill it out.{' '}
+                        <ActiveLink href={responderUri} className="text-blue-500 hover:text-indigo-500">
+                            Form Link
+                        </ActiveLink>
+                    </div>
+                    {form.settings.provider === 'google' && !!responderUri && (
+                        <iframe ref={iframeRef} src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0">
+                            <Loader />
+                        </iframe>
+                    )}
+                </div>
+            </Layout>
+        );
+    }
 
     return (
         <Layout className="relative !min-h-screen">
