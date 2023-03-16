@@ -8,7 +8,7 @@ import string
 import secrets
 
 from auth.app.exceptions import HTTPException
-from auth.app.models.user import UserDocument
+from auth.app.schemas.user import UserDocument
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.mail_service import MailService
