@@ -5,7 +5,7 @@ from fastapi.routing import APIRoute
 class CustomAPIRoute(APIRoute):
 
     def __init__(self, *args, **kwargs):
-        if kwargs.get("response_model_exclude_none"):
+        if "response_model_exclude_none" in kwargs.keys():
             kwargs.pop("response_model_exclude_none")
         super().__init__(*args, response_model_exclude_none=True, **kwargs)
 
