@@ -170,7 +170,6 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                     </StyledTextField>
                 );
             case QUESTION_TYPE.MULTIPLE_CHOICE:
-                console.log('multiplechoice');
                 const choiceAnswer = ans?.choice?.value ?? ans?.choices?.values;
                 return (
                     <StyledTextField>
