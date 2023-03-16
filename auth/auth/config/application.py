@@ -38,7 +38,7 @@ class Application(BaseSettings):
 
     ORGANIZATION_NAME: str = "Better Collected"
     AUTH_JWT_SECRET: str
-    AEX_HEX_KEY: str
+    AUTH_AEX_HEX_KEY: str
 
     class Config:
         """Config sub-class needed to customize BaseSettings settings.
