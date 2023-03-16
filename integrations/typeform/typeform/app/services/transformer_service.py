@@ -177,7 +177,7 @@ class TypeFormTransformerService(FormTransformerService):
             type=answer.type,
             text=answer.text,
             choice=StandardChoiceAnswer(
-                value=answer.choice.label,
+                value=self._transform_choice_answer(answer),
                 other=answer.choice.other
             ),
             choices=StandardChoicesAnswer(
@@ -206,3 +206,12 @@ class TypeFormTransformerService(FormTransformerService):
             answer = self._transform_single_answer(typeform_answer)
             standard_answers[typeform_answer.field.id] = answer
         return standard_answers
+
+    @staticmethod
+    def _transform_choice_answer(answer: Answer):
+        if answer.field.type == FieldType.YES_NO:
+            return "Yes" if answer.boolean else "No"
+        elif answer.field.type == FieldType.LEGAL:
+            return "I accept" if answer.boolean else "I don't accept"
+        else:
+            return answer.choice.label
