@@ -163,12 +163,6 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                         <DatePicker label="" renderInput={(params) => <TextField {...params} />} onChange={(e) => {}} inputFormat={date_format} value={answer} disabled={true} />
                     </LocalizationProvider>
                 );
-            case QUESTION_TYPE.SHORT_TEXT:
-                return (
-                    <StyledTextField>
-                        <TextField value={ans?.text} disabled={true} fullWidth variant="standard" />
-                    </StyledTextField>
-                );
             case QUESTION_TYPE.LONG_TEXT:
                 return (
                     <StyledTextField>
@@ -293,10 +287,11 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
             case QUESTION_TYPE.STATEMENT:
                 // Render no input element for statement
                 return <></>;
+            case QUESTION_TYPE.SHORT_TEXT:
             default:
                 return (
                     <StyledTextField>
-                        <TextField value={ans?.text} disabled={true} fullWidth variant="standard" />
+                        <TextField value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled={true} fullWidth variant="standard" />
                     </StyledTextField>
                 );
         }

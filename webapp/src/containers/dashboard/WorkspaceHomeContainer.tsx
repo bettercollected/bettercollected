@@ -65,7 +65,7 @@ export default function DashboardContainer({ workspace, isCustomDomain }: IDashb
                                     <a
                                         target="_blank"
                                         referrerPolicy="no-referrer"
-                                        href={`${environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://'}${environments.CLIENT_HOST}/${workspace.workspaceName}/dashboard`}
+                                        href={`${environments.ADMIN_HOST.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_HOST}/${workspace.workspaceName}/dashboard`}
                                         className="rounded-xl mr-5 !bg-blue-600 z-10 !text-white px-5 py-3"
                                         rel="noreferrer"
                                     >
