@@ -296,7 +296,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
             default:
                 return (
                     <StyledTextField>
-                        <TextField value={ans?.text} disabled={true} fullWidth variant="standard" />
+                        <TextField value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled={true} fullWidth variant="standard" />
                     </StyledTextField>
                 );
         }
