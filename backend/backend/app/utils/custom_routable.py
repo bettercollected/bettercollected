@@ -3,7 +3,6 @@ from fastapi.routing import APIRoute
 
 
 class CustomAPIRoute(APIRoute):
-
     def __init__(self, *args, **kwargs):
         if "response_model_exclude_none" in kwargs.keys():
             kwargs.pop("response_model_exclude_none")
@@ -11,7 +10,6 @@ class CustomAPIRoute(APIRoute):
 
 
 class CustomRoutable(Routable):
-
     def __init__(self, *args, **kwargs) -> None:
         if kwargs.get("route_class"):
             kwargs.pop("route_class")

@@ -88,7 +88,7 @@ class WorkspaceFormService:
                 "form_id": standard_form.form_id,
                 "response_data_owner": form_import.response_data_owner,
             },
-            minutes=settings.form_schedular_interval_minutes,
+            minutes=settings.schedular_settings.INTERVAL_MINUTES,
         )
 
     async def convert_form(self, *, provider, request, form_import):

@@ -2,6 +2,7 @@ services:
   - docker:dind
 
 before_script:
+  - python --version
   - poetry config virtualenvs.in-project true
 
 cache:

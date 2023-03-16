@@ -20,12 +20,12 @@ from common.models.user import User
 
 class FormResponseRepository(BaseRepository):
     async def list(
-            self, form_id: str, request_for_deletion: bool
+        self, form_id: str, request_for_deletion: bool
     ) -> List[StandardFormResponse]:
         try:
             form_responses = (
                 await FormResponseDocument.find({"form_id": form_id})
-                    .aggregate(
+                .aggregate(
                     [
                         {
                             "$lookup": {
@@ -40,7 +40,7 @@ class FormResponseRepository(BaseRepository):
                         {"$sort": {"created_at": -1}},
                     ]
                 )
-                    .to_list()
+                .to_list()
             )
             return [
                 StandardFormResponse(**form_response)
@@ -54,7 +54,7 @@ class FormResponseRepository(BaseRepository):
             )
 
     async def list_by_form_ids(
-            self, form_ids: List[str], request_for_deletion: bool
+        self, form_ids: List[str], request_for_deletion: bool
     ) -> List[StandardFormResponse]:
         try:
             aggregate_query = [
@@ -71,18 +71,20 @@ class FormResponseRepository(BaseRepository):
             ]
 
             if request_for_deletion:
-                aggregate_query.extend([
-                    {
-                        "$lookup": {
-                            "from": "responses_deletion_requests",
-                            "localField": "response_id",
-                            "foreignField": "response_id",
-                            "as": "deletion_request",
-                        }
-                    },
-                    {"$set": {"deletion_status": "$deletion_request.status"}},
-                    {"$unwind": "$deletion_status"},
-                ])
+                aggregate_query.extend(
+                    [
+                        {
+                            "$lookup": {
+                                "from": "responses_deletion_requests",
+                                "localField": "response_id",
+                                "foreignField": "response_id",
+                                "as": "deletion_request",
+                            }
+                        },
+                        {"$set": {"deletion_status": "$deletion_request.status"}},
+                        {"$unwind": "$deletion_status"},
+                    ]
+                )
 
             aggregate_query.append({"$sort": {"created_at": -1}})
 
@@ -92,10 +94,8 @@ class FormResponseRepository(BaseRepository):
                         "form_id": {"$in": form_ids},
                     }
                 )
-                    .aggregate(
-                    aggregate_query
-                )
-                    .to_list()
+                .aggregate(aggregate_query)
+                .to_list()
             )
             return [
                 StandardFormResponseCamelModel(**form_response)
@@ -113,7 +113,7 @@ class FormResponseRepository(BaseRepository):
                 await FormResponseDocument.find(
                     {"dataOwnerIdentifier": user.sub, "form_id": {"$in": form_ids}}
                 )
-                    .aggregate(
+                .aggregate(
                     [
                         {
                             "$lookup": {
@@ -138,7 +138,7 @@ class FormResponseRepository(BaseRepository):
                         {"$sort": {"created_at": -1}},
                     ]
                 )
-                    .to_list()
+                .to_list()
             )
             return [
                 StandardFormResponseCamelModel(**form_response)
@@ -157,7 +157,7 @@ class FormResponseRepository(BaseRepository):
                 await FormResponseDocument.find(
                     {"form_id": form_id, "response_id": response_id}
                 )
-                    .aggregate(
+                .aggregate(
                     [
                         {
                             "$lookup": {
@@ -191,7 +191,7 @@ class FormResponseRepository(BaseRepository):
                         {"$unwind": "$formCustomUrl"},
                     ]
                 )
-                    .to_list()
+                .to_list()
             )
             if not document:
                 raise HTTPException(
@@ -214,7 +214,7 @@ class FormResponseRepository(BaseRepository):
         pass
 
     async def update(
-            self, item_id: str, item: FormResponseDocument
+        self, item_id: str, item: FormResponseDocument
     ) -> StandardFormResponse:
         pass
 

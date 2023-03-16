@@ -4,7 +4,8 @@ from pydantic import BaseModel
 
 from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
-    FormResponseDeletionRequest, DeletionRequestStatus,
+    FormResponseDeletionRequest,
+    DeletionRequestStatus,
 )
 from backend.app.services.form_service import FormService
 from common.models.form_import import FormImportResponse
@@ -16,7 +17,7 @@ class FormImportService:
         self.form_service = form_service
 
     async def save_converted_form_and_responses(
-            self, response_data: Dict[str, Any], form_response_data_owner: str
+        self, response_data: Dict[str, Any], form_response_data_owner: str
     ) -> StandardForm:
         form_data = FormImportResponse.parse_obj(response_data)
         standard_form = form_data.form
@@ -41,7 +42,8 @@ class FormImportService:
                 or data_owner_answer.email
                 or data_owner_answer.phone_number
                 or data_owner_answer.number
-                if data_owner_answer else None
+                if data_owner_answer
+                else None
             )
             await response_document.save()
             updated_responses_id.append(response.response_id)
@@ -68,8 +70,8 @@ class FormImportService:
                 }
             ).delete_many()
 
-            await FormResponseDeletionRequest.find(deletion_requests_query).update_many({
-                "status": DeletionRequestStatus.SUCCESS
-            })
+            await FormResponseDeletionRequest.find(deletion_requests_query).update_many(
+                {"status": DeletionRequestStatus.SUCCESS}
+            )
 
         return standard_form
