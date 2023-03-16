@@ -17,7 +17,7 @@ from googleapiclient.discovery import build
 
 from common.models.user import User
 
-crypto: Crypto = Crypto(settings.AEX_HEX_KEY)
+crypto: Crypto = Crypto(settings.AUTH_AEX_HEX_KEY)
 google_settings = settings.google_settings
 
 client_config = {

@@ -11,7 +11,7 @@ import json
 import requests
 from common.models.user import User
 
-crypto = Crypto(settings.AEX_HEX_KEY)
+crypto = Crypto(settings.AUTH_AEX_HEX_KEY)
 
 typeform_settings = settings.typeform_settings
 
@@ -29,7 +29,7 @@ class TypeformAuthProvider(BaseAuthProvider):
         return authorization_url
 
     async def basic_auth_callback(
-        self, code: str, state: str, *args, **kwargs
+            self, code: str, state: str, *args, **kwargs
     ) -> (bool, str):
         state_decrypted = crypto.decrypt(state)
         state_json = json.loads(state_decrypted)
@@ -48,10 +48,10 @@ class TypeformAuthProvider(BaseAuthProvider):
 
         token_response = typeform_response.json()
         if (
-            not token_response
-            or typeform_response.status_code != 200
-            or not state
-            or not code
+                not token_response
+                or typeform_response.status_code != 200
+                or not state
+                or not code
         ):
             return state_json
 
@@ -72,7 +72,7 @@ class TypeformAuthProvider(BaseAuthProvider):
 
     @staticmethod
     def perform_typeform_request(
-        access_token: str, path: str, params: Dict[str, Any] = None
+            access_token: str, path: str, params: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         api_response = requests.get(
             f"{typeform_settings.api_uri}{path}",
