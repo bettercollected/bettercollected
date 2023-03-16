@@ -35,11 +35,10 @@ class Application(BaseSettings):
     google_settings: GoogleSettings = GoogleSettings()
     typeform_settings: TypeformSettings = TypeformSettings()
     mail_settings: MailSettings = MailSettings()
-    organization_name: str = "Better Collected"
 
-    AUTH_REDIRECT_URI: str = "http://localhost:8001/auth/callback"
+    ORGANIZATION_NAME: str = "Better Collected"
     AUTH_JWT_SECRET: str
-    AEX_HEX_KEY: str = "L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0="
+    AEX_HEX_KEY: str
 
     class Config:
         """Config sub-class needed to customize BaseSettings settings.
