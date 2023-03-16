@@ -89,15 +89,22 @@ export default function Submission(props: any) {
         }
     ];
 
+    const deletionStatus = !!form?.response?.deletionStatus;
+
     return (
         <div className="relative container mx-auto px-6 md:px-0">
             <div className="flex justify-between">
                 <Button className="w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => router.push(`/${props.workspace.workspaceName}?view=mySubmissions`)}>
                     <LongArrowLeft width={15} height={15} />
                 </Button>
-                <Button className="w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded text-white bg-red-500 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={handleRequestForDeletion} disabled={form.response.requestForDeletion}>
+                <Button
+                    className={`w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded text-white ${deletionStatus ? 'bg-yellow-300' : 'bg-red-500'}  hover:!-translate-y-0 focus:-translate-y-0`}
+                    variant="solid"
+                    onClick={handleRequestForDeletion}
+                    disabled={!!form?.response?.deletionStatus}
+                >
                     <span className="flex gap-2 items-center">
-                        <TrashIcon width={15} height={15} /> {form.response.requestForDeletion ? 'Requested ' : 'Request '} for deletion
+                        <TrashIcon width={15} height={15} /> {form?.response?.deletionStatus ? 'Requested ' : 'Request '}for deletion
                     </span>
                 </Button>
             </div>
