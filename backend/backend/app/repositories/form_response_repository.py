@@ -134,7 +134,12 @@ class FormResponseRepository(BaseRepository):
                             }
                         },
                         {"$set": {"deletion_status": "$deletion_request.status"}},
-                        {"$unwind": "$deletion_status"},
+                        {
+                            "$unwind": {
+                                "path": "$deletion_status",
+                                "preserveNullAndEmptyArrays": True,
+                            }
+                        },
                         {"$sort": {"created_at": -1}},
                     ]
                 )
