@@ -62,8 +62,8 @@ class AppContainer(containers.DeclarativeContainer):
     # Services
     aws_service: AWSS3Service = providers.Singleton(
         AWSS3Service,
-        settings.aws_settings.access_key_id,
-        settings.aws_settings.secret_access_key,
+        settings.aws_settings.ACCESS_KEY_ID,
+        settings.aws_settings.SECRET_ACCESS_KEY,
     )
 
     jwt_service: JwtService = providers.Singleton(
