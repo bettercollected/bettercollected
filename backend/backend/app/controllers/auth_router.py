@@ -14,7 +14,7 @@ from backend.app.services.auth_cookie_service import (
     set_tokens_to_response,
     delete_token_cookie,
 )
-from backend.app.services.user_service import get_logged_user
+from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from common.models.user import AuthenticationStatus, User, UserLoginWithOTP
 
 log = logging.getLogger(__name__)
@@ -41,19 +41,27 @@ class AuthRoutes(Routable):
     # TODO : Merge with plugin proxy currently it is handled for typeform only
     @get("/{provider_name}/oauth")
     async def _oauth_provider(
-        self, provider_name: str, request: Request, creator: Optional[str] = True
+        self,
+        provider_name: str,
+        request: Request,
+        creator: Optional[str] = True,
+        user=Depends(get_user_if_logged_in),
     ):
         client_referer_url = request.headers.get("referer")
         oauth_url = await self.auth_service.get_oauth_url(
-            provider_name, client_referer_url
+            provider_name, client_referer_url, user
         )
         return RedirectResponse(oauth_url)
 
     @get("/{provider_name}/oauth/callback")
     async def _auth_callback(
-        self, request: Request, provider_name: str = None, state: str = None
+        self,
+        request: Request,
+        provider_name: str = None,
+        state: str = None,
+        code: str = None,
     ):
-        if not state:
+        if not state or not code:
             return {"message": "You cancelled the authorization request."}
         user, state_data = await self.auth_service.handle_backend_auth_callback(
             provider_name=provider_name, state=state, request=request

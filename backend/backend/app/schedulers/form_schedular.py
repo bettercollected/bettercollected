@@ -4,9 +4,10 @@ from typing import Dict, Any
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
-from backend.app.services.jwt_service import JwtService
 from backend.app.utils import AiohttpClient
 from loguru import logger
+
+from common.services.jwt_service import JwtService
 
 
 class FormSchedular:
@@ -14,13 +15,15 @@ class FormSchedular:
         self,
         form_provider_service: FormPluginProviderService,
         form_import_service: FormImportService,
+        jwt_service: JwtService,
     ):
         self.form_provider_service = form_provider_service
         self.form_import_service = form_import_service
+        self.jwt_service = jwt_service
 
     async def update_form(self, *, user, provider, form_id, response_data_owner):
         logger.info(f"Job started for form {form_id} by schedular.")
-        cookies = {"Authorization": JwtService.encode(user)}
+        cookies = {"Authorization": self.jwt_service.encode(user)}
         # TODO Make it do with proxy service after service and proxy router is refactored
         raw_form = await self.perform_request(
             provider=provider,
@@ -28,25 +31,14 @@ class FormSchedular:
             method="GET",
             cookies=cookies,
         )
-        raw_converted_form = await self.perform_conversion_request(
-            provider=provider,
-            raw_form=raw_form,
-            convert_responses=False,
-            cookies=cookies,
-        )
-        form = FormDocument.parse_obj(raw_converted_form)
-
         # if the latest status of form is not closed then perform saving
-        if not form.settings.is_closed:
-            response_data = await self.perform_conversion_request(
-                provider=provider, raw_form=raw_form, cookies=cookies
-            )
-            await self.form_import_service.save_converted_form_and_responses(
-                response_data, response_data_owner
-            )
-            logger.info(f"Form {form_id} is updated successfully by schedular.")
-        else:
-            logger.info(f"Form {form_id} is not updated as it is now closed.")
+        response_data = await self.perform_conversion_request(
+            provider=provider, raw_form=raw_form, cookies=cookies
+        )
+        await self.form_import_service.save_converted_form_and_responses(
+            response_data, response_data_owner
+        )
+        logger.info(f"Form {form_id} is updated successfully by schedular.")
 
     async def perform_conversion_request(
         self,

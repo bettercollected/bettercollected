@@ -11,7 +11,10 @@ from backend.app.repositories.form_response_repository import FormResponseReposi
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.standard_form import FormDocument
-from backend.app.schemas.standard_form_response import FormResponseDocument
+from backend.app.schemas.standard_form_response import (
+    FormResponseDocument,
+    FormResponseDeletionRequest,
+)
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_UNAUTHORIZED
 from common.models.user import User
@@ -30,7 +33,7 @@ class FormResponseService:
         self._workspace_user_repo = workspace_user_repo
 
     async def get_all_workspace_responses(
-        self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: PydanticObjectId, request_for_deletion: bool, user: User
     ):
         try:
             if not await self._workspace_user_repo.is_user_admin_in_workspace(
@@ -42,7 +45,9 @@ class FormResponseService:
             form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
                 workspace_id=workspace_id
             )
-            return await self._form_response_repo.list_by_form_ids(form_ids)
+            return await self._form_response_repo.list_by_form_ids(
+                form_ids, request_for_deletion
+            )
         except Exception as exc:
             logger.error(exc)
             raise HTTPException(
@@ -66,7 +71,11 @@ class FormResponseService:
             )
 
     async def get_workspace_submissions(
-        self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self,
+        workspace_id: PydanticObjectId,
+        request_for_deletion: bool,
+        form_id: str,
+        user: User,
     ):
         try:
             if not await self._workspace_user_repo.is_user_admin_in_workspace(
@@ -85,7 +94,9 @@ class FormResponseService:
                     HTTPStatus.NOT_FOUND, "Form not found in the workspace."
                 )
             # TODO : Refactor with mongo query instead of python
-            form_responses = await self._form_response_repo.list(form_id)
+            form_responses = await self._form_response_repo.list(
+                form_id, request_for_deletion
+            )
             return form_responses
         except Exception as exc:
             logger.error(exc)
@@ -133,5 +144,19 @@ class FormResponseService:
         if not (is_admin or response.dataOwnerIdentifier == user.sub):
             raise HTTPException(403, "You are not authorized to perform this action.")
 
-        response.request_for_deletion = True
-        return await FormResponseDocument.save(response)
+        deletion_request = await FormResponseDeletionRequest.find_one(
+            {"response_id": response_id}
+        )
+
+        if deletion_request:
+            raise HTTPException(
+                400,
+                "Error: Deletion request already exists for the response : "
+                + response_id,
+            )
+
+        await FormResponseDeletionRequest(
+            form_id=response.form_id,
+            response_id=response_id,
+            provider=response.provider,
+        ).save()

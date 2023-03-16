@@ -6,8 +6,6 @@ from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from common.models.standard_form import (
     StandardForm,
-    StandardFormResponse,
-    StandardFormSettings,
 )
 
 
@@ -21,3 +19,8 @@ class StandardFormCamelModel(StandardForm, CamelModel):
 
 class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):
     form_title: Optional[str]
+    deletion_status: Optional[str]
+
+
+class WorkspaceFormPatchResponse(CamelModel):
+    settings: WorkspaceFormSettingsCamelModal

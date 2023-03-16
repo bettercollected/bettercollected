@@ -12,6 +12,7 @@ from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
+    FormResponseDeletionRequest,
 )
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import (
@@ -62,6 +63,7 @@ async def init_db(db: str, client: AsyncIOMotorClient):
             WorkspaceFormDocument,
             WorkspaceUserInvitesDocument,
             WorkspaceUserDocument,
+            FormResponseDeletionRequest,
         ],
     )
     logger.info("Database connected successfully.")
