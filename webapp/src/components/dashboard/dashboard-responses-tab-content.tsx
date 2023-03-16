@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
+import _ from 'lodash';
+
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Paper from '@mui/material/Paper';
@@ -15,6 +17,7 @@ import TableRow from '@mui/material/TableRow';
 import { styled } from '@mui/material/styles';
 import { toast } from 'react-toastify';
 
+import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-badge';
 import environments from '@app/configs/environments';
 import { ToastId } from '@app/constants/toastId';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
@@ -22,6 +25,7 @@ import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { IGetWorkspaceSubmissionQuery } from '@app/store/workspaces/types';
 import { toMonthDateYearStr } from '@app/utils/dateUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
+import { requestForDeletionProps } from '@app/utils/validationUtils';
 
 import BreadcrumbsRenderer from '../form/renderer/breadcrumbs-renderer';
 import FormRenderer from '../form/renderer/form-renderer';
@@ -158,7 +162,7 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
                                 }}
                             />
                         }
-                        label="Show requested for deletion ony."
+                        label="Show deletion requests"
                     />
                 </div>
 
@@ -171,18 +175,26 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
                                     <TableHead>
                                         <TableRow>
                                             <StyledTableCell>Data owner</StyledTableCell>
+                                            {requestedForDeletion && <StyledTableCell>Status</StyledTableCell>}
                                             <StyledTableCell align="right">Submission date</StyledTableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {responses.map((row: any) => (
-                                            <StyledTableRow key={row.responseId} onClick={() => handleSubmissionClick(row?.responseId)}>
-                                                <StyledTableCell component="th" scope="row">
-                                                    {!row.dataOwnerIdentifier ? 'Anonymous' : row.dataOwnerIdentifier}
-                                                </StyledTableCell>
-                                                <StyledTableCell align="right">{toMonthDateYearStr(new Date(row.createdAt))}</StyledTableCell>
-                                            </StyledTableRow>
-                                        ))}
+                                        {responses.map((row: any) => {
+                                            return (
+                                                <StyledTableRow key={row.responseId} onClick={() => handleSubmissionClick(row?.responseId)}>
+                                                    <StyledTableCell component="th" scope="row">
+                                                        {!row.dataOwnerIdentifier ? 'Anonymous' : row.dataOwnerIdentifier}
+                                                    </StyledTableCell>
+                                                    {requestedForDeletion && (
+                                                        <StyledTableCell>
+                                                            <RequestForDeletionBadge deletionStatus={row?.deletionStatus} />
+                                                        </StyledTableCell>
+                                                    )}
+                                                    <StyledTableCell align="right">{toMonthDateYearStr(new Date(row.createdAt))}</StyledTableCell>
+                                                </StyledTableRow>
+                                            );
+                                        })}
                                     </TableBody>
                                 </Table>
                             </StyledTableContainer>
