@@ -37,7 +37,11 @@ class FormImportService:
             # TODO : Handle data owner identifier in workspace
             data_owner_answer = response_document.answers.get(form_response_data_owner)
             response_document.dataOwnerIdentifier = (
-                data_owner_answer.text or data_owner_answer.email if data_owner_answer else None
+                data_owner_answer.text
+                or data_owner_answer.email
+                or data_owner_answer.phone_number
+                or data_owner_answer.number
+                if data_owner_answer else None
             )
             await response_document.save()
             updated_responses_id.append(response.response_id)
