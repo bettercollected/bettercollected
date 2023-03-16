@@ -20,40 +20,6 @@ from common.models.user import User
 
 class FormResponseRepository(BaseRepository):
     async def list(
-        self, form_id: str, request_for_deletion: bool
-    ) -> List[StandardFormResponse]:
-        try:
-            form_responses = (
-                await FormResponseDocument.find({"form_id": form_id})
-                .aggregate(
-                    [
-                        {
-                            "$lookup": {
-                                "from": "forms",
-                                "localField": "form_id",
-                                "foreignField": "form_id",
-                                "as": "form",
-                            },
-                        },
-                        {"$set": {"title": "$form.title"}},
-                        {"$unwind": "$title"},
-                        {"$sort": {"created_at": -1}},
-                    ]
-                )
-                .to_list()
-            )
-            return [
-                StandardFormResponse(**form_response)
-                for form_response in form_responses
-            ]
-        # TODO : Handle specific exception on global exception handler
-        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                content=MESSAGE_DATABASE_EXCEPTION,
-            )
-
-    async def list_by_form_ids(
         self, form_ids: List[str], request_for_deletion: bool
     ) -> List[StandardFormResponse]:
         try:
@@ -134,7 +100,12 @@ class FormResponseRepository(BaseRepository):
                             }
                         },
                         {"$set": {"deletion_status": "$deletion_request.status"}},
-                        {"$unwind": "$deletion_status"},
+                        {
+                            "$unwind": {
+                                "path": "$deletion_status",
+                                "preserveNullAndEmptyArrays": True,
+                            }
+                        },
                         {"$sort": {"created_at": -1}},
                     ]
                 )
