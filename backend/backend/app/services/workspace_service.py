@@ -149,7 +149,7 @@ class WorkspaceService:
     ):
         workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
         response_data = await self.http_client.get(
-            settings.auth_settings.AUTH_BASE_URL + "/auth/otp/send",
+            settings.auth_settings.BASE_URL + "/auth/otp/send",
             params={
                 "receiver_email": receiver_email,
                 "workspace_title": workspace.title,

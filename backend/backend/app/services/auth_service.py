@@ -33,7 +33,7 @@ class AuthService:
 
     async def validate_otp(self, login_details: UserLoginWithOTP):
         response_data = await self.http_client.get(
-            settings.auth_settings.AUTH_BASE_URL + "/auth/otp/validate",
+            settings.auth_settings.BASE_URL + "/auth/otp/validate",
             params={"email": login_details.email, "otp_code": login_details.otp_code},
         )
         user = response_data.get("user", None)
@@ -73,7 +73,7 @@ class AuthService:
         jwt_token = self.jwt_service.encode(user_info)
 
         response_data = await self.http_client.get(
-            settings.auth_settings.AUTH_CALLBACK_URI, params={"jwt_token": jwt_token}
+            settings.auth_settings.CALLBACK_URI, params={"jwt_token": jwt_token}
         )
         user = User(**response_data)
         await workspace_service.create_workspace(user)
@@ -87,14 +87,14 @@ class AuthService:
         self, provider: str, client_referer_url: str, creator: bool = False
     ):
         response_data = await self.http_client.get(
-            settings.auth_settings.AUTH_BASE_URL + f"/auth/{provider}/basic",
+            settings.auth_settings.BASE_URL + f"/auth/{provider}/basic",
             params={"client_referer_url": client_referer_url, "creator": creator},
         )
         return response_data.get("auth_url")
 
     async def basic_auth_callback(self, provider: str, code: str, state: str):
         response_data = await self.http_client.get(
-            settings.auth_settings.AUTH_BASE_URL + f"/auth/{provider}/basic/callback",
+            settings.auth_settings.BASE_URL + f"/auth/{provider}/basic/callback",
             params={"code": code, "state": state},
             timeout=120,
         )

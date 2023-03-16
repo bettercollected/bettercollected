@@ -31,7 +31,7 @@ async def on_startup():
     # TODO merge with container
     client = container.database_client()
     await init_db(settings.mongo_settings.DB, client)
-    if settings.ENABLE_SCHEDULAR:
+    if settings.schedular_settings.ENABLED:
         container.schedular().start()
 
 
