@@ -45,9 +45,7 @@ class FormResponseService:
             form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
                 workspace_id=workspace_id
             )
-            return await self._form_response_repo.list_by_form_ids(
-                form_ids, request_for_deletion
-            )
+            return await self._form_response_repo.list(form_ids, request_for_deletion)
         except Exception as exc:
             logger.error(exc)
             raise HTTPException(
@@ -95,7 +93,7 @@ class FormResponseService:
                 )
             # TODO : Refactor with mongo query instead of python
             form_responses = await self._form_response_repo.list(
-                form_id, request_for_deletion
+                [form_id], request_for_deletion
             )
             return form_responses
         except Exception as exc:
