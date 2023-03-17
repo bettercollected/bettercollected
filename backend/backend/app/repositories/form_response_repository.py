@@ -20,9 +20,13 @@ from common.models.user import User
 
 class FormResponseRepository(BaseRepository):
     async def list(
-        self, form_ids: List[str], request_for_deletion: bool
+            self, form_ids: List[str], request_for_deletion: bool
     ) -> List[StandardFormResponse]:
         try:
+            find_query = {
+                "form_id": {"$in": form_ids},
+                "answers": {"$exists": not request_for_deletion}
+            }
             aggregate_query = [
                 {
                     "$lookup": {
@@ -55,13 +59,9 @@ class FormResponseRepository(BaseRepository):
             aggregate_query.append({"$sort": {"created_at": -1}})
 
             form_responses = (
-                await FormResponseDocument.find(
-                    {
-                        "form_id": {"$in": form_ids},
-                    }
-                )
-                .aggregate(aggregate_query)
-                .to_list()
+                await FormResponseDocument.find(find_query)
+                    .aggregate(aggregate_query)
+                    .to_list()
             )
             return [
                 StandardFormResponseCamelModel(**form_response)
@@ -79,7 +79,7 @@ class FormResponseRepository(BaseRepository):
                 await FormResponseDocument.find(
                     {"dataOwnerIdentifier": user.sub, "form_id": {"$in": form_ids}}
                 )
-                .aggregate(
+                    .aggregate(
                     [
                         {
                             "$lookup": {
@@ -109,7 +109,7 @@ class FormResponseRepository(BaseRepository):
                         {"$sort": {"created_at": -1}},
                     ]
                 )
-                .to_list()
+                    .to_list()
             )
             return [
                 StandardFormResponseCamelModel(**form_response)
@@ -128,7 +128,7 @@ class FormResponseRepository(BaseRepository):
                 await FormResponseDocument.find(
                     {"form_id": form_id, "response_id": response_id}
                 )
-                .aggregate(
+                    .aggregate(
                     [
                         {
                             "$lookup": {
@@ -162,7 +162,7 @@ class FormResponseRepository(BaseRepository):
                         {"$unwind": "$formCustomUrl"},
                     ]
                 )
-                .to_list()
+                    .to_list()
             )
             if not document:
                 raise HTTPException(
@@ -185,7 +185,7 @@ class FormResponseRepository(BaseRepository):
         pass
 
     async def update(
-        self, item_id: str, item: FormResponseDocument
+            self, item_id: str, item: FormResponseDocument
     ) -> StandardFormResponse:
         pass
 

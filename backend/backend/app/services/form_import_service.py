@@ -1,6 +1,5 @@
+from datetime import datetime
 from typing import Dict, Any
-
-from pydantic import BaseModel
 
 from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
@@ -17,7 +16,7 @@ class FormImportService:
         self.form_service = form_service
 
     async def save_converted_form_and_responses(
-        self, response_data: Dict[str, Any], form_response_data_owner: str
+            self, response_data: Dict[str, Any], form_response_data_owner: str
     ) -> StandardForm:
         form_data = FormImportResponse.parse_obj(response_data)
         standard_form = form_data.form
@@ -61,6 +60,7 @@ class FormImportService:
             await FormResponseDocument.find(
                 {
                     "form_id": standard_form.form_id,
+                    "answers": {"$exists": 1},
                     "response_id": {
                         "$in": [
                             deleted_response.response_id
@@ -68,10 +68,18 @@ class FormImportService:
                         ]
                     },
                 }
-            ).delete_many()
+            ).update_many({
+                "$unset": {"answers": 1,
+                           "dataOwnerIdentifier": 1,
+                           "created_at": 1,
+                           "updated_at": 1,
+                           "published_at": 1
+                           }
+            })
 
             await FormResponseDeletionRequest.find(deletion_requests_query).update_many(
-                {"status": DeletionRequestStatus.SUCCESS}
+                {"$set": {
+                    "status": DeletionRequestStatus.SUCCESS},
+                    "deleted_at": datetime.utcnow()}
             )
-
-        return standard_form
+            return standard_form
