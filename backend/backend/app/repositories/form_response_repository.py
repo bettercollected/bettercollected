@@ -20,64 +20,65 @@ from common.models.user import User
 
 class FormResponseRepository(BaseRepository):
 
-    @staticmethod
-    async def get_form_responses(
-            form_ids,
-            request_for_deletion: bool,
-            extra_find_query: Dict[str, Any] = None,
-    ) -> List[StandardFormResponse]:
-        try:
-            find_query = {
-                "form_id": {"$in": form_ids},
-                "answers": {"$exists": not request_for_deletion}
-            }
-            if extra_find_query:
-                find_query.update(extra_find_query)
-            aggregate_query = [
-                {
-                    "$lookup": {
-                        "from": "forms",
-                        "localField": "form_id",
-                        "foreignField": "form_id",
-                        "as": "form",
-                    },
+    async def get_form_responses(self,
+                                 form_ids,
+                                 request_for_deletion: bool,
+                                 extra_find_query: Dict[str, Any] = None,
+                                 ) -> List[StandardFormResponse]:
+        find_query = {
+            "form_id": {"$in": form_ids}
+        }
+        if not request_for_deletion:
+            find_query['answers'] = {"$exists": True}
+        if extra_find_query:
+            find_query.update(extra_find_query)
+
+        aggregate_query = [
+            {
+                "$lookup": {
+                    "from": "forms",
+                    "localField": "form_id",
+                    "foreignField": "form_id",
+                    "as": "form",
                 },
-                {"$set": {"form_title": "$form.title"}},
-                {"$unwind": "$form_title"},
-            ]
+            },
+            {"$set": {"form_title": "$form.title"}},
+            {"$unwind": "$form_title"},
+        ]
 
-            if request_for_deletion:
-                aggregate_query.extend(
-                    [
-                        {
-                            "$lookup": {
-                                "from": "responses_deletion_requests",
-                                "localField": "response_id",
-                                "foreignField": "response_id",
-                                "as": "deletion_request",
-                            }
-                        },
-                        {"$set": {"deletion_status": "$deletion_request.status"}},
-                        {"$unwind": "$deletion_status"},
-                    ]
-                )
-
-            aggregate_query.append({"$sort": {"created_at": -1}})
-
-            form_responses = (
-                await FormResponseDocument.find(find_query)
-                    .aggregate(aggregate_query)
-                    .to_list()
+        if request_for_deletion:
+            aggregate_query.extend(
+                [
+                    {
+                        "$lookup": {
+                            "from": "responses_deletion_requests",
+                            "localField": "response_id",
+                            "foreignField": "response_id",
+                            "as": "deletion_request",
+                        }
+                    },
+                    {"$unwind": "$deletion_request"},
+                    {
+                        "$set": {
+                            "deletion_status": "$deletion_request.status",
+                            "updated_at": "$deletion_request.created_at",
+                            "created_at": "$deletion_request.created_at"
+                        }
+                    },
+                ]
             )
-            return [
-                StandardFormResponseCamelModel(**form_response)
-                for form_response in form_responses
-            ]
-        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                content=MESSAGE_DATABASE_EXCEPTION,
-            )
+
+        aggregate_query.append({"$sort": {"created_at": -1}})
+
+        form_responses = (
+            await FormResponseDocument.find(find_query)
+                .aggregate(aggregate_query)
+                .to_list()
+        )
+        return [
+            StandardFormResponseCamelModel(**form_response)
+            for form_response in form_responses
+        ]
 
     async def list(
             self, form_ids: List[str], request_for_deletion: bool

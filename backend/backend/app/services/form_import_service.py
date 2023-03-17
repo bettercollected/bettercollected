@@ -70,7 +70,6 @@ class FormImportService:
                 }
             ).update_many({
                 "$unset": {"answers": 1,
-                           "dataOwnerIdentifier": 1,
                            "created_at": 1,
                            "updated_at": 1,
                            "published_at": 1
@@ -80,6 +79,6 @@ class FormImportService:
             await FormResponseDeletionRequest.find(deletion_requests_query).update_many(
                 {"$set": {
                     "status": DeletionRequestStatus.SUCCESS},
-                    "deleted_at": datetime.utcnow()}
+                }
             )
         return standard_form
