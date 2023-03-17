@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import List
+from typing import List, Dict, Any
 
 from pymongo.errors import (
     InvalidOperation,
@@ -19,14 +19,20 @@ from common.models.user import User
 
 
 class FormResponseRepository(BaseRepository):
-    async def list(
-            self, form_ids: List[str], request_for_deletion: bool
+
+    @staticmethod
+    async def get_form_responses(
+            form_ids,
+            request_for_deletion: bool,
+            extra_find_query: Dict[str, Any] = None,
     ) -> List[StandardFormResponse]:
         try:
             find_query = {
                 "form_id": {"$in": form_ids},
                 "answers": {"$exists": not request_for_deletion}
             }
+            if extra_find_query:
+                find_query.update(extra_find_query)
             aggregate_query = [
                 {
                     "$lookup": {
@@ -73,113 +79,27 @@ class FormResponseRepository(BaseRepository):
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
 
-    async def get_user_submissions(self, form_ids, user: User):
-        try:
-            form_responses = (
-                await FormResponseDocument.find(
-                    {"dataOwnerIdentifier": user.sub, "form_id": {"$in": form_ids}}
-                )
-                    .aggregate(
-                    [
-                        {
-                            "$lookup": {
-                                "from": "forms",
-                                "localField": "form_id",
-                                "foreignField": "form_id",
-                                "as": "form",
-                            },
-                        },
-                        {"$set": {"form_title": "$form.title"}},
-                        {"$unwind": "$form_title"},
-                        {
-                            "$lookup": {
-                                "from": "responses_deletion_requests",
-                                "localField": "response_id",
-                                "foreignField": "response_id",
-                                "as": "deletion_request",
-                            }
-                        },
-                        {"$set": {"deletion_status": "$deletion_request.status"}},
-                        {
-                            "$unwind": {
-                                "path": "$deletion_status",
-                                "preserveNullAndEmptyArrays": True,
-                            }
-                        },
-                        {"$sort": {"created_at": -1}},
-                    ]
-                )
-                    .to_list()
-            )
-            return [
-                StandardFormResponseCamelModel(**form_response)
-                for form_response in form_responses
-            ]
+    async def list(
+            self, form_ids: List[str], request_for_deletion: bool
+    ) -> List[StandardFormResponse]:
 
-        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                content=MESSAGE_DATABASE_EXCEPTION,
-            )
+        form_responses = await self.get_form_responses(form_ids, request_for_deletion)
+        return form_responses
+
+    async def get_user_submissions(self,
+                                   form_ids,
+                                   user: User,
+                                   request_for_deletion: bool = False):
+        extra_find_query = {
+            "dataOwnerIdentifier": user.sub,
+        }
+        form_responses = self.get_form_responses(form_ids,
+                                                 request_for_deletion,
+                                                 extra_find_query)
+        return form_responses
 
     async def get(self, form_id: str, response_id: str) -> StandardFormResponse:
-        try:
-            document = (
-                await FormResponseDocument.find(
-                    {"form_id": form_id, "response_id": response_id}
-                )
-                    .aggregate(
-                    [
-                        {
-                            "$lookup": {
-                                "from": "forms",
-                                "localField": "form_id",
-                                "foreignField": "form_id",
-                                "as": "form",
-                            },
-                        },
-                        {
-                            "$set": {
-                                "title": "$form.title",
-                                "provider": "$form.provider",
-                            }
-                        },
-                        {"$unwind": "$title"},
-                        {"$unwind": "$provider"},
-                        {
-                            "$lookup": {
-                                "from": "workspace_forms",
-                                "localField": "form_id",
-                                "foreignField": "form_id",
-                                "as": "workspace_form",
-                            }
-                        },
-                        {
-                            "$set": {
-                                "formCustomUrl": "$workspace_form.settings.custom_url"
-                            }
-                        },
-                        {"$unwind": "$formCustomUrl"},
-                    ]
-                )
-                    .to_list()
-            )
-            if not document:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND,
-                    content=MESSAGE_NOT_FOUND,
-                )
-            if document and len(document) > 1:
-                raise HTTPException(
-                    status_code=HTTPStatus.CONFLICT,
-                    content="Found multiple form response document with the provided response id.",
-                )
-            return StandardFormResponse(**document[0].dict())
-        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                content=MESSAGE_DATABASE_EXCEPTION,
-            )
+        pass
 
     async def add(self, item: FormResponseDocument) -> StandardFormResponse:
         pass
