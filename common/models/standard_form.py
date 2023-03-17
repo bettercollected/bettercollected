@@ -182,7 +182,7 @@ class StandardFormResponse(BaseModel):
     response_id: Optional[str]
     form_id: Optional[str]
     provider: Optional[str]
-    respondent_email: Optional[str]
+    respondent_email: Optional[str] = None
     answers: Optional[Dict[str, StandardFormResponseAnswer]]
     created_at: Optional[dt.datetime]
     updated_at: Optional[dt.datetime]
