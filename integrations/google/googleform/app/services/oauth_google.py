@@ -86,7 +86,7 @@ class OauthGoogleService:
             logger.warning(state)
 
             authorization_url, state = flow.authorization_url(
-                access_type="offline", state=state, include_granted_scopes="true"
+                access_type="offline", state=state, include_granted_scopes="true", prompt="consent"
             )
 
             logger.warning(state)
