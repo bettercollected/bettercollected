@@ -110,13 +110,14 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
     }, [formId, workspaceId, requestedForDeletion]);
 
     const handleSubmissionClick = (responseId: any) => {
-        router.push({
-            pathname: router.pathname,
-            query: {
-                ...router.query,
-                sub_id: responseId
-            }
-        });
+        if (!requestedForDeletion)
+            router.push({
+                pathname: router.pathname,
+                query: {
+                    ...router.query,
+                    sub_id: responseId
+                }
+            });
     };
 
     const handleRemoveSubmissionId = () => {
@@ -149,7 +150,7 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
             <>
                 <div className="flex flex-col md:flex-row justify-between w-full">
                     <h1 data-testid="all-submissions-renderer" className="text-2xl font-extrabold mb-4">
-                        {requestedForDeletion ? 'Total deletion reqeusts' : 'Total Submissions'} ({responses.length})
+                        {requestedForDeletion ? 'Total deletion requests' : 'Total Submissions'} ({responses.length})
                     </h1>
                 </div>
 
