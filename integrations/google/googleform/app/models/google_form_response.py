@@ -24,4 +24,4 @@ class GoogleFormResponseDto(BaseModel):
     createTime: Optional[str]
     lastSubmittedTime: Optional[str]
     answers: Optional[Dict[str, GoogleAnswer]]
-    respondentEmail: Optional[str]
+    respondentEmail: Optional[str] = None

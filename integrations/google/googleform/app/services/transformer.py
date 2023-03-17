@@ -154,7 +154,7 @@ class GoogleFormTransformerService(FormTransformerService):
                 updated_at=google_response.lastSubmittedTime,
                 answers=self._transform_answers(google_response.answers),
             )
-            if google_response.respondentEmail:
+            if google_response.respondentEmail is not None:
                 response.dataOwnerIdentifier = google_response.respondentEmail
             return response
         except Exception as error:
@@ -165,6 +165,8 @@ class GoogleFormTransformerService(FormTransformerService):
 
     def _transform_answers(self, answers: Dict[str, GoogleAnswer]):
         standard_answers = {}
+        if answers is None:
+            return standard_answers
         for question_id, answer in answers.items():
             standard_answers[question_id] = self._transform_answer(answer)
         return standard_answers
