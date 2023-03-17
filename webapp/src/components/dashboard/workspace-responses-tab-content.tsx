@@ -1,6 +1,7 @@
 import React from 'react';
 
 import EmptyTray from '@app/assets/svgs/empty-tray.svg';
+import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-badge';
 import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
@@ -15,9 +16,15 @@ interface IResponseCard {
     workspaceId: string;
 }
 
-export default function WorkspaceResponsesTabContent({ workspace }: any) {
+export default function WorkspaceResponsesTabContent({ workspace, deletionRequests = false }: any) {
     const workspaceId = workspace.id;
-    const { isLoading, data, isError } = useGetWorkspaceSubmissionsQuery(workspaceId, { pollingInterval: 30000 });
+    const { isLoading, data, isError } = useGetWorkspaceSubmissionsQuery(
+        {
+            workspaceId: workspace.id,
+            requestedForDeletionOly: deletionRequests
+        },
+        { pollingInterval: 30000 }
+    );
     const breakpoint = useBreakpoint();
 
     if (isLoading)
@@ -67,7 +74,7 @@ export default function WorkspaceResponsesTabContent({ workspace }: any) {
                                             <p className="text-sm text-gray-400 italic">
                                                 <span>Last submitted at {submittedAt}</span>
                                             </p>
-                                            <p>{submission?.deletionStatus && <span className="bg-yellow-50 text-yellow-600 rounded-full px-4 py-1">Requested for deletion</span>}</p>
+                                            <p>{deletionRequests && submission?.deletionStatus && <RequestForDeletionBadge deletionStatus={submission?.deletionStatus} />}</p>
                                         </div>
                                     </div>
                                 </div>
