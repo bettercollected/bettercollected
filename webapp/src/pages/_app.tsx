@@ -78,7 +78,7 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
     }, []);
 
     return (
-        <ThemeProvider attribute="class" enableSystem={false} defaultTheme="light">
+        <ThemeProvider attribute="class" enableSystem={false} forcedTheme="light" defaultTheme="light">
             <CacheProvider value={emotionCache}>
                 {/*<MuiThemeProvider>*/}
                 {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
