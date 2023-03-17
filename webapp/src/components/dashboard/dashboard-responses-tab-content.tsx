@@ -160,6 +160,7 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
                             <TableHead className="!rounded-b-none">
                                 <TableRow>
                                     <StyledTableCell>Data owner</StyledTableCell>
+                                    {requestedForDeletion && <StyledTableCell>Response ID</StyledTableCell>}
                                     {requestedForDeletion && <StyledTableCell>Status</StyledTableCell>}
                                     <StyledTableCell align="right">{requestedForDeletion ? 'Requested date' : 'Submission date'}</StyledTableCell>
                                 </TableRow>
@@ -171,6 +172,7 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
                                             <StyledTableCell component="th" scope="row">
                                                 {!row.dataOwnerIdentifier ? 'Anonymous' : row.dataOwnerIdentifier}
                                             </StyledTableCell>
+                                            {requestedForDeletion && <StyledTableCell>{row.responseId}</StyledTableCell>}
                                             {requestedForDeletion && (
                                                 <StyledTableCell>
                                                     <RequestForDeletionBadge deletionStatus={row?.deletionStatus} />
