@@ -149,10 +149,13 @@ class GoogleFormTransformerService(FormTransformerService):
             response = StandardFormResponse(
                 response_id=google_response.responseId,
                 provider=FormProvider.GOOGLE,
+                respondent_email=google_response.respondentEmail,
                 created_at=google_response.createTime,
                 updated_at=google_response.lastSubmittedTime,
                 answers=self._transform_answers(google_response.answers),
             )
+            if google_response.respondentEmail:
+                response.dataOwnerIdentifier = google_response.respondentEmail
             return response
         except Exception as error:
             logger.error(f"Error transforming single form response: {error}")
