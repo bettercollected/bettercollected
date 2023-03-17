@@ -54,9 +54,13 @@ class GoogleAuthProvider(BaseAuthProvider):
 
     async def basic_auth_callback(self, code: str, state: str, *args, **kwargs):
         request: Request = kwargs.get("request")
+        tmp = str(request.url)
+        authorization_response = tmp if tmp[0:5] == "https" else tmp.replace(tmp[0:4], "https", 1)
         state_decrypted = crypto.decrypt(state)
         state_json = json.loads(state_decrypted)
-        credentials = self.fetch_basic_token(auth_code=str(request.url), state=state)
+        print(state_json)
+        credentials = self.fetch_basic_token(auth_code=authorization_response, state=state)
+        print(credentials)
         user = await self.get_google_user(credentials)
         if not user:
             return state_json
