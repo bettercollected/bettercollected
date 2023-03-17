@@ -10,6 +10,7 @@ import { FormTabContent } from '@app/components/dashboard/form-tab-content';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import { HistoryIcon } from '@app/components/icons/history';
 import { HomeIcon } from '@app/components/icons/home';
+import { TrashIcon } from '@app/components/icons/trash';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import ParamTab from '@app/components/ui/param-tab';
 import { TabPanel } from '@app/components/ui/tab';
@@ -49,6 +50,11 @@ export default function FormPage(props: any) {
             path: 'response'
         },
         {
+            icon: <TrashIcon className="w-[20px] h-[20px]" />,
+            title: 'Deletion requests',
+            path: 'deletion-requests'
+        },
+        {
             icon: <Settings />,
             title: 'Settings',
             path: 'settings'
@@ -76,6 +82,9 @@ export default function FormPage(props: any) {
                     </TabPanel>
                     <TabPanel className="focus:outline-none" key="submissions">
                         <FormSubmissionsTab workspace={props.workspace} workspaceName={props?.workspace?.workspaceName} workspaceId={props?.workspace?.id ?? ''} formId={formId} />
+                    </TabPanel>
+                    <TabPanel className="focus:outline-none" key="deletion-requests">
+                        <FormSubmissionsTab workspace={props.workspace} workspaceName={props?.workspace?.workspaceName} workspaceId={props?.workspace?.id ?? ''} formId={formId} requestedForDeletion />
                     </TabPanel>
                     <TabPanel className="focus:outline-none" key="settings">
                         <FormSettingsTab />

@@ -30,20 +30,11 @@ export default function SidebarLayout(props: any) {
     const checkIfSideBarRender = () => {
         switch (screenSize) {
             case 'xs':
-                return false;
             case 'sm':
-                return false;
             case 'md':
-                return false;
             case 'lg':
                 return false;
-            case 'xl':
-                return true;
-            case '2xl':
-                return true;
-            case '3xl':
-                return true;
-            case '4xl':
+            default:
                 return true;
         }
     };
