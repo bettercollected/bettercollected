@@ -16,11 +16,14 @@ import { MODAL_VIEW, useModal } from './context';
 // dynamic imports
 const LoginView = dynamic(() => import('@app/components/login/login-view'));
 const ImportFormsView = dynamic(() => import('@app/components/importforms/google-forms-import'));
+const RequestForDeletionView = dynamic(() => import('@app/components/submission-request-for-deletion'));
 
 function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
     switch (view) {
         case 'LOGIN_VIEW':
             return <LoginView {...modalProps} />;
+        case 'REQUEST_FOR_DELETION_VIEW':
+            return <RequestForDeletionView {...modalProps} />;
         case 'IMPORT_GOOGLE_FORMS_VIEW':
             return <ImportFormsView />;
         case 'LOGOUT_VIEW':

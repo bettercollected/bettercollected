@@ -30,6 +30,7 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true }
     const [visibleMobileMenu, setVisibleMobileMenu] = useState(false);
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
     const selectGetStatus = useAppSelector(statusQuerySelect);
+    const breakpoints = useBreakpoint();
 
     function handleTabChange(index: number) {
         if (isRouteChangeable) {
@@ -84,8 +85,8 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true }
                         {tabMenu.map((item) => (
                             <TabItem key={item.path}>
                                 <div className="flex items-center">
-                                    {item.icon && <span className="hidden md:block pr-2">{item.icon}</span>}
-                                    <div className="">{item.title}</div>
+                                    {item.icon && <span className="block pr-2">{item.icon}</span>}
+                                    {['xs', 'sm'].indexOf(breakpoints) === -1 && <div className="">{item.title}</div>}
                                 </div>
                             </TabItem>
                         ))}

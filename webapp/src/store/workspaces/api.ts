@@ -106,9 +106,12 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
-        getWorkspaceSubmissions: builder.query<Array<StandardFormResponseDto>, string>({
-            query: (id) => ({
-                url: `/workspaces/${id}/submissions`,
+        getWorkspaceSubmissions: builder.query<Array<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
+            query: (query) => ({
+                url: `/workspaces/${query.workspaceId}/submissions`,
+                params: {
+                    request_for_deletion: query.requestedForDeletionOly
+                },
                 method: 'GET'
             }),
             providesTags: [WORKSPACE_TAGS]

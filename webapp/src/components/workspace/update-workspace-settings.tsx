@@ -82,8 +82,8 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
     };
 
     return (
-        <div className="flex flex-col items-center justify-center px-4 mt-10 py-8 mx-auto lg:py-0">
-            <div className="w-full bg-white rounded-lg shadow-md md:mt-0 sm:max-w-lg xl:p-0">
+        <div className="flex flex-col items-center justify-center px-4 py-8 mx-auto lg:py-0">
+            <div className="w-full bg-white rounded-lg shadow-md md:mt-0 sm:max-w-lg md:max-w-xl xl:p-0">
                 <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
                     <div className="flex justify-center space-x-4">
                         <svg className="w-7 h-7" xmlns="http://www.w3.org/2000/svg" fill="#007aff" viewBox="0 0 640 512">
@@ -96,14 +96,14 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                     <form className="flex items-center flex-col space-y-4 md:space-y-6">
                         <div>
                             {workspace.customDomain && (
-                                <div className="text-center">
-                                    <div className="font-bold">Are you sure?</div>
+                                <div className="text-center w-80">
+                                    {/* <div className="font-bold text-lg text-gray-600">Are you sure?</div> */}
 
-                                    <div className="max-w-[300px]">{updateDomain ? "Form links with previous domain won't work after updating." : "Form links with previous workspace handle won't work after updating."}</div>
+                                    <div className="text-xs text-gray-500">{updateDomain ? "Form links with previous domain won't work after updating." : "Form links with previous workspace handle won't work after updating."}</div>
                                 </div>
                             )}
                         </div>
-                        <div className="flex items-center justify-center space-x-5 w-full">
+                        <div className="flex items-center justify-center gap-4 w-full">
                             <TextField
                                 inputProps={{ 'data-testid': 'update-field' }}
                                 error={error}
@@ -113,7 +113,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                                 onChange={(e) => {
                                     setUpdateText(e.target.value);
                                 }}
-                                className="font-bold"
+                                className="font-bold w-full"
                             />
                             {workspace.customDomain && updateDomain && (
                                 <button data-testid="delete-button" onClick={delete_custom_domain}>
@@ -122,13 +122,13 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                             )}
                         </div>
 
-                        <div className="flex space-x-5 space-between">
+                        <div className="flex w-full space-between">
                             <Button
                                 data-testid="save-button"
                                 disabled={isLoading || error}
                                 isLoading={isLoading}
                                 onClick={handleSubmit}
-                                className="text-white bg-blue-700 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+                                className="text-white w-1/2 bg-blue-700 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
                             >
                                 Save
                             </Button>
@@ -137,7 +137,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                                     event.preventDefault();
                                     closeModal();
                                 }}
-                                className=" border-[1px] text-gray-700 !bg-white border-gray-300  hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+                                className=" border-[1px] w-1/2 text-gray-700 !bg-white border-gray-300  hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
                             >
                                 Cancel
                             </Button>

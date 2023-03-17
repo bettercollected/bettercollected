@@ -57,7 +57,7 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
     }
 }));
 
-function DashboardResponsesTabContent({ workspaceId, formId }: any) {
+function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletion = false }: any) {
     const router = useRouter();
     const breakpoint = useBreakpoint();
 
@@ -75,7 +75,6 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
     let submissionId: string = (router?.query?.sub_id as string) ?? '';
 
     const [responses, setResponses] = useState<Array<any>>([]);
-    const [requestedForDeletion, setRequestedForDeletion] = useState(false);
 
     useEffect(() => {
         if (!!submissionId) {
@@ -111,13 +110,14 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
     }, [formId, workspaceId, requestedForDeletion]);
 
     const handleSubmissionClick = (responseId: any) => {
-        router.push({
-            pathname: router.pathname,
-            query: {
-                ...router.query,
-                sub_id: responseId
-            }
-        });
+        if (!requestedForDeletion)
+            router.push({
+                pathname: router.pathname,
+                query: {
+                    ...router.query,
+                    sub_id: responseId
+                }
+            });
     };
 
     const handleRemoveSubmissionId = () => {
@@ -150,58 +150,42 @@ function DashboardResponsesTabContent({ workspaceId, formId }: any) {
             <>
                 <div className="flex flex-col md:flex-row justify-between w-full">
                     <h1 data-testid="all-submissions-renderer" className="text-2xl font-extrabold mb-4">
-                        Total Submissions ({responses.length})
+                        {requestedForDeletion ? 'Total deletion requests' : 'Total Submissions'} ({responses.length})
                     </h1>
-
-                    <FormControlLabel
-                        control={
-                            <Checkbox
-                                checked={requestedForDeletion}
-                                onChange={() => {
-                                    setRequestedForDeletion(!requestedForDeletion);
-                                }}
-                            />
-                        }
-                        label="Show deletion requests"
-                    />
                 </div>
 
-                {responses.length === 0 && <EmptyFormsView />}
-                {responses.length !== 0 && Array.isArray(responses) && (
-                    <>
-                        <TableContainer component={Paper}>
-                            <StyledTableContainer>
-                                <Table aria-label="customized table">
-                                    <TableHead>
-                                        <TableRow>
-                                            <StyledTableCell>Data owner</StyledTableCell>
-                                            {requestedForDeletion && <StyledTableCell>Status</StyledTableCell>}
-                                            <StyledTableCell align="right">Submission date</StyledTableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {responses.map((row: any) => {
-                                            return (
-                                                <StyledTableRow key={row.responseId} onClick={() => handleSubmissionClick(row?.responseId)}>
-                                                    <StyledTableCell component="th" scope="row">
-                                                        {!row.dataOwnerIdentifier ? 'Anonymous' : row.dataOwnerIdentifier}
-                                                    </StyledTableCell>
-                                                    {requestedForDeletion && (
-                                                        <StyledTableCell>
-                                                            <RequestForDeletionBadge deletionStatus={row?.deletionStatus} />
-                                                        </StyledTableCell>
-                                                    )}
-                                                    <StyledTableCell align="right">{toMonthDateYearStr(new Date(row.createdAt))}</StyledTableCell>
-                                                </StyledTableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </StyledTableContainer>
-                        </TableContainer>
-                        <TablePagination component="div" rowsPerPageOptions={[]} rowsPerPage={7} count={responses.length} page={page} onPageChange={handlePageChange} />
-                    </>
-                )}
+                <TableContainer component={Paper}>
+                    <StyledTableContainer>
+                        <Table aria-label="customized table w-full">
+                            <TableHead className="!rounded-b-none">
+                                <TableRow>
+                                    <StyledTableCell>Data owner</StyledTableCell>
+                                    {requestedForDeletion && <StyledTableCell>Status</StyledTableCell>}
+                                    <StyledTableCell align="right">{requestedForDeletion ? 'Requested date' : 'Submission date'}</StyledTableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody className="w-full">
+                                {responses.map((row: any) => {
+                                    return (
+                                        <StyledTableRow key={row.responseId} onClick={() => handleSubmissionClick(row?.responseId)}>
+                                            <StyledTableCell component="th" scope="row">
+                                                {!row.dataOwnerIdentifier ? 'Anonymous' : row.dataOwnerIdentifier}
+                                            </StyledTableCell>
+                                            {requestedForDeletion && (
+                                                <StyledTableCell>
+                                                    <RequestForDeletionBadge deletionStatus={row?.deletionStatus} />
+                                                </StyledTableCell>
+                                            )}
+                                            <StyledTableCell align="right">{row.createdAt && toMonthDateYearStr(new Date(row.createdAt))}</StyledTableCell>
+                                        </StyledTableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </StyledTableContainer>
+                </TableContainer>
+                {!responses.length && <EmptyFormsView description="No submissions" className="border-[1px] border-gray-100 rounded-b-lg !rounded-t-none border-t-0 shadow" />}
+                <TablePagination component="div" rowsPerPageOptions={[]} rowsPerPage={7} count={responses.length} page={page} onPageChange={handlePageChange} />
             </>
         );
     };

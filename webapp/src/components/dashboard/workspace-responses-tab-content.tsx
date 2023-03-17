@@ -1,6 +1,7 @@
 import React from 'react';
 
 import EmptyTray from '@app/assets/svgs/empty-tray.svg';
+import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-badge';
 import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
@@ -15,9 +16,15 @@ interface IResponseCard {
     workspaceId: string;
 }
 
-export default function WorkspaceResponsesTabContent({ workspace }: any) {
+export default function WorkspaceResponsesTabContent({ workspace, deletionRequests = false }: any) {
     const workspaceId = workspace.id;
-    const { isLoading, data, isError } = useGetWorkspaceSubmissionsQuery(workspaceId, { pollingInterval: 30000 });
+    const { isLoading, data, isError } = useGetWorkspaceSubmissionsQuery(
+        {
+            workspaceId: workspace.id,
+            requestedForDeletionOly: deletionRequests
+        },
+        { pollingInterval: 30000 }
+    );
     const breakpoint = useBreakpoint();
 
     if (isLoading)
@@ -39,6 +46,20 @@ export default function WorkspaceResponsesTabContent({ workspace }: any) {
 
     const isCustomDomain = window?.location.host !== environments.CLIENT_HOST;
 
+    const SubmissionCard = ({ submission, submittedAt }: any) => (
+        <div className="w-full overflow-hidden items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
+            <div className="flex flex-col justify-start h-full">
+                <p className="text-sm text-gray-400 italic">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submission.formId, 30) : submission.formId}</p>
+                <p className="text-xl text-grey mb-4 p-0">{submission.formTitle}</p>
+                <div className=" w-full flex flex-col lg:flex-row justify-between">
+                    <p className="text-sm text-gray-400 italic">
+                        <span>Last submitted at {submittedAt}</span>
+                    </p>
+                    <p>{deletionRequests && submission?.deletionStatus && <RequestForDeletionBadge deletionStatus={submission?.deletionStatus} />}</p>
+                </div>
+            </div>
+        </div>
+    );
     return (
         <>
             {submissions?.length === 0 && (
@@ -52,26 +73,16 @@ export default function WorkspaceResponsesTabContent({ workspace }: any) {
                     submissions?.map((submission: StandardFormResponseDto) => {
                         const slug = submission.responseId;
                         const submittedAt = `${toMonthDateYearStr(parseDateStrToDate(submission.updatedAt))} ${toHourMinStr(parseDateStrToDate(submission.updatedAt))}`;
-                        return (
+                        return deletionRequests ? (
+                            <SubmissionCard submission={submission} submittedAt={submittedAt} />
+                        ) : (
                             <ActiveLink
                                 key={submission.responseId}
                                 href={{
-                                    pathname: isCustomDomain ? `/submissions/[slug]` : `${workspace.workspaceName}/submissions/[slug]`,
-                                    query: { slug }
+                                    pathname: deletionRequests ? '' : isCustomDomain ? `/submissions/${slug}` : `${workspace.workspaceName}/submissions/${slug}`
                                 }}
                             >
-                                <div className="w-full overflow-hidden items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
-                                    <div className="flex flex-col justify-start h-full">
-                                        <p className="text-sm text-gray-400 italic">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submission.formId, 30) : submission.formId}</p>
-                                        <p className="text-xl text-grey mb-4 p-0">{submission.formTitle}</p>
-                                        <div className=" w-full flex flex-col lg:flex-row justify-between">
-                                            <p className="text-sm text-gray-400 italic">
-                                                <span>Last submitted at {submittedAt}</span>
-                                            </p>
-                                            <p>{submission?.deletionStatus && <span className="bg-yellow-50 text-yellow-600 rounded-full px-4 py-1">Requested for deletion</span>}</p>
-                                        </div>
-                                    </div>
-                                </div>
+                                <SubmissionCard submission={submission} submittedAt={submittedAt} />
                             </ActiveLink>
                         );
                     })}

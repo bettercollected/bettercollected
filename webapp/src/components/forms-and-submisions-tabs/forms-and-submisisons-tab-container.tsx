@@ -21,7 +21,12 @@ export default function FormsAndSubmissionsTabContainer({ showResponseBar, works
             title: 'My Submissions',
             path: 'mySubmissions'
         });
-    } else if (showResponseBar && paramTabs.length === 2) {
+        paramTabs.push({
+            title: 'Deletion Requests',
+            path: 'deletion-requests'
+        });
+    } else if (showResponseBar && paramTabs.length === 3) {
+        paramTabs.pop();
         paramTabs.pop();
     }
 
@@ -32,6 +37,9 @@ export default function FormsAndSubmissionsTabContainer({ showResponseBar, works
             </TabPanel>
             <TabPanel className="focus:outline-none" key="mySubmissions">
                 <WorkspaceResponsesTabContent workspace={workspace} />
+            </TabPanel>
+            <TabPanel className="focus:outline-none" key="deletion-requests">
+                <WorkspaceResponsesTabContent workspace={workspace} deletionRequests />
             </TabPanel>
         </ParamTab>
     );

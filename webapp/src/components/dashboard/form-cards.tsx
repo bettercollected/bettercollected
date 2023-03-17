@@ -43,8 +43,8 @@ const FormCards = ({ title, formsArray, workspace }: FormCardsProps) => {
                         <ActiveLink
                             key={form.formId}
                             href={{
-                                pathname: isCustomDomain ? `/forms/[slug]` : `${workspace.workspaceName}/forms/[slug]`,
-                                query: { slug, back: true }
+                                pathname: isCustomDomain ? `/forms/${slug}` : `${workspace.workspaceName}/forms/${slug}`,
+                                query: { back: true }
                             }}
                         >
                             <FormsCard>
