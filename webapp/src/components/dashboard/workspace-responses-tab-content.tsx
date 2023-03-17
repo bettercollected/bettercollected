@@ -56,8 +56,7 @@ export default function WorkspaceResponsesTabContent({ workspace }: any) {
                             <ActiveLink
                                 key={submission.responseId}
                                 href={{
-                                    pathname: isCustomDomain ? `/submissions/[slug]` : `${workspace.workspaceName}/submissions/[slug]`,
-                                    query: { slug }
+                                    pathname: isCustomDomain ? `/submissions/${slug}` : `${workspace.workspaceName}/submissions/${slug}`
                                 }}
                             >
                                 <div className="w-full overflow-hidden items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">

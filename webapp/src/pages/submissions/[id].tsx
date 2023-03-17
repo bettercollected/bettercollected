@@ -77,7 +77,7 @@ export default function Submission(props: any) {
         {
             title: 'Home',
             icon: <HomeIcon className="w-4 h-4 mr-2" />,
-            onClick: () => (hasCustomDomain ? router.push('/', undefined, { scroll: false, shallow: true }) : router.push(`/${router.query.workspace_name}`, undefined, { scroll: false, shallow: true }))
+            onClick: () => (hasCustomDomain ? router.push('/', undefined, { scroll: true, shallow: true }) : router.push(`/${router.query.workspace_name}`, undefined, { scroll: true, shallow: true }))
         },
         {
             title: 'Submissions',
@@ -94,7 +94,7 @@ export default function Submission(props: any) {
     return (
         <div className="relative container mx-auto px-6 md:px-0">
             <div className="flex justify-between">
-                <Button className="w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => router.push(`/${props.workspace.workspaceName}?view=mySubmissions`)}>
+                <Button className="w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={goToSubmissions}>
                     <LongArrowLeft width={15} height={15} />
                 </Button>
                 <Button

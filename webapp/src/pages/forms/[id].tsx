@@ -16,7 +16,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export default function SingleFormPage(props: any) {
-    const { form, back } = props;
+    const { form, back, hasCustomDomain } = props;
 
     const router = useRouter();
 
@@ -39,12 +39,33 @@ export default function SingleFormPage(props: any) {
         return isUploadField;
     };
 
+    const goToForms = () => {
+        let pathName;
+        if (hasCustomDomain) {
+            pathName = '/';
+        } else {
+            pathName = `/${router.query.workspace_name}`;
+        }
+
+        router
+            .push(
+                {
+                    pathname: pathName,
+                    query: { view: 'forms' }
+                },
+                undefined,
+                { scroll: true, shallow: true }
+            )
+            .then((r) => r)
+            .catch((e) => e);
+    };
+
     // TODO: Update this component to be reusable
     if (form?.settings?.provider && form.settings.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
         return (
             <Layout className="relative !min-h-screen">
                 {back && (
-                    <Button className="!absolute !top-0 !left-0 w-auto z-10 !h-8 mx-4 mt-0 sm:mt-1 md:mt-3 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => router.push(`/${props.workspace.workspaceName}?view=forms`)}>
+                    <Button className="!absolute !top-0 !left-0 w-auto z-10 !h-8 mx-4 mt-0 sm:mt-1 md:mt-3 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={goToForms}>
                         <LongArrowLeft width={15} height={15} />
                     </Button>
                 )}
