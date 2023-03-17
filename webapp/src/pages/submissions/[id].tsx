@@ -7,6 +7,7 @@ import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { HomeIcon } from '@app/components/icons/home';
 import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
 import { TrashIcon } from '@app/components/icons/trash';
+import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
@@ -27,6 +28,7 @@ export default function Submission(props: any) {
 
     const router = useRouter();
     const breakpoint = useBreakpoint();
+    const { openModal } = useModal();
 
     const [requestWorkspaceSubmissionDeletion] = useRequestWorkspaceSubmissionDeletionMutation();
 
@@ -39,7 +41,7 @@ export default function Submission(props: any) {
 
     if (isLoading || isError || !data) return <FullScreenLoader />;
 
-    const handleRequestForDeletion = async () => {
+    const handleRequestForDeletion = async (callback: Function) => {
         console.log('Request for deletion initiated!');
         console.log('Old Submission: ', data);
         if (workspace && workspace.id && submissionId) {
@@ -50,6 +52,14 @@ export default function Submission(props: any) {
             const submission = await requestWorkspaceSubmissionDeletion(query);
             console.log('New Submission: ', submission);
         }
+
+        if (callback && typeof callback !== undefined) {
+            callback();
+        }
+    };
+
+    const handleRequestForDeletionModal = () => {
+        openModal('REQUEST_FOR_DELETION_VIEW', { handleRequestForDeletion });
     };
 
     const goToSubmissions = () => {
@@ -90,6 +100,7 @@ export default function Submission(props: any) {
     ];
 
     const deletionStatus = !!form?.response?.deletionStatus;
+    console.log(deletionStatus);
 
     return (
         <div className="relative container mx-auto px-6 md:px-0">
@@ -100,7 +111,7 @@ export default function Submission(props: any) {
                 <Button
                     className={`w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded text-white ${deletionStatus ? 'bg-yellow-300' : 'bg-red-500'}  hover:!-translate-y-0 focus:-translate-y-0`}
                     variant="solid"
-                    onClick={handleRequestForDeletion}
+                    onClick={handleRequestForDeletionModal}
                     disabled={!!form?.response?.deletionStatus}
                 >
                     <span className="flex gap-2 items-center">
