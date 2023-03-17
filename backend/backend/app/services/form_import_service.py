@@ -82,4 +82,4 @@ class FormImportService:
                     "status": DeletionRequestStatus.SUCCESS},
                     "deleted_at": datetime.utcnow()}
             )
-            return standard_form
+        return standard_form

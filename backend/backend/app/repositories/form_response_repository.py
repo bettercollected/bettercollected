@@ -93,9 +93,9 @@ class FormResponseRepository(BaseRepository):
         extra_find_query = {
             "dataOwnerIdentifier": user.sub,
         }
-        form_responses = self.get_form_responses(form_ids,
-                                                 request_for_deletion,
-                                                 extra_find_query)
+        form_responses = await self.get_form_responses(form_ids,
+                                                       request_for_deletion,
+                                                       extra_find_query)
         return form_responses
 
     async def get(self, form_id: str, response_id: str) -> StandardFormResponse:
