@@ -164,7 +164,7 @@ class TypeFormTransformerService(FormTransformerService):
         setting = StandardFormSettings()
         setting.provider = FormProvider.TYPEFORM
         setting.custom_url = form.id
-        setting.embed_url = form.self.href
+        setting.embed_url = form.self.href if form.self.href else form._links.display
         setting.is_public = form.settings.is_public
         return setting
 

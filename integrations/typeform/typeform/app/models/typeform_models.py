@@ -115,7 +115,7 @@ class TypeFormDto(BaseModel):
     last_updated_at: Optional[str]
     created_at: Optional[str]
     settings: Optional[TypeFormSettings] = TypeFormSettings()
-    _links: Optional[TypeFormLink]
+    _links: Optional[TypeFormLink] = TypeFormLink()
     theme: Optional[JsonObject]
     self: Optional[TypeFormSelfHref] = TypeFormSelfHref()
     fields: Optional[List[TypeFormField]]
