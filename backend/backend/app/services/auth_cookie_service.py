@@ -131,7 +131,7 @@ def set_token_cookie(response: Response, key: str, token: str):
 
 
 def delete_token_cookie(response: Response):
-    should_be_secure = False if "localhost" in settings.auth_settings.HOST else True
+    should_be_secure = False if "localhost" in settings.api_settings.HOST else True
     same_site = "none" if should_be_secure else "lax"
     delete_cookie(
         response=response,
