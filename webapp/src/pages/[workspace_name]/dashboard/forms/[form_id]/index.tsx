@@ -68,7 +68,7 @@ export default function FormPage(props: any) {
             onClick: () => Router.push(`/${props?.workspace?.workspaceName}/dashboard`)
         },
         {
-            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 30) : form.title
+            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.title, 30) : form?.title
         }
     ];
 

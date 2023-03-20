@@ -8,7 +8,7 @@ export const shortenStr = (str: string | number, expectedLength?: number, firstI
 };
 
 export const toMidDottedStr = (str: string | number, leadingVisible = 12, firstIndex = 0) => {
-    if (str === undefined) return str;
+    if (!str) return str;
     const total = str.toString().length;
     if (total <= leadingVisible * 2) return str;
     const leadingStr = str.toString().substring(firstIndex, leadingVisible);
@@ -17,7 +17,7 @@ export const toMidDottedStr = (str: string | number, leadingVisible = 12, firstI
 };
 
 export const toEndDottedStr = (str: string | number, leadingVisible = 12, firstIndex = 0) => {
-    if (str === undefined) return str;
+    if (!str) return str;
     if (str.toString().length <= leadingVisible) return str.toString();
     const leadingStr = str.toString().substring(firstIndex, leadingVisible);
     return `${leadingStr}...`;

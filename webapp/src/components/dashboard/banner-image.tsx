@@ -71,7 +71,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
             ) : (
                 <>
                     {!!workspace.bannerImage ? (
-                        <Image src={workspace?.bannerImage ?? ''} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
+                        <Image src={workspace?.bannerImage ?? ''} priority layout="fill" objectFit="cover" objectPosition="center" alt={workspace?.title} />
                     ) : (
                         <div className="flex h-full justify-center items-center">No image available</div>
                     )}
