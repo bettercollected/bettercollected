@@ -1,6 +1,7 @@
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, delete, get
 from fastapi import Depends
+from fastapi_pagination import Page
 
 from backend.app.container import container
 from backend.app.models.response_dtos import StandardFormResponseCamelModel
@@ -8,6 +9,7 @@ from backend.app.router import router
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.user_service import get_logged_user
 from backend.app.utils.custom_routable import CustomRoutable
+from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 
 
@@ -25,7 +27,9 @@ class WorkspaceResponsesRouter(CustomRoutable):
         super().__init__(*args, **kwargs)
         self._form_response_service = form_response_service
 
-    @get("/forms/{form_id}/submissions")
+    @get("/forms/{form_id}/submissions",
+         response_model=Page[StandardFormResponseCamelModel]
+         )
     async def _get_workspace_form_responses(
             self,
             workspace_id: PydanticObjectId,
@@ -36,12 +40,11 @@ class WorkspaceResponsesRouter(CustomRoutable):
         responses = await self._form_response_service.get_workspace_submissions(
             workspace_id, request_for_deletion, form_id, user
         )
+        return responses
 
-        return [
-            StandardFormResponseCamelModel(**response.dict()) for response in responses
-        ]
-
-    @get("/allSubmissions")
+    @get("/allSubmissions",
+         response_model=Page[StandardFormResponseCamelModel]
+         )
     async def _get_all_workspace_responses(
             self,
             workspace_id: PydanticObjectId,
@@ -53,7 +56,9 @@ class WorkspaceResponsesRouter(CustomRoutable):
         )
         return responses
 
-    @get("/submissions")
+    @get("/submissions",
+         response_model=Page[StandardFormResponseCamelModel]
+         )
     async def _get_user_submissions_in_workspace(
             self,
             workspace_id: PydanticObjectId,

@@ -66,33 +66,26 @@ class FormResponseService:
             form_id: str,
             user: User,
     ):
-        try:
-            if not await self._workspace_user_repo.is_user_admin_in_workspace(
-                    workspace_id, user
-            ):
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_UNAUTHORIZED
-                )
-            workspace_form = (
-                await self._workspace_form_repo.get_workspace_form_in_workspace(
-                    workspace_id, form_id
-                )
-            )
-            if not workspace_form:
-                raise HTTPException(
-                    HTTPStatus.NOT_FOUND, "Form not found in the workspace."
-                )
-            # TODO : Refactor with mongo query instead of python
-            form_responses = await self._form_response_repo.list(
-                [form_id], request_for_deletion
-            )
-            return form_responses
-        except Exception as exc:
-            logger.error(exc)
+        if not await self._workspace_user_repo.is_user_admin_in_workspace(
+                workspace_id, user
+        ):
             raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                content=MESSAGE_DATABASE_EXCEPTION,
+                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_UNAUTHORIZED
             )
+        workspace_form = (
+            await self._workspace_form_repo.get_workspace_form_in_workspace(
+                workspace_id, form_id
+            )
+        )
+        if not workspace_form:
+            raise HTTPException(
+                HTTPStatus.NOT_FOUND, "Form not found in the workspace."
+            )
+        # TODO : Refactor with mongo query instead of python
+        form_responses = await self._form_response_repo.list(
+            [form_id], request_for_deletion
+        )
+        return form_responses
 
     async def get_workspace_submission(
             self, workspace_id: PydanticObjectId, response_id: str, user: User
