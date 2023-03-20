@@ -23,6 +23,7 @@ export interface StandardFormQuestionDto {
 }
 
 export interface StandardFormDto {
+    items: Array<any>;
     formId: string;
     title: string;
     description?: string | null | undefined;
@@ -46,6 +47,7 @@ export interface StandardFormDto {
 }
 
 export interface StandardFormResponseDto {
+    items: Array<any>;
     responseId: string;
     formId: string;
     formTitle: string;

@@ -102,7 +102,7 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
             })
                 .then((data) => {
                     data.json().then((d) => {
-                        setResponses(d);
+                        setResponses(d.items);
                     });
                 })
                 .catch((e) => console.log(e));

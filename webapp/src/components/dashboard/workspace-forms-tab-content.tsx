@@ -50,8 +50,8 @@ export default function WorkspaceFormsTabContent({ workspace }: any) {
 
     useEffect(() => {
         if (!!data) {
-            const pinnedForms = data.filter((form) => form.settings?.pinned);
-            const unpinnedForms = data.filter((form) => !form.settings?.pinned);
+            const pinnedForms = data.items.filter((form) => form.settings?.pinned);
+            const unpinnedForms = data.items.filter((form) => !form.settings?.pinned);
             setPinnedForms(pinnedForms);
             setUnpinnedForms(unpinnedForms);
             setShowUnpinnedForms(unpinnedForms.length > 0);
@@ -83,7 +83,7 @@ export default function WorkspaceFormsTabContent({ workspace }: any) {
                 <Loader />
             </div>
         );
-    const forms: Array<StandardFormDto> = data ?? [];
+    const forms: Array<StandardFormDto> = data.items ?? [];
 
     if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0)
         return (

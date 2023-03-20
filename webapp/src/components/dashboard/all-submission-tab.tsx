@@ -10,7 +10,7 @@ export default function AllSubmissionTab({ workspace_id, requestedForDeletionOnl
 
     useEffect(() => {
         if (!submissionsQuery?.isLoading && !!submissionsQuery?.data) {
-            const responseMapObject = convertToClientForm(submissionsQuery?.data);
+            const responseMapObject = convertToClientForm(submissionsQuery?.data?.items);
             setResponseObject(responseMapObject);
         }
     }, [submissionsQuery]);

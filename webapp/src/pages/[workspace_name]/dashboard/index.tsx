@@ -25,7 +25,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
 
     const breakpoint = useBreakpoint();
 
-    const forms = workspaceForms?.data;
+    const forms = workspaceForms?.data?.items;
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://';
