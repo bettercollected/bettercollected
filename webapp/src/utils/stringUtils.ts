@@ -17,7 +17,7 @@ export const toMidDottedStr = (str: string | number, leadingVisible = 12, firstI
 };
 
 export const toEndDottedStr = (str: string | number, leadingVisible = 12, firstIndex = 0) => {
-    if (!str) return str;
+    if (!str) return '';
     if (str.toString().length <= leadingVisible) return str.toString();
     const leadingStr = str.toString().substring(firstIndex, leadingVisible);
     return `${leadingStr}...`;
