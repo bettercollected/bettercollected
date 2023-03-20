@@ -36,6 +36,7 @@ export async function getGlobalServerSidePropsByDomain({ locale, ..._context }: 
     props: IServerSideProps;
 }> {
     const domain = _context.req.headers.host;
+    console.log(domain);
 
     const hasCustomDomain = domain !== environments.CLIENT_HOST;
     let workspaceId = '';

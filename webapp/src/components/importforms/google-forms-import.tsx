@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 
 import { Close } from '@app/components/icons/close';
 import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
+import ImportErrorView from '@app/components/importforms/import-error-view';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
@@ -34,18 +35,7 @@ export default function ImportForms() {
 
     if (minifiedForms.isLoading) return <FullScreenLoader />;
 
-    if (minifiedForms.isError)
-        return (
-            <div data-testid="error-component" className="text-sm relative min-h-[500px] flex items-center justify-center flex-col min-w-screen md:min-w-[400px] p-4 rounded-md shadow-md bg-white">
-                <div onClick={() => closeModal()} className="border-[1.5px] absolute right-5 top-5 border-gray-200 hover:shadow hover:text-black cursor-pointer rounded-full p-3">
-                    <Close className="cursor-pointer text-gray-600 hover:text-black" />
-                </div>
-                <h2 className="mb-2 text-indigo-500 ">We need you to authorize the service in order to load the forms.</h2>
-                <a className="!w-full items-center flex justify-center !rounded-xl px-8 py-3 text-white !bg-blue-500" href={`${environments.API_ENDPOINT_HOST}/auth/google/oauth`}>
-                    Authorize Google
-                </a>
-            </div>
-        );
+    if (minifiedForms.isError) return <ImportErrorView provider="google" />;
 
     const handleBack = (e: any) => {
         setStepCount(stepCount - 1);

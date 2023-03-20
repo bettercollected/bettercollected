@@ -9,22 +9,28 @@ import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
-import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
-import { StandardFormDto } from '@app/models/dtos/form';
-import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
+import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 
 export default function SingleFormPage(props: any) {
-    const { form, back, hasCustomDomain } = props;
+    const { back, slug, hasCustomDomain, workspace } = props;
+
+    const { data, isLoading, error } = useGetWorkspaceFormQuery({ workspace_id: workspace.id, custom_url: slug });
 
     const router = useRouter();
+    const form: any = data;
 
     const iframeRef = useRef(null);
 
-    if (!form) return <FullScreenLoader />;
+    if (isLoading) return <FullScreenLoader />;
 
-    const responderUri = form.settings.embedUrl;
+    const responderUri = form?.settings?.embedUrl;
+
+    if (error) {
+        return <div className="min-h-screen min-w-screen flex items-center justify-center">Error: Could not fetch form!!</div>;
+    }
 
     const hasFileUpload = (fields: Array<any>) => {
         let isUploadField = false;
@@ -112,6 +118,7 @@ export default function SingleFormPage(props: any) {
         </Layout>
     );
 }
+
 export async function getServerSideProps(_context: any) {
     const slug = _context.params.id;
     let back = false;
@@ -120,8 +127,6 @@ export async function getServerSideProps(_context: any) {
     if (query?.back) {
         back = (query?.back && (query?.back === 'true' || query?.back === true)) ?? false;
     }
-
-    const config = getServerSideAuthHeaderConfig(_context);
 
     const hasCustomDomain = checkHasCustomDomain(_context);
 
@@ -135,27 +140,10 @@ export async function getServerSideProps(_context: any) {
     }
 
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
-    let form: StandardFormDto | null = null;
-
-    try {
-        if (globalProps.hasCustomDomain && globalProps.workspaceId) {
-            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${slug}`, config).catch((e) => e);
-            form = (await formResponse?.json().catch((e: any) => e)) ?? null;
-        }
-    } catch (err) {
-        form = null;
-    }
-
-    if (!form) {
-        return {
-            notFound: true
-        };
-    }
 
     return {
         props: {
             ...globalProps,
-            form,
             slug,
             back
         }

@@ -11,6 +11,7 @@ import { toast } from 'react-toastify';
 import EmptyFormsView from '@app/components/dashboard/empty-form';
 import { Close } from '@app/components/icons/close';
 import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
+import ImportErrorView from '@app/components/importforms/import-error-view';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
@@ -49,22 +50,7 @@ export default function ImportTypeForms() {
             </div>
         );
 
-    if (typeforms.isError)
-        return (
-            <div className="text-sm relative py-10 px-10 flex items-center justify-center flex-col space-y-5 min-w-screen md:min-w-[400px] p-4 rounded-md shadow-md bg-white">
-                <div onClick={() => closeModal()} className="border-[1.5px] absolute right-5 top-5 border-gray-200 hover:shadow hover:text-black cursor-pointer rounded-full p-3">
-                    <Close className="cursor-pointer text-gray-600 hover:text-black" />
-                </div>
-                <SyncProblem className="w-[100px] h-[110px] text-red-600" />
-                <h2 className="text-gray-700 text-xl ">Your typeform authorization has expired</h2>
-                <h6 className="text-gray-500 text-center">
-                    Please click the link below <br /> to authorize typeform.
-                </h6>
-                <a className="ml-3 items-center flex justify-center !rounded-xl px-8 py-3 text-white !bg-blue-500" href={`${environments.API_ENDPOINT_HOST}/auth/typeform/oauth?creator=true`}>
-                    Authorize typeform
-                </a>
-            </div>
-        );
+    if (typeforms.isError) return <ImportErrorView provider="typeform" />;
 
     const handleBack = () => {
         setShowSingleFormImport(false);

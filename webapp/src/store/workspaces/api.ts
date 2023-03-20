@@ -40,13 +40,19 @@ export const workspacesApi = createApi({
         getMinifiedForms: builder.query<Array<GoogleMinifiedFormDto>, void>({
             query: () => ({
                 url: '/google/import',
-                method: 'GET'
+                method: 'GET',
+                refetchOnMountOrArgChange: true,
+                refetchOnReconnect: true,
+                refetchOnFocus: true
             })
         }),
         getGoogleForm: builder.query<GoogleFormDto, string>({
             query: (id) => ({
                 url: `/google/import/${id}`,
-                method: 'GET'
+                method: 'GET',
+                refetchOnMountOrArgChange: true,
+                refetchOnReconnect: true,
+                refetchOnFocus: true
             })
         }),
         importForm: builder.mutation<any, ImportFormQueryInterface>({
@@ -69,14 +75,18 @@ export const workspacesApi = createApi({
             query: () => ({
                 url: `/typeform/import`,
                 method: 'GET',
-                refetchOnFocus: false
+                refetchOnMountOrArgChange: true,
+                refetchOnReconnect: true,
+                refetchOnFocus: true
             })
         }),
         getTypeform: builder.query<any, string>({
             query: (form_id: string) => ({
                 url: `/typeform/import/${form_id}`,
                 method: 'GET',
-                refetchOnFocus: false
+                refetchOnMountOrArgChange: true,
+                refetchOnReconnect: true,
+                refetchOnFocus: true
             })
         }),
         getWorkspace: builder.query<WorkspaceDto, string>({
