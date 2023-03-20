@@ -3,7 +3,7 @@ import React from 'react';
 import SubmissionCard from '@app/components/cards/submission-card';
 import EmptyFormsView from '@app/components/dashboard/empty-form';
 
-const SubmissionsGrid = ({ responseObject }: any) => {
+const SubmissionsGrid = ({ responseObject, requestedForDeletionOnly }: any) => {
     return (
         <>
             {Object.values(responseObject).length === 0 && <EmptyFormsView />}
@@ -16,7 +16,7 @@ const SubmissionsGrid = ({ responseObject }: any) => {
                             </h1>
                             <div className="grid grid-cols-1 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
                                 {response.responses?.map((form: any) => (
-                                    <SubmissionCard form={form} key={form.responseId} />
+                                    <SubmissionCard form={form} key={form.responseId} requestedForDeletionOnly={requestedForDeletionOnly} />
                                 ))}
                             </div>
                         </div>

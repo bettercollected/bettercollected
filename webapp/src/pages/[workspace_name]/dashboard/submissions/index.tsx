@@ -48,7 +48,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
                     <AllSubmissionTab workspace_id={workspace.id} />
                 </TabPanel>
                 <TabPanel className="focus:outline-none" key="requested-for-deletion">
-                    <AllSubmissionTab workspace_id={workspace.id} requested_for_deletion_only={true} />
+                    <AllSubmissionTab workspace_id={workspace.id} requestedForDeletionOnly />
                 </TabPanel>
             </ParamTab>
         </SidebarLayout>

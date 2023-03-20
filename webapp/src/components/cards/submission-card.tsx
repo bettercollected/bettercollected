@@ -10,11 +10,18 @@ import { Google } from '@app/components/icons/brands/google';
 import { useAppSelector } from '@app/store/hooks';
 import { toMonthDateYearStr } from '@app/utils/dateUtils';
 
-const SubmissionCard = ({ form }: any) => {
+const SubmissionCard = ({ form, requestedForDeletionOnly }: any) => {
     const workspace = useAppSelector((state) => state.workspace);
 
+    const LinkWrapper = (props: any) => {
+        if (requestedForDeletionOnly) {
+            return <>{props.children}</>;
+        }
+        return <Link {...props} />;
+    };
+
     return (
-        <Link key={form.responseId} href={`/${workspace.workspaceName}/dashboard/submissions/${form.responseId}`}>
+        <LinkWrapper key={form.responseId} href={`/${workspace.workspaceName}/dashboard/submissions/${form.responseId}`}>
             <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
                 <div className="w-full flex flex-col justify-start h-full overflow-hidden">
                     <div className="flex mb-2 w-full items-center space-x-2">
@@ -41,7 +48,7 @@ const SubmissionCard = ({ form }: any) => {
                     </div>
                 </div>
             </div>
-        </Link>
+        </LinkWrapper>
     );
 };
 

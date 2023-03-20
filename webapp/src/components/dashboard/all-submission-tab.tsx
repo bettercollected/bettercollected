@@ -4,8 +4,8 @@ import SubmissionsGrid from '@app/components/cards/submission-container';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { useGetWorkspaceAllSubmissionsQuery } from '@app/store/workspaces/api';
 
-export default function AllSubmissionTab({ workspace_id, requested_for_deletion_only }: any) {
-    const submissionsQuery = useGetWorkspaceAllSubmissionsQuery({ workspaceId: workspace_id, requestedForDeletionOly: requested_for_deletion_only }, { pollingInterval: 30000 });
+export default function AllSubmissionTab({ workspace_id, requestedForDeletionOnly }: any) {
+    const submissionsQuery = useGetWorkspaceAllSubmissionsQuery({ workspaceId: workspace_id, requestedForDeletionOly: requestedForDeletionOnly }, { pollingInterval: 30000 });
     const [responseObject, setResponseObject] = useState<any>({});
 
     useEffect(() => {
@@ -33,7 +33,7 @@ export default function AllSubmissionTab({ workspace_id, requested_for_deletion_
 
     return (
         <>
-            <SubmissionsGrid responseObject={responseObject} />
+            <SubmissionsGrid responseObject={responseObject} requestedForDeletionOnly={requestedForDeletionOnly} />
         </>
     );
 }
