@@ -121,7 +121,9 @@ class GoogleFormTransformerService(FormTransformerService):
             googleform = GoogleFormDto(**form)
             standard_form = StandardForm(
                 form_id=googleform.formId,
-                title=googleform.info.title,
+                title=googleform.info.title
+                or googleform.info.documentTitle
+                or "Untitled",
                 description=googleform.info.description,
                 fields=self._transform_fields(googleform.items),
                 settings=self._transform_form_settings(googleform),
