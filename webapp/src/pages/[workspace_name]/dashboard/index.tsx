@@ -40,7 +40,13 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                 <h1 className="font-extrabold text-3xl mb-3">Welcome to {workspace.title}!</h1>
             </div>
             <div className="flex items-center flex-col md:flex-row w-full md:w-auto md:space-x-5 space-y-5 md:space-y-0 mb-3 md:mb-0">
-                <a href={getWorkspaceUrl()} referrerPolicy="no-referrer" target="_blank" className="rounded-xl w-full text-center text-sm  bg-blue-500 text-white px-5 py-3" rel="noreferrer">
+                <a
+                    href={getWorkspaceUrl()}
+                    referrerPolicy="no-referrer"
+                    target="_blank"
+                    className="relative inline-flex shrink-0 items-center justify-center overflow-hidden text-center text-xs font-medium tracking-wider outline-none transition-all sm:text-sm md:ml-3 w-full sm:w-auto !px-8 py-3 !rounded-xl bg-gray-800 text-white hover:-translate-y-0.5 hover:shadow-large focus:-translate-y-0.5 focus:shadow-large focus:outline-none h-10 sm:h-12"
+                    rel="noreferrer"
+                >
                     Go to Workspace
                 </a>
                 <ImportFormsMenu />

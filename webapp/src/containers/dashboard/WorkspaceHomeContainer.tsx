@@ -69,7 +69,7 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
                                                 target="_blank"
                                                 referrerPolicy="no-referrer"
                                                 href={`${environments.ADMIN_HOST.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_HOST}/${workspace.workspaceName}/dashboard`}
-                                                className="rounded-xl mr-5 !bg-blue-600 z-10 !text-white px-5 py-3"
+                                                className="relative inline-flex shrink-0 items-center justify-center overflow-hidden text-center text-xs font-medium tracking-wider outline-none transition-all sm:text-sm md:ml-3 w-full sm:w-auto !px-8 py-3 !rounded-xl bg-gray-800 text-white hover:-translate-y-0.5 hover:shadow-large focus:-translate-y-0.5 focus:shadow-large focus:outline-none h-10 sm:h-12 mr-3"
                                                 rel="noreferrer"
                                             >
                                                 <div className=" flex space-x-4">
