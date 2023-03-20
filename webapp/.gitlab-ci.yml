@@ -57,7 +57,7 @@ deploy staging:
         DOCKER_HOST: 172.31.0.7:2376
     script:
         - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-        - docker service update --force --with-registry-auth --image  $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA bettercollected-new_staging_webapp
+        - docker service update --force --with-registry-auth --image  $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA bettercollected_staging_webapp
     only:
         - master
 
