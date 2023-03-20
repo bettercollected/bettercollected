@@ -52,7 +52,7 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
             <Layout className="!pt-0 relative min-h-screen bg-[#FBFBFB] pb-40 flex justify-center">
                 <DynamicContainer>
                     <div className="min-h-screen">
-                        <div className="relative overflow-hidden h-44 w-full md:h-80 xl:h-[380px] bannerdiv">
+                        <div className="relative overflow-hidden h-44 w-full md:h-80 xl:h-[380px] 3xl:h-[450px] bannerdiv">
                             <BannerImageComponent workspace={workspace} isFormCreator={isFormCreator} />
                         </div>
                         <div className="flex justify-between items-center">
