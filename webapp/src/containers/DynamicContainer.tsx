@@ -29,7 +29,6 @@ export default function DynamicContainer({ children }: any) {
             default:
                 setMaxWidth('max-w-screen');
         }
-        console.log(breakpoint);
     }, [breakpoint]);
 
     return <div className={`${maxWidth} w-full`}>{children}</div>;

@@ -42,15 +42,12 @@ export default function Submission(props: any) {
     if (isLoading || isError || !data) return <FullScreenLoader />;
 
     const handleRequestForDeletion = async (callback: Function) => {
-        console.log('Request for deletion initiated!');
-        console.log('Old Submission: ', data);
         if (workspace && workspace.id && submissionId) {
             const query = {
                 workspace_id: workspace.id,
                 submission_id: submissionId
             };
             const submission = await requestWorkspaceSubmissionDeletion(query);
-            console.log('New Submission: ', submission);
         }
 
         if (callback && typeof callback !== undefined) {
@@ -100,7 +97,6 @@ export default function Submission(props: any) {
     ];
 
     const deletionStatus = !!form?.response?.deletionStatus;
-    console.log(deletionStatus);
 
     return (
         <div className="relative container mx-auto px-6 md:px-0">

@@ -131,7 +131,6 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
 
     const handlePageChange = () => {
         //TODO: fetch api to call the next page
-        console.log('hello');
     };
 
     const breadcrumbsItem = [
