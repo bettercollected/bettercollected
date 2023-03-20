@@ -83,7 +83,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <p className="text-xl text-grey  p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 15) : toEndDottedStr(form.title, 30)}</p>
+                                                    <p className="text-xl text-grey  p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.title || 'Untitled', 15) : toEndDottedStr(form?.title || 'Untitled', 30)}</p>
                                                 </div>
                                                 {form?.description && (
                                                     <p className="text-base text-softBlue m-0 p-0 w-full">
@@ -95,7 +95,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
 
                                             <div className="flex pt-3 justify-between">
                                                 {<div className="rounded space-x-2 text-xs px-2 flex py-1 items-center text-gray-500 bg-gray-100">{form?.settings?.private ? 'Hidden' : 'Public'}</div>}
-                                                {form.settings?.pinned && <PushPin className="rotate-45" />}
+                                                {form?.settings?.pinned && <PushPin className="rotate-45" />}
                                             </div>
                                         </div>
                                     </div>

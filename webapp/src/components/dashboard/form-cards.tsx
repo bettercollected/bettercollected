@@ -61,11 +61,11 @@ const FormCards = ({ title, formsArray, workspace }: FormCardsProps) => {
                                                 </div>
                                             )}
                                         </div>
-                                        <p className="text-xl text-grey  p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 15) : toEndDottedStr(form.title, 30)}</p>
+                                        <p className="text-xl text-grey  p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 15) : toEndDottedStr(form?.title || 'Untitled', 30)}</p>
                                     </div>
                                     {form?.description && (
                                         <p className="text-base text-softBlue m-0 p-0 w-full">
-                                            {['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 45) : ['md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 80) : toEndDottedStr(form.description, 140)}
+                                            {['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.description, 45) : ['md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 80) : toEndDottedStr(form.description, 140)}
                                         </p>
                                     )}
 
