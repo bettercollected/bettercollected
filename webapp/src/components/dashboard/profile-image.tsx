@@ -57,7 +57,7 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
 
     return (
         <div>
-            <div className="relative bannerdiv product-image bg-white  border-[1px] border-neutral-300 hover:border-neutral-400 rounded-full z-10 h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 xl:h-40 xl:w-40 2xl:h-[180px] 2xl:w-[180px] overflow-hidden left-10 -top-12 sm:-top-16 md:-top-20 xl:-top-[88px] 2xl:-top-24">
+            <div className="relative bannerdiv product-image bg-white border-[1px] border-neutral-300 hover:border-neutral-400 rounded-full z-10 h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 xl:h-40 xl:w-40 2xl:h-[180px] 2xl:w-[180px] overflow-hidden">
                 {!!workspace.profileImage ? <Image src={workspace?.profileImage ?? ''} layout="fill" objectFit="contain" alt={workspace.title} /> : <div className="flex h-full justify-center items-center">No image available</div>}
                 {isFormCreator && (
                     <>

@@ -15,7 +15,7 @@ export default function WorkspaceFooter({ workspace, isCustomDomain }: FooterPro
     return (
         <div className="w-full flex justify-center">
             <DynamicContainer>
-                <div className=" w-full flex flex-col justify-start md:flex-row md:justify-between md:items-center px-6 sm:px-8 lg:px-12 py-2 border-t-[1.5px] border-[#eaeaea] bg-transparent drop-shadow-main mb-0">
+                <div className=" w-full flex flex-col justify-start md:flex-row md:justify-between md:items-center border-t-[1.5px] border-[#eaeaea] bg-transparent drop-shadow-main pt-3 mb-0">
                     <div className="flex justify-between mb-4">
                         <ActiveLink target={'_blank'} className="mt-6 md:mt-0 text-sm md:text-lg mr-6 hover:text-gray-600" href={workspace.terms_of_service_url ?? `https://${environments.CLIENT_HOST}/legal/terms-and-conditions-2022.pdf`}>
                             Terms of service

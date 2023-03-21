@@ -57,7 +57,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
     };
 
     return (
-        <div className="relative overflow-hidden h-44 w-full md:h-80 xl:h-[380px] bannerdiv">
+        <div className="relative h-44 w-full md:h-80 xl:h-[380px] bannerdiv">
             {!!bannerImage ? (
                 <TransformWrapper centerOnInit ref={transformComponentRef}>
                     {({ resetTransform }) => {
@@ -78,12 +78,12 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                 </>
             )}
             {isFormCreator && (
-                <div className={`absolute bottom-2 right-4 hidden ${!!bannerImage ? '!block' : 'editbannerdiv'}`}>
+                <div className={`absolute bottom-2 right-0 hidden ${!!bannerImage ? '!block' : 'editbannerdiv'}`}>
                     <div className="flex justify-between">
                         {!isLoading && (
                             <div className="p-2 ml-2 my-19 !bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-md" onClick={onClickFileUploadButton}>
                                 <ModeEditIcon className="!w-5 !h-5 text-white" />
-                                <span className="ml-1 text-white">update image</span>
+                                <span className="ml-1 text-white">Update Banner</span>
                             </div>
                         )}
                         {!!bannerImage && (

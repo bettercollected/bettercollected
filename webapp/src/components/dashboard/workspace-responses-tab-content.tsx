@@ -68,7 +68,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
                     <p className="mt-4 p-0">0 forms</p>
                 </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {submissions?.length !== 0 &&
                     submissions?.map((submission: StandardFormResponseDto) => {
                         const slug = submission.responseId;

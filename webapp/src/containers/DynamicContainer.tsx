@@ -13,13 +13,9 @@ export default function DynamicContainer({ children }: any) {
                 setMaxWidth('max-w-[1080px]');
                 break;
             case '2xl':
-                setMaxWidth('max-w-[1240px]');
-                break;
             case '3xl':
-                setMaxWidth('max-w-[1580px]');
-                break;
             case '4xl':
-                setMaxWidth('max-w-[1960px]');
+                setMaxWidth('max-w-[1240px]');
                 break;
 
             case 'xs':
