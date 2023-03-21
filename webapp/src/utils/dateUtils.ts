@@ -15,3 +15,13 @@ export const toMonthDateYearStr = (date: Date) =>
         month: 'short',
         year: 'numeric'
     });
+
+export const toLocaleString = (date: Date) =>
+    date.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true
+    });

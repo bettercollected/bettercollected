@@ -22,6 +22,8 @@ export interface IPatchFormSettingsRequest {
 export interface IGetAllSubmissionsQuery {
     workspaceId: string;
     requestedForDeletionOly?: boolean;
+    page?: number;
+    size?: number;
 }
 
 export interface IGetFormSubmissionsQuery extends IGetAllSubmissionsQuery {
