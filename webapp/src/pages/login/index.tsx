@@ -57,7 +57,7 @@ export const Login = () => {
                     <div className="flex flex-col justify-center items-center text-[#555555] space-y-2">
                         <div className="text-3xl font-bold">Welcome, Collector</div>
                     </div>
-                    {environments.ENABLE_GOOGLE && <ConnectWithGoogleButton text="Sign In with google" creator />}
+                    {environments.ENABLE_GOOGLE && <ConnectWithGoogleButton text="Login with Google" creator />}
                     {environments.ENABLE_TYPEFORM && environments.ENABLE_GOOGLE && (
                         <div className="flex items-center justify-center">
                             <div className="border-t w-5 border-gray-200"></div>

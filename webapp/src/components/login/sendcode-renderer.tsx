@@ -43,7 +43,7 @@ export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustom
                 <span className="flex-shrink text-xs mx-4 text-gray-400">or</span>
                 <div className="border-t w-5 border-gray-200"></div>
             </div>
-            <ConnectWithGoogleButton className="!w-full !max-w-full" text="Continue with google" />
+            <ConnectWithGoogleButton className="!w-full !max-w-full" text="Continue with Google" />
         </form>
     );
 }

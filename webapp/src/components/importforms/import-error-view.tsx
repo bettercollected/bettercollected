@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 import { SyncProblem } from '@mui/icons-material';
 
 import { Close } from '@app/components/icons/close';
@@ -7,6 +9,7 @@ import environments from '@app/configs/environments';
 interface ImportErrorViewProps {
     provider: string;
 }
+
 export default function ImportErrorView({ provider }: ImportErrorViewProps) {
     const { closeModal } = useModal();
     return (
@@ -16,13 +19,13 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
             </div>
             <SyncProblem className="w-[100px] h-[110px] text-red-600" />
             <h2 className="text-gray-700 text-xl text-center">
-                You have not yet authorized or <br /> Your {provider} authorization has expired
+                You have not yet authorized or <br /> Your {_.capitalize(provider)} authorization has expired
             </h2>
             <h6 className="text-gray-500 text-center">
-                Please click the link below <br /> to authorize {provider}.
+                Please click the link below <br /> to authorize {_.capitalize(provider)}.
             </h6>
             <a className="ml-3 items-center flex justify-center !rounded-xl px-8 py-3 text-white !bg-blue-500" href={`${environments.API_ENDPOINT_HOST}/auth/${provider}/oauth?creator=true`}>
-                Authorize {provider}
+                Authorize {_.capitalize(provider)}
             </a>
         </div>
     );
