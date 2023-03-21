@@ -22,7 +22,7 @@ def get_logged_user(request: Request) -> User:
         return user
     # TODO : Handle specific exceptions
     except Exception as e:
-        logging.error(traceback.format_exc())
+        logging.error(e)
         raise HTTPException(401, "No user logged in.")
 
 

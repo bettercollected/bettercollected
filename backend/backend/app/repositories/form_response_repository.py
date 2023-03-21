@@ -1,6 +1,9 @@
 from http import HTTPStatus
 from typing import List, Dict, Any
 
+import fastapi_pagination.ext.beanie
+from beanie.odm.queries.aggregation import AggregationQuery
+from fastapi_pagination import Page
 from pymongo.errors import (
     InvalidOperation,
     InvalidURI,
@@ -20,11 +23,11 @@ from common.models.user import User
 
 class FormResponseRepository(BaseRepository):
 
-    async def get_form_responses(self,
-                                 form_ids,
+    @staticmethod
+    async def get_form_responses(form_ids,
                                  request_for_deletion: bool,
                                  extra_find_query: Dict[str, Any] = None,
-                                 ) -> List[StandardFormResponse]:
+                                 ) -> Page[FormResponseDocument]:
         find_query = {
             "form_id": {"$in": form_ids}
         }
@@ -67,23 +70,14 @@ class FormResponseRepository(BaseRepository):
                     },
                 ]
             )
-
         aggregate_query.append({"$sort": {"created_at": -1}})
-
-        form_responses = (
-            await FormResponseDocument.find(find_query)
-                .aggregate(aggregate_query)
-                .to_list()
-        )
-        return [
-            StandardFormResponseCamelModel(**form_response)
-            for form_response in form_responses
-        ]
+        form_responses_query = FormResponseDocument.find(find_query).aggregate(aggregate_query)
+        form_responses = await fastapi_pagination.ext.beanie.paginate(form_responses_query)
+        return form_responses
 
     async def list(
             self, form_ids: List[str], request_for_deletion: bool
-    ) -> List[StandardFormResponse]:
-
+    ) -> Page[StandardFormResponse]:
         form_responses = await self.get_form_responses(form_ids, request_for_deletion)
         return form_responses
 
