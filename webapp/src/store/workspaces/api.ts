@@ -3,8 +3,9 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import environments from '@app/configs/environments';
 import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { GoogleFormDto, GoogleMinifiedFormDto } from '@app/models/dtos/googleForm';
+import { Page } from '@app/models/dtos/page';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { IGetAllSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
+import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
@@ -116,6 +117,13 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
+        getFormsSubmissions: builder.query<Page<StandardFormResponseDto>, IGetFormSubmissionsQuery>({
+            query: (query) => ({
+                url: `/workspaces/${query.workspaceId}/forms/${query.formId}/submissions?request_for_deletion=${query.requestedForDeletionOly}`,
+                method: 'GET'
+            }),
+            providesTags: [WORKSPACE_TAGS]
+        }),
         getWorkspaceSubmissions: builder.query<Array<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspaceId}/submissions`,
@@ -126,7 +134,7 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
-        getWorkspaceAllSubmissions: builder.query<Array<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
+        getWorkspaceAllSubmissions: builder.query<Page<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
             query: (query: IGetAllSubmissionsQuery) => {
                 return {
                     url: `/workspaces/${query.workspaceId}/allSubmissions`,

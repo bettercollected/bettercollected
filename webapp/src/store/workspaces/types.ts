@@ -23,3 +23,7 @@ export interface IGetAllSubmissionsQuery {
     workspaceId: string;
     requestedForDeletionOly?: boolean;
 }
+
+export interface IGetFormSubmissionsQuery extends IGetAllSubmissionsQuery {
+    formId: string;
+}

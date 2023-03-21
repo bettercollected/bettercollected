@@ -19,6 +19,7 @@ import { toast } from 'react-toastify';
 
 import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-badge';
 import environments from '@app/configs/environments';
+import globalConstants from '@app/constants/global';
 import { ToastId } from '@app/constants/toastId';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
@@ -74,6 +75,8 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
 
     let submissionId: string = (router?.query?.sub_id as string) ?? '';
 
+    const [total, setTotal] = useState(1);
+
     const [responses, setResponses] = useState<Array<any>>([]);
 
     useEffect(() => {
@@ -94,7 +97,7 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
 
     useEffect(() => {
         if (!!formId && !!workspaceId) {
-            fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${workspaceId}/forms/${formId}/submissions?request_for_deletion=${requestedForDeletion}`, {
+            fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${workspaceId}/forms/${formId}/submissions?request_for_deletion=${requestedForDeletion}&page=${page + 1}&size=${globalConstants.pageSize}`, {
                 credentials: 'include',
                 headers: {
                     'Access-Control-Allow-origin': environments.API_ENDPOINT_HOST
@@ -102,12 +105,14 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
             })
                 .then((data) => {
                     data.json().then((d) => {
+                        // console.log(d)
+                        setTotal(d.total);
                         setResponses(d.items);
                     });
                 })
                 .catch((e) => console.log(e));
         }
-    }, [formId, workspaceId, requestedForDeletion]);
+    }, [formId, workspaceId, requestedForDeletion, page]);
 
     const handleSubmissionClick = (responseId: any) => {
         if (!requestedForDeletion)
@@ -129,8 +134,9 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
         });
     };
 
-    const handlePageChange = () => {
+    const handlePageChange = (e: any, page: number) => {
         //TODO: fetch api to call the next page
+        setPage(page);
     };
 
     const breadcrumbsItem = [
@@ -165,28 +171,29 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
                                 </TableRow>
                             </TableHead>
                             <TableBody className="w-full">
-                                {responses.map((row: any) => {
-                                    return (
-                                        <StyledTableRow key={row.responseId} onClick={() => handleSubmissionClick(row?.responseId)}>
-                                            <StyledTableCell component="th" scope="row">
-                                                {!row.dataOwnerIdentifier ? 'Anonymous' : row.dataOwnerIdentifier}
-                                            </StyledTableCell>
-                                            {requestedForDeletion && <StyledTableCell>{row.responseId}</StyledTableCell>}
-                                            {requestedForDeletion && (
-                                                <StyledTableCell>
-                                                    <RequestForDeletionBadge deletionStatus={row?.deletionStatus} />
+                                {Array.isArray(responses) &&
+                                    responses.map((row: any) => {
+                                        return (
+                                            <StyledTableRow key={row.responseId} onClick={() => handleSubmissionClick(row?.responseId)}>
+                                                <StyledTableCell component="th" scope="row">
+                                                    {!row.dataOwnerIdentifier ? 'Anonymous' : row.dataOwnerIdentifier}
                                                 </StyledTableCell>
-                                            )}
-                                            <StyledTableCell align="right">{row.createdAt && toMonthDateYearStr(new Date(row.createdAt))}</StyledTableCell>
-                                        </StyledTableRow>
-                                    );
-                                })}
+                                                {requestedForDeletion && <StyledTableCell>{row.responseId}</StyledTableCell>}
+                                                {requestedForDeletion && (
+                                                    <StyledTableCell>
+                                                        <RequestForDeletionBadge deletionStatus={row?.deletionStatus} />
+                                                    </StyledTableCell>
+                                                )}
+                                                <StyledTableCell align="right">{row.createdAt && toMonthDateYearStr(new Date(row.createdAt))}</StyledTableCell>
+                                            </StyledTableRow>
+                                        );
+                                    })}
                             </TableBody>
                         </Table>
                     </StyledTableContainer>
                 </TableContainer>
                 {!responses.length && <EmptyFormsView description="No submissions" className="border-[1px] border-gray-100 rounded-b-lg !rounded-t-none border-t-0 shadow" />}
-                <TablePagination component="div" rowsPerPageOptions={[]} rowsPerPage={7} count={responses.length} page={page} onPageChange={handlePageChange} />
+                {Array.isArray(responses) && total > globalConstants.pageSize && <TablePagination component="div" rowsPerPageOptions={[]} rowsPerPage={globalConstants.pageSize} count={total} page={page} onPageChange={handlePageChange} />}
             </>
         );
     };
