@@ -103,7 +103,7 @@ export const workspacesApi = createApi({
                 method: 'GET'
             })
         }),
-        getWorkspaceForms: builder.query<Array<StandardFormDto>, any>({
+        getWorkspaceForms: builder.query<Page<StandardFormDto>, any>({
             query: (body) => ({
                 url: `/workspaces/${body.workspace_id}/forms${!!body.form_id ? `/${body.form_id}` : ''}`,
                 method: 'GET'
@@ -124,7 +124,7 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
-        getWorkspaceSubmissions: builder.query<Array<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
+        getWorkspaceSubmissions: builder.query<Page<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspaceId}/submissions`,
                 params: {

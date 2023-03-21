@@ -23,7 +23,7 @@ export interface StandardFormQuestionDto {
 }
 
 export interface StandardFormDto {
-    items: Array<any>;
+    items?: Array<any>;
     formId: string;
     title: string;
     description?: string | null | undefined;

@@ -83,7 +83,7 @@ export default function WorkspaceFormsTabContent({ workspace }: any) {
                 <Loader />
             </div>
         );
-    const forms: Array<StandardFormDto> = data.items ?? [];
+    const forms: Array<StandardFormDto> = data?.items ?? [];
 
     if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0)
         return (
