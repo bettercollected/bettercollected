@@ -26,6 +26,7 @@ import NextNProgress from '@app/components/ui/nprogress';
 import createEmotionCache from '@app/configs/createEmotionCache';
 import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
+import { usePreserveScroll } from '@app/lib/hooks/use-preserve-scroll';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
@@ -65,6 +66,8 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
         url = workspace?.customDomain ?? url;
         description = workspace?.description ?? description;
     }
+
+    usePreserveScroll();
 
     useEffect(() => {
         if (!!environments.GA_MEASUREMENT_ID) {

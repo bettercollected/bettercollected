@@ -1,28 +1,87 @@
 import React from 'react';
 
+import Paper from '@mui/material/Paper';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell, { tableCellClasses } from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import { styled } from '@mui/material/styles';
+
+import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-badge';
 import SubmissionCard from '@app/components/cards/submission-card';
 import EmptyFormsView from '@app/components/dashboard/empty-form';
+import { StandardFormResponseDto } from '@app/models/dtos/form';
+import { toHourMinStr, toLocaleString } from '@app/utils/dateUtils';
 
-const SubmissionsGrid = ({ responseObject }: any) => {
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+    [`&.${tableCellClasses.head}`]: {
+        backgroundColor: '#f5f9ff',
+        color: '#6B6DBA'
+    },
+    [`&.${tableCellClasses.body}`]: {
+        fontSize: 14,
+        color: '#6b6b6b !important'
+    }
+}));
+
+const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
+    '.MuiTableCell-root': {
+        borderColor: '#eaeaea !important'
+    }
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+    '&:hover': {
+        backgroundColor: '#f5f9ff !important',
+        cursor: 'pointer'
+    }
+}));
+const SubmissionsGrid = ({ responses, requestedForDeletionOnly }: any) => {
+    const handleSubmissionCLick = (responseId: string) => {};
+
     return (
-        <>
-            {Object.values(responseObject).length === 0 && <EmptyFormsView />}
-            {!!Object.values(responseObject).length &&
-                Object.values(responseObject).map((response: any, idx: any) => {
-                    return (
-                        <div key={idx} className="mb-4">
-                            <h1 className="text-xl font-semibold text-gray-700 mb-6 mt-6 inline-block pb-3 border-b-[1px] border-gray-300">
-                                {response.title} ({response.responses?.length})
-                            </h1>
-                            <div className="grid grid-cols-1 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
-                                {response.responses?.map((form: any) => (
-                                    <SubmissionCard form={form} key={form.responseId} />
-                                ))}
-                            </div>
-                        </div>
-                    );
-                })}
-        </>
+        <TableContainer component={Paper}>
+            <StyledTableContainer>
+                <Table aria-label="customized table w-full">
+                    <TableHead className="!rounded-b-none">
+                        <TableRow>
+                            <StyledTableCell>Data owner</StyledTableCell>
+                            <StyledTableCell>Form Title</StyledTableCell>
+                            {requestedForDeletionOnly && <StyledTableCell>Response ID</StyledTableCell>}
+                            {requestedForDeletionOnly && <StyledTableCell>Status</StyledTableCell>}
+                            <StyledTableCell align="right">{requestedForDeletionOnly ? 'Requested date' : 'Submission date'}</StyledTableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody className="w-full">
+                        {Array.isArray(responses) &&
+                            responses.map((response: StandardFormResponseDto, idx: number) => (
+                                <StyledTableRow
+                                    key={response.responseId + idx}
+                                    onClick={() => {
+                                        handleSubmissionCLick(response.responseId);
+                                    }}
+                                >
+                                    <StyledTableCell component="th" scope="row">
+                                        {response.dataOwnerIdentifier || 'Anonymous'}
+                                    </StyledTableCell>
+
+                                    <StyledTableCell>{response.formTitle}</StyledTableCell>
+                                    {requestedForDeletionOnly && <StyledTableCell>{response.responseId}</StyledTableCell>}
+                                    {requestedForDeletionOnly && (
+                                        <StyledTableCell>
+                                            <RequestForDeletionBadge deletionStatus={response.deletionStatus || 'pending'} />
+                                        </StyledTableCell>
+                                    )}
+
+                                    <StyledTableCell align="right">{response.createdAt && toLocaleString(new Date(response.createdAt))}</StyledTableCell>
+                                </StyledTableRow>
+                            ))}
+                    </TableBody>
+                </Table>
+            </StyledTableContainer>
+        </TableContainer>
     );
 };
 

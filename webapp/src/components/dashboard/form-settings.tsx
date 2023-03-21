@@ -16,8 +16,6 @@ import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 export default function FormSettingsTab() {
     const form = useAppSelector((state) => state.form);
     const [patchFormSettings] = usePatchFormSettingsMutation();
-    const [isPinned, setIsPinned] = useState(!!form?.settings?.pinned);
-    const [isPrivate, setIsPrivate] = useState(!!form?.settings?.private);
     const workspace = useAppSelector((state) => state.workspace);
     const [customUrl, setCustomUrl] = useState(form?.settings?.customUrl || '');
     const isCustomDomain = !!workspace.customDomain;
@@ -35,32 +33,39 @@ export default function FormSettingsTab() {
             const settings = response.data.settings;
             dispatch(setFormSettings(settings));
             toast('Form Updated!!', { type: 'success', toastId: 'successToast' });
-        } else if (response.error) {
-            setError(true);
-            toast(response.error.data, { type: 'error', toastId: 'errorToast' });
+        } else {
+            toast('Something went wrong.', { type: 'error' });
+            return response.error;
         }
     };
 
     const onPinnedChange = (event: any) => {
-        patchSettings({ pinned: !isPinned }).then((res) => {
-            setIsPinned(!isPinned);
-        });
+        patchSettings({ pinned: !form?.settings?.pinned })
+            .then((res) => {})
+            .catch((e) => {
+                toast(e.data, { type: 'error', toastId: 'errorToast' });
+            });
     };
 
     const onPrivateChanged = () => {
-        patchSettings({ private: !isPrivate }).then((res) => {
-            setIsPrivate(!isPrivate);
-        });
+        patchSettings({ private: !form?.settings?.private })
+            .then((res) => {})
+            .catch((e: any) => {
+                toast(e.data, { type: 'error', toastId: 'errorToast' });
+            });
     };
 
-    const onBlur = () => {
+    const onBlur = async () => {
         if (!customUrl) {
             setCustomUrl(form.settings?.customUrl || form.formId);
             setError(false);
         }
         if (error || form.settings?.customUrl === customUrl || !customUrl) return;
 
-        patchSettings({ customUrl }).catch((e) => {});
+        const isError = await patchSettings({ customUrl });
+        if (isError) {
+            setError(true);
+        }
     };
 
     const getFirstFiveSlugName = (slug: any) => {
@@ -73,19 +78,22 @@ export default function FormSettingsTab() {
     return (
         <div className="max-w-[800px]">
             <div className=" flex flex-col">
-                <div className="text-xl font-bold text-black">Pinned</div>
-                <div className="flex w-full justify-between items-center h-14 text-gray-800">
-                    <div>Show this form in pinned section</div>
-                    <Switch data-testid="pinned-switch" checked={isPinned} onClick={onPinnedChange} />
-                </div>
-            </div>
-            <div className=" flex flex-col">
                 <div className="text-xl font-bold text-black">Hide Form</div>
                 <div className="flex w-full justify-between items-center h-14 text-gray-800">
                     <div>Do not show this form in workspace page.</div>
-                    <Switch data-testid="private-switch" checked={isPrivate} onClick={onPrivateChanged} />
+                    <Switch data-testid="private-switch" checked={!!form?.settings?.private} onClick={onPrivateChanged} />
                 </div>
             </div>
+            {!form?.settings?.private && (
+                <div className=" flex flex-col">
+                    <div className="text-xl font-bold text-black">Pinned</div>
+                    <div className="flex w-full justify-between items-center h-14 text-gray-800">
+                        <div>Show this form in pinned section</div>
+                        <Switch data-testid="pinned-switch" checked={!!form?.settings?.pinned} onClick={onPinnedChange} />
+                    </div>
+                </div>
+            )}
+
             <Divider className="mb-6 mt-2" />
             <div className="flex justify-between items-start w-full">
                 <div className={`text-xl font-bold w-full text-black mb-12`}>Custom Slug</div>

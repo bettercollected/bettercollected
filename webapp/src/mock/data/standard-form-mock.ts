@@ -1,6 +1,4 @@
-import { StandardFormDto } from '@app/models/dtos/form';
-
-export const dashboardFormMock: StandardFormDto = {
+export const dashboardFormMock = {
     formId: '1HsoSajeOrNZhdddDwquVzwIHp1b9UHccZp8AiYFNslk',
     title: 'Contact information',
     settings: {

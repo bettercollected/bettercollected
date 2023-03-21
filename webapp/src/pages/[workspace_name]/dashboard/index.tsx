@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import Image from 'next/image';
 import Link from 'next/link';
@@ -25,7 +25,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
 
     const breakpoint = useBreakpoint();
 
-    const forms = workspaceForms?.data;
+    const forms = workspaceForms?.data?.items;
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://';
@@ -40,7 +40,13 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                 <h1 className="font-extrabold text-3xl mb-3">Welcome to {workspace.title}!</h1>
             </div>
             <div className="flex items-center flex-col md:flex-row w-full md:w-auto md:space-x-5 space-y-5 md:space-y-0 mb-3 md:mb-0">
-                <a href={getWorkspaceUrl()} referrerPolicy="no-referrer" target="_blank" className="rounded-xl w-full text-center text-sm  bg-blue-500 text-white px-5 py-3" rel="noreferrer">
+                <a
+                    href={getWorkspaceUrl()}
+                    referrerPolicy="no-referrer"
+                    target="_blank"
+                    className="relative inline-flex shrink-0 items-center justify-center overflow-hidden text-center text-xs font-medium tracking-wider outline-none transition-all sm:text-sm md:ml-3 w-full sm:w-auto !px-8 py-3 !rounded-xl bg-gray-800 text-white hover:-translate-y-0.5 hover:shadow-large focus:-translate-y-0.5 focus:shadow-large focus:outline-none h-10 sm:h-12"
+                    rel="noreferrer"
+                >
                     Go to Workspace
                 </a>
                 <ImportFormsMenu />
@@ -83,7 +89,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <p className="text-xl text-grey  p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 15) : toEndDottedStr(form.title, 30)}</p>
+                                                    <p className="text-xl text-grey  p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.title || 'Untitled', 15) : toEndDottedStr(form?.title || 'Untitled', 30)}</p>
                                                 </div>
                                                 {form?.description && (
                                                     <p className="text-base text-softBlue m-0 p-0 w-full">
@@ -95,7 +101,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
 
                                             <div className="flex pt-3 justify-between">
                                                 {<div className="rounded space-x-2 text-xs px-2 flex py-1 items-center text-gray-500 bg-gray-100">{form?.settings?.private ? 'Hidden' : 'Public'}</div>}
-                                                {form.settings?.pinned && <PushPin className="rotate-45" />}
+                                                {form?.settings?.pinned && <PushPin className="rotate-45" />}
                                             </div>
                                         </div>
                                     </div>

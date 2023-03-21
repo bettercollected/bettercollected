@@ -2,10 +2,6 @@ import React, { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
-import _ from 'lodash';
-
-import Checkbox from '@mui/material/Checkbox';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -19,13 +15,14 @@ import { toast } from 'react-toastify';
 
 import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-badge';
 import environments from '@app/configs/environments';
+import globalConstants from '@app/constants/global';
 import { ToastId } from '@app/constants/toastId';
+import DynamicContainer from '@app/containers/DynamicContainer';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { IGetWorkspaceSubmissionQuery } from '@app/store/workspaces/types';
 import { toMonthDateYearStr } from '@app/utils/dateUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
-import { requestForDeletionProps } from '@app/utils/validationUtils';
 
 import BreadcrumbsRenderer from '../form/renderer/breadcrumbs-renderer';
 import FormRenderer from '../form/renderer/form-renderer';
@@ -74,6 +71,8 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
 
     let submissionId: string = (router?.query?.sub_id as string) ?? '';
 
+    const [total, setTotal] = useState(0);
+
     const [responses, setResponses] = useState<Array<any>>([]);
 
     useEffect(() => {
@@ -94,7 +93,7 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
 
     useEffect(() => {
         if (!!formId && !!workspaceId) {
-            fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${workspaceId}/forms/${formId}/submissions?request_for_deletion=${requestedForDeletion}`, {
+            fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${workspaceId}/forms/${formId}/submissions?request_for_deletion=${requestedForDeletion}&page=${page + 1}&size=${globalConstants.pageSize}`, {
                 credentials: 'include',
                 headers: {
                     'Access-Control-Allow-origin': environments.API_ENDPOINT_HOST
@@ -102,12 +101,14 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
             })
                 .then((data) => {
                     data.json().then((d) => {
-                        setResponses(d);
+                        // console.log(d)
+                        setTotal(d.total);
+                        setResponses(d.items);
                     });
                 })
                 .catch((e) => console.log(e));
         }
-    }, [formId, workspaceId, requestedForDeletion]);
+    }, [formId, workspaceId, requestedForDeletion, page]);
 
     const handleSubmissionClick = (responseId: any) => {
         if (!requestedForDeletion)
@@ -129,9 +130,9 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
         });
     };
 
-    const handlePageChange = () => {
+    const handlePageChange = (e: any, page: number) => {
         //TODO: fetch api to call the next page
-        console.log('hello');
+        setPage(page);
     };
 
     const breadcrumbsItem = [
@@ -150,7 +151,7 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
             <>
                 <div className="flex flex-col md:flex-row justify-between w-full">
                     <h1 data-testid="all-submissions-renderer" className="text-2xl font-extrabold mb-4">
-                        {requestedForDeletion ? 'Total deletion requests' : 'Total Submissions'} ({responses.length})
+                        {requestedForDeletion ? 'Total deletion requests' : 'Total Submissions'} ({total})
                     </h1>
                 </div>
 
@@ -166,28 +167,29 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
                                 </TableRow>
                             </TableHead>
                             <TableBody className="w-full">
-                                {responses.map((row: any) => {
-                                    return (
-                                        <StyledTableRow key={row.responseId} onClick={() => handleSubmissionClick(row?.responseId)}>
-                                            <StyledTableCell component="th" scope="row">
-                                                {!row.dataOwnerIdentifier ? 'Anonymous' : row.dataOwnerIdentifier}
-                                            </StyledTableCell>
-                                            {requestedForDeletion && <StyledTableCell>{row.responseId}</StyledTableCell>}
-                                            {requestedForDeletion && (
-                                                <StyledTableCell>
-                                                    <RequestForDeletionBadge deletionStatus={row?.deletionStatus} />
+                                {Array.isArray(responses) &&
+                                    responses.map((row: any, idx: number) => {
+                                        return (
+                                            <StyledTableRow key={row.responseId + idx} onClick={() => handleSubmissionClick(row?.responseId)}>
+                                                <StyledTableCell component="th" scope="row">
+                                                    {!row.dataOwnerIdentifier ? 'Anonymous' : row.dataOwnerIdentifier}
                                                 </StyledTableCell>
-                                            )}
-                                            <StyledTableCell align="right">{row.createdAt && toMonthDateYearStr(new Date(row.createdAt))}</StyledTableCell>
-                                        </StyledTableRow>
-                                    );
-                                })}
+                                                {requestedForDeletion && <StyledTableCell>{row.responseId}</StyledTableCell>}
+                                                {requestedForDeletion && (
+                                                    <StyledTableCell>
+                                                        <RequestForDeletionBadge deletionStatus={row?.deletionStatus} />
+                                                    </StyledTableCell>
+                                                )}
+                                                <StyledTableCell align="right">{row.createdAt && toMonthDateYearStr(new Date(row.createdAt))}</StyledTableCell>
+                                            </StyledTableRow>
+                                        );
+                                    })}
                             </TableBody>
                         </Table>
                     </StyledTableContainer>
                 </TableContainer>
                 {!responses.length && <EmptyFormsView description="No submissions" className="border-[1px] border-gray-100 rounded-b-lg !rounded-t-none border-t-0 shadow" />}
-                <TablePagination component="div" rowsPerPageOptions={[]} rowsPerPage={7} count={responses.length} page={page} onPageChange={handlePageChange} />
+                {Array.isArray(responses) && total > globalConstants.pageSize && <TablePagination component="div" rowsPerPageOptions={[]} rowsPerPage={globalConstants.pageSize} count={total} page={page} onPageChange={handlePageChange} />}
             </>
         );
     };
@@ -195,11 +197,11 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
     if (isLoading) return <FullScreenLoader />;
 
     return (
-        <>
+        <DynamicContainer>
             {!!submissionId && <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />}
             {!submissionId && <AllSubmissionsRenderer />}
             {!!form && !!submissionId && <FormRenderer form={form.form} response={form.response} />}
-        </>
+        </DynamicContainer>
     );
 }
 

@@ -3,8 +3,9 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import environments from '@app/configs/environments';
 import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { GoogleFormDto, GoogleMinifiedFormDto } from '@app/models/dtos/googleForm';
+import { Page } from '@app/models/dtos/page';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { IGetAllSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
+import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
@@ -40,13 +41,19 @@ export const workspacesApi = createApi({
         getMinifiedForms: builder.query<Array<GoogleMinifiedFormDto>, void>({
             query: () => ({
                 url: '/google/import',
-                method: 'GET'
+                method: 'GET',
+                refetchOnMountOrArgChange: true,
+                refetchOnReconnect: true,
+                refetchOnFocus: true
             })
         }),
         getGoogleForm: builder.query<GoogleFormDto, string>({
             query: (id) => ({
                 url: `/google/import/${id}`,
-                method: 'GET'
+                method: 'GET',
+                refetchOnMountOrArgChange: true,
+                refetchOnReconnect: true,
+                refetchOnFocus: true
             })
         }),
         importForm: builder.mutation<any, ImportFormQueryInterface>({
@@ -69,14 +76,18 @@ export const workspacesApi = createApi({
             query: () => ({
                 url: `/typeform/import`,
                 method: 'GET',
-                refetchOnFocus: false
+                refetchOnMountOrArgChange: true,
+                refetchOnReconnect: true,
+                refetchOnFocus: true
             })
         }),
         getTypeform: builder.query<any, string>({
             query: (form_id: string) => ({
                 url: `/typeform/import/${form_id}`,
                 method: 'GET',
-                refetchOnFocus: false
+                refetchOnMountOrArgChange: true,
+                refetchOnReconnect: true,
+                refetchOnFocus: true
             })
         }),
         getWorkspace: builder.query<WorkspaceDto, string>({
@@ -92,7 +103,7 @@ export const workspacesApi = createApi({
                 method: 'GET'
             })
         }),
-        getWorkspaceForms: builder.query<Array<StandardFormDto>, any>({
+        getWorkspaceForms: builder.query<Page<StandardFormDto>, any>({
             query: (body) => ({
                 url: `/workspaces/${body.workspace_id}/forms${!!body.form_id ? `/${body.form_id}` : ''}`,
                 method: 'GET'
@@ -106,7 +117,14 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
-        getWorkspaceSubmissions: builder.query<Array<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
+        getFormsSubmissions: builder.query<Page<StandardFormResponseDto>, IGetFormSubmissionsQuery>({
+            query: (query) => ({
+                url: `/workspaces/${query.workspaceId}/forms/${query.formId}/submissions?request_for_deletion=${query.requestedForDeletionOly}`,
+                method: 'GET'
+            }),
+            providesTags: [WORKSPACE_TAGS]
+        }),
+        getWorkspaceSubmissions: builder.query<Page<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspaceId}/submissions`,
                 params: {
@@ -116,12 +134,14 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
-        getWorkspaceAllSubmissions: builder.query<Array<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
+        getWorkspaceAllSubmissions: builder.query<Page<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
             query: (query: IGetAllSubmissionsQuery) => {
                 return {
                     url: `/workspaces/${query.workspaceId}/allSubmissions`,
                     params: {
-                        request_for_deletion: query.requestedForDeletionOly
+                        request_for_deletion: query.requestedForDeletionOly,
+                        page: query.page || 1,
+                        size: query.size || 50
                     },
                     method: 'GET'
                 };

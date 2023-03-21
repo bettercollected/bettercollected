@@ -1,8 +1,6 @@
 import React from 'react';
 
-import environments from '@app/configs/environments';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
-import { StandardFormDto } from '@app/models/dtos/form';
 import SingleFormPage from '@app/pages/forms/[id]';
 import { checkHasClientDomain } from '@app/utils/serverSidePropsUtils';
 
@@ -34,27 +32,9 @@ export async function getServerSideProps(_context: any) {
             notFound: true
         };
     }
-    let form: StandardFormDto | null = null;
-
-    try {
-        if (globalProps.workspaceId) {
-            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace.id}/forms/${slug}`).catch((e) => e);
-            form = (await formResponse?.json().catch((e: any) => e)) ?? null;
-        }
-    } catch (err) {
-        form = null;
-        console.error(err);
-    }
-
-    if (!form) {
-        return {
-            notFound: true
-        };
-    }
     return {
         props: {
             ...globalProps,
-            form,
             slug,
             back
         }

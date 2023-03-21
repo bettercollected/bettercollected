@@ -68,7 +68,7 @@ export default function FormPage(props: any) {
             onClick: () => Router.push(`/${props?.workspace?.workspaceName}/dashboard`)
         },
         {
-            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.title, 30) : form.title
+            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.title, 30) : form?.title
         }
     ];
 
@@ -105,7 +105,7 @@ export async function getServerSideProps(_context: any) {
     let form = null;
     const config = getServerSideAuthHeaderConfig(_context);
     try {
-        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms?form_id=${form_id}`, config);
+        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${form_id}`, config);
         form = (await formResponse?.json().catch((e: any) => e)) ?? null;
         if (!form) {
             return {

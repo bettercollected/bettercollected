@@ -29,7 +29,8 @@ const globalConstants = {
     videoTypes: ['video/H261', 'video/H263', 'video/H264', 'video/H265', 'video/mp4', 'video/ogg', 'video/quicktime', 'video/mov', 'video/x-msvideo', 'video/x-ms-wmv'],
     imageTypes: ['image/jpg', 'image/jpeg', 'image/png', 'image/gif', 'image/svg+xml'],
     modelTypes: ['model/gltf-binary', 'model/gltf+json', '.glb'],
-    audioTypes: ['audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/ogg']
+    audioTypes: ['audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/ogg'],
+    pageSize: 10
 };
 
 export default globalConstants;

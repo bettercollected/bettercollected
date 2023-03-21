@@ -10,6 +10,7 @@ import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
 import environments from '@app/configs/environments';
 import { ToastId } from '@app/constants/toastId';
+import DynamicContainer from '@app/containers/DynamicContainer';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation, usePatchThemeMutation } from '@app/store/workspaces/api';
 import { BrandColor, setWorkspace } from '@app/store/workspaces/slice';
@@ -197,16 +198,18 @@ export default function SettingsProfile() {
         <>
             <SubTitleRenderer title={'Workspace Information'} description={'Update your workspace profile'} />
             <div>
-                <div className=" relative">
-                    <div className="product-image h-44 w-full overflow-hidden md:h-80 xl:h-[380px]">
-                        <Image data-testid="banner-image-display" src={bannerImage} priority layout="fill" objectFit="contain" objectPosition="center" alt={workspace?.title} />
+                <DynamicContainer>
+                    <div className=" relative">
+                        <div className="product-image h-44 w-full overflow-hidden md:h-80 xl:h-[380px]">
+                            <Image data-testid="banner-image-display" src={bannerImage} priority layout="fill" objectFit="cover" objectPosition="center" alt={workspace?.title} />
+                        </div>
                     </div>
-                </div>
-                <div className="product-box relative top-0 bottom-0 pb-24">
-                    <div className="product-image absolute bg-white border-[1px] border-neutral-300 pb-24 hover:border-neutral-400 rounded-full z-10 h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 xl:h-40 xl:w-40 2xl:h-[180px] 2xl:w-[180px] overflow-hidden -top-12 sm:-top-16 md:-top-20 xl:-top-[88px] 2xl:-top-24">
-                        <Image src={profileImage} layout="fill" objectFit="contain" alt={workspace.title} />
+                    <div className="product-box relative top-0 bottom-0 pb-24">
+                        <div className="product-image absolute left-10 bg-white border-[1px] border-neutral-300 pb-24 hover:border-neutral-400 rounded-full z-10 h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 xl:h-40 xl:w-40 2xl:h-[180px] 2xl:w-[180px] overflow-hidden -top-12 sm:-top-16 md:-top-20 xl:-top-[88px] 2xl:-top-24">
+                            <Image src={profileImage} layout="fill" objectFit="contain" alt={workspace.title} />
+                        </div>
                     </div>
-                </div>
+                </DynamicContainer>
                 <div className="flex space-x-6 lg:w-2/3 pb-4">
                     <div className="flex flex-col w-full ">
                         Profile Image

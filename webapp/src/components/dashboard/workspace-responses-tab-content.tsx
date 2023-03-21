@@ -34,7 +34,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
             </div>
         );
 
-    if ((data && Array.isArray(data) && data.length === 0) || isError)
+    if ((data?.items && Array.isArray(data?.items) && data?.items?.length === 0) || isError)
         return (
             <div data-testid="empty-forms-view" className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
                 <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />
@@ -42,7 +42,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
             </div>
         );
 
-    const submissions: Array<StandardFormResponseDto> = data ?? [];
+    const submissions: Array<StandardFormResponseDto> = data?.items ?? [];
 
     const isCustomDomain = window?.location.host !== environments.CLIENT_HOST;
 
@@ -68,7 +68,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
                     <p className="mt-4 p-0">0 forms</p>
                 </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
                 {submissions?.length !== 0 &&
                     submissions?.map((submission: StandardFormResponseDto) => {
                         const slug = submission.responseId;
