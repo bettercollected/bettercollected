@@ -1,5 +1,3 @@
-import GoogleIcon from '@mui/icons-material/Google';
-
 /**
  * Created By: Rupan Chaulagain
  * Date: 2022-10-13

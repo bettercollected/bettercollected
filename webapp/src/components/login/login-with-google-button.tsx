@@ -1,30 +1,25 @@
-import { Google } from '@app/components/icons/brands/google';
-import environments from '@app/configs/environments';
+import ProviderLoginButton from './provider-login-btn';
 
-interface ConnectWithGoogleButtonProps {
+interface ConnectWithProviderButtonProps {
     text: string;
+    url: string;
+    type?: 'light' | 'dark' | 'typeform';
     creator?: boolean;
-    className?: string;
+    isGoogleBtn?: boolean;
 }
 
-ConnectWithGoogleButton.defaultProps = {
+ConnectWithProviderButton.defaultProps = {
     creator: false,
-    className: ''
+    isGoogleBtn: false,
+    type: 'dark'
 };
 
-export default function ConnectWithGoogleButton(props: ConnectWithGoogleButtonProps) {
-    const { text, creator } = props;
+export default function ConnectWithProviderButton(props: ConnectWithProviderButtonProps) {
+    const { url, text, type, creator, isGoogleBtn } = props;
 
     return (
-        <a
-            href={`${environments.API_ENDPOINT_HOST}/auth/google/basic${creator ? '?creator=true' : ''}`}
-            referrerPolicy="unsafe-url"
-            className={`bg-[#1a73e8] hover:bg-blue-600 max-w-[250px] mx-auto flex w-full items-center rounded-2xl p-[2px] ${props.className}`}
-        >
-            <div className="rounded-full bg-white p-2">
-                <Google />
-            </div>
-            <div className="flex items-center w-full justify-center font-bold text-white text-[12px]">{text}</div>
+        <a href={`${url}${creator ? '?creator=true' : ''}`} referrerPolicy="unsafe-url" className={`mx-auto w-fit flex items-center justify-center`}>
+            <ProviderLoginButton label={text} type={type} onClick={() => {}} isGoogle={isGoogleBtn} />
         </a>
     );
 }

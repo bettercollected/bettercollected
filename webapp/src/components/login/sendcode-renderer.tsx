@@ -1,8 +1,9 @@
 import { useState } from 'react';
 
-import ConnectWithGoogleButton from '@app/components/login/login-with-google-button';
+import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
 import FormInput from '@app/components/ui/FormInput';
 import Button from '@app/components/ui/button';
+import environments from '@app/configs/environments';
 import { useAppSelector } from '@app/store/hooks';
 
 export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustomDomain }: any) {
@@ -43,7 +44,7 @@ export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustom
                 <span className="flex-shrink text-xs mx-4 text-gray-400">or</span>
                 <div className="border-t w-5 border-gray-200"></div>
             </div>
-            <ConnectWithGoogleButton className="!w-full !max-w-full" text="Continue with Google" />
+            <ConnectWithProviderButton url={`${environments.API_ENDPOINT_HOST}/auth/google/basic`} text="Sign in with Google" isGoogleBtn creator />
         </form>
     );
 }
