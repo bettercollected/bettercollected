@@ -1,6 +1,7 @@
+from common.services.http_client import HttpClient
+
 from dependency_injector import containers, providers
 
-from common.services.http_client import HttpClient
 from googleform.app.repositories.form import FormRepository
 from googleform.app.repositories.form_response import FormResponseRepository
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository

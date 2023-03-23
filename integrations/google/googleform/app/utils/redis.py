@@ -1,8 +1,9 @@
 """Redis client class utility."""
 import logging
 
-from redis import asyncio as aioredis
 from googleform.config import redis as redis_conf
+
+from redis import asyncio as aioredis
 
 
 class RedisClient(object):

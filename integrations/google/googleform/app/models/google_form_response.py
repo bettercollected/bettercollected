@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -16,9 +16,7 @@ class GoogleAnswer(BaseModel):
 
 
 class GoogleFormResponseDto(BaseModel):
-    """
-    Data transfer object for a response to a Google Form.
-    """
+    """Data transfer object for a response to a Google Form."""
 
     responseId: Optional[str]
     createTime: Optional[str]

@@ -1,8 +1,8 @@
 from datetime import datetime
 
-import google.oauth2.credentials
-
 from common.constants import GOOGLE_DATETIME_FORMAT
+
+import google.oauth2.credentials
 
 
 def dict_to_credential(credentials_dict):

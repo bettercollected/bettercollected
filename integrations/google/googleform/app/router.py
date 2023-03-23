@@ -9,6 +9,7 @@ Resources:
 from typing import Type
 
 from classy_fastapi import Routable
+
 from fastapi import APIRouter
 
 from googleform.app.controllers.auth_router import AuthRoutes

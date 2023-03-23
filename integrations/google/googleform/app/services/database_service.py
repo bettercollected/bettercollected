@@ -2,9 +2,10 @@ import asyncio
 import logging
 
 from beanie import init_beanie
-from motor.motor_asyncio import AsyncIOMotorClient
 
 from googleform.config import settings
+
+from motor.motor_asyncio import AsyncIOMotorClient
 
 log = logging.getLogger(__name__)
 mongo_settings = settings.mongo_settings

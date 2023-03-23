@@ -2,9 +2,11 @@ from http import HTTPStatus
 from typing import Any, Dict, Optional
 
 from classy_fastapi import Routable, get, post
-from fastapi import APIRouter, Depends
 
 from common.models.form_import import FormImportResponse
+
+from fastapi import Depends
+
 from googleform.app.containers import Container
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.app.services.transformer import GoogleFormTransformerService
@@ -13,9 +15,7 @@ from googleform.app.services.user_service import get_user_credential
 
 class GoogleFormRouter(Routable):
     def __init__(self, *args, **kwargs):
-        """
-        This class defines the routes for interacting with the Google forms.
-        """
+        """This class defines the routes for interacting with the Google forms."""
 
         # Injecting dependencies
         super().__init__(*args, **kwargs)

@@ -1,8 +1,7 @@
-""""""
 import logging
 
-from googleform.wsgi import ApplicationLoader
 from googleform.version import __version__
+from googleform.wsgi import ApplicationLoader
 
 # initialize logging
 log = logging.getLogger(__name__)

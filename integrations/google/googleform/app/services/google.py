@@ -19,7 +19,8 @@ class GoogleService:
         Args:
             credentials (dict): A dictionary containing the credentials' information.
             service_name (str): The name of the service to build.
-            version (str, optional): The version of the service to build. Defaults to "v1".
+            version (str, optional): The version of the service to build.
+                Defaults to "v1".
 
         Returns:
             googleapiclient.discovery.Resource: A Google service object.
@@ -64,6 +65,10 @@ class GoogleService:
         drive_service = self._build_service(
             credentials=credentials, service_name="drive", version="v3"
         )
+        fields = (
+            "nextPageToken, files(id, name, webViewLink, iconLink, "
+            "createdTime, modifiedTime, owners)"
+        )
         while max_page_size > 0:
             max_page_size -= 1
             response = (
@@ -71,7 +76,7 @@ class GoogleService:
                 .list(
                     q="mimeType='application/vnd.google-apps.form'",
                     spaces="drive",
-                    fields="nextPageToken, files(id, name, webViewLink, iconLink, createdTime, modifiedTime, owners)",
+                    fields=fields,
                     pageToken=page_token,
                 )
                 .execute()

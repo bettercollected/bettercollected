@@ -2,18 +2,20 @@ from datetime import datetime
 from http import HTTPStatus
 from typing import Any
 
+from common.base.repo import AbstractOauthRepository
+from common.constants import MESSAGE_DATABASE_EXCEPTION
+from common.enums.form_provider import FormProvider
+
 from fastapi import HTTPException
+
+from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
+
 from pymongo.errors import (
     InvalidOperation,
     InvalidURI,
     NetworkTimeout,
     OperationFailure,
 )
-
-from common.base.repo import AbstractOauthRepository
-from common.constants import MESSAGE_DATABASE_EXCEPTION
-from common.enums.form_provider import FormProvider
-from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 
 
 class OauthCredentialRepository(AbstractOauthRepository):
@@ -28,7 +30,8 @@ class OauthCredentialRepository(AbstractOauthRepository):
             provider (FormProvider): The provider of the form.
 
         Returns:
-            Oauth2CredentialDocument | None: An OAuth2 credential document if found, otherwise None.
+            Oauth2CredentialDocument | None: An OAuth2 credential
+                document if found, otherwise None.
 
         Raises:
             HTTPException: If there is an error connecting to the database.
@@ -53,8 +56,9 @@ class OauthCredentialRepository(AbstractOauthRepository):
         Adds an OAuth2 credential document.
 
         Args:
-            email (str): The email of the user to update the credential for.
-            credentials (Any): The credential object returned after google authorization.
+            email (str): The email of the user to update the credential.
+            credentials (Any): The credential object returned after
+                google authorization.
             provider (FormProvider): A form provider. Defaults to "google".
 
         Returns:
@@ -84,8 +88,8 @@ class OauthCredentialRepository(AbstractOauthRepository):
         """
         Update an OAuth2 credential document.
 
-        If an OAuth2 credential document with the given email and provider already exists, it will be updated.
-        Otherwise, a new document will be created.
+        If an OAuth2 credential document with the given email and provider
+        already exists, it will be updated. Otherwise, a new document will be created.
 
         Args:
             email (str): The email of the user to update the credential for.

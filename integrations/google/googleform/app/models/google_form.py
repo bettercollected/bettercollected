@@ -4,18 +4,14 @@ from pydantic import BaseModel
 
 
 class GoogleChoiceQuestionDto(BaseModel):
-    """
-    Data transfer object for Google Forms choice questions.
-    """
+    """Data transfer object for Google Forms choice questions."""
 
     type: Optional[str]
     options: Optional[List[Any]]
 
 
 class GoogleQuestionDto(BaseModel):
-    """
-    Data transfer object for Google Forms questions.
-    """
+    """Data transfer object for Google Forms questions."""
 
     questionId: Optional[str]
     required: Optional[bool]
@@ -28,9 +24,7 @@ class GoogleQuestionDto(BaseModel):
 
 
 class GoogleFormItemQuestionDto(BaseModel):
-    """
-    Data transfer object for Google Forms question items.
-    """
+    """Data transfer object for Google Forms question items."""
 
     question: Optional[GoogleQuestionDto]
 
@@ -59,18 +53,14 @@ class GoogleGroupQuestion(BaseModel):
 
 
 class GoogleFormQuestionGroupItem(BaseModel):
-    """
-    Data transfer object for Google Forms question group items.
-    """
+    """Data transfer object for Google Forms question group items."""
 
     questions: List[GoogleGroupQuestion] = []
     grid: Optional[GoogleGrid] = GoogleGrid()
 
 
 class GoogleInfoDto(BaseModel):
-    """
-    Data transfer object for general information about a Google Form.
-    """
+    """Data transfer object for general information about a Google Form."""
 
     title: Optional[str]
     description: Optional[str]
@@ -100,9 +90,7 @@ class GoogleVideoItem(BaseModel):
 
 
 class GoogleFormItemsDto(BaseModel):
-    """
-    Data transfer object for items in a Google Form.
-    """
+    """Data transfer object for items in a Google Form."""
 
     itemId: Optional[str]
     title: Optional[str]
@@ -115,9 +103,7 @@ class GoogleFormItemsDto(BaseModel):
 
 
 class GoogleFormDto(BaseModel):
-    """
-    Data transfer object for a Google Form.
-    """
+    """Data transfer object for a Google Form."""
 
     formId: Optional[str]
     info: Optional[GoogleInfoDto]

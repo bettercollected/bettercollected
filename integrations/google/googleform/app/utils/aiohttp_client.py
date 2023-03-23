@@ -1,8 +1,8 @@
 """Aiohttp client class utility."""
-import logging
 import asyncio
-from typing import Optional
+import logging
 from socket import AF_INET
+from typing import Optional
 
 import aiohttp
 

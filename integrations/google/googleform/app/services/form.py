@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional
 
 from common.enums.form_provider import FormProvider
+
 from googleform.app.repositories.form import FormRepository
 from googleform.app.schemas.google_form import GoogleFormDocument
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
@@ -59,8 +60,9 @@ class FormService:
             form_id: The ID of the form to update.
             form: The updated form data.
             data_owner_field: Question id indicating the owner from its answer.
-                e.g., What is your email address? -> A question with let's say an id "3e555b2b"
-                      Responder responding to the form fills up this answer in the field, is set as owner.
+                e.g., What is your email address? -> A question with let's say
+                an id "3e555b2b", Responder responding to the form fills up
+                this answer in the field, is set as owner.
 
         Returns: The updated form.
         """

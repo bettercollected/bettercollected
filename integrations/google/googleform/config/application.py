@@ -1,13 +1,13 @@
 """Application configuration - FastAPI."""
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic import BaseSettings
 
 from googleform.config.database import MongoSettings
 from googleform.version import __version__
 
-from pathlib import Path
+from pydantic import BaseSettings
 
 
 default_dot_env_path = (

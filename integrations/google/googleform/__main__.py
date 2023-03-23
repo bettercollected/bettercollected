@@ -1,4 +1,3 @@
-""""""
 from googleform.cli import cli
 
 

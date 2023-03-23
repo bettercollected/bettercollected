@@ -2,6 +2,7 @@
 from multiprocessing import cpu_count
 
 import click
+
 from googleform import ApplicationLoader
 from googleform.app import get_application
 from googleform.cli.utils import validate_directory

@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional
 
 from common.enums.form_provider import FormProvider
+
 from googleform.app.repositories.form_response import FormResponseRepository
 from googleform.app.schemas.google_form_response import GoogleFormResponseDocument
 
@@ -66,8 +67,9 @@ class FormResponseService:
             response_id: The ID of the form response to update.
             form_response: The updated form response data.
             data_owner_field: Question id indicating the owner from its answer.
-                e.g., What is your email address? -> A question with let's say an id "3e555b2b"
-                      Responder responding to the form fills up this answer in the field, is set as owner.
+                e.g., What is your email address? -> A question with let's say
+                an id "3e555b2b", Responder responding to the form fills up this
+                answer in the field, is set as owner.
 
         Returns: The updated form response.
         """
