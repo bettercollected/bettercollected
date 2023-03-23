@@ -1,5 +1,5 @@
 # This digest SHA points to python:3.9-slim-bullseye tag
-FROM python:3.10 as builder
+FROM python:3.10 AS builder
 LABEL maintainer="Bibishan Pandey, bibishan.b.pandey@gmail.com"
 
 # Configure environment variables

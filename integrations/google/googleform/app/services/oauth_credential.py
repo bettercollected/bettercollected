@@ -111,6 +111,4 @@ class OauthCredentialService:
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail=MESSAGE_OAUTH_MISSING_REFRESH_TOKEN,
             )
-        if oauth_credential and oauth_credential.credentials.refresh_token:
-            return await self.oauth_google_service.fetch_oauth_token(oauth_credential)
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=MESSAGE_NOT_FOUND)
+        return await self.oauth_google_service.fetch_oauth_token(oauth_credential)

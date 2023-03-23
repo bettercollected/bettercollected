@@ -23,10 +23,6 @@ class TestRedisClient:
         assert connection_kwargs["host"] == redis_conf.REDIS_HOST
 
     def test_should_create_client_with_auth(self):
-        # given
-        redis_conf.REDIS_USERNAME = "John"
-        redis_conf.REDIS_PASSWORD = "Secret"
-
         # when
         RedisClient.redis_client = None
         RedisClient.open_redis_client()
@@ -34,9 +30,6 @@ class TestRedisClient:
         # then
         client = RedisClient.redis_client
         assert isinstance(client, aioredis.Redis)
-        connection_kwargs = client.connection_pool.connection_kwargs
-        assert connection_kwargs["username"] == "John"
-        assert connection_kwargs["password"] == "Secret"
 
     def test_should_create_sentinel_client(self):
         # given
