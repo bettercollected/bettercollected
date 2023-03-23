@@ -1,6 +1,8 @@
 """Application implementation - middlewares."""
 from fastapi import FastAPI
+
 from loguru import logger
+
 from starlette.requests import Request
 from starlette.responses import Response
 

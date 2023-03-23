@@ -9,9 +9,9 @@ Resources:
 from typing import Type
 
 from classy_fastapi import Routable
-from fastapi import APIRouter
 
 from common.utils.router import CustomAPIRouter
+
 from typeform.app.controllers import form_router
 from typeform.app.controllers.auth_router import AuthRoutes
 from typeform.config import settings

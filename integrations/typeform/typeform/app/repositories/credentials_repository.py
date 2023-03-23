@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import List
 
+from common.models.user import Token, UserInfo
+
 from typeform.app.schemas.credential import CredentialDocument
-from common.models.user import UserInfo, Token
 
 
 # TODO : Refactor this

@@ -2,8 +2,8 @@
 import logging
 
 import click
-from typeform.cli.serve import serve
 
+from typeform.cli.serve import serve
 
 cmd_help = "typeform CLI root."
 

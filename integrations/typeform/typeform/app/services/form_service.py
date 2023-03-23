@@ -1,11 +1,13 @@
 import datetime
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
-import requests
+from common.models.form_import import FormImportResponse
+from common.models.user import Credential, Token
+
 from fastapi import HTTPException
 
-from common.models.form_import import FormImportRequestBody, FormImportResponse
-from common.models.user import Credential, Token
+import requests
+
 from typeform.app.services.transformer_service import TypeFormTransformerService
 from typeform.config import settings
 
@@ -24,7 +26,7 @@ def refresh_typeform_token(refresh_token) -> Token:
 
 
 def perform_typeform_request(
-        access_token: str, path: str, params: Dict[str, Any] = None
+    access_token: str, path: str, params: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     api_response = requests.get(
         f"{settings.TYPEFORM_API_URI}{path}",
@@ -38,51 +40,16 @@ def perform_typeform_request(
     return api_response.json()
 
 
-# async def save_typeform(email: str,
-#                         request_form: Dict[str, Any],
-#                         response_data_owner: str):
-#     form = TypeFormDocument(info=request_form, formId=request_form['id'])
-#     existing_form = await TypeFormDocument.find_one(TypeFormDocument.formId == form.formId)
-#     if existing_form:
-#         existing_form.info = request_form
-#         form = existing_form
-#     form.dataOwnerFields.append(response_data_owner)
-#     form.dataOwnerFields = list(set(form.dataOwnerFields))
-#     await form.save()
-#
-#     form_responses = await get_form_responses(email, form.formId)
-#     for response in form_responses:
-#         answers = response['answers']
-#         if not response_data_owner:
-#             data_owner_answer = ""
-#         else:
-#             data_owner_answer_field = list(filter(lambda x: x['field']['id'] == response_data_owner, answers))[0]
-#             data_owner_answer = data_owner_answer_field[data_owner_answer_field['type']]
-#         response_id = response['response_id']
-#         document = await TypeFormResponseDocument.find_one({'responseId': response_id})
-#         if document:
-#             document.response_data = response
-#             document.dataOwnerIdentifier = data_owner_answer
-#         else:
-#             document = TypeFormResponseDocument(
-#                 responseId=response_id,
-#                 formId=form.formId,
-#                 response_data=response,
-#                 dataOwnerIdentifier=data_owner_answer
-#             )
-#         await document.save()
-
-
 async def get_form_responses(access_token, form_id) -> List[Dict[str, Any]]:
     page_size = 1000
-    typeform_responses = get_all_data_without_pagination(page_size,
-                                                         access_token,
-                                                         f"/forms/{form_id}/responses")
+    typeform_responses = get_all_data_without_pagination(
+        page_size, access_token, f"/forms/{form_id}/responses"
+    )
     return typeform_responses
 
 
 def get_all_data_without_pagination(
-        page_size, access_token, path
+    page_size, access_token, path
 ) -> List[Dict[str, Any]]:
     page = 1
     all_data = []
@@ -107,7 +74,8 @@ def get_latest_token(credential: Credential):
     token = Token(
         access_token=credential.access_token, refresh_token=credential.refresh_token
     )
-    # If the token is expired then refresh the token if the refresh token itself is expired then it throws error
+    # If the token is expired then refresh the token if the refresh
+    # token itself is expired then it throws error
     if current_time > expiration_time:
         token = refresh_typeform_token(credential.refresh_token)
 
@@ -128,17 +96,14 @@ async def get_single_form(form_id: str, credential: Credential):
 
 
 async def convert_form(
-        form_import: Dict[str, Any],
-        convert_responses: bool,
-        credential: Credential):
+    form_import: Dict[str, Any], convert_responses: bool, credential: Credential
+):
     access_token = get_latest_token(credential)
     transformer = TypeFormTransformerService()
     standard_form = transformer.transform_form(form_import)
     if convert_responses:
         form_responses = await get_form_responses(access_token, standard_form.form_id)
         standard_responses = transformer.transform_form_responses(form_responses)
-        return FormImportResponse(
-            form=standard_form, responses=standard_responses
-        )
+        return FormImportResponse(form=standard_form, responses=standard_responses)
     else:
         return standard_form

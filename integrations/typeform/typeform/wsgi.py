@@ -2,6 +2,7 @@
 import logging
 
 from gunicorn.app.base import BaseApplication
+
 from typeform.config import gunicorn
 
 
@@ -35,8 +36,8 @@ class ApplicationLoader(BaseApplication):
         """Set gunicorn config given map of setting names to their values.
 
         Args:
-            cfg (typing.Dict[str, typing.Any]): Map of gunicorn setting names to
-                their values.
+            cfg (typing.Dict[str, typing.Any]): Map of gunicorn setting
+                names to their values.
 
         Raises:
             Exception: Raised on config error.

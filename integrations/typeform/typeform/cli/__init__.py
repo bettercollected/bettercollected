@@ -12,5 +12,4 @@ Resources:
 """
 from typeform.cli.cli import cli
 
-
 __all__ = ("cli",)

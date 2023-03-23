@@ -1,4 +1,5 @@
 import pytest
+
 from typeform import ApplicationLoader
 
 

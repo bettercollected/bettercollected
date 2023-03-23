@@ -1,10 +1,12 @@
 import logging
-from typing import Dict, Any
-
-import requests
-from fastapi import HTTPException
+from typing import Any, Dict
 
 from common.models.user import Token, UserInfo
+
+from fastapi import HTTPException
+
+import requests
+
 from typeform.app.repositories.credentials_repository import CredentialRepository
 from typeform.config import settings
 

@@ -1,5 +1,7 @@
-import pytest
 from pydantic.error_wrappers import ValidationError
+
+import pytest
+
 from typeform.app.views import ReadyResponse
 
 

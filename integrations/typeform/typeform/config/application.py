@@ -1,18 +1,18 @@
 """Application configuration - FastAPI."""
-from pydantic import BaseSettings
-
-from typeform.config.database import MongoSettings
-from typeform.version import __version__
-
 import os
 from pathlib import Path
 
 from dotenv import load_dotenv
 
+from pydantic import BaseSettings
+
+from typeform.config.database import MongoSettings
+from typeform.version import __version__
+
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
-        .parent.parent.absolute()
-        .joinpath(".env")
+    .parent.parent.absolute()
+    .joinpath(".env")
 )
 load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
@@ -46,6 +46,7 @@ class Application(BaseSettings):
     VERSION: str = __version__
 
     API_ROOT_PATH: str = "/api/v1"
+    DOCS_URL: str = "/docs"
 
     AUTH_JWT_SECRET: str
 

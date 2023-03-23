@@ -1,4 +1,5 @@
 import pytest
+
 from typeform.cli import cli
 
 

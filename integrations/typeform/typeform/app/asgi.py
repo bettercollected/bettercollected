@@ -1,20 +1,19 @@
 """Application implementation - ASGI."""
 import logging
+
 from fastapi import FastAPI
+
 from fastapi_utils.timing import add_timing_middleware
+
 from loguru import logger
 
-import typeform
-from typeform.app.container import AppContainer, container
+from typeform.app.container import container
+from typeform.app.exceptions import HTTPException, http_exception_handler
 from typeform.app.handlers import init_logging
 from typeform.app.middlewares import include_middlewares
-from typeform.app.services.database_service import init_db, close_db
-from typeform.config import settings
 from typeform.app.router import root_api_router
-from typeform.app.exceptions import (
-    HTTPException,
-    http_exception_handler,
-)
+from typeform.app.services.database_service import close_db, init_db
+from typeform.config import settings
 
 log = logging.getLogger(__name__)
 

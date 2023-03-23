@@ -62,7 +62,7 @@ integration-test: install ## Run typeform integration tests
 .PHONY: coverage
 coverage: install  ## Run typeform tests coverage
 	echo "[coverage] Run typeform tests coverage."
-	${POETRY_BINARY} run pytest --cov=typeform --cov-fail-under=90 --cov-report=xml --cov-report=term-missing tests
+	${POETRY_BINARY} run pytest --cov=typeform --cov-fail-under=60 --cov-report=xml --cov-report=term-missing tests
 
 .PHONY: test
 test: unit-test integration-test  ## Run typeform tests

@@ -1,6 +1,6 @@
 import enum
 from enum import Enum
-from typing import Optional, List, Any, Dict
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -70,7 +70,7 @@ class Choice(BaseModel):
 class FieldProperties(BaseModel):
     description: Optional[str]
     choices: Optional[List[Choice]] = []
-    fields: Optional[List['TypeFormField']] = []
+    fields: Optional[List["TypeFormField"]] = []
     allow_multiple_selection: Optional[bool]
     randomize: Optional[bool]
     allow_other_choice: Optional[bool]

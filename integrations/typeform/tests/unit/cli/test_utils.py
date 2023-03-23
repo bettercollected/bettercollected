@@ -1,8 +1,10 @@
 import os
 from unittest import mock
 
-import pytest
 from click import BadParameter
+
+import pytest
+
 from typeform.cli.utils import validate_directory
 
 

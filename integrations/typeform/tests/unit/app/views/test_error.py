@@ -1,7 +1,9 @@
 from http import HTTPStatus
 
-import pytest
 from pydantic.error_wrappers import ValidationError
+
+import pytest
+
 from typeform.app.views.error import ErrorModel, ErrorResponse
 
 

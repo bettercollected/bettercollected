@@ -1,21 +1,44 @@
 from typing import Any, Dict, List
 
-from fastapi import HTTPException
-from loguru import logger
-
 from common.enums.form_provider import FormProvider
 from common.models.standard_form import (
-    StandardForm, StandardFormSettings, StandardFormField, StandardFieldAttachment, StandardAttachmentProperties,
-    EmbedProvider, StandardFieldProperty, StandardFieldValidations, StandardChoice, StandardFormResponse,
-    StandardFormResponseAnswer, StandardAnswerField, StandardChoiceAnswer, StandardChoicesAnswer, StandardPaymentAnswer,
-    StandardFormFieldType)
+    EmbedProvider,
+    StandardAnswerField,
+    StandardAttachmentProperties,
+    StandardChoice,
+    StandardChoiceAnswer,
+    StandardChoicesAnswer,
+    StandardFieldAttachment,
+    StandardFieldProperty,
+    StandardFieldValidations,
+    StandardForm,
+    StandardFormField,
+    StandardFormFieldType,
+    StandardFormResponse,
+    StandardFormResponseAnswer,
+    StandardFormSettings,
+    StandardPaymentAnswer,
+)
 from common.services.transformer_service import FormTransformerService
-from typeform.app.models.typeform_models import \
-    TypeFormField, Answer, Attachment, TypeFormResponse, TypeFormDto, FieldType, FieldProperties, Validation, Choice
+
+from fastapi import HTTPException
+
+from loguru import logger
+
+from typeform.app.models.typeform_models import (
+    Answer,
+    Attachment,
+    Choice,
+    FieldProperties,
+    FieldType,
+    TypeFormDto,
+    TypeFormField,
+    TypeFormResponse,
+    Validation,
+)
 
 
 class TypeFormTransformerService(FormTransformerService):
-
     def transform_form(self, form: Dict[str, Any]) -> StandardForm:
         try:
             typeform = TypeFormDto(**form)
@@ -24,19 +47,26 @@ class TypeFormTransformerService(FormTransformerService):
                 title=typeform.title,
                 type=typeform.type,
                 fields=self._transform_fields(typeform.fields),
-                settings=self._transform_form_settings(typeform)
+                settings=self._transform_form_settings(typeform),
             )
             return standard_form
         except Exception as error:
             logger.error(f"Error transforming single form response: {error}")
-            raise HTTPException(status_code=500, detail=f"Data transformation failed. {error}")
+            raise HTTPException(
+                status_code=500, detail=f"Data transformation failed. {error}"
+            )
 
-    def transform_form_responses(self, responses: List[Dict[str, Any]]) -> List[StandardFormResponse]:
-        standard_form_responses = [self.transform_single_form_response(response) for response in responses]
+    def transform_form_responses(
+        self, responses: List[Dict[str, Any]]
+    ) -> List[StandardFormResponse]:
+        standard_form_responses = [
+            self.transform_single_form_response(response) for response in responses
+        ]
         return standard_form_responses
 
-    def transform_single_form_response(self,
-                                       response: Dict[str, Any]) -> StandardFormResponse:
+    def transform_single_form_response(
+        self, response: Dict[str, Any]
+    ) -> StandardFormResponse:
         try:
             response = TypeFormResponse(**response)
             standard_form_response = StandardFormResponse(
@@ -45,12 +75,14 @@ class TypeFormTransformerService(FormTransformerService):
                 answers=self._transform_answers(response.answers),
                 created_at=response.landed_at,
                 updated_at=response.submitted_at,
-                published_at=response.submitted_at
+                published_at=response.submitted_at,
             )
             return standard_form_response
         except Exception as error:
             logger.error(f"Error transforming single form response: {error}")
-            raise HTTPException(status_code=500, detail=f"Data transformation failed. {error}")
+            raise HTTPException(
+                status_code=500, detail=f"Data transformation failed. {error}"
+            )
 
     def _transform_fields(self, fields: List[TypeFormField]) -> List[StandardFormField]:
         transformed_fields = list(map(self._transform_field, fields))
@@ -61,7 +93,9 @@ class TypeFormTransformerService(FormTransformerService):
         std_attachment = StandardFieldAttachment()
         std_attachment.type = attachment.type
         std_attachment.href = attachment.href
-        std_attachment.properties = StandardAttachmentProperties(description=attachment.properties.description)
+        std_attachment.properties = StandardAttachmentProperties(
+            description=attachment.properties.description
+        )
         if attachment.href:
             if EmbedProvider.YOUTUBE in attachment.href:
                 std_attachment.embed_provider = EmbedProvider.YOUTUBE
@@ -81,7 +115,7 @@ class TypeFormTransformerService(FormTransformerService):
             validations=self._transform_validations(typeform_field.validations),
             attachment=self._transform_attachment(typeform_field.attachment),
             properties=self._transform_properties(typeform_field.properties),
-            type=standard_type
+            type=standard_type,
         )
         return standard_form_field
 
@@ -90,10 +124,12 @@ class TypeFormTransformerService(FormTransformerService):
         match typeform_field.type:
             case FieldType.CONTACT_INFO | FieldType.ADDRESS:
                 standard_type = StandardFormFieldType.GROUP
-            case FieldType.EMAIL \
-                 | FieldType.PHONE_NUMBER \
-                 | FieldType.NUMBER \
-                 | FieldType.WEBSITE:
+            case (
+                FieldType.EMAIL
+                | FieldType.PHONE_NUMBER
+                | FieldType.NUMBER
+                | FieldType.WEBSITE
+            ):
                 standard_type = StandardFormFieldType.SHORT_TEXT
             case FieldType.LEGAL:
                 standard_type = StandardFormFieldType.MULTIPLE_CHOICE
@@ -116,22 +152,29 @@ class TypeFormTransformerService(FormTransformerService):
         return standard_type
 
     @staticmethod
-    def _transform_validations(typeform_field_validations: Validation) -> StandardFieldValidations:
+    def _transform_validations(
+        typeform_field_validations: Validation,
+    ) -> StandardFieldValidations:
         return StandardFieldValidations(
             required=typeform_field_validations.required,
             max_length=typeform_field_validations.max_length,
             min_value=typeform_field_validations.min_value,
-            max_value=typeform_field_validations.max_value
+            max_value=typeform_field_validations.max_value,
         )
 
-    def _transform_properties(self, typeform_field_properties: FieldProperties) -> StandardFieldProperty:
+    def _transform_properties(
+        self, typeform_field_properties: FieldProperties
+    ) -> StandardFieldProperty:
         return StandardFieldProperty(
             description=typeform_field_properties.description,
-            choices=[StandardChoice(
-                ref=choice.ref,
-                label=choice.label,
-                attachment=self._transform_attachment(choice.attachment)
-            ) for choice in typeform_field_properties.choices],
+            choices=[
+                StandardChoice(
+                    ref=choice.ref,
+                    label=choice.label,
+                    attachment=self._transform_attachment(choice.attachment),
+                )
+                for choice in typeform_field_properties.choices
+            ],
             fields=self._transform_fields(typeform_field_properties.fields),
             allow_multiple_selection=typeform_field_properties.allow_multiple_selection,
             allow_other_choice=typeform_field_properties.allow_other_choice,
@@ -141,8 +184,9 @@ class TypeFormTransformerService(FormTransformerService):
             rating_shape=typeform_field_properties.shape,
             labels=typeform_field_properties.labels,
             start_form=1 if typeform_field_properties.start_at_one else 0,
-            date_format=self._format_typeform_date(typeform_field_properties.structure,
-                                                   typeform_field_properties.separator)
+            date_format=self._format_typeform_date(
+                typeform_field_properties.structure, typeform_field_properties.separator
+            ),
         )
 
     # Transform date for typeform for eg YYYYMMDD's into YYYY/MM/DD format
@@ -152,7 +196,8 @@ class TypeFormTransformerService(FormTransformerService):
             combined_format = ""
             prev_char = None
             for char in date_format:
-                # if the previous character is not None and is different from the current character
+                # if the previous character is not None and is different
+                # from the current character
                 if prev_char is not None and prev_char != char:
                     combined_format += date_separator
                 combined_format += char
@@ -177,12 +222,10 @@ class TypeFormTransformerService(FormTransformerService):
             type=answer.type,
             text=answer.text,
             choice=StandardChoiceAnswer(
-                value=self._transform_choice_answer(answer),
-                other=answer.choice.other
+                value=self._transform_choice_answer(answer), other=answer.choice.other
             ),
             choices=StandardChoicesAnswer(
-                values=answer.choices.labels,
-                other=answer.choices.other
+                values=answer.choices.labels, other=answer.choices.other
             ),
             number=answer.number,
             boolean=answer.boolean,
@@ -193,12 +236,14 @@ class TypeFormTransformerService(FormTransformerService):
             payment=StandardPaymentAnswer(
                 amount=answer.payment.amount,
                 last4=answer.payment.last4,
-                name=answer.payment.name
-            )
+                name=answer.payment.name,
+            ),
         )
         return standard_answer
 
-    def _transform_answers(self, typeform_answers: List[Answer]) -> Dict[str, StandardFormResponseAnswer]:
+    def _transform_answers(
+        self, typeform_answers: List[Answer]
+    ) -> Dict[str, StandardFormResponseAnswer]:
         if typeform_answers is None:
             return {}
         standard_answers = {}

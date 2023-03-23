@@ -2,10 +2,10 @@
 from multiprocessing import cpu_count
 
 import click
+
 from typeform import ApplicationLoader
 from typeform.app import get_application
 from typeform.cli.utils import validate_directory
-
 
 cmd_short_help = "Run production server."
 cmd_help = """\

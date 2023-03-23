@@ -1,11 +1,10 @@
 from unittest import mock
 
 import pytest
+
 from starlette.requests import Request
-from typeform.app.exceptions import (
-    HTTPException,
-    http_exception_handler,
-)
+
+from typeform.app.exceptions import HTTPException, http_exception_handler
 
 
 class TestHttpException:

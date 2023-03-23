@@ -5,7 +5,6 @@ from classy_fastapi import Routable, get
 
 from common.models.user import UserInfo
 
-# from typeform.app.router import router
 from typeform.app.services import auth_service
 
 log = logging.getLogger(__name__)

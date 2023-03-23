@@ -1,8 +1,9 @@
-import os
 import copy
+import os
 from unittest import mock
 
 import pytest
+
 from typeform import ApplicationLoader
 from typeform.cli.serve import serve
 
@@ -17,11 +18,11 @@ class TestCliServeCommand:
     def patched_serve(self, asgi_app):
         cmd = copy.deepcopy(serve)
         wsgi_patch = mock.patch(
-            "example.cli.serve.ApplicationLoader",
+            "typeform.cli.serve.ApplicationLoader",
             spec=ApplicationLoader,
         )
         get_app_patch = mock.patch(
-            "example.cli.serve.get_application",
+            "typeform.cli.serve.get_application",
             return_value=asgi_app,
         )
         cmd.wsgi_mock = wsgi_patch.start()

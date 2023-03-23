@@ -1,5 +1,7 @@
-import pytest
 from fastapi.testclient import TestClient
+
+import pytest
+
 from typeform.app import get_application
 from typeform.config import settings
 

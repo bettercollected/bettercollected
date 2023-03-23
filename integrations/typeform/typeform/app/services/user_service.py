@@ -1,7 +1,9 @@
+from common.models.user import Credential, User
+
 import jwt
+
 from starlette.requests import Request
 
-from common.models.user import Credential, User
 from typeform.app.exceptions import HTTPException
 from typeform.app.repositories.credentials_repository import CredentialRepository
 from typeform.config import settings
