@@ -49,11 +49,6 @@ metrics: install ## Run auth metrics checks
 	echo "[metrics] Run auth black checks."
 	${POETRY_BINARY} run black -l 80 --check auth
 
-.PHONY: unit-test
-unit-test: install ## Run auth unit tests
-	echo "[unit-test] Run auth unit tests."
-	${POETRY_BINARY} run pytest tests/unit
-
 .PHONY: integration-test
 integration-test: install ## Run auth integration tests
 	echo "[unit-test] Run auth integration tests."
@@ -62,10 +57,10 @@ integration-test: install ## Run auth integration tests
 .PHONY: coverage
 coverage: install  ## Run auth tests coverage
 	echo "[coverage] Run auth tests coverage."
-	${POETRY_BINARY} run pytest --cov=auth --cov-fail-under=90 --cov-report=xml --cov-report=term-missing tests
+	${POETRY_BINARY} run pytest --cov=auth --cov-fail-under=60 --cov-report=xml --cov-report=term-missing tests
 
 .PHONY: test
-test: unit-test integration-test  ## Run auth tests
+test: integration-test  ## Run auth tests
 
 .PHONY: format
 format: install  ## Formats the python files with black

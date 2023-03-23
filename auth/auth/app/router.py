@@ -8,10 +8,11 @@ Resources:
 """
 from typing import Type
 
-from classy_fastapi import Routable
-from fastapi import APIRouter
-
 from auth.config import settings
+
+from classy_fastapi import Routable
+
+from fastapi import APIRouter
 
 root_api_router = APIRouter(prefix=settings.API_ROOT_PATH)
 

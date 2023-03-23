@@ -1,17 +1,17 @@
 """Application implementation - ASGI."""
 import logging
-from fastapi import FastAPI
 
 import auth
-from auth.app.container import AppContainer, container
-from auth.app.services.auth_service import AuthService
-from auth.app.services.database_service import init_db, close_db
-from auth.config import settings
-from auth.app.router import root_api_router
+from auth.app.container import container
 from auth.app.exceptions import (
     HTTPException,
     http_exception_handler,
 )
+from auth.app.router import root_api_router
+from auth.app.services.database_service import close_db, init_db
+from auth.config import settings
+
+from fastapi import FastAPI
 
 log = logging.getLogger(__name__)
 

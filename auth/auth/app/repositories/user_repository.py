@@ -1,6 +1,7 @@
 from typing import Optional
 
 from auth.app.schemas.user import UserDocument
+
 from common.enums.roles import Roles
 
 

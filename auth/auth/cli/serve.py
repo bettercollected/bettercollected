@@ -1,10 +1,11 @@
 """Command-line interface - serve command."""
 from multiprocessing import cpu_count
 
-import click
 from auth import ApplicationLoader
 from auth.app import get_application
 from auth.cli.utils import validate_directory
+
+import click
 
 
 cmd_short_help = "Run production server."

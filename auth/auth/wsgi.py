@@ -1,8 +1,9 @@
 """Application Web Server Gateway Interface - gunicorn."""
 import logging
 
-from gunicorn.app.base import BaseApplication
 from auth.config import gunicorn
+
+from gunicorn.app.base import BaseApplication
 
 
 class ApplicationLoader(BaseApplication):

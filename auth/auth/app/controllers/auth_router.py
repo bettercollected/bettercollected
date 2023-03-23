@@ -1,17 +1,21 @@
 """Auth controller implementation."""
 import logging
 
-from classy_fastapi import Routable, get
-from pydantic import EmailStr
-from starlette.background import BackgroundTasks
-from starlette.requests import Request
 
 from auth.app.container import container
 from auth.app.router import router
 from auth.app.services.auth_service import AuthService
+
+from classy_fastapi import Routable, get
+
 from common.models.user import (
     User,
 )
+
+from pydantic import EmailStr
+
+from starlette.background import BackgroundTasks
+from starlette.requests import Request
 
 log = logging.getLogger(__name__)
 
@@ -23,15 +27,6 @@ class AuthRoutes(Routable):
     ):
         super().__init__(*args, **kwargs)
         self.auth_service = auth_service
-
-    # TODO : Refactor for basic auth and oauth might be required or not
-    # @get("/{provider_name}/oauth")
-    # async def _oauth_provider(self,
-    #                           provider_name: str,
-    #                           oauth_state: OAuthState):
-    #     oauth_url = await self.auth_service.get_oauth_url(provider_name, oauth_state)
-    #     return oauth_url
-    #
 
     @get("/otp/send")
     async def _send_otp_to_email(
@@ -45,8 +40,6 @@ class AuthRoutes(Routable):
             receiver_email,
             workspace_title,
         )
-
-        # await self.auth_service.send_otp_to_mail(receiver_mail=receiver_email, workspace_title=workspace_title)
         return "Email set to be sent"
 
     @get("/otp/validate")

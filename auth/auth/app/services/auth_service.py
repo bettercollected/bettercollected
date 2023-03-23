@@ -1,23 +1,26 @@
 import calendar
-from datetime import timedelta, datetime
-
-import jwt
-from fastapi_mail import MessageSchema
-from pydantic import EmailStr
-import string
 import secrets
+import string
+from datetime import datetime, timedelta
 
 from auth.app.exceptions import HTTPException
-from auth.app.schemas.user import UserDocument
 from auth.app.repositories.user_repository import UserRepository
+from auth.app.schemas.user import UserDocument
 from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.mail_service import MailService
 from auth.config import settings
+
 from common.enums.roles import Roles
 from common.models.user import User
 from common.models.user import UserInfo
 from common.services.http_client import HttpClient
 from common.utils.asyncio_run import asyncio_run
+
+from fastapi_mail import MessageSchema
+
+import jwt
+
+from pydantic import EmailStr
 
 
 class AuthService:
@@ -77,7 +80,8 @@ class AuthService:
                 if user.otp_expiry < self.get_expiry_epoch_after():
                     raise HTTPException(
                         status_code=400,
-                        content="Error Verification code is expired. Please request for new code.",
+                        content="Error Verification code is expired. "
+                        + "Please request for new code.",
                     )
                 await UserRepository.clear_user_otp(user)
                 return User(
@@ -88,7 +92,7 @@ class AuthService:
                 )
             else:
                 raise HTTPException(status_code=404, content="Error user not found.")
-        except HTTPException as error:
+        except HTTPException:
             return None
 
     async def basic_auth_callback(

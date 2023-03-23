@@ -1,6 +1,7 @@
 from typing import Optional
 
 from auth.app.services.database_service import entity
+
 from common.configs.mongo_document import MongoDocument
 
 

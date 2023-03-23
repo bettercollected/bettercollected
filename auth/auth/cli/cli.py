@@ -1,8 +1,9 @@
 """Command-line interface - root."""
 import logging
 
-import click
 from auth.cli.serve import serve
+
+import click
 
 
 cmd_help = "Auth CLI root."

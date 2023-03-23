@@ -1,29 +1,27 @@
 """Application configuration - FastAPI."""
-from auth.config.mail_settings import MailSettings
-from auth.config.typeform_settings import TypeformSettings
-from pydantic import BaseSettings
-
-from auth.config.database import MongoSettings
-from auth.config.google_settings import GoogleSettings
-from auth.version import __version__
-
 import os
 from pathlib import Path
 
+from auth.config.database import MongoSettings
+from auth.config.google_settings import GoogleSettings
+from auth.config.mail_settings import MailSettings
+from auth.config.typeform_settings import TypeformSettings
+from auth.version import __version__
+
 from dotenv import load_dotenv
+
+from pydantic import BaseSettings
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
-        .parent.parent.absolute()
-        .joinpath(".env")
+    .parent.parent.absolute()
+    .joinpath(".env")
 )
 load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
 
 class Application(BaseSettings):
-    """Define application configuration model.
-
-    """
+    """Define application configuration model."""
 
     DEBUG: bool = True
     API_TITLE: str = "auth"

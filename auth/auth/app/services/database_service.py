@@ -1,9 +1,9 @@
 import asyncio
 import logging
 
-from beanie import init_beanie
-
 from auth.config import settings
+
+from beanie import init_beanie
 
 log = logging.getLogger(__name__)
 

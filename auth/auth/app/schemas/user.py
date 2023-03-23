@@ -1,9 +1,10 @@
-from typing import Optional, List
 import datetime as dt
+from typing import List, Optional
+
+from auth.app.services.database_service import entity
 
 from beanie import Indexed
 
-from auth.app.services.database_service import entity
 from common.configs.mongo_document import MongoDocument
 from common.enums.form_provider import FormProvider
 from common.enums.roles import Roles

@@ -1,12 +1,8 @@
-import string
-import calendar
-import secrets
-from datetime import datetime, timedelta
 import os
 
-from fastapi_mail import ConnectionConfig, FastMail
-
 from auth.config import settings
+
+from fastapi_mail import ConnectionConfig, FastMail
 
 
 class MailService:

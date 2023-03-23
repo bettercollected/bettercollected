@@ -1,21 +1,24 @@
 import json
-from urllib.request import Request
-
-import google_auth_oauthlib.flow
-from google.auth.exceptions import RefreshError
-from googleapiclient.errors import HttpError
-from oauthlib.oauth1 import InvalidClientError
-from oauthlib.oauth2 import InvalidGrantError
-from starlette.requests import Request
 
 from auth.app.exceptions import HTTPException
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.services.base_auth_provider import BaseAuthProvider
 from auth.config import settings
-from common.configs.crypto import Crypto
-from googleapiclient.discovery import build
 
+from common.configs.crypto import Crypto
 from common.models.user import User
+
+from google.auth.exceptions import RefreshError
+
+import google_auth_oauthlib.flow
+
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
+from oauthlib.oauth1 import InvalidClientError
+from oauthlib.oauth2 import InvalidGrantError
+
+from starlette.requests import Request
 
 crypto: Crypto = Crypto(settings.AUTH_AEX_HEX_KEY)
 google_settings = settings.google_settings
@@ -55,11 +58,15 @@ class GoogleAuthProvider(BaseAuthProvider):
     async def basic_auth_callback(self, code: str, state: str, *args, **kwargs):
         request: Request = kwargs.get("request")
         tmp = str(request.url)
-        authorization_response = tmp if tmp[0:5] == "https" else tmp.replace(tmp[0:4], "https", 1)
+        authorization_response = (
+            tmp if tmp[0:5] == "https" else tmp.replace(tmp[0:4], "https", 1)
+        )
         state_decrypted = crypto.decrypt(state)
         state_json = json.loads(state_decrypted)
         print(state_json)
-        credentials = self.fetch_basic_token(auth_code=authorization_response, state=state)
+        credentials = self.fetch_basic_token(
+            auth_code=authorization_response, state=state
+        )
         print(credentials)
         user = await self.get_google_user(credentials)
         if not user:
@@ -86,7 +93,7 @@ class GoogleAuthProvider(BaseAuthProvider):
         flow.redirect_uri = settings.google_settings.basic_auth_redirect
         try:
             flow.fetch_token(authorization_response=auth_code)
-        except Exception as e:
+        except Exception:
             return None
         credentials = flow.credentials
         return credentials
@@ -101,9 +108,9 @@ class GoogleAuthProvider(BaseAuthProvider):
             raise HTTPException(error.status_code, error.error_details)
         except RefreshError:
             raise HTTPException(401, "Google auth token refresh error.")
-        except InvalidClientError as error:
+        except InvalidClientError:
             raise HTTPException(401, "Google auth invalid client error.")
         except AttributeError:
             raise HTTPException(401, "State not found. Connect with google services.")
-        except InvalidGrantError as e:
+        except InvalidGrantError:
             raise HTTPException(401, "Invalid Grant error.")
