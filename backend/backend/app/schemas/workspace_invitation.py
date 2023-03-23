@@ -3,10 +3,11 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from beanie import PydanticObjectId
-from pymongo import IndexModel
 
 from common.configs.mongo_document import MongoDocument
 from common.enums.workspace_invitation_status import InvitationStatus
+
+from pymongo import IndexModel
 
 
 _time_delta = timedelta()
@@ -17,7 +18,8 @@ def _get_expiry_epoch_after(time_delta: timedelta = _time_delta):
     Returns the Unix epoch time of a given time in the future.
 
     Args:
-        time_delta (timedelta, optional): The time in the future to get the Unix epoch for. Defaults to _time_delta.
+        time_delta (timedelta, optional): The time in the future to
+            get the Unix epoch for. Defaults to _time_delta.
 
     Returns:
         int: The Unix epoch time of the given time in the future.
@@ -30,13 +32,15 @@ _expiry = _get_expiry_epoch_after()
 
 class WorkspaceUserInvitesDocument(MongoDocument):
     """
-    WorkspaceUserInvitesDocument is a subclass of MongoDocument. It represents a collection of user invites for workspaces
-    stored in a MongoDB database.
+    WorkspaceUserInvitesDocument is a subclass of MongoDocument. It
+    represents a collection of user invites for workspaces stored in
+    a MongoDB database.
 
     Attributes:
         workspace_id (PydanticObjectId): The ID of the workspace.
         email (str): The email of the user being invited.
-        invitation_status (InvitationStatus, optional): The status of the invitation. Defaults to InvitationStatus.PENDING.
+        invitation_status (InvitationStatus, optional): The status of the
+            invitation. Defaults to InvitationStatus.PENDING.
         expiry (int): The expiration time of the invitation in seconds.
         invitation_token (str): The token for the invitation.
 

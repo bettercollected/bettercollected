@@ -1,13 +1,13 @@
 import logging
-import traceback
-
-import jwt
-from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
+from backend.config import settings
+
 from common.models.user import User
 
-from backend.config import settings
+import jwt
+
+from starlette.requests import Request
 
 
 def get_logged_user(request: Request) -> User:
@@ -29,7 +29,7 @@ def get_logged_user(request: Request) -> User:
 def get_user_if_logged_in(request: Request) -> User | None:
     try:
         return get_logged_user(request=request)
-    except HTTPException as e:
+    except HTTPException:
         return None
 
 

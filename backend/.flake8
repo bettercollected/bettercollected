@@ -1,0 +1,10 @@
+[flake8]
+; Minimal configuration for Flake8 to work with Black.
+max-line-length = 88
+extend-ignore = D100, D101, D102, D103, D104, D105, D106, D107, D202, D205, D400, D401, E402, T000
+exclude = .git,__pycache__,docs/source/conf.py,old,build,dist
+unused-arguments-ignore-abstract-functions = false
+
+classmethod-decorators =
+    classmethod
+    validator

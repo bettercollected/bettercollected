@@ -1,11 +1,9 @@
-from typing import Optional
 import datetime as dt
-
-from fastapi_camelcase import CamelModel
-from pydantic import BaseModel
+from typing import Optional
 
 from backend.app.models.response_dtos import WorkspaceFormSettingsCamelModal
-from backend.app.models.workspace import WorkspaceFormSettings
+
+from fastapi_camelcase import CamelModel
 
 
 class MinifiedForm(CamelModel):

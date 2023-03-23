@@ -1,9 +1,10 @@
 from http import HTTPStatus
 
-from beanie import PydanticObjectId
-
 from backend.app.exceptions import HTTPException
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
+
+from beanie import PydanticObjectId
+
 from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.user import User
 

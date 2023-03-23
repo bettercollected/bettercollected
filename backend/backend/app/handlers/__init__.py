@@ -2,9 +2,9 @@
 import logging
 import sys
 
-from loguru import logger
-
 from common.utils.logger import InterceptHandler, format_record
+
+from loguru import logger
 
 
 __all__ = ("init_logging",)
@@ -28,7 +28,6 @@ def init_logging():
     INFO:     Started reloader process [11528] using stat-reload
     INFO:     Started server process [6036]
     INFO:     Waiting for application startup.
-    2020-07-25 02:19:21.357 | INFO     | uvicorn.lifespan.on:startup:34 - Application startup complete.
     ```
     """
 

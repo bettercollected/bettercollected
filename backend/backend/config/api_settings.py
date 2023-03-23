@@ -1,5 +1,6 @@
-from pydantic import BaseSettings
 from backend.version import __version__
+
+from pydantic import BaseSettings
 
 
 class ApiSettings(BaseSettings):

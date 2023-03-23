@@ -1,9 +1,10 @@
 import datetime
 
-from starlette.middleware.cors import CORSMiddleware
-
 from backend.app.schemas.allowed_origin import AllowedOriginsDocument
+
 from common.utils.asyncio_run import asyncio_run
+
+from starlette.middleware.cors import CORSMiddleware
 
 
 class DynamicCORSMiddleware(CORSMiddleware):

@@ -1,7 +1,3 @@
-from beanie import PydanticObjectId
-from fastapi_pagination import Page
-from fastapi_pagination.ext.beanie import paginate
-
 from backend.app.exceptions import HTTPException
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.response_dtos import StandardFormCamelModel
@@ -10,16 +6,22 @@ from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.standard_form import FormDocument
+
+from beanie import PydanticObjectId
+
 from common.models.standard_form import StandardForm
 from common.models.user import User
+
+from fastapi_pagination import Page
+from fastapi_pagination.ext.beanie import paginate
 
 
 class FormService:
     def __init__(
-            self,
-            workspace_user_repo: WorkspaceUserRepository,
-            form_repo: FormRepository,
-            workspace_form_repo: WorkspaceFormRepository,
+        self,
+        workspace_user_repo: WorkspaceUserRepository,
+        form_repo: FormRepository,
+        workspace_form_repo: WorkspaceFormRepository,
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
@@ -27,16 +29,19 @@ class FormService:
 
     async def get_forms_in_workspace(self, workspace_id, user) -> Page[MinifiedForm]:
         is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
-            workspace_id=workspace_id, user=user)
+            workspace_id=workspace_id, user=user
+        )
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
-            workspace_id, not is_admin)
+            workspace_id, not is_admin
+        )
         forms_query = self._form_repo.get_forms_in_workspace_query(
-            workspace_id=workspace_id, form_id_list=workspace_form_ids)
+            workspace_id=workspace_id, form_id_list=workspace_form_ids
+        )
         forms_page = await paginate(forms_query)
         return forms_page
 
     async def search_form_in_workspace(
-            self, workspace_id: PydanticObjectId, query: str
+        self, workspace_id: PydanticObjectId, query: str
     ):
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id, True
@@ -47,7 +52,7 @@ class FormService:
         return [StandardForm(**form) for form in forms]
 
     async def get_form_by_id(
-            self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self, workspace_id: PydanticObjectId, form_id: str, user: User
     ):
         is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
             workspace_id=workspace_id, user=user
@@ -71,11 +76,11 @@ class FormService:
         return await self._form_repo.save_form(form_document)
 
     async def patch_settings_in_workspace_form(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: str,
-            settings: SettingsPatchDto,
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        settings: SettingsPatchDto,
+        user: User,
     ):
         is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
             workspace_id=workspace_id, user=user

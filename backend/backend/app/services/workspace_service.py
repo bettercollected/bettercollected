@@ -1,15 +1,10 @@
 import os
 from http import HTTPStatus
 
-from beanie import PydanticObjectId
-from fastapi import UploadFile
-from pydantic import EmailStr
-
 from backend.app.exceptions import HTTPException
 from backend.app.models.workspace import (
-    WorkspaceRequestDto,
-    WorkspaceResponseDto,
     WorkspaceRequestDtoCamel,
+    WorkspaceResponseDto,
 )
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
@@ -17,8 +12,15 @@ from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
 from backend.config import settings
+
+from beanie import PydanticObjectId
+
 from common.models.user import User
 from common.services.http_client import HttpClient
+
+from fastapi import UploadFile
+
+from pydantic import EmailStr
 
 
 class WorkspaceService:
@@ -148,7 +150,7 @@ class WorkspaceService:
         self, workspace_id: PydanticObjectId, receiver_email: EmailStr
     ):
         workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
-        response_data = await self.http_client.get(
+        await self.http_client.get(
             settings.auth_settings.BASE_URL + "/auth/otp/send",
             params={
                 "receiver_email": receiver_email,

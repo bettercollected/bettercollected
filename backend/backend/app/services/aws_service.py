@@ -1,8 +1,9 @@
 import datetime
 
 import boto3
-import loguru
+
 from botocore.exceptions import ClientError
+
 from fastapi import HTTPException
 
 
@@ -19,7 +20,7 @@ class AWSS3Service:
         )
 
     async def upload_file_to_s3(
-        self, file_name=None, key=None, previousImage="", bucket="bettercollected"
+        self, file_name=None, key=None, previous_image="", bucket="bettercollected"
     ):
         # If S3 object_name was not specified, use file_name
         if (key is None) or (bucket is None):
@@ -27,16 +28,18 @@ class AWSS3Service:
         # Upload the file
         try:
             current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-            response = self._s3.Bucket(bucket).put_object(
+            self._s3.Bucket(bucket).put_object(
                 Body=file_name, Key=f"public/{current_time}_{key}", ACL="public-read"
             )
-            if previousImage:
+            if previous_image:
                 # extract previous key from the link
-                previous_key = previousImage[previousImage.find("public") :]
+                previous_key = previous_image[previous_image.find("public") :]
                 # remove image from wasabi
-                delete_response = self._s3.Object(bucket, previous_key).delete()
-        except ClientError as e:
+                self._s3.Object(bucket, previous_key).delete()
+        except ClientError:
             raise HTTPException(550, "INFO: Failed to upload image")
-        except Exception as e:
+        except Exception:
             raise HTTPException(550, "INFO: Failed to upload image")
-        return f"https://s3.eu-central-1.wasabisys.com/{bucket}/public/{current_time}_{key}"
+        wasabi_domain = "https://s3.eu-central-1.wasabisys.com"
+        folder = f"/{bucket}/public/{current_time}_{key}"
+        return f"{wasabi_domain}{folder}"

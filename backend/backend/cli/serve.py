@@ -1,10 +1,11 @@
 """Command-line interface - serve command."""
 from multiprocessing import cpu_count
 
-import click
 from backend import ApplicationLoader
 from backend.app import get_application
 from backend.cli.utils import validate_directory
+
+import click
 
 
 cmd_short_help = "Run production server."

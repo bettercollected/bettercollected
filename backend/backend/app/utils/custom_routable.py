@@ -1,4 +1,5 @@
 from classy_fastapi import Routable
+
 from fastapi.routing import APIRoute
 
 

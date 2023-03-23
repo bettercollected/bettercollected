@@ -1,26 +1,27 @@
 """Auth controller implementation."""
 import logging
-from http import HTTPStatus
 from typing import Optional
-
-from classy_fastapi import Routable, get, post
-from fastapi import Depends
-from starlette.requests import Request
-from starlette.responses import RedirectResponse, Response
 
 from backend.app.container import container
 from backend.app.router import router
 from backend.app.services.auth_cookie_service import (
-    set_tokens_to_response,
     delete_token_cookie,
+    set_tokens_to_response,
 )
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
+
+from classy_fastapi import Routable, get, post
+
 from common.models.user import AuthenticationStatus, User, UserLoginWithOTP
+
+from fastapi import Depends
+
+from starlette.requests import Request
+from starlette.responses import RedirectResponse, Response
 
 log = logging.getLogger(__name__)
 
 
-# TODO merge this to plugin interface
 # TODO Extract out separate interface for oauth and use it
 @router(prefix="/auth", tags=["Auth"])
 class AuthRoutes(Routable):
@@ -38,7 +39,6 @@ class AuthRoutes(Routable):
         set_tokens_to_response(user, response)
         return "Logged In successfully"
 
-    # TODO : Merge with plugin proxy currently it is handled for typeform only
     @get("/{provider_name}/oauth")
     async def _oauth_provider(
         self,

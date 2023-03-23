@@ -1,8 +1,8 @@
 """Server Initializer."""
 import logging
 
-from backend.wsgi import ApplicationLoader
 from backend.version import __version__
+from backend.wsgi import ApplicationLoader
 
 # initialize logging
 log = logging.getLogger(__name__)

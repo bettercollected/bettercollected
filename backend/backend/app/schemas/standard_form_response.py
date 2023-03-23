@@ -2,10 +2,10 @@ import datetime as dt
 import enum
 from typing import Optional
 
-from pymongo import IndexModel
-
 from common.configs.mongo_document import MongoDocument
 from common.models.standard_form import StandardFormResponse
+
+from pymongo import IndexModel
 
 
 class FormResponseDocument(MongoDocument, StandardFormResponse):

@@ -1,42 +1,42 @@
 from http import HTTPStatus
 
-from beanie import PydanticObjectId
-
 from backend.app.exceptions import HTTPException
 from backend.app.models.response_dtos import (
-    StandardFormResponseCamelModel,
     StandardFormCamelModel,
+    StandardFormResponseCamelModel,
 )
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
-    FormResponseDocument,
     FormResponseDeletionRequest,
+    FormResponseDocument,
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_UNAUTHORIZED
+
+from beanie import PydanticObjectId
+
+from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.user import User
-from common.utils.logger import logger
 
 
 class FormResponseService:
     def __init__(
-            self,
-            form_response_repo: FormResponseRepository,
-            workspace_form_repo: WorkspaceFormRepository,
-            workspace_user_repo: WorkspaceUserRepository,
+        self,
+        form_response_repo: FormResponseRepository,
+        workspace_form_repo: WorkspaceFormRepository,
+        workspace_user_repo: WorkspaceUserRepository,
     ):
         self._form_response_repo = form_response_repo
         self._workspace_form_repo = workspace_form_repo
         self._workspace_user_repo = workspace_user_repo
 
     async def get_all_workspace_responses(
-            self, workspace_id: PydanticObjectId, request_for_deletion: bool, user: User
+        self, workspace_id: PydanticObjectId, request_for_deletion: bool, user: User
     ):
         if not await self._workspace_user_repo.is_user_admin_in_workspace(
-                workspace_id=workspace_id, user=user
+            workspace_id=workspace_id, user=user
         ):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_UNAUTHORIZED
@@ -46,28 +46,28 @@ class FormResponseService:
         )
         return await self._form_response_repo.list(form_ids, request_for_deletion)
 
-    async def get_user_submissions(self,
-                                   workspace_id: PydanticObjectId,
-                                   user: User,
-                                   request_for_deletion: bool = False):
+    async def get_user_submissions(
+        self,
+        workspace_id: PydanticObjectId,
+        user: User,
+        request_for_deletion: bool = False,
+    ):
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id
         )
         return await self._form_response_repo.get_user_submissions(
-            form_ids=form_ids,
-            user=user,
-            request_for_deletion=request_for_deletion
+            form_ids=form_ids, user=user, request_for_deletion=request_for_deletion
         )
 
     async def get_workspace_submissions(
-            self,
-            workspace_id: PydanticObjectId,
-            request_for_deletion: bool,
-            form_id: str,
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        request_for_deletion: bool,
+        form_id: str,
+        user: User,
     ):
         if not await self._workspace_user_repo.is_user_admin_in_workspace(
-                workspace_id, user
+            workspace_id, user
         ):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_UNAUTHORIZED
@@ -88,7 +88,7 @@ class FormResponseService:
         return form_responses
 
     async def get_workspace_submission(
-            self, workspace_id: PydanticObjectId, response_id: str, user: User
+        self, workspace_id: PydanticObjectId, response_id: str, user: User
     ):
         is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
             workspace_id, user
@@ -121,7 +121,7 @@ class FormResponseService:
         return {"form": form, "response": response}
 
     async def request_for_response_deletion(
-            self, workspace_id: PydanticObjectId, response_id: str, user: User
+        self, workspace_id: PydanticObjectId, response_id: str, user: User
     ):
         is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
             workspace_id, user

@@ -1,38 +1,26 @@
-from http import HTTPStatus
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
-import fastapi_pagination.ext.beanie
-from beanie.odm.queries.aggregation import AggregationQuery
-from fastapi_pagination import Page
-from pymongo.errors import (
-    InvalidOperation,
-    InvalidURI,
-    NetworkTimeout,
-    OperationFailure,
-)
-
-from backend.app.exceptions import HTTPException
-from backend.app.models.response_dtos import StandardFormResponseCamelModel
 from backend.app.schemas.standard_form_response import FormResponseDocument
-from common.base.repo import BaseRepository, T, U
-from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
+
+from common.base.repo import BaseRepository
 from common.enums.form_provider import FormProvider
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 
+import fastapi_pagination.ext.beanie
+from fastapi_pagination import Page
+
 
 class FormResponseRepository(BaseRepository):
-
     @staticmethod
-    async def get_form_responses(form_ids,
-                                 request_for_deletion: bool,
-                                 extra_find_query: Dict[str, Any] = None,
-                                 ) -> Page[FormResponseDocument]:
-        find_query = {
-            "form_id": {"$in": form_ids}
-        }
+    async def get_form_responses(
+        form_ids,
+        request_for_deletion: bool,
+        extra_find_query: Dict[str, Any] = None,
+    ) -> Page[FormResponseDocument]:
+        find_query = {"form_id": {"$in": form_ids}}
         if not request_for_deletion:
-            find_query['answers'] = {"$exists": True}
+            find_query["answers"] = {"$exists": True}
         if extra_find_query:
             find_query.update(extra_find_query)
 
@@ -65,32 +53,35 @@ class FormResponseRepository(BaseRepository):
                         "$set": {
                             "deletion_status": "$deletion_request.status",
                             "updated_at": "$deletion_request.created_at",
-                            "created_at": "$deletion_request.created_at"
+                            "created_at": "$deletion_request.created_at",
                         }
                     },
                 ]
             )
         aggregate_query.append({"$sort": {"created_at": -1}})
-        form_responses_query = FormResponseDocument.find(find_query).aggregate(aggregate_query)
-        form_responses = await fastapi_pagination.ext.beanie.paginate(form_responses_query)
+        form_responses_query = FormResponseDocument.find(find_query).aggregate(
+            aggregate_query
+        )
+        form_responses = await fastapi_pagination.ext.beanie.paginate(
+            form_responses_query
+        )
         return form_responses
 
     async def list(
-            self, form_ids: List[str], request_for_deletion: bool
+        self, form_ids: List[str], request_for_deletion: bool
     ) -> Page[StandardFormResponse]:
         form_responses = await self.get_form_responses(form_ids, request_for_deletion)
         return form_responses
 
-    async def get_user_submissions(self,
-                                   form_ids,
-                                   user: User,
-                                   request_for_deletion: bool = False):
+    async def get_user_submissions(
+        self, form_ids, user: User, request_for_deletion: bool = False
+    ):
         extra_find_query = {
             "dataOwnerIdentifier": user.sub,
         }
-        form_responses = await self.get_form_responses(form_ids,
-                                                       request_for_deletion,
-                                                       extra_find_query)
+        form_responses = await self.get_form_responses(
+            form_ids, request_for_deletion, extra_find_query
+        )
         return form_responses
 
     async def get(self, form_id: str, response_id: str) -> StandardFormResponse:
@@ -100,7 +91,7 @@ class FormResponseRepository(BaseRepository):
         pass
 
     async def update(
-            self, item_id: str, item: FormResponseDocument
+        self, item_id: str, item: FormResponseDocument
     ) -> StandardFormResponse:
         pass
 

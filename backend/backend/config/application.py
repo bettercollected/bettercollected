@@ -1,16 +1,17 @@
 """Application configuration - FastAPI."""
-from backend.config.aws import AWSSettings
 
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
-from pydantic import BaseSettings
-
 from backend.config.api_settings import ApiSettings
 from backend.config.auth_settings import AuthSettings
+from backend.config.aws import AWSSettings
 from backend.config.database import MongoSettings
 from backend.config.schedular_settings import SchedularSettings
+
+from dotenv import load_dotenv
+
+from pydantic import BaseSettings
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))

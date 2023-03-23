@@ -1,13 +1,15 @@
 import calendar
 import http.cookies
 import uuid
-from datetime import timedelta, datetime
-
-import jwt
-from starlette.responses import Response
+from datetime import datetime, timedelta
 
 from backend.config import settings
+
 from common.models.user import User
+
+import jwt
+
+from starlette.responses import Response
 
 
 # TODO move this to auth server
@@ -124,7 +126,6 @@ def set_token_cookie(response: Response, key: str, token: str):
         value=token,
         httponly=True,
         secure=should_be_secure,
-        # TODO prevent against csrf with same site after fix
         samesite=same_site,
         max_age=settings.auth_settings.REFRESH_TOKEN_EXPIRY_IN_DAYS * 24 * 60 * 60,
     )
@@ -138,7 +139,6 @@ def delete_token_cookie(response: Response):
         key="Authorization",
         httponly=True,
         secure=should_be_secure,
-        # TODO prevent against csrf with same site after fix
         samesite=same_site,
     )
     delete_cookie(
@@ -146,6 +146,5 @@ def delete_token_cookie(response: Response):
         key="Refresh_token",
         httponly=True,
         secure=should_be_secure,
-        # TODO prevent against csrf with same site after fix
         samesite=same_site,
     )
