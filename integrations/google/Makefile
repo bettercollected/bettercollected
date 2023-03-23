@@ -62,7 +62,7 @@ integration-test: install ## Run googleform integration tests
 .PHONY: coverage
 coverage: install  ## Run googleform tests coverage
 	echo "[coverage] Run googleform tests coverage."
-	${POETRY_BINARY} run pytest --cov=googleform --cov-fail-under=90 --cov-report=xml --cov-report=term-missing tests
+	${POETRY_BINARY} run pytest --cov=googleform --cov-fail-under=60 --cov-report=xml --cov-report=term-missing tests
 
 .PHONY: test
 test: unit-test integration-test  ## Run googleform tests

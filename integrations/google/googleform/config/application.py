@@ -48,6 +48,7 @@ class Application(BaseSettings):
     USE_REDIS: bool = False
 
     API_ROOT_PATH: str = "/api/v1"
+    DOCS_URL: str = "/docs"
 
     AUTH_JWT_SECRET: str
 

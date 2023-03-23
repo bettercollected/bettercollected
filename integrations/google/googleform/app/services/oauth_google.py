@@ -86,7 +86,10 @@ class OauthGoogleService:
             logger.warning(state)
 
             authorization_url, state = flow.authorization_url(
-                access_type="offline", state=state, include_granted_scopes="true", prompt="consent"
+                access_type="offline",
+                state=state,
+                include_granted_scopes="true",
+                prompt="consent",
             )
 
             logger.warning(state)
@@ -343,5 +346,5 @@ class OauthGoogleService:
             raise HTTPException(
                 status_code=401, detail="State not found. Connect with google services."
             )
-        except InvalidGrantError as e:
+        except InvalidGrantError:
             raise HTTPException(401, "Invalid Grant error.")
