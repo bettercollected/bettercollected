@@ -14,10 +14,11 @@ from typing import (
 
 from beanie import Document, PydanticObjectId
 from beanie.odm.documents import DocType
-from pymongo.client_session import ClientSession
-from pymongo.collection import Collection
 
 from common.exceptions import NotFoundError
+
+from pymongo.client_session import ClientSession
+from pymongo.collection import Collection
 
 IntStr = Union[int, str]
 AbstractSetIntStr = AbstractSet[IntStr]
@@ -28,6 +29,7 @@ TupleGenerator = Generator[Tuple[str, Any], None, None]
 class MongoDocument(Document):
     """
     Base class for representing a MongoDB document.
+
     This class defines common methods and attributes for interacting with MongoDB documents.
     """
 

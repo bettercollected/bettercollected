@@ -1,10 +1,10 @@
 import logging
 import typing
 
-from httpx import AsyncClient
-
-from common.exceptions.http import HTTPException
 from common.constants import messages
+from common.exceptions.http import HTTPException
+
+from httpx import AsyncClient
 
 log = logging.getLogger(__name__)
 

@@ -1,6 +1,7 @@
-from typing import TypeVar, Type
+from typing import Type, TypeVar
 
 import jwt
+
 from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)

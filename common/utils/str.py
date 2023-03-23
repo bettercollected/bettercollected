@@ -62,8 +62,6 @@ def to_camelcase(string: str) -> str:
     Returns:
         str: The given string in camelCase.
     """
-    # TODO: Split using regex (with also space)
-
     if is_camel_case(string):
         return string
     if is_pascal_case(string) and not string.isupper():

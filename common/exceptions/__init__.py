@@ -14,6 +14,7 @@ from common.constants import (
 class ForbiddenError(Exception):
     """
     Exception class for representing a forbidden request error.
+
     This exception is raised when a client makes a request that is not allowed by the server.
     """
 
@@ -36,6 +37,7 @@ class ForbiddenError(Exception):
 class NotFoundError(Exception):
     """
     Exception class for representing a resource not found error.
+
     This exception is raised when a client makes a request for a resource that is not available on the server.
     """
 
@@ -58,6 +60,7 @@ class NotFoundError(Exception):
 class KeyFoundError(Exception):
     """
     Exception class for representing a key found error.
+
     This exception is typically raised during insertion when an item with the given key/ID field is found,
     but it was not expected to be present.
     """
@@ -81,6 +84,7 @@ class KeyFoundError(Exception):
 class ItemToDataError(ValueError):
     """
     Exception class for representing an error when converting an item to data.
+
     This exception is raised when an error occurs while attempting to convert an item to a data representation.
     """
 
@@ -103,6 +107,7 @@ class ItemToDataError(ValueError):
 class DataToItemError(ValueError):
     """
     Exception class for representing an error when converting data to an item.
+
     This exception is raised when an error occurs while attempting to convert data to an item representation.
     """
 
@@ -125,6 +130,7 @@ class DataToItemError(ValueError):
 class ConversionWarning(UserWarning):
     """
     Warning class for representing a non-fatal error when converting data to an item or an item to data.
+
     This warning is raised when an error occurs while attempting to convert data to an item or an item to data,
     but the conversion can still proceed with potentially degraded results.
     """

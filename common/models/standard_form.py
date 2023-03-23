@@ -188,6 +188,5 @@ class StandardFormResponse(BaseModel):
     updated_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
 
-    # TODO : Get data owner from workspace form settings from this response
     dataOwnerIdentifierType: Optional[str]
     dataOwnerIdentifier: Optional[str]

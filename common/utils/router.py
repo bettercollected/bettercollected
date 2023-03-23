@@ -1,3 +1,4 @@
+import logging
 from enum import Enum
 from typing import (
     Any,
@@ -18,11 +19,11 @@ from fastapi.encoders import DictIntStrAny, SetIntStr
 from fastapi.openapi.models import Response
 from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
+
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
 from starlette.types import ASGIApp
-import logging
 
 _response_class = Default(JSONResponse)
 _generate_unique_id_function = Default(generate_unique_id)
