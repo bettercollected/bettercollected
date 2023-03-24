@@ -1,12 +1,6 @@
 Documentation
 =============
 
---------------
-
-**This project was generated with:** `fastapi-mvc <https://github.com/fastapi-mvc/fastapi-mvc>`__
-
---------------
-
 Quickstart
 ~~~~~~~~~~
 
@@ -67,6 +61,7 @@ Deployed application stack in Kubernetes:
     replicaset.apps/typeform-649966bb7f   1         1         1       114s
     vagrant@ubuntu-focal:/syncd$ curl http://typeform.192.168.49.2.nip.io/api/ready
     {"status":"ok"}
+
 Documentation
 -------------
 
@@ -76,7 +71,7 @@ This part of the documentation guides you through all of the features and usage.
    :maxdepth: 2
 
    install
-   
+
    usage
    deployment
 

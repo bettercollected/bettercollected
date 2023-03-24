@@ -1,4 +1,5 @@
 :tocdepth: 2
+
 API
 ===
 
@@ -17,10 +18,6 @@ Config
 .. automodule:: typeform.config
 
 .. autoclass:: typeform.config.application.Application
-   :members:
-   :show-inheritance:
-
-.. autoclass:: typeform.config.redis.Redis
    :members:
    :show-inheritance:
 
@@ -55,7 +52,11 @@ Controllers
 
 .. automodule:: typeform.app.controllers
 
-.. autofunction:: typeform.app.controllers.ready.readiness_check
+.. autofunction:: typeform.app.controllers.auth_router.AuthRoutes
+
+.. autofunction:: typeform.app.controllers.form_router._get_forms
+.. autofunction:: typeform.app.controllers.form_router._get_single_form
+.. autofunction:: typeform.app.controllers.form_router._convert_form
 
 Models
 ~~~~~~
@@ -90,11 +91,3 @@ Utils
 ~~~~~
 
 .. automodule:: typeform.app.utils
-
-.. autoclass:: typeform.app.utils.aiohttp_client.AiohttpClient
-   :members:
-   :show-inheritance:
-
-.. autoclass:: typeform.app.utils.redis.RedisClient
-   :members:
-   :show-inheritance:
