@@ -1,13 +1,12 @@
-import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
-from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.utils import AiohttpClient
-from loguru import logger
 
 from common.services.jwt_service import JwtService
+
+from loguru import logger
 
 
 class FormSchedular:
@@ -24,7 +23,7 @@ class FormSchedular:
     async def update_form(self, *, user, provider, form_id, response_data_owner):
         logger.info(f"Job started for form {form_id} by schedular.")
         cookies = {"Authorization": self.jwt_service.encode(user)}
-        # TODO Make it do with proxy service after service and proxy router is refactored
+        # TODO Make it do with proxy service after service and proxy router refactored
         raw_form = await self.perform_request(
             provider=provider,
             append_url=f"/{form_id}",

@@ -1,9 +1,9 @@
 import json
 from typing import List
 
-from backend.app.core.loader import plugin_loader
-from backend.app.core.factory import plugin_factory
 from backend.app.core.base.plugin_base import BasePlugin
+from backend.app.core.factory import plugin_factory
+from backend.app.core.loader import plugin_loader
 
 
 class FormPluginClient:

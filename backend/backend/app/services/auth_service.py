@@ -2,18 +2,19 @@ import json
 from http import HTTPStatus
 from typing import Tuple
 
-from starlette.requests import Request
-
 from backend.app.exceptions import HTTPException
 from backend.app.services import workspace_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.config import settings
+
 from common.configs.crypto import Crypto
 from common.enums.roles import Roles
-from common.models.user import User, OAuthState, UserInfo, UserLoginWithOTP
+from common.models.user import OAuthState, User, UserInfo, UserLoginWithOTP
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
+
+from starlette.requests import Request
 
 crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
 

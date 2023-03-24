@@ -1,12 +1,13 @@
 from typing import Optional
 
-from fastapi_camelcase import CamelModel
-
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.standard_form_response import FormResponseDocument
+
 from common.models.standard_form import (
     StandardForm,
 )
+
+from fastapi_camelcase import CamelModel
 
 
 class WorkspaceFormSettingsCamelModal(WorkspaceFormSettings, CamelModel):

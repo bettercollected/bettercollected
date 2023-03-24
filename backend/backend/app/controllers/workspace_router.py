@@ -1,22 +1,26 @@
 from http import HTTPStatus
-from typing import Optional, List
-
-from beanie import PydanticObjectId
-from classy_fastapi import Routable, get, patch, delete, post
-from fastapi import UploadFile, Form, Depends
-from pydantic import EmailStr
+from typing import List, Optional
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.models.workspace import (
-    WorkspaceResponseDto,
-    WorkspaceRequestDto,
     WorkspaceRequestDtoCamel,
+    WorkspaceResponseDto,
 )
 from backend.app.router import router
 from backend.app.services.user_service import get_logged_user
 from backend.app.services.workspace_service import WorkspaceService
+
+from beanie import PydanticObjectId
+
+from classy_fastapi import Routable, delete, get, patch, post
+
+
 from common.models.user import User
+
+from fastapi import Depends, Form, UploadFile
+
+from pydantic import EmailStr
 
 
 @router(prefix="/workspaces", tags=["Workspaces"])

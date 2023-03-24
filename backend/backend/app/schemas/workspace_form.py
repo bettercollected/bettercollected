@@ -1,16 +1,17 @@
 import datetime as dt
 from typing import Optional
 
+from backend.app.models.workspace import WorkspaceFormSettings
+
 from beanie import PydanticObjectId
 
-from backend.app.models.workspace import WorkspaceFormSettings
 from common.configs.mongo_document import MongoDocument
 
 
 class WorkspaceFormDocument(MongoDocument):
     """
-    WorkspaceForms is a subclass of MongoDocument. It represents a collection of forms in a workspace stored in a
-    MongoDB database.
+    WorkspaceForms is a subclass of MongoDocument. It represents a
+    collection of forms in a workspace stored in a MongoDB database.
 
     Attributes:
         workspace_id (PydanticObjectId): The ID of the workspace.

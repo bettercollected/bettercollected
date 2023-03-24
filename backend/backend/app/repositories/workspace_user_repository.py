@@ -1,6 +1,7 @@
+from backend.app.schemas.workspace_user import WorkspaceUserDocument
+
 from beanie import PydanticObjectId
 
-from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from common.models.user import User
 
 

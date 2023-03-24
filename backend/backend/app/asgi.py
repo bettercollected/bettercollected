@@ -1,21 +1,24 @@
 """Application implementation - ASGI."""
 
-from fastapi import FastAPI
-from fastapi_pagination import add_pagination
-from fastapi_utils.timing import add_timing_middleware
-from loguru import logger
-
 from backend.app.container import container
 from backend.app.exceptions import (
     HTTPException,
     http_exception_handler,
 )
 from backend.app.handlers import init_logging
-from backend.app.handlers.database import init_db, close_db
-from backend.app.middlewares import include_middlewares, DynamicCORSMiddleware
+from backend.app.handlers.database import close_db, init_db
+from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
 from backend.app.utils import AiohttpClient
 from backend.config import settings
+
+from fastapi import FastAPI
+
+from fastapi_pagination import add_pagination
+
+from fastapi_utils.timing import add_timing_middleware
+
+from loguru import logger
 
 
 async def on_startup():

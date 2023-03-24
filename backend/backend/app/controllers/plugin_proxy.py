@@ -1,20 +1,21 @@
 """Plugin proxy controller implementation."""
-import json
 import logging
 from http import HTTPStatus
-from typing import Any, Dict, Optional
-
-from fastapi import Body, Depends
-from starlette.requests import Request
+from typing import Any, Dict
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.user_service import get_logged_user
+
 from common.base.plugin import BasePluginRoute
 from common.enums.form_provider import FormProvider
 from common.models.user import User
+
+from fastapi import Body, Depends
+
+from starlette.requests import Request
 
 log = logging.getLogger(__name__)
 

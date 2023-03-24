@@ -1,12 +1,12 @@
-from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 from backend.app.schemas.standard_form_response import (
-    FormResponseDocument,
-    FormResponseDeletionRequest,
     DeletionRequestStatus,
+    FormResponseDeletionRequest,
+    FormResponseDocument,
 )
 from backend.app.services.form_service import FormService
+
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm
 
@@ -16,7 +16,7 @@ class FormImportService:
         self.form_service = form_service
 
     async def save_converted_form_and_responses(
-            self, response_data: Dict[str, Any], form_response_data_owner: str
+        self, response_data: Dict[str, Any], form_response_data_owner: str
     ) -> StandardForm:
         form_data = FormImportResponse.parse_obj(response_data)
         standard_form = form_data.form
@@ -25,7 +25,6 @@ class FormImportService:
 
         updated_responses_id = []
 
-        # TODO : Make this scalable in case of large number of responses
         for response in responses:
             existing_response = await FormResponseDocument.find_one(
                 {"response_id": response.response_id}
@@ -34,7 +33,6 @@ class FormImportService:
             if existing_response:
                 response_document.id = existing_response.id
             response_document.form_id = standard_form.form_id
-            # TODO : Handle data owner identifier in workspace
             data_owner_answer = response_document.answers.get(form_response_data_owner)
 
             if not response_document.dataOwnerIdentifier:
@@ -70,17 +68,20 @@ class FormImportService:
                         ]
                     },
                 }
-            ).update_many({
-                "$unset": {"answers": 1,
-                           "created_at": 1,
-                           "updated_at": 1,
-                           "published_at": 1
-                           }
-            })
+            ).update_many(
+                {
+                    "$unset": {
+                        "answers": 1,
+                        "created_at": 1,
+                        "updated_at": 1,
+                        "published_at": 1,
+                    }
+                }
+            )
 
             await FormResponseDeletionRequest.find(deletion_requests_query).update_many(
-                {"$set": {
-                    "status": DeletionRequestStatus.SUCCESS},
+                {
+                    "$set": {"status": DeletionRequestStatus.SUCCESS},
                 }
             )
         return standard_form

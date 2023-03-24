@@ -1,8 +1,10 @@
-from typing import List, Optional
 import datetime as dt
+from typing import Optional
 
 from beanie import PydanticObjectId
+
 from fastapi_camelcase import CamelModel
+
 from pydantic import BaseModel
 
 

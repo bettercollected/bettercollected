@@ -2,6 +2,7 @@
 from typing import Any, Callable, Dict
 
 from backend.app.core.base.plugin_base import BasePlugin
+
 from common.enums.form_provider import FormProvider
 
 _plugin_creator_funcs: Dict[str, Callable[..., BasePlugin]] = {}

@@ -1,20 +1,17 @@
 from typing import List
 
-import fastapi_pagination.ext.beanie
+from backend.app.schemas.standard_form import FormDocument
+
 from beanie import PydanticObjectId
 from beanie.odm.queries.aggregation import AggregationQuery
-from fastapi_pagination import Page
-
-from backend.app.schemas.standard_form import FormDocument
 
 
 class FormRepository:
     @staticmethod
     def get_forms_in_workspace_query(
-            workspace_id: PydanticObjectId, form_id_list: List[str]
+        workspace_id: PydanticObjectId, form_id_list: List[str]
     ) -> AggregationQuery:
-        forms = FormDocument.find({"form_id": {"$in": form_id_list}}) \
-            .aggregate(
+        forms = FormDocument.find({"form_id": {"$in": form_id_list}}).aggregate(
             [
                 {
                     "$lookup": {
@@ -32,7 +29,7 @@ class FormRepository:
         return forms
 
     async def search_form_in_workspace(
-            self, workspace_id: PydanticObjectId, form_ids: List[str], query: str
+        self, workspace_id: PydanticObjectId, form_ids: List[str], query: str
     ):
         return (
             await FormDocument.find(
@@ -44,7 +41,7 @@ class FormRepository:
                     ],
                 }
             )
-                .aggregate(
+            .aggregate(
                 [
                     {
                         "$lookup": {
@@ -59,7 +56,7 @@ class FormRepository:
                     {"$set": {"settings": "$workspace_form.settings"}},
                 ]
             )
-                .to_list()
+            .to_list()
         )
 
     async def save_form(self, form: FormDocument):
