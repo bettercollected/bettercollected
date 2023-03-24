@@ -1,5 +1,5 @@
 services:
-  - docker:dind
+  - dind
 
 cache:
   paths:
