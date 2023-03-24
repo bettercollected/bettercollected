@@ -47,7 +47,11 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
     const isCustomDomain = window?.location.host !== environments.CLIENT_HOST;
 
     const SubmissionCard = ({ submission, submittedAt }: any) => (
-        <div className="w-full overflow-hidden items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
+        <div
+            className={`w-full overflow-hidden items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300  drop-shadow-sm  ${
+                !deletionRequests && 'transition cursor-pointer hover:border-blue-500 hover:drop-shadow-lg'
+            }  bg-white rounded-[20px]`}
+        >
             <div className="flex flex-col justify-start h-full">
                 <p className="text-sm text-gray-400 italic">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submission.formId, 30) : submission.formId}</p>
                 <p className="text-xl text-grey mb-4 p-0">{submission.formTitle}</p>
@@ -74,7 +78,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
                         const slug = submission.responseId;
                         const submittedAt = `${toMonthDateYearStr(parseDateStrToDate(submission.updatedAt))} ${toHourMinStr(parseDateStrToDate(submission.updatedAt))}`;
                         return deletionRequests ? (
-                            <SubmissionCard submission={submission} submittedAt={submittedAt} />
+                            <SubmissionCard key={submission.responseId} submission={submission} submittedAt={submittedAt} />
                         ) : (
                             <ActiveLink
                                 key={submission.responseId}

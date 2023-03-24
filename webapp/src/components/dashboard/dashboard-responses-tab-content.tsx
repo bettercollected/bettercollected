@@ -47,12 +47,26 @@ const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
     }
 }));
 
-const StyledTableRow = styled(TableRow)(({ theme }) => ({
+const StyledTableRowLink = styled(TableRow)(({ theme }) => ({
     '&:hover': {
         backgroundColor: '#f5f9ff !important',
         cursor: 'pointer'
     }
 }));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+    '&:hover': {
+        backgroundColor: 'transparent !important',
+        cursor: 'alias !important'
+    }
+}));
+
+const TableRowWrapper = (props: any) => {
+    if (props.requestedForDeletion) {
+        return <StyledTableRow {...props} />;
+    }
+    return <StyledTableRowLink {...props} />;
+};
 
 function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletion = false }: any) {
     const router = useRouter();
@@ -131,7 +145,6 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
     };
 
     const handlePageChange = (e: any, page: number) => {
-        //TODO: fetch api to call the next page
         setPage(page);
     };
 
@@ -154,7 +167,6 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
                         {requestedForDeletion ? 'Total deletion requests' : 'Total Submissions'} ({total})
                     </h1>
                 </div>
-
                 <TableContainer component={Paper}>
                     <StyledTableContainer>
                         <Table aria-label="customized table w-full">
@@ -170,7 +182,7 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
                                 {Array.isArray(responses) &&
                                     responses.map((row: any, idx: number) => {
                                         return (
-                                            <StyledTableRow key={row.responseId + idx} onClick={() => handleSubmissionClick(row?.responseId)}>
+                                            <TableRowWrapper requestedForDeletion={requestedForDeletion} key={row.responseId + idx} onClick={() => handleSubmissionClick(row?.responseId)}>
                                                 <StyledTableCell component="th" scope="row">
                                                     {!row.dataOwnerIdentifier ? 'Anonymous' : row.dataOwnerIdentifier}
                                                 </StyledTableCell>
@@ -181,7 +193,7 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
                                                     </StyledTableCell>
                                                 )}
                                                 <StyledTableCell align="right">{row.createdAt && toMonthDateYearStr(new Date(row.createdAt))}</StyledTableCell>
-                                            </StyledTableRow>
+                                            </TableRowWrapper>
                                         );
                                     })}
                             </TableBody>

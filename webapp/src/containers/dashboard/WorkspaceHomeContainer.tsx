@@ -52,7 +52,7 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
                         <div className="relative overflow-hidden rounded-b-3xl h-44 w-full md:h-80 xl:h-[380px] bannerdiv">
                             <BannerImageComponent workspace={workspace} isFormCreator={isFormCreator} />
                         </div>
-                        <div className="flex justify-between items-start py-10 gap-6">
+                        <div className="hidden justify-between items-start py-10 gap-6 md:flex">
                             <ProfileImageComponent workspace={workspace} isFormCreator={isFormCreator} />
                             <WorkspaceHeader workspace={workspace} />
 
@@ -63,6 +63,20 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
                             ) : (
                                 <WorkspaceLoginMenuItems workspace={workspace} authStatus={authStatus} isFormCreator={isFormCreator} handleLogout={handleLogout} />
                             )}
+                        </div>
+                        <div className="block md:hidden">
+                            <div className="flex justify-between items-start py-10 gap-6">
+                                <ProfileImageComponent workspace={workspace} isFormCreator={isFormCreator} />
+
+                                {!!authStatus.error ? (
+                                    <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
+                                        Check My Data
+                                    </Button>
+                                ) : (
+                                    <WorkspaceLoginMenuItems workspace={workspace} authStatus={authStatus} isFormCreator={isFormCreator} handleLogout={handleLogout} />
+                                )}
+                            </div>
+                            <WorkspaceHeader workspace={workspace} />
                         </div>
                         <FormsAndSubmissionsTabContainer workspace={workspace} workspaceId={workspace.id} showResponseBar={!!authStatus.error} />
                     </div>

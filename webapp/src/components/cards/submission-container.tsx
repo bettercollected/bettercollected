@@ -32,12 +32,6 @@ const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
     }
 }));
 
-const StyledTableRow = styled(TableRow)(({ theme }) => ({
-    '&:hover': {
-        backgroundColor: '#f5f9ff !important',
-        cursor: 'pointer'
-    }
-}));
 const SubmissionsGrid = ({ responses, requestedForDeletionOnly }: any) => {
     const handleSubmissionCLick = (responseId: string) => {};
 
@@ -57,7 +51,8 @@ const SubmissionsGrid = ({ responses, requestedForDeletionOnly }: any) => {
                     <TableBody className="w-full">
                         {Array.isArray(responses) &&
                             responses.map((response: StandardFormResponseDto, idx: number) => (
-                                <StyledTableRow
+                                <TableRow
+                                    className={`${!requestedForDeletionOnly && 'hover:cursor-pointer hover:bg-[#f5f9ff]'}`}
                                     key={response.responseId + idx}
                                     onClick={() => {
                                         handleSubmissionCLick(response.responseId);
@@ -76,7 +71,7 @@ const SubmissionsGrid = ({ responses, requestedForDeletionOnly }: any) => {
                                     )}
 
                                     <StyledTableCell align="right">{response.createdAt && toLocaleString(new Date(response.createdAt))}</StyledTableCell>
-                                </StyledTableRow>
+                                </TableRow>
                             ))}
                     </TableBody>
                 </Table>

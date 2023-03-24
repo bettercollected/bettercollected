@@ -12,6 +12,7 @@ import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
+import { toMidDottedStr } from '@app/utils/stringUtils';
 
 export default function FormSettingsTab() {
     const form = useAppSelector((state) => state.form);
@@ -75,6 +76,13 @@ export default function FormSettingsTab() {
         return `${firstPart}..${lastPart}`;
     };
 
+    const clientHostUrl = `${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`;
+    const customDomainUrl = `${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`;
+
+    // TODO: make it responsive (Larger string in medium or larger screen)
+    const shortenedClientHostUrl = toMidDottedStr(clientHostUrl, 10);
+    const shortenedCustomDomainUrl = toMidDottedStr(customDomainUrl, 10);
+
     return (
         <div className="max-w-[800px]">
             <div className=" flex flex-col">
@@ -120,41 +128,37 @@ export default function FormSettingsTab() {
             <div className="mt-5 space-y-2">
                 <div className="text-gray-700 font-bold">Form URLs</div>
                 <div className="text-gray-800 space-x-4 underline w-fit items-center rounded px-4 py-2 flex bg-gray-100">
-                    <p>
-                        {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{environments.CLIENT_HOST}/{workspace.workspaceName}/forms/{getFirstFiveSlugName(customUrl)}
-                    </p>
+                    <p>{shortenedClientHostUrl}</p>
                     <Copy
                         width="16px"
                         height="16px"
                         className="cursor-pointer"
                         onClick={() => {
-                            copyToClipboard(`${environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`);
+                            copyToClipboard(`${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`);
                             toast('Form URL Copied', {
                                 type: 'info'
                             });
                         }}
                     />
-                    <a href={`${environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`} target="_blank" referrerPolicy="no-referrer-when-downgrade" rel="noreferrer">
+                    <a href={`${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`} target="_blank" referrerPolicy="no-referrer-when-downgrade" rel="noreferrer">
                         <ShareIcon width={19} height={19} />
                     </a>
                 </div>
                 {isCustomDomain && (
                     <div className="text-gray-800 underline space-x-4 w-fit items-center rounded px-4 py-2 flex bg-gray-100">
-                        <p className="text-ellipsis whitespace-pre-wrap">
-                            {environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://{workspace.customDomain}/forms/{getFirstFiveSlugName(customUrl)}
-                        </p>
+                        <p className="text-ellipsis whitespace-pre-wrap">{shortenedCustomDomainUrl}</p>
                         <Copy
                             width="16px"
                             height="16px"
                             className="cursor-pointer"
                             onClick={() => {
-                                copyToClipboard(`${environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`);
+                                copyToClipboard(`${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`);
                                 toast('Form URL Copied', {
                                     type: 'info'
                                 });
                             }}
                         />
-                        <a href={`${environments.CLIENT_HOST === 'localhost:3000' ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`} target="_blank" referrerPolicy="no-referrer-when-downgrade" rel="noreferrer">
+                        <a href={`${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`} target="_blank" referrerPolicy="no-referrer-when-downgrade" rel="noreferrer">
                             <ShareIcon width={19} height={19} />
                         </a>
                     </div>

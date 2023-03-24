@@ -30,9 +30,9 @@ export default function WorkspaceLoginMenuItems({ authStatus, handleLogout, work
         <>
             <Box sx={{ display: 'flex', alignItems: 'center', textAlign: 'center' }}>
                 <Tooltip title="Account settings">
-                    <IconButton onClick={handleClick} size="small" aria-controls={open ? 'account-menu' : undefined} aria-haspopup="true" aria-expanded={open ? 'true' : undefined}>
+                    <div onClick={handleClick} aria-controls={open ? 'account-menu' : undefined} aria-haspopup="true" aria-expanded={open ? 'true' : undefined}>
                         <Hamburger />
-                    </IconButton>
+                    </div>
                 </Tooltip>
             </Box>
             <Menu
@@ -41,6 +41,7 @@ export default function WorkspaceLoginMenuItems({ authStatus, handleLogout, work
                 open={open}
                 onClose={handleClose}
                 onClick={handleClose}
+                disableScrollLock
                 PaperProps={{
                     elevation: 0,
                     sx: {

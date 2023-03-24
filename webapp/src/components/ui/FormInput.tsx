@@ -29,10 +29,10 @@ export default function FormInput(props: any) {
     };
 
     return (
-        <div className={'flex items-center mb-4'}>
+        <div className={'flex items-center mb-4 w-60 mx-auto !rounded-[1px] !h-[50px]'}>
             <input
                 data-testid="form-input"
-                className={`border-solid ${value?.length !== 0 ? (validInputFormat ? '!border-green-500' : '!border-red-500') : ''} h-[40px] text-gray-900 text-sm rounded-lg w-full p-2.5`}
+                className={`border-solid ${value?.length !== 0 ? (validInputFormat ? '!border-green-500' : '!border-red-500') : ''} w-60 mx-auto !rounded-[1px] !h-[50px] text-gray-900 p-2.5 text-sm`}
                 value={value}
                 type="text"
                 placeholder={placeholder}

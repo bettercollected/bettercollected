@@ -65,9 +65,9 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
     const HeaderRenderer = () => {
         return (
             <>
-                <div className={'font-semibold text-darkGrey rounded-md text-md'}>Enter OTP code</div>
-                <p className={'text-xs text-gray-500 md:text-base'}> We have just send a verification code to</p>
-                <p className="text-gray-500 text-xs md:text-base font-semibold mb-2">{email}</p>
+                <div className={'text-lg font-bold text-center'}>Enter OTP code</div>
+                <p className={'text-xs text-gray-700 md:text-sm'}> We have just send a verification code to</p>
+                <p className="text-gray-700 text-xs md:text-sm font-semibold mb-2">{email}</p>
             </>
         );
     };
@@ -82,13 +82,13 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
             <input
                 data-testid="otp-input"
                 spellCheck={false}
-                className={`border-solid tracking-[0.5rem] font-bold placeholder:font-normal placeholder:text-sm placeholder:tracking-normal mb-4 h-[40px] text-gray-900 rounded-lg w-full p-2.5`}
+                className={`border-solid tracking-[0.5rem] font-bold placeholder:font-normal placeholder:text-sm placeholder:tracking-normal mb-4 w-60 mx-auto !rounded-[1px] !h-[50px] text-gray-900 p-2.5`}
                 value={otp}
                 type="text"
                 placeholder={'Enter the OTP code'}
                 onChange={handleChange}
             />
-            <Button data-testid="verify-button" isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} className="w-full !h-10 !rounded-lg">
+            <Button data-testid="verify-button" isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} className="w-60 mb-0 mx-auto !rounded-[1px] !h-[50px]">
                 Verify
             </Button>
             <ResendButtonRenderer />
