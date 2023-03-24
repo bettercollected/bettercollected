@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-import Image from 'next/image';
-
-import { Divider, Menu } from '@mui/material';
+import { Menu } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 
-import { Google } from '@app/components/icons/brands/google';
+import ProviderLoginButton from '@app/components/login/provider-login-btn';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
@@ -37,11 +35,15 @@ export default function ImportFormsMenu() {
                 open={open}
                 onClose={handleClose}
                 onClick={handleClose}
+                disableScrollLock
                 PaperProps={{
                     elevation: 0,
                     sx: {
                         overflow: 'visible',
                         filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                        ':hover': {
+                            bgcolor: 'background.paper'
+                        },
                         mt: 1.5,
                         '& .MuiAvatar-root': {
                             width: 32,
@@ -72,10 +74,7 @@ export default function ImportFormsMenu() {
                             openModal('IMPORT_GOOGLE_FORMS_VIEW');
                         }}
                     >
-                        <div data-testid="google-menu-item" className="rounded-full bg-white p-2">
-                            <Google />
-                        </div>
-                        Google
+                        <ProviderLoginButton data-testid="google-menu-item" className="!w-40" label="Google" type="dark" onClick={() => {}} isGoogle />
                     </MenuItem>
                 )}
                 {typeformEnabled && (
@@ -84,10 +83,7 @@ export default function ImportFormsMenu() {
                             openModal('IMPORT_TYPE_FORMS_VIEW');
                         }}
                     >
-                        <div data-testid="typeform-menu-item" className="rounded-full border h-[24px] w-[28px] border-white relative">
-                            <Image src="/tf.png" className="rounded-full" layout="fill" alt={'T'} />
-                        </div>
-                        Typeform
+                        <ProviderLoginButton data-testid="typeform-menu-item" className="!w-40" label="Typeform" type="typeform" onClick={() => {}} />
                     </MenuItem>
                 )}
             </Menu>

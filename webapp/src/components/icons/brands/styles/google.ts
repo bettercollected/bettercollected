@@ -5,7 +5,7 @@ const baseStyle = {
     textAlign: 'center',
     verticalAlign: 'center',
     boxShadow: '0 2px 4px 0 rgba(0,0,0,.25)',
-    fontSize: '16px',
+    fontSize: '14px',
     lineHeight: '48px',
     display: 'block',
     borderRadius: '1px',
@@ -18,7 +18,7 @@ const baseStyle = {
 
 export const darkStyle = {
     backgroundColor: '#4285f4',
-    color: '#fff',
+    color: '#ffffff',
     ...baseStyle
 };
 
@@ -29,7 +29,7 @@ export const typeformDarkStyle = {
 };
 
 export const lightStyle = {
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     color: 'rgba(0,0,0,.54)',
     ...baseStyle
 };
@@ -43,7 +43,7 @@ export const iconStyle = {
     marginTop: '1px',
     marginLeft: '1px',
     float: 'left',
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderRadius: '1px',
     whiteSpace: 'nowrap'
 };

@@ -10,6 +10,7 @@ interface IPropTypes {
     disabled?: boolean;
     tabIndex?: number;
     onClick: Function;
+    className?: string;
     type: 'light' | 'dark' | 'typeform';
     style?: any;
 }
@@ -26,6 +27,7 @@ export default class ProviderLoginButton extends PureComponent<IPropTypes, IStat
         disabled: false,
         type: 'light',
         tabIndex: 0,
+        className: '',
         onClick: () => {}
     };
 
@@ -35,6 +37,8 @@ export default class ProviderLoginButton extends PureComponent<IPropTypes, IStat
 
     getStyle = (propStyles: any) => {
         const baseStyle = this.props.type === 'dark' ? darkStyle : this.props.type === 'light' ? lightStyle : typeformDarkStyle;
+        if (this.props.type === 'typeform') hoverStyle.boxShadow = '0 0 3px 3px rgba(0,0,0,.3)';
+        else hoverStyle.boxShadow = '0 0 3px 3px rgba(66,133,244,.3)';
         if (this.state.hovered) {
             return { ...baseStyle, ...hoverStyle, ...propStyles };
         }
@@ -63,12 +67,12 @@ export default class ProviderLoginButton extends PureComponent<IPropTypes, IStat
     };
 
     render() {
-        const { label, icon, style, ...otherProps } = this.props;
+        const { label, icon, style, className, ...otherProps } = this.props;
 
         const Icon = icon;
 
         return (
-            <div {...otherProps} role="button" onClick={this.click} style={this.getStyle(style)} onMouseOver={this.mouseOver} onMouseOut={this.mouseOut}>
+            <div {...otherProps} role="button" onClick={this.click} style={this.getStyle(style)} onMouseOver={this.mouseOver} onMouseOut={this.mouseOut} className={className}>
                 <Icon {...this.props} />
                 <span>{label}</span>
             </div>
