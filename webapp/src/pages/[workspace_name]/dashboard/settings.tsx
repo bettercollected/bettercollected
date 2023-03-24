@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { AdminPanelSettings, PrivacyTip, Settings } from '@mui/icons-material';
+
 import SettingsPrivacy from '@app/components/settings/workspace/settings-privacy';
 import SettingsProfile from '@app/components/settings/workspace/settings-profile';
 import { WorkspaceDangerZoneSettings } from '@app/components/settings/workspace/workspace-danger-zone-settings';
@@ -22,14 +24,17 @@ export default function MySettings(props: any) {
 
     const paramTabs = [
         {
+            icon: <AdminPanelSettings />,
             title: 'Profile',
             path: 'settings-profile'
         },
         {
+            icon: <PrivacyTip />,
             title: 'Privacy',
             path: 'settings-privacy'
         },
         {
+            icon: <Settings />,
             title: 'Advanced',
             path: 'settings-advanced'
         }

@@ -74,7 +74,7 @@ export default function ImportFormsMenu() {
                             openModal('IMPORT_GOOGLE_FORMS_VIEW');
                         }}
                     >
-                        <ProviderLoginButton data-testid="google-menu-item" className="!w-40" label="Google" type="dark" onClick={() => {}} isGoogle />
+                        <ProviderLoginButton data-testid="google-menu-item" className="!w-40" label="Google" type="dark" onClick={() => {}} />
                     </MenuItem>
                 )}
                 {typeformEnabled && (

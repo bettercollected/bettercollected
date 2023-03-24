@@ -4,9 +4,9 @@ import ConnectWithProviderButton from '@app/components/login/login-with-google-b
 
 describe('render login with google button', () => {
     it('should render login button for form responder', function () {
-        render(<ConnectWithProviderButton url="url" text={'Sign in with Google'} isGoogleBtn={true} />);
+        render(<ConnectWithProviderButton url="url" text={'Sign in with Google'} />);
     });
     it('should render login button for form creator', function () {
-        render(<ConnectWithProviderButton url="url" text={'Sign in with Google'} creator={false} isGoogleBtn={true} />);
+        render(<ConnectWithProviderButton url="url" text={'Sign in with Google'} creator={false} />);
     });
 });

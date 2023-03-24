@@ -57,7 +57,7 @@ export const Login = () => {
                     <div className="flex flex-col justify-center items-center text-gray-700 space-y-2">
                         <div className="text-2xl font-bold">Welcome, Collector</div>
                     </div>
-                    {environments.ENABLE_GOOGLE && <ConnectWithProviderButton url={`${environments.API_ENDPOINT_HOST}/auth/google/basic`} text="Sign in with Google" isGoogleBtn creator />}
+                    {environments.ENABLE_GOOGLE && <ConnectWithProviderButton type="dark" url={`${environments.API_ENDPOINT_HOST}/auth/google/basic`} text="Sign in with Google" creator />}
                     {environments.ENABLE_TYPEFORM && environments.ENABLE_GOOGLE && (
                         <div className="flex items-center justify-center">
                             <div className="border-t w-5 border-gray-200"></div>

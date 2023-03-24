@@ -5,21 +5,19 @@ interface ConnectWithProviderButtonProps {
     url: string;
     type?: 'light' | 'dark' | 'typeform';
     creator?: boolean;
-    isGoogleBtn?: boolean;
 }
 
 ConnectWithProviderButton.defaultProps = {
     creator: false,
-    isGoogleBtn: false,
     type: 'dark'
 };
 
 export default function ConnectWithProviderButton(props: ConnectWithProviderButtonProps) {
-    const { url, text, type, creator, isGoogleBtn } = props;
+    const { url, text, type, creator } = props;
 
     return (
         <a href={`${url}${creator ? '?creator=true' : ''}`} referrerPolicy="unsafe-url" className={`mx-auto w-fit flex items-center justify-center`}>
-            <ProviderLoginButton label={text} type={type} onClick={() => {}} isGoogle={isGoogleBtn} />
+            <ProviderLoginButton label={text} type={type} onClick={() => {}} />
         </a>
     );
 }

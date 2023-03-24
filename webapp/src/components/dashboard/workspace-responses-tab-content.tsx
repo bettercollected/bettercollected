@@ -78,7 +78,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
                         const slug = submission.responseId;
                         const submittedAt = `${toMonthDateYearStr(parseDateStrToDate(submission.updatedAt))} ${toHourMinStr(parseDateStrToDate(submission.updatedAt))}`;
                         return deletionRequests ? (
-                            <SubmissionCard submission={submission} submittedAt={submittedAt} />
+                            <SubmissionCard key={submission.responseId} submission={submission} submittedAt={submittedAt} />
                         ) : (
                             <ActiveLink
                                 key={submission.responseId}

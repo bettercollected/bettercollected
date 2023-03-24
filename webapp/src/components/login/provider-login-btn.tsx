@@ -6,7 +6,6 @@ import { darkStyle, disabledStyle, hoverStyle, lightStyle, typeformDarkStyle } f
 interface IPropTypes {
     label: string;
     icon: any;
-    isGoogle: boolean;
     disabled?: boolean;
     tabIndex?: number;
     onClick: Function;
@@ -22,7 +21,6 @@ interface IState {
 export default class ProviderLoginButton extends PureComponent<IPropTypes, IState> {
     static defaultProps = {
         icon: ProviderIcon,
-        isGoogle: true,
         label: 'Sign in with Google',
         disabled: false,
         type: 'light',
