@@ -32,7 +32,7 @@ google-api-python-client = "^2.79.0"
 fastapi-mail = "^1.2.6"
 mongomock-motor = "^0.0.17"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "~7.2.0"
 pytest-cov = "~4.0.0"
 pytest-asyncio = "~0.20.3"
@@ -46,6 +46,7 @@ black = "~22.8.0"
 Sphinx = "~5.3.0"
 Pallets-Sphinx-Themes = "~2.0.2"
 myst-parser = "~0.18.1"
+pre-commit = "^3.2.0"
 
 [tool.poetry.scripts]
 auth = 'auth.cli:cli'
