@@ -1,29 +1,21 @@
-# backend
-[![CI](/actions/workflows/main.yml/badge.svg?branch=master)](/actions/workflows/main.yml)
-[![K8s integration](/actions/workflows/integration.yml/badge.svg)](/actions/workflows/integration.yml)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-![GitHub](https://img.shields.io/badge/fastapi-v.0.88.0-blue)
-![GitHub](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)
-![GitHub](https://img.shields.io/badge/license-no-blue)
+### Running the project
 
----
+**NOTE: Latest codebase is in develop branch**
 
-### Documentation
+1. Install `pyenv` with `python` version `3.10` and higher. And activate a virtual environment.
+2. Look into [Makefile](Makefile) to see if you might need any command. If you need additional commands, you can add it there.
+3. Run `make install`, this will install `poetry` by default if it's not installed.
+4. Copy [.env.example](.env.example) with the name `.env`, and add/update the environment variables there. <br/>
+   (**Note: Keep `AUTH_AEX_HEX_KEY` and `GOOGLE_AES_KEY` same through every project for bettercollected**)<br/>
+(**Note: Keep `AUTH_JWT_SECRET` values same through every project for bettercollected**)
+5. After configuring the environment variables, the application is ready to run
+6. Run `uvicorn backend.app:get_application --port 8000 --reload --env-file .env`
 
+### Contributing
 
-You should have documentation deployed to your project GitHub pages via [Build Docs workflow](/actions/workflows/docs.yml)
-
-**NOTE!** You might need to enable GitHub pages for this project first.
-
-To build docs manually:
-```shell
-make docs
-```
-
-Use poetry version `1.3.2` and python version `3.10`. Before running `make install` or `poetry install`, fetch git submodule `common` as it is set as package here.
-
-Then open `./site/index.html` with any browser.
-
-## License
-
-This project is licensed under the terms of the SSPL license.
+1. Create a pull request for any issue into `develop` branch at first.
+2. Run `pre-commit install` and `pre-commit autoupdate`.
+3. Run `make format` command to format the codebase.
+4. Run `make flake8` and fix up the flake issues.
+5. Run `make test` to run all the tests.
+6. Run `make coverage` to run code coverage.
