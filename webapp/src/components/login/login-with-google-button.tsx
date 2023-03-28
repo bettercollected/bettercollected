@@ -5,19 +5,28 @@ interface ConnectWithProviderButtonProps {
     url: string;
     type?: 'light' | 'dark' | 'typeform';
     creator?: boolean;
+    disabled?: boolean;
 }
 
 ConnectWithProviderButton.defaultProps = {
     creator: false,
-    type: 'dark'
+    type: 'dark',
+    disabled: false
 };
 
 export default function ConnectWithProviderButton(props: ConnectWithProviderButtonProps) {
-    const { url, text, type, creator } = props;
+    const { url, text, type, creator, disabled } = props;
+
+    if (disabled)
+        return (
+            <div className="mx-auto w-fit flex items-center justify-center">
+                <ProviderLoginButton disabled={disabled} label={text} type={type} onClick={() => {}} />
+            </div>
+        );
 
     return (
         <a href={`${url}${creator ? '?creator=true' : ''}`} referrerPolicy="unsafe-url" className={`mx-auto w-fit flex items-center justify-center`}>
-            <ProviderLoginButton label={text} type={type} onClick={() => {}} />
+            <ProviderLoginButton disabled={disabled} label={text} type={type} onClick={() => {}} />
         </a>
     );
 }
