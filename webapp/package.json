@@ -39,6 +39,7 @@
     "js-cookie": "^3.0.1",
     "little-state-machine": "^4.6.0",
     "lodash": "^4.17.21",
+    "material-ui-popup-state": "^5.0.8",
     "moment": "^2.29.4",
     "next": "12.3.1",
     "next-i18next": "^12.1.0",

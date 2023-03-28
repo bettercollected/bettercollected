@@ -170,12 +170,17 @@ interface IProviderIconProps {
     type: 'light' | 'dark' | 'typeform';
 }
 
-export const ProviderIcon = ({ disabled, type }: IProviderIconProps) => (
-    // @ts-ignore
-    <div className="flex justify-center items-center" style={!disabled ? iconStyle : { ...iconStyle, ...disabledIconStyle }}>
-        {!disabled ? (type === 'dark' ? darkSvg : type === 'light' ? lightSvg : typeformSvg) : disabledSvg}
-    </div>
-);
+export const ProviderIcon = ({ disabled, type }: IProviderIconProps) => {
+    const getEnabledIcon = type === 'dark' ? darkSvg : type === 'light' ? lightSvg : typeformSvg;
+    const getDisabledIcon = type === 'typeform' ? typeformSvg : disabledSvg;
+
+    return (
+        // @ts-ignore
+        <div className="flex justify-center items-center" style={!disabled ? iconStyle : { ...iconStyle, ...disabledIconStyle }}>
+            {!disabled ? getEnabledIcon : getDisabledIcon}
+        </div>
+    );
+};
 
 ProviderIcon.defaultProps = {
     type: 'light'
