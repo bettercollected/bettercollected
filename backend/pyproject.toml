@@ -40,6 +40,7 @@ python-multipart = "^0.0.5"
 cryptography = "^39.0.1"
 apscheduler = "^3.10.0"
 fastapi-pagination = { git = "https://github.com/uriyyo/fastapi-pagination.git", branch = "main"}
+python-whois = "^0.8.0"
 
 [tool.poetry.scripts]
 backend = 'backend.cli:cli'

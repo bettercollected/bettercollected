@@ -8,9 +8,11 @@ from backend.app.models.workspace import (
 )
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
+from backend.app.schemas.allowed_origin import AllowedOriginsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.utils.domain import is_domain_available
 from backend.config import settings
 
 from beanie import PydanticObjectId
@@ -110,14 +112,27 @@ class WorkspaceService:
 
         if workspace_patch.custom_domain:
             try:
-                await self.get_workspace_by_query(workspace_patch.custom_domain)
-                raise HTTPException(409)
+                workspace = await WorkspaceDocument.find_one(
+                    {"custom_domain": workspace_patch.custom_domain}
+                )
+                origin = await AllowedOriginsDocument.find_one(
+                    {"origin": workspace_patch.custom_domain}
+                )
+                if (
+                    not workspace
+                    and not origin
+                    and is_domain_available(workspace_patch.custom_domain)
+                ):
+                    await AllowedOriginsDocument.save(
+                        AllowedOriginsDocument(origin=workspace_patch.custom_domain)
+                    )
+                else:
+                    raise HTTPException(409)
             except HTTPException as e:
                 if e.status_code == 409:
                     raise HTTPException(
                         409, "Workspace with given custom domain already exists!"
                     )
-                pass
 
         workspace_document.custom_domain = (
             workspace_patch.custom_domain
