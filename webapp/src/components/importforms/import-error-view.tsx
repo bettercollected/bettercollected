@@ -87,16 +87,16 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
     const getScopeContent = (scope: IScope) => {
         if (scope?.url) {
             return (
-                <a target="_blank" rel="noreferrer" className="w-full flex hover:text-blue-500 py-2 justify-between border-b-[1px] border-gray-200 last:border-none" key={scope.name} href={scope.url}>
+                <a target="_blank" rel="noreferrer" className="w-full flex flex-col sm:flex-row hover:text-blue-500 py-2 justify-between border-b-[1px] border-gray-200 last:border-none" key={scope.name} href={scope.url}>
                     <li>{scope.name}</li>
                     <span className={`${scope?.type === 'non-sensitive' ? 'bg-purple-100 text-purple-800' : 'bg-yellow-100 text-yellow-800'} text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full`}>{scope.type}</span>
                 </a>
             );
         }
         return (
-            <div className="w-full flex py-2 justify-between border-b-[1px] border-gray-200 last:border-none" key={scope.name}>
+            <div className="w-full flex flex-col sm:flex-row py-2 justify-between border-b-[1px] border-gray-200 last:border-none" key={scope.name}>
                 <li>{scope.name}</li>
-                <span className={`${scope?.type === 'non-sensitive' ? 'bg-purple-100 text-purple-800' : 'bg-yellow-100 text-yellow-800'} text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full`}>{scope.type}</span>
+                <span className={`${scope?.type === 'non-sensitive' ? 'bg-purple-100 text-purple-800' : 'bg-yellow-100 text-yellow-800'} text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full w-fit`}>{scope.type}</span>
             </div>
         );
     };
