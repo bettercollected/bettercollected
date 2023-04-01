@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import BannerImageComponent from '@app/components/dashboard/banner-image';
 import ProfileImageComponent from '@app/components/dashboard/profile-image';
@@ -13,6 +13,8 @@ import DynamicContainer from '@app/containers/DynamicContainer';
 import Layout from '@app/layouts/_layout';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetStatusQuery, useLazyGetLogoutQuery } from '@app/store/auth/api';
+import { useAppDispatch } from '@app/store/hooks';
+import { setWorkspace } from '@app/store/workspaces/slice';
 
 interface IDashboardContainer {
     workspace: WorkspaceDto;
@@ -29,6 +31,13 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
 
     const authStatus = useGetStatusQuery('status');
     const { openModal } = useModal();
+    const dispatch = useAppDispatch();
+
+    useEffect(() => {
+        if (workspace.id) {
+            dispatch(setWorkspace(workspace));
+        }
+    }, [workspace]);
 
     if (!workspace || authStatus.isLoading) return <FullScreenLoader />;
 
@@ -54,7 +63,7 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
                         </div>
                         <div className="hidden justify-between items-start py-10 gap-6 md:flex">
                             <ProfileImageComponent workspace={workspace} isFormCreator={isFormCreator} />
-                            <WorkspaceHeader workspace={workspace} />
+                            <WorkspaceHeader isFormCreator={isFormCreator} />
 
                             {!!authStatus.error ? (
                                 <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
@@ -76,7 +85,7 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
                                     <WorkspaceLoginMenuItems workspace={workspace} authStatus={authStatus} isFormCreator={isFormCreator} handleLogout={handleLogout} />
                                 )}
                             </div>
-                            <WorkspaceHeader workspace={workspace} />
+                            <WorkspaceHeader isFormCreator={isFormCreator} />
                         </div>
                         <FormsAndSubmissionsTabContainer workspace={workspace} workspaceId={workspace.id} showResponseBar={!!authStatus.error} />
                     </div>
