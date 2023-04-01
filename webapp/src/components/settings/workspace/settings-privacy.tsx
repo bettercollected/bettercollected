@@ -48,7 +48,8 @@ const StyledTextField = styled.div`
 `;
 
 const CardContainer = (props: any) => {
-    return <div className="w-full p-4 h-32 mb-4 border-solid border-[1px] rounded-md border-[#efefef] lg:w-2/3">{props.children}</div>;
+    const className = props?.className ?? '';
+    return <div className={`w-full p-4 h-32 mb-4 border-solid border-[1px] rounded-md border-[#efefef] lg:w-2/3 ${className}`}>{props.children}</div>;
 };
 
 const IconContainer = (props: any) => {
@@ -66,7 +67,7 @@ const CardTitle = ({ title, tooltipDesc }: any) => {
     );
 };
 
-export default function Settingsprivacy() {
+export default function Settingsprivacy({ className = '', childClassName = '' }: { className: string; childClassName: string }) {
     const [policies, setPolicies] = useState({ privacy_policy_url: '', terms_of_service_url: '' });
 
     const workspace = useAppSelector((state) => state.workspace);
@@ -157,8 +158,8 @@ export default function Settingsprivacy() {
     };
 
     return (
-        <div className="lg:w-2/3 mb-10">
-            <CardContainer>
+        <div className={`lg:w-2/3 mb-10 ${className}`}>
+            <CardContainer className={childClassName}>
                 <CardTitle title="Link to privacy policy" tooltipDesc={privacyPolicyTooltip} />
                 <div className="flex items-center h-24 justify-between">
                     <StyledTextField>
@@ -187,7 +188,7 @@ export default function Settingsprivacy() {
                 </div>
             </CardContainer>
 
-            <CardContainer>
+            <CardContainer className={childClassName}>
                 <CardTitle title="Link to Terms of service" tooltipDesc={termsOfServiceTooltip} />
                 <div className="flex items-center h-24 justify-between">
                     <StyledTextField>

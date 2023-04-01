@@ -1,12 +1,13 @@
 import React from 'react';
 
-import { Logout } from '@mui/icons-material';
+import { Logout, PrivacyTip } from '@mui/icons-material';
 import { Avatar, Box, Divider, IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
 import { HomeIcon } from '../icons/home';
+import { useModal } from '../modal-views/context';
 import Hamburger from '../ui/hamburger';
 
 interface IWorkspaceLoginMenuItems {
@@ -17,6 +18,8 @@ interface IWorkspaceLoginMenuItems {
 }
 
 export default function WorkspaceLoginMenuItems({ authStatus, handleLogout, workspace, isFormCreator }: IWorkspaceLoginMenuItems) {
+    const { openModal } = useModal();
+
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -24,6 +27,10 @@ export default function WorkspaceLoginMenuItems({ authStatus, handleLogout, work
     };
     const handleClose = () => {
         setAnchorEl(null);
+    };
+
+    const handleUpdateTocAndPrivacyPolicy = () => {
+        openModal('UPDATE_TERMS_OF_SERVICE_AND_PRIVACY_POLICY');
     };
 
     return (
@@ -80,14 +87,22 @@ export default function WorkspaceLoginMenuItems({ authStatus, handleLogout, work
                 </MenuItem>
                 <Divider />
                 {isFormCreator && (
-                    <a className="w-full" target="_blank" referrerPolicy="no-referrer" href={`${environments.ADMIN_HOST.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_HOST}/${workspace.workspaceName}/dashboard`} rel="noreferrer">
-                        <MenuItem className="hover:bg-blue-500 hover:text-white text-gray-900 group flex w-full items-center">
+                    <>
+                        <a className="w-full" target="_blank" referrerPolicy="no-referrer" href={`${environments.ADMIN_HOST.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_HOST}/${workspace.workspaceName}/dashboard`} rel="noreferrer">
+                            <MenuItem className="hover:bg-blue-500 hover:text-white text-gray-900 group flex w-full items-center">
+                                <div className="flex space-x-4">
+                                    <HomeIcon width={20} height={20} />
+                                    <span>My Dashboard</span>
+                                </div>
+                            </MenuItem>
+                        </a>
+                        <MenuItem onClick={handleUpdateTocAndPrivacyPolicy} className="hover:bg-blue-500 hover:text-white text-gray-900 group flex w-full items-center">
                             <div className="flex space-x-4">
-                                <HomeIcon width={20} height={20} />
-                                <span>My Dashboard</span>
+                                <PrivacyTip width={20} height={20} />
+                                <span className="!ml-3">Terms of service and Privacy Policy</span>
                             </div>
                         </MenuItem>
-                    </a>
+                    </>
                 )}
                 <MenuItem className="hover:bg-red-500 hover:text-white text-red-500 group flex w-full items-center space-x-4" onClick={handleLogout}>
                     <Logout height={20} width={20} className="!rounded-xl" />

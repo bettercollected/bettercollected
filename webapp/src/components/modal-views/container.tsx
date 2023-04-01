@@ -10,6 +10,7 @@ import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
 import LogoutView from '../logout/logout-view';
+import UpdateTermsOfServiceAndPrivacyPolicy from '../toc-privacy-policy';
 import UpdateWorkspaceSettings from '../workspace/update-workspace-settings';
 import { MODAL_VIEW, useModal } from './context';
 
@@ -22,6 +23,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
     switch (view) {
         case 'LOGIN_VIEW':
             return <LoginView {...modalProps} />;
+        case 'UPDATE_TERMS_OF_SERVICE_AND_PRIVACY_POLICY':
+            return <UpdateTermsOfServiceAndPrivacyPolicy />;
         case 'REQUEST_FOR_DELETION_VIEW':
             return <RequestForDeletionView {...modalProps} />;
         case 'IMPORT_GOOGLE_FORMS_VIEW':
