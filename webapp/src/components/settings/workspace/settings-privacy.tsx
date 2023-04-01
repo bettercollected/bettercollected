@@ -67,7 +67,7 @@ const CardTitle = ({ title, tooltipDesc }: any) => {
     );
 };
 
-export default function Settingsprivacy({ className = '', childClassName = '' }: { className: string; childClassName: string }) {
+export default function Settingsprivacy({ className = '', childClassName = '' }: { className?: string; childClassName?: string }) {
     const [policies, setPolicies] = useState({ privacy_policy_url: '', terms_of_service_url: '' });
 
     const workspace = useAppSelector((state) => state.workspace);
