@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Logout, PrivacyTip } from '@mui/icons-material';
+import { Domain, Logout, ManageAccounts, PrivacyTip } from '@mui/icons-material';
 import { Avatar, Box, Divider, IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 
 import environments from '@app/configs/environments';
@@ -102,6 +102,21 @@ export default function WorkspaceLoginMenuItems({ authStatus, handleLogout, work
                                 <span className="!ml-3">Terms of service and Privacy Policy</span>
                             </div>
                         </MenuItem>
+                        <Divider />
+                        <p className="text-red-900 ml-[14px]">Danger Zone</p>
+                        <MenuItem onClick={() => openModal('UPDATE_WORKSPACE_HANDLE')} className="hover:bg-red-900 hover:text-white text-red-900 group flex w-full items-center">
+                            <div className="flex space-x-4">
+                                <ManageAccounts width={20} height={20} />
+                                <span className="!ml-3">Update Workspace Handle</span>
+                            </div>
+                        </MenuItem>
+                        <MenuItem onClick={() => openModal('UPDATE_WORKSPACE_DOMAIN')} className="hover:bg-red-900 hover:text-white text-red-900 group flex w-full items-center">
+                            <div className="flex space-x-4">
+                                <Domain width={20} height={20} />
+                                <span className="!ml-3">Update Custom Domain</span>
+                            </div>
+                        </MenuItem>
+                        <Divider />
                     </>
                 )}
                 <MenuItem className="hover:bg-red-500 hover:text-white text-red-500 group flex w-full items-center space-x-4" onClick={handleLogout}>
