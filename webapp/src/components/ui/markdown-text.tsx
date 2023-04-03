@@ -12,15 +12,17 @@ type Props = {
     displayShowMore?: boolean;
     markdownClassName?: string;
     textClassName?: string;
+    onClick: any;
 };
 
 MarkdownText.defaultProps = {
     contentStripLength: 110,
     displayShowMore: true,
     markdownClassName: '',
-    textClassName: ''
+    textClassName: '',
+    onClick: () => {}
 };
-export default function MarkdownText({ description, contentStripLength = 110, displayShowMore = true, markdownClassName = '', textClassName = '' }: Props) {
+export default function MarkdownText({ description, onClick = () => {}, contentStripLength = 110, displayShowMore = true, markdownClassName = '', textClassName = '' }: Props) {
     const [showMore, setShowMore] = useState(false);
     const [showDesc, setShowDesc] = useState('');
 
@@ -37,7 +39,7 @@ export default function MarkdownText({ description, contentStripLength = 110, di
     const source = showDesc.replace(/\\n/gi, '\n');
 
     return (
-        <>
+        <div onClick={onClick}>
             {description && (
                 <>
                     <ReactMarkdown remarkPlugins={[remarkGfm]} className={`m-0 p-0 mark-down-text ${markdownClassName}`}>
@@ -55,6 +57,6 @@ export default function MarkdownText({ description, contentStripLength = 110, di
                     {source}
                 </p>
             )}
-        </>
+        </div>
     );
 }
