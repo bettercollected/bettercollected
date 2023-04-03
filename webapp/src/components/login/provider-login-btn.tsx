@@ -72,7 +72,7 @@ export default class ProviderLoginButton extends PureComponent<IPropTypes, IStat
         return (
             <div {...otherProps} role="button" onClick={this.click} style={this.getStyle(style)} onMouseOver={this.mouseOver} onMouseOut={this.mouseOut} className={className}>
                 <Icon {...this.props} />
-                <span>{label}</span>
+                <span className="mx-[6px]">{label}</span>
             </div>
         );
     }
