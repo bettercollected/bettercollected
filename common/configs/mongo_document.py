@@ -12,13 +12,14 @@ from typing import (
     Union,
 )
 
-from beanie import Document, PydanticObjectId
+from beanie import Document, PydanticObjectId, WriteRules
 from beanie.odm.documents import DocType
 
 from common.exceptions import NotFoundError
 
 from pymongo.client_session import ClientSession
 from pymongo.collection import Collection
+from datetime import datetime as dt
 
 IntStr = Union[int, str]
 AbstractSetIntStr = AbstractSet[IntStr]
@@ -32,6 +33,9 @@ class MongoDocument(Document):
 
     This class defines common methods and attributes for interacting with MongoDB documents.
     """
+
+    created_at: Optional[dt] = dt.utcnow()
+    updated_at: Optional[dt] = dt.utcnow()
 
     @classmethod
     def pretty_class_name(cls) -> str:
@@ -67,13 +71,13 @@ class MongoDocument(Document):
 
     @classmethod
     async def get(
-        cls: Type[DocType],
-        document_id: PydanticObjectId,
-        session: Optional[ClientSession] = None,
-        ignore_cache: bool = False,
-        fetch_links: bool = False,
-        with_children: bool = False,
-        **pymongo_kwargs,
+            cls: Type[DocType],
+            document_id: PydanticObjectId,
+            session: Optional[ClientSession] = None,
+            ignore_cache: bool = False,
+            fetch_links: bool = False,
+            with_children: bool = False,
+            **pymongo_kwargs,
     ) -> Optional["DocType"]:
         """
         Asynchronously gets a single document by its ID.
@@ -81,7 +85,8 @@ class MongoDocument(Document):
         Args:
             document_id: The ID of the document to be retrieved.
             session (optional): An asyncio session to be used for the operation.
-            ignore_cache (bool): Whether to ignore any previously cached data and retrieve the document directly from the database.
+            ignore_cache (bool): Whether to ignore any previously cached data
+                                and retrieve the document directly from the database.
             fetch_links (bool): Whether to include linked documents in the returned data.
             with_children (bool): Whether to include child documents in the returned data.
             **pymongo_kwargs: Additional keyword arguments to be passed to the pymongo library.
@@ -135,12 +140,12 @@ class MongoDocument(Document):
 
     @classmethod
     async def find_one_by_args(
-        cls: Type[DocType],
-        *args: Union[Mapping[str, Any], bool],
-        projection_model: None = None,
-        session: Optional[ClientSession] = None,
-        ignore_cache: bool = False,
-        fetch_links: bool = False,
+            cls: Type[DocType],
+            *args: Union[Mapping[str, Any], bool],
+            projection_model: None = None,
+            session: Optional[ClientSession] = None,
+            ignore_cache: bool = False,
+            fetch_links: bool = False,
     ) -> DocType:
         """
         Asynchronously finds a single document by the specified criteria.
@@ -149,7 +154,8 @@ class MongoDocument(Document):
             *args: The criteria to use for finding the document.
             projection_model (optional): A model to use for projecting the returned data.
             session (optional): An asyncio session to be used for the operation.
-            ignore_cache (bool): Whether to ignore any previously cached data and retrieve the document directly from the database.
+            ignore_cache (bool): Whether to ignore any previously cached data
+                                and retrieve the document directly from the database.
             fetch_links (bool): Whether to include linked documents in the returned data.
         Returns:
             The document matching the given criteria.
@@ -166,14 +172,14 @@ class MongoDocument(Document):
         return cls.verify_doc_exists(doc, *args)
 
     def _iter(
-        self,
-        to_dict: bool = False,
-        by_alias: bool = False,
-        include: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
-        exclude: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
-        exclude_none: bool = True,
+            self,
+            to_dict: bool = False,
+            by_alias: bool = False,
+            include: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
+            exclude: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
+            exclude_unset: bool = False,
+            exclude_defaults: bool = False,
+            exclude_none: bool = True,
     ) -> "TupleGenerator":
         """
         Iterates over the fields and their values of the document.
@@ -199,3 +205,9 @@ class MongoDocument(Document):
             exclude_defaults=exclude_defaults,
             exclude_none=exclude_none,
         )
+
+    async def save(self, session: Optional[ClientSession] = None,
+                   link_rule: WriteRules = WriteRules.DO_NOTHING,
+                   **kwargs, ) -> DocType:
+        self.updated_at = dt.utcnow()
+        return await super().save(session, link_rule, **kwargs)
