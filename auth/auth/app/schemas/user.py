@@ -1,12 +1,10 @@
 import datetime as dt
 from typing import List, Optional
-
 from auth.app.services.database_service import entity
-
 from beanie import Indexed
-
 from common.configs.mongo_document import MongoDocument
 from common.enums.form_provider import FormProvider
+from common.enums.plan import Plans
 from common.enums.roles import Roles
 
 
@@ -19,8 +17,7 @@ class UserDocument(MongoDocument):
     roles: List[str] = [Roles.FORM_RESPONDER]
     otp_code: Optional[str]
     otp_expiry: Optional[int]
-    created_at: Optional[dt.datetime]
-    updated_at: Optional[dt.datetime]
+    plan: Optional[Plans] = Plans.FREE
     services: Optional[List[FormProvider]]
 
     class Settings:
