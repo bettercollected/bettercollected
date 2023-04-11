@@ -46,7 +46,7 @@ class GoogleAuthProvider(BaseAuthProvider):
         state = crypto.encrypt(state_json)
         flow = google_auth_oauthlib.flow.Flow.from_client_config(
             client_config=client_config,
-            scopes="https://www.googleapis.com/auth/userinfo.email openid",
+            scopes="https://www.googleapis.com/auth/userinfo.email profile openid",
         )
         flow.redirect_uri = settings.google_settings.basic_auth_redirect
 
@@ -63,17 +63,18 @@ class GoogleAuthProvider(BaseAuthProvider):
         )
         state_decrypted = crypto.decrypt(state)
         state_json = json.loads(state_decrypted)
-        print(state_json)
         credentials = self.fetch_basic_token(
             auth_code=authorization_response, state=state
         )
-        print(credentials)
         user = await self.get_google_user(credentials)
         if not user:
             return state_json
         creator = state_json.get("creator", False)
         user_document = await UserRepository.save_user(
-            user.get("email"), creator=creator
+            user.get("email"),
+            creator=creator,
+            first_name=user.get("given_name"),
+            last_name=user.get("family_name"),
         )
         user = User(
             id=str(user_document.id),
@@ -87,7 +88,7 @@ class GoogleAuthProvider(BaseAuthProvider):
     def fetch_basic_token(self, auth_code: str, state):
         flow = google_auth_oauthlib.flow.Flow.from_client_config(
             client_config=client_config,
-            scopes="https://www.googleapis.com/auth/userinfo.email openid",
+            scopes="https://www.googleapis.com/auth/userinfo.email profile openid",
             state=state,
         )
         flow.redirect_uri = settings.google_settings.basic_auth_redirect
