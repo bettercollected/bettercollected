@@ -5,6 +5,8 @@ from beanie import PydanticObjectId
 
 from pydantic import BaseModel, EmailStr, Field
 
+from common.enums.plan import Plans
+
 UserIdentifier = str
 
 
@@ -59,6 +61,7 @@ class User(BaseModel):
     id: str
     sub: UserIdentifier
     username: Optional[str] = Field()
+    plan: Optional[Plans] = Plans.FREE
     roles: Optional[List[str]] = []
     services: Optional[List[str]] = []
 
