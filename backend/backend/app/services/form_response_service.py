@@ -156,3 +156,6 @@ class FormResponseService:
         return await self._form_response_repo.count_responses_for_form_ids(
             workspace_form_ids
         )
+
+    async def delete_form_responses(self, form_id):
+        return await self._form_response_repo.delete_by_form_id(form_id)

@@ -1,5 +1,6 @@
 from typing import List
 
+from backend.app.exceptions import HTTPException
 from backend.app.schemas.standard_form import FormDocument
 
 from beanie import PydanticObjectId
@@ -61,3 +62,9 @@ class FormRepository:
 
     async def save_form(self, form: FormDocument):
         return await form.save()
+
+    async def delete_form(self, form_id: str):
+        form = await FormDocument.find_one({"form_id": form_id})
+        if not form:
+            raise HTTPException(status_code=404, content="Form not found")
+        return await form.delete()

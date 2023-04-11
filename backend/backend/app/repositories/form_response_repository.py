@@ -100,3 +100,6 @@ class FormResponseRepository(BaseRepository):
 
     async def delete(self, item_id: str, provider: FormProvider):
         pass
+
+    async def delete_by_form_id(self, form_id):
+        return await FormResponseDocument.find({"form_id": form_id}).delete()

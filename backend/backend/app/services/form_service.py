@@ -112,3 +112,6 @@ class FormService:
                 settings.responseDataOwnerField
             )
         return await self._workspace_form_repo.update(workspace_form.id, workspace_form)
+
+    async def delete_form(self, form_id: str):
+        return await self._form_repo.delete_form(form_id)

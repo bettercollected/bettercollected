@@ -1,10 +1,9 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.workspace import WorkspaceFormSettings, Workspace
+from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
-from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
@@ -43,6 +42,7 @@ class WorkspaceFormService:
         self.workspace_form_repository = workspace_form_repository
         self.form_schedular = form_schedular
         self.form_import_service = form_import_service
+        self.schedular = schedular
         self.schedular = schedular
         self.form_response_service = form_response_service
 
@@ -132,3 +132,22 @@ class WorkspaceFormService:
             return False
 
         return True
+
+    async def delete_form_from_workspace(
+        self, workspace_id: PydanticObjectId, form_id: str, user: User
+    ):
+        await self.workspace_user_service.check_user_is_admin_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        workspace_ids = (
+            await self.workspace_form_repository.get_workspace_ids_for_form_id(form_id)
+        )
+        workspace_form = await self.workspace_form_repository.delete_form_in_workspace(
+            workspace_id=workspace_id, form_id=form_id
+        )
+        if len(workspace_ids) > 1:
+            return "Form deleted form workspace."
+        await self.schedular.remove_job(f"{workspace_form.settings.provider}_{form_id}")
+        await self.form_service.delete_form(form_id=form_id)
+        await self.form_response_service.delete_form_responses(form_id=form_id)
+        return "Form deleted form workspace."
