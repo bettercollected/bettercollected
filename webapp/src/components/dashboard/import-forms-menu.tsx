@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+
+import { useRouter } from 'next/router';
 
 import { Menu } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
@@ -20,6 +22,27 @@ export default function ImportFormsMenu() {
     const handleClose = () => {
         setAnchorEl(null);
     };
+
+    const router = useRouter();
+
+    useEffect(() => {
+        const { modal, ...other } = router.query;
+        if (modal) {
+            router.push({ query: other }, undefined, { shallow: true }).then(() => {
+                console.log('Pushed to Router');
+                switch (modal) {
+                    case 'google':
+                        openModal('IMPORT_GOOGLE_FORMS_VIEW');
+                        break;
+                    case 'typeform':
+                        openModal('IMPORT_TYPE_FORMS_VIEW');
+                        break;
+                    default:
+                        break;
+                }
+            });
+        }
+    }, []);
 
     if (!googleEnabled && !typeformEnabled) {
         return <></>;
