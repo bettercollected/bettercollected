@@ -1,10 +1,13 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from backend.app.models.workspace import WorkspaceFormSettings
+from backend.app.exceptions import HTTPException
+from backend.app.models.workspace import WorkspaceFormSettings, Workspace
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
+from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
+from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.workspace_user_service import WorkspaceUserService
@@ -13,6 +16,7 @@ from backend.config import settings
 
 from beanie import PydanticObjectId
 
+from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
 from common.models.user import User
 
@@ -30,6 +34,7 @@ class WorkspaceFormService:
         form_schedular: FormSchedular,
         form_import_service: FormImportService,
         schedular: AsyncIOScheduler,
+        form_response_service: FormResponseService,
     ):
         self.form_provider_service = form_provider_service
         self.plugin_proxy_service = plugin_proxy_service
@@ -39,6 +44,7 @@ class WorkspaceFormService:
         self.form_schedular = form_schedular
         self.form_import_service = form_import_service
         self.schedular = schedular
+        self.form_response_service = form_response_service
 
     # TODO : Use plugin interface for importing for now endpoint is used here
     async def import_form_to_workspace(
@@ -52,6 +58,14 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_is_admin_in_workspace(
             workspace_id, user
         )
+
+        can_import_form = await self.check_if_user_can_import_more_forms(
+            user=user, workspace_id=workspace_id
+        )
+        if not can_import_form:
+            raise HTTPException(
+                status_code=403, content="Upgrade plan to import more forms"
+            )
         response_data = await self.convert_form(
             provider=provider, request=request, form_import=form_import
         )
@@ -104,3 +118,17 @@ class WorkspaceFormService:
         )
         response_data = await response.json()
         return response_data
+
+    async def check_if_user_can_import_more_forms(
+        self, user: User, workspace_id: PydanticObjectId
+    ):
+        if user.plan == Plans.PRO:
+            return True
+
+        responses = await self.form_response_service.get_responses_count_in_workspace(
+            workspace_id
+        )
+        if responses > 1000:
+            return False
+
+        return True

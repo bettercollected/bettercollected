@@ -148,3 +148,11 @@ class FormResponseService:
             response_id=response_id,
             provider=response.provider,
         ).save()
+
+    async def get_responses_count_in_workspace(self, workspace_id: PydanticObjectId):
+        workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
+            workspace_id=workspace_id
+        )
+        return await self._form_response_repo.count_responses_for_form_ids(
+            workspace_form_ids
+        )

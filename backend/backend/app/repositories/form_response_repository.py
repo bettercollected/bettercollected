@@ -84,6 +84,9 @@ class FormResponseRepository(BaseRepository):
         )
         return form_responses
 
+    async def count_responses_for_form_ids(self, form_ids) -> int:
+        return await FormResponseDocument.find({"form_id": {"$in": form_ids}}).count()
+
     async def get(self, form_id: str, response_id: str) -> StandardFormResponse:
         pass
 
