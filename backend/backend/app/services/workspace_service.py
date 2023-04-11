@@ -124,14 +124,17 @@ class WorkspaceService:
                     and is_domain_available(workspace_patch.custom_domain)
                 ):
                     await AllowedOriginsDocument.save(
-                        AllowedOriginsDocument(origin=workspace_patch.custom_domain)
+                        AllowedOriginsDocument(
+                            origin="https://" + workspace_patch.custom_domain
+                        )
                     )
                 else:
                     raise HTTPException(409)
             except HTTPException as e:
                 if e.status_code == 409:
                     raise HTTPException(
-                        409, "Workspace with given custom domain already exists!"
+                        409,
+                        "Workspace with given custom domain already exists or Domain already exists.",
                     )
 
         workspace_document.custom_domain = (
