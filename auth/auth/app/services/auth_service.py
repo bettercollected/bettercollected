@@ -25,10 +25,10 @@ from pydantic import EmailStr
 
 class AuthService:
     def __init__(
-        self,
-        auth_provider_factory: AuthProviderFactory,
-        user_repository: UserRepository,
-        http_client: HttpClient,
+            self,
+            auth_provider_factory: AuthProviderFactory,
+            user_repository: UserRepository,
+            http_client: HttpClient,
     ):
         self.auth_provider_factory = auth_provider_factory
         self.user_repository = user_repository
@@ -52,7 +52,10 @@ class AuthService:
             user_document = UserDocument(
                 email=user_info.email, roles=[Roles.FORM_RESPONDER, Roles.FORM_CREATOR]
             )
-            await user_document.save()
+            user_document = await user_document.save()
+        if not (user_document.first_name and user_document.last_name) and (user_info.first_name or user_info.last_name):
+            user_document.first_name = user_info.first_name if user_info.first_name else user_document.first_name
+            user_document.last_name = user_info.last_name if user_info.last_name else user_document.last_name
         return User(
             id=str(user_document.id),
             sub=user_document.email,
@@ -62,7 +65,7 @@ class AuthService:
         )
 
     async def get_basic_auth_url(
-        self, provider: str, client_referer_url: str, creator: bool
+            self, provider: str, client_referer_url: str, creator: bool
     ):
         url = await self.auth_provider_factory.get_auth_provider(
             provider
@@ -81,7 +84,7 @@ class AuthService:
                     raise HTTPException(
                         status_code=400,
                         content="Error Verification code is expired. "
-                        + "Please request for new code.",
+                                + "Please request for new code.",
                     )
                 await UserRepository.clear_user_otp(user)
                 return User(
@@ -96,7 +99,7 @@ class AuthService:
             return None
 
     async def basic_auth_callback(
-        self, provider: str, code: str, state: str, *args, **kwargs
+            self, provider: str, code: str, state: str, *args, **kwargs
     ):
         request = kwargs.get("request")
         return await self.auth_provider_factory.get_auth_provider(
@@ -104,7 +107,7 @@ class AuthService:
         ).basic_auth_callback(code, state, request=request)
 
     def send_code_to_user_for_workspace_sync(
-        self, receiver_mail: EmailStr, workspace_title: str
+            self, receiver_mail: EmailStr, workspace_title: str
     ):
         asyncio_run(
             self.send_otp_to_mail(
