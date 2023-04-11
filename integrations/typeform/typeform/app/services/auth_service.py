@@ -37,13 +37,14 @@ async def handle_oauth_callback(code: str) -> UserInfo:
     token = Token(**typeform_response.json())
     me_response = perform_typeform_request(token.access_token, "/me")
     email = me_response["email"]
-    user_info = UserInfo(email=email)
+    name = me_response.get("alias").split()
+    user_info = UserInfo(email=email, first_name=name[0], last_name=name[-1])
     await CredentialRepository.save_credentials(user_info, token)
     return user_info
 
 
 def perform_typeform_request(
-    access_token: str, path: str, params: Dict[str, Any] = None
+        access_token: str, path: str, params: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     api_response = requests.get(
         f"{settings.TYPEFORM_API_URI}{path}",
