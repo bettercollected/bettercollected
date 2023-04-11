@@ -92,6 +92,8 @@ class Token(BaseModel):
 
 class UserInfo(BaseModel):
     email: str
+    first_name: Optional[str]
+    last_name: Optional[str]
 
 
 class OAuthState(BaseModel):
