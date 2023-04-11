@@ -66,7 +66,9 @@ class AuthRoutes(Routable):
         user, state_data = await self.auth_service.handle_backend_auth_callback(
             provider_name=provider_name, state=state, request=request
         )
-        response = RedirectResponse(state_data.client_referer_uri)
+        response = RedirectResponse(
+            state_data.client_referer_uri + "?modal=" + provider_name
+        )
         set_tokens_to_response(user, response)
         if state_data.client_referer_uri:
             return response
