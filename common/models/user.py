@@ -6,6 +6,7 @@ from beanie import PydanticObjectId
 from pydantic import BaseModel, EmailStr, Field
 
 from common.enums.plan import Plans
+from common.enums.roles import Roles
 
 UserIdentifier = str
 
@@ -28,7 +29,9 @@ class UserResponseDto(BaseModel):
     first_name: Optional[str]
     last_name: Optional[str]
     email: str
-    roles: List[str] = ["FORM_RESPONDER"]
+    plan: Optional[Plans] = Plans.FREE
+    profile_image: Optional[str]
+    roles: List[str] = [Roles.FORM_RESPONDER]
 
 
 class UserLoginWithOTP(BaseModel):
