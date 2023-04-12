@@ -4,13 +4,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { PushPin } from '@mui/icons-material';
+import { toast } from 'react-toastify';
 
 import EmptyFormsView from '@app/components/dashboard/empty-form';
 import ImportFormsMenu from '@app/components/dashboard/import-forms-menu';
 import { Google } from '@app/components/icons/brands/google';
+import { ShareIcon } from '@app/components/icons/share-icon';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
@@ -26,6 +29,8 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
     const breakpoint = useBreakpoint();
 
     const forms = workspaceForms?.data?.items;
+
+    const [_, copyToClipboard] = useCopyToClipboard();
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://';
@@ -70,7 +75,8 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
                             const slug = form.settings?.customUrl;
                             let shareUrl = '';
                             if (window && typeof window !== 'undefined') {
-                                shareUrl = hasCustomDomain ? `${window.location.origin}/forms/${slug}` : `https://`;
+                                const scheme = `${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://`;
+                                shareUrl = scheme + `${hasCustomDomain ? `${workspace.customDomain}/forms/${slug}` : `${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${slug}`}`;
                             }
                             return (
                                 <Link key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
@@ -101,7 +107,21 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
 
                                             <div className="flex pt-3 justify-between">
                                                 {<div className="rounded space-x-2 text-xs px-2 flex py-1 items-center text-gray-500 bg-gray-100">{form?.settings?.private ? 'Hidden' : 'Public'}</div>}
-                                                {form?.settings?.pinned && <PushPin className="rotate-45" />}
+                                                <div className="flex">
+                                                    <div
+                                                        aria-hidden
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            event.stopPropagation();
+                                                            copyToClipboard(shareUrl);
+                                                            toast('Copied URL', { type: 'info' });
+                                                        }}
+                                                        className="p-2 border-[1px] border-white hover:border-neutral-100 hover:shadow rounded-md"
+                                                    >
+                                                        <ShareIcon width={19} height={19} />
+                                                    </div>
+                                                    {form?.settings?.pinned && <PushPin className="rotate-45" />}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
