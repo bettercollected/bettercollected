@@ -17,7 +17,6 @@ class UserPatchRequest(BaseModel):
 
     first_name: Optional[str]
     last_name: Optional[str]
-    username: Optional[str]
 
 
 class UserResponseDto(BaseModel):
@@ -28,10 +27,8 @@ class UserResponseDto(BaseModel):
     id: PydanticObjectId
     first_name: Optional[str]
     last_name: Optional[str]
-    username: Optional[str]
     email: str
     roles: List[str] = ["FORM_RESPONDER"]
-    services: Optional[List[str]]
 
 
 class UserLoginWithOTP(BaseModel):
@@ -60,10 +57,8 @@ class User(BaseModel):
 
     id: str
     sub: UserIdentifier
-    username: Optional[str] = Field()
     plan: Optional[Plans] = Plans.FREE
     roles: Optional[List[str]] = []
-    services: Optional[List[str]] = []
 
     def is_admin(self):
         """
