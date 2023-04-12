@@ -3,6 +3,7 @@ import { Fragment, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 
+import DeleteFormModal from '@app/components/form/delete-form-modal';
 import { Close } from '@app/components/icons/close';
 import ImportTypeForms from '@app/components/importforms/typeform-import';
 import Button from '@app/components/ui/button';
@@ -37,6 +38,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <UpdateWorkspaceSettings updateDomain={false} />;
         case 'IMPORT_TYPE_FORMS_VIEW':
             return <ImportTypeForms />;
+        case 'DELETE_FORM_MODAL':
+            return <DeleteFormModal />;
         default:
             return <></>;
     }

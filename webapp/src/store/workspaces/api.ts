@@ -180,6 +180,13 @@ export const workspacesApi = createApi({
                 credentials: 'include'
             })
         }),
+        deleteForm: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}`,
+                method: 'DELETE',
+                credentials: 'include'
+            })
+        }),
         createWorkspace: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/workspaces`,
@@ -253,6 +260,7 @@ export const {
     useLazyGetWorkspaceSubmissionQuery,
     useSearchWorkspaceFormsMutation,
     usePatchFormSettingsMutation,
+    useDeleteFormMutation,
     useCreateWorkspaceMutation,
     usePatchExistingWorkspaceMutation,
     usePatchThemeMutation,

@@ -7,6 +7,8 @@ import { toast } from 'react-toastify';
 
 import { Copy } from '@app/components/icons/copy';
 import { ShareIcon } from '@app/components/icons/share-icon';
+import { useModal } from '@app/components/modal-views/context';
+import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { setFormSettings } from '@app/store/forms/slice';
@@ -23,6 +25,8 @@ export default function FormSettingsTab() {
     const [error, setError] = useState(false);
     const [_, copyToClipboard] = useCopyToClipboard();
     const dispatch = useAppDispatch();
+
+    const { openModal } = useModal();
 
     const patchSettings = async (body: any) => {
         const response: any = await patchFormSettings({
@@ -163,6 +167,27 @@ export default function FormSettingsTab() {
                         </a>
                     </div>
                 )}
+            </div>
+
+            <Divider className="mb-6 mt-6" />
+
+            <div className="flex justify-between">
+                <div>
+                    <div className="text-xl font-bold text-black">Delete Form</div>
+                    <div className="flex w-full justify-between items-center h-14 text-gray-800">
+                        <div>Deleting this form will also remove all the responses and deletion requests.</div>
+                    </div>
+                </div>
+                <Button
+                    data-testid="workspace-custom-domain"
+                    isLoading={false}
+                    className=" !bg-gray-100 !px-8 !py-1 hover:text-white !font-normal hover:!bg-red-800 text-red-800 rounded border !border-gray-300"
+                    onClick={() => {
+                        openModal('DELETE_FORM_MODAL');
+                    }}
+                >
+                    Delete
+                </Button>
             </div>
         </div>
     );

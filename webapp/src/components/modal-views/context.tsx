@@ -10,7 +10,8 @@ export type MODAL_VIEW =
     | 'IMPORT_TYPE_FORMS_VIEW'
     | 'LOGOUT_VIEW'
     | 'UPDATE_WORKSPACE_DOMAIN'
-    | 'UPDATE_WORKSPACE_HANDLE';
+    | 'UPDATE_WORKSPACE_HANDLE'
+    | 'DELETE_FORM_MODAL';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 
