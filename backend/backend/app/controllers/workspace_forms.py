@@ -98,6 +98,6 @@ class WorkspaceFormsRouter(Routable):
         form_id: str,
         user: User = Depends(get_logged_user),
     ):
-        return self.workspace_form_service.delete_form_from_workspace(
+        return await self.workspace_form_service.delete_form_from_workspace(
             workspace_id=workspace_id, form_id=form_id, user=user
         )

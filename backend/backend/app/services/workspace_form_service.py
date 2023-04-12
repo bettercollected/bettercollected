@@ -147,7 +147,7 @@ class WorkspaceFormService:
         )
         if len(workspace_ids) > 1:
             return "Form deleted form workspace."
-        await self.schedular.remove_job(f"{workspace_form.settings.provider}_{form_id}")
+        self.schedular.remove_job(f"{workspace_form.settings.provider}_{form_id}")
         await self.form_service.delete_form(form_id=form_id)
         await self.form_response_service.delete_form_responses(form_id=form_id)
         return "Form deleted form workspace."
