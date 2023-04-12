@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+import Image from 'next/image';
+
+import _ from 'lodash';
+
 import cn from 'classnames';
 
 import { Header } from '@app/layouts/_layout';
@@ -39,16 +43,9 @@ export default function SidebarLayout(props: any) {
         }
     };
 
-    const profileName = selectGetStatus?.data?.user?.sub ?? '';
+    const user = selectGetStatus?.data?.user;
 
-    const handleClose = () => {
-        setAnchorEl(null);
-    };
-
-    const handleClick = (event: any) => {
-        event.preventDefault();
-        setAnchorEl(event.currentTarget);
-    };
+    const profileName = _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name);
 
     return (
         <div className="ltr:xl:pl-24 rtl:xl:pr-24 ltr:2xl:pl-28 rtl:2xl:pr-28">
@@ -62,10 +59,10 @@ export default function SidebarLayout(props: any) {
                             </div>
                             {['xs', 'sm'].indexOf(screenSize) === -1 && !!profileName[0] && (
                                 <div className="flex items-center mt-2">
-                                    <div className="flex rounded-md w-full p-3 h-10 items-center justify-center mr-2 bg-blue-50">{profileName[0]?.toUpperCase()}</div>
-                                    <div className="italic font-bold text-md text-gray-600 flex flex-row items-center">
-                                        <p className="mr-2">{profileName}</p>
+                                    <div className="flex rounded-full w-10 h-10 items-center justify-center mr-2 bg-blue-50">
+                                        {user?.profile_image ? <Image src={user?.profile_image} className="rounded-full" width={64} height={64} /> : <>{profileName[0]?.toUpperCase()}</>}
                                     </div>
+                                    <div className="italic font-bold text-md text-gray-600">{profileName.trim() || user?.email || ''}</div>
                                 </div>
                             )}
                         </div>

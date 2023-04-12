@@ -1,5 +1,9 @@
 import React from 'react';
 
+import Image from 'next/image';
+
+import _ from 'lodash';
+
 import { Domain, Logout, ManageAccounts, PrivacyTip } from '@mui/icons-material';
 import { Avatar, Box, Divider, IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 
@@ -28,6 +32,10 @@ export default function WorkspaceLoginMenuItems({ authStatus, handleLogout, work
     const handleClose = () => {
         setAnchorEl(null);
     };
+
+    const user = authStatus?.data?.user;
+
+    const profileName = _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name);
 
     const handleUpdateTocAndPrivacyPolicy = () => {
         openModal('UPDATE_TERMS_OF_SERVICE_AND_PRIVACY_POLICY');
@@ -79,9 +87,9 @@ export default function WorkspaceLoginMenuItems({ authStatus, handleLogout, work
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
                 <MenuItem onClick={handleClose}>
-                    <Avatar>{isFormCreator ? 'C' : 'R'}</Avatar>
-                    <div className="flex flex-col">
-                        <span className="text-gray-800 font-bold">{authStatus?.data?.user?.sub}</span>
+                    {user?.profile_image ? <Image src={user?.profile_image} alt={isFormCreator ? 'C' : 'R'} className="rounded-full" width={48} height={48} /> : <Avatar>{isFormCreator ? 'C' : 'R'}</Avatar>}
+                    <div className=" ml-4 flex flex-col">
+                        <span className="text-gray-800 font-bold">{profileName.trim() || user?.email || ''}</span>
                         <span className="text-gray-600 italic">{isFormCreator ? 'Form Creator' : 'Form Responder'}</span>
                     </div>
                 </MenuItem>
