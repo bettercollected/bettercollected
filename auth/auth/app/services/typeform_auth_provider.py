@@ -64,7 +64,6 @@ class TypeformAuthProvider(BaseAuthProvider):
             id=str(user_document.id),
             sub=user_document.email,
             roles=user_document.roles,
-            username=user_document.username,
         )
         state_json["user"] = user.dict()
         return state_json

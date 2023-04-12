@@ -3,7 +3,6 @@ from typing import List, Optional
 from auth.app.services.database_service import entity
 from beanie import Indexed
 from common.configs.mongo_document import MongoDocument
-from common.enums.form_provider import FormProvider
 from common.enums.plan import Plans
 from common.enums.roles import Roles
 
@@ -12,13 +11,12 @@ from common.enums.roles import Roles
 class UserDocument(MongoDocument):
     first_name: Optional[str]
     last_name: Optional[str]
-    username: Optional[str]
+    profile_image: Optional[str]
     email: Indexed(str, unique=True)
     roles: List[str] = [Roles.FORM_RESPONDER]
     otp_code: Optional[str]
     otp_expiry: Optional[int]
     plan: Optional[Plans] = Plans.FREE
-    services: Optional[List[FormProvider]]
 
     class Settings:
         name = "users"

@@ -1,23 +1,31 @@
 from typing import Optional
 
+from beanie import PydanticObjectId
+
 from auth.app.schemas.user import UserDocument
 
 from common.enums.roles import Roles
 
 
 class UserRepository:
+
+    @staticmethod
+    async def get_user_by_id(user_id: PydanticObjectId):
+        return await UserDocument.get(user_id)
+
     @staticmethod
     async def get_user_by_email(email: str) -> UserDocument:
         return await UserDocument.find_one(UserDocument.email == email)
 
     @staticmethod
     async def save_user(
-        email: str,
-        first_name: str = None,
-        last_name: str = None,
-        otp_code: Optional[str] = None,
-        otp_expiry: Optional[int] = None,
-        creator: bool = True,
+            email: str,
+            first_name: str = None,
+            last_name: str = None,
+            otp_code: Optional[str] = None,
+            otp_expiry: Optional[int] = None,
+            creator: bool = True,
+            profile_image: Optional[str] = None
     ) -> UserDocument:
         user_document = await UserRepository.get_user_by_email(email)
         if not user_document:
@@ -34,14 +42,17 @@ class UserRepository:
         if creator and Roles.FORM_CREATOR not in user_document.roles:
             user_document.roles.append(Roles.FORM_CREATOR)
             await user_document.save()
-        if (not user_document.first_name or not user_document.last_name) and (
-            first_name or last_name
+        if not (user_document.first_name and user_document.last_name and user_document.profile_image) and (
+                first_name or last_name or profile_image
         ):
             user_document.first_name = (
                 first_name if first_name else user_document.first_name
             )
             user_document.last_name = (
                 last_name if last_name else user_document.last_name
+            )
+            user_document.profile_image = (
+                profile_image if profile_image else user_document.profile_image
             )
             user_document = await user_document.save()
         return user_document

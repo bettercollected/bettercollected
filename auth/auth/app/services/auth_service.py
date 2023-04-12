@@ -3,6 +3,8 @@ import secrets
 import string
 from datetime import datetime, timedelta
 
+from beanie import PydanticObjectId
+
 from auth.app.exceptions import HTTPException
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.schemas.user import UserDocument
@@ -11,7 +13,7 @@ from auth.app.services.mail_service import MailService
 from auth.config import settings
 
 from common.enums.roles import Roles
-from common.models.user import User
+from common.models.user import User, UserResponseDto
 from common.models.user import UserInfo
 from common.services.http_client import HttpClient
 from common.utils.asyncio_run import asyncio_run
@@ -33,6 +35,10 @@ class AuthService:
         self.auth_provider_factory = auth_provider_factory
         self.user_repository = user_repository
         self.http_client = http_client
+
+    async def get_user_status(self, user_id: PydanticObjectId):
+        user = await self.user_repository.get_user_by_id(user_id)
+        return UserResponseDto(**user.dict())
 
     @staticmethod
     def get_logged_user(jwt_token: str) -> User:
@@ -59,9 +65,8 @@ class AuthService:
         return User(
             id=str(user_document.id),
             sub=user_document.email,
-            username=user_document.username,
             roles=user_document.roles,
-            services=user_document.services,
+            plan=user_document.plan,
         )
 
     async def get_basic_auth_url(
@@ -90,7 +95,7 @@ class AuthService:
                 return User(
                     id=str(user.id),
                     sub=user.email,
-                    username=user.username,
+                    plan=user.plan,
                     roles=user.roles,
                 )
             else:
