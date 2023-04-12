@@ -32,6 +32,13 @@ class AuthService:
         self.form_provider_service = form_provider_service
         self.jwt_service = jwt_service
 
+    async def get_user_status(self, user: User):
+        response_data = await self.http_client.get(
+            settings.auth_settings.BASE_URL + "/auth/status",
+            params={"user_id": user.id},
+        )
+        return {"user": response_data}
+
     async def validate_otp(self, login_details: UserLoginWithOTP):
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + "/auth/otp/validate",

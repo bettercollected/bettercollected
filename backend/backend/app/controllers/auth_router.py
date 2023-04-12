@@ -31,7 +31,7 @@ class AuthRoutes(Routable):
 
     @get("/status")
     async def status(self, user: User = Depends(get_logged_user)):
-        return AuthenticationStatus(user=user)
+        return await self.auth_service.get_user_status(user)
 
     @post("/otp/validate")
     async def _validate_otp(self, login_details: UserLoginWithOTP, response: Response):

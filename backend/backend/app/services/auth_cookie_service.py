@@ -23,7 +23,6 @@ def set_token_to_response(
             "sub": user.sub,
             "roles": user.roles,
             "plan": user.plan,
-            "services": user.services,
             "exp": expiry,
             "jti": str(uuid.uuid4()),
         },
