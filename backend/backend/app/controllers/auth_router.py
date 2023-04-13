@@ -83,7 +83,11 @@ class AuthRoutes(Routable):
         return RedirectResponse(basic_auth_url)
 
     @get("/{provider}/basic/callback")
-    async def _basic_auth_callback(self, provider: str, code: str, state: str):
+    async def _basic_auth_callback(
+        self, provider: str, code: Optional[str] = None, state: Optional[str] = None
+    ):
+        if not state or not code:
+            return {"message": "You cancelled the authorization request."}
         user, client_referer_url = await self.auth_service.basic_auth_callback(
             provider, code, state
         )
