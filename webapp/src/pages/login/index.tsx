@@ -65,7 +65,7 @@ export const Login = () => {
                             <div className="border-t w-5 border-gray-200"></div>
                         </div>
                     )}
-                    {environments.ENABLE_TYPEFORM && <ConnectWithProviderButton type="typeform" url={`${environments.API_ENDPOINT_HOST}/auth/typeform/oauth`} text="Sign in with Typeform" creator />}
+                    {environments.ENABLE_TYPEFORM && <ConnectWithProviderButton type="typeform" url={`${environments.API_ENDPOINT_HOST}/auth/typeform/basic`} text="Sign in with Typeform" creator />}
 
                     <div className="text-[11px] text-[#808080]">
                         By signing in, you agree to our
