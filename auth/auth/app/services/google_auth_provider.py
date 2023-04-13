@@ -75,7 +75,7 @@ class GoogleAuthProvider(BaseAuthProvider):
             creator=creator,
             first_name=user.get("given_name"),
             last_name=user.get("family_name"),
-            profile_image=user.get("picture")
+            profile_image=user.get("picture"),
         )
         user = User(
             id=str(user_document.id),
