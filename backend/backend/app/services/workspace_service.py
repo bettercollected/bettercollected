@@ -14,12 +14,14 @@ from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.workspace_form_service import WorkspaceFormService
+from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.utils.domain import is_domain_available
 from backend.config import settings
 
 from beanie import PydanticObjectId
 
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from common.constants import MESSAGE_UNAUTHORIZED, MESSAGE_FORBIDDEN
 from common.models.user import User
 from common.services.http_client import HttpClient
 
@@ -34,14 +36,14 @@ class WorkspaceService:
         http_client: HttpClient,
         workspace_repo: WorkspaceRepository,
         aws_service: AWSS3Service,
-        workspace_user_repo: WorkspaceUserRepository,
+        workspace_user_service: WorkspaceUserService,
         workspace_form_service: WorkspaceFormService,
         form_response_service: FormResponseService,
     ):
         self.http_client = http_client
         self._workspace_repo = workspace_repo
         self._aws_service = aws_service
-        self._workspace_user_repo = workspace_user_repo
+        self._workspace_user_service = workspace_user_service
         self.workspace_form_service = workspace_form_service
         self.form_response_service = form_response_service
 
@@ -51,8 +53,16 @@ class WorkspaceService:
         )
         return WorkspaceResponseDto(**workspace.dict())
 
-    async def get_workspace_by_query(self, query: str):
+    async def get_workspace_by_query(self, query: str, user: User):
         workspace = await self._workspace_repo.get_workspace_by_query(query)
+        if user:
+            try:
+                await self._workspace_user_service.check_user_has_access_in_workspace(
+                    workspace_id=workspace.id, user=user
+                )
+                return WorkspaceResponseDto(**workspace.dict(), dashboard_access=True)
+            except HTTPException:
+                pass
         return WorkspaceResponseDto(**workspace.dict())
 
     async def patch_workspace(
@@ -63,6 +73,9 @@ class WorkspaceService:
         workspace_patch: WorkspaceRequestDtoCamel,
         user: User,
     ):
+        await self._workspace_user_service.check_is_admin_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id
         )
@@ -157,7 +170,9 @@ class WorkspaceService:
     async def delete_custom_domain_of_workspace(
         self, workspace_id: PydanticObjectId, user: User
     ):
-        await self._workspace_user_repo.has_user_access_in_workspace(workspace_id, user)
+        await self._workspace_user_service.check_is_admin_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id=workspace_id
         )
@@ -186,7 +201,7 @@ class WorkspaceService:
         return {"message": "Otp sent successfully"}
 
     async def get_workspace_stats(self, workspace_id: PydanticObjectId, user: User):
-        await self._workspace_user_repo.has_user_access_in_workspace(
+        await self._workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
         form_ids = await self.workspace_form_service.get_form_ids_in_workspace(

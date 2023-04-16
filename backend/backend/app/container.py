@@ -148,7 +148,7 @@ class AppContainer(containers.DeclarativeContainer):
         http_client=http_client,
         workspace_repo=workspace_repo,
         aws_service=aws_service,
-        workspace_user_repo=workspace_user_repo,
+        workspace_user_service=workspace_user_service,
         workspace_form_service=workspace_form_service,
         form_response_service=form_response_service,
     )

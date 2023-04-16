@@ -8,7 +8,7 @@ from backend.app.models.workspace import (
     WorkspaceResponseDto,
 )
 from backend.app.router import router
-from backend.app.services.user_service import get_logged_user
+from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_service import WorkspaceService
 
 from beanie import PydanticObjectId
@@ -30,7 +30,10 @@ class WorkspaceRouter(Routable):
 
     @get("")
     async def _get_workspace_by_query(
-        self, workspace_name: Optional[str] = None, custom_domain: Optional[str] = None
+        self,
+        workspace_name: Optional[str] = None,
+        custom_domain: Optional[str] = None,
+        user: User = Depends(get_user_if_logged_in),
     ):
         if (workspace_name and custom_domain) or (
             not workspace_name and not custom_domain
@@ -39,7 +42,7 @@ class WorkspaceRouter(Routable):
                 HTTPStatus.UNPROCESSABLE_ENTITY, "Provide only one query"
             )
         query = workspace_name if workspace_name else custom_domain
-        return await self.workspace_service.get_workspace_by_query(query)
+        return await self.workspace_service.get_workspace_by_query(query, user)
 
     @get("/mine")
     async def _get_mine_workspaces(

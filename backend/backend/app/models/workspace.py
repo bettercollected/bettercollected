@@ -1,11 +1,13 @@
 import datetime as dt
-from typing import Optional
+from typing import Optional, List
 
 from beanie import PydanticObjectId
 
 from fastapi_camelcase import CamelModel
 
 from pydantic import BaseModel
+
+from backend.app.models.enum.workspace_roles import WorkspaceRoles
 
 
 class WorkspaceRequestDto(BaseModel):
@@ -46,3 +48,4 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     """Model for returning information about a workspace."""
 
     id: Optional[PydanticObjectId]
+    dashboard_access: Optional[bool]

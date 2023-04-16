@@ -55,7 +55,7 @@ class WorkspaceFormService:
         user: User,
         request: Request,
     ):
-        await self.workspace_user_service.check_user_is_admin_in_workspace(
+        await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id, user
         )
 
@@ -136,7 +136,7 @@ class WorkspaceFormService:
     async def delete_form_from_workspace(
         self, workspace_id: PydanticObjectId, form_id: str, user: User
     ):
-        await self.workspace_user_service.check_user_is_admin_in_workspace(
+        await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
         workspace_ids = (

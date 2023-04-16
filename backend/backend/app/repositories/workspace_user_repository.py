@@ -1,3 +1,4 @@
+from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 
 from beanie import PydanticObjectId
@@ -33,8 +34,13 @@ class WorkspaceUserRepository:
                 "user_id": PydanticObjectId(user.id),
             }
         )
+        workspace = await WorkspaceDocument.get(workspace_id)
         return (
             True
-            if workspace_user and WorkspaceRoles.ADMIN in workspace_user.roles
+            if workspace_user
+            and (
+                WorkspaceRoles.ADMIN in workspace_user.roles
+                or workspace.owner_id == user.id
+            )
             else False
         )
