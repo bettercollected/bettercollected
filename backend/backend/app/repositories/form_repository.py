@@ -25,6 +25,15 @@ class FormRepository:
                 {"$unwind": "$workspace_form"},
                 {"$match": {"workspace_form.workspace_id": workspace_id}},
                 {"$set": {"settings": "$workspace_form.settings"}},
+                {
+                    "$lookup": {
+                        "from": "form_responses",
+                        "localField": "form_id",
+                        "foreignField": "form_id",
+                        "as": "responses",
+                    }
+                },
+                {"$set": {"responses": {"$size": "$responses"}}},
             ]
         )
         return forms
