@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import List
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.response_dtos import (
@@ -149,12 +150,14 @@ class FormResponseService:
             provider=response.provider,
         ).save()
 
-    async def get_responses_count_in_workspace(self, workspace_id: PydanticObjectId):
-        workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
-            workspace_id=workspace_id
-        )
+    async def get_responses_count_in_workspace(self, workspace_form_ids: List[str]):
         return await self._form_response_repo.count_responses_for_form_ids(
             workspace_form_ids
+        )
+
+    async def get_deletion_requests_count_in_workspace(self, form_ids: List[str]):
+        return await self._form_response_repo.get_deletion_requests_count_in_workspace(
+            form_ids
         )
 
     async def delete_form_responses(self, form_id):

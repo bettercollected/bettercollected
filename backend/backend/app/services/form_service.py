@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from backend.app.exceptions import HTTPException
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.response_dtos import StandardFormCamelModel
@@ -73,6 +75,11 @@ class FormService:
         form_document = FormDocument(**form.dict())
         if existing_form:
             form_document.id = existing_form.id
+            form_document.created_at = (
+                existing_form.created_at
+                if existing_form.created_at
+                else datetime.utcnow()
+            )
         return await self._form_repo.save_form(form_document)
 
     async def patch_settings_in_workspace_form(

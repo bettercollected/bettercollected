@@ -88,14 +88,6 @@ class AppContainer(containers.DeclarativeContainer):
         jwt_service=jwt_service,
     )
 
-    workspace_service: WorkspaceService = providers.Singleton(
-        WorkspaceService,
-        http_client=http_client,
-        workspace_repo=workspace_repo,
-        aws_service=aws_service,
-        workspace_user_repo=workspace_user_repo,
-    )
-
     form_service: FormService = providers.Singleton(
         FormService,
         workspace_user_repo=workspace_user_repo,
@@ -148,6 +140,16 @@ class AppContainer(containers.DeclarativeContainer):
         form_schedular=form_schedular,
         form_import_service=form_import_service,
         schedular=schedular,
+        form_response_service=form_response_service,
+    )
+
+    workspace_service: WorkspaceService = providers.Singleton(
+        WorkspaceService,
+        http_client=http_client,
+        workspace_repo=workspace_repo,
+        aws_service=aws_service,
+        workspace_user_repo=workspace_user_repo,
+        workspace_form_service=workspace_form_service,
         form_response_service=form_response_service,
     )
 

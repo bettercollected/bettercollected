@@ -12,6 +12,9 @@ from backend.app.schemas.allowed_origin import AllowedOriginsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.services.form_response_service import FormResponseService
+from backend.app.services.form_service import FormService
+from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.utils.domain import is_domain_available
 from backend.config import settings
 
@@ -32,11 +35,15 @@ class WorkspaceService:
         workspace_repo: WorkspaceRepository,
         aws_service: AWSS3Service,
         workspace_user_repo: WorkspaceUserRepository,
+        workspace_form_service: WorkspaceFormService,
+        form_response_service: FormResponseService,
     ):
         self.http_client = http_client
         self._workspace_repo = workspace_repo
         self._aws_service = aws_service
         self._workspace_user_repo = workspace_user_repo
+        self.workspace_form_service = workspace_form_service
+        self.form_response_service = form_response_service
 
     async def get_workspace_by_id(self, workspace_id: PydanticObjectId):
         workspace = await self._workspace_repo.get_workspace_by_id(
@@ -177,6 +184,30 @@ class WorkspaceService:
             timeout=180,
         )
         return {"message": "Otp sent successfully"}
+
+    async def get_workspace_stats(self, workspace_id: PydanticObjectId, user: User):
+        await self._workspace_user_repo.is_user_admin_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        form_ids = await self.workspace_form_service.get_form_ids_in_workspace(
+            workspace_id=workspace_id
+        )
+        responses_count = (
+            await self.form_response_service.get_responses_count_in_workspace(
+                workspace_form_ids=form_ids
+            )
+        )
+        deletion_count = (
+            await self.form_response_service.get_deletion_requests_count_in_workspace(
+                form_ids=form_ids
+            )
+        )
+
+        return {
+            "forms": len(form_ids),
+            "responses": responses_count,
+            "deletion_requests": deletion_count,
+        }
 
 
 async def create_workspace(user: User):

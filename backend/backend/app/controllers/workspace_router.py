@@ -15,7 +15,6 @@ from beanie import PydanticObjectId
 
 from classy_fastapi import Routable, delete, get, patch, post
 
-
 from common.models.user import User
 
 from fastapi import Depends, Form, UploadFile
@@ -96,3 +95,9 @@ class WorkspaceRouter(Routable):
         return await self.workspace_service.delete_custom_domain_of_workspace(
             workspace_id=workspace_id, user=user
         )
+
+    @get("/{workspace_id}/stats")
+    async def get_workspace_stats(
+        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+    ):
+        return await self.workspace_service.get_workspace_stats(workspace_id, user)

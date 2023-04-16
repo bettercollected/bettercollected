@@ -1,6 +1,12 @@
 from typing import Any, Dict, List
 
-from backend.app.schemas.standard_form_response import FormResponseDocument
+from beanie import PydanticObjectId
+
+from backend.app.schemas.standard_form_response import (
+    FormResponseDocument,
+    FormResponseDeletionRequest,
+    DeletionRequestStatus,
+)
 
 from common.base.repo import BaseRepository
 from common.enums.form_provider import FormProvider
@@ -84,8 +90,39 @@ class FormResponseRepository(BaseRepository):
         )
         return form_responses
 
-    async def count_responses_for_form_ids(self, form_ids) -> int:
+    async def count_responses_for_form_ids(self, form_ids: List[str]) -> int:
         return await FormResponseDocument.find({"form_id": {"$in": form_ids}}).count()
+
+    async def get_deletion_requests_count_in_workspace(self, form_ids: List[str]):
+        success_deletion_request = (
+            await FormResponseDeletionRequest.find({"form_id": {"$in": form_ids}})
+            .aggregate(
+                [
+                    {
+                        "$facet": {
+                            "success": [
+                                {"$match": {"status": DeletionRequestStatus.SUCCESS}},
+                                {"$count": "total"},
+                            ],
+                            "pending": [
+                                {"$match": {"status": DeletionRequestStatus.PENDING}},
+                                {"$count": "total"},
+                            ],
+                            "total": [{"$count": "total"}],
+                        }
+                    },
+                    {
+                        "$addFields": {
+                            "success": {"$arrayElemAt": ["$success.total", 0]},
+                            "pending": {"$arrayElemAt": ["$pending.total", 0]},
+                            "total": {"$arrayElemAt": ["$total.total", 0]},
+                        }
+                    },
+                ]
+            )
+            .to_list()
+        )
+        return success_deletion_request[0]
 
     async def get(self, form_id: str, response_id: str) -> StandardFormResponse:
         pass

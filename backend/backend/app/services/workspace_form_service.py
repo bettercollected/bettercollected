@@ -125,12 +125,12 @@ class WorkspaceFormService:
         if user.plan == Plans.PRO:
             return True
 
-        responses = await self.form_response_service.get_responses_count_in_workspace(
-            workspace_id
+        workspace_forms = await self.get_form_ids_in_workspace(
+            workspace_id=workspace_id
         )
-        if responses > 1000:
-            return False
 
+        if len(workspace_forms) >= 10:
+            return False
         return True
 
     async def delete_form_from_workspace(
@@ -151,3 +151,8 @@ class WorkspaceFormService:
         await self.form_service.delete_form(form_id=form_id)
         await self.form_response_service.delete_form_responses(form_id=form_id)
         return "Form deleted form workspace."
+
+    async def get_form_ids_in_workspace(self, workspace_id: PydanticObjectId):
+        return await self.workspace_form_repository.get_form_ids_in_workspace(
+            workspace_id
+        )
