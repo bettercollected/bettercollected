@@ -6,6 +6,7 @@ export interface WorkspaceDto {
     profileImage: string;
     bannerImage: string;
     customDomain?: string;
+    dashboardAccess?: string;
     theme?: {
         primary_color: string;
         accent_color: string;

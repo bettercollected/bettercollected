@@ -20,7 +20,7 @@ export async function checkIfUserIsAuthorizedToViewPage(_context: any, workspace
     try {
         const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
         const user = (await userStatus?.json().catch((e: any) => e))?.user ?? null;
-        if (!user?.roles?.includes('FORM_CREATOR') || user?.id !== workspace.ownerId) {
+        if (!user?.roles?.includes('FORM_CREATOR') || !workspace.dashboardAccess) {
             return false;
         }
     } catch (e) {

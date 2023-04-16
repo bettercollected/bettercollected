@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import Image from 'next/image';
 import Link from 'next/link';
@@ -31,6 +31,16 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
     const forms = workspaceForms?.data?.items;
 
     const [_, copyToClipboard] = useCopyToClipboard();
+
+    useEffect(() => {
+        fetch('http://localhost:8000/api/v1/workspaces/6437b119ec2c5bde05404471/stats', {
+            credentials: 'include'
+        })
+            .then((res) => {
+                res.json().then((data) => {});
+            })
+            .catch((e) => {});
+    }, []);
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://';

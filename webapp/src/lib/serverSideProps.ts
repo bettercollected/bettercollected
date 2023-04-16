@@ -3,7 +3,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import environments from '@app/configs/environments';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { checkHasAdminDomain, checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage } from '@app/utils/serverSidePropsUtils';
+import { checkHasAdminDomain, checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export default async function getServerSideProps({ locale, ..._context }: any): Promise<{
     props: IServerSideProps;
@@ -78,6 +78,8 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
     let workspace = null;
     const { workspace_name } = _context.params;
 
+    const config = getServerSideAuthHeaderConfig(_context);
+
     if (!workspace_name) {
         return {
             props: {
@@ -89,7 +91,7 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
         };
     }
     try {
-        const workspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces?workspace_name=${workspace_name}`).catch((e) => e);
+        const workspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces?workspace_name=${workspace_name}`, config).catch((e) => e);
         workspace = (await workspaceResponse?.json().catch((e: any) => e)) ?? null;
         workspaceId = workspace.id;
     } catch (e) {}
