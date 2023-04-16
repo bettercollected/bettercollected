@@ -30,7 +30,7 @@ class FormService:
         self._workspace_form_repo = workspace_form_repo
 
     async def get_forms_in_workspace(self, workspace_id, user) -> Page[MinifiedForm]:
-        is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
+        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
@@ -56,7 +56,7 @@ class FormService:
     async def get_form_by_id(
         self, workspace_id: PydanticObjectId, form_id: str, user: User
     ):
-        is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
+        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
         # TODO : Refactor confusing function get but it instead throws inside
@@ -89,7 +89,7 @@ class FormService:
         settings: SettingsPatchDto,
         user: User,
     ):
-        is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
+        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
         workspace_form = (

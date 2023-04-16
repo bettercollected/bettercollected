@@ -16,7 +16,7 @@ class WorkspaceUserService:
     async def check_user_is_admin_in_workspace(
         self, workspace_id: PydanticObjectId, user: User
     ):
-        is_admin = await self.workspace_user_repository.is_user_admin_in_workspace(
+        is_admin = await self.workspace_user_repository.has_user_access_in_workspace(
             workspace_id, user
         )
         if not is_admin:

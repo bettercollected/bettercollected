@@ -13,13 +13,13 @@ from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_response_service import FormResponseService
-from backend.app.services.form_service import FormService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.utils.domain import is_domain_available
 from backend.config import settings
 
 from beanie import PydanticObjectId
 
+from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from common.models.user import User
 from common.services.http_client import HttpClient
 
@@ -157,7 +157,7 @@ class WorkspaceService:
     async def delete_custom_domain_of_workspace(
         self, workspace_id: PydanticObjectId, user: User
     ):
-        await self._workspace_user_repo.is_user_admin_in_workspace(workspace_id, user)
+        await self._workspace_user_repo.has_user_access_in_workspace(workspace_id, user)
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id=workspace_id
         )
@@ -186,7 +186,7 @@ class WorkspaceService:
         return {"message": "Otp sent successfully"}
 
     async def get_workspace_stats(self, workspace_id: PydanticObjectId, user: User):
-        await self._workspace_user_repo.is_user_admin_in_workspace(
+        await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
         form_ids = await self.workspace_form_service.get_form_ids_in_workspace(
@@ -230,6 +230,6 @@ async def create_workspace(user: User):
     )
     if not existing_workspace_user:
         workspace_user = WorkspaceUserDocument(
-            workspace_id=workspace.id, user_id=user.id
+            workspace_id=workspace.id, user_id=user.id, roles=[WorkspaceRoles.ADMIN]
         )
         await workspace_user.save()
