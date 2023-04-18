@@ -11,10 +11,10 @@ class WorkspaceMembersService:
     def __init__(
         self,
         workspace_user_service: WorkspaceUserService,
-        workspace_invitation_repository: WorkspaceInvitationRepo,
+        workspace_invitation_repo: WorkspaceInvitationRepo,
     ):
         self.workspace_user_service = workspace_user_service
-        self.workspace_invitation_repository = workspace_invitation_repository
+        self.workspace_invitation_repository = workspace_invitation_repo
 
     async def get_workspace_members(self, workspace_id: PydanticObjectId, user: User):
         return await self.workspace_user_service.get_users_in_workspace(
