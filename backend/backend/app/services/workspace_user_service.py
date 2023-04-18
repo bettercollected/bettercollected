@@ -34,3 +34,9 @@ class WorkspaceUserService:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
+
+    async def get_users_in_workspace(self, workspace_id, user: User):
+        await self.check_is_admin_in_workspace(workspace_id=workspace_id, user=user)
+        return await WorkspaceUserRepository.get_workspace_users(
+            workspace_id=workspace_id
+        )

@@ -4,11 +4,11 @@ from typing import Optional
 
 from beanie import PydanticObjectId
 
+from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from common.configs.mongo_document import MongoDocument
 from common.enums.workspace_invitation_status import InvitationStatus
 
 from pymongo import IndexModel
-
 
 _time_delta = timedelta()
 
@@ -56,6 +56,7 @@ class WorkspaceUserInvitesDocument(MongoDocument):
     workspace_id: PydanticObjectId
     email: str
     invitation_status: Optional[InvitationStatus] = InvitationStatus.PENDING
+    role: Optional[WorkspaceRoles] = WorkspaceRoles.COLLABORATOR
     expiry: int = _expiry
     invitation_token: str
 
