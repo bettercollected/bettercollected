@@ -2,6 +2,7 @@ from auth.app.repositories.provider_repository import ProviderRepository
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.auth_service import AuthService
+from auth.app.services.user_service import UserService
 from auth.config import settings
 
 from common.services.http_client import HttpClient
@@ -34,6 +35,11 @@ class AppContainer(containers.DeclarativeContainer):
         auth_provider_factory=auth_provider_factory,
         user_repository=user_repository,
         http_client=http_client,
+    )
+
+    user_service: UserService = providers.Singleton(
+        UserService,
+        user_repo=user_repository,
     )
 
 
