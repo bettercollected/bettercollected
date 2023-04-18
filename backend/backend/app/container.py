@@ -163,6 +163,7 @@ class AppContainer(containers.DeclarativeContainer):
         WorkspaceMembersService,
         workspace_user_service=workspace_user_service,
         workspace_invitation_repo=workspace_invitation_repo,
+        http_client=http_client,
     )
 
 

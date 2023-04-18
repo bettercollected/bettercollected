@@ -249,7 +249,7 @@ async def create_workspace(user: User):
         await workspace.save()
     # Save new workspace user if it is not associated yet
     existing_workspace_user = await WorkspaceUserDocument.find_one(
-        {"workspace_id": workspace.id, "user_id": user.id}
+        {"workspace_id": workspace.id, "user_id": PydanticObjectId(user.id)}
     )
     if not existing_workspace_user:
         workspace_user = WorkspaceUserDocument(

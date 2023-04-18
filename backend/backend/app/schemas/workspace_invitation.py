@@ -27,9 +27,6 @@ def _get_expiry_epoch_after(time_delta: timedelta = _time_delta):
     return calendar.timegm((datetime.utcnow() + time_delta).utctimetuple())
 
 
-_expiry = _get_expiry_epoch_after()
-
-
 class WorkspaceUserInvitesDocument(MongoDocument):
     """
     WorkspaceUserInvitesDocument is a subclass of MongoDocument. It
@@ -57,12 +54,12 @@ class WorkspaceUserInvitesDocument(MongoDocument):
     email: str
     invitation_status: Optional[InvitationStatus] = InvitationStatus.PENDING
     role: Optional[WorkspaceRoles] = WorkspaceRoles.COLLABORATOR
-    expiry: int = _expiry
+    expiry: int = _get_expiry_epoch_after(time_delta=timedelta(days=7))
     invitation_token: str
 
     class Settings:
         name = "workspace_invites"
-        indexes = [IndexModel([("workspace_id", 1), ("user_id", 1)], unique=True)]
+        indexes = [IndexModel([("workspace_id", 1), ("email", 1)], unique=True)]
         bson_encoders = {
             datetime: lambda o: datetime.isoformat(o),
         }
