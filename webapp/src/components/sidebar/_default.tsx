@@ -50,7 +50,7 @@ export default function Sidebar() {
     };
 
     return (
-        <aside className={cn('top-0 z-40 h-full w-full max-w-full border-dashed border-gray-200 bg-body ltr:left-0 ltr:border-r rtl:right-0 rtl:border-l dark:border-gray-700 dark:bg-dark xs:w-80 xl:fixed  xl:w-72 2xl:w-80', className)}>
+        <aside className={cn('top-0 z-40 h-full w-full max-w-full border-dashed border-gray-200 bg-white ltr:left-0 ltr:border-r rtl:right-0 rtl:border-l dark:border-gray-700 dark:bg-dark xs:w-80 xl:fixed  xl:w-72 2xl:w-80', className)}>
             <div className="relative flex h-24 items-center justify-between overflow-hidden px-6 py-4 2xl:px-8">
                 <div className="flex cursor-pointer items-center p-3 text-2xl font-semibold text-primary">
                     <div className="flex flex-col items-start">

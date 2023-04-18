@@ -26,6 +26,7 @@ import NextNProgress from '@app/components/ui/nprogress';
 import createEmotionCache from '@app/configs/createEmotionCache';
 import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
+import MuiThemeProvider from '@app/layouts/_mui-theme-provider';
 import { usePreserveScroll } from '@app/lib/hooks/use-preserve-scroll';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { persistor, store } from '@app/store/store';
@@ -83,76 +84,76 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
     return (
         <ThemeProvider attribute="class" enableSystem={false} forcedTheme="light" defaultTheme="light">
             <CacheProvider value={emotionCache}>
-                {/*<MuiThemeProvider>*/}
-                {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
-                <CssBaseline />
-                <GlobalStyles
-                    styles={css`
-                        :root {
-                            body {
-                                background-color: #fff;
-                                color: #121212;
+                <MuiThemeProvider>
+                    {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
+                    <CssBaseline />
+                    <GlobalStyles
+                        styles={css`
+                            :root {
+                                body {
+                                    background-color: #fff;
+                                    color: #121212;
+                                }
                             }
-                        }
 
-                        [data-theme='dark'] {
-                            body {
-                                background-color: #121212;
-                                color: #fff;
+                            [data-theme='dark'] {
+                                body {
+                                    background-color: #121212;
+                                    color: #fff;
+                                }
                             }
-                        }
-                    `}
-                />
-                <NextSeo
-                    title={title || globalConstants.socialPreview.title}
-                    description={description}
-                    noindex={!environments.IS_IN_PRODUCTION_MODE}
-                    nofollow={!environments.IS_IN_PRODUCTION_MODE}
-                    openGraph={{
-                        type: 'website',
-                        locale: 'en_IE',
-                        url,
-                        site_name: title || globalConstants.appName,
-                        description: description,
-                        title,
-                        images: [
-                            {
-                                url: imageUrl,
-                                alt: hasCustomDomain ? title : 'Better Collected'
-                            }
-                        ]
-                    }}
-                    twitter={{
-                        handle: globalConstants.twitterHandle,
-                        site: url,
-                        cardType: 'summary_large_image'
-                    }}
-                />
-                <CookieConsent
-                    location="bottom"
-                    buttonText="I understand"
-                    cookieName="BetterCookie"
-                    style={{ background: '#5492f7', display: 'flex', alignItems: 'center' }}
-                    buttonStyle={{ color: '#4e503b', fontSize: '13px', borderRadius: '3px' }}
-                    expires={150}
-                >
-                    This website uses cookies to enhance the user experience.{' '}
-                    <a href="https://www.termsfeed.com/blog/cookies/" target="_blank" rel="noreferrer" className={'cursor-pointer mt-2 text-white hover:text-gray-300'}>
-                        What are cookies?
-                    </a>
-                </CookieConsent>
-                <NextNProgress color="#f04444" startPosition={0} stopDelayMs={400} height={5} options={{ easing: 'ease' }} />
-                <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
-                <Provider store={store}>
-                    <WorkspaceHoc {...pageProps}>
-                        <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
-                            {getLayout(<Component {...pageProps} />)}
-                            <ModalContainer />
-                            <DrawersContainer />
-                        </PersistGate>
-                    </WorkspaceHoc>
-                </Provider>
-                {/*</MuiThemeProvider>*/}
+                        `}
+                    />
+                    <NextSeo
+                        title={title || globalConstants.socialPreview.title}
+                        description={description}
+                        noindex={!environments.IS_IN_PRODUCTION_MODE}
+                        nofollow={!environments.IS_IN_PRODUCTION_MODE}
+                        openGraph={{
+                            type: 'website',
+                            locale: 'en_IE',
+                            url,
+                            site_name: title || globalConstants.appName,
+                            description: description,
+                            title,
+                            images: [
+                                {
+                                    url: imageUrl,
+                                    alt: hasCustomDomain ? title : 'Better Collected'
+                                }
+                            ]
+                        }}
+                        twitter={{
+                            handle: globalConstants.twitterHandle,
+                            site: url,
+                            cardType: 'summary_large_image'
+                        }}
+                    />
+                    <CookieConsent
+                        location="bottom"
+                        buttonText="I understand"
+                        cookieName="BetterCookie"
+                        style={{ background: '#5492f7', display: 'flex', alignItems: 'center' }}
+                        buttonStyle={{ color: '#4e503b', fontSize: '13px', borderRadius: '3px' }}
+                        expires={150}
+                    >
+                        This website uses cookies to enhance the user experience.{' '}
+                        <a href="https://www.termsfeed.com/blog/cookies/" target="_blank" rel="noreferrer" className={'cursor-pointer mt-2 text-white hover:text-gray-300'}>
+                            What are cookies?
+                        </a>
+                    </CookieConsent>
+                    <NextNProgress color="#f04444" startPosition={0} stopDelayMs={400} height={5} options={{ easing: 'ease' }} />
+                    <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
+                    <Provider store={store}>
+                        <WorkspaceHoc {...pageProps}>
+                            <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
+                                {getLayout(<Component {...pageProps} />)}
+                                <ModalContainer />
+                                <DrawersContainer />
+                            </PersistGate>
+                        </WorkspaceHoc>
+                    </Provider>
+                </MuiThemeProvider>
             </CacheProvider>
         </ThemeProvider>
     );

@@ -62,7 +62,7 @@ export default function SidebarExpandable() {
             ref={ref}
             className={cn(
                 open ? 'border-0 shadow-expand xs:w-80 xl:w-72 2xl:w-80 ' : 'w-24 border-dashed border-gray-200 ltr:border-r rtl:border-l 2xl:w-28',
-                'top-0 z-40 h-full w-full max-w-full  bg-body duration-200 ltr:left-0 rtl:right-0  dark:border-gray-700 dark:bg-dark xl:fixed',
+                'top-0 z-40 h-full w-full max-w-full  bg-white duration-200 ltr:left-0 rtl:right-0  dark:border-gray-700 dark:bg-dark xl:fixed',
                 className
             )}
         >
