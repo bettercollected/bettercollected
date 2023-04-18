@@ -31,7 +31,7 @@ interface LayoutProps {
 
 export default function Layout({ children, className = '', showNavbar = false }: React.PropsWithChildren<LayoutProps>) {
     return (
-        <div className="!min-h-full !min-w-full bg-white dark:bg-dark z-20">
+        <div className="!min-h-full !min-w-full bg-brand-100 dark:bg-dark z-20">
             {showNavbar && (
                 <Header>
                     <div className="flex justify-between items-center">
@@ -40,14 +40,7 @@ export default function Layout({ children, className = '', showNavbar = false }:
                 </Header>
             )}
 
-            <main className={`relative mb-0 px-4 ${showNavbar ? 'pt-24' : ''} sm:px-6 sm:pt-24 sm:pb-20 lg:px-8 xl:px-10 3xl:px-12 ${className}`}>
-                {children}
-                <div className="pointer-events-none absolute overflow-hidden inset-0 !z-10">
-                    <div className="absolute top-[60%] left-[-100px] w-[359px] h-[153px] bg-gradient-to-r from-orange-200 via-orange-300 to-orange-400 rotate-90 blur-dashboardBackground opacity-[20%]" />
-                    <div className="absolute top-[35%] left-[65%] w-[765px] h-[765px] bg-gradient-to-r from-cyan-300 via-sky-300 to-cyan-400 blur-dashboardBackground opacity-[15%]" />
-                    <div className="absolute bottom-0 left-[50%] w-[599px] h-[388px] bg-gradient-to-r from-rose-200 via-rose-300 to-rose-400 rotate-180 blur-dashboardBackground opacity-[20%]" />
-                </div>
-            </main>
+            <main className={`relative mb-0 px-4 ${showNavbar ? 'pt-24' : ''} sm:px-6 sm:pt-24 sm:pb-20 lg:px-8 xl:px-10 3xl:px-12 ${className}`}>{children}</main>
         </div>
     );
 }

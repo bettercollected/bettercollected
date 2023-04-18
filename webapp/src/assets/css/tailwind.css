@@ -10,7 +10,7 @@
 
     html,
     body {
-        @apply bg-white font-inter antialiased dark:bg-dark dark:text-white;
+        @apply bg-brand-100 font-inter antialiased dark:bg-dark dark:text-white;
     }
 
     .dynamic-html h6 {

@@ -32,11 +32,6 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
 
-// const apm = initApm({
-//     serviceName: 'FormIntegrator',
-//     serverUrl: 'https://apm.sireto.io'
-// });
-
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
 
@@ -75,10 +70,6 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
             ReactGA.initialize(environments.GA_MEASUREMENT_ID);
             ReactGA.send('pageview');
         }
-        // const transaction = apm.startTransaction('page-load', 'page-load');
-        // return () => {
-        //     transaction?.end();
-        // };
     }, []);
 
     return (
