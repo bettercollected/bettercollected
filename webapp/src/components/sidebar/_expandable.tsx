@@ -55,7 +55,7 @@ export default function SidebarExpandable() {
         );
     };
 
-    const className = 'top-24 hidden border-r-[1px] sm:block relative h-[calc(100%-4rem)] sm:h-[calc(100%-6rem)]';
+    const className = 'top-[68px] hidden border-r-[1px] sm:block relative h-[calc(100%-4rem)]';
 
     return (
         <aside
