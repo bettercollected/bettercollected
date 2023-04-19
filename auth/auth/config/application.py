@@ -37,6 +37,7 @@ class Application(BaseSettings):
     ORGANIZATION_NAME: str = "Better Collected"
     AUTH_JWT_SECRET: str
     AUTH_AEX_HEX_KEY: str
+    CLIENT_ADMIN_URL: str = "http://localhost:3000"
 
     class Config:
         """Config sub-class needed to customize BaseSettings settings.
