@@ -24,7 +24,7 @@ class WorkspaceUserService:
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
 
-    async def check_is_admin_access_in_workspace(
+    async def check_is_admin_in_workspace(
         self, workspace_id: PydanticObjectId, user: User
     ):
         has_access = await self.workspace_user_repository.is_user_admin_in_workspace(
@@ -34,3 +34,9 @@ class WorkspaceUserService:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
+
+    async def get_users_in_workspace(self, workspace_id, user: User):
+        await self.check_is_admin_in_workspace(workspace_id=workspace_id, user=user)
+        return await WorkspaceUserRepository.get_workspace_users(
+            workspace_id=workspace_id
+        )

@@ -37,7 +37,9 @@ class FormService:
             workspace_id, not is_admin
         )
         forms_query = self._form_repo.get_forms_in_workspace_query(
-            workspace_id=workspace_id, form_id_list=workspace_form_ids
+            workspace_id=workspace_id,
+            form_id_list=workspace_form_ids,
+            is_admin=is_admin,
         )
         forms_page = await paginate(forms_query)
         return forms_page
@@ -66,7 +68,9 @@ class FormService:
             )
         )
         form = await self._form_repo.get_forms_in_workspace_query(
-            workspace_id=workspace_id, form_id_list=[workspace_form.form_id]
+            workspace_id=workspace_id,
+            form_id_list=[workspace_form.form_id],
+            is_admin=is_admin,
         ).to_list()
         return StandardFormCamelModel(**form[0])
 

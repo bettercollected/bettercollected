@@ -14,4 +14,5 @@ class MinifiedForm(CamelModel):
     settings: Optional[WorkspaceFormSettingsCamelModal]
     created_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
-    responses: Optional[int] = 0
+    responses: Optional[int]
+    deletion_requests: Optional[int]

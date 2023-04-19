@@ -22,6 +22,7 @@ from beanie import PydanticObjectId
 
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from common.constants import MESSAGE_UNAUTHORIZED, MESSAGE_FORBIDDEN
+from common.enums.plan import Plans
 from common.models.user import User
 from common.services.http_client import HttpClient
 
@@ -73,7 +74,7 @@ class WorkspaceService:
         workspace_patch: WorkspaceRequestDtoCamel,
         user: User,
     ):
-        await self._workspace_user_service.check_is_admin_access_in_workspace(
+        await self._workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
         workspace_document = await self._workspace_repo.get_workspace_by_id(
@@ -131,6 +132,9 @@ class WorkspaceService:
         )
 
         if workspace_patch.custom_domain:
+            if user.plan == Plans.FREE:
+                raise HTTPException(status_code=403, content=MESSAGE_FORBIDDEN)
+
             try:
                 workspace = await WorkspaceDocument.find_one(
                     {"custom_domain": workspace_patch.custom_domain}
@@ -170,7 +174,11 @@ class WorkspaceService:
     async def delete_custom_domain_of_workspace(
         self, workspace_id: PydanticObjectId, user: User
     ):
-        await self._workspace_user_service.check_is_admin_access_in_workspace(
+        if user.plan == Plans.FREE:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
+            )
+        await self._workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
         workspace_document = await self._workspace_repo.get_workspace_by_id(

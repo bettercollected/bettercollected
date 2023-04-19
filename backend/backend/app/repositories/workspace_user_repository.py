@@ -44,3 +44,9 @@ class WorkspaceUserRepository:
             )
             else False
         )
+
+    @staticmethod
+    async def get_workspace_users(workspace_id: PydanticObjectId):
+        return await WorkspaceUserDocument.find(
+            {"workspace_id": workspace_id}
+        ).to_list()
