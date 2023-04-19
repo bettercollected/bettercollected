@@ -9,10 +9,10 @@ import { LoaderSizeTypes, LoaderVariantTypes } from '@app/components/ui/loader';
 type ShapeNames = 'rounded' | 'pill' | 'circle';
 type VariantNames = 'ghost' | 'solid' | 'transparent';
 type ColorNames = 'primary' | 'white' | 'gray' | 'success' | 'info' | 'warning' | 'danger';
-type SizeNames = 'large' | 'medium' | 'small' | 'mini';
+type SizeNames = 'large' | 'medium' | 'small';
 
 const shapes: Record<ShapeNames, string[]> = {
-    rounded: ['rounded-md sm:rounded-lg'],
+    rounded: ['rounded-[4px]'],
     pill: ['rounded-full'],
     circle: ['rounded-full']
 };
@@ -22,19 +22,18 @@ const variants: Record<VariantNames, string[]> = {
     transparent: ['bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800']
 };
 const colors: Record<ColorNames, string[]> = {
-    primary: ['text-brand', 'bg-brand', 'border-brand'],
-    white: ['text-gray-900', 'bg-white', 'border-white'],
-    gray: ['text-gray-900', 'bg-gray-100', 'border-gray-100'],
-    success: ['text-green-500', 'bg-green-500', 'border-green-500'],
-    info: ['text-blue-500', 'bg-blue-500', 'border-blue-500'],
-    warning: ['text-yellow-500', 'bg-yellow-500', 'border-yellow-500'],
-    danger: ['text-red-500', 'bg-red-500', 'border-red-500']
+    primary: ['text-white', 'bg-brand hover:bg-brand-600 focus:ring-brand-500', 'border-brand'],
+    white: ['text-gray-900', 'bg-white focus:ring-white', 'border-white'],
+    gray: ['text-gray-900', 'bg-gray-100 hover:bg-gray-200 focus:ring-gray-100', 'border-gray-100'],
+    success: ['text-green-500', 'bg-green-500 hover:bg-green-200 focus:ring-green-500', 'border-green-500'],
+    info: ['text-blue-500', 'bg-blue-500 hover:bg-blue-200 focus:ring-blue-500', 'border-blue-500'],
+    warning: ['text-yellow-500', 'bg-yellow-500 hover:bg-yellow-200 focus:ring-yellow-500', 'border-yellow-500'],
+    danger: ['text-red-500', 'bg-red-500 hover:bg-red-200 focus:ring-red-500', 'border-red-500']
 };
 const sizes: Record<SizeNames, string[]> = {
-    large: ['px-7 sm:px-9 h-11 sm:h-13', 'w-11 h-11 sm:w-13 sm:h-13'],
-    medium: ['px-5 sm:px-8 h-10 sm:h-12', 'h-10 w-10 sm:w-12 sm:h-12'],
-    small: ['px-7 h-10', 'w-10 h-10'],
-    mini: ['px-4 h-8', 'w-8 h-8']
+    large: ['py-6 px-8 h-[63px] sh1 !text-white focus:ring-1 focus:ring-offset-1'],
+    medium: ['py-2 px-8 h-[46px] sh3 !text-white focus:ring-1 focus:ring-offset-1'],
+    small: ['py-3 px-4 h-[36px] body4 !text-white focus:ring-1 focus:ring-offset-1']
 };
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -51,7 +50,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ children, className, isLoading, disabled, fullWidth, shape = 'pill', variant = 'solid', color = 'primary', size = 'medium', loaderSize = 'small', loaderVariant = 'scaleUp', onClick, ...buttonProps }, ref: React.Ref<HTMLButtonElement | null>) => {
+    ({ children, className, isLoading, disabled, fullWidth, shape = 'rounded', variant = 'solid', color = 'primary', size = 'small', loaderSize = 'small', loaderVariant = 'scaleUp', onClick, ...buttonProps }, ref: React.Ref<HTMLButtonElement | null>) => {
         let [dripShow, setDripShow] = useState<boolean>(false);
         let [dripX, setDripX] = useState<number>(0);
         let [dripY, setDripY] = useState<number>(0);
@@ -99,8 +98,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 onClick={clickHandler}
                 className={cn(
                     'relative inline-flex shrink-0 items-center justify-center overflow-hidden text-center text-xs font-medium tracking-wider outline-none transition-all sm:text-sm',
-                    !disabled ? buttonColorClassNames : 'cursor-not-allowed bg-gray-100 text-gray-400',
-                    disabled || isLoading || variant === 'transparent' ? 'bg-opacity-50' : 'hover:-translate-y-0.5 hover:shadow-large focus:-translate-y-0.5 focus:shadow-large focus:outline-none',
+                    !disabled ? buttonColorClassNames : 'cursor-not-allowed bg-blue-300',
+                    disabled || isLoading || variant === 'transparent' ? '' : 'hover:shadow-large focus:shadow-large focus:outline-none',
                     isLoading && 'pointer-events-auto cursor-default focus:outline-none',
                     fullWidth && 'w-full',
                     color === 'white' || color === 'gray' ? 'text-gray-900 dark:text-white' : variants[variant],
