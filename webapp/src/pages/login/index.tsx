@@ -53,9 +53,9 @@ export const Login = () => {
 
     return (
         <Layout className="min-h-screen">
-            <div className="absolute top-0 left-0 h-full w-full flex flex-start">
-                <div className={`bg-brand-500 relative h-full w-[50%] hidden lg:flex flex-col justify-center`}>
-                    <div className="flex flex-col px-[94px] py-[92px]">
+            <div className="absolute top-0 left-0 h-full w-full flex flex-col md:flex-row">
+                <div className={`bg-brand-500 relative order-2 md:order-1 h-fit md:h-full w-full md:w-[50%] flex flex-col justify-center`}>
+                    <div className="flex flex-col px-8 py-7 md:px-[94px] md:py-[92px]">
                         <h1 className="h4 !text-black-100 mb-6">{constants.heading4}</h1>
                         {constants.paragraphs.map((paragraph, idx) => (
                             <div key={idx} className="flex items-center gap-3 mb-4 last:mb-0">
@@ -65,12 +65,12 @@ export const Login = () => {
                         ))}
                     </div>
                     <div className="flex items-center justify-center w-full">
-                        <div className="relative h-[340px] w-[446px]">
+                        <div className="relative h-[244px] w-[320px] md:h-[340px] md:w-[446px]">
                             <Image layout="fill" src={ImageLoginLaptopScreen} alt="BetterCollected" />
                         </div>
                     </div>
                 </div>
-                <div className=" w-full lg:w-[50%] flex flex-col items-start justify-start py-8 px-[110px]">
+                <div className="flex flex-col order-1 md:order-2 items-start justify-start px-8 py-7 md:py-8 md:px-[110px] h-fit md:h-full w-full md:w-[50%]">
                     <div className="mb-28">
                         <Logo />
                     </div>
