@@ -2,9 +2,10 @@ import React from 'react';
 
 import _ from 'lodash';
 
-import { ChevronLeft, Logout, PersonAdd, Settings } from '@mui/icons-material';
+import { ChevronLeft, Logout } from '@mui/icons-material';
 import { Avatar, Divider, IconButton, ListItem, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 
+import { useModal } from '@app/components/modal-views/context';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useGetStatusQuery } from '@app/store/auth/api';
 
@@ -16,6 +17,7 @@ export default function AuthAccountMenuDropdown() {
     const { data, error, isLoading } = useGetStatusQuery('status');
 
     const screenSize = useBreakpoint();
+    const { openModal } = useModal();
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -23,6 +25,11 @@ export default function AuthAccountMenuDropdown() {
 
     const handleClose = () => {
         setAnchorEl(null);
+    };
+
+    const handleLogout = () => {
+        openModal('LOGOUT_VIEW');
+        handleClose();
     };
 
     const user = data?.user;
@@ -112,7 +119,7 @@ export default function AuthAccountMenuDropdown() {
                     Settings
                 </MenuItem>
                 <Divider /> */}
-                <MenuItem onClick={handleClose}>
+                <MenuItem onClick={handleLogout}>
                     <ListItemIcon>
                         <Logout fontSize="small" color="error" />
                     </ListItemIcon>
