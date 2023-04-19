@@ -17,6 +17,8 @@ class UserDocument(MongoDocument):
     otp_code: Optional[str]
     otp_expiry: Optional[int]
     plan: Optional[Plans] = Plans.FREE
+    stripe_customer_id: Optional[str]
+    stripe_payment_id: Optional[str]
 
     class Settings:
         name = "users"
