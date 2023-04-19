@@ -39,8 +39,17 @@ class WorkspaceInvitationRepo:
         return await paginate(invitations_query)
 
     async def get_workspace_invitation_by_token(
-        self, invitation_token: str
-    ) -> WorkspaceUserInvitesDocument:
-        return await WorkspaceUserInvitesDocument.find_one(
-            {"invitation_token": invitation_token}
+        self, workspace_id: PydanticObjectId, invitation_token: str, is_admin=False
+    ) -> WorkspaceUserInvitesDocument | None:
+        invitation_request = await WorkspaceUserInvitesDocument.find_one(
+            {"invitation_token": invitation_token, "workspace_id": workspace_id}
         )
+
+        if not is_admin and (
+            invitation_request.invitation_status != InvitationStatus.PENDING
+            or invitation_request.expiry
+            < get_expiry_epoch_after(time_delta=timedelta())
+        ):
+            return None
+
+        return invitation_request

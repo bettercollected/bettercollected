@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Union
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, post
@@ -15,7 +15,7 @@ from common.models.user import User
 
 
 @router(
-    prefix="/workspaces/{workspaces_id}/members",
+    prefix="/workspaces/{workspace_id}/members",
     tags=["Workspace Members and Invitations"],
 )
 class WorkspaceMembersRouter(Routable):
@@ -40,11 +40,10 @@ class WorkspaceMembersRouter(Routable):
     async def get_workspace_invitations(
         self,
         workspace_id: PydanticObjectId,
-        invitation_id: str = None,
         user: User = Depends(get_logged_user),
-    ) -> Page[Any]:
+    ):
         return await self.workspace_members_service.get_workspace_invitations(
-            workspace_id=workspace_id, invitation_id=invitation_id, user=user
+            workspace_id=workspace_id, user=user
         )
 
     @post("/invitations")
@@ -56,6 +55,17 @@ class WorkspaceMembersRouter(Routable):
     ):
         return await self.workspace_members_service.create_invitation_request(
             workspace_id=workspace_id, invitation=invitation, user=user
+        )
+
+    @get("/invitations/{invitation_token}")
+    async def get_invitation_by_token(
+        self,
+        workspace_id: PydanticObjectId,
+        invitation_token: str,
+        user: User = Depends(get_logged_user),
+    ):
+        return await self.workspace_members_service.get_workspace_invitation_by_token(
+            workspace_id=workspace_id, user=user, invitation_token=invitation_token
         )
 
     @post("/invitations/{invitation_token}")
