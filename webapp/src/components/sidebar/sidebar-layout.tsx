@@ -54,7 +54,7 @@ export default function SidebarLayout(props: any) {
                 </Header>
             )}
             {checkIfSideBarRender() && <SidebarExpandable />}
-            <main className={cn('px-4 xl:left-24 right-0 w-full xl:w-auto absolute top-[68px] md:pt-4 sm:px-6 lg:px-8 3xl:px-10 3xl:pt-2.5')}>{children}</main>
+            <main className={cn('xl:left-24 right-0 w-full xl:w-auto absolute top-[68px] py-6 px-6')}>{children}</main>
         </div>
     );
 }
