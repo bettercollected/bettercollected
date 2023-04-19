@@ -76,7 +76,6 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
                         <div className="block md:hidden">
                             <div className="flex justify-between items-start py-10 gap-6">
                                 <ProfileImageComponent workspace={workspace} isFormCreator={isFormCreator} />
-
                                 {!!authStatus.error ? (
                                     <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
                                         Check My Data

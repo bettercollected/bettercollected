@@ -6,6 +6,7 @@ import { persistStore } from 'redux-persist';
 import environments from '@app/configs/environments';
 import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
 import formSlice from '@app/store/forms/slice';
+import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitations-api';
 import workspaceSlice from '@app/store/workspaces/slice';
 
 import { authApi } from './auth/api';
@@ -14,7 +15,7 @@ import { workspacesApi } from './workspaces/api';
 const loggerMiddleware = createLogger();
 
 // Add more middlewares here
-const middlewares = [authApi.middleware, workspacesApi.middleware];
+const middlewares = [authApi.middleware, workspacesApi.middleware, membersNInvitationsApi.middleware];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewaress.splice(0, 1);
 
@@ -22,7 +23,8 @@ const reducers = {
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
     [formSlice.reducerPath]: formSlice.reducer,
     [authApi.reducerPath]: authApi.reducer,
-    [workspacesApi.reducerPath]: workspacesApi.reducer
+    [workspacesApi.reducerPath]: workspacesApi.reducer,
+    [membersNInvitationsApi.reducerPath]: membersNInvitationsApi.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);
