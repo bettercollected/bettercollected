@@ -3,12 +3,14 @@ import React from 'react';
 import { useRouter } from 'next/router';
 
 import { ExpandMore, SettingsOutlined } from '@mui/icons-material';
-import { Accordion, AccordionDetails, AccordionSummary, Avatar, Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar } from '@mui/material';
 
 import { DashboardIcon } from '@app/components/icons/dashboard-icon';
 import { FormIcon } from '@app/components/icons/form-icon';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
+
+import AuthAccountProfileImage from '../auth/account-profile-image';
 
 interface INavbarList {
     key: string;
@@ -32,13 +34,6 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, handleDrawerToggle 
     const router = useRouter();
     const workspace = useAppSelector((state) => state?.workspace);
     const { data, isLoading } = useGetAllMineWorkspacesQuery();
-
-    const workspaceProfile = (size: number = 36) =>
-        workspace?.profileImage ? (
-            <Avatar sx={{ width: size, height: size, borderRadius: 1 }} src={workspace?.profileImage} className="rounded-[4px] overflow-hidden !mr-0" />
-        ) : (
-            <Avatar sx={{ width: size, height: size, borderRadius: 1 }}>{workspace?.title[0]?.toUpperCase()}</Avatar>
-        );
 
     const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
 
@@ -93,7 +88,8 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, handleDrawerToggle 
                     <ListItem disablePadding>
                         <Accordion disabled={isLoading} sx={{ paddingY: '16px', paddingX: '4px', width: '100%' }} elevation={0} className="hover:bg-zinc-100">
                             <AccordionSummary expandIcon={<ExpandMore className="h-7 w-7 text-black-900 transition-all duration-300" />}>
-                                {workspaceProfile()} <p className="ml-3 p-0 !body1 flex items-center">{workspace?.title}</p>
+                                <AuthAccountProfileImage image={workspace?.profileImage} name={workspace?.title} />
+                                <p className="ml-3 p-0 !body1 flex items-center">{workspace?.title}</p>
                             </AccordionSummary>
                             <AccordionDetails className="w-full flex flex-col gap-3">
                                 {data && Array.isArray(data) && data.length > 1 ? (

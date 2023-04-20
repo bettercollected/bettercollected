@@ -3,8 +3,9 @@ import React from 'react';
 import _ from 'lodash';
 
 import { ExpandMore, Logout } from '@mui/icons-material';
-import { Avatar, Divider, IconButton, ListItem, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
+import { Divider, IconButton, ListItem, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 
+import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { useModal } from '@app/components/modal-views/context';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useGetStatusQuery } from '@app/store/auth/api';
@@ -45,13 +46,6 @@ export default function AuthAccountMenuDropdown({ fullWidth }: IAuthAccountMenuD
 
     if (isLoading || error) return <div className="w-9 sm:w-32 h-9 rounded-[4px] animate-pulse bg-black-300" />;
 
-    const userProfile = (size: number = 36) =>
-        user?.profile_image ? (
-            <Avatar sx={{ width: size, height: size, borderRadius: 1 }} src={user?.profile_image} className="rounded-[4px] overflow-hidden !mr-0" />
-        ) : (
-            <Avatar sx={{ width: size, height: size, borderRadius: 1 }}>{profileName[0]?.toUpperCase()}</Avatar>
-        );
-
     return (
         <>
             <Tooltip title="Account Settings" arrow enterDelay={400}>
@@ -64,7 +58,7 @@ export default function AuthAccountMenuDropdown({ fullWidth }: IAuthAccountMenuD
                     aria-expanded={open ? 'true' : undefined}
                 >
                     <span className="flex items-center">
-                        {userProfile()}
+                        <AuthAccountProfileImage image={user?.profile_image} name={profileName} />
                         {['xs', '2xs', 'sm'].indexOf(screenSize) === -1 && <p className="body4 ml-2 mr-[14px]">{profileName?.trim() || user?.email || ''}</p>}
                     </span>
                     <ExpandMore className={`${open ? 'rotate-180' : '-rotate-0'} h-7 w-7 text-black-900 transition-all duration-300`} />
@@ -109,7 +103,9 @@ export default function AuthAccountMenuDropdown({ fullWidth }: IAuthAccountMenuD
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
                 <ListItem className="py-2 px-4" alignItems="flex-start">
-                    <ListItemIcon className="!min-w-[39px]">{userProfile()}</ListItemIcon>
+                    <ListItemIcon className="!min-w-[39px]">
+                        <AuthAccountProfileImage image={user?.profile_image} name={profileName} />
+                    </ListItemIcon>
                     <ListItemText
                         primary="Signed in as"
                         secondary={
@@ -122,19 +118,6 @@ export default function AuthAccountMenuDropdown({ fullWidth }: IAuthAccountMenuD
                     />
                 </ListItem>
                 <Divider className="mb-2" />
-                {/* <MenuItem onClick={handleClose}>
-                    <ListItemIcon>
-                        <PersonAdd fontSize="small" />
-                    </ListItemIcon>
-                    Add Collaborators
-                </MenuItem>
-                <MenuItem onClick={handleClose}>
-                    <ListItemIcon>
-                        <Settings fontSize="small" />
-                    </ListItemIcon>
-                    Settings
-                </MenuItem>
-                <Divider /> */}
                 <MenuItem onClick={handleLogout}>
                     <ListItemIcon>
                         <Logout fontSize="small" color="error" />
