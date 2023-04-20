@@ -15,7 +15,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
 
     useEffect(() => {
-        fetch('http://localhost:8000/api/v1/workspaces/6437b119ec2c5bde05404471/stats', {
+        fetch(`http://localhost:8000/api/v1/workspaces/${workspace.id}/stats`, {
             credentials: 'include'
         })
             .then((res) => {

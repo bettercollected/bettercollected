@@ -19,8 +19,8 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
     const { openModal } = useModal();
 
     const getWorkspaceUrl = () => {
-        const protocol = environments.CLIENT_HOST.includes('localhost') ? 'http://' : 'https://';
-        const domain = !!workspace.customDomain ? workspace.customDomain : environments.CLIENT_HOST;
+        const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
+        const domain = !!workspace.customDomain ? workspace.customDomain : environments.CLIENT_DOMAIN;
         const w_name = !!workspace.customDomain ? '' : workspace.workspaceName;
         return `${protocol}${domain}/${w_name}`;
     };
@@ -55,9 +55,33 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
-                <WorkspaceDashboardStats title="Imported forms" content="0/10" buttonProps={{ enabled: true, text: 'Import unlimited forms', onClick: () => {} }} />
-                <WorkspaceDashboardStats title="Collected responses" content="0" buttonProps={{ enabled: false, text: 'Import unlimited forms', onClick: () => {} }} />
-                <WorkspaceDashboardStats title="Deletion requests" content="0/10" buttonProps={{ enabled: false, text: 'Import unlimited forms', onClick: () => {} }} />
+                <WorkspaceDashboardStats
+                    title="Imported forms"
+                    content="0/10"
+                    buttonProps={{
+                        enabled: true,
+                        text: 'Import unlimited forms',
+                        onClick: () => {}
+                    }}
+                />
+                <WorkspaceDashboardStats
+                    title="Collected responses"
+                    content="0"
+                    buttonProps={{
+                        enabled: false,
+                        text: 'Import unlimited forms',
+                        onClick: () => {}
+                    }}
+                />
+                <WorkspaceDashboardStats
+                    title="Deletion requests"
+                    content="0/10"
+                    buttonProps={{
+                        enabled: false,
+                        text: 'Import unlimited forms',
+                        onClick: () => {}
+                    }}
+                />
             </div>
             <Divider className="my-6" />
         </>

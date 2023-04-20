@@ -46,8 +46,8 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                             const slug = form.settings?.customUrl;
                             let shareUrl = '';
                             if (window && typeof window !== 'undefined') {
-                                const scheme = `${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://`;
-                                shareUrl = scheme + `${hasCustomDomain ? `${workspace.customDomain}/forms/${slug}` : `${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${slug}`}`;
+                                const scheme = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://`;
+                                shareUrl = scheme + `${hasCustomDomain ? `${workspace.customDomain}/forms/${slug}` : `${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${slug}`}`;
                             }
                             return (
                                 <ActiveLink key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
