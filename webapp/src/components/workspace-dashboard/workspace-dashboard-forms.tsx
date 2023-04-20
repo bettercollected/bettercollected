@@ -1,12 +1,11 @@
-import { PushPin } from '@mui/icons-material';
-import { toast } from 'react-toastify';
+import { MoreHoriz, PushPin } from '@mui/icons-material';
+import { IconButton, Tooltip } from '@mui/material';
 
-import { Google } from '@app/components/icons/brands/google';
+import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { EmptyImportFormIcon } from '@app/components/icons/empty-import-form-icon';
-import { ShareIcon } from '@app/components/icons/share-icon';
+import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
-import Image from '@app/components/ui/image';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
@@ -30,7 +29,7 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
     const [_, copyToClipboard] = useCopyToClipboard();
 
     return (
-        <div className="mb-10">
+        <div className="mb-10 w-full h-fit mt-5">
             {forms?.length === 0 ? (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-white rounded-[4px] py-[84px]">
                     <EmptyImportFormIcon className="mb-8" />
@@ -41,7 +40,7 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                     </Button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 pb-4 md:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 p-6 bg-white rounded-[4px]">
                     {forms?.length !== 0 &&
                         forms?.map((form: StandardFormDto) => {
                             const slug = form.settings?.customUrl;
@@ -52,50 +51,49 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                             }
                             return (
                                 <ActiveLink key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
-                                    <div className="flex flex-row items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300 hover:border-blue-500 drop-shadow-sm hover:drop-shadow-lg transition cursor-pointer bg-white rounded-[20px]">
-                                        <div className="flex flex-col w-full justify-between h-full">
-                                            <div className="w-full ">
-                                                <div className="flex mb-4 w-full items-center space-x-4">
-                                                    <div>
-                                                        {form?.settings?.provider === 'typeform' ? (
-                                                            <div className="rounded-full border h-[24px] w-[28px] border-white relative">
-                                                                <Image src="/tf.png" className="rounded-full" layout="fill" alt={'T'} />
-                                                            </div>
-                                                        ) : (
-                                                            <div className="rounded-full bg-white p-1">
-                                                                <Google />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <p className="text-xl text-grey  p-0">{['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.title || 'Untitled', 15) : toEndDottedStr(form?.title || 'Untitled', 30)}</p>
-                                                </div>
-                                                {form?.description && (
-                                                    <p className="text-base text-softBlue m-0 p-0 w-full">
-                                                        {['xs', 'sm'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 45) : ['md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.description, 80) : toEndDottedStr(form.description, 140)}
-                                                    </p>
-                                                )}
-                                                {!form?.description && <p className="text-base text-softBlue m-0 p-0 w-full italic">Form description not available.</p>}
-                                            </div>
-
+                                    <div className="flex flex-col items-start justify-between h-full border-[1px] border-black-300 hover:border-brand-500 transition cursor-pointer rounded-[4px]">
+                                        <div className="relative w-full px-4 py-6 flex min-h-28 flex-col gap-3 items-start justify-between bg-brand-100">
+                                            <div className="rounded-[4px] h-[34px] w-[34px] relative">{form?.settings?.provider === 'typeform' ? <TypeformIcon /> : <GoogleFormIcon className="-ml-2" />}</div>
+                                            <Tooltip title={form?.title || 'Untitled'} arrow placement="top-start" enterDelay={300}>
+                                                <p className="body3 !not-italic leading-none">{['xs', '2xs', 'sm', 'md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.title || 'Untitled', 15) : toEndDottedStr(form?.title || 'Untitled', 20)}</p>
+                                            </Tooltip>
+                                            <p className={`absolute top-4 right-4 rounded-full leading-none text-[10px] px-2 flex py-1 items-center justify-center ${form?.settings?.private ? 'bg-brand-accent' : 'bg-green-600'} text-white`}>
+                                                {form?.settings?.private ? 'Hidden' : 'Public'}
+                                            </p>
+                                            {form?.settings?.pinned && (
+                                                <Tooltip className="absolute -top-2 left-0" title="Pinned to your public workspace view" arrow placement="top-start" enterDelay={300}>
+                                                    <PushPin className="rotate-45" />
+                                                </Tooltip>
+                                            )}
+                                        </div>
+                                        <div className="relative flex justify-between items-center p-4 w-full">
+                                            <p className="body4 !text-brand-600">0 response</p>
+                                            <Tooltip className="absolute right-4" title="Form options" arrow placement="top-start" enterDelay={300}>
+                                                <IconButton onClick={() => {}} size="small" className="rounded-[4px] text-black-900 hover:rounded-[4px] hover:bg-black-200">
+                                                    <MoreHoriz />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </div>
+                                        {/* <div className="flex flex-col w-full justify-between h-11">
                                             <div className="flex pt-3 justify-between">
-                                                {<div className="rounded space-x-2 text-xs px-2 flex py-1 items-center text-gray-500 bg-gray-100">{form?.settings?.private ? 'Hidden' : 'Public'}</div>}
+                                                <div className="rounded space-x-2 text-xs px-2 flex py-1 items-center text-gray-500 bg-gray-100">Public</div>
                                                 <div className="flex">
                                                     <div
                                                         aria-hidden
                                                         onClick={(event) => {
                                                             event.preventDefault();
                                                             event.stopPropagation();
-                                                            copyToClipboard(shareUrl);
+                                                            // copyToClipboard(shareUrl);
                                                             toast('Copied URL', { type: 'info' });
                                                         }}
                                                         className="p-2 border-[1px] border-white hover:border-neutral-100 hover:shadow rounded-md"
                                                     >
                                                         <ShareIcon width={19} height={19} />
                                                     </div>
-                                                    {form?.settings?.pinned && <PushPin className="rotate-45" />}
+                                                    <PushPin className="rotate-45" />
                                                 </div>
                                             </div>
-                                        </div>
+                                        </div> */}
                                     </div>
                                 </ActiveLink>
                             );
