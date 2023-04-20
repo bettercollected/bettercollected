@@ -1,10 +1,15 @@
+import { request } from '@mswjs/interceptors/lib/interceptors/ClientRequest/http.request';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { BaseQueryArg } from '@reduxjs/toolkit/src/query/baseQueryTypes';
 
 import environments from '@app/configs/environments';
 
 export const WORKSPACE_INVITATIONS_PATH = 'membersNInvitationsApi';
+
+const WORKSPACE_INVITATIONS_TAG = 'WORKSPACE_INVITATIONS_TAG';
 export const membersNInvitationsApi = createApi({
     reducerPath: WORKSPACE_INVITATIONS_PATH,
+    tagTypes: [WORKSPACE_INVITATIONS_TAG],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -26,8 +31,29 @@ export const membersNInvitationsApi = createApi({
                     response_status: request.responseStatus
                 }
             })
+        }),
+        getWorkspaceMembers: builder.query<Array<any>, any>({
+            query: (request) => ({
+                url: `/${request.workspaceId}/members`,
+                method: 'GET'
+            })
+        }),
+        getWorkspaceMembersInvitations: builder.query<any, any>({
+            query: (request) => ({
+                url: `/${request.workspaceId}/members/invitations`,
+                method: 'GET'
+            }),
+            providesTags: [WORKSPACE_INVITATIONS_TAG]
+        }),
+        inviteToWorkspace: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/${request.workspaceId}/members/invitations`,
+                method: 'POST',
+                body: request.body
+            }),
+            invalidatesTags: [WORKSPACE_INVITATIONS_TAG]
         })
     })
 });
 
-export const { useRespondToWorkspaceInvitationMutation } = membersNInvitationsApi;
+export const { useRespondToWorkspaceInvitationMutation, useGetWorkspaceMembersQuery, useGetWorkspaceMembersInvitationsQuery, useInviteToWorkspaceMutation } = membersNInvitationsApi;

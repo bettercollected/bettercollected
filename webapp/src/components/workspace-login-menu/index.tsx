@@ -96,7 +96,13 @@ export default function WorkspaceLoginMenuItems({ authStatus, handleLogout, work
                 <Divider />
                 {isFormCreator && (
                     <>
-                        <a className="w-full" target="_blank" referrerPolicy="no-referrer" href={`${environments.ADMIN_HOST.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_HOST}/${workspace.workspaceName}/dashboard`} rel="noreferrer">
+                        <a
+                            className="w-full"
+                            target="_blank"
+                            referrerPolicy="no-referrer"
+                            href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/dashboard`}
+                            rel="noreferrer"
+                        >
                             <MenuItem className="hover:bg-blue-500 hover:text-white text-gray-900 group flex w-full items-center">
                                 <div className="flex space-x-4">
                                     <HomeIcon width={20} height={20} />

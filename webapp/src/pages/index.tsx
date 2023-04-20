@@ -38,7 +38,7 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
         return {
             redirect: {
                 permanent: false,
-                destination: `${scheme}${environments.ADMIN_HOST}`
+                destination: `${scheme}${environments.ADMIN_DOMAIN}`
             }
         };
     }

@@ -44,7 +44,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
 
     const submissions: Array<StandardFormResponseDto> = data?.items ?? [];
 
-    const isCustomDomain = window?.location.host !== environments.CLIENT_HOST;
+    const isCustomDomain = window?.location.host !== environments.CLIENT_DOMAIN;
 
     const SubmissionCard = ({ submission, submittedAt }: any) => (
         <div

@@ -3,15 +3,15 @@ import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProp
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
 export function checkHasCustomDomain(_context: any) {
-    return _context.req.headers.host !== environments.CLIENT_HOST && _context.req.headers.host !== environments.ADMIN_HOST;
+    return _context.req.headers.host !== environments.CLIENT_DOMAIN && _context.req.headers.host !== environments.ADMIN_DOMAIN;
 }
 
 export function checkHasAdminDomain(_context: any) {
-    return _context.req.headers.host === environments.ADMIN_HOST;
+    return _context.req.headers.host === environments.ADMIN_DOMAIN;
 }
 
 export function checkHasClientDomain(_context: any) {
-    return _context.req.headers.host === environments.CLIENT_HOST;
+    return _context.req.headers.host === environments.CLIENT_DOMAIN;
 }
 
 export async function checkIfUserIsAuthorizedToViewPage(_context: any, workspace: WorkspaceDto) {

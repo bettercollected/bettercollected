@@ -37,7 +37,7 @@ export async function getGlobalServerSidePropsByDomain({ locale, ..._context }: 
 }> {
     const domain = _context.req.headers.host;
 
-    const hasCustomDomain = domain !== environments.CLIENT_HOST;
+    const hasCustomDomain = domain !== environments.CLIENT_DOMAIN;
     let workspaceId = '';
     let workspace = null;
 

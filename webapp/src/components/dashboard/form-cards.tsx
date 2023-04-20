@@ -22,7 +22,7 @@ interface FormCardsProps {
 }
 
 const FormCards = ({ title, formsArray, workspace }: FormCardsProps) => {
-    const isCustomDomain = window?.location.host !== environments.CLIENT_HOST;
+    const isCustomDomain = window?.location.host !== environments.CLIENT_DOMAIN;
 
     const breakpoint = useBreakpoint();
 

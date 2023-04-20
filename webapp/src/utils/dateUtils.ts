@@ -25,3 +25,13 @@ export const toLocaleString = (date: Date) =>
         minute: 'numeric',
         hour12: true
     });
+
+export const toLocaleStringFromDateString = (date: string) =>
+    new Date(date).toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true
+    });

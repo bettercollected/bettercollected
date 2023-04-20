@@ -80,8 +80,8 @@ export default function FormSettingsTab() {
         return `${firstPart}..${lastPart}`;
     };
 
-    const clientHostUrl = `${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`;
-    const customDomainUrl = `${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`;
+    const clientHostUrl = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${customUrl}`;
+    const customDomainUrl = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`;
 
     // TODO: make it responsive (Larger string in medium or larger screen)
     const shortenedClientHostUrl = toMidDottedStr(clientHostUrl, 10);
@@ -138,13 +138,18 @@ export default function FormSettingsTab() {
                         height="16px"
                         className="cursor-pointer"
                         onClick={() => {
-                            copyToClipboard(`${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`);
+                            copyToClipboard(`${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${customUrl}`);
                             toast('Form URL Copied', {
                                 type: 'info'
                             });
                         }}
                     />
-                    <a href={`${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`} target="_blank" referrerPolicy="no-referrer-when-downgrade" rel="noreferrer">
+                    <a
+                        href={`${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${customUrl}`}
+                        target="_blank"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        rel="noreferrer"
+                    >
                         <ShareIcon width={19} height={19} />
                     </a>
                 </div>
@@ -156,13 +161,13 @@ export default function FormSettingsTab() {
                             height="16px"
                             className="cursor-pointer"
                             onClick={() => {
-                                copyToClipboard(`${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`);
+                                copyToClipboard(`${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`);
                                 toast('Form URL Copied', {
                                     type: 'info'
                                 });
                             }}
                         />
-                        <a href={`${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`} target="_blank" referrerPolicy="no-referrer-when-downgrade" rel="noreferrer">
+                        <a href={`${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`} target="_blank" referrerPolicy="no-referrer-when-downgrade" rel="noreferrer">
                             <ShareIcon width={19} height={19} />
                         </a>
                     </div>

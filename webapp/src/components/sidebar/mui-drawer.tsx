@@ -56,7 +56,7 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, handleDrawerToggle 
         {
             key: 'workspace-settings',
             name: 'Workspace Settings',
-            url: `${commonWorkspaceUrl}/settings`,
+            url: `/${workspace?.workspaceName}/manage`,
             icon: SettingsOutlined
         }
     ];
