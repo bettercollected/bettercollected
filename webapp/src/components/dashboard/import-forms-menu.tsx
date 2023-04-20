@@ -29,7 +29,6 @@ export default function ImportFormsMenu() {
         const { modal, ...other } = router.query;
         if (modal) {
             router.push({ query: other }, undefined, { shallow: true }).then(() => {
-                console.log('Pushed to Router');
                 switch (modal) {
                     case 'google':
                         openModal('IMPORT_GOOGLE_FORMS_VIEW');
@@ -49,7 +48,7 @@ export default function ImportFormsMenu() {
     }
     return (
         <React.Fragment>
-            <Button variant="solid" className="md:ml-3 w-full sm:w-auto !px-8 !rounded-xl !bg-blue-500" onClick={handleClick}>
+            <Button variant="solid" className="w-full sm:w-auto" onClick={handleClick}>
                 Import Forms
             </Button>
             <Menu

@@ -9,6 +9,7 @@ import { DashboardIcon } from '@app/components/icons/dashboard-icon';
 import { FormIcon } from '@app/components/icons/form-icon';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
+import { toEndDottedStr } from '@app/utils/stringUtils';
 
 import AuthAccountProfileImage from '../auth/account-profile-image';
 
@@ -89,7 +90,7 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, handleDrawerToggle 
                         <Accordion disabled={isLoading} sx={{ paddingY: '16px', paddingX: '4px', width: '100%' }} elevation={0} className="hover:bg-zinc-100">
                             <AccordionSummary expandIcon={<ExpandMore className="h-7 w-7 text-black-900 transition-all duration-300" />}>
                                 <AuthAccountProfileImage image={workspace?.profileImage} name={workspace?.title} />
-                                <p className="ml-3 p-0 !body1 flex items-center">{workspace?.title}</p>
+                                <p className="ml-3 p-0 !body1 flex items-center">{toEndDottedStr(workspace?.title, 30)}</p>
                             </AccordionSummary>
                             <AccordionDetails className="w-full flex flex-col gap-3">
                                 {data && Array.isArray(data) && data.length > 1 ? (

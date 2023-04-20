@@ -17,12 +17,12 @@ const shapes: Record<ShapeNames, string[]> = {
     circle: ['rounded-full']
 };
 const variants: Record<VariantNames, string[]> = {
-    ghost: ['bg-transparent'],
+    ghost: ['bg-transparent', 'p-2'],
     solid: ['text-white'],
     transparent: ['bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800']
 };
 const colors: Record<ColorNames, string[]> = {
-    primary: ['text-white', 'bg-brand hover:bg-brand-600 focus:ring-brand-500', 'border-brand'],
+    primary: ['text-white', 'bg-brand hover:!bg-brand-600 focus:ring-brand-500', 'border-brand'],
     white: ['text-gray-900', 'bg-white focus:ring-white', 'border-white'],
     gray: ['text-gray-900', 'bg-gray-100 hover:bg-gray-200 focus:ring-gray-100', 'border-gray-100'],
     success: ['text-green-500', 'bg-green-500 hover:bg-green-200 focus:ring-green-500', 'border-green-500'],
@@ -77,7 +77,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         let buttonDripColor = '';
         switch (variant) {
             case 'ghost':
-                buttonColorClassNames = `border-2 border-solid ${colorClassNames[0]} ${colorClassNames[2]}`;
+                buttonColorClassNames = `border-[1px] border-solid ${colorClassNames[0]} ${colorClassNames[2]}`;
                 buttonDripColor = 'rgba(0, 0, 0, 0.1)';
                 break;
 
@@ -98,8 +98,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 onClick={clickHandler}
                 className={cn(
                     'relative inline-flex shrink-0 items-center justify-center overflow-hidden text-center text-xs font-medium tracking-wider outline-none transition-all sm:text-sm',
-                    !disabled ? buttonColorClassNames : 'cursor-not-allowed bg-blue-300',
-                    disabled || isLoading || variant === 'transparent' ? '' : 'hover:shadow-large focus:shadow-large focus:outline-none',
+                    !disabled ? buttonColorClassNames : 'cursor-not-allowed bg-brand-300',
+                    disabled || isLoading || variant === 'transparent' || variant === 'ghost' ? '' : 'hover:shadow-large focus:shadow-large focus:outline-none',
                     isLoading && 'pointer-events-auto cursor-default focus:outline-none',
                     fullWidth && 'w-full',
                     color === 'white' || color === 'gray' ? 'text-gray-900 dark:text-white' : variants[variant],
