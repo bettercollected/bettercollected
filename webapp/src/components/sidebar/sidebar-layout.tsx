@@ -1,60 +1,63 @@
 import React from 'react';
 
+import { Box } from '@mui/material';
 import cn from 'classnames';
 
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
-import { useDrawer } from '@app/components/drawer-views/context';
-import SidebarExpandable from '@app/components/sidebar/_expandable';
+import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import Hamburger from '@app/components/ui/hamburger';
 import Logo from '@app/components/ui/logo';
 import { Header } from '@app/layouts/_layout';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 
-import Button from '../ui/button/button';
-
 export default function SidebarLayout(props: any) {
+    const drawerWidth = 289;
     const children = props.children;
     const isNavbarRequired = props.children;
-    const { openDrawer, isOpen } = useDrawer();
 
     const screenSize = useBreakpoint();
 
-    const handleOpenSidebar = () => {
-        openDrawer('DASHBOARD_SIDEBAR');
-    };
-
-    const checkIfSideBarRender = () => {
+    const isMobileView = () => {
         switch (screenSize) {
             case 'xs':
+            case '2xs':
             case 'sm':
             case 'md':
-            case 'lg':
                 return false;
             default:
                 return true;
         }
     };
 
+    const [mobileOpen, setMobileOpen] = React.useState(false);
+
+    const handleDrawerToggle = () => {
+        setMobileOpen(!mobileOpen);
+    };
+
     return (
-        <div className="ltr:xl:pl-24 rtl:xl:pr-24 ltr:2xl:pl-28 rtl:2xl:pr-28">
+        <div className="relative min-h-screen w-full">
             {isNavbarRequired && (
-                <Header>
+                <Header className="!z-[1300]">
                     <div className="flex flex-row w-full h-full py-2 md:py-0 justify-between items-center">
                         <div className="flex">
-                            {!checkIfSideBarRender() && <Hamburger isOpen={isOpen} className="!shadow-none !bg-white !text-black-900 !flex !justify-start" onClick={handleOpenSidebar} />}
+                            {!isMobileView() && <Hamburger isOpen={mobileOpen} className="!shadow-none mr-2 !bg-white !text-black-900 !flex !justify-start" onClick={handleDrawerToggle} />}
                             <Logo />
                         </div>
                         <div className="flex items-center justify-center gap-7">
-                            <Button size="small" disabled>
+                            {/* <Button size="small" disabled>
                                 View Plans
-                            </Button>
+                            </Button> */}
                             <AuthAccountMenuDropdown />
                         </div>
                     </div>
                 </Header>
             )}
-            {checkIfSideBarRender() && <SidebarExpandable />}
-            <main className={cn('xl:left-24 right-0 w-full xl:w-auto absolute top-[68px] py-6 px-6')}>{children}</main>
+
+            <MuiDrawer drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
+            <Box className="float-none lg:float-right" component="main" sx={{ p: '20px', marginTop: '68px', display: 'flex', width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
+                <main className={cn('w-full')}>{children}</main>
+            </Box>
         </div>
     );
 }
