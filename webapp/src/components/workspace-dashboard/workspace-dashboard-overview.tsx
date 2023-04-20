@@ -54,7 +54,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                     </Tooltip>
                 </div>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
                 <WorkspaceDashboardStats title="Imported forms" content="0/10" buttonProps={{ enabled: true, text: 'Import unlimited forms', onClick: () => {} }} />
                 <WorkspaceDashboardStats title="Collected responses" content="0" buttonProps={{ enabled: false, text: 'Import unlimited forms', onClick: () => {} }} />
                 <WorkspaceDashboardStats title="Deletion requests" content="0/10" buttonProps={{ enabled: false, text: 'Import unlimited forms', onClick: () => {} }} />

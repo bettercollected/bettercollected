@@ -27,7 +27,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
     return (
         <SidebarLayout>
             <WorkspaceDashboardOverview workspace={workspace} />
-            <div className="h-9 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between mb-5">
+            <div className="min-h-9 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <p className="sh1">Recent forms</p>
                 <ImportFormsMenu />
             </div>

@@ -55,8 +55,8 @@ export default function SidebarLayout(props: any) {
             )}
 
             <MuiDrawer drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
-            <Box className="float-none lg:float-right mt-[68px] px-5 py-6 lg:px-10" component="main" sx={{ display: 'flex', width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
-                <main className={cn('w-full')}>{children}</main>
+            <Box className="float-none lg:float-right mt-[68px] min-h-calc-68 px-5 py-6 lg:px-10" component="main" sx={{ display: 'flex', width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
+                <div className={cn('w-full h-full')}>{children}</div>
             </Box>
         </div>
     );

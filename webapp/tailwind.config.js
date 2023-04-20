@@ -63,6 +63,9 @@ module.exports = {
                 'calc-320': 'calc(100% - 320px)',
                 'calc-358': 'calc(100% - 358px)'
             },
+            minHeight: {
+                'calc-68': 'calc(100vh - 68px)'
+            },
             borderWidth: {
                 3: '3px'
             },
