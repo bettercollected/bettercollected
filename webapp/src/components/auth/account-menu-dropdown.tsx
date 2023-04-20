@@ -2,14 +2,21 @@ import React from 'react';
 
 import _ from 'lodash';
 
-import { ChevronLeft, Logout } from '@mui/icons-material';
+import { ExpandMore, Logout } from '@mui/icons-material';
 import { Avatar, Divider, IconButton, ListItem, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useGetStatusQuery } from '@app/store/auth/api';
 
-export default function AuthAccountMenuDropdown() {
+interface IAuthAccountMenuDropdownProps {
+    fullWidth?: boolean;
+}
+
+AuthAccountMenuDropdown.defaultProps = {
+    fullWidth: false
+};
+export default function AuthAccountMenuDropdown({ fullWidth }: IAuthAccountMenuDropdownProps) {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
     const open = Boolean(anchorEl);
@@ -48,10 +55,19 @@ export default function AuthAccountMenuDropdown() {
     return (
         <>
             <Tooltip title="Account Settings" arrow enterDelay={400}>
-                <IconButton className="hover:rounded-[4px] hover:bg-black-200 rounded-[4px]" onClick={handleClick} size="small" aria-controls={open ? 'account-menu' : undefined} aria-haspopup="true" aria-expanded={open ? 'true' : undefined}>
-                    {userProfile()}
-                    {['xs', '2xs', 'sm'].indexOf(screenSize) === -1 && <p className="body4 ml-2 mr-[14px]">{profileName?.trim() || user?.email || ''}</p>}
-                    <ChevronLeft className={`${open ? 'rotate-90' : '-rotate-90'} h-7 w-7 text-black-900 transition-all duration-300`} />
+                <IconButton
+                    className={`hover:rounded-[4px] hover:bg-black-200 rounded-[4px] ${fullWidth ? 'w-full flex justify-between' : 'w-fit'}`}
+                    onClick={handleClick}
+                    size="small"
+                    aria-controls={open ? 'account-menu' : undefined}
+                    aria-haspopup="true"
+                    aria-expanded={open ? 'true' : undefined}
+                >
+                    <span className="flex items-center">
+                        {userProfile()}
+                        {['xs', '2xs', 'sm'].indexOf(screenSize) === -1 && <p className="body4 ml-2 mr-[14px]">{profileName?.trim() || user?.email || ''}</p>}
+                    </span>
+                    <ExpandMore className={`${open ? 'rotate-180' : '-rotate-0'} h-7 w-7 text-black-900 transition-all duration-300`} />
                 </IconButton>
             </Tooltip>
             <Menu
