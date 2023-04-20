@@ -223,7 +223,7 @@ export const workspacesApi = createApi({
         }),
         patchWorkspacePolicies: builder.mutation<any, any>({
             query: (request) => ({
-                url: `/workspaces/${request.workspace_id}/policies`,
+                url: `/workspaces/${request.workspace_id}`,
                 method: 'PATCH',
                 body: request.body,
                 credentials: 'include',

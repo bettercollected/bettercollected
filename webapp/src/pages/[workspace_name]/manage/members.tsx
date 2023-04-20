@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { toast } from 'react-toastify';
 
+import BetterInput from '@app/components/common/input';
 import ManageWorkspaceLayout from '@app/components/layout/manage-workspace';
 import SettingsCard from '@app/components/settings/card';
 import InvitationsTable from '@app/components/settings/invitations-table';
@@ -34,15 +35,14 @@ export default function ManageMembers() {
 
     return (
         <ManageWorkspaceLayout>
-            <SettingsCard className="mt-10">
+            <SettingsCard>
                 <div className="body1">Invite Collaborator</div>
                 <form onSubmit={handleSendInvitation} className="flex space-x-6 justify-start">
-                    <input
+                    <BetterInput
                         disabled={isLoading}
                         data-testid="otp-input"
                         spellCheck={false}
                         value={invitationMail}
-                        className={`border-solid flex-1 placeholder:font-normal placeholder:text-sm placeholder:tracking-normal mb-4 w-60 !rounded-[1px] !h-[50px] text-gray-900 p-2.5`}
                         type="email"
                         placeholder={'Enter Email'}
                         onChange={(event) => {
@@ -54,11 +54,11 @@ export default function ManageMembers() {
                     </Button>
                 </form>
             </SettingsCard>
-            <SettingsCard className="mt-10">
+            <SettingsCard>
                 <div className="body1">Members</div>
                 <MembersTable />
             </SettingsCard>
-            <SettingsCard className="mt-10">
+            <SettingsCard>
                 <div className="body1">Invitations</div>
                 <InvitationsTable />
             </SettingsCard>
