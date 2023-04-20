@@ -82,7 +82,7 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                         styles={css`
                             :root {
                                 body {
-                                    background-color: #fff;
+                                    background-color: #f2f7ff;
                                     color: #121212;
                                 }
                             }
