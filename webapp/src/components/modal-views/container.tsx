@@ -42,7 +42,7 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
         case 'IMPORT_TYPE_FORMS_VIEW':
             return <ImportTypeForms />;
         case 'DELETE_FORM_MODAL':
-            return <DeleteFormModal />;
+            return <DeleteFormModal {...modalProps} />;
         default:
             return <></>;
     }

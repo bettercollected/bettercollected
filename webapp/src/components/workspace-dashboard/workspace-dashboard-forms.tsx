@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { MoreHoriz, PushPin, PushPinOutlined, Share, Visibility, VisibilityOff } from '@mui/icons-material';
+import { DeleteOutline, MoreHoriz, PushPin, PushPinOutlined, Share, Visibility, VisibilityOff } from '@mui/icons-material';
 import { Divider, IconButton, ListItemIcon, Menu, MenuItem, Tooltip } from '@mui/material';
 import { toast } from 'react-toastify';
 
@@ -181,20 +181,27 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                 transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
-                <MenuItem onClick={(e) => onPinnedChange(e, currentActiveForm?.form)} disabled={!!currentActiveForm?.form?.settings?.private}>
+                <MenuItem className="body4 text-black-900" onClick={(e) => onPinnedChange(e, currentActiveForm?.form)} disabled={!!currentActiveForm?.form?.settings?.private}>
                     <ListItemIcon>{currentActiveForm?.form?.settings?.pinned ? <PushPin fontSize="small" /> : <PushPinOutlined fontSize="small" />}</ListItemIcon>
                     <span>{currentActiveForm?.form?.settings?.pinned ? 'Unpin form' : 'Pin form'}</span>
                 </MenuItem>
-                <MenuItem onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)}>
+                <MenuItem className="body4 text-black-900" onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)}>
                     <ListItemIcon>{currentActiveForm?.form?.settings?.private ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}</ListItemIcon>
                     <span>Update form visibility</span>
                 </MenuItem>
                 <Divider />
-                <MenuItem onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: 'this form' })} disabled={!!currentActiveForm?.form?.settings?.private}>
+                <MenuItem className="body4 text-black-900" onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: 'this form' })} disabled={!!currentActiveForm?.form?.settings?.private}>
                     <ListItemIcon>
                         <Share fontSize="small" />
                     </ListItemIcon>
                     <span>Share</span>
+                </MenuItem>
+                <Divider />
+                <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form })} className="body4">
+                    <ListItemIcon>
+                        <DeleteOutline fontSize="small" color="error" />
+                    </ListItemIcon>
+                    <span className="text-[#d32f2f]">Delete</span>
                 </MenuItem>
             </Menu>
         </div>

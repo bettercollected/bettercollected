@@ -188,7 +188,7 @@ export default function FormSettingsTab() {
                     isLoading={false}
                     className=" !bg-gray-100 !px-8 !py-1 hover:text-white !font-normal hover:!bg-red-800 text-red-800 rounded border !border-gray-300"
                     onClick={() => {
-                        openModal('DELETE_FORM_MODAL');
+                        openModal('DELETE_FORM_MODAL', { form });
                     }}
                 >
                     Delete
