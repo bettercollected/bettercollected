@@ -13,9 +13,10 @@ import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface IWorkspaceDashboardOverviewProps {
     workspace: WorkspaceDto;
+    workspaceStats: { forms: number; responses: number; deletion_requests: { success: number; pending: number; total: number } };
 }
 
-const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewProps) => {
+const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDashboardOverviewProps) => {
     const { openModal } = useModal();
 
     const getWorkspaceUrl = () => {
@@ -26,6 +27,11 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
     };
 
     const handleWorkspaceEllipsisClick = () => {};
+
+    const importedFormsContent = workspaceStats && workspaceStats?.forms ? `${workspaceStats.forms}/10` : `0/10`;
+    const importedResponses = workspaceStats && workspaceStats?.responses ? `${workspaceStats.responses}` : '0';
+    const deletionRequests =
+        workspaceStats && workspaceStats?.deletion_requests && workspaceStats.deletion_requests?.total && workspaceStats.deletion_requests?.success ? `${workspaceStats.deletion_requests.success}/${workspaceStats.deletion_requests.total}` : '0/0';
 
     return (
         <>
@@ -57,7 +63,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
             <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
                 <WorkspaceDashboardStats
                     title="Imported forms"
-                    content="0/10"
+                    content={importedFormsContent}
                     buttonProps={{
                         enabled: true,
                         text: 'Import unlimited forms',
@@ -66,7 +72,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                 />
                 <WorkspaceDashboardStats
                     title="Collected responses"
-                    content="0"
+                    content={importedResponses}
                     buttonProps={{
                         enabled: false,
                         text: 'Import unlimited forms',
@@ -75,7 +81,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                 />
                 <WorkspaceDashboardStats
                     title="Deletion requests"
-                    content="0/10"
+                    content={deletionRequests}
                     buttonProps={{
                         enabled: false,
                         text: 'Import unlimited forms',

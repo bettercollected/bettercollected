@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 import ImportFormsMenu from '@app/components/dashboard/import-forms-menu';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
 import WorkspaceDashboardOverview from '@app/components/workspace-dashboard/workspace-dashboard-overview';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
+import { useGetWorkspaceFormsQuery, useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 
 export default function CreatorDashboard({ workspace, hasCustomDomain }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
     const workspaceQuery = {
@@ -13,20 +13,11 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
     };
 
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
-
-    useEffect(() => {
-        fetch(`http://localhost:8000/api/v1/workspaces/${workspace.id}/stats`, {
-            credentials: 'include'
-        })
-            .then((res) => {
-                res.json().then((data) => {});
-            })
-            .catch((e) => {});
-    }, []);
+    const workspaceStats = useGetWorkspaceStatsQuery(workspace?.id, { pollingInterval: 30000 });
 
     return (
         <SidebarLayout>
-            <WorkspaceDashboardOverview workspace={workspace} />
+            <WorkspaceDashboardOverview workspace={workspace} workspaceStats={workspaceStats?.data} />
             <div className="min-h-9 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <p className="sh1">Recent forms</p>
                 <ImportFormsMenu />

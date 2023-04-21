@@ -155,6 +155,13 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]
         }),
+        getWorkspaceStats: builder.query<any, string>({
+            query: (id) => ({
+                url: `/workspaces/${id}/stats`,
+                method: 'GET'
+            }),
+            providesTags: [WORKSPACE_TAGS]
+        }),
         requestWorkspaceSubmissionDeletion: builder.mutation<any, IGetWorkspaceSubmissionQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspace_id}/submissions/${query.submission_id}`,
@@ -253,6 +260,7 @@ export const {
     useLazyGetWorkspaceQuery,
     useGetWorkspaceFormsQuery,
     useGetWorkspaceFormQuery,
+    useGetWorkspaceStatsQuery,
     useLazyGetWorkspaceFormsQuery,
     useGetWorkspaceSubmissionsQuery,
     useGetWorkspaceAllSubmissionsQuery,
