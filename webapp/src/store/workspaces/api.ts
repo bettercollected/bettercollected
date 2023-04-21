@@ -101,7 +101,8 @@ export const workspacesApi = createApi({
             query: () => ({
                 url: '/workspaces/mine',
                 method: 'GET'
-            })
+            }),
+            providesTags: [WORKSPACE_TAGS]
         }),
         getWorkspaceForms: builder.query<Page<StandardFormDto>, any>({
             query: (body) => ({
@@ -171,7 +172,7 @@ export const workspacesApi = createApi({
                     'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
             }),
-            invalidatesTags: [SUBMISSION_TAG]
+            invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
         }),
         searchWorkspaceForms: builder.mutation<Array<StandardFormDto>, ISearchWorkspaceFormsQuery>({
             query: (query) => ({
@@ -185,14 +186,16 @@ export const workspacesApi = createApi({
                 method: 'PATCH',
                 body: request.body,
                 credentials: 'include'
-            })
+            }),
+            invalidatesTags: [WORKSPACE_TAGS]
         }),
         deleteForm: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/${request.formId}`,
                 method: 'DELETE',
                 credentials: 'include'
-            })
+            }),
+            invalidatesTags: [WORKSPACE_TAGS]
         }),
         createWorkspace: builder.mutation<any, any>({
             query: (request) => ({
@@ -214,8 +217,8 @@ export const workspacesApi = createApi({
                 headers: {
                     'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
-            })
-            // providesTags: [WORKSPACE_UPDATE_TAG]
+            }),
+            invalidatesTags: [WORKSPACE_TAGS]
         }),
         patchTheme: builder.mutation<any, any>({
             query: (request) => ({
@@ -243,7 +246,8 @@ export const workspacesApi = createApi({
             query: (workspace_id) => ({
                 url: `/workspaces/${workspace_id}/custom_domain`,
                 method: 'DELETE'
-            })
+            }),
+            invalidatesTags: [WORKSPACE_TAGS]
         })
     })
 });

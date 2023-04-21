@@ -50,7 +50,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                             </IconButton>
                         </Tooltip>
                     </ActiveLink>
-                    <Button onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl() })} variant="solid" className="!text-brand-500 !border-blue-200 hover:!bg-brand-200">
+                    <Button onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: 'your workspace' })} variant="solid" className="!text-brand-500 !border-blue-200 hover:!bg-brand-200">
                         Share
                     </Button>
                     <Tooltip title="Workspace settings" arrow placement="top-start" enterDelay={300}>

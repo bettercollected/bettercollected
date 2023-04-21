@@ -29,6 +29,8 @@ export interface StandardFormDto {
     description?: string | null | undefined;
     provider?: string;
     dataOwnerIdentifier?: string;
+    responses?: number;
+    deletionRequests?: number;
     settings?: {
         pinned: boolean;
         embedUrl?: string;

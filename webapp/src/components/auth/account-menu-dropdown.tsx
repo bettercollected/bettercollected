@@ -71,6 +71,7 @@ export default function AuthAccountMenuDropdown({ fullWidth }: IAuthAccountMenuD
                 onClose={handleClose}
                 onClick={handleClose}
                 draggable
+                disableScrollLock={true}
                 PaperProps={{
                     elevation: 0,
                     sx: {
