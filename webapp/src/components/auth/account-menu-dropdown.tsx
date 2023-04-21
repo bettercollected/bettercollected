@@ -48,7 +48,7 @@ export default function AuthAccountMenuDropdown({ fullWidth }: IAuthAccountMenuD
 
     return (
         <>
-            <Tooltip title="Account Settings" arrow enterDelay={400}>
+            <Tooltip title="Account Settings" arrow enterDelay={400} enterTouchDelay={0}>
                 <IconButton
                     className={`hover:rounded-[4px] hover:bg-black-200 rounded-[4px] ${fullWidth ? 'w-full flex justify-between' : 'w-fit'}`}
                     onClick={handleClick}

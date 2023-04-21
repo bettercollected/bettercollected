@@ -38,13 +38,13 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
             <div className="flex flex-col md:flex-row justify-center md:justify-start md:items-center mb-4">
                 <div className="flex items-center">
                     <AuthAccountProfileImage size={48} image={workspace?.profileImage} name={workspace?.title} />
-                    <Tooltip title={workspace?.title} arrow placement="top-start" enterDelay={300}>
+                    <Tooltip title={workspace?.title} arrow placement="top-start" enterDelay={300} enterTouchDelay={0}>
                         <h1 className="sh1 ml-3">{toEndDottedStr(workspace?.title?.trim(), 30)}</h1>
                     </Tooltip>
                 </div>
                 <div className="flex items-center gap-3 ml-0 mt-3 md:mt-0 md:ml-10 min-h-[28px]">
                     <ActiveLink href={getWorkspaceUrl()}>
-                        <Tooltip title="Preview your workspace" arrow placement="top-start" enterDelay={300}>
+                        <Tooltip title="Preview your workspace" arrow placement="top-start" enterDelay={300} enterTouchDelay={0}>
                             <IconButton size="medium" className="rounded-[4px] text-brand-500 hover:rounded-[4px] hover:bg-brand-200">
                                 <EyeIcon height={22} width={22} />
                             </IconButton>
@@ -53,7 +53,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                     <Button onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: 'your workspace' })} variant="solid" className="!text-brand-500 !border-blue-200 hover:!bg-brand-200">
                         Share
                     </Button>
-                    <Tooltip title="Workspace settings" arrow placement="top-start" enterDelay={300}>
+                    <Tooltip title="Workspace settings" arrow placement="top-start" enterDelay={300} enterTouchDelay={0}>
                         <IconButton onClick={handleWorkspaceEllipsisClick} size="medium" className="rounded-[4px] text-black-900 hover:rounded-[4px] hover:bg-black-200">
                             <MoreHoriz />
                         </IconButton>

@@ -44,7 +44,7 @@ export default function WorkspaceLoginMenuItems({ authStatus, handleLogout, work
     return (
         <>
             <Box sx={{ display: 'flex', alignItems: 'center', textAlign: 'center' }}>
-                <Tooltip title="Account settings">
+                <Tooltip title="Account settings" arrow placement="bottom-end" enterDelay={300} enterTouchDelay={0}>
                     <div onClick={handleClick} aria-controls={open ? 'account-menu' : undefined} aria-haspopup="true" aria-expanded={open ? 'true' : undefined}>
                         <Hamburger />
                     </div>
