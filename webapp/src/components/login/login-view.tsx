@@ -1,13 +1,10 @@
 import { useRef, useState } from 'react';
 
 import { Close } from '@app/components/icons/close';
+import OtpRenderer from '@app/components/login/otp-renderer';
+import SendCode from '@app/components/login/sendcode-renderer';
 import { useModal } from '@app/components/modal-views/context';
-import Image from '@app/components/ui/image';
 import { usePostSendOtpMutation } from '@app/store/auth/api';
-import { useAppSelector } from '@app/store/hooks';
-
-import OtpRenderer from './otp-renderer';
-import SendCode from './sendcode-renderer';
 
 export default function LoginView(props: any) {
     const { closeModal } = useModal();
@@ -23,9 +20,8 @@ export default function LoginView(props: any) {
     const ref = useRef<HTMLDivElement>(null);
 
     return (
-        <div ref={ref} className="relative m-auto w-full items-start justify-between rounded-lg bg-white scale-110">
-            <div className="relative flex flex-col items-center gap-8 justify-between p-10">
-                {/* <Image src="/otp.svg" width="150px" height="150px" alt="OTP Image" /> */}
+        <div ref={ref} className="relative z-50 mx-auto max-w-full min-w-full md:max-w-[600px] lg:max-w-[600px]" {...props}>
+            <div className="rounded-[4px] relative m-auto max-w-[500px] items-start justify-between bg-white">
                 {isSuccess ? <OtpRenderer email={email} isCustomDomain={isCustomDomain} /> : <SendCode updateEmail={updateEmail} isCustomDomain={isCustomDomain} isLoading={isLoading} postSendOtp={postSendOtp} />}
             </div>
             <Close onClick={() => closeModal()} className="cursor-pointer absolute top-3 right-3 h-auto w-3 text-gray-600 hover:text-black dark:text-white" />
