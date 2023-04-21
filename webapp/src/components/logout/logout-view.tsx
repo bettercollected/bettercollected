@@ -1,11 +1,11 @@
 import { useRouter } from 'next/router';
 
-import { Close } from '@app/components/icons/close';
-import Image from '@app/components/ui/image';
-import { useLazyGetLogoutQuery } from '@app/store/auth/api';
+import { Logout } from '@mui/icons-material';
 
-import { useModal } from '../modal-views/context';
-import Button from '../ui/button';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
+import Button from '@app/components/ui/button';
+import { useLazyGetLogoutQuery } from '@app/store/auth/api';
 
 export default function LogoutView(props: any) {
     const { closeModal } = useModal();
@@ -19,49 +19,26 @@ export default function LogoutView(props: any) {
         closeModal();
     };
 
-    function DialogBox() {
-        return (
-            <>
-                <h5 className="text-lg font-semibold leading-normal text-left ">Are you sure to logout?</h5>
-                <div className="flex w-full gap-4 justify-between">
-                    <Button data-testid="logout-button" variant="solid" className="!rounded-xl !m-0 !bg-blue-500" onClick={handleLogout}>
-                        Logout
-                    </Button>
-                    <Button variant="transparent" className="!rounded-xl !m-0 !border-gray border-[1px] !border-solid" onClick={() => closeModal()}>
-                        Cancel
-                    </Button>
+    return (
+        <div className="relative z-50 mx-auto max-w-full min-w-full md:max-w-[600px] lg:max-w-[600px]" {...props}>
+            <div className="rounded-[4px] relative m-auto max-w-[500px] items-start justify-between bg-white">
+                <div className="relative flex flex-col items-center gap-8 justify-between p-10">
+                    <Logout className="text-6xl text-red-500" />
+                    <h4 className="sh1 text-center">Are you sure you want to logout?</h4>
+
+                    <div className="flex w-full gap-4 justify-end">
+                        <Button variant="solid" color="gray" size="medium" className="bg-black-500" onClick={closeModal}>
+                            Cancel
+                        </Button>
+                        <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleLogout}>
+                            Logout
+                        </Button>
+                    </div>
                 </div>
-            </>
-        );
-    }
-
-    function ImageRenderer() {
-        return (
-            <div>
-                <Image src="/otp.svg" width="150px" height="150px" alt="OTP Image" />
-            </div>
-        );
-    }
-
-    function LogoutContainer() {
-        const { closeModal } = useModal();
-
-        return (
-            <div className=" relative m-auto max-w-[500px] items-start justify-between rounded-lg bg-white lg:scale-110">
-                <div className=" relative flex flex-col  items-center gap-8 justify-between p-10">
-                    <ImageRenderer />
-                    <DialogBox />
-                </div>
-                <div className="cursor-pointer absolute top-3 right-3 text-gray-600 hover:text-black" onClick={() => closeModal()}>
+                <div className="cursor-pointer absolute top-3 right-3 text-gray-600 hover:text-black" onClick={closeModal}>
                     <Close className="h-auto w-3 text-gray-600 dark:text-white" />
                 </div>
             </div>
-        );
-    }
-
-    return (
-        <div className="relative z-50 mx-auto max-w-full min-w-full md:max-w-[600px] lg:max-w-[600px]" {...props}>
-            <LogoutContainer />
         </div>
     );
 }
