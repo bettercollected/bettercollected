@@ -80,6 +80,22 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
             });
     };
 
+    const menuItemPinSettings = (
+        <MenuItem className="body4 text-black-900" onClick={(e) => onPinnedChange(e, currentActiveForm?.form)} disabled={!!currentActiveForm?.form?.settings?.private}>
+            <ListItemIcon>{currentActiveForm?.form?.settings?.pinned ? <PushPin fontSize="small" /> : <PushPinOutlined fontSize="small" />}</ListItemIcon>
+            <span>{currentActiveForm?.form?.settings?.pinned ? 'Unpin form' : 'Pin form'}</span>
+        </MenuItem>
+    );
+
+    const menuItemShareSettings = (
+        <MenuItem className="body4 text-black-900" onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: 'this form' })} disabled={!!currentActiveForm?.form?.settings?.private}>
+            <ListItemIcon>
+                <Share fontSize="small" />
+            </ListItemIcon>
+            <span>Share</span>
+        </MenuItem>
+    );
+
     return (
         <div className="mb-10 w-full h-fit mt-5">
             {forms?.length === 0 ? (
@@ -181,21 +197,26 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                 transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
-                <MenuItem className="body4 text-black-900" onClick={(e) => onPinnedChange(e, currentActiveForm?.form)} disabled={!!currentActiveForm?.form?.settings?.private}>
-                    <ListItemIcon>{currentActiveForm?.form?.settings?.pinned ? <PushPin fontSize="small" /> : <PushPinOutlined fontSize="small" />}</ListItemIcon>
-                    <span>{currentActiveForm?.form?.settings?.pinned ? 'Unpin form' : 'Pin form'}</span>
-                </MenuItem>
+                {!!currentActiveForm?.form?.settings?.private ? (
+                    <Tooltip arrow placement="bottom-end" title="Visibility of the form should be public to pin it into the workspace.">
+                        <div>{menuItemPinSettings}</div>
+                    </Tooltip>
+                ) : (
+                    menuItemPinSettings
+                )}
                 <MenuItem className="body4 text-black-900" onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)}>
                     <ListItemIcon>{currentActiveForm?.form?.settings?.private ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}</ListItemIcon>
                     <span>Update form visibility</span>
                 </MenuItem>
                 <Divider />
-                <MenuItem className="body4 text-black-900" onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: 'this form' })} disabled={!!currentActiveForm?.form?.settings?.private}>
-                    <ListItemIcon>
-                        <Share fontSize="small" />
-                    </ListItemIcon>
-                    <span>Share</span>
-                </MenuItem>
+                {!!currentActiveForm?.form?.settings?.private ? (
+                    <Tooltip arrow placement="bottom-end" title="Visibility of the form should be public to pin it into the workspace.">
+                        <div>{menuItemShareSettings}</div>
+                    </Tooltip>
+                ) : (
+                    menuItemShareSettings
+                )}
+
                 <Divider />
                 <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form })} className="body4">
                     <ListItemIcon>
