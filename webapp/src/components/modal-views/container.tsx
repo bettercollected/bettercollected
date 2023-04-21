@@ -6,13 +6,14 @@ import { useRouter } from 'next/router';
 import DeleteFormModal from '@app/components/form/delete-form-modal';
 import { Close } from '@app/components/icons/close';
 import ImportTypeForms from '@app/components/importforms/typeform-import';
+import LogoutView from '@app/components/logout/logout-view';
+import UpdateTermsOfServiceAndPrivacyPolicy from '@app/components/toc-privacy-policy';
 import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
+import ShareView from '@app/components/ui/share-view';
 import { Transition } from '@app/components/ui/transition';
+import UpdateWorkspaceSettings from '@app/components/workspace/update-workspace-settings';
 
-import LogoutView from '../logout/logout-view';
-import UpdateTermsOfServiceAndPrivacyPolicy from '../toc-privacy-policy';
-import UpdateWorkspaceSettings from '../workspace/update-workspace-settings';
 import { MODAL_VIEW, useModal } from './context';
 
 // dynamic imports
@@ -32,6 +33,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <ImportFormsView />;
         case 'LOGOUT_VIEW':
             return <LogoutView />;
+        case 'SHARE_VIEW':
+            return <ShareView {...modalProps} />;
         case 'UPDATE_WORKSPACE_DOMAIN':
             return <UpdateWorkspaceSettings updateDomain={true} />;
         case 'UPDATE_WORKSPACE_HANDLE':

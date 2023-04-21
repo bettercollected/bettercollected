@@ -9,7 +9,6 @@ import Button from '@app/components/ui/button/button';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { toEndDottedStr } from '@app/utils/stringUtils';
@@ -25,8 +24,6 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
     const { openModal } = useModal();
 
     const forms = workspaceForms?.data?.items;
-
-    const [_, copyToClipboard] = useCopyToClipboard();
 
     return (
         <div className="mb-10 w-full h-fit mt-5">
@@ -47,7 +44,8 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                             let shareUrl = '';
                             if (window && typeof window !== 'undefined') {
                                 const scheme = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://`;
-                                shareUrl = scheme + `${hasCustomDomain ? `${workspace.customDomain}/forms/${slug}` : `${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${slug}`}`;
+                                const domainHost = hasCustomDomain ? `${workspace.customDomain}/forms/${slug}` : `${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${slug}`;
+                                shareUrl = scheme + domainHost;
                             }
                             return (
                                 <ActiveLink key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
@@ -57,43 +55,32 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                                             <Tooltip title={form?.title || 'Untitled'} arrow placement="top-start" enterDelay={300}>
                                                 <p className="body3 !not-italic leading-none">{['xs', '2xs', 'sm', 'md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.title || 'Untitled', 15) : toEndDottedStr(form?.title || 'Untitled', 20)}</p>
                                             </Tooltip>
-                                            <p className={`absolute top-4 right-4 rounded-full leading-none text-[10px] px-2 flex py-1 items-center justify-center ${form?.settings?.private ? 'bg-brand-accent' : 'bg-green-600'} text-white`}>
-                                                {form?.settings?.private ? 'Hidden' : 'Public'}
-                                            </p>
+                                            <Tooltip className="absolute top-4 right-4" title={form?.settings?.private ? 'Hidden from your public workspace' : 'Public'} arrow placement="bottom-end" enterDelay={300}>
+                                                <p className={`rounded-full leading-none text-[10px] px-2 flex py-1 items-center justify-center ${form?.settings?.private ? 'bg-brand-accent' : 'bg-green-600'} text-white`}>
+                                                    {form?.settings?.private ? 'Hidden' : 'Public'}
+                                                </p>
+                                            </Tooltip>
                                             {form?.settings?.pinned && (
                                                 <Tooltip className="absolute -top-2 left-0" title="Pinned to your public workspace view" arrow placement="top-start" enterDelay={300}>
-                                                    <PushPin className="rotate-45" />
+                                                    <PushPin className="-rotate-45 text-brand-500" />
                                                 </Tooltip>
                                             )}
                                         </div>
                                         <div className="relative flex justify-between items-center p-4 w-full">
                                             <p className="body4 !text-brand-600">0 response</p>
                                             <Tooltip className="absolute right-4" title="Form options" arrow placement="top-start" enterDelay={300}>
-                                                <IconButton onClick={() => {}} size="small" className="rounded-[4px] text-black-900 hover:rounded-[4px] hover:bg-black-200">
+                                                <IconButton
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                    }}
+                                                    size="small"
+                                                    className="rounded-[4px] text-black-900 hover:rounded-[4px] hover:bg-black-200"
+                                                >
                                                     <MoreHoriz />
                                                 </IconButton>
                                             </Tooltip>
                                         </div>
-                                        {/* <div className="flex flex-col w-full justify-between h-11">
-                                            <div className="flex pt-3 justify-between">
-                                                <div className="rounded space-x-2 text-xs px-2 flex py-1 items-center text-gray-500 bg-gray-100">Public</div>
-                                                <div className="flex">
-                                                    <div
-                                                        aria-hidden
-                                                        onClick={(event) => {
-                                                            event.preventDefault();
-                                                            event.stopPropagation();
-                                                            // copyToClipboard(shareUrl);
-                                                            toast('Copied URL', { type: 'info' });
-                                                        }}
-                                                        className="p-2 border-[1px] border-white hover:border-neutral-100 hover:shadow rounded-md"
-                                                    >
-                                                        <ShareIcon width={19} height={19} />
-                                                    </div>
-                                                    <PushPin className="rotate-45" />
-                                                </div>
-                                            </div>
-                                        </div> */}
                                     </div>
                                 </ActiveLink>
                             );
