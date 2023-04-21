@@ -40,8 +40,8 @@ export function SettingsSidebar() {
             <div className="bg-white rounded flex flex-col">
                 <MenuItem href={`/${workspace?.workspaceName}/manage`}>Basic Information</MenuItem>
                 <MenuItem href={`/${workspace?.workspaceName}/manage/members`}>Members</MenuItem>
-                <MenuItem href={`/${workspace?.workspaceName}/manage/links`}>Links</MenuItem>
-                <MenuItem href={`/${workspace?.workspaceName}/manage/advance`}>Advance</MenuItem>
+                {/*<MenuItem href={`/${workspace?.workspaceName}/manage/links`}>Links</MenuItem>*/}
+                <MenuItem href={`/${workspace?.workspaceName}/manage/advanced`}>Advanced</MenuItem>
             </div>
         </div>
     );

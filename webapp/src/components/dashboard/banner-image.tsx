@@ -1,7 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { useState } from 'react';
-
-import { useRouter } from 'next/router';
 
 import ModeEditIcon from '@mui/icons-material/ModeEdit';
 import SaveIcon from '@mui/icons-material/Save';
@@ -13,25 +11,27 @@ import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 import Image from '@app/components/ui/image';
 import { ToastId } from '@app/constants/toastId';
 import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
+import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
+import { setWorkspace } from '@app/store/workspaces/slice';
 
 export default function BannerImageComponent(props: BannerImageComponentPropType) {
     const { workspace, isFormCreator } = props;
-    const router = useRouter();
     const transformComponentRef = useRef(null);
 
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
-    const [bannerImage, setBannerImage] = useState('');
-    const bannerImageInputRef = useRef<HTMLInputElement>(null);
+    const [image, setImage] = useState('');
+    const imageInputRef = useRef<HTMLInputElement>(null);
 
-    const onuploadFileChange = (e: any) => {
+    const dispatch = useAppDispatch();
+    const onUploadFileChange = (e: any) => {
         if (!e.target.files.length) return;
-        setBannerImage(URL.createObjectURL(e.target.files[0]));
+        setImage(URL.createObjectURL(e.target.files[0]));
     };
 
     const onClickFileUploadButton = () => {
-        if (!!bannerImageInputRef.current) {
-            bannerImageInputRef.current.click();
+        if (!!imageInputRef.current) {
+            imageInputRef.current.click();
         }
     };
 
@@ -49,21 +49,36 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                 }
                 if (response.data) {
                     toast('Workspace Updated', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
-                    setBannerImage('');
-                    router.push(router.asPath, undefined);
+                    setImage('');
+                    dispatch(setWorkspace(response.data));
                 }
             });
         });
     };
 
+    const getUpdateOptionsClassName = () => {
+        if (!image && !workspace.bannerImage) {
+            return '';
+        }
+        return '!block';
+    };
+
     return (
-        <div className="relative h-44 w-full md:h-80 xl:h-[380px] bannerdiv">
-            {!!bannerImage ? (
+        <div className="relative aspect-banner border rounded border-brand-300 w-full  bannerdiv">
+            {!!image ? (
                 <TransformWrapper centerOnInit ref={transformComponentRef}>
                     {({ resetTransform }) => {
                         return (
-                            <TransformComponent wrapperStyle={{ maxHeight: '100%', maxWidth: '100%', height: '100%', width: '100%' }}>
-                                <img style={{ width: '100%', height: '100%' }} src={bannerImage} alt="test" />
+                            <TransformComponent
+                                wrapperStyle={{
+                                    maxHeight: '100%',
+                                    maxWidth: '100%',
+                                    height: '100%',
+                                    width: '100%',
+                                    cursor: 'grabbing'
+                                }}
+                            >
+                                <img style={{ width: '100%', height: '100%' }} src={image} alt="test" />
                             </TransformComponent>
                         );
                     }}
@@ -72,36 +87,51 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                 <>
                     {!!workspace.bannerImage ? (
                         <Image src={workspace?.bannerImage ?? ''} priority layout="fill" objectFit="cover" objectPosition="center" alt={workspace?.title} />
+                    ) : isFormCreator ? (
+                        <div className="flex body1 text-black-700 flex-col space-y-5 items-center justify-center h-full">
+                            <Image src="/upload.png" height="46px" width={'72px'} alt={'upload'} />
+                            <div>
+                                <span className=" cursor-pointer text-brand-500" onClick={onClickFileUploadButton}>
+                                    Upload
+                                </span>{' '}
+                                a Image
+                            </div>
+                            <div className="">You can drag to adjust the image.</div>
+                        </div>
                     ) : (
                         <div className="flex h-full justify-center items-center">No image available</div>
                     )}
+                    <input ref={imageInputRef} data-testid="file-upload" type="file" accept="image/*" className="hidden" onChange={onUploadFileChange} />
                 </>
             )}
-            {isFormCreator && (
-                <div className={`absolute bottom-2 right-0 hidden ${!!bannerImage ? '!block' : 'editbannerdiv'}`}>
-                    <div className="flex justify-between">
-                        {!isLoading && (
-                            <div className="p-2 ml-2 my-19 !bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-md" onClick={onClickFileUploadButton}>
-                                <ModeEditIcon className="!w-5 !h-5 text-white" />
-                                <span className="ml-1 text-white">Update Banner</span>
-                            </div>
-                        )}
-                        {!!bannerImage && (
-                            <div
-                                data-testid="save-button"
-                                style={{ pointerEvents: isLoading ? 'none' : 'auto' }}
-                                className={`p-2 ml-2 ${isLoading ? 'bg-gray-500' : '!bg-blue-600'} my-19 flex justify-center items-center  hover:bg-blue-700 cursor-pointer rounded-md`}
-                                onClick={onClickFileSaveButton}
-                            >
-                                {!isLoading ? <SaveIcon className="!w-5 !h-5 text-white" /> : <CircularProgress className="!w-5 !h-5 text-white" />}
-                                {isLoading && <span className="ml-1 text-white">Saving...</span>}
-                                {!isLoading && <span className="ml-1 text-white">Save image</span>}
-                            </div>
-                        )}
+            {isFormCreator && <UpdateImageOptions getUpdateOptionsClassName={getUpdateOptionsClassName} isLoading={isLoading} onClickFileUploadButton={onClickFileUploadButton} onClickFileSaveButton={onClickFileSaveButton} image={image} />}
+        </div>
+    );
+}
+
+function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileUploadButton, onClickFileSaveButton, image }: any) {
+    return (
+        <div className={`absolute bottom-2 right-2 hidden ${getUpdateOptionsClassName()}`}>
+            <div className="flex justify-between">
+                {!isLoading && (
+                    <div className="p-2 ml-2 my-19 !bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-md" onClick={onClickFileUploadButton}>
+                        <ModeEditIcon className="!w-5 !h-5 text-white" />
+                        <span className="ml-1 text-white">Update Banner</span>
                     </div>
-                    <input ref={bannerImageInputRef} data-testid="file-upload" type="file" accept="image/*" className="hidden" onChange={onuploadFileChange} />
-                </div>
-            )}
+                )}
+                {!!image && (
+                    <div
+                        data-testid="save-button"
+                        style={{ pointerEvents: isLoading ? 'none' : 'auto' }}
+                        className={`p-2 ml-2 ${isLoading ? 'bg-gray-500' : '!bg-blue-600'} my-19 flex justify-center items-center  hover:bg-blue-700 cursor-pointer rounded-md`}
+                        onClick={onClickFileSaveButton}
+                    >
+                        {!isLoading ? <SaveIcon className="!w-5 !h-5 text-white" /> : <CircularProgress className="!w-5 !h-5 text-white" />}
+                        {isLoading && <span className="ml-1 text-white">Saving...</span>}
+                        {!isLoading && <span className="ml-1 text-white">Save image</span>}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

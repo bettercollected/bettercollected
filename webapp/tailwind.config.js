@@ -180,6 +180,9 @@ module.exports = {
                 bold: '700',
                 extrabold: '800',
                 black: '900'
+            },
+            aspectRatio: {
+                banner: '4 / 1'
             }
         }
     },
