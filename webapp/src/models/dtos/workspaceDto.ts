@@ -14,7 +14,7 @@ export interface WorkspaceDto {
     };
     privacy_policy_url: string;
     terms_of_service_url: string;
-    mailSettings: string | null;
+    mailSettings?: string | null;
     id: string;
 }
 
