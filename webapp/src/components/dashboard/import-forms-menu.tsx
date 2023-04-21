@@ -66,6 +66,7 @@ export default function ImportFormsMenu() {
                         ':hover': {
                             bgcolor: 'background.paper'
                         },
+                        borderRadius: 1,
                         mt: 1.5,
                         '& .MuiAvatar-root': {
                             width: 32,

@@ -123,7 +123,7 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                                         </div>
                                         <div className="relative flex justify-between items-center p-4 w-full">
                                             <p className="body4 !text-brand-600">{form?.responses} response</p>
-                                            <Tooltip className="absolute right-4" title="Form options" arrow placement="top-start" enterDelay={300}>
+                                            <Tooltip className="absolute right-4" title="Form options" arrow={true} placement="top-start" enterDelay={300}>
                                                 <IconButton
                                                     className="rounded-[4px] text-black-900 hover:rounded-[4px] hover:bg-black-200"
                                                     onClick={(e) => handleClick(e, { form, shareUrl })}
@@ -190,7 +190,7 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                     <span>Update form visibility</span>
                 </MenuItem>
                 <Divider />
-                <MenuItem onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: 'this form' })}>
+                <MenuItem onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: 'this form' })} disabled={!!currentActiveForm?.form?.settings?.private}>
                     <ListItemIcon>
                         <Share fontSize="small" />
                     </ListItemIcon>
