@@ -5,6 +5,7 @@ from pathlib import Path
 from auth.config.database import MongoSettings
 from auth.config.google_settings import GoogleSettings
 from auth.config.mail_settings import MailSettings
+from auth.config.stripe import StripeSettings
 from auth.config.typeform_settings import TypeformSettings
 from auth.version import __version__
 
@@ -33,6 +34,7 @@ class Application(BaseSettings):
     google_settings: GoogleSettings = GoogleSettings()
     typeform_settings: TypeformSettings = TypeformSettings()
     mail_settings: MailSettings = MailSettings()
+    stripe_settings: StripeSettings = StripeSettings()
 
     ORGANIZATION_NAME: str = "Better Collected"
     AUTH_JWT_SECRET: str

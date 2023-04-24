@@ -17,14 +17,22 @@ class UserRepository:
         return await UserDocument.find_one(UserDocument.email == email)
 
     @staticmethod
+    async def get_user_by_stripe_payment_id(stripe_payment_id: str) -> UserDocument:
+        return await UserDocument.find_one(UserDocument.stripe_payment_id == stripe_payment_id)
+
+    @staticmethod
+    async def get_user_by_stripe_customer_id(stripe_customer_id: str) -> UserDocument:
+        return await UserDocument.find_one(UserDocument.stripe_customer_id == stripe_customer_id)
+
+    @staticmethod
     async def save_user(
-        email: str,
-        first_name: str = None,
-        last_name: str = None,
-        otp_code: Optional[str] = None,
-        otp_expiry: Optional[int] = None,
-        creator: bool = True,
-        profile_image: Optional[str] = None,
+            email: str,
+            first_name: str = None,
+            last_name: str = None,
+            otp_code: Optional[str] = None,
+            otp_expiry: Optional[int] = None,
+            creator: bool = True,
+            profile_image: Optional[str] = None,
     ) -> UserDocument:
         user_document = await UserRepository.get_user_by_email(email)
         if not user_document:
@@ -42,9 +50,9 @@ class UserRepository:
             user_document.roles.append(Roles.FORM_CREATOR)
             await user_document.save()
         if not (
-            user_document.first_name
-            and user_document.last_name
-            and user_document.profile_image
+                user_document.first_name
+                and user_document.last_name
+                and user_document.profile_image
         ) and (first_name or last_name or profile_image):
             user_document.first_name = (
                 first_name if first_name else user_document.first_name
