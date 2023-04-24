@@ -9,15 +9,23 @@ import ActiveLink from '@app/components/ui/links/active-link';
 import WorkspaceDashboardStats from '@app/components/workspace-dashboard/workspace-dashboard-stats';
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface IWorkspaceDashboardOverviewProps {
     workspace: WorkspaceDto;
-    workspaceStats: { forms: number; responses: number; deletion_requests: { success: number; pending: number; total: number } };
+    workspaceStats: {
+        forms: number;
+        responses: number;
+        deletion_requests: { success: number; pending: number; total: number };
+    };
 }
 
 const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDashboardOverviewProps) => {
     const { openModal } = useModal();
+    const isProPlan = useAppSelector(selectIsProPlan);
+    const isAdmin = useAppSelector(selectIsAdmin);
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
@@ -28,7 +36,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
 
     const handleWorkspaceEllipsisClick = () => {};
 
-    const importedFormsContent = workspaceStats && workspaceStats?.forms ? `${workspaceStats.forms}/10` : `0/10`;
+    const importedFormsContent = (workspaceStats && workspaceStats?.forms ? `${workspaceStats.forms}` : `0`) + (isAdmin && !isProPlan ? '/100' : '');
     const importedResponses = workspaceStats && workspaceStats?.responses ? `${workspaceStats.responses}` : '0';
     const deletionRequests = workspaceStats && workspaceStats?.deletion_requests && workspaceStats.deletion_requests?.total ? `${workspaceStats.deletion_requests?.success || 0}/${workspaceStats.deletion_requests.total || 0}` : '0/0';
 
@@ -64,7 +72,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                     title="Imported forms"
                     content={importedFormsContent}
                     buttonProps={{
-                        enabled: true,
+                        enabled: isAdmin && !isProPlan,
                         text: 'Import unlimited forms',
                         onClick: () => {}
                     }}

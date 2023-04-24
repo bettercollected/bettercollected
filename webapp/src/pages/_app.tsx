@@ -20,7 +20,7 @@ import 'vanilla-cookieconsent/dist/cookieconsent.css';
 import '@app/assets/css/globals.css';
 import CookieConsent from '@app/components/cookie/cookie-consent';
 import DrawersContainer from '@app/components/drawer-views/container';
-import WorkspaceHoc from '@app/components/hoc/workspace-hoc';
+import WorkspaceNStatusHoc from '@app/components/hoc/workspace-n-status-hoc';
 import ModalContainer from '@app/components/modal-views/container';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import NextNProgress from '@app/components/ui/nprogress';
@@ -125,13 +125,13 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                     <NextNProgress color="#f04444" startPosition={0} stopDelayMs={400} height={5} options={{ easing: 'ease' }} />
                     <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
                     <Provider store={store}>
-                        <WorkspaceHoc {...pageProps}>
+                        <WorkspaceNStatusHoc {...pageProps}>
                             <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
                                 {getLayout(<Component {...pageProps} />)}
                                 <ModalContainer />
                                 <DrawersContainer />
                             </PersistGate>
-                        </WorkspaceHoc>
+                        </WorkspaceNStatusHoc>
                     </Provider>
                 </MuiThemeProvider>
             </CacheProvider>

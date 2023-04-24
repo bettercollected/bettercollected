@@ -3,7 +3,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import environments from '@app/configs/environments';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { checkHasAdminDomain, checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import { checkHasAdminDomain, checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage, checkIfUserIsAuthorizedToViewWorkspaceSettingsPage, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export default async function getServerSideProps({ locale, ..._context }: any): Promise<{
     props: IServerSideProps;
@@ -122,6 +122,36 @@ export async function getAuthUserPropsWithWorkspace(_context: any) {
         };
     }
     if (!(await checkIfUserIsAuthorizedToViewPage(_context, globalProps.workspace)))
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    return {
+        props: {
+            ...globalProps
+        }
+    };
+}
+
+export async function getServerSidePropsForWorkspaceAdmin(_context: any) {
+    const hasAdminDomain = checkHasAdminDomain(_context);
+    if (!hasAdminDomain) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    }
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
+    if (!globalProps?.workspace?.id) {
+        return {
+            notFound: true
+        };
+    }
+    if (!(await checkIfUserIsAuthorizedToViewWorkspaceSettingsPage(_context, globalProps.workspace)))
         return {
             redirect: {
                 permanent: false,

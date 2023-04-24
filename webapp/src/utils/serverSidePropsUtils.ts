@@ -61,3 +61,19 @@ export async function getServerSidePropsInClientHostWithWorkspaceName(_context: 
         }
     };
 }
+
+export async function checkIfUserIsAuthorizedToViewWorkspaceSettingsPage(_context: any, workspace: WorkspaceDto) {
+    const config = getServerSideAuthHeaderConfig(_context);
+
+    try {
+        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
+        const user = (await userStatus?.json().catch((e: any) => e))?.user ?? null;
+        if (!user?.roles?.includes('FORM_CREATOR') || !workspace.dashboardAccess || workspace.ownerId !== user.id) {
+            return false;
+        }
+    } catch (e) {
+        return false;
+    }
+
+    return true;
+}

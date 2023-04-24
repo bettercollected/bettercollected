@@ -7,6 +7,7 @@ import { Accordion, AccordionDetails, AccordionSummary, Box, Divider, Drawer, Li
 
 import { DashboardIcon } from '@app/components/icons/dashboard-icon';
 import { FormIcon } from '@app/components/icons/form-icon';
+import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { toEndDottedStr } from '@app/utils/stringUtils';
@@ -35,7 +36,8 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, handleDrawerToggle 
     const router = useRouter();
     const workspace = useAppSelector((state) => state?.workspace);
     const { data, isLoading } = useGetAllMineWorkspacesQuery();
-
+    const isAdmin = useAppSelector(selectIsAdmin);
+    console.log(isAdmin);
     const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
 
     const topNavList: Array<INavbarList> = [
@@ -104,8 +106,12 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, handleDrawerToggle 
                 </List>
                 <Divider />
                 {generateNavbarLists(topNavList)}
-                <Divider />
-                {generateNavbarLists(bottomNavList)}
+                {isAdmin && (
+                    <>
+                        <Divider />
+                        {generateNavbarLists(bottomNavList)}
+                    </>
+                )}
             </Box>
         </>
     );

@@ -1,20 +1,29 @@
 import React, { ChangeEvent, FormEvent, useState } from 'react';
 
+import { useRouter } from 'next/router';
+
 import { handle } from 'mdast-util-to-markdown/lib/handle';
 
 import BetterInput from '@app/components/common/input';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
+import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 
 export default function UpdateCustomDomain() {
     const workspace = useAppSelector((state) => state.workspace);
     const { openModal } = useModal();
+    const router = useRouter();
+    const isProPlan = useAppSelector(selectIsProPlan);
 
     const handleClick = () => {
-        openModal('UPDATE_WORKSPACE_DOMAIN');
+        if (isProPlan) {
+            openModal('UPDATE_WORKSPACE_DOMAIN');
+        } else {
+            router.push(`/${workspace.workspaceName}/upgrade`);
+        }
     };
 
     return (

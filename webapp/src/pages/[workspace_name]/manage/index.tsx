@@ -15,4 +15,4 @@ export default function ManageWorkspace({ workspace }: any) {
     );
 }
 
-export { getAuthUserPropsWithWorkspace as getServerSideProps } from '@app/lib/serverSideProps';
+export { getServerSidePropsForWorkspaceAdmin as getServerSideProps } from '@app/lib/serverSideProps';
