@@ -162,3 +162,6 @@ class FormResponseService:
 
     async def delete_form_responses(self, form_id):
         return await self._form_response_repo.delete_by_form_id(form_id)
+
+    async def delete_deletion_requests(self, form_id):
+        return await self._form_response_repo.delete_deletion_requests(form_id=form_id)

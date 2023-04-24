@@ -150,6 +150,7 @@ class WorkspaceFormService:
         self.schedular.remove_job(f"{workspace_form.settings.provider}_{form_id}")
         await self.form_service.delete_form(form_id=form_id)
         await self.form_response_service.delete_form_responses(form_id=form_id)
+        await self.form_response_service.delete_deletion_requests(form_id=form_id)
         return "Form deleted form workspace."
 
     async def get_form_ids_in_workspace(self, workspace_id: PydanticObjectId):

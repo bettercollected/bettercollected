@@ -140,3 +140,6 @@ class FormResponseRepository(BaseRepository):
 
     async def delete_by_form_id(self, form_id):
         return await FormResponseDocument.find({"form_id": form_id}).delete()
+
+    async def delete_deletion_requests(self, form_id: str):
+        return await FormResponseDeletionRequest.find({"form_id": form_id}).delete()
