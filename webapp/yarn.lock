@@ -8043,13 +8043,6 @@ react-contenteditable@^3.3.7:
     fast-deep-equal "^3.1.3"
     prop-types "^15.7.1"
 
-react-cookie-consent@^8.0.1:
-  version "8.0.1"
-  resolved "https://registry.yarnpkg.com/react-cookie-consent/-/react-cookie-consent-8.0.1.tgz#83526a39c19be82872e9374c6fef98d05e12e5ba"
-  integrity sha512-4A2jzPQDFfBhtxIz4hYX+vJ0QnOknGdOXpEoetXzgwUrMtxVJVow8YgBsGerNt5rJI7WhKkHwr8LmxekxgVejg==
-  dependencies:
-    js-cookie "^2.2.1"
-
 react-cookie@^4.1.1:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/react-cookie/-/react-cookie-4.1.1.tgz#832e134ad720e0de3e03deaceaab179c4061a19d"
@@ -9750,6 +9743,11 @@ v8-to-istanbul@^9.0.1:
     "@jridgewell/trace-mapping" "^0.3.12"
     "@types/istanbul-lib-coverage" "^2.0.1"
     convert-source-map "^1.6.0"
+
+vanilla-cookieconsent@^2.9.0:
+  version "2.9.0"
+  resolved "https://registry.yarnpkg.com/vanilla-cookieconsent/-/vanilla-cookieconsent-2.9.0.tgz#ff3159b6dc7aca0a37728a9870e1b62de05e43e3"
+  integrity sha512-TBIJJXOTE59jJa161zXyzCn92YFgt8iaNdRxzt2+pJzBL/Jf9wZKJutdjFSIUSu2Ell91F3wM5ZtnnaHpi3J+w==
 
 vfile-message@^3.0.0:
   version "3.1.3"

@@ -8,7 +8,6 @@ import type { AppProps } from 'next/app';
 import { CacheProvider, EmotionCache, css } from '@emotion/react';
 import { GlobalStyles } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
-import CookieConsent from 'react-cookie-consent';
 import ReactGA from 'react-ga4';
 import { Provider } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
@@ -16,8 +15,10 @@ import 'react-toastify/dist/ReactToastify.css';
 import { PersistGate } from 'redux-persist/integration/react';
 import 'swiper/css';
 import 'swiper/css/navigation';
+import 'vanilla-cookieconsent/dist/cookieconsent.css';
 
 import '@app/assets/css/globals.css';
+import CookieConsent from '@app/components/cookie/cookie-consent';
 import DrawersContainer from '@app/components/drawer-views/container';
 import WorkspaceHoc from '@app/components/hoc/workspace-hoc';
 import ModalContainer from '@app/components/modal-views/container';
@@ -120,19 +121,7 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                             cardType: 'summary_large_image'
                         }}
                     />
-                    <CookieConsent
-                        location="bottom"
-                        buttonText="I understand"
-                        cookieName="BetterCookie"
-                        style={{ background: '#5492f7', display: 'flex', alignItems: 'center' }}
-                        buttonStyle={{ color: '#4e503b', fontSize: '13px', borderRadius: '3px' }}
-                        expires={150}
-                    >
-                        This website uses cookies to enhance the user experience.{' '}
-                        <a href="https://www.termsfeed.com/blog/cookies/" target="_blank" rel="noreferrer" className={'cursor-pointer mt-2 text-white hover:text-gray-300'}>
-                            What are cookies?
-                        </a>
-                    </CookieConsent>
+                    <CookieConsent />
                     <NextNProgress color="#f04444" startPosition={0} stopDelayMs={400} height={5} options={{ easing: 'ease' }} />
                     <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
                     <Provider store={store}>
