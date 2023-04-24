@@ -1,16 +1,16 @@
 import React from 'react';
 
-import { ChevronLeft } from '@mui/icons-material';
-
 import AuthNavbar from '@app/components/auth/navbar';
 import BackButton from '@app/components/settings/back';
 import { SettingsSidebar } from '@app/components/settings/sidebar';
 import Hamburger from '@app/components/ui/hamburger';
+import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 
 export default function ManageWorkspaceLayout({ children }: any) {
+    const breakpoint = useBreakpoint();
     return (
         <div className="mt-[68px] flex items-center flex-col">
-            <AuthNavbar showHamburgerIcon={false} />
+            <AuthNavbar showHamburgerIcon={false} showPlans={['sm'].indexOf(breakpoint) !== -1} />
             <div className="grid grid-cols-2 lg:grid-cols-3 lg:space-x-6 !w-full">
                 <div className="hidden lg:block pl-5 md:pl-10 lg:pl-28 col-span-1">
                     <SettingsSidebar />

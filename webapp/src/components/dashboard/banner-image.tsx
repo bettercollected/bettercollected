@@ -88,7 +88,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                     {!!workspace.bannerImage ? (
                         <Image src={workspace?.bannerImage ?? ''} priority layout="fill" objectFit="cover" objectPosition="center" alt={workspace?.title} />
                     ) : isFormCreator ? (
-                        <div className="flex body1 text-black-700 flex-col space-y-5 items-center justify-center h-full">
+                        <div className="flex body1 text-black-700 flex-col  lg:space-y-5 items-center justify-center h-full">
                             <Image src="/upload.png" height="46px" width={'72px'} alt={'upload'} />
                             <div>
                                 <span className=" cursor-pointer text-brand-500" onClick={onClickFileUploadButton}>
@@ -96,7 +96,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                                 </span>{' '}
                                 a Image
                             </div>
-                            <div className="">You can drag to adjust the image.</div>
+                            <div className="hidden lg:flex">You can drag to adjust the image.</div>
                         </div>
                     ) : (
                         <div className="flex h-full justify-center items-center">No image available</div>
@@ -114,9 +114,9 @@ function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileU
         <div className={`absolute bottom-2 right-2 hidden ${getUpdateOptionsClassName()}`}>
             <div className="flex justify-between">
                 {!isLoading && (
-                    <div className="p-2 ml-2 my-19 !bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-md" onClick={onClickFileUploadButton}>
+                    <div className="p-2 ml-2 my-19 flex !bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-md" onClick={onClickFileUploadButton}>
                         <ModeEditIcon className="!w-5 !h-5 text-white" />
-                        <span className="ml-1 text-white">Update Banner</span>
+                        <span className="ml-1 hidden lg:flex  text-white">Update Banner</span>
                     </div>
                 )}
                 {!!image && (
@@ -127,8 +127,8 @@ function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileU
                         onClick={onClickFileSaveButton}
                     >
                         {!isLoading ? <SaveIcon className="!w-5 !h-5 text-white" /> : <CircularProgress className="!w-5 !h-5 text-white" />}
-                        {isLoading && <span className="ml-1 text-white">Saving...</span>}
-                        {!isLoading && <span className="ml-1 text-white">Save image</span>}
+                        {isLoading && <span className="ml-1 hidden lg:block text-white">Saving...</span>}
+                        {!isLoading && <span className="ml-1 hidden lg:block text-white">Save image</span>}
                     </div>
                 )}
             </div>

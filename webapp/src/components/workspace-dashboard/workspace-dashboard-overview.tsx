@@ -30,8 +30,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
 
     const importedFormsContent = workspaceStats && workspaceStats?.forms ? `${workspaceStats.forms}/10` : `0/10`;
     const importedResponses = workspaceStats && workspaceStats?.responses ? `${workspaceStats.responses}` : '0';
-    const deletionRequests =
-        workspaceStats && workspaceStats?.deletion_requests && workspaceStats.deletion_requests?.total && workspaceStats.deletion_requests?.success ? `${workspaceStats.deletion_requests.success}/${workspaceStats.deletion_requests.total}` : '0/0';
+    const deletionRequests = workspaceStats && workspaceStats?.deletion_requests && workspaceStats.deletion_requests?.total ? `${workspaceStats.deletion_requests?.success || 0}/${workspaceStats.deletion_requests.total || 0}` : '0/0';
 
     return (
         <>
