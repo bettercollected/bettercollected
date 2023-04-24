@@ -34,6 +34,7 @@ class WorkspaceFormRepository:
         user_id: str,
         workspace_form_settings: WorkspaceFormSettings,
     ):
+        await self._check_is_form_imported_in_other_workspace(form_id=form_id)
         workspace_form = await WorkspaceFormDocument.find_one(
             {"workspace_id": workspace_id, "form_id": form_id, "user_id": user_id}
         )
@@ -115,3 +116,13 @@ class WorkspaceFormRepository:
             raise HTTPException(status_code=404, content="Form not found in Workspace")
         await workspace_form.delete()
         return workspace_form
+
+    async def _check_is_form_imported_in_other_workspace(self, form_id: str):
+        workspace_forms = await WorkspaceFormDocument.find(
+            {"form_id": form_id}
+        ).to_list()
+        if len(workspace_forms) != 0:
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT,
+                content="Form has already been imported to another workspace",
+            )
