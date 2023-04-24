@@ -2,7 +2,6 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
 import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form';
-import { GoogleFormDto, GoogleMinifiedFormDto } from '@app/models/dtos/googleForm';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
@@ -15,9 +14,10 @@ const WORKSPACE_UPDATE_TAG = 'WORKSPACE_UPDATE_TAG';
 
 interface ImportFormQueryInterface {
     workspaceId: string;
+    provider: string;
 
     body: {
-        form: GoogleFormDto;
+        form: any;
         response_data_owner: string;
     };
 }
@@ -38,57 +38,91 @@ export const workspacesApi = createApi({
         credentials: 'include'
     }),
     endpoints: (builder) => ({
-        getMinifiedForms: builder.query<Array<GoogleMinifiedFormDto>, void>({
-            query: () => ({
-                url: '/google/import',
+        getMinifiedForms: builder.query<Array<any>, { provider: string }>({
+            query: (request) => ({
+                url: `/${request.provider}/import`,
                 method: 'GET',
                 refetchOnMountOrArgChange: true,
                 refetchOnReconnect: true,
                 refetchOnFocus: true
-            })
+            }),
+            transformResponse(baseQueryReturnValue: Array<any>, meta, arg) {
+                const provider = arg?.provider;
+                const returnValue: Array<{ label: string; formId: string }> = [];
+                baseQueryReturnValue.forEach((data) => {
+                    if (provider === 'google') {
+                        const parsedForm = { label: data?.name, formId: data?.id };
+                        returnValue.push(parsedForm);
+                    }
+                    if (provider === 'typeform') {
+                        const parsedForm = { label: data?.title, formId: data?.id };
+                        returnValue.push(parsedForm);
+                    }
+                });
+
+                return returnValue;
+            }
         }),
-        getGoogleForm: builder.query<GoogleFormDto, string>({
-            query: (id) => ({
-                url: `/google/import/${id}`,
+        getSingleFormFromProvider: builder.query<any, { provider: string; formId: string }>({
+            query: ({ provider, formId }) => ({
+                url: `/${provider}/import/${formId}`,
                 method: 'GET',
                 refetchOnMountOrArgChange: true,
                 refetchOnReconnect: true,
                 refetchOnFocus: true
-            })
+            }),
+            transformResponse(baseQueryReturnValue: any, meta, arg) {
+                const provider = arg?.provider;
+                const fieldItems: Array<{ label: string; questionId: string }> = [];
+                const returnValue = baseQueryReturnValue;
+                if (provider === 'google') {
+                    const formItems = baseQueryReturnValue?.items ?? [];
+                    if (formItems && Array.isArray(formItems)) {
+                        formItems.forEach((item) => {
+                            if (!item?.questionItem?.question?.questionId) return;
+                            const field = {
+                                label: item.title,
+                                questionId: item?.questionItem?.question?.questionId
+                            };
+                            fieldItems.push(field);
+                        });
+
+                        // We're appending clientFormItems in the API response to set parsed field items
+                        // We need to remove this before making POST request when importing the form
+                        returnValue['clientFormItems'] = fieldItems;
+                    }
+                }
+                if (provider === 'typeform') {
+                    const formItems = baseQueryReturnValue?.fields ?? [];
+                    if (formItems && Array.isArray(formItems)) {
+                        const emailFieldsArray = ['short_text', 'long_text', 'phone_number', 'email'];
+                        formItems
+                            .filter((field: any) => emailFieldsArray.includes(field.type))
+                            .forEach((item: any) => {
+                                if (!item?.id) return;
+                                const field = {
+                                    label: item.title,
+                                    questionId: item?.id
+                                };
+                                fieldItems.push(field);
+                            });
+
+                        // We're appending clientFormItems in the API response to set parsed field items
+                        // We need to remove this before making POST request when importing the form
+                        returnValue['clientFormItems'] = fieldItems;
+                    }
+                }
+
+                return returnValue;
+            }
         }),
         importForm: builder.mutation<any, ImportFormQueryInterface>({
             query: (request) => ({
-                url: `/workspaces/${request.workspaceId}/forms/import/google`,
+                url: `/workspaces/${request.workspaceId}/forms/import/${request.provider}`,
                 method: 'POST',
                 body: request.body
             }),
             invalidatesTags: [WORKSPACE_TAGS]
-        }),
-        importTypeForm: builder.mutation<any, any>({
-            query: (request) => ({
-                url: `/workspaces/${request.workspaceId}/forms/import/typeform`,
-                method: 'POST',
-                body: request.body
-            }),
-            invalidatesTags: [WORKSPACE_TAGS]
-        }),
-        getTypeforms: builder.query<any, void>({
-            query: () => ({
-                url: `/typeform/import`,
-                method: 'GET',
-                refetchOnMountOrArgChange: true,
-                refetchOnReconnect: true,
-                refetchOnFocus: true
-            })
-        }),
-        getTypeform: builder.query<any, string>({
-            query: (form_id: string) => ({
-                url: `/typeform/import/${form_id}`,
-                method: 'GET',
-                refetchOnMountOrArgChange: true,
-                refetchOnReconnect: true,
-                refetchOnFocus: true
-            })
         }),
         getWorkspace: builder.query<WorkspaceDto, string>({
             query: (body) => ({
@@ -254,12 +288,11 @@ export const workspacesApi = createApi({
 
 export const {
     useDeleteWorkspaceDomainMutation,
-    useGetTypeformsQuery,
-    useLazyGetTypeformQuery,
+    useGetSingleFormFromProviderQuery,
+    useLazyGetSingleFormFromProviderQuery,
     useGetMinifiedFormsQuery,
-    useLazyGetGoogleFormQuery,
+    useLazyGetMinifiedFormsQuery,
     useImportFormMutation,
-    useImportTypeFormMutation,
     useGetWorkspaceQuery,
     useLazyGetWorkspaceQuery,
     useGetWorkspaceFormsQuery,

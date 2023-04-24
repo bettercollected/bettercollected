@@ -4,6 +4,7 @@ import { DeleteOutline, MoreHoriz, PushPin, PushPinOutlined, Share, Visibility, 
 import { Divider, IconButton, ListItemIcon, Menu, MenuItem, Tooltip } from '@mui/material';
 import { toast } from 'react-toastify';
 
+import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { EmptyImportFormIcon } from '@app/components/icons/empty-import-form-icon';
 import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
@@ -103,9 +104,7 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                     <EmptyImportFormIcon className="mb-8" />
                     <p className="sh1 mb-4 !leading-none">Import your first form</p>
                     <p className="body4 mb-8 !leading-none">Import your Google Forms or Typeforms</p>
-                    <Button onClick={() => openModal('IMPORT_FORMS')} size="medium">
-                        Import Forms
-                    </Button>
+                    <ImportFormsButton size="medium" />
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 p-6 bg-white rounded-[4px]">

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ImportFormsMenu from '@app/components/dashboard/import-forms-menu';
+import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
 import WorkspaceDashboardOverview from '@app/components/workspace-dashboard/workspace-dashboard-overview';
@@ -20,7 +20,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain }: { works
             <WorkspaceDashboardOverview workspace={workspace} workspaceStats={workspaceStats?.data} />
             <div className="min-h-9 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <p className="sh1">Recent forms</p>
-                <ImportFormsMenu />
+                <ImportFormsButton />
             </div>
             <WorkspaceDashboardForms hasCustomDomain={hasCustomDomain} workspace={workspace} workspaceForms={workspaceForms} />
         </SidebarLayout>
