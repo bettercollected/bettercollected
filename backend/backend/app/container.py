@@ -21,6 +21,7 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
+from backend.app.services.stripe_service import StripeService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_members_service import WorkspaceMembersService
 from backend.app.services.workspace_service import WorkspaceService
@@ -84,6 +85,14 @@ class AppContainer(containers.DeclarativeContainer):
 
     auth_service: AuthService = providers.Singleton(
         AuthService,
+        http_client=http_client,
+        plugin_proxy_service=plugin_proxy_service,
+        form_provider_service=form_provider_service,
+        jwt_service=jwt_service,
+    )
+
+    stripe_service: StripeService = providers.Singleton(
+        StripeService,
         http_client=http_client,
         plugin_proxy_service=plugin_proxy_service,
         form_provider_service=form_provider_service,
