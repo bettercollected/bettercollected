@@ -21,7 +21,7 @@ export default function WorkspaceNStatusHoc(props: any) {
     useEffect(() => {
         if (data) {
             const user = { ...data?.user };
-            user.isAdmin = workspace.ownerId === user.id;
+            user.isAdmin = workspace?.ownerId === user.id;
             dispatch(setAuth(user));
         }
         if (error) {

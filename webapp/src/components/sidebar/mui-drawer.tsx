@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 
 import { useRouter } from 'next/router';
 
@@ -25,96 +25,16 @@ interface IMuiDrawerProps {
     drawerWidth?: number;
     mobileOpen?: boolean;
     handleDrawerToggle: () => void;
+    drawer: ReactNode;
+    anchor?: 'left' | 'top' | 'right' | 'bottom';
 }
 
 MuiDrawer.defaultProps = {
     drawerWidth: 289,
     mobileOpen: false
 };
-export default function MuiDrawer({ drawerWidth, mobileOpen, handleDrawerToggle }: IMuiDrawerProps) {
+export default function MuiDrawer({ drawerWidth, mobileOpen, drawer, handleDrawerToggle, anchor = 'left' }: IMuiDrawerProps) {
     const container = window !== undefined ? () => window.document.body : undefined;
-    const router = useRouter();
-    const workspace = useAppSelector((state) => state?.workspace);
-    const { data, isLoading } = useGetAllMineWorkspacesQuery();
-    const isAdmin = useAppSelector(selectIsAdmin);
-    console.log(isAdmin);
-    const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
-
-    const topNavList: Array<INavbarList> = [
-        {
-            key: 'dashboard',
-            name: 'Dashboard',
-            url: commonWorkspaceUrl,
-            icon: DashboardIcon
-        },
-        {
-            key: 'forms',
-            name: 'Forms',
-            url: `${commonWorkspaceUrl}/forms`,
-            icon: FormIcon
-        }
-    ];
-    const bottomNavList: Array<INavbarList> = [
-        {
-            key: 'workspace-settings',
-            name: 'Workspace Settings',
-            url: `/${workspace?.workspaceName}/manage`,
-            icon: SettingsOutlined
-        }
-    ];
-
-    const generateNavbarLists = (list: Array<INavbarList>) => {
-        return (
-            <List>
-                {list.map((element) => {
-                    const Icon = element.icon;
-                    return (
-                        <ListItem key={element.key} disablePadding onClick={() => router.push(element.url, undefined, { shallow: true })}>
-                            <ListItemButton sx={{ paddingY: '16px', paddingX: '20px' }}>
-                                <ListItemIcon sx={{ minWidth: '32px' }}>
-                                    <Icon />
-                                </ListItemIcon>
-                                <ListItemText primary={element.name} />
-                            </ListItemButton>
-                        </ListItem>
-                    );
-                })}
-            </List>
-        );
-    };
-
-    const drawer = (
-        <>
-            <Toolbar />
-            <Box sx={{ overflow: 'auto', height: '100%' }}>
-                <List>
-                    <ListItem disablePadding>
-                        <Accordion disabled={isLoading} sx={{ paddingY: '16px', paddingX: '4px', width: '100%' }} elevation={0} className="hover:bg-zinc-100">
-                            <AccordionSummary expandIcon={<ExpandMore className="h-7 w-7 text-black-900 transition-all duration-300" />}>
-                                <AuthAccountProfileImage image={workspace?.profileImage} name={workspace?.title} />
-                                <p className="ml-3 p-0 !body1 flex items-center">{toEndDottedStr(workspace?.title, 30)}</p>
-                            </AccordionSummary>
-                            <AccordionDetails className="w-full flex flex-col gap-3">
-                                {data && Array.isArray(data) && data.length > 1 ? (
-                                    data.map((w) => <p key={w?.id}>{w?.title}</p>)
-                                ) : (
-                                    <p className="text-black-600">Currently, you only have a single workspace. Creation of new workspaces and collaboration coming soon.</p>
-                                )}
-                            </AccordionDetails>
-                        </Accordion>
-                    </ListItem>
-                </List>
-                <Divider />
-                {generateNavbarLists(topNavList)}
-                {isAdmin && (
-                    <>
-                        <Divider />
-                        {generateNavbarLists(bottomNavList)}
-                    </>
-                )}
-            </Box>
-        </>
-    );
 
     return (
         <>
@@ -124,6 +44,7 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, handleDrawerToggle 
                 variant="temporary"
                 open={mobileOpen}
                 onClose={handleDrawerToggle}
+                anchor={anchor}
                 ModalProps={{
                     keepMounted: true // Better open performance on mobile.
                 }}
@@ -140,6 +61,7 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, handleDrawerToggle 
             {/* Desktop drawer */}
             <Drawer
                 variant="permanent"
+                anchor={anchor}
                 sx={{
                     width: drawerWidth,
                     flexShrink: 0,

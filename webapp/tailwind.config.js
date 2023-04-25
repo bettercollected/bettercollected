@@ -61,7 +61,12 @@ module.exports = {
             },
             width: {
                 'calc-320': 'calc(100% - 320px)',
-                'calc-358': 'calc(100% - 358px)'
+                'calc-358': 'calc(100% - 358px)',
+                '289-calc-289': 'calc(100vh - 592px)',
+                'calc-289': 'calc(100% - 578px)'
+            },
+            maxWidth: {
+                '289-calc-289': 'calc(100vw - 592px)'
             },
             minHeight: {
                 'calc-68': 'calc(100vh - 68px)'

@@ -1,26 +1,18 @@
 import React from 'react';
 
-import AuthNavbar from '@app/components/auth/navbar';
-import BackButton from '@app/components/settings/back';
-import { SettingsSidebar } from '@app/components/settings/sidebar';
-import Hamburger from '@app/components/ui/hamburger';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import MuiDrawer from '@app/components/sidebar/mui-drawer';
+import SettingsDrawer from '@app/components/sidebar/settings-drawer';
+import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 
 export default function ManageWorkspaceLayout({ children }: any) {
-    const breakpoint = useBreakpoint();
     return (
-        <div className="mt-[68px] flex items-center flex-col">
-            <AuthNavbar showHamburgerIcon={false} showPlans={['sm'].indexOf(breakpoint) !== -1} />
-            <div className="grid grid-cols-2 lg:grid-cols-3 lg:space-x-6 !w-full">
-                <div className="hidden lg:block pl-5 md:pl-10 lg:pl-28 col-span-1">
-                    <SettingsSidebar />
-                </div>
-                <div className="lg:hidden pt-10 lg:pt-0 flex justify-between col-span-2 px-5 md:px-10">
-                    <BackButton />
-                    <Hamburger isOpen={false} className="!shadow-none !bg-transparent !text-black-900 !flex !justify-start" onClick={() => {}} />
-                </div>
-                <div className="col-span-2 lg:screen-navbar lg:pt-10 px-5 md:px-10 lg:pr-28 lg:pl-0">{children}</div>
+        <SidebarLayout DrawerComponent={SettingsDrawer}>
+            <div className="relative">
+                <div className="absolute lg:left-[-40px] px-5 lg:px-10 pb-10 top-0 w-full xl:max-w-289-calc-289">{children}</div>
+
+                {/*<MuiDrawer drawer={<></>} anchor="right" handleDrawerToggle={() => {*/}
+                {/*}}/>*/}
             </div>
-        </div>
+        </SidebarLayout>
     );
 }

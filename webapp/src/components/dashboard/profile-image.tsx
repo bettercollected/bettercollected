@@ -62,7 +62,7 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
 
     return (
         <div>
-            <div className="relative bannerdiv product-image bg-white border-[1px] border-neutral-300 hover:border-neutral-400 rounded-xl z-10 h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 xl:h-40 xl:w-40 2xl:h-[180px] 2xl:w-[180px] overflow-hidden">
+            <div className="relative bannerdiv aspect-square product-image bg-white border-[1px] border-neutral-300 hover:border-neutral-400 rounded-xl z-10  w-24  sm:w-32  md:w-40  xl:w-40 2xl:w-[180px] overflow-hidden">
                 {!!workspace.profileImage ? (
                     <Image src={workspace?.profileImage ?? ''} layout="fill" objectFit="contain" alt={workspace.title} />
                 ) : (
