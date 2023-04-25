@@ -1,3 +1,5 @@
+import { useRouter } from 'next/router';
+
 import { MoreHoriz } from '@mui/icons-material';
 import { Divider, IconButton, Tooltip } from '@mui/material';
 
@@ -26,6 +28,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
     const { openModal } = useModal();
     const isProPlan = useAppSelector(selectIsProPlan);
     const isAdmin = useAppSelector(selectIsAdmin);
+    const router = useRouter();
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
@@ -74,7 +77,9 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                     buttonProps={{
                         enabled: isAdmin && !isProPlan,
                         text: 'Import unlimited forms',
-                        onClick: () => {}
+                        onClick: () => {
+                            router.push(`/${workspace.workspaceName}/upgrade`);
+                        }
                     }}
                 />
                 <WorkspaceDashboardStats

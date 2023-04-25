@@ -4,6 +4,7 @@ import { boolean } from 'property-information/lib/util/types';
 
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
 import { DRAWER_VIEW, useDrawer } from '@app/components/drawer-views/context';
+import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import Button from '@app/components/ui/button';
 import Hamburger from '@app/components/ui/hamburger';
 import Logo from '@app/components/ui/logo';
@@ -55,9 +56,9 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
                     </div>
                     <div className="flex items-center justify-center gap-7">
                         {showPlans && (
-                            <Button size="small" disabled>
-                                View Plans
-                            </Button>
+                            <ProPlanHoc hideChildrenIfPro={true}>
+                                <Button size="small">Upgrade to Pro</Button>
+                            </ProPlanHoc>
                         )}
                         <AuthAccountMenuDropdown />
                     </div>

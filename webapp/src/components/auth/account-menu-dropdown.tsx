@@ -6,9 +6,14 @@ import { ExpandMore, Logout } from '@mui/icons-material';
 import { Divider, IconButton, ListItem, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import WorkspaceAdminHoc from '@app/components/hoc/workspace-admin-hoc';
 import { useModal } from '@app/components/modal-views/context';
+import ActiveLink from '@app/components/ui/links/active-link';
+import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useGetStatusQuery } from '@app/store/auth/api';
+import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 
 interface IAuthAccountMenuDropdownProps {
     fullWidth?: boolean;
@@ -40,11 +45,10 @@ export default function AuthAccountMenuDropdown({ fullWidth }: IAuthAccountMenuD
         handleClose();
     };
 
+    if (isLoading || error) return <div className="w-9 sm:w-32 h-9 rounded-[4px] animate-pulse bg-black-300" />;
     const user = data?.user;
 
     const profileName = _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name);
-
-    if (isLoading || error) return <div className="w-9 sm:w-32 h-9 rounded-[4px] animate-pulse bg-black-300" />;
 
     return (
         <>
@@ -120,6 +124,14 @@ export default function AuthAccountMenuDropdown({ fullWidth }: IAuthAccountMenuD
                     />
                 </ListItem>
                 <Divider className="mb-2" />
+                <WorkspaceAdminHoc>
+                    {user.stripe_customer_id && (
+                        <ActiveLink href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer" target="_blank">
+                            <MenuItem>Billing</MenuItem>
+                        </ActiveLink>
+                    )}
+                </WorkspaceAdminHoc>
+
                 <MenuItem onClick={handleLogout}>
                     <ListItemIcon>
                         <Logout fontSize="small" color="error" />

@@ -21,6 +21,11 @@ export default function SettingsDrawer({ drawerWidth, mobileOpen, handleDrawerTo
             url: commonUrl
         },
         {
+            key: 'members',
+            name: 'Members',
+            url: `${commonUrl}/members`
+        },
+        {
             key: 'advanced',
             name: 'Advanced Settings',
             url: `${commonUrl}/advanced`

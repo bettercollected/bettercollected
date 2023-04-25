@@ -72,7 +72,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
     return (
         <div className=" py-10 flex items-center flex-col">
             <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-            <div className="rounded mt-14 border flex flex-col items-center w-full border-gray-200 p-10 lg:max-w-[800px]">
+            <div className="rounded mt-[68px] border flex flex-col items-center w-full border-gray-200 p-10 lg:max-w-[800px]">
                 {!invitation ? (
                     <div className="w-full h-full flex items-center justify-center">Invitation not Found</div>
                 ) : (

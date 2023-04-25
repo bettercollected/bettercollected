@@ -1,6 +1,4 @@
-import { request } from '@mswjs/interceptors/lib/interceptors/ClientRequest/http.request';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { BaseQueryArg } from '@reduxjs/toolkit/src/query/baseQueryTypes';
 
 import environments from '@app/configs/environments';
 
