@@ -31,6 +31,7 @@ class UserResponseDto(BaseModel):
     email: str
     plan: Optional[Plans] = Plans.FREE
     profile_image: Optional[str]
+    stripe_customer_id: Optional[str]
     roles: List[str] = [Roles.FORM_RESPONDER]
 
 
