@@ -11,11 +11,11 @@ from fastapi import Request
 
 class StripeService:
     def __init__(
-            self,
-            http_client: HttpClient,
-            plugin_proxy_service: PluginProxyService,
-            form_provider_service: FormPluginProviderService,
-            jwt_service: JwtService,
+        self,
+        http_client: HttpClient,
+        plugin_proxy_service: PluginProxyService,
+        form_provider_service: FormPluginProviderService,
+        jwt_service: JwtService,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
@@ -27,10 +27,10 @@ class StripeService:
             settings.auth_settings.BASE_URL + "/stripe/plans"
         )
 
-    async def create_checkout_session(self, user, price_id_request: PriceIdRequest):
+    async def create_checkout_session(self, user, price_id: str):
         return await self.http_client.get(
             settings.auth_settings.BASE_URL + "/stripe/session/create/checkout",
-            params={"user_id": user.id, "price_id": price_id_request.price_id},
+            params={"user_id": user.id, "price_id": price_id},
         )
 
     async def create_portal_session(self, user):
@@ -41,9 +41,9 @@ class StripeService:
 
     async def webhooks(self, request: Request):
         body = await request.body()
-        signature = request.headers.get('stripe-signature')
+        signature = request.headers.get("stripe-signature")
         return await self.http_client.post(
             settings.auth_settings.BASE_URL + "/stripe/webhooks",
             params={"stripe_signature": signature},
-            content=body
+            content=body,
         )
