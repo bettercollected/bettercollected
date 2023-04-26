@@ -184,7 +184,7 @@ export default function ImportProviderForms(props: any) {
                     renderInput={(params) => <TextField {...params} label="Choose your form that you want to import" />}
                 />
                 <div>
-                    <Button onClick={() => handleNext(provider)} disabled={!selectedForm} size="medium">
+                    <Button isLoading={!!minifiedFormsResult?.isLoading} onClick={() => handleNext(provider)} disabled={!selectedForm} size="medium">
                         Next
                     </Button>
                 </div>
@@ -194,7 +194,7 @@ export default function ImportProviderForms(props: any) {
 
     const stepTwoContent = (
         <>
-            {backBreadcrumb}
+            {/* {backBreadcrumb} */}
             <h4 className="sh1 w-full text-start">Response data owner</h4>
             <p className="body1">Select another data response owner if the collect email setting is disabled in your form</p>
             <div className="flex flex-col w-full h-full gap-10 items-end">
@@ -223,7 +223,7 @@ export default function ImportProviderForms(props: any) {
                     renderInput={(params) => <TextField {...params} label="Choose a data owner field for this form" />}
                 />
                 <div>
-                    <Button isLoading={!!importFormResult?.isLoading} onClick={handleImportForm} disabled={!selectedForm} size="medium">
+                    <Button isLoading={!!importFormResult?.isLoading || !!singleFormFromProviderResult?.isLoading} onClick={handleImportForm} disabled={!selectedForm || !!singleFormFromProviderResult?.isLoading} size="medium">
                         Import
                     </Button>
                 </div>
