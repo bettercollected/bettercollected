@@ -12,6 +12,7 @@ import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
+import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
 export default function FormPage({ workspace, hasCustomDomain }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
     const [sortValue, setSortValue] = useState('newest_oldest');
@@ -89,7 +90,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
         },
         {
             name: 'Imported date',
-            selector: (row: StandardFormDto) => 'hey' ?? row?.createdAt,
+            selector: (row: StandardFormDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
