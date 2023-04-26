@@ -132,9 +132,9 @@ export default function ImportProviderForms(props: any) {
     const stepZeroContent = (
         <>
             <h4 className="sh1 text-center">Which form do you want to import?</h4>
-            <div className="grid grid-cols-2 w-full gap-4 lg:gap-10">
+            <div className="grid grid-cols-2 w-full h-full gap-4 lg:gap-10">
                 {integrations.map((integration) => (
-                    <MuiButton key={integration.provider} onClick={integration.onClick} className="sh1 h-[120px] w-[120px] md:h-[200px] md:w-[200px] !border-[1px] !border-brand-300 !text-brand-500 capitalize">
+                    <MuiButton key={integration.provider} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={integration.onClick} className="sh1 h-[120px] w-full md:h-[200px] md:w-[200px] !text-brand-500 capitalize">
                         <div className="h-full w-full flex flex-col items-center justify-center gap-5">
                             {integration.icon}
                             <span className="body4 !not-italic !font-medium font-roboto tracking-wide !text-black-700">{integration.name}</span>
