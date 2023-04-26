@@ -56,6 +56,7 @@
     "react-color": "^2.19.3",
     "react-contenteditable": "^3.3.7",
     "react-cookie": "^4.1.1",
+    "react-data-table-component": "^7.5.3",
     "react-dom": "18.2.0",
     "react-ga4": "^1.4.1",
     "react-hook-form": "^7.34.2",
@@ -73,6 +74,7 @@
     "remark-gfm": "^3.0.1",
     "sanitize-html": "^2.10.0",
     "sharp": "^0.31.0",
+    "styled-components": "^5.3.10",
     "swiper": "^8.3.2",
     "uuid": "^8.3.2",
     "vanilla-cookieconsent": "^2.9.0"

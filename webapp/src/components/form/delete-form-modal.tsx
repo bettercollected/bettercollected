@@ -18,7 +18,7 @@ export default function DeleteFormModal(props: any) {
 
     const handleDelete = async () => {
         const response: any = await trigger({ workspaceId: workspace.id, formId: props?.form.formId }).finally(() => closeModal());
-        if (response?.data) {
+        if (response?.data && !!props?.redirectToDashboard) {
             router.push(`/${workspace.workspaceName}/dashboard`);
         }
         if (response?.error) {

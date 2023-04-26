@@ -28,6 +28,7 @@ export interface StandardFormDto {
     title: string;
     description?: string | null | undefined;
     provider?: string;
+    createdAt?: string | Date;
     dataOwnerIdentifier?: string;
     responses?: number;
     deletionRequests?: number;
