@@ -1,6 +1,8 @@
 import React from 'react';
 
-import Button, { ButtonProps } from '@app/components/ui/button';
+import { IconButton } from '@mui/material';
+
+import { ButtonProps } from '@app/components/ui/button';
 
 interface HamburgerProps extends ButtonProps {
     isOpen?: boolean;
@@ -8,7 +10,7 @@ interface HamburgerProps extends ButtonProps {
 
 export default function Hamburger({ isOpen, ...props }: HamburgerProps) {
     return (
-        <Button aria-label="Hamburger" shape="circle" {...props}>
+        <IconButton onClick={props.onClick} sx={{ padding: 0 }}>
             <svg className="sm:w-auo h-auto w-6" width="30" height="30" viewBox="0 0 100 100">
                 <path
                     className="ease-[cubic-bezier(0.4, 0, 0.2, 1)] transition-[stroke-dasharray,stroke-dashoffset] duration-[600ms]"
@@ -41,6 +43,6 @@ export default function Hamburger({ isOpen, ...props }: HamburgerProps) {
                     d="M 20,70.999954 H 80.000231 C 80.000231,70.999954 94.498839,71.182648 94.532987,33.288669 94.543142,22.019327 90.966081,18.329754 85.259173,18.331003 79.552261,18.332249 75.000211,25.000058 75.000211,25.000058 L 25.000021,74.999942"
                 ></path>
             </svg>
-        </Button>
+        </IconButton>
     );
 }

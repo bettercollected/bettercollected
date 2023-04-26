@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { Share } from '@mui/icons-material';
-import { Box, Toolbar, Tooltip } from '@mui/material';
+import { Box, IconButton, Toolbar, Tooltip } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import { Close } from '@app/components/icons/close';
@@ -12,11 +12,10 @@ import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import ShareView from '@app/components/ui/share-view';
 import environments from '@app/configs/environments';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { initialFormState, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { toEndDottedStr, toMidDottedStr } from '@app/utils/stringUtils';
+import { toMidDottedStr } from '@app/utils/stringUtils';
 
 export default function FormPageLayout(props: any) {
     const form = useAppSelector((state) => state.form);
@@ -53,7 +52,7 @@ export default function FormPageLayout(props: any) {
             <Box sx={{ overflow: 'auto', height: '100%' }}>
                 <div className=" px-5 h-full py-6 relative w-full">
                     <Close onClick={handleDrawerToggle} className="absolute blocks lg:hidden right-5 top-5 cursor-pointer" />
-                    <ShareView url="https://google.com" showCopy={false} showBorder={false} />
+                    <ShareView url={clientHostUrl} showCopy={false} showBorder={false} />
 
                     <div className="mt-10">
                         <div className="body1">Form Links</div>
@@ -112,7 +111,9 @@ export default function FormPageLayout(props: any) {
         <SidebarLayout DrawerComponent={FormDrawer}>
             <div className="relative">
                 <div className="absolute z-10 top-5 right-5" onClick={handleDrawerToggle}>
-                    <Share />
+                    <IconButton>
+                        <Share />
+                    </IconButton>
                 </div>
                 <div className="absolute xl:left-[-40px] px-5 xl:px-10 pb-10 top-0 w-full py-6 xl:max-w-289-calc-289">{props.children}</div>
                 <MuiDrawer

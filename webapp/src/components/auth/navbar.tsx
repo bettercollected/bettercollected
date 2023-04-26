@@ -1,9 +1,7 @@
 import React from 'react';
 
-import { boolean } from 'property-information/lib/util/types';
-
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
-import { DRAWER_VIEW, useDrawer } from '@app/components/drawer-views/context';
+import { DRAWER_VIEW } from '@app/components/drawer-views/context';
 import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import Button from '@app/components/ui/button';
 import Hamburger from '@app/components/ui/hamburger';
@@ -26,12 +24,6 @@ AuthNavbar.defaultProps = {
     handleDrawerToggle: () => {}
 };
 export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerToggle, drawerView = 'DASHBOARD_SIDEBAR' }: IAuthNavbarProps) {
-    const { openDrawer, isOpen } = useDrawer();
-
-    const handleOpenSidebar = () => {
-        openDrawer(drawerView);
-    };
-
     const screenSize = useBreakpoint();
 
     const isMobileView = () => {
@@ -51,7 +43,7 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
             <Header className="!z-[1300]">
                 <div className="flex flex-row w-full h-full py-2 md:py-0 justify-between items-center">
                     <div className="flex">
-                        {!isMobileView() && showHamburgerIcon && <Hamburger isOpen={mobileOpen} className="!shadow-none mr-2 !bg-white hover:!bg-transparent !text-black-900 !flex !justify-start" onClick={handleDrawerToggle} />}
+                        {!isMobileView() && showHamburgerIcon && <Hamburger isOpen={mobileOpen} className="!shadow-none mr-2 !bg-white hover:!bg-white !text-black-900 !flex !justify-start" onClick={handleDrawerToggle} />}
                         <Logo />
                     </div>
                     <div className="flex items-center justify-center gap-7">

@@ -1,25 +1,6 @@
 import React, { ReactNode } from 'react';
 
-import { useRouter } from 'next/router';
-
-import { ExpandMore, SettingsOutlined } from '@mui/icons-material';
-import { Accordion, AccordionDetails, AccordionSummary, Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar } from '@mui/material';
-
-import { DashboardIcon } from '@app/components/icons/dashboard-icon';
-import { FormIcon } from '@app/components/icons/form-icon';
-import { selectIsAdmin } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
-import { toEndDottedStr } from '@app/utils/stringUtils';
-
-import AuthAccountProfileImage from '../auth/account-profile-image';
-
-interface INavbarList {
-    key: string;
-    name: string;
-    url: string;
-    icon: any;
-}
+import { Drawer } from '@mui/material';
 
 interface IMuiDrawerProps {
     drawerWidth?: number;
