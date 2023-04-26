@@ -3,7 +3,7 @@ import React from 'react';
 import AllSubmissionTab from '@app/components/dashboard/all-submission-tab';
 import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
-import SidebarLayout from '@app/components/sidebar/sidebar-layout';
+import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import ParamTab from '@app/components/ui/param-tab';
 import { TabPanel } from '@app/components/ui/tab';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
@@ -23,7 +23,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
     ];
 
     return (
-        <SidebarLayout>
+        <DashboardLayout>
             <ParamTab tabMenu={paramTabs}>
                 <TabPanel className="focus:outline-none" key="all">
                     {/*<MyRecentSubmissions/>*/}
@@ -33,7 +33,7 @@ export default function MySubmissions({ workspace }: { workspace: any }) {
                     <AllSubmissionTab workspace_id={workspace.id} requestedForDeletionOnly />
                 </TabPanel>
             </ParamTab>
-        </SidebarLayout>
+        </DashboardLayout>
     );
 }
 

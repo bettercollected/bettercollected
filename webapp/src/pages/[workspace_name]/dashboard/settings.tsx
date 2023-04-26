@@ -5,7 +5,7 @@ import { AdminPanelSettings, PrivacyTip, Settings } from '@mui/icons-material';
 import SettingsPrivacy from '@app/components/settings/workspace/settings-privacy';
 import SettingsProfile from '@app/components/settings/workspace/settings-profile';
 import { WorkspaceDangerZoneSettings } from '@app/components/settings/workspace/workspace-danger-zone-settings';
-import SidebarLayout from '@app/components/sidebar/sidebar-layout';
+import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 
@@ -41,7 +41,7 @@ export default function MySettings(props: any) {
     ];
 
     return (
-        <SidebarLayout>
+        <DashboardLayout>
             <Header />
             <ParamTab tabMenu={paramTabs}>
                 <TabPanel className="focus:outline-none" key="settings-profile">
@@ -54,7 +54,7 @@ export default function MySettings(props: any) {
                     <WorkspaceDangerZoneSettings />
                 </TabPanel>
             </ParamTab>
-        </SidebarLayout>
+        </DashboardLayout>
     );
 }
 

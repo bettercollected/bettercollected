@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import BreadcrumbRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { HomeIcon } from '@app/components/icons/home';
-import SidebarLayout from '@app/components/sidebar/sidebar-layout';
+import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
@@ -40,7 +40,7 @@ export default function SubmissionDashboard(props: any) {
     ];
 
     return (
-        <SidebarLayout>
+        <DashboardLayout>
             {isLoading || isError ? (
                 <FullScreenLoader />
             ) : (
@@ -49,7 +49,7 @@ export default function SubmissionDashboard(props: any) {
                     <FormRenderer form={data?.form} response={data?.response} />
                 </>
             )}
-        </SidebarLayout>
+        </DashboardLayout>
     );
 }
 

@@ -11,7 +11,8 @@ import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-rende
 import { HistoryIcon } from '@app/components/icons/history';
 import { HomeIcon } from '@app/components/icons/home';
 import { TrashIcon } from '@app/components/icons/trash';
-import SidebarLayout from '@app/components/sidebar/sidebar-layout';
+import DashboardLayout from '@app/components/sidebar/dashboard-layout';
+import FormPageLayout from '@app/components/sidebar/form-page-layout';
 import ParamTab from '@app/components/ui/param-tab';
 import { TabPanel } from '@app/components/ui/tab';
 import environments from '@app/configs/environments';
@@ -24,42 +25,11 @@ import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function FormPage(props: any) {
-    const { formId, form } = props;
-    const dispatch = useAppDispatch();
-
-    useEffect(() => {
-        dispatch(setForm(form));
-        return () => {
-            dispatch(setForm(initialFormState));
-        };
-    }, []);
-
+    const { form } = props;
     const breakpoint = useBreakpoint();
     if (!props && Object.keys(props).length === 0) {
         return <Error />;
     }
-    const tabs = [
-        {
-            icon: <Feed />,
-            path: 'form',
-            title: 'Form'
-        },
-        {
-            icon: <HistoryIcon className="w-[20px] h-[20px]" />,
-            title: 'Responses',
-            path: 'response'
-        },
-        {
-            icon: <TrashIcon className="w-[20px] h-[20px]" />,
-            title: 'Deletion requests',
-            path: 'deletion-requests'
-        },
-        {
-            icon: <Settings />,
-            title: 'Settings',
-            path: 'settings'
-        }
-    ];
 
     const breadcrumbsItem = [
         {
@@ -73,58 +43,10 @@ export default function FormPage(props: any) {
     ];
 
     return (
-        <SidebarLayout>
+        <FormPageLayout {...props}>
             <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />
-            <div className="flex flex-col w-full m-auto justify-center">
-                <ParamTab tabMenu={tabs}>
-                    <TabPanel className="focus:outline-none" key="form">
-                        <FormTabContent form={form} />
-                    </TabPanel>
-                    <TabPanel className="focus:outline-none" key="submissions">
-                        <FormSubmissionsTab workspace={props.workspace} workspaceName={props?.workspace?.workspaceName} workspaceId={props?.workspace?.id ?? ''} formId={formId} />
-                    </TabPanel>
-                    <TabPanel className="focus:outline-none" key="deletion-requests">
-                        <FormSubmissionsTab workspace={props.workspace} workspaceName={props?.workspace?.workspaceName} workspaceId={props?.workspace?.id ?? ''} formId={formId} requestedForDeletion />
-                    </TabPanel>
-                    <TabPanel className="focus:outline-none" key="settings">
-                        <FormSettingsTab />
-                    </TabPanel>
-                </ParamTab>
-            </div>
-        </SidebarLayout>
+            <FormTabContent form={form} />
+        </FormPageLayout>
     );
 }
-
-export async function getServerSideProps(_context: any) {
-    const props = await getAuthUserPropsWithWorkspace(_context);
-    if (!props.props) {
-        return props;
-    }
-    const globalProps = props.props;
-    const { form_id } = _context.query;
-    let form = null;
-    const config = getServerSideAuthHeaderConfig(_context);
-    try {
-        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${form_id}`, config);
-        form = (await formResponse?.json().catch((e: any) => e)) ?? null;
-        if (!form) {
-            return {
-                notFound: true
-            };
-        }
-
-        return {
-            props: {
-                formId: form_id,
-                ...globalProps,
-                form
-            }
-        };
-    } catch (e) {
-        return {
-            props: {
-                error: true
-            }
-        };
-    }
-}
+export { getServerSidePropsForDashboardFormPage as getServerSideProps } from '@app/lib/serverSideProps';

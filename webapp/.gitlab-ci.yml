@@ -23,7 +23,7 @@ build develop:
 deploy develop:
     stage: deploy
     image: docker:latest
-    
+
     services:
         - docker:dind
     variables:

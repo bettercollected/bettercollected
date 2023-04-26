@@ -164,3 +164,37 @@ export async function getServerSidePropsForWorkspaceAdmin(_context: any) {
         }
     };
 }
+
+export async function getServerSidePropsForDashboardFormPage(_context: any) {
+    const props = await getAuthUserPropsWithWorkspace(_context);
+    if (!props.props) {
+        return props;
+    }
+    const globalProps = props.props;
+    const { form_id } = _context.query;
+    let form = null;
+    const config = getServerSideAuthHeaderConfig(_context);
+    try {
+        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${form_id}`, config);
+        form = (await formResponse?.json().catch((e: any) => e)) ?? null;
+        if (!form) {
+            return {
+                notFound: true
+            };
+        }
+
+        return {
+            props: {
+                formId: form_id,
+                ...globalProps,
+                form
+            }
+        };
+    } catch (e) {
+        return {
+            props: {
+                error: true
+            }
+        };
+    }
+}

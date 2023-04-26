@@ -2,33 +2,38 @@ import React from 'react';
 
 import { Box, Toolbar } from '@mui/material';
 
-import { DashboardIcon } from '@app/components/icons/dashboard-icon';
-import { FormIcon } from '@app/components/icons/form-icon';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
+import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-export default function SettingsDrawer({ drawerWidth, mobileOpen, handleDrawerToggle }: IDrawerProps) {
+export default function FormDrawer({ drawerWidth, mobileOpen, handleDrawerToggle }: IDrawerProps) {
     const workspace = useAppSelector(selectWorkspace);
-    const commonUrl = `/${workspace?.workspaceName}/manage`;
+    const form = useAppSelector(selectForm);
+    const commonUrl = `/${workspace?.workspaceName}/dashboard/forms/${form.formId}`;
 
     const navbarItems: Array<INavbarItem> = [
         {
-            key: 'basic',
-            name: 'Basic information',
+            key: 'preview',
+            name: 'Form Preview',
             url: commonUrl
         },
         {
-            key: 'members',
-            name: 'Members',
-            url: `${commonUrl}/members`
+            key: 'responses',
+            name: 'Responses',
+            url: `${commonUrl}/responses`
         },
         {
-            key: 'advanced',
-            name: 'Advanced Settings',
-            url: `${commonUrl}/advanced`
+            key: 'deletion_requests',
+            name: 'Deletion Requests',
+            url: `${commonUrl}/deletion-requests`
+        },
+        {
+            key: 'settings',
+            name: 'Settings',
+            url: `${commonUrl}/settings`
         }
     ];
 
