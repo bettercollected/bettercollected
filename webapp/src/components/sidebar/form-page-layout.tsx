@@ -26,7 +26,7 @@ export default function FormPageLayout(props: any) {
     const [_, copyToClipboard] = useCopyToClipboard();
 
     useEffect(() => {
-        dispatch(setForm(form));
+        dispatch(setForm(props.form));
         return () => {
             dispatch(setForm(initialFormState));
         };
