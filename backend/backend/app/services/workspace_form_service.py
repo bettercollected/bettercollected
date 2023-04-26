@@ -59,6 +59,10 @@ class WorkspaceFormService:
             workspace_id, user
         )
 
+        await self.workspace_form_repository.check_is_form_imported_in_other_workspace(
+            workspace_id=workspace_id, form_id=form_import.form.get("formId")
+        )
+
         can_import_form = await self.check_if_user_can_import_more_forms(
             user=user, workspace_id=workspace_id
         )

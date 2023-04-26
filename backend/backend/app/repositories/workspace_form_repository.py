@@ -34,7 +34,6 @@ class WorkspaceFormRepository:
         user_id: str,
         workspace_form_settings: WorkspaceFormSettings,
     ):
-        await self._check_is_form_imported_in_other_workspace(form_id=form_id)
         workspace_form = await WorkspaceFormDocument.find_one(
             {"workspace_id": workspace_id, "form_id": form_id, "user_id": user_id}
         )
@@ -117,12 +116,16 @@ class WorkspaceFormRepository:
         await workspace_form.delete()
         return workspace_form
 
-    async def _check_is_form_imported_in_other_workspace(self, form_id: str):
+    async def check_is_form_imported_in_other_workspace(
+        self, workspace_id: PydanticObjectId, form_id: str
+    ):
         workspace_forms = await WorkspaceFormDocument.find(
             {"form_id": form_id}
         ).to_list()
         if len(workspace_forms) != 0:
-            raise HTTPException(
-                status_code=HTTPStatus.CONFLICT,
-                content="Form has already been imported to another workspace",
-            )
+            for workspace_form in workspace_forms:
+                if workspace_form.workspace_id != workspace_id:
+                    raise HTTPException(
+                        status_code=HTTPStatus.CONFLICT,
+                        content="Form has already been imported to another workspace",
+                    )
