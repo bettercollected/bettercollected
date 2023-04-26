@@ -1,6 +1,8 @@
 import React from 'react';
 
-import FormSubmissionsTab from '@app/components/dashboard/dashboard-responses-tab-content';
+import { Divider } from '@mui/material';
+
+import ResponsesTable from '@app/components/datatable/responses';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';
 
 export default function DeletionRequests(props: any) {
@@ -8,7 +10,9 @@ export default function DeletionRequests(props: any) {
 
     return (
         <FormPageLayout {...props}>
-            <FormSubmissionsTab workspace={props.workspace} workspaceName={props?.workspace?.workspaceName} workspaceId={props?.workspace?.id ?? ''} formId={formId} requestedForDeletion />
+            <div className="heading4">Deletion Requests</div>
+            <Divider className="my-4" />
+            <ResponsesTable formId={formId} workspaceId={props.workspace.id} requestForDeletion={true} />
         </FormPageLayout>
     );
 }

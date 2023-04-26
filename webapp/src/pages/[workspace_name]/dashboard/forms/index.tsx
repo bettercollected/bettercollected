@@ -4,9 +4,9 @@ import { ExpandMoreOutlined } from '@mui/icons-material';
 import { Divider, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 import DataTable from 'react-data-table-component';
 
-import { dataTableCustomStyles } from '@app/components/form-datatable/datatable-styles';
-import FormOptionsDropdownMenu from '@app/components/form-datatable/form-options-dropdown';
-import DataTableProviderFormCell from '@app/components/form-datatable/provider-form-cell';
+import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
+import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
+import DataTableProviderFormCell from '@app/components/datatable/form/provider-form-cell';
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import { StandardFormDto } from '@app/models/dtos/form';

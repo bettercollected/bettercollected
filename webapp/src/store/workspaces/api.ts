@@ -154,7 +154,12 @@ export const workspacesApi = createApi({
         }),
         getFormsSubmissions: builder.query<Page<StandardFormResponseDto>, IGetFormSubmissionsQuery>({
             query: (query) => ({
-                url: `/workspaces/${query.workspaceId}/forms/${query.formId}/submissions?request_for_deletion=${query.requestedForDeletionOly}`,
+                url: `/workspaces/${query.workspaceId}/forms/${query.formId}/submissions`,
+                params: {
+                    request_for_deletion: query.requestedForDeletionOly,
+                    page: query.page,
+                    size: query.size
+                },
                 method: 'GET'
             }),
             providesTags: [WORKSPACE_TAGS]
@@ -163,7 +168,9 @@ export const workspacesApi = createApi({
             query: (query) => ({
                 url: `/workspaces/${query.workspaceId}/submissions`,
                 params: {
-                    request_for_deletion: query.requestedForDeletionOly
+                    request_for_deletion: query.requestedForDeletionOly,
+                    page: query.page,
+                    size: query.size
                 },
                 method: 'GET'
             }),
@@ -304,6 +311,7 @@ export const {
     useGetWorkspaceSubmissionQuery,
     useLazyGetWorkspaceSubmissionQuery,
     useSearchWorkspaceFormsMutation,
+    useGetFormsSubmissionsQuery,
     usePatchFormSettingsMutation,
     useDeleteFormMutation,
     useCreateWorkspaceMutation,

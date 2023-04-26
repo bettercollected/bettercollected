@@ -3,7 +3,7 @@ import React from 'react';
 import { PushPin } from '@mui/icons-material';
 import { Tooltip } from '@mui/material';
 
-import FormOptionsDropdownMenu from '@app/components/form-datatable/form-options-dropdown';
+import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { EmptyImportFormIcon } from '@app/components/icons/empty-import-form-icon';
