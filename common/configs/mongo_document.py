@@ -34,8 +34,13 @@ class MongoDocument(Document):
     This class defines common methods and attributes for interacting with MongoDB documents.
     """
 
-    created_at: Optional[dt] = dt.utcnow()
-    updated_at: Optional[dt] = dt.utcnow()
+    created_at: Optional[dt]
+    updated_at: Optional[dt]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.created_at = self.created_at if self.created_at else dt.utcnow()
+        self.updated_at = self.updated_at if self.updated_at else dt.utcnow()
 
     @classmethod
     def pretty_class_name(cls) -> str:
