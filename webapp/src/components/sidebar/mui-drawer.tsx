@@ -27,13 +27,17 @@ interface IMuiDrawerProps {
     handleDrawerToggle: () => void;
     drawer: ReactNode;
     anchor?: 'left' | 'top' | 'right' | 'bottom';
+    mobileDrawerDisplayProps?: any;
+    desktopDrawerDisplayProps?: any;
 }
 
 MuiDrawer.defaultProps = {
     drawerWidth: 289,
-    mobileOpen: false
+    mobileOpen: false,
+    mobileDrawerDisplayProps: { xs: 'block', sm: 'block', md: 'block', lg: 'none', xl: 'none' },
+    desktopDrawerDisplayProps: { xs: 'none', sm: 'none', md: 'none', lg: 'block', xl: 'block' }
 };
-export default function MuiDrawer({ drawerWidth, mobileOpen, drawer, handleDrawerToggle, anchor = 'left' }: IMuiDrawerProps) {
+export default function MuiDrawer({ drawerWidth, mobileOpen, drawer, handleDrawerToggle, anchor = 'left', mobileDrawerDisplayProps, desktopDrawerDisplayProps }: IMuiDrawerProps) {
     const container = window !== undefined ? () => window.document.body : undefined;
 
     return (
@@ -52,7 +56,7 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, drawer, handleDrawe
                     width: drawerWidth,
                     flexShrink: 0,
                     [`& .MuiDrawer-paper`]: { width: drawerWidth, borderRadius: 0, boxSizing: 'border-box' },
-                    display: { xs: 'block', sm: 'block', md: 'block', lg: 'none', xl: 'none' }
+                    display: mobileDrawerDisplayProps
                 }}
             >
                 {drawer}
@@ -66,7 +70,7 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, drawer, handleDrawe
                     width: drawerWidth,
                     flexShrink: 0,
                     [`& .MuiDrawer-paper`]: { width: drawerWidth, borderRadius: 0, boxSizing: 'border-box' },
-                    display: { xs: 'none', sm: 'none', md: 'none', lg: 'block', xl: 'block' }
+                    display: desktopDrawerDisplayProps
                 }}
                 open
             >

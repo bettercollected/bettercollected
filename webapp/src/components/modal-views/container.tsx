@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import DeleteFormModal from '@app/components/form/delete-form-modal';
 import { Close } from '@app/components/icons/close';
 import LogoutView from '@app/components/logout/logout-view';
+import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
 import UpdateTermsOfServiceAndPrivacyPolicy from '@app/components/toc-privacy-policy';
 import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
@@ -33,7 +34,7 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
         case 'LOGOUT_VIEW':
             return <LogoutView />; // Done
         case 'SHARE_VIEW':
-            return <ShareView {...modalProps} />; // Done
+            return <ShareModalView {...modalProps} />; // Done
         case 'UPDATE_WORKSPACE_DOMAIN':
             return <UpdateWorkspaceSettings updateDomain={true} />;
         case 'UPDATE_WORKSPACE_HANDLE':
