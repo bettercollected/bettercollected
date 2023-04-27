@@ -5,7 +5,7 @@ import ProfileImageComponent from '@app/components/dashboard/profile-image';
 import FormsAndSubmissionsTabContainer from '@app/components/forms-and-submisions-tabs/forms-and-submisisons-tab-container';
 import WorkspaceFooter from '@app/components/layout/workspace-footer';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import WorkspaceHeader from '@app/components/workspace/workspace-header';
+import PublicWorkspaceTitleAndDescription from '@app/components/workspace/public-workspace-title-description';
 import Layout from '@app/layouts/_layout';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetStatusQuery } from '@app/store/auth/api';
@@ -46,7 +46,7 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
                 </div>
                 <div className="relative flex flex-col sm:flex-row pt-6 pb-10 gap-6 px-5 lg:px-10 xl:px-20">
                     <ProfileImageComponent className="w-fit sm:w-auto sm:absolute -top-[51px] md:-top-[63px] lg:-top-[73px] rounded overflow-hidden border-4 border-brand-100" workspace={workspace} isFormCreator={isFormCreator} />
-                    <WorkspaceHeader className="pl-0 ml-0 sm:ml-6 sm:pl-32 md:pl-40 lg:pl-[200px]" isFormCreator={isFormCreator} />
+                    <PublicWorkspaceTitleAndDescription className="pl-0 ml-0 sm:ml-6 sm:pl-32 md:pl-40 lg:pl-[200px]" isFormCreator={isFormCreator} />
                 </div>
                 <div className="px-5 lg:px-10 xl:px-20">
                     <FormsAndSubmissionsTabContainer workspace={workspace} workspaceId={workspace.id} showResponseBar={!!authStatus.error} />

@@ -9,12 +9,12 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
-interface WorkspaceHeaderProps {
+interface IPublicWorkspaceTitleAndDescriptionProps {
     isFormCreator: boolean;
     className?: string;
 }
 
-export default function WorkspaceHeader({ isFormCreator, className = '' }: WorkspaceHeaderProps) {
+export default function PublicWorkspaceTitleAndDescription({ isFormCreator, className = '' }: IPublicWorkspaceTitleAndDescriptionProps) {
     const [isMarkdownEditable, setIsMarkdownEditable] = useState(false);
     const dispatch = useAppDispatch();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
@@ -51,7 +51,7 @@ export default function WorkspaceHeader({ isFormCreator, className = '' }: Works
             <div className={`h-full w-full ${className}`}>
                 <div className="w-full md:w-9/12 flex flex-col gap-4">
                     <h4 className="h4">{workspace.title}</h4>
-                    <MarkdownText description={workspace.description} contentStripLength={300} markdownClassName="text-black-700 body3 !not-italic" textClassName="text-black-700 body3 !not-italic" />
+                    <MarkdownText scrollTitle={workspace.title} description={workspace.description} contentStripLength={200} markdownClassName="text-black-700 body3 !not-italic" textClassName="text-black-700 body3 !not-italic" />
                 </div>
             </div>
         );
@@ -62,7 +62,14 @@ export default function WorkspaceHeader({ isFormCreator, className = '' }: Works
                 {isMarkdownEditable ? (
                     <ReactContentEditable callback={handleDescriptionChange} tag="p" content={workspace?.description} className="text-black-700 body3 !not-italic" />
                 ) : (
-                    <MarkdownText onClick={() => setIsMarkdownEditable(true)} description={workspace.description} contentStripLength={300} markdownClassName="text-black-700 body3 !not-italic" textClassName="text-black-700 body3 !not-italic" />
+                    <MarkdownText
+                        scrollTitle={workspace.title}
+                        onClick={() => setIsMarkdownEditable(true)}
+                        description={workspace.description}
+                        contentStripLength={200}
+                        markdownClassName="text-black-700 body3 !not-italic"
+                        textClassName="text-black-700 body3 !not-italic"
+                    />
                 )}
             </div>
         </div>

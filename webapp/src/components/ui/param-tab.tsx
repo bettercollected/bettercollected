@@ -86,7 +86,7 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true }
                             <TabItem key={item.path}>
                                 <div className="flex items-center">
                                     {item.icon && <span className="block pr-2">{item.icon}</span>}
-                                    {['xs', 'sm'].indexOf(breakpoints) === -1 && <div className="">{item.title}</div>}
+                                    {['xs', '2xs', 'sm'].indexOf(breakpoints) === -1 && <div className="">{item.title}</div>}
                                 </div>
                             </TabItem>
                         ))}
