@@ -73,16 +73,16 @@ class WorkspaceMembersService:
                 workspace_id=workspace_id, invitation=invitation
             )
         )
-
         await self.http_client.get(
             settings.auth_settings.BASE_URL + "/users/invite/send/mail",
             params={
                 "workspace_title": workspace.title,
                 "workspace_name": workspace.workspace_name,
-                "role": invitation.role,
+                "role": invitation.role.title(),
                 "email": invitation.email,
                 "token": workspace_invitation.invitation_token,
             },
+            timeout=60,
         )
         return workspace_invitation
 
