@@ -44,13 +44,13 @@ export function isNetherUndefinedNorNull(data: unknown): boolean {
 
 export const requestForDeletionProps = (deletionStatus: string) => {
     let status = 'Success';
-    let className = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+    let cName = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
     if (deletionStatus === 'pending') {
         status = 'Pending';
-        className = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+        cName = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
     }
     return {
         status,
-        className
+        cName
     };
 };

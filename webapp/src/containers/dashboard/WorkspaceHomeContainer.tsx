@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 
+import { Divider } from '@mui/material';
+
 import BannerImageComponent from '@app/components/dashboard/banner-image';
 import ProfileImageComponent from '@app/components/dashboard/profile-image';
 import FormsAndSubmissionsTabContainer from '@app/components/forms-and-submisions-tabs/forms-and-submisisons-tab-container';
@@ -39,20 +41,21 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
     const isFormCreator = authStatus.isSuccess && authStatus?.data?.user?.id === workspace?.ownerId;
 
     return (
-        <Layout showNavbar checkMyDataEnabled className="!p-0 min-h-screen bg-[#FBFBFB] pb-10 flex flex-col justify-center">
-            <div className="min-h-screen">
-                <div className="relative overflow-hidden w-full">
-                    <BannerImageComponent workspace={workspace} isFormCreator={isFormCreator} />
-                </div>
-                <div className="relative flex flex-col sm:flex-row pt-6 pb-10 gap-6 px-5 lg:px-10 xl:px-20">
-                    <ProfileImageComponent className="w-fit sm:w-auto sm:absolute -top-[51px] md:-top-[63px] lg:-top-[73px] rounded overflow-hidden border-4 border-brand-100" workspace={workspace} isFormCreator={isFormCreator} />
-                    <PublicWorkspaceTitleAndDescription className="pl-0 ml-0 sm:ml-6 sm:pl-32 md:pl-40 lg:pl-[200px]" isFormCreator={isFormCreator} />
-                </div>
-                <div className="px-5 lg:px-10 xl:px-20">
-                    <FormsAndSubmissionsTabContainer workspace={workspace} workspaceId={workspace.id} showResponseBar={!!authStatus.error} />
-                </div>
+        <Layout showNavbar checkMyDataEnabled className="!p-0 min-h-screen bg-white pb-10 flex flex-col">
+            <div className="relative overflow-hidden w-full">
+                <BannerImageComponent workspace={workspace} isFormCreator={isFormCreator} />
             </div>
-            <WorkspaceFooter workspace={workspace} isCustomDomain={isCustomDomain} />
+            <div className="md:min-h-[235px] relative bg-brand-100 flex flex-col sm:flex-row pt-6 pb-10 gap-6 px-5 lg:px-10 xl:px-20">
+                <ProfileImageComponent className="w-fit sm:w-auto sm:absolute -top-[51px] md:-top-[63px] lg:-top-[73px] rounded overflow-hidden border-4 border-brand-100" workspace={workspace} isFormCreator={isFormCreator} />
+                <PublicWorkspaceTitleAndDescription className="pl-0 ml-0 sm:ml-6 sm:pl-32 md:pl-40 lg:pl-[200px]" isFormCreator={isFormCreator} />
+            </div>
+            <div className="bg-white h-full">
+                <FormsAndSubmissionsTabContainer isFormCreator={isFormCreator} workspace={workspace} workspaceId={workspace.id} showResponseBar={!!authStatus.error} />
+                <div className="px-5 lg:px-10 xl:px-20">
+                    <Divider className="my-10" />
+                </div>
+                <WorkspaceFooter workspace={workspace} isCustomDomain={isCustomDomain} />
+            </div>
         </Layout>
     );
 }

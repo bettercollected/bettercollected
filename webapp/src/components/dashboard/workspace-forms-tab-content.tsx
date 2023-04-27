@@ -21,12 +21,12 @@ interface IFormCard {
 const StyledTextField = styled.div`
     .MuiFormControl-root {
         background: white;
-        border-radius: 14px;
+        border-radius: 4px;
         outline: none;
     }
 
     .MuiOutlinedInput-notchedOutline {
-        border-radius: 14px;
+        border-radius: 4px;
         border-width: 0.5px;
     }
 
@@ -37,7 +37,7 @@ const StyledTextField = styled.div`
     }
 `;
 
-export default function WorkspaceFormsTabContent({ workspace }: any) {
+export default function WorkspaceFormsTabContent({ workspace, isFormCreator }: any) {
     const workspaceId = workspace.id;
     const query = {
         workspace_id: workspaceId
@@ -94,13 +94,13 @@ export default function WorkspaceFormsTabContent({ workspace }: any) {
         );
 
     return (
-        <>
-            {pinnedForms.length !== 0 && <FormCards title="Pinned Forms" workspace={workspace} formsArray={pinnedForms} />}
+        <div className="py-6 px-5 lg:px-10 xl:px-20 flex flex-col gap-6">
+            {pinnedForms.length !== 0 && <FormCards title="Pinned Forms" isFormCreator={isFormCreator} workspace={workspace} formsArray={pinnedForms} />}
             {showUnpinnedForms && (
                 <>
-                    {pinnedForms.length !== 0 && <hr className="mb-6" />}
-                    {pinnedForms.length !== 0 && <h1 className=" text-gray-700 font-semibold text-md md:text-lg mb-4">All Forms</h1>}
-                    <div className={`w-full md:w-[30%] ${!pinnedForms ? 'mt-6' : 'mt-0'} mb-6`}>
+                    {pinnedForms.length !== 0 && <hr />}
+                    {pinnedForms.length !== 0 && <h1 className=" text-gray-700 font-semibold text-md md:text-lg">All Forms</h1>}
+                    <div className={`w-full md:w-[30%]`}>
                         <StyledTextField>
                             <TextField
                                 size="small"
@@ -122,7 +122,7 @@ export default function WorkspaceFormsTabContent({ workspace }: any) {
                     </div>
                 </>
             )}
-            {unpinnedForms.length !== 0 && <FormCards title="" formsArray={unpinnedForms} workspace={workspace} />}
-        </>
+            {unpinnedForms.length !== 0 && <FormCards title="" isFormCreator={isFormCreator} formsArray={unpinnedForms} workspace={workspace} />}
+        </div>
     );
 }

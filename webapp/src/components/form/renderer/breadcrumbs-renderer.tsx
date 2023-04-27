@@ -13,18 +13,20 @@ function BreadcrumbRenderer({ items }: BreadcrumbRendererProps) {
         <div data-testid="breadcrumbs-renderer" className="overflow-auto">
             <nav className="flex" aria-label="Breadcrumb">
                 <ol className="flex items-center">
-                    {items.map((item: BreadcrumbsItem, idx: number) => {
-                        const Component = item.disabled ? 'span' : 'a';
-                        const props = item.disabled ? {} : { href: item.url };
-                        return (
-                            <li key={idx} className="inline-flex body4 items-center">
-                                <Component {...props} data-testid={'item' + idx} aria-hidden className={`inline-flex truncate items-center`}>
-                                    {item.title}
-                                </Component>
-                                {idx !== items.length - 1 && <ChevronRight className=" md:mx-2" />}
-                            </li>
-                        );
-                    })}
+                    {!!items &&
+                        Array.isArray(items) &&
+                        items.map((item: BreadcrumbsItem, idx: number) => {
+                            const Component = item.disabled ? 'span' : 'a';
+                            const props = item.disabled ? {} : { href: item.url };
+                            return (
+                                <li key={idx} className="inline-flex body4 items-center">
+                                    <Component {...props} data-testid={'item' + idx} aria-hidden className={`inline-flex truncate items-center`}>
+                                        {item.title}
+                                    </Component>
+                                    {idx !== items.length - 1 && <ChevronRight className=" md:mx-2" />}
+                                </li>
+                            );
+                        })}
                 </ol>
             </nav>
         </div>
