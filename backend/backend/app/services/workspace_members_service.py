@@ -8,6 +8,7 @@ from backend.app.models.workspace_member_dto import WorkspaceMemberDto
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
+from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
 from common.constants import MESSAGE_NOT_FOUND
@@ -24,10 +25,12 @@ class WorkspaceMembersService:
         workspace_user_service: WorkspaceUserService,
         workspace_invitation_repo: WorkspaceInvitationRepo,
         http_client: HttpClient,
+        workspace_form_service: WorkspaceFormService
     ):
         self.workspace_user_service = workspace_user_service
         self.workspace_invitation_repository = workspace_invitation_repo
         self.http_client = http_client
+        self.workspace_form_service = workspace_form_service
 
     async def get_workspace_members(self, workspace_id: PydanticObjectId, user: User):
         workspace_users = await self.workspace_user_service.get_users_in_workspace(
@@ -167,3 +170,12 @@ class WorkspaceMembersService:
             settings.auth_settings.BASE_URL + "/users", params={"user_ids": user_ids}
         )
         return response_data.get("users_info")
+
+    async def delete_workspace_member(self, workspace_id, user_id, user):
+        await self.workspace_user_service.check_is_admin_in_workspace(workspace_id, user)
+        form_ids_imported_by_user = await self.workspace_form_service.get_form_ids_imported_by_user(workspace_id, user_id)
+        for form_id in form_ids_imported_by_user:
+            await self.workspace_form_service.delete_form_from_workspace(workspace_id, form_id, user)
+        await self.workspace_user_service.delete_user_from_workspace(workspace_id, user_id)
+        return {"message": "Deleted Successfully"}
+

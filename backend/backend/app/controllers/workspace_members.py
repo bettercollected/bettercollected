@@ -1,7 +1,7 @@
 from typing import Any, Union
 
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, get, post
+from classy_fastapi import Routable, get, post, delete
 from fastapi import Depends
 from fastapi_pagination import Page
 
@@ -34,6 +34,12 @@ class WorkspaceMembersRouter(Routable):
     ):
         return await self.workspace_members_service.get_workspace_members(
             workspace_id=workspace_id, user=user
+        )
+
+    @delete("/{user_id}")
+    async def delete_workspace_member(self, workspace_id: PydanticObjectId, user_id: PydanticObjectId, user: User = Depends(get_logged_user)):
+        return await self.workspace_members_service.delete_workspace_member(
+            workspace_id=workspace_id, user_id=user_id, user=user
         )
 
     @get("/invitations", response_model=Page[Any])
