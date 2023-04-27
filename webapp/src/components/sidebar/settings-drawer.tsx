@@ -32,18 +32,14 @@ export default function SettingsDrawer({ drawerWidth, mobileOpen, handleDrawerTo
         }
     ];
 
-    const drawer = (
-        <>
-            <Toolbar />
-            <Box sx={{ overflow: 'auto', height: '100%' }}>
-                <NavigationList navigationList={navbarItems} />
-            </Box>
-        </>
-    );
-
     return (
         <>
-            <MuiDrawer drawer={drawer} handleDrawerToggle={handleDrawerToggle} drawerWidth={drawerWidth} mobileOpen={mobileOpen} />
+            <MuiDrawer handleDrawerToggle={handleDrawerToggle} drawerWidth={drawerWidth} mobileOpen={mobileOpen}>
+                <Toolbar />
+                <Box sx={{ overflow: 'auto', height: '100%' }}>
+                    <NavigationList navigationList={navbarItems} />
+                </Box>
+            </MuiDrawer>
         </>
     );
 }

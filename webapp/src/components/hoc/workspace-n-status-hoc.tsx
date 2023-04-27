@@ -16,7 +16,7 @@ export default function WorkspaceNStatusHoc(props: any) {
 
     useEffect(() => {
         dispatch(setWorkspace(workspace));
-    }, []);
+    }, [workspace?.id]);
 
     useEffect(() => {
         if (data) {
@@ -27,7 +27,7 @@ export default function WorkspaceNStatusHoc(props: any) {
         if (error) {
             router.push('/login');
         }
-    }, [data]);
+    }, [workspace]);
 
     return <>{children}</>;
 }

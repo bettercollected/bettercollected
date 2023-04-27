@@ -6,10 +6,10 @@ interface IMuiDrawerProps {
     drawerWidth?: number;
     mobileOpen?: boolean;
     handleDrawerToggle: () => void;
-    drawer: ReactNode;
     anchor?: 'left' | 'top' | 'right' | 'bottom';
     mobileDrawerDisplayProps?: any;
     desktopDrawerDisplayProps?: any;
+    children?: any;
 }
 
 MuiDrawer.defaultProps = {
@@ -18,7 +18,7 @@ MuiDrawer.defaultProps = {
     mobileDrawerDisplayProps: { xs: 'block', sm: 'block', md: 'block', lg: 'none', xl: 'none' },
     desktopDrawerDisplayProps: { xs: 'none', sm: 'none', md: 'none', lg: 'block', xl: 'block' }
 };
-export default function MuiDrawer({ drawerWidth, mobileOpen, drawer, handleDrawerToggle, anchor = 'left', mobileDrawerDisplayProps, desktopDrawerDisplayProps }: IMuiDrawerProps) {
+export default function MuiDrawer({ drawerWidth, mobileOpen, children, handleDrawerToggle, anchor = 'left', mobileDrawerDisplayProps, desktopDrawerDisplayProps }: IMuiDrawerProps) {
     const container = window !== undefined ? () => window.document.body : undefined;
 
     return (
@@ -40,7 +40,7 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, drawer, handleDrawe
                     display: mobileDrawerDisplayProps
                 }}
             >
-                {drawer}
+                {children}
             </Drawer>
 
             {/* Desktop drawer */}
@@ -55,7 +55,7 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, drawer, handleDrawe
                 }}
                 open
             >
-                {drawer}
+                {children}
             </Drawer>
         </>
     );

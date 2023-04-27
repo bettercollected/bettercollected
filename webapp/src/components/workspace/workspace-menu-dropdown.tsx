@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useRouter } from 'next/router';
+
 import _ from 'lodash';
 
 import { ExpandMore } from '@mui/icons-material';
@@ -30,6 +32,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
 
     const workspace = useAppSelector(selectWorkspace);
     const { data, isLoading } = useGetAllMineWorkspacesQuery();
+    const router = useRouter();
 
     const screenSize = useBreakpoint();
 
@@ -38,7 +41,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
     };
 
     const handleChangeWorkspace = (space: WorkspaceDto) => {
-        // TODO: Change workspace here
+        router.push(`/${space.workspaceName}/dashboard`);
     };
 
     const handleCreateWorkspace = () => {
@@ -120,10 +123,10 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                             <IconButton className={`hover:rounded-[4px] hover:bg-black-200 rounded-[4px] ${fullWidth ? 'w-full flex justify-between' : 'w-fit'}`} onClick={() => handleChangeWorkspace(space)} size="small">
                                 <div className="flex justify-between w-full items-center gap-4">
                                     <div className="flex items-center gap-3">
-                                        <AuthAccountProfileImage size={40} image={space?.profileImage} name={workspaceName} />
+                                        <AuthAccountProfileImage size={40} image={space?.profileImage} name={space?.title} />
                                         {['xs', '2xs', 'sm'].indexOf(screenSize) === -1 && (
-                                            <Tooltip title={fullWorkspaceName}>
-                                                <p className="body3 !not-italic">{workspaceName}</p>
+                                            <Tooltip title={space?.title}>
+                                                <p className="body3 !not-italic">{space?.title}</p>
                                             </Tooltip>
                                         )}
                                     </div>

@@ -18,6 +18,29 @@ DashboardDrawer.defaultProps = {
     mobileOpen: false
 };
 
+const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
+    return (
+        <>
+            <Toolbar />
+            <Box sx={{ overflow: 'auto', height: '100%' }}>
+                <List>
+                    <ListItem disablePadding sx={{ paddingY: '20px', paddingX: '20px', width: '100%' }}>
+                        <WorkspaceMenuDropdown fullWidth />
+                    </ListItem>
+                </List>
+                <Divider />
+                <NavigationList navigationList={topNavList} />
+                {isAdmin && (
+                    <>
+                        <Divider />
+                        <NavigationList navigationList={bottomNavList} />
+                    </>
+                )}
+            </Box>
+        </>
+    );
+};
+
 export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerToggle }: IDrawerProps) {
     const workspace = useAppSelector(selectWorkspace);
     const isAdmin = useAppSelector(selectIsAdmin);
@@ -46,30 +69,11 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
         }
     ];
 
-    const drawer = (
-        <>
-            <Toolbar />
-            <Box sx={{ overflow: 'auto', height: '100%' }}>
-                <List>
-                    <ListItem disablePadding sx={{ paddingY: '20px', paddingX: '20px', width: '100%' }}>
-                        <WorkspaceMenuDropdown fullWidth />
-                    </ListItem>
-                </List>
-                <Divider />
-                <NavigationList navigationList={topNavList} />
-                {isAdmin && (
-                    <>
-                        <Divider />
-                        <NavigationList navigationList={bottomNavList} />
-                    </>
-                )}
-            </Box>
-        </>
-    );
-
     return (
         <>
-            <MuiDrawer drawer={drawer} handleDrawerToggle={handleDrawerToggle} drawerWidth={drawerWidth} mobileOpen={mobileOpen} />
+            <MuiDrawer handleDrawerToggle={handleDrawerToggle} drawerWidth={drawerWidth} mobileOpen={mobileOpen}>
+                <Drawer topNavList={topNavList} isAdmin={isAdmin} bottomNavList={bottomNavList} />
+            </MuiDrawer>
         </>
     );
 }
