@@ -64,7 +64,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
     };
 
     return (
-        <div className="relative aspect-banner border rounded border-brand-300 w-full  bannerdiv">
+        <div className={`relative aspect-banner-mobile lg:aspect-banner-desktop ${!!workspace?.bannerImage ? '' : 'border border-brand-300'} w-full bannerdiv`}>
             {!!image ? (
                 <TransformWrapper centerOnInit ref={transformComponentRef}>
                     {({ resetTransform }) => {
@@ -114,7 +114,7 @@ function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileU
         <div className={`absolute bottom-2 right-2 hidden ${getUpdateOptionsClassName()}`}>
             <div className="flex justify-between">
                 {!isLoading && (
-                    <div className="p-2 ml-2 my-19 flex !bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-md" onClick={onClickFileUploadButton}>
+                    <div className="p-2 ml-2 my-19 flex items-center !bg-blue-600 hover:bg-blue-700 cursor-pointer rounded" onClick={onClickFileUploadButton}>
                         <ModeEditIcon className="!w-5 !h-5 text-white" />
                         <span className="ml-1 hidden lg:flex  text-white">Update Banner</span>
                     </div>
