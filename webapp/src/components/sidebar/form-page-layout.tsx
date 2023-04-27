@@ -4,6 +4,8 @@ import { Share } from '@mui/icons-material';
 import { Box, IconButton, Toolbar, Tooltip } from '@mui/material';
 import { toast } from 'react-toastify';
 
+import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
+import Back from '@app/components/icons/back';
 import { Close } from '@app/components/icons/close';
 import { Copy } from '@app/components/icons/copy';
 import { ShareIcon } from '@app/components/icons/share-icon';
@@ -12,10 +14,12 @@ import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import ShareView from '@app/components/ui/share-view';
 import environments from '@app/configs/environments';
+import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
+import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { initialFormState, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { toMidDottedStr } from '@app/utils/stringUtils';
+import { toEndDottedStr, toMidDottedStr } from '@app/utils/stringUtils';
 
 export default function FormPageLayout(props: any) {
     const form = useAppSelector((state) => state.form);
@@ -107,15 +111,37 @@ export default function FormPageLayout(props: any) {
         </>
     );
 
+    const breakpoint = useBreakpoint();
+
+    const breadcrumbsItem: Array<BreadcrumbsItem> = [
+        {
+            title: 'Dashboard',
+            url: `/${props?.workspace?.workspaceName}/dashboard`
+        },
+        {
+            title: 'Forms',
+            url: `/${props?.workspace?.workspaceName}/dashboard/forms`
+        },
+        {
+            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.title, 30) : form?.title || '',
+            disabled: true
+        }
+    ];
+
     return (
         <SidebarLayout DrawerComponent={FormDrawer}>
-            <div className="relative">
-                <div className="absolute z-10 top-5 right-5" onClick={handleDrawerToggle}>
-                    <IconButton>
-                        <Share />
-                    </IconButton>
+            <div className="py-5 w-full relative">
+                <div className="flex z-10 justify-between">
+                    <div className=" flex items-center space-x-4">
+                        <BreadcrumbsRenderer items={breadcrumbsItem} />
+                    </div>
+                    <div onClick={handleDrawerToggle}>
+                        <IconButton>
+                            <Share />
+                        </IconButton>
+                    </div>
                 </div>
-                <div className="absolute xl:left-[-40px] px-5 xl:px-10 pb-10 top-0 w-full py-6 xl:max-w-289-calc-289">{props.children}</div>
+                <div className="absolute xl:left-[-40px] px-5 xl:px-10 pb-10 mt-16 top-0 w-full py-6 xl:max-w-289-calc-289">{props.children}</div>
                 <MuiDrawer
                     drawer={drawer}
                     mobileOpen={mobileOpen}

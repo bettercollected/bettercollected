@@ -1,29 +1,27 @@
 import React from 'react';
 
-function BreadcrumbRenderer(props: any) {
-    const { breadcrumbsItem } = props;
+import { ChevronRight } from '@mui/icons-material';
 
+import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
+
+interface BreadcrumbRendererProps {
+    items: Array<BreadcrumbsItem>;
+}
+
+function BreadcrumbRenderer({ items }: BreadcrumbRendererProps) {
     return (
-        <div data-testid="breadcrumbs-renderer" className="max-h-[100vh] overflow-auto mb-4">
-            <nav className="flex mt-3 px-1 md:px-0" aria-label="Breadcrumb">
-                <ol className="flex items-center space-x-1 md:space-x-3">
-                    {breadcrumbsItem.map((item: any, idx: number) => {
+        <div data-testid="breadcrumbs-renderer" className="overflow-auto">
+            <nav className="flex" aria-label="Breadcrumb">
+                <ol className="flex items-center">
+                    {items.map((item: BreadcrumbsItem, idx: number) => {
+                        const Component = item.disabled ? 'span' : 'a';
+                        const props = item.disabled ? {} : { href: item.url };
                         return (
-                            <li key={idx} className="inline-flex items-center">
-                                <span
-                                    data-testid={'item' + idx}
-                                    aria-hidden
-                                    onClick={!!item.onClick ? item.onClick : () => {}}
-                                    className="cursor-pointer inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                                >
-                                    {item.icon}
+                            <li key={idx} className="inline-flex body4 items-center">
+                                <Component {...props} data-testid={'item' + idx} aria-hidden className={`inline-flex truncate items-center`}>
                                     {item.title}
-                                    {idx !== breadcrumbsItem.length - 1 && (
-                                        <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
-                                        </svg>
-                                    )}
-                                </span>
+                                </Component>
+                                {idx !== items.length - 1 && <ChevronRight className=" md:mx-2" />}
                             </li>
                         );
                     })}
