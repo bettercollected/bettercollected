@@ -115,7 +115,7 @@ export default function Submission(props: any) {
                     </span>
                 </Button>
             </div>
-            <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />
+            {/* <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} /> */}
             <FormRenderer form={form.form} response={form.response} />
         </div>
     );

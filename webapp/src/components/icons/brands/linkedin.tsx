@@ -3,7 +3,7 @@ import React from 'react';
 export function Linkedin(props: React.SVGAttributes<{}>) {
     return (
         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-            <g clip-path="url(#clip0_718_1445)">
+            <g clipPath="url(#clip0_718_1445)">
                 <path d="M13 26C20.1797 26 26 20.1797 26 13C26 5.8203 20.1797 0 13 0C5.8203 0 0 5.8203 0 13C0 20.1797 5.8203 26 13 26Z" fill="white" />
                 <path
                     fillRule="evenodd"

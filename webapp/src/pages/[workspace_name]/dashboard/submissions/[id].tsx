@@ -45,7 +45,8 @@ export default function SubmissionDashboard(props: any) {
                 <FullScreenLoader />
             ) : (
                 <>
-                    <BreadcrumbRenderer breadcrumbsItem={breadcrumbsItem} />
+                    {/* TODO: For viewing individual submission fix this later */}
+                    {/* <BreadcrumbRenderer breadcrumbsItem={breadcrumbsItem} /> */}
                     <FormRenderer form={data?.form} response={data?.response} />
                 </>
             )}

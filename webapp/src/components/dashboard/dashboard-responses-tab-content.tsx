@@ -210,7 +210,7 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
 
     return (
         <DynamicContainer>
-            {!!submissionId && <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />}
+            {/* {!!submissionId && <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />} */}
             {!submissionId && <AllSubmissionsRenderer />}
             {!!form && !!submissionId && <FormRenderer form={form.form} response={form.response} />}
         </DynamicContainer>
