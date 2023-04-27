@@ -9,6 +9,7 @@ import ConnectWithProviderButton from '@app/components/login/login-with-google-b
 import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export async function getServerSideProps(_context: any) {
@@ -28,10 +29,17 @@ export async function getServerSideProps(_context: any) {
         if (user?.roles?.includes('FORM_CREATOR')) {
             const userWorkspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/mine`, config);
             const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e)) ?? null;
+            const defaultWorkspace = userWorkspace.filter((workspace: WorkspaceDto) => workspace.ownerId === user.id);
+            let redirectWorkspace;
+            if (defaultWorkspace.length > 0) {
+                redirectWorkspace = defaultWorkspace[0];
+            } else {
+                redirectWorkspace = userWorkspace[0];
+            }
             return {
                 redirect: {
                     permanent: false,
-                    destination: `/${userWorkspace[0].workspaceName}/dashboard`
+                    destination: `/${redirectWorkspace.workspaceName}/dashboard`
                 }
             };
         }
