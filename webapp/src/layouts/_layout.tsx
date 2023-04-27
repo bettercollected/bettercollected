@@ -1,37 +1,26 @@
 import React from 'react';
 
-import Logo from '@app/components/ui/logo';
-import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
-import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
+import { Box } from '@mui/material';
+import cn from 'classnames';
 
-export function Header(props: any) {
-    const windowScroll = useWindowScroll();
-    const isMounted = useIsMounted();
-
-    const propClassNames = props?.className ?? '';
-    const navClassNames = isMounted && windowScroll.y > 10 ? 'bg-gradient-to-b from-white to-white/80 shadow-card backdrop-blur dark:from-dark dark:to-dark/80' : 'border-b-[0.5px] border-neutral-100 dark:border-neutral-700 bg-white dark:bg-dark';
-
-    return <nav className={`fixed top-0 !z-30 flex w-full items-center justify-between px-5 lg:pr-10 transition-all duration-300 ltr:right-0 rtl:left-0 h-[68px] ${navClassNames} ${propClassNames}`}>{props.children}</nav>;
-}
+import AuthNavbar from '@app/components/auth/navbar';
 
 interface LayoutProps {
+    showHamburgerIcon?: boolean;
+    checkMyDataEnabled?: boolean;
     className?: string;
     hideSignIn?: boolean;
     showNavbar?: boolean;
 }
 
-export default function Layout({ children, className = '', showNavbar = false }: React.PropsWithChildren<LayoutProps>) {
+export default function Layout({ children, checkMyDataEnabled = false, showHamburgerIcon = false, className = '', showNavbar = false }: React.PropsWithChildren<LayoutProps>) {
     return (
         <div className="!min-h-full !min-w-full bg-brand-100 dark:bg-dark z-20">
-            {showNavbar && (
-                <Header>
-                    <div className="flex justify-between items-center">
-                        <Logo />
-                    </div>
-                </Header>
-            )}
+            {showNavbar && <AuthNavbar showHamburgerIcon={showHamburgerIcon} checkMyDataEnabled={checkMyDataEnabled} showPlans={false} />}
 
-            <main className={`relative mb-0 px-5 ${showNavbar ? 'pt-16 sm:pt-[68px]' : ''} sm:pb-20 ${className}`}>{children}</main>
+            <Box className={`float-none lg:float-right ${showNavbar ? 'mt-[68px] min-h-calc-68' : ''} px-5 lg:px-10 ${className}`} component="main" sx={{ display: 'flex', width: '100%' }}>
+                <div className={cn('w-full h-full')}>{children}</div>
+            </Box>
         </div>
     );
 }
