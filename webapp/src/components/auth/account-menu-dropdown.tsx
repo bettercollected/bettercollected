@@ -2,32 +2,39 @@ import React from 'react';
 
 import _ from 'lodash';
 
-import { ExpandMore, Logout } from '@mui/icons-material';
+import { CreditScore, ExpandMore, Logout } from '@mui/icons-material';
 import { Divider, IconButton, ListItem, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip, Typography } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import WorkspaceAdminHoc from '@app/components/hoc/workspace-admin-hoc';
+import { DashboardIcon } from '@app/components/icons/dashboard-icon';
 import { useModal } from '@app/components/modal-views/context';
+import Button from '@app/components/ui/button';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { useGetStatusQuery } from '@app/store/auth/api';
-import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
+import { selectAuthStatus } from '@app/store/auth/selectors';
 import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface IAuthAccountMenuDropdownProps {
     fullWidth?: boolean;
+    checkMyDataEnabled?: boolean;
 }
 
 AuthAccountMenuDropdown.defaultProps = {
-    fullWidth: false
+    fullWidth: false,
+    checkMyDataEnabled: false
 };
-export default function AuthAccountMenuDropdown({ fullWidth }: IAuthAccountMenuDropdownProps) {
+export default function AuthAccountMenuDropdown({ fullWidth, checkMyDataEnabled }: IAuthAccountMenuDropdownProps) {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
     const open = Boolean(anchorEl);
+    const workspace = useAppSelector(selectWorkspace);
 
-    const { data, error, isLoading } = useGetStatusQuery('status');
+    const authStatus = useAppSelector(selectAuthStatus);
+    const data: any = authStatus?.data ? authStatus.data : null;
+    const isError = !!authStatus?.error;
 
     const screenSize = useBreakpoint();
     const { openModal } = useModal();
@@ -45,7 +52,18 @@ export default function AuthAccountMenuDropdown({ fullWidth }: IAuthAccountMenuD
         handleClose();
     };
 
-    if (isLoading || error) return <div className="w-9 sm:w-32 h-9 rounded-[4px] animate-pulse bg-black-300" />;
+    const handleCheckMyData = () => {
+        openModal('LOGIN_VIEW', { isCustomDomain: true });
+    };
+
+    if (isError && checkMyDataEnabled)
+        return (
+            <Button size="small" variant="solid" onClick={handleCheckMyData}>
+                Check My Data
+            </Button>
+        );
+    if (!data || isError) return <div className="w-9 sm:w-32 h-9 rounded-[4px] animate-pulse bg-black-300" />;
+
     const user = data?.user;
 
     const profileName = _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name);
@@ -125,9 +143,22 @@ export default function AuthAccountMenuDropdown({ fullWidth }: IAuthAccountMenuD
                 </ListItem>
                 <Divider className="mb-2" />
                 <WorkspaceAdminHoc>
+                    <ActiveLink href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/dashboard`} referrerPolicy="no-referrer">
+                        <MenuItem>
+                            <ListItemIcon>
+                                <DashboardIcon width={20} height={20} />
+                            </ListItemIcon>
+                            <span>My Dashboard</span>
+                        </MenuItem>
+                    </ActiveLink>
                     {user.stripe_customer_id && (
-                        <ActiveLink href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer" target="_blank">
-                            <MenuItem>Billing</MenuItem>
+                        <ActiveLink href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer">
+                            <MenuItem>
+                                <ListItemIcon>
+                                    <CreditScore fontSize="small" />
+                                </ListItemIcon>
+                                <span>Billing</span>
+                            </MenuItem>
                         </ActiveLink>
                     )}
                 </WorkspaceAdminHoc>
