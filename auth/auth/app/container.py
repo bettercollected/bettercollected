@@ -39,8 +39,7 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     stripe_service: StripeService = providers.Singleton(
-        StripeService,
-        user_repository=user_repository
+        StripeService, user_repository=user_repository
     )
 
     user_service: UserService = providers.Singleton(
