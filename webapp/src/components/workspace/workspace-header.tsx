@@ -11,9 +11,10 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 
 interface WorkspaceHeaderProps {
     isFormCreator: boolean;
+    className?: string;
 }
 
-export default function WorkspaceHeader({ isFormCreator }: WorkspaceHeaderProps) {
+export default function WorkspaceHeader({ isFormCreator, className = '' }: WorkspaceHeaderProps) {
     const [isMarkdownEditable, setIsMarkdownEditable] = useState(false);
     const dispatch = useAppDispatch();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
@@ -47,21 +48,21 @@ export default function WorkspaceHeader({ isFormCreator }: WorkspaceHeaderProps)
 
     if (!isFormCreator)
         return (
-            <div className="h-full w-full ml-0 md:ml-10">
-                <div className="w-full md:w-9/12">
-                    <h1 className="font-semibold text-darkGrey text-xl sm:text-2xl md:text-3xl xl:text-4xl">{workspace.title}</h1>
-                    <MarkdownText description={workspace.description} contentStripLength={300} markdownClassName="pt-3 md:pt-7 text-base text-grey" textClassName="text-base" />
+            <div className={`h-full w-full ${className}`}>
+                <div className="w-full md:w-9/12 flex flex-col gap-4">
+                    <h4 className="h4">{workspace.title}</h4>
+                    <MarkdownText description={workspace.description} contentStripLength={300} markdownClassName="text-black-700 body3 !not-italic" textClassName="text-black-700 body3 !not-italic" />
                 </div>
             </div>
         );
     return (
-        <div className="h-full w-full ml-0 md:ml-10">
-            <div className="w-full md:w-9/12">
-                <ReactContentEditable callback={handleTitleChange} tag="h1" content={workspace?.title} className="font-semibold text-darkGrey text-xl sm:text-2xl md:text-3xl xl:text-4xl" />
+        <div className={`h-full w-full ${className}`}>
+            <div className="w-full md:w-9/12 flex flex-col gap-4">
+                <ReactContentEditable callback={handleTitleChange} tag="h4" content={workspace?.title} className="h4" />
                 {isMarkdownEditable ? (
-                    <ReactContentEditable callback={handleDescriptionChange} tag="p" content={workspace?.description} className="mt-3 md:mt-7 text-base text-grey" />
+                    <ReactContentEditable callback={handleDescriptionChange} tag="p" content={workspace?.description} className="text-black-700 body3 !not-italic" />
                 ) : (
-                    <MarkdownText onClick={() => setIsMarkdownEditable(true)} description={workspace.description} contentStripLength={300} markdownClassName="pt-3 md:pt-7 text-base text-grey" textClassName="text-base" />
+                    <MarkdownText onClick={() => setIsMarkdownEditable(true)} description={workspace.description} contentStripLength={300} markdownClassName="text-black-700 body3 !not-italic" textClassName="text-black-700 body3 !not-italic" />
                 )}
             </div>
         </div>

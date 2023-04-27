@@ -20,6 +20,7 @@ interface IDashboardContainer {
 export interface BannerImageComponentPropType {
     workspace: WorkspaceDto;
     isFormCreator: boolean;
+    className?: string;
 }
 
 export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: IDashboardContainer) {
@@ -43,15 +44,9 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
                 <div className="relative overflow-hidden w-full">
                     <BannerImageComponent workspace={workspace} isFormCreator={isFormCreator} />
                 </div>
-                <div className="hidden justify-between items-start py-10 gap-6 md:flex px-5 lg:px-10 xl:px-20">
-                    <ProfileImageComponent workspace={workspace} isFormCreator={isFormCreator} />
-                    <WorkspaceHeader isFormCreator={isFormCreator} />
-                </div>
-                <div className="block md:hidden px-5 lg:px-10">
-                    <div className="flex justify-between items-start py-10 gap-6">
-                        <ProfileImageComponent workspace={workspace} isFormCreator={isFormCreator} />
-                    </div>
-                    <WorkspaceHeader isFormCreator={isFormCreator} />
+                <div className="relative flex flex-col sm:flex-row pt-6 pb-10 gap-6 px-5 lg:px-10 xl:px-20">
+                    <ProfileImageComponent className="w-fit sm:w-auto sm:absolute -top-[51px] md:-top-[63px] lg:-top-[73px] rounded overflow-hidden border-4 border-brand-100" workspace={workspace} isFormCreator={isFormCreator} />
+                    <WorkspaceHeader className="pl-0 ml-0 sm:ml-6 sm:pl-32 md:pl-40 lg:pl-[200px]" isFormCreator={isFormCreator} />
                 </div>
                 <div className="px-5 lg:px-10 xl:px-20">
                     <FormsAndSubmissionsTabContainer workspace={workspace} workspaceId={workspace.id} showResponseBar={!!authStatus.error} />

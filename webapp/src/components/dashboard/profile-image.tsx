@@ -61,8 +61,8 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
     };
 
     return (
-        <div>
-            <div className="relative bannerdiv aspect-square product-image bg-white border-[1px] border-neutral-300 hover:border-neutral-400 rounded-xl z-10  w-24  sm:w-32  md:w-40  xl:w-40 2xl:w-[180px] overflow-hidden">
+        <div className={props?.className ?? ''}>
+            <div className={`relative bannerdiv aspect-square product-image bg-white ${!!workspace?.profileImage ? '' : 'border-[1px] border-neutral-300 hover:border-neutral-400'} z-10  w-24  sm:w-32  md:w-40  lg:w-[200px] overflow-hidden`}>
                 {!!workspace.profileImage ? (
                     <Image src={workspace?.profileImage ?? ''} layout="fill" objectFit="contain" alt={workspace.title} />
                 ) : (
@@ -78,7 +78,7 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
                 )}
                 {isFormCreator && (
                     <>
-                        <div data-testid="profile-image-edit" className="absolute hidden w-full h-full bg-gray-700 p-2 !align-middle !text-center cursor-pointer text-gray-500 bottom-0 rounded-md opacity-50 editbannerdiv" onClick={onEditButtonClick}>
+                        <div data-testid="profile-image-edit" className="absolute hidden w-full h-full bg-gray-700 p-2 !align-middle !text-center cursor-pointer text-gray-500 bottom-0 rounded opacity-50 editbannerdiv" onClick={onEditButtonClick}>
                             <ModeEditIcon className="!w-6 !h-6 text-white" />
                         </div>
                         <input data-testid="file-upload-profile" ref={profileInputRef} type="file" accept="image/*" className="hidden" onChange={onUploadFileChange} />
@@ -92,10 +92,10 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
                                     <p>+</p>
                                 </div>
                                 <div className="flex justify-around">
-                                    <Button variant="solid" color="info" disabled={isLoading} className="hover:!translate-y-0 !rounded-md !shadow-none" onClick={() => profileInputRef.current?.click()}>
+                                    <Button variant="solid" color="info" disabled={isLoading} className="hover:!translate-y-0 !rounded !shadow-none" onClick={() => profileInputRef.current?.click()}>
                                         {!uploadImage ? 'Upload Image' : 'Change Image'}
                                     </Button>
-                                    <Button data-testid="save-button" isLoading={isLoading} variant="solid" color="info" className="hover:!translate-y-0 !rounded-md shadow-none" disabled={!uploadImage} onClick={onProfileUpdateButtonClick}>
+                                    <Button data-testid="save-button" isLoading={isLoading} variant="solid" color="info" className="hover:!translate-y-0 !rounded shadow-none" disabled={!uploadImage} onClick={onProfileUpdateButtonClick}>
                                         Save Image
                                     </Button>
                                 </div>

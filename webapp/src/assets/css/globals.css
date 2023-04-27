@@ -21,16 +21,22 @@ body {
     word-break: break-word;
     white-space: break-spaces;
     color: #484848;
+    font: inherit;
+    font-size: inherit;
+    line-height: inherit;
 }
 
 .mark-down-text p {
     white-space: pre-wrap;
     word-break: break-word;
     color: #484848;
+    font: inherit;
+    font-size: inherit;
+    line-height: inherit;
 }
 
 .mark-down-text p a {
-    color: #3b82f6;
+    color: #3b82f6 !important;
 }
 
 .mark-down-text p:last-child {
