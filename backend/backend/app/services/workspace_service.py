@@ -151,6 +151,9 @@ class WorkspaceService:
                             origin="https://" + workspace_patch.custom_domain
                         )
                     )
+                    await self.update_https_server_for_certificate(
+                        workspace_patch.custom_domain
+                    )
                 else:
                     raise HTTPException(409)
             except HTTPException as e:
@@ -251,6 +254,13 @@ class WorkspaceService:
             workspace_id=workspace.id
         )
         pass
+
+    async def update_https_server_for_certificate(self, domain: str):
+        await self.http_client.post(
+            f"{settings.https_cert_api_settings.host}/domain",
+            headers={"api_key": settings.https_cert_api_settings.key},
+            params={"host": domain},
+        )
 
 
 async def create_workspace(user: User):

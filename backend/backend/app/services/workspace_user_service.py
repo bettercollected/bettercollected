@@ -7,6 +7,7 @@ from backend.app.repositories.workspace_user_repository import WorkspaceUserRepo
 from beanie import PydanticObjectId
 
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
+from backend.config import settings
 from common.constants import MESSAGE_UNAUTHORIZED, MESSAGE_FORBIDDEN
 from common.models.user import User
 
@@ -51,6 +52,14 @@ class WorkspaceUserService:
         )
         if existing_user:
             return
+        workspace_users = await self.workspace_user_repository.get_workspace_users(
+            workspace_id=workspace_id
+        )
+        if len(workspace_users) > settings.api_settings.ALLOWED_COLLABORATORS:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                content="Cannot import more collaborators",
+            )
         workspace_user = WorkspaceUserDocument(
             workspace_id=workspace_id, user_id=user.id, roles=[role]
         )
