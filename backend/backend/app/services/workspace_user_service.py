@@ -55,3 +55,21 @@ class WorkspaceUserService:
             workspace_id=workspace_id, user_id=user.id, roles=[role]
         )
         return await self.workspace_user_repository.save(workspace_user)
+
+    async def get_mine_workspaces(self, user_id: str):
+        workspace_users = await WorkspaceUserDocument.find(
+            {"user_id": PydanticObjectId(user_id)}
+        ).to_list()
+        return [workspace.workspace_id for workspace in workspace_users]
+
+    async def disable_other_users_in_workspace(
+        self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
+    ):
+        return await self.workspace_user_repository.disable_other_users_in_workspace(
+            workspace_id=workspace_id, user_id=user_id
+        )
+
+    async def enable_all_users_in_workspace(self, workspace_id: PydanticObjectId):
+        return await self.workspace_user_repository.enable_all_user_in_workspace(
+            workspace_id
+        )

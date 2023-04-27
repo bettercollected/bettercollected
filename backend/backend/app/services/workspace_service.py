@@ -7,7 +7,6 @@ from backend.app.models.workspace import (
     WorkspaceResponseDto,
 )
 from backend.app.repositories.workspace_repository import WorkspaceRepository
-from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.allowed_origin import AllowedOriginsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
@@ -21,7 +20,7 @@ from backend.config import settings
 from beanie import PydanticObjectId
 
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
-from common.constants import MESSAGE_UNAUTHORIZED, MESSAGE_FORBIDDEN
+from common.constants import MESSAGE_FORBIDDEN
 from common.enums.plan import Plans
 from common.models.user import User
 from common.services.http_client import HttpClient
@@ -191,7 +190,10 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.dict())
 
     async def get_mine_workspaces(self, user: User):
-        workspaces = await self._workspace_repo.get_user_workspaces(user.id)
+        workspace_ids = await self._workspace_user_service.get_mine_workspaces(user.id)
+        workspaces = await self._workspace_repo.get_workspace_by_ids(
+            workspace_ids=workspace_ids
+        )
         return [WorkspaceResponseDto(**workspace.dict()) for workspace in workspaces]
 
     async def send_otp_for_workspace(
@@ -231,6 +233,24 @@ class WorkspaceService:
             "responses": responses_count,
             "deletion_requests": deletion_count,
         }
+
+    async def downgrade_user_workspace(self, user_id: PydanticObjectId):
+        workspace = await self._workspace_repo.get_workspace_by_owner_id(
+            owner_id=user_id
+        )
+        await self._workspace_user_service.disable_other_users_in_workspace(
+            workspace_id=workspace.id, user_id=user_id
+        )
+        pass
+
+    async def upgrade_user_workspace(self, user_id: PydanticObjectId):
+        workspace = await self._workspace_repo.get_workspace_by_owner_id(
+            owner_id=user_id
+        )
+        await self._workspace_user_service.enable_all_users_in_workspace(
+            workspace_id=workspace.id
+        )
+        pass
 
 
 async def create_workspace(user: User):

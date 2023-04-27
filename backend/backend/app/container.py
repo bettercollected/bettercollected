@@ -91,14 +91,6 @@ class AppContainer(containers.DeclarativeContainer):
         jwt_service=jwt_service,
     )
 
-    stripe_service: StripeService = providers.Singleton(
-        StripeService,
-        http_client=http_client,
-        plugin_proxy_service=plugin_proxy_service,
-        form_provider_service=form_provider_service,
-        jwt_service=jwt_service,
-    )
-
     form_service: FormService = providers.Singleton(
         FormService,
         workspace_user_repo=workspace_user_repo,
@@ -173,6 +165,15 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_service=workspace_user_service,
         workspace_invitation_repo=workspace_invitation_repo,
         http_client=http_client,
+    )
+
+    stripe_service: StripeService = providers.Singleton(
+        StripeService,
+        http_client=http_client,
+        plugin_proxy_service=plugin_proxy_service,
+        form_provider_service=form_provider_service,
+        jwt_service=jwt_service,
+        workspace_service=workspace_service,
     )
 
 
