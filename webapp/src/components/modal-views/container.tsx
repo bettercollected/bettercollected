@@ -6,11 +6,11 @@ import { useRouter } from 'next/router';
 import DeleteFormModal from '@app/components/form/delete-form-modal';
 import { Close } from '@app/components/icons/close';
 import LogoutView from '@app/components/logout/logout-view';
+import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
 import UpdateTermsOfServiceAndPrivacyPolicy from '@app/components/toc-privacy-policy';
 import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
-import ShareView from '@app/components/ui/share-view';
 import { Transition } from '@app/components/ui/transition';
 import UpdateWorkspaceSettings from '@app/components/workspace/update-workspace-settings';
 
@@ -41,6 +41,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <UpdateWorkspaceSettings updateDomain={false} />;
         case 'DELETE_FORM_MODAL':
             return <DeleteFormModal {...modalProps} />; // Done
+        case 'INVITE_MEMBER':
+            return <InviteMemberModal />;
         default:
             return <></>;
     }

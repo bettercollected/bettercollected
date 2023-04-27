@@ -62,7 +62,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             dispatch(setWorkspace(response.data));
             toast.info(updateDomain ? 'Updated custom Domain of workspace!' : 'Updated workspace handle', { toastId: ToastId.SUCCESS_TOAST });
             if (!updateDomain) {
-                router.replace(`/${response.data.workspaceName}/dashboard/settings?view=settings-advanced`);
+                router.replace(`/${response.data.workspaceName}/dashboard`);
             }
             closeModal();
         } else if (response.error) {

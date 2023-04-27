@@ -7,7 +7,7 @@ import ButtonLoader from '@app/components/ui/button/button-loader';
 import { LoaderSizeTypes, LoaderVariantTypes } from '@app/components/ui/loader';
 
 type ShapeNames = 'rounded' | 'pill' | 'circle';
-type VariantNames = 'ghost' | 'solid' | 'transparent';
+type VariantNames = 'ghost' | 'solid' | 'transparent' | 'outline';
 type ColorNames = 'primary' | 'white' | 'gray' | 'success' | 'info' | 'warning' | 'danger';
 type SizeNames = 'large' | 'medium' | 'small';
 
@@ -19,7 +19,8 @@ const shapes: Record<ShapeNames, string[]> = {
 const variants: Record<VariantNames, string[]> = {
     ghost: ['bg-transparent', 'p-2'],
     solid: ['text-white'],
-    transparent: ['bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800']
+    transparent: ['bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800'],
+    outline: ['text-brand-500 bg-white border-brand-300']
 };
 const colors: Record<ColorNames, string[]> = {
     primary: ['text-white', 'bg-brand hover:!bg-brand-600 focus:ring-brand-500', 'border-brand'],
@@ -58,11 +59,13 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         const sizeClassNames = sizes[size];
         const buttonRef = useRef<HTMLButtonElement>(null);
         useImperativeHandle(ref, () => buttonRef.current);
+
         function dripCompletedHandle() {
             setDripShow(false);
             setDripX(0);
             setDripY(0);
         }
+
         const clickHandler = (event: React.MouseEvent<HTMLButtonElement>) => {
             if (!isLoading && buttonRef.current) {
                 const rect = buttonRef.current.getBoundingClientRect();

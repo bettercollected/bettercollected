@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 
-import { ExpandMoreOutlined } from '@mui/icons-material';
-import { Divider, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
+import { Divider } from '@mui/material';
 import DataTable from 'react-data-table-component';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';

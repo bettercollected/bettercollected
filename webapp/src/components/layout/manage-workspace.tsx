@@ -27,8 +27,7 @@ export default function ManageWorkspaceLayout({ children }: any) {
                 <div className=" flex pt-5 items-center space-x-4">
                     <BreadcrumbsRenderer items={breadcrumbsItem} />
                 </div>
-                <div className=" pt-10 sh1">Manage Workspace</div>
-                <div className="absolute lg:left-[-40px] px-5 lg:px-10 pb-10 mt-24 top-0 w-full xl:max-w-289-calc-289">{children}</div>
+                <div className="absolute lg:left-[-40px] px-5 lg:px-10 pb-10 mt-16 top-0 w-full xl:max-w-289-calc-289">{children}</div>
             </div>
         </SidebarLayout>
     );

@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+
+import _ from 'lodash';
 
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
@@ -7,11 +9,14 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import DataTable from 'react-data-table-component';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
+import MemberOptions from '@app/components/datatable/workspace-settings/member-options';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersInvitationsQuery, useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
-import { toLocaleString, toLocaleStringFromDateString } from '@app/utils/dateUtils';
+import { parseDateStrToDate, toHourMinStr, toLocaleString, toLocaleStringFromDateString, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 import { getFullNameFromUser } from '@app/utils/userUtils';
 
 export default function InvitationsTable() {
@@ -23,30 +28,62 @@ export default function InvitationsTable() {
         if (data && data.items && Array.isArray(data.items)) setInvitations(data.items);
     }, [data]);
 
+    const dataTableResponseColumns: any = [
+        {
+            name: 'Member',
+            selector: (member: any) => member.email,
+            grow: 2,
+            style: {
+                color: '#202124',
+                fontSize: '14px',
+                fontWeight: 500,
+                marginLeft: '-5px',
+                paddingLeft: '16px',
+                paddingRight: '16px'
+            }
+        },
+        {
+            name: 'Role',
+            selector: (member: any) => _.capitalize(member.role),
+            style: {
+                color: 'rgba(0,0,0,.54)',
+                paddingLeft: '16px',
+                paddingRight: '16px'
+            }
+        },
+        {
+            name: 'Status',
+            selector: (member: any) => _.capitalize(member.invitation_status),
+            style: {
+                color: 'rgba(0,0,0,.54)',
+                paddingLeft: '16px',
+                paddingRight: '16px'
+            }
+        },
+        {
+            name: 'Invitation Date',
+            selector: (member: any) => (!!member?.created_at ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(member?.created_at)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(member?.created_at)))}` : ''),
+            style: {
+                color: 'rgba(0,0,0,.54)',
+                paddingLeft: '16px',
+                paddingRight: '16px'
+            }
+        },
+        {
+            cell: (member: any) => (member.invitation_status === 'PENDING' ? <MemberOptions member={member} /> : ''),
+            allowOverflow: true,
+            button: true,
+            width: '60px',
+            style: {
+                paddingLeft: '16px',
+                paddingRight: '16px'
+            }
+        }
+    ];
+
     return (
-        <TableContainer component={Paper}>
-            <Table sx={{ minWidth: 650 }} aria-label="simple table">
-                <TableHead>
-                    <TableRow>
-                        <TableCell>Member</TableCell>
-                        <TableCell align="right">Role</TableCell>
-                        <TableCell align="right">Status</TableCell>
-                        <TableCell align="right">Invitation Date</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {invitations.map((invitation: any) => (
-                        <TableRow key={invitation.email} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                            <TableCell component="th" scope="row">
-                                {invitation.email}
-                            </TableCell>
-                            <TableCell align="right">{invitation.role}</TableCell>
-                            <TableCell align="right">{invitation.invitation_status}</TableCell>
-                            <TableCell align="right">{toLocaleStringFromDateString(invitation.created_at)}</TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </TableContainer>
+        <>
+            <DataTable className="p-0 mt-2" columns={dataTableResponseColumns} data={invitations || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+        </>
     );
 }
