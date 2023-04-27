@@ -19,7 +19,7 @@ export default function Upgrade() {
     }, [data]);
 
     return (
-        <div className="w-screen px-5 mt-[68px]">
+        <div className="w-full px-5 mt-[68px] mb-10">
             <AuthNavbar showHamburgerIcon={false} showPlans={false} />
             <div className="min-h-calc-68 w-full flex flex-col items-center justify-center">
                 <PaymentLogo className="mb-8" />

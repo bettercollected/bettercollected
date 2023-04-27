@@ -43,6 +43,44 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
     const importedResponses = workspaceStats && workspaceStats?.responses ? `${workspaceStats.responses}` : '0';
     const deletionRequests = workspaceStats && workspaceStats?.deletion_requests && workspaceStats.deletion_requests?.total ? `${workspaceStats.deletion_requests?.success || 0}/${workspaceStats.deletion_requests.total || 0}` : '0/0';
 
+    const workspaceDashboardStatsList = [
+        {
+            key: 'imported-forms',
+            title: 'Imported forms',
+            tooltipTitle: `${workspaceStats?.forms ?? 0} forms imported${isAdmin && !isProPlan ? ' out of limited 100 forms' : ''}`,
+            content: importedFormsContent,
+            buttonProps: {
+                enabled: isAdmin && !isProPlan,
+                text: 'Import unlimited forms',
+                onClick: () => {
+                    router.push(`/${workspace.workspaceName}/upgrade`);
+                }
+            }
+        },
+        {
+            key: 'collected-responses',
+            title: 'Collected responses',
+            tooltipTitle: `${workspaceStats?.responses ?? 0} form responses`,
+            content: importedResponses,
+            buttonProps: {
+                enabled: false,
+                text: 'Import unlimited forms',
+                onClick: () => {}
+            }
+        },
+        {
+            key: 'deletion-requests',
+            title: 'Deletion requests',
+            tooltipTitle: `${workspaceStats?.deletion_requests?.success ?? 0} responses deleted out of ${workspaceStats?.deletion_requests?.total ?? 0} deletion requests`,
+            content: deletionRequests,
+            buttonProps: {
+                enabled: false,
+                text: 'Import unlimited forms',
+                onClick: () => {}
+            }
+        }
+    ];
+
     return (
         <>
             <div className="flex flex-col md:flex-row justify-center md:justify-start md:items-center mb-4">
@@ -71,35 +109,9 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
-                <WorkspaceDashboardStats
-                    title="Imported forms"
-                    content={importedFormsContent}
-                    buttonProps={{
-                        enabled: isAdmin && !isProPlan,
-                        text: 'Import unlimited forms',
-                        onClick: () => {
-                            router.push(`/${workspace.workspaceName}/upgrade`);
-                        }
-                    }}
-                />
-                <WorkspaceDashboardStats
-                    title="Collected responses"
-                    content={importedResponses}
-                    buttonProps={{
-                        enabled: false,
-                        text: 'Import unlimited forms',
-                        onClick: () => {}
-                    }}
-                />
-                <WorkspaceDashboardStats
-                    title="Deletion requests"
-                    content={deletionRequests}
-                    buttonProps={{
-                        enabled: false,
-                        text: 'Import unlimited forms',
-                        onClick: () => {}
-                    }}
-                />
+                {workspaceDashboardStatsList.map((stat) => (
+                    <WorkspaceDashboardStats key={stat.key} title={stat.title} tooltipTitle={stat.tooltipTitle} content={stat.content} buttonProps={stat.buttonProps} />
+                ))}
             </div>
             <Divider className="my-6" />
         </>

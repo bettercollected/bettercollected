@@ -26,7 +26,7 @@ const pluginConfig = {
         // callback triggered only once
         const windowObj: any = window;
         const analyticsEnabled = windowObj.CookieConsentApi.allowedCategory('analytics');
-        console.log(`analytics ${analyticsEnabled ? 'enabled' : 'disabled'}`);
+        // console.log(`analytics ${analyticsEnabled ? 'enabled' : 'disabled'}`);
     },
 
     onAccept: function (cookie: any) {
