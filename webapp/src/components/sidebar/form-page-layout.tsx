@@ -5,7 +5,6 @@ import { Box, IconButton, Toolbar, Tooltip } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
-import Back from '@app/components/icons/back';
 import { Close } from '@app/components/icons/close';
 import { Copy } from '@app/components/icons/copy';
 import { ShareIcon } from '@app/components/icons/share-icon';
@@ -82,7 +81,6 @@ export default function FormPageLayout(props: any) {
                 </div>
                 <div className="absolute xl:left-[-40px] px-5 xl:px-10 pb-10 mt-16 top-0 w-full py-6 xl:max-w-289-calc-289">{props.children}</div>
                 <MuiDrawer
-                    drawer={drawer}
                     mobileOpen={mobileOpen}
                     anchor="right"
                     handleDrawerToggle={handleDrawerToggle}
