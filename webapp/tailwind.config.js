@@ -187,7 +187,8 @@ module.exports = {
                 black: '900'
             },
             aspectRatio: {
-                banner: '4 / 1'
+                'banner-desktop': '5 / 1',
+                'banner-mobile': '3 / 1'
             }
         }
     },
