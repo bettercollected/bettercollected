@@ -9,6 +9,7 @@ from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from common.models.user import User
 from backend.app.exceptions import HTTPException
 
+
 class WorkspaceUserRepository:
     async def has_user_access_in_workspace(
         self, workspace_id: PydanticObjectId, user: User
@@ -73,9 +74,11 @@ class WorkspaceUserRepository:
         workspace_user = await WorkspaceUserDocument.find_one(
             {
                 "workspace_id": PydanticObjectId(workspace_id),
-                "user_id": PydanticObjectId(user_id)
+                "user_id": PydanticObjectId(user_id),
             }
         )
         if not workspace_user:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Resource doesn't exist")
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Resource doesn't exist"
+            )
         return await WorkspaceUserDocument.delete(workspace_user)

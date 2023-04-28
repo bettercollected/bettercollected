@@ -70,10 +70,6 @@ class WorkspaceFormService:
             raise HTTPException(
                 status_code=403, content="Upgrade plan to import more forms"
             )
-        if await self.workspace_form_repository.get_workspace_ids_for_form_id(form_id=form_import.form.get('id')):
-            raise HTTPException(
-                status_code=405, content="Please delete this form from another workspace to import here"
-            )
         response_data = await self.convert_form(
             provider=provider, request=request, form_import=form_import
         )
@@ -166,5 +162,9 @@ class WorkspaceFormService:
             workspace_id
         )
 
-    async def get_form_ids_imported_by_user(self, workspace_id: PydanticObjectId, user_id: PydanticObjectId):
-        return await self.workspace_form_repository.get_form_ids_imported_by_user(workspace_id, str(user_id))
+    async def get_form_ids_imported_by_user(
+        self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
+    ):
+        return await self.workspace_form_repository.get_form_ids_imported_by_user(
+            workspace_id, str(user_id)
+        )

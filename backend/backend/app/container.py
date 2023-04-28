@@ -165,7 +165,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_service=workspace_user_service,
         workspace_invitation_repo=workspace_invitation_repo,
         http_client=http_client,
-        workspace_form_service=workspace_form_service
+        workspace_form_service=workspace_form_service,
     )
 
     stripe_service: StripeService = providers.Singleton(

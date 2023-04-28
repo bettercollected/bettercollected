@@ -25,7 +25,7 @@ class WorkspaceMembersService:
         workspace_user_service: WorkspaceUserService,
         workspace_invitation_repo: WorkspaceInvitationRepo,
         http_client: HttpClient,
-        workspace_form_service: WorkspaceFormService
+        workspace_form_service: WorkspaceFormService,
     ):
         self.workspace_user_service = workspace_user_service
         self.workspace_invitation_repository = workspace_invitation_repo
@@ -172,10 +172,19 @@ class WorkspaceMembersService:
         return response_data.get("users_info")
 
     async def delete_workspace_member(self, workspace_id, user_id, user):
-        await self.workspace_user_service.check_is_admin_in_workspace(workspace_id, user)
-        form_ids_imported_by_user = await self.workspace_form_service.get_form_ids_imported_by_user(workspace_id, user_id)
+        await self.workspace_user_service.check_is_admin_in_workspace(
+            workspace_id, user
+        )
+        form_ids_imported_by_user = (
+            await self.workspace_form_service.get_form_ids_imported_by_user(
+                workspace_id, user_id
+            )
+        )
         for form_id in form_ids_imported_by_user:
-            await self.workspace_form_service.delete_form_from_workspace(workspace_id, form_id, user)
-        await self.workspace_user_service.delete_user_from_workspace(workspace_id, user_id)
+            await self.workspace_form_service.delete_form_from_workspace(
+                workspace_id, form_id, user
+            )
+        await self.workspace_user_service.delete_user_from_workspace(
+            workspace_id, user_id
+        )
         return {"message": "Deleted Successfully"}
-

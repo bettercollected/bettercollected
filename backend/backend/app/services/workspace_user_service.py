@@ -83,5 +83,7 @@ class WorkspaceUserService:
             workspace_id
         )
 
-    async def delete_user_from_workspace(self, workspace_id: PydanticObjectId, user_id: PydanticObjectId):
+    async def delete_user_from_workspace(
+        self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
+    ):
         return await self.workspace_user_repository.delete(workspace_id, user_id)

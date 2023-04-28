@@ -130,11 +130,10 @@ class WorkspaceFormRepository:
                         content="Form has already been imported to another workspace",
                     )
 
-    async def get_form_ids_imported_by_user(self, workspace_id: PydanticObjectId, user_id: str):
+    async def get_form_ids_imported_by_user(
+        self, workspace_id: PydanticObjectId, user_id: str
+    ):
         forms = await WorkspaceFormDocument.find(
-            {
-                "workspace_id": workspace_id,
-                "user_id": user_id
-            }
+            {"workspace_id": workspace_id, "user_id": user_id}
         ).to_list()
         return [form.form_id for form in forms]
