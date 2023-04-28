@@ -101,11 +101,11 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                     <Button onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: 'your workspace' })} variant="solid" className="!text-brand-500 !border-blue-200 hover:!bg-brand-200">
                         Share
                     </Button>
-                    <Tooltip title="Workspace settings" arrow placement="top-start" enterDelay={300} enterTouchDelay={0}>
+                    {/* <Tooltip title="Workspace settings" arrow placement="top-start" enterDelay={300} enterTouchDelay={0}>
                         <IconButton onClick={handleWorkspaceEllipsisClick} size="medium" className="rounded-[4px] text-black-900 hover:rounded-[4px] hover:bg-black-200">
                             <MoreHoriz />
                         </IconButton>
-                    </Tooltip>
+                    </Tooltip> */}
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
