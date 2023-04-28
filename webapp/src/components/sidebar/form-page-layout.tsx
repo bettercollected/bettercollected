@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { Share } from '@mui/icons-material';
-import { Box, IconButton, Toolbar, Tooltip } from '@mui/material';
+import { Box, IconButton, Toolbar, Tooltip, Typography } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
@@ -18,7 +18,7 @@ import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { initialFormState, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { toEndDottedStr, toMidDottedStr } from '@app/utils/stringUtils';
+import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function FormPageLayout(props: any) {
     const form = useAppSelector((state) => state.form);
@@ -46,8 +46,6 @@ export default function FormPageLayout(props: any) {
 
     const clientHostUrl = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${customUrl}`;
     const customDomainUrl = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`;
-    const shortenedClientHostUrl = toMidDottedStr(clientHostUrl, 8);
-    const shortenedCustomDomainUrl = toMidDottedStr(customDomainUrl, 8);
 
     const breakpoint = useBreakpoint();
 
@@ -65,6 +63,40 @@ export default function FormPageLayout(props: any) {
             disabled: true
         }
     ];
+
+    const formLinks = [
+        {
+            url: clientHostUrl
+        }
+    ];
+
+    const getFormLinks = () => {
+        if (isCustomDomain) formLinks.push({ url: customDomainUrl });
+        return formLinks;
+    };
+
+    const formLinkView = (url: string) => (
+        <div key={url} className="text-black-900 space-x-4 underline w-full body4 items-center rounded p-4 flex bg-brand-100">
+            <Tooltip title={url}>
+                <Typography noWrap>{url}</Typography>
+            </Tooltip>
+            <div className="h-4 cursor-pointer flex gap-2">
+                <Copy
+                    width="16px"
+                    height="16px"
+                    onClick={() => {
+                        copyToClipboard(url);
+                        toast('Form URL Copied', {
+                            type: 'info'
+                        });
+                    }}
+                />
+                <a href={url} target="_blank" referrerPolicy="no-referrer-when-downgrade" rel="noreferrer">
+                    <ShareIcon width={16} height={16} />
+                </a>
+            </div>
+        </div>
+    );
 
     return (
         <SidebarLayout DrawerComponent={FormDrawer}>
@@ -94,53 +126,9 @@ export default function FormPageLayout(props: any) {
                                 <Close onClick={handleDrawerToggle} className="absolute blocks lg:hidden right-5 top-5 cursor-pointer" />
                                 <ShareView url={clientHostUrl} showCopy={false} showBorder={false} />
 
-                                <div className="mt-10">
+                                <div className="mt-10 flex flex-col gap-4">
                                     <div className="body1">Form Links</div>
-                                    <div className="text-black-900 space-x-4 underline w-fit body4 items-center rounded p-4 flex bg-brand-100">
-                                        <Tooltip title={clientHostUrl}>
-                                            <span>{shortenedClientHostUrl}</span>
-                                        </Tooltip>
-                                        <Copy
-                                            width="16px"
-                                            height="16px"
-                                            className="cursor-pointer"
-                                            onClick={() => {
-                                                copyToClipboard(`${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${customUrl}`);
-                                                toast('Form URL Copied', {
-                                                    type: 'info'
-                                                });
-                                            }}
-                                        />
-                                        <a
-                                            href={`${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${customUrl}`}
-                                            target="_blank"
-                                            referrerPolicy="no-referrer-when-downgrade"
-                                            rel="noreferrer"
-                                        >
-                                            <ShareIcon width={19} height={19} />
-                                        </a>
-                                    </div>
-                                    {isCustomDomain && (
-                                        <div className="text-black-900 underline space-x-4 mt-6 w-fit body4 items-center rounded p-4 flex bg-brand-100">
-                                            <Tooltip title={customDomainUrl} className="text-ellipsis whitespace-pre-wrap">
-                                                <span>{shortenedCustomDomainUrl}</span>
-                                            </Tooltip>
-                                            <Copy
-                                                width="16px"
-                                                height="16px"
-                                                className="cursor-pointer"
-                                                onClick={() => {
-                                                    copyToClipboard(`${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`);
-                                                    toast('Form URL Copied', {
-                                                        type: 'info'
-                                                    });
-                                                }}
-                                            />
-                                            <a href={`${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`} target="_blank" referrerPolicy="no-referrer-when-downgrade" rel="noreferrer">
-                                                <ShareIcon width={19} height={19} />
-                                            </a>
-                                        </div>
-                                    )}
+                                    {getFormLinks().map((link) => formLinkView(link.url))}
                                 </div>
                             </div>
                         </Box>
