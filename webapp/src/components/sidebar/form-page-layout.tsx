@@ -47,9 +47,6 @@ export default function FormPageLayout(props: any) {
 
     const clientHostUrl = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${customUrl}`;
     const customDomainUrl = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`;
-    const shortenedClientHostUrl = toMidDottedStr(clientHostUrl, 8);
-    const shortenedCustomDomainUrl = toMidDottedStr(customDomainUrl, 8);
-
     const breakpoint = useBreakpoint();
 
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
@@ -66,6 +63,42 @@ export default function FormPageLayout(props: any) {
             disabled: true
         }
     ];
+
+    const links = [
+        {
+            url: clientHostUrl
+        }
+    ];
+
+    const getFormLinks = () => {
+        if (isCustomDomain) links.push({ url: customDomainUrl });
+        return links;
+    };
+
+    const FormLinkView = ({ formLink }: any) => {
+        return (
+            <>
+                <div className="text-black-900 space-x-4 mt-4 underline max-w-full body4 items-center rounded p-4 flex bg-brand-100">
+                    <Tooltip title={formLink}>
+                        <Typography className="truncate">{formLink}</Typography>
+                    </Tooltip>
+                </div>
+                <div className="flex w-full mt-4 justify-end">
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            copyToClipboard(formLink);
+                            toast('Form URL Copied', {
+                                type: 'info'
+                            });
+                        }}
+                    >
+                        Copy Link
+                    </Button>
+                </div>
+            </>
+        );
+    };
 
     return (
         <SidebarLayout DrawerComponent={FormDrawer}>
@@ -96,48 +129,10 @@ export default function FormPageLayout(props: any) {
                                 <ShareView url={clientHostUrl} showCopy={false} showBorder={false} />
 
                                 <div className="mt-10">
-                                    <div className="body1 pb-4">Form Links</div>
-                                    <div className="text-black-900 space-x-4 underline max-w-full body4 items-center rounded p-4 flex bg-brand-100">
-                                        <Tooltip title={clientHostUrl}>
-                                            <Typography className="truncate">{clientHostUrl}</Typography>
-                                        </Tooltip>
-                                    </div>
-                                    <div className="flex w-full mt-4 justify-end">
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => {
-                                                copyToClipboard(`${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${customUrl}`);
-                                                toast('Form URL Copied', {
-                                                    type: 'info'
-                                                });
-                                            }}
-                                        >
-                                            Copy Link
-                                        </Button>
-                                    </div>
-
-                                    {isCustomDomain && (
-                                        <>
-                                            <div className="text-black-900 space-x-4 mt-4 underline w-fit body4 items-center rounded p-4 flex bg-brand-100">
-                                                <Tooltip title={customDomainUrl}>
-                                                    <Typography className="truncate">{customDomainUrl}</Typography>
-                                                </Tooltip>
-                                            </div>
-                                            <div className="flex w-full mt-4 justify-end">
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={() => {
-                                                        copyToClipboard(`${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`);
-                                                        toast('Form URL Copied', {
-                                                            type: 'info'
-                                                        });
-                                                    }}
-                                                >
-                                                    Copy Link
-                                                </Button>
-                                            </div>
-                                        </>
-                                    )}
+                                    <div className="body1 ">Form Links</div>
+                                    {getFormLinks().map((formLink: any) => (
+                                        <FormLinkView key={formLink.url} formLink={formLink.url} />
+                                    ))}
                                 </div>
                             </div>
                         </Box>

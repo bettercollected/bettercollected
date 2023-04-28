@@ -53,7 +53,7 @@ export default function ShareView({ url, title, showCopy, showBorder }: Props) {
     };
     return (
         <div>
-            <div className="text-lg font-medium -tracking-wide text-gray-900 ltr:text-left rtl:text-right dark:text-white lg:text-xl">Share {title}</div>
+            <div className="-tracking-wide text-gray-900 ltr:text-left rtl:text-right dark:text-white body1">Share {title}</div>
             <div className="flex flex-wrap gap-2 pt-4 md:gap-2.5 xl:pt-5">
                 <div className="product-share flex flex-shrink-0 flex-wrap items-center gap-2 md:gap-2.5">
                     <TwitterShareButton url={url}>
