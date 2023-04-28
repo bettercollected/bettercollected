@@ -32,13 +32,14 @@ class StripeRoutes(Routable):
         prices = stripe.Price.list(product=settings.stripe_settings.product_id)
         response = []
         for price in prices.data:
-            response.append(
-                PlanResponse(
-                    price.id,
-                    price.unit_amount / 100,
-                    price.currency,
-                    price.recurring.interval,
-                )
+            if price.active:
+                response.append(
+                    PlanResponse(
+                        price.id,
+                        price.unit_amount / 100,
+                        price.currency,
+                        price.recurring.interval,
+                    )
             )
         return {"plans": response}
 
