@@ -31,6 +31,7 @@ export default function FormSettingsTab() {
         if (response.data) {
             const settings = response.data.settings;
             dispatch(setFormSettings(settings));
+            toast('Updated', { type: 'success' });
         } else {
             toast('Could not update this form setting!', { type: 'error' });
             return response.error;
@@ -130,7 +131,7 @@ export default function FormSettingsTab() {
                         size="medium"
                         color="danger"
                         onClick={() => {
-                            openModal('DELETE_FORM_MODAL', { form });
+                            openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
                         }}
                     >
                         Delete

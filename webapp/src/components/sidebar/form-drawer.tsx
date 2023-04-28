@@ -22,7 +22,7 @@ export default function FormDrawer({ drawerWidth, mobileOpen, handleDrawerToggle
         },
         {
             key: 'responses',
-            name: 'Responses',
+            name: 'Responses (' + (form.responses || 0) + ')',
             url: `${commonUrl}/responses`
         },
         {

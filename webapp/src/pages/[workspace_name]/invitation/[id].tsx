@@ -46,7 +46,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
             }
         }
         if (response.error) {
-            toast('Something went wrong.', {
+            toast(response.error?.data || 'Something went wrong.', {
                 type: 'error'
             });
         }

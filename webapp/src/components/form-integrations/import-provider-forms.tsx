@@ -77,7 +77,8 @@ export default function ImportProviderForms(props: any) {
             cleanup();
             closeModal();
         } else {
-            toast.error('Could not import the form.');
+            console.log(response.error);
+            toast.error(response.error?.data || 'Could not import the form.');
         }
     };
 

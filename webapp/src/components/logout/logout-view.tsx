@@ -27,7 +27,7 @@ export default function LogoutView(props: any) {
                     <h4 className="sh1 text-center">Are you sure you want to logout?</h4>
 
                     <div className="flex w-full gap-4 justify-end">
-                        <Button variant="solid" color="gray" size="medium" className="bg-black-500" onClick={closeModal}>
+                        <Button variant="solid" color="gray" size="medium" className="!bg-black-500" onClick={closeModal}>
                             Cancel
                         </Button>
                         <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleLogout}>

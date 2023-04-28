@@ -8,6 +8,7 @@ import DataTable from 'react-data-table-component';
 
 import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-badge';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
+import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { useGetFormsSubmissionsQuery, useGetWorkspaceSubmissionsQuery } from '@app/store/workspaces/api';
@@ -104,8 +105,18 @@ const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
 
     return (
         <>
-            <DataTable className="p-0 mt-2" columns={dataTableResponseColumns} data={data?.items || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
-            {Array.isArray(responses) && data?.total > globalConstants.pageSize && <TablePagination component="div" rowsPerPageOptions={[]} rowsPerPage={globalConstants.pageSize} count={data?.total || 0} page={page} onPageChange={handlePageChange} />}
+            {isLoading ? (
+                <div className=" w-full py-10 flex justify-center">
+                    <Loader />
+                </div>
+            ) : (
+                <>
+                    <DataTable className="p-0 mt-2" columns={dataTableResponseColumns} data={data?.items || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+                    {Array.isArray(responses) && data?.total > globalConstants.pageSize && (
+                        <TablePagination component="div" rowsPerPageOptions={[]} rowsPerPage={globalConstants.pageSize} count={data?.total || 0} page={page} onPageChange={handlePageChange} />
+                    )}
+                </>
+            )}
         </>
     );
 };
