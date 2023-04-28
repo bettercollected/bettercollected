@@ -123,11 +123,11 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                         </div>
 
                         <div className="flex w-full gap-4 justify-end">
+                            <Button variant="solid" color="gray" size="medium" className="!bg-black-500" onClick={closeModal}>
+                                Cancel
+                            </Button>
                             <Button data-testid="save-button" variant="solid" size="medium" onClick={handleSubmit}>
                                 Save
-                            </Button>
-                            <Button variant="solid" color="gray" size="medium" className="bg-black-500" onClick={closeModal}>
-                                Cancel
                             </Button>
                         </div>
                     </form>

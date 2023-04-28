@@ -68,17 +68,17 @@ export default function InvitationsTable() {
                 paddingLeft: '16px',
                 paddingRight: '16px'
             }
-        },
-        {
-            cell: (member: any) => (member.invitation_status === 'PENDING' ? <MemberOptions member={member} /> : ''),
-            allowOverflow: true,
-            button: true,
-            width: '60px',
-            style: {
-                paddingLeft: '16px',
-                paddingRight: '16px'
-            }
         }
+        // {
+        //     cell: (member: any) => (member.invitation_status === 'PENDING' ? <MemberOptions member={member} /> : ''),
+        //     allowOverflow: true,
+        //     button: true,
+        //     width: '60px',
+        //     style: {
+        //         paddingLeft: '16px',
+        //         paddingRight: '16px'
+        //     }
+        // }
     ];
 
     return (

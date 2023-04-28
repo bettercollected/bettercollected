@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/common/input';
+import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import { selectIsProPlan } from '@app/store/auth/slice';
@@ -17,13 +18,12 @@ export default function InviteMemberModal() {
     const workspace = useAppSelector((state) => state.workspace);
     const router = useRouter();
     const isProPlan = useAppSelector(selectIsProPlan);
-
+    const { closeModal } = useModal();
     const handleSendInvitation = async (e: any) => {
         e.preventDefault();
         if (!invitationMail) {
             return;
         }
-
         if (isProPlan) {
             const response: any = await trigger({
                 workspaceId: workspace.id,
@@ -37,8 +37,9 @@ export default function InviteMemberModal() {
                 setInvitationMail('');
                 toast('Invitation Sent', { type: 'success' });
             } else if (response.error) {
-                toast('Failed to send email.', { type: 'success' });
+                toast('Failed to send email.', { type: 'error' });
             }
+            closeModal();
         } else {
             router.push(`/${workspace.workspaceName}/upgrade`);
         }

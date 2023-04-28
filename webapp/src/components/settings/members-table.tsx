@@ -71,7 +71,7 @@ export default function MembersTable() {
             }
         },
         {
-            cell: (member: any) => <MemberOptions member={member} />,
+            cell: (member: any) => workspace?.ownerId !== member.id && <MemberOptions member={member} />,
             allowOverflow: true,
             button: true,
             width: '60px',

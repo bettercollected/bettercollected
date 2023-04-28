@@ -14,7 +14,8 @@ export type MODAL_VIEW =
     | 'UPDATE_WORKSPACE_DOMAIN'
     | 'UPDATE_WORKSPACE_HANDLE'
     | 'DELETE_FORM_MODAL'
-    | 'INVITE_MEMBER';
+    | 'INVITE_MEMBER'
+    | 'DELETE_MEMBER';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 

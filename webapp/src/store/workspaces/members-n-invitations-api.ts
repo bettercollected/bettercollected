@@ -5,9 +5,10 @@ import environments from '@app/configs/environments';
 export const WORKSPACE_INVITATIONS_PATH = 'membersNInvitationsApi';
 
 const WORKSPACE_INVITATIONS_TAG = 'WORKSPACE_INVITATIONS_TAG';
+const WORKSPACE_MEMBERS_TAG = 'WORKSPACE_MEMBERS_TAG';
 export const membersNInvitationsApi = createApi({
     reducerPath: WORKSPACE_INVITATIONS_PATH,
-    tagTypes: [WORKSPACE_INVITATIONS_TAG],
+    tagTypes: [WORKSPACE_INVITATIONS_TAG, WORKSPACE_MEMBERS_TAG],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -34,7 +35,15 @@ export const membersNInvitationsApi = createApi({
             query: (request) => ({
                 url: `/${request.workspaceId}/members`,
                 method: 'GET'
-            })
+            }),
+            providesTags: [WORKSPACE_MEMBERS_TAG]
+        }),
+        deleteWorkspaceMember: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/${request.workspaceId}/members/${request.userId}`,
+                method: 'DELETE'
+            }),
+            invalidatesTags: [WORKSPACE_MEMBERS_TAG]
         }),
         getWorkspaceMembersInvitations: builder.query<any, any>({
             query: (request) => ({
@@ -54,4 +63,4 @@ export const membersNInvitationsApi = createApi({
     })
 });
 
-export const { useRespondToWorkspaceInvitationMutation, useGetWorkspaceMembersQuery, useGetWorkspaceMembersInvitationsQuery, useInviteToWorkspaceMutation } = membersNInvitationsApi;
+export const { useRespondToWorkspaceInvitationMutation, useGetWorkspaceMembersQuery, useGetWorkspaceMembersInvitationsQuery, useInviteToWorkspaceMutation, useDeleteWorkspaceMemberMutation } = membersNInvitationsApi;

@@ -1,10 +1,9 @@
 import React from 'react';
 
-import { DeleteOutline, MoreHoriz, Visibility, VisibilityOff } from '@mui/icons-material';
-import { Divider, IconButton, ListItemIcon, Menu, MenuItem, Tooltip } from '@mui/material';
+import { DeleteOutline, MoreHoriz } from '@mui/icons-material';
+import { IconButton, ListItemIcon, Menu, MenuItem, Tooltip } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
-import { StandardFormDto } from '@app/models/dtos/form';
 
 export default function MemberOptions({ member }: any) {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -73,7 +72,12 @@ export default function MemberOptions({ member }: any) {
                 transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
-                <MenuItem onClick={() => {}} className="body4">
+                <MenuItem
+                    onClick={() => {
+                        openModal('DELETE_MEMBER', { member });
+                    }}
+                    className="body4"
+                >
                     <ListItemIcon>
                         <DeleteOutline fontSize="small" color="error" />
                     </ListItemIcon>

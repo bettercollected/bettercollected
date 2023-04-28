@@ -36,7 +36,7 @@ export default function DeleteFormModal(props: any) {
                         <p className="!text-black-600 body4 text-center leading-none">Once this action is completed, it can&apos;t be undone.</p>
                     </div>
                     <div className="flex w-full gap-4 justify-end">
-                        <Button variant="solid" color="gray" size="medium" className="bg-black-500" onClick={() => closeModal()}>
+                        <Button variant="solid" color="gray" size="medium" className="!bg-black-500" onClick={() => closeModal()}>
                             Cancel
                         </Button>
                         <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
