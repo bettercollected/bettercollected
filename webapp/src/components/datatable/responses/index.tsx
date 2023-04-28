@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
+import { useRouter } from 'next/router';
+
+import { Typography } from '@mui/material';
 import TablePagination from '@mui/material/TablePagination';
 import DataTable from 'react-data-table-component';
 
@@ -12,6 +15,9 @@ import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } 
 
 const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
     const [page, setPage] = useState(0);
+
+    const router = useRouter();
+
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
     };
@@ -26,16 +32,37 @@ const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
 
     const [responses, setResponses] = useState<Array<any>>([]);
 
+    const responseDataOwnerField = (response: StandardFormResponseDto) => (
+        <div
+            aria-hidden
+            onClick={() => {
+                if (!requestForDeletion)
+                    router.push(
+                        {
+                            pathname: router.pathname,
+                            query: { ...router.query, sub_id: response.responseId }
+                        },
+                        undefined,
+                        { scroll: true, shallow: true }
+                    );
+            }}
+            className="w-fit"
+        >
+            <Typography className="!text-black-900 hover:!text-brand-500 cursor-pointer hover:underline" noWrap>
+                {response?.dataOwnerIdentifier ?? 'Anonymous'}
+            </Typography>
+        </div>
+    );
+
     const dataTableResponseColumns: any = [
         {
             name: 'Responder',
-            selector: (response: StandardFormResponseDto) => <>{response.dataOwnerIdentifier}</>,
+            selector: (response: StandardFormResponseDto) => responseDataOwnerField(response),
             grow: 2,
             style: {
                 color: '#202124',
                 fontSize: '14px',
                 fontWeight: 500,
-                marginLeft: '-5px',
                 paddingLeft: '16px',
                 paddingRight: '16px'
             }

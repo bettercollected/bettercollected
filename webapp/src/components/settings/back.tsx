@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useRouter } from 'next/router';
 
-import { ChevronLeft } from '@mui/icons-material';
+import Back from '@app/components/icons/back';
 
 export default function BackButton() {
     const router = useRouter();
@@ -11,9 +11,9 @@ export default function BackButton() {
         await router.back();
     };
     return (
-        <div className="paragraph text-black-900 cursor-pointer" onClick={handleBackClick}>
-            <ChevronLeft />
-            <span className="ml-2">Back</span>
+        <div className="paragraph text-black-900 cursor-pointer flex items-center gap-1 py-4 hover:text-brand-500 hover:underline" onClick={handleBackClick}>
+            <Back />
+            <span>Back</span>
         </div>
     );
 }

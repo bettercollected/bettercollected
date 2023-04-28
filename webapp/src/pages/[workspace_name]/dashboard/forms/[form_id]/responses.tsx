@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 
 import ResponsesTable from '@app/components/datatable/responses';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
+import BackButton from '@app/components/settings/back';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { IGetWorkspaceSubmissionQuery } from '@app/store/workspaces/types';
@@ -38,15 +39,19 @@ export default function Responses(props: any) {
 
     return (
         <FormPageLayout {...props}>
+            <div className="heading4">Responses</div>
             {!submissionId && (
                 <>
-                    <div className="heading4">Responses</div>
-
                     <Divider className="my-4" />
                     <ResponsesTable formId={formId} workspaceId={props.workspace.id} requestForDeletion={false} />
                 </>
             )}
-            {!!form && !!submissionId && <FormRenderer form={form.form} response={form.response} />}
+            {!!form && !!submissionId && (
+                <>
+                    <BackButton />
+                    <FormRenderer form={form.form} response={form.response} />
+                </>
+            )}
         </FormPageLayout>
     );
 }

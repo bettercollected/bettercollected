@@ -37,7 +37,7 @@
     textarea,
     select {
         padding: 16.5px 14px;
-        @apply border-none bg-transparent;
+        @apply bg-transparent;
     }
 
     [type='text']:focus,
