@@ -1,9 +1,7 @@
 from datetime import timedelta
 from http import HTTPStatus
 from typing import List, Any
-
 from beanie import PydanticObjectId
-
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.invitation_response import InvitationResponse
 from backend.app.models.invitation_request import InvitationRequest
@@ -18,6 +16,7 @@ from common.constants import MESSAGE_NOT_FOUND
 from common.enums.plan import Plans
 from common.enums.workspace_invitation_status import InvitationStatus
 from common.models.user import User
+from datetime import timedelta
 from common.services.http_client import HttpClient
 
 
@@ -27,7 +26,7 @@ class WorkspaceMembersService:
         workspace_user_service: WorkspaceUserService,
         workspace_invitation_repo: WorkspaceInvitationRepo,
         http_client: HttpClient,
-        workspace_form_service: WorkspaceFormService,
+        workspace_form_service: WorkspaceFormService
     ):
         self.workspace_user_service = workspace_user_service
         self.workspace_invitation_repository = workspace_invitation_repo
@@ -195,3 +194,9 @@ class WorkspaceMembersService:
                 workspace_id, users_info[0].get("email")
             )
         return {"message": "Deleted Successfully"}
+
+    async def delete_workspace_invitation_by_token(self, workspace_id, user, invitation_token):
+        await self.workspace_user_service.check_is_admin_in_workspace(workspace_id, user)
+        await self.workspace_invitation_repository.delete_invitation_by_token_if_pending_state(invitation_token)
+        return {"message": "Invitation deleted successfully."}
+

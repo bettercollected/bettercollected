@@ -1,9 +1,11 @@
 import secrets
 from datetime import timedelta
+from http import HTTPStatus
 
 from beanie import PydanticObjectId
 from fastapi_pagination.ext.beanie import paginate
 
+from backend.app.exceptions import HTTPException
 from backend.app.models.invitation_request import InvitationRequest
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
@@ -53,6 +55,17 @@ class WorkspaceInvitationRepo:
             return None
 
         return invitation_request
+
+    async def delete_invitation_by_token_if_pending_state(self, invitation_token):
+        invitation_request = await WorkspaceUserInvitesDocument.find_one(
+            {"invitation_token": invitation_token}
+        )
+        if not invitation_request:
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Invitation not found")
+        elif invitation_request.invitation_status == InvitationStatus.PENDING:
+            await WorkspaceUserInvitesDocument.delete(invitation_request)
+        else:
+            raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, "Invitation not in pending state")
 
     async def update_status_to_removed(
         self, workspace_id: PydanticObjectId, email: str
