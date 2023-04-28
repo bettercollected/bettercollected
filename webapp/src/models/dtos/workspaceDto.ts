@@ -3,9 +3,10 @@ export interface WorkspaceDto {
     workspaceName: string;
     description: string;
     ownerId: string;
-    profileImage: string;
-    bannerImage: string;
+    profileImage?: string;
+    bannerImage?: string;
     customDomain?: string;
+    dashboardAccess?: string;
     theme?: {
         primary_color: string;
         accent_color: string;
@@ -13,7 +14,7 @@ export interface WorkspaceDto {
     };
     privacy_policy_url: string;
     terms_of_service_url: string;
-    mailSettings?: string;
+    mailSettings?: string | null;
     id: string;
 }
 

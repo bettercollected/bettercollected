@@ -3,15 +3,15 @@ import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProp
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
 export function checkHasCustomDomain(_context: any) {
-    return _context.req.headers.host !== environments.CLIENT_HOST && _context.req.headers.host !== environments.ADMIN_HOST;
+    return _context.req.headers.host !== environments.CLIENT_DOMAIN && _context.req.headers.host !== environments.ADMIN_DOMAIN;
 }
 
 export function checkHasAdminDomain(_context: any) {
-    return _context.req.headers.host === environments.ADMIN_HOST;
+    return _context.req.headers.host === environments.ADMIN_DOMAIN;
 }
 
 export function checkHasClientDomain(_context: any) {
-    return _context.req.headers.host === environments.CLIENT_HOST;
+    return _context.req.headers.host === environments.CLIENT_DOMAIN;
 }
 
 export async function checkIfUserIsAuthorizedToViewPage(_context: any, workspace: WorkspaceDto) {
@@ -20,7 +20,7 @@ export async function checkIfUserIsAuthorizedToViewPage(_context: any, workspace
     try {
         const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
         const user = (await userStatus?.json().catch((e: any) => e))?.user ?? null;
-        if (!user?.roles?.includes('FORM_CREATOR') || user?.id !== workspace.ownerId) {
+        if (!user?.roles?.includes('FORM_CREATOR') || !workspace.dashboardAccess) {
             return false;
         }
     } catch (e) {
@@ -60,4 +60,20 @@ export async function getServerSidePropsInClientHostWithWorkspaceName(_context: 
             ...globalProps
         }
     };
+}
+
+export async function checkIfUserIsAuthorizedToViewWorkspaceSettingsPage(_context: any, workspace: WorkspaceDto) {
+    const config = getServerSideAuthHeaderConfig(_context);
+
+    try {
+        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
+        const user = (await userStatus?.json().catch((e: any) => e))?.user ?? null;
+        if (!user?.roles?.includes('FORM_CREATOR') || !workspace.dashboardAccess || workspace.ownerId !== user.id) {
+            return false;
+        }
+    } catch (e) {
+        return false;
+    }
+
+    return true;
 }

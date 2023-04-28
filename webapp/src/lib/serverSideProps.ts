@@ -3,7 +3,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import environments from '@app/configs/environments';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { checkHasAdminDomain, checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage } from '@app/utils/serverSidePropsUtils';
+import { checkHasAdminDomain, checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage, checkIfUserIsAuthorizedToViewWorkspaceSettingsPage, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export default async function getServerSideProps({ locale, ..._context }: any): Promise<{
     props: IServerSideProps;
@@ -37,7 +37,7 @@ export async function getGlobalServerSidePropsByDomain({ locale, ..._context }: 
 }> {
     const domain = _context.req.headers.host;
 
-    const hasCustomDomain = domain !== environments.CLIENT_HOST;
+    const hasCustomDomain = domain !== environments.CLIENT_DOMAIN;
     let workspaceId = '';
     let workspace = null;
 
@@ -78,6 +78,8 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
     let workspace = null;
     const { workspace_name } = _context.params;
 
+    const config = getServerSideAuthHeaderConfig(_context);
+
     if (!workspace_name) {
         return {
             props: {
@@ -89,7 +91,7 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
         };
     }
     try {
-        const workspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces?workspace_name=${workspace_name}`).catch((e) => e);
+        const workspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces?workspace_name=${workspace_name}`, config).catch((e) => e);
         workspace = (await workspaceResponse?.json().catch((e: any) => e)) ?? null;
         workspaceId = workspace.id;
     } catch (e) {}
@@ -131,4 +133,68 @@ export async function getAuthUserPropsWithWorkspace(_context: any) {
             ...globalProps
         }
     };
+}
+
+export async function getServerSidePropsForWorkspaceAdmin(_context: any) {
+    const hasAdminDomain = checkHasAdminDomain(_context);
+    if (!hasAdminDomain) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    }
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
+    if (!globalProps?.workspace?.id) {
+        return {
+            notFound: true
+        };
+    }
+    if (!(await checkIfUserIsAuthorizedToViewWorkspaceSettingsPage(_context, globalProps.workspace)))
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    return {
+        props: {
+            ...globalProps
+        }
+    };
+}
+
+export async function getServerSidePropsForDashboardFormPage(_context: any) {
+    const props = await getAuthUserPropsWithWorkspace(_context);
+    if (!props.props) {
+        return props;
+    }
+    const globalProps = props.props;
+    const { form_id } = _context.query;
+    let form = null;
+    const config = getServerSideAuthHeaderConfig(_context);
+    try {
+        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${form_id}`, config);
+        form = (await formResponse?.json().catch((e: any) => e)) ?? null;
+        if (!form) {
+            return {
+                notFound: true
+            };
+        }
+
+        return {
+            props: {
+                formId: form_id,
+                ...globalProps,
+                form
+            }
+        };
+    } catch (e) {
+        return {
+            props: {
+                error: true
+            }
+        };
+    }
 }

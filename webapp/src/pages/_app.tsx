@@ -8,7 +8,6 @@ import type { AppProps } from 'next/app';
 import { CacheProvider, EmotionCache, css } from '@emotion/react';
 import { GlobalStyles } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
-import CookieConsent from 'react-cookie-consent';
 import ReactGA from 'react-ga4';
 import { Provider } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
@@ -16,25 +15,23 @@ import 'react-toastify/dist/ReactToastify.css';
 import { PersistGate } from 'redux-persist/integration/react';
 import 'swiper/css';
 import 'swiper/css/navigation';
+import 'vanilla-cookieconsent/dist/cookieconsent.css';
 
 import '@app/assets/css/globals.css';
+import CookieConsent from '@app/components/cookie/cookie-consent';
 import DrawersContainer from '@app/components/drawer-views/container';
-import WorkspaceHoc from '@app/components/hoc/workspace-hoc';
+import WorkspaceNStatusHoc from '@app/components/hoc/workspace-n-status-hoc';
 import ModalContainer from '@app/components/modal-views/container';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import NextNProgress from '@app/components/ui/nprogress';
 import createEmotionCache from '@app/configs/createEmotionCache';
 import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
+import MuiThemeProvider from '@app/layouts/_mui-theme-provider';
 import { usePreserveScroll } from '@app/lib/hooks/use-preserve-scroll';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
-
-// const apm = initApm({
-//     serviceName: 'FormIntegrator',
-//     serverUrl: 'https://apm.sireto.io'
-// });
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
@@ -74,85 +71,69 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
             ReactGA.initialize(environments.GA_MEASUREMENT_ID);
             ReactGA.send('pageview');
         }
-        // const transaction = apm.startTransaction('page-load', 'page-load');
-        // return () => {
-        //     transaction?.end();
-        // };
     }, []);
 
     return (
         <ThemeProvider attribute="class" enableSystem={false} forcedTheme="light" defaultTheme="light">
             <CacheProvider value={emotionCache}>
-                {/*<MuiThemeProvider>*/}
-                {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
-                <CssBaseline />
-                <GlobalStyles
-                    styles={css`
-                        :root {
-                            body {
-                                background-color: #fff;
-                                color: #121212;
+                <MuiThemeProvider>
+                    {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
+                    <CssBaseline />
+                    <GlobalStyles
+                        styles={css`
+                            :root {
+                                body {
+                                    background-color: #f2f7ff;
+                                    color: #121212;
+                                }
                             }
-                        }
 
-                        [data-theme='dark'] {
-                            body {
-                                background-color: #121212;
-                                color: #fff;
+                            [data-theme='dark'] {
+                                body {
+                                    background-color: #121212;
+                                    color: #fff;
+                                }
                             }
-                        }
-                    `}
-                />
-                <NextSeo
-                    title={title || globalConstants.socialPreview.title}
-                    description={description}
-                    noindex={!environments.IS_IN_PRODUCTION_MODE}
-                    nofollow={!environments.IS_IN_PRODUCTION_MODE}
-                    openGraph={{
-                        type: 'website',
-                        locale: 'en_IE',
-                        url,
-                        site_name: title || globalConstants.appName,
-                        description: description,
-                        title,
-                        images: [
-                            {
-                                url: imageUrl,
-                                alt: hasCustomDomain ? title : 'Better Collected'
-                            }
-                        ]
-                    }}
-                    twitter={{
-                        handle: globalConstants.twitterHandle,
-                        site: url,
-                        cardType: 'summary_large_image'
-                    }}
-                />
-                <CookieConsent
-                    location="bottom"
-                    buttonText="I understand"
-                    cookieName="BetterCookie"
-                    style={{ background: '#5492f7', display: 'flex', alignItems: 'center' }}
-                    buttonStyle={{ color: '#4e503b', fontSize: '13px', borderRadius: '3px' }}
-                    expires={150}
-                >
-                    This website uses cookies to enhance the user experience.{' '}
-                    <a href="https://www.termsfeed.com/blog/cookies/" target="_blank" rel="noreferrer" className={'cursor-pointer mt-2 text-white hover:text-gray-300'}>
-                        What are cookies?
-                    </a>
-                </CookieConsent>
-                <NextNProgress color="#f04444" startPosition={0} stopDelayMs={400} height={5} options={{ easing: 'ease' }} />
-                <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
-                <Provider store={store}>
-                    <WorkspaceHoc {...pageProps}>
-                        <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
-                            {getLayout(<Component {...pageProps} />)}
-                            <ModalContainer />
-                            <DrawersContainer />
-                        </PersistGate>
-                    </WorkspaceHoc>
-                </Provider>
-                {/*</MuiThemeProvider>*/}
+                        `}
+                    />
+                    <NextSeo
+                        title={title || globalConstants.socialPreview.title}
+                        description={description}
+                        noindex={!environments.IS_IN_PRODUCTION_MODE}
+                        nofollow={!environments.IS_IN_PRODUCTION_MODE}
+                        openGraph={{
+                            type: 'website',
+                            locale: 'en_IE',
+                            url,
+                            site_name: title || globalConstants.appName,
+                            description: description,
+                            title,
+                            images: [
+                                {
+                                    url: imageUrl,
+                                    alt: hasCustomDomain ? title : 'Better Collected'
+                                }
+                            ]
+                        }}
+                        twitter={{
+                            handle: globalConstants.twitterHandle,
+                            site: url,
+                            cardType: 'summary_large_image'
+                        }}
+                    />
+                    <CookieConsent />
+                    <NextNProgress color="#f04444" startPosition={0} stopDelayMs={400} height={5} options={{ easing: 'ease' }} />
+                    <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
+                    <Provider store={store}>
+                        <WorkspaceNStatusHoc {...pageProps}>
+                            <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
+                                {getLayout(<Component {...pageProps} />)}
+                                <ModalContainer />
+                                <DrawersContainer />
+                            </PersistGate>
+                        </WorkspaceNStatusHoc>
+                    </Provider>
+                </MuiThemeProvider>
             </CacheProvider>
         </ThemeProvider>
     );

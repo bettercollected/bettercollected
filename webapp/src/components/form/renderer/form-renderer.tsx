@@ -21,25 +21,25 @@ import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form'
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 
 const StyledTextField = styled.div`
-    .MuiInputBase-input {
-        padding-left: 0;
-        padding-right: 0;
-        padding-bottom: 8px;
-    }
+    // .MuiInputBase-input {
+    //     padding-left: 0;
+    //     padding-right: 0;
+    //     padding-bottom: 8px;
+    // }
 
-    .MuiSelect-select {
-        padding-right: 32px;
-        padding-left: 16px;
-        padding-bottom: 16px;
-    }
+    // .MuiSelect-select {
+    //     padding-right: 32px;
+    //     padding-left: 16px;
+    //     padding-bottom: 16px;
+    // }
 
-    textarea {
-        padding-left: 0;
-        padding-right: 0;
-        padding-bottom: 8px;
-        width: 100%;
-        border-bottom-style: dotted;
-    }
+    // textarea {
+    //     padding-left: 0;
+    //     padding-right: 0;
+    //     padding-bottom: 8px;
+    //     width: 100%;
+    //     border-bottom-style: dotted;
+    // }
 
     textarea:disabled {
         color: rgba(0, 0, 0, 0.38);
@@ -140,10 +140,10 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
         const embedUrl = `https://www.youtube.com/embed/${strippedLink}`;
         return (
             <div className="w-full">
-                {description && <MarkdownText description={description} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />}
+                {description && <MarkdownText description={description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />}
                 {strippedLink && (
-                    <div className="mt-3 relative w-full">
-                        <iframe src={embedUrl} width="100%" className="min-h-[30vh] xs:min-h-[40vh] md:min-h-[50vh]" frameBorder="0" marginHeight={0} marginWidth={0}>
+                    <div className="relative w-full aspect-video">
+                        <iframe src={embedUrl} width="100%" className="aspect-video" frameBorder="0" marginHeight={0} marginWidth={0}>
                             <Loader />
                         </iframe>
                     </div>
@@ -166,7 +166,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
             case QUESTION_TYPE.LONG_TEXT:
                 return (
                     <StyledTextField>
-                        <TextareaAutosize value={ans?.text} disabled />
+                        <TextareaAutosize className="w-full !opacity-[0.38] !rounded" value={ans?.text} disabled />
                     </StyledTextField>
                 );
             case QUESTION_TYPE.MULTIPLE_CHOICE:
@@ -222,7 +222,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                         <>
                             {choices.map((choice: any, idx: number) => {
                                 return (
-                                    <div key={idx} className="p-3 mt-3 mb-3 rounded-md border-[1px] border-gray-300">
+                                    <div key={idx} className="p-3 mt-3 mb-3 rounded">
                                         <Select defaultValue={''} className="h-6" value={''} disabled>
                                             {choicesArray.map((dd: number) => (
                                                 <MenuItem key={dd} value={''}>
@@ -248,13 +248,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 }
                 return (
                     <StyledTextField>
-                        <Select
-                            defaultValue={''}
-                            value={ans?.text}
-                            inputProps={{
-                                className: 'min-w-20'
-                            }}
-                        >
+                        <Select defaultValue={''} value={ans?.text} fullWidth>
                             {dropdownOptions.map((dd: any, idx: any) => (
                                 <MenuItem key={idx} value={dd?.label}>
                                     {dd?.label}
@@ -268,7 +262,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 return renderGridRowColumns(question);
             case QUESTION_TYPE.FILE_UPLOAD:
                 return (
-                    <Button variant="solid" className="mt-3">
+                    <Button variant="solid" size="medium" className="mt-3">
                         Upload File
                         <input type="file" hidden />
                     </Button>
@@ -276,8 +270,8 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
             case QUESTION_TYPE.GROUP:
                 return (
                     <>
-                        {question.properties.fields.map((question: any) => (
-                            <div className="my-5" key={question.id}>
+                        {question.properties.fields.map((question: any, idx: number) => (
+                            <div className="my-5" key={idx}>
                                 {renderQuestionField(question, response)}
                             </div>
                         ))}
@@ -288,12 +282,13 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 // Render no input element for statement
                 return <></>;
             case QUESTION_TYPE.SHORT_TEXT:
-            default:
                 return (
                     <StyledTextField>
-                        <TextField value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled={true} fullWidth variant="standard" />
+                        <TextField value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled={true} fullWidth />
                     </StyledTextField>
                 );
+            default:
+                return <></>;
         }
     };
 
@@ -301,7 +296,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
         const match = href.match(/https:\/\/vimeo\.com\/(\d+)/);
         if (match) {
             const videoId = match[1];
-            return <iframe width="100%" height="550" src={`https://player.vimeo.com/video/${videoId}`} allow="autoplay; encrypted-media" />;
+            return <iframe width="100%" height="550" className="aspect-video" src={`https://player.vimeo.com/video/${videoId}`} allow="autoplay; encrypted-media" />;
         } else {
             return <a href={href}>Click here to see video attachment.</a>;
         }
@@ -321,7 +316,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
     function renderQuestionAttachment(attachment: any) {
         switch (attachment.type) {
             case AttachmentType.IMAGE:
-                return <img className="attachment" src={attachment.href} alt={attachment.properties?.description} />;
+                return <img className="min-h-[200px]" src={attachment.href} alt={attachment.properties?.description} />;
             case AttachmentType.VIDEO:
                 if (attachment?.href == null) break;
                 const embed_provider = attachment.embed_provider;
@@ -335,26 +330,23 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
     }
 
     const renderQuestionField = (question: StandardFormQuestionDto, response?: any) => (
-        <>
-            <h1 className="font-semibold text-lg text-gray-600">{question.title}</h1>
-            {question?.description && <MarkdownText description={question.description} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />}
+        <div className="flex flex-col gap-3">
+            <h1 className="body1 !text-black-900">{question.title}</h1>
+            {question?.description && <MarkdownText description={question.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />}
             {question.attachment?.type && renderQuestionAttachment(question.attachment)}
             {renderQuestionTypeField(question, response ? response[question.id || ''] : undefined, response)}
-        </>
+        </div>
     );
 
     return (
-        <div data-testid="form-renderer" className="relative container mx-auto px-6 md:px-0">
-            <div className="pb-14 pt-4">
-                <h1 className="font-semibold text-darkGrey mb-3 text-xl sm:text-2xl md:text-3xl xl:text-4xl 2xl:text-[40px]">{form?.title}</h1>
-                {form?.description && (
-                    <div className="p-6 border-[1.5px] border-gray-200 rounded-lg">
-                        <MarkdownText description={form?.description} contentStripLength={1000} markdownClassName="text-base text-grey" textClassName="text-base" />
-                    </div>
-                )}
-                <hr className="my-6" />
+        <div data-testid="form-renderer" className="relative max-w-[700px] container mx-auto px-6 md:px-0">
+            <div className="flex flex-col gap-4">
+                <div className="p-6 bg-white rounded-lg flex flex-col gap-4">
+                    <h1 className="font-semibold text-darkGrey mb-3 text-xl sm:text-2xl md:text-3xl xl:text-4xl 2xl:text-[40px]">{form?.title}</h1>
+                    {form?.description && <MarkdownText description={form?.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />}
+                </div>
                 {form?.fields?.map((question: any, idx: number) => (
-                    <div key={question?.id} className="p-6 border-[1.5px] border-gray-200 rounded-lg mb-4">
+                    <div key={question?.id + idx} className="p-6 bg-white rounded-lg">
                         {renderQuestionField(question, response?.answers)}
                     </div>
                 ))}

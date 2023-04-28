@@ -1,55 +1,56 @@
 import React, { useState } from 'react';
 
-import { Divider } from '@mui/material';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
-import { Copy } from '@app/components/icons/copy';
-import { ShareIcon } from '@app/components/icons/share-icon';
-import environments from '@app/configs/environments';
-import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
+import { useModal } from '@app/components/modal-views/context';
+import { FormSettingsCard } from '@app/components/settings/card';
+import Button from '@app/components/ui/button';
+import { StandardFormDto } from '@app/models/dtos/form';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
-import { toMidDottedStr } from '@app/utils/stringUtils';
 
 export default function FormSettingsTab() {
     const form = useAppSelector((state) => state.form);
     const [patchFormSettings] = usePatchFormSettingsMutation();
     const workspace = useAppSelector((state) => state.workspace);
     const [customUrl, setCustomUrl] = useState(form?.settings?.customUrl || '');
-    const isCustomDomain = !!workspace.customDomain;
     const [error, setError] = useState(false);
-    const [_, copyToClipboard] = useCopyToClipboard();
     const dispatch = useAppDispatch();
 
-    const patchSettings = async (body: any) => {
+    const { openModal } = useModal();
+
+    const patchSettings = async (body: any, f: StandardFormDto) => {
         const response: any = await patchFormSettings({
             workspaceId: workspace.id,
-            formId: form.formId,
+            formId: f.formId,
             body: body
         });
         if (response.data) {
             const settings = response.data.settings;
             dispatch(setFormSettings(settings));
-            toast('Form Updated!!', { type: 'success', toastId: 'successToast' });
+            toast('Updated', { type: 'success' });
         } else {
-            toast('Something went wrong.', { type: 'error' });
+            toast('Could not update this form setting!', { type: 'error' });
             return response.error;
         }
     };
 
-    const onPinnedChange = (event: any) => {
-        patchSettings({ pinned: !form?.settings?.pinned })
+    const onPinnedChange = (event: any, f?: StandardFormDto) => {
+        if (!f) return toast('Could not update this form setting!', { type: 'error', toastId: 'errorToast' });
+        patchSettings({ pinned: !f?.settings?.pinned }, f)
             .then((res) => {})
             .catch((e) => {
                 toast(e.data, { type: 'error', toastId: 'errorToast' });
             });
     };
 
-    const onPrivateChanged = () => {
-        patchSettings({ private: !form?.settings?.private })
+    const onPrivateChanged = (event: any, f?: StandardFormDto) => {
+        if (!f) return toast('Could not update this form setting!', { type: 'error', toastId: 'errorToast' });
+        const patchBody = { private: !f?.settings?.private, pinned: false };
+        patchSettings(patchBody, f)
             .then((res) => {})
             .catch((e: any) => {
                 toast(e.data, { type: 'error', toastId: 'errorToast' });
@@ -63,107 +64,80 @@ export default function FormSettingsTab() {
         }
         if (error || form.settings?.customUrl === customUrl || !customUrl) return;
 
-        const isError = await patchSettings({ customUrl });
+        const isError = await patchSettings({ customUrl }, form);
         if (isError) {
             setError(true);
         }
     };
-
-    const getFirstFiveSlugName = (slug: any) => {
-        if (slug.length <= 5) return slug;
-        const firstPart = slug.substring(0, 3);
-        const lastPart = slug.substring(slug.length - 2);
-        return `${firstPart}..${lastPart}`;
-    };
-
-    const clientHostUrl = `${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`;
-    const customDomainUrl = `${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`;
-
-    // TODO: make it responsive (Larger string in medium or larger screen)
-    const shortenedClientHostUrl = toMidDottedStr(clientHostUrl, 10);
-    const shortenedCustomDomainUrl = toMidDottedStr(customDomainUrl, 10);
-
     return (
-        <div className="max-w-[800px]">
-            <div className=" flex flex-col">
-                <div className="text-xl font-bold text-black">Hide Form</div>
-                <div className="flex w-full justify-between items-center h-14 text-gray-800">
-                    <div>Do not show this form in workspace page.</div>
-                    <Switch data-testid="private-switch" checked={!!form?.settings?.private} onClick={onPrivateChanged} />
-                </div>
-            </div>
-            {!form?.settings?.private && (
-                <div className=" flex flex-col">
-                    <div className="text-xl font-bold text-black">Pinned</div>
-                    <div className="flex w-full justify-between items-center h-14 text-gray-800">
-                        <div>Show this form in pinned section</div>
-                        <Switch data-testid="pinned-switch" checked={!!form?.settings?.pinned} onClick={onPinnedChange} />
+        <div>
+            <FormSettingsCard className="!p-6 !mt-5">
+                <div className=" flex items-center justify-between">
+                    <div>
+                        <div className="body1">Hide Form</div>
+                        <div className="body3">Do not show this form in workspace page.</div>
                     </div>
+                    <Switch data-testid="private-switch" checked={!!form?.settings?.private} onClick={(e) => onPrivateChanged(e, form)} />
                 </div>
+            </FormSettingsCard>
+            {!form?.settings?.private && (
+                <FormSettingsCard className="!p-6 !mt-5">
+                    <div className=" flex items-center justify-between">
+                        <div>
+                            <div className="body1">Pinned</div>
+                            <div className="body3">Show this form in pinned section</div>
+                        </div>
+                        <Switch data-testid="pinned-switch" checked={!!form?.settings?.pinned} onClick={(e) => onPinnedChange(e, form)} />
+                    </div>
+                </FormSettingsCard>
             )}
 
-            <Divider className="mb-6 mt-2" />
-            <div className="flex justify-between items-start w-full">
-                <div className={`text-xl font-bold w-full text-black mb-12`}>Custom Slug</div>
-                <div className="w-full">
-                    <TextField
-                        size="medium"
-                        name="search-input"
-                        placeholder="Custom-url"
-                        value={customUrl}
-                        error={error}
-                        onBlur={onBlur}
-                        onChange={(event) => {
-                            if (!event.target.value || !event.target.value.match('^\\S+$')) {
-                                setError(true);
-                            } else {
-                                setError(false);
-                            }
-                            setCustomUrl(event.target.value);
-                        }}
-                        className={`w-full`}
-                    />
-                </div>
-            </div>
-            <div className="mt-5 space-y-2">
-                <div className="text-gray-700 font-bold">Form URLs</div>
-                <div className="text-gray-800 space-x-4 underline w-fit items-center rounded px-4 py-2 flex bg-gray-100">
-                    <p>{shortenedClientHostUrl}</p>
-                    <Copy
-                        width="16px"
-                        height="16px"
-                        className="cursor-pointer"
-                        onClick={() => {
-                            copyToClipboard(`${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`);
-                            toast('Form URL Copied', {
-                                type: 'info'
-                            });
-                        }}
-                    />
-                    <a href={`${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_HOST}/${workspace.workspaceName}/forms/${customUrl}`} target="_blank" referrerPolicy="no-referrer-when-downgrade" rel="noreferrer">
-                        <ShareIcon width={19} height={19} />
-                    </a>
-                </div>
-                {isCustomDomain && (
-                    <div className="text-gray-800 underline space-x-4 w-fit items-center rounded px-4 py-2 flex bg-gray-100">
-                        <p className="text-ellipsis whitespace-pre-wrap">{shortenedCustomDomainUrl}</p>
-                        <Copy
-                            width="16px"
-                            height="16px"
-                            className="cursor-pointer"
-                            onClick={() => {
-                                copyToClipboard(`${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`);
-                                toast('Form URL Copied', {
-                                    type: 'info'
-                                });
+            <FormSettingsCard>
+                <div className="flex justify-between items-center w-full">
+                    <span className={`body1 flex-1`}>Custom Slug</span>
+                    <div className="w-full flex-1">
+                        <TextField
+                            size="medium"
+                            name="search-input"
+                            placeholder="Custom-url"
+                            value={customUrl}
+                            error={error}
+                            onBlur={onBlur}
+                            onChange={(event) => {
+                                if (!event.target.value || !event.target.value.match('^\\S+$')) {
+                                    setError(true);
+                                } else {
+                                    setError(false);
+                                }
+                                setCustomUrl(event.target.value);
                             }}
+                            className={`w-full `}
                         />
-                        <a href={`${environments.CLIENT_HOST.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`} target="_blank" referrerPolicy="no-referrer-when-downgrade" rel="noreferrer">
-                            <ShareIcon width={19} height={19} />
-                        </a>
                     </div>
-                )}
-            </div>
+                </div>
+            </FormSettingsCard>
+
+            <FormSettingsCard>
+                <div className="flex items-center justify-between">
+                    <div className="">
+                        <div className="body1">Delete Form</div>
+                        <div className="body3">
+                            <div>Deleting this form will also remove all the responses and deletion requests.</div>
+                        </div>
+                    </div>
+                    <Button
+                        data-testid="logout-button"
+                        variant="solid"
+                        size="medium"
+                        color="danger"
+                        onClick={() => {
+                            openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
+                        }}
+                    >
+                        Delete
+                    </Button>
+                </div>
+            </FormSettingsCard>
         </div>
     );
 }

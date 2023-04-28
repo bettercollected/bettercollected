@@ -6,11 +6,16 @@ export type MODAL_VIEW =
     | 'SEARCH_VIEW'
     | 'SHARE_VIEW'
     | 'LOGIN_VIEW'
+    | 'IMPORT_PROVIDER_FORMS_VIEW'
+    | 'IMPORT_FORMS'
     | 'IMPORT_GOOGLE_FORMS_VIEW'
     | 'IMPORT_TYPE_FORMS_VIEW'
     | 'LOGOUT_VIEW'
     | 'UPDATE_WORKSPACE_DOMAIN'
-    | 'UPDATE_WORKSPACE_HANDLE';
+    | 'UPDATE_WORKSPACE_HANDLE'
+    | 'DELETE_FORM_MODAL'
+    | 'INVITE_MEMBER'
+    | 'DELETE_MEMBER';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 

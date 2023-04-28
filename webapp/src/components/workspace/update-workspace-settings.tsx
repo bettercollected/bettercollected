@@ -62,7 +62,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             dispatch(setWorkspace(response.data));
             toast.info(updateDomain ? 'Updated custom Domain of workspace!' : 'Updated workspace handle', { toastId: ToastId.SUCCESS_TOAST });
             if (!updateDomain) {
-                router.replace(`/${response.data.workspaceName}/dashboard/settings?view=settings-advanced`);
+                router.replace(`/${response.data.workspaceName}/dashboard`);
             }
             closeModal();
         } else if (response.error) {
@@ -122,24 +122,12 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                             )}
                         </div>
 
-                        <div className="flex w-full space-between">
-                            <Button
-                                data-testid="save-button"
-                                disabled={isLoading || error}
-                                isLoading={isLoading}
-                                onClick={handleSubmit}
-                                className="text-white w-1/2 bg-blue-700 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
-                            >
-                                Save
-                            </Button>
-                            <Button
-                                onClick={(event) => {
-                                    event.preventDefault();
-                                    closeModal();
-                                }}
-                                className=" border-[1px] w-1/2 text-gray-700 !bg-white border-gray-300  hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
-                            >
+                        <div className="flex w-full gap-4 justify-end">
+                            <Button variant="solid" color="gray" size="medium" className="!bg-black-500" onClick={closeModal}>
                                 Cancel
+                            </Button>
+                            <Button data-testid="save-button" variant="solid" size="medium" onClick={handleSubmit}>
+                                Save
                             </Button>
                         </div>
                     </form>

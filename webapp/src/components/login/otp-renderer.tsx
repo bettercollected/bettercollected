@@ -40,45 +40,19 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
             .catch((err) => toast.error(err, { toastId: ToastId.ERROR_TOAST }));
     };
 
-    const ResendButtonRenderer = () => {
-        return (
-            <div className={'text-md align flex mt-4 cursor-pointer  items-center justify-center text-primary hover:text-blue-500 hover:underline'}>
-                {counter !== 0 && <div className="text-gray-500 underline-offset-0 border-none">Resend code ({counter})</div>}
-                {counter === 0 && (
-                    <div
-                        className="hover:underline-offset-1"
-                        onClick={() => {
-                            if (isCustomDomain) {
-                                emailRequest.workspace_id = workspace.id;
-                            }
-                            postSendOtp(emailRequest);
-                            setCounter(60);
-                        }}
-                    >
-                        Resend code
-                    </div>
-                )}
-            </div>
-        );
-    };
-
-    const HeaderRenderer = () => {
-        return (
-            <>
-                <div className={'text-lg font-bold text-center'}>Enter OTP code</div>
-                <p className={'text-xs text-gray-700 md:text-sm'}> We have just send a verification code to</p>
-                <p className="text-gray-700 text-xs md:text-sm font-semibold mb-2">{email}</p>
-            </>
-        );
-    };
-
     const handleChange = (e: any) => {
         setOtp(e.target.value.toUpperCase());
     };
 
     return (
-        <form className={'flex flex-col text-center'}>
-            <HeaderRenderer />
+        <form className="relative flex flex-col items-center gap-8 justify-between p-10">
+            <div>
+                <h2 className="sh1 text-center">Enter OTP code</h2>
+                <p className="!text-black-600 body4 text-center leading-none">
+                    We have just sent a verification code to <br />
+                    <span className="text-brand-500 italic">{email}</span>
+                </p>
+            </div>
             <input
                 data-testid="otp-input"
                 spellCheck={false}
@@ -88,10 +62,28 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
                 placeholder={'Enter the OTP code'}
                 onChange={handleChange}
             />
-            <Button data-testid="verify-button" isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} className="w-60 mb-0 mx-auto !rounded-[1px] !h-[50px]">
-                Verify
-            </Button>
-            <ResendButtonRenderer />
+            <div>
+                <Button data-testid="verify-button" isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} className="w-60 mb-0 mx-auto !rounded-[1px] !h-[50px]">
+                    Verify
+                </Button>
+                <div className={'text-md align flex mt-4 cursor-pointer items-center justify-center text-primary hover:text-blue-500 hover:underline'}>
+                    {counter !== 0 && <div className="text-gray-500 underline-offset-0 border-none">Resend code ({counter})</div>}
+                    {counter === 0 && (
+                        <div
+                            className="hover:underline-offset-1"
+                            onClick={() => {
+                                if (isCustomDomain) {
+                                    emailRequest.workspace_id = workspace.id;
+                                }
+                                postSendOtp(emailRequest);
+                                setCounter(60);
+                            }}
+                        >
+                            Resend code
+                        </div>
+                    )}
+                </div>
+            </div>
         </form>
     );
 }

@@ -1,20 +1,26 @@
 import React from 'react';
 
 import AnchorLink from '@app/components/ui/links/anchor-link';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface ILogo {
     className?: string;
     [props: string]: any;
 }
 
-const Logo: React.FC<React.SVGAttributes<{}>> = ({ className, ...props }: ILogo) => (
-    <AnchorLink href="/" className="flex items-center w-fit outline-none" {...props}>
-        <div className={`text-2xl md:text-2xl lg:text-3xl ${className}`}>
-            <span className="text-brand tracking-widest font-extrabold">Better</span>
-            <span className="text-blue-500 tracking-widest font-black">Collected.</span>
-        </div>
-    </AnchorLink>
-);
+const Logo: React.FC<React.SVGAttributes<{}>> = ({ className, ...props }: ILogo) => {
+    const workspace = useAppSelector(selectWorkspace);
+
+    return (
+        <AnchorLink href={`/${workspace?.workspaceName}/dashboard`} className="flex items-center w-fit outline-none" {...props}>
+            <div className={`text-[28px] font-semibold leading-8 ${className}`}>
+                <span className="text-brand-500">Better</span>
+                <span className="text-black-900">Collected.</span>
+            </div>
+        </AnchorLink>
+    );
+};
 
 Logo.defaultProps = {
     className: ''

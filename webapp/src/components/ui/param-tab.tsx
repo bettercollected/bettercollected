@@ -19,11 +19,12 @@ interface ParamTabTypes {
     tabMenu: TabMenuItem[];
     children: React.ReactChild[];
     isRouteChangeable?: boolean;
+    className?: string;
 }
 
 export { TabPanel };
 
-export default function ParamTab({ tabMenu, children, isRouteChangeable = true }: ParamTabTypes) {
+export default function ParamTab({ tabMenu, children, isRouteChangeable = true, className = '' }: ParamTabTypes) {
     const router = useRouter();
     const dropdownEl = useRef<HTMLDivElement>(null);
     const [selectedTabIndex, setSelectedTabIndex] = useState(0);
@@ -79,14 +80,14 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true }
     });
     return (
         <Tab.Group selectedIndex={selectedTabIndex} onChange={(index: any) => handleTabChange(index)}>
-            <div className="flex flex-row justify-between">
-                <Tab.List className="relative w-full mb-6 text-sm before:absolute before:left-0 before:bottom-0 before:rounded-sm before:bg-gray-200 dark:bg-dark dark:before:bg-gray-800 gap-8 rounded-none md:before:h-0.5">
+            <div className={`flex flex-row justify-between mb-6 ${className}`}>
+                <Tab.List className="relative w-full text-sm gap-8">
                     <div className="flex gap-6 w-full justify-between md:justify-start md:gap-8 xl:gap-10 3xl:gap-12">
                         {tabMenu.map((item) => (
                             <TabItem key={item.path}>
                                 <div className="flex items-center">
                                     {item.icon && <span className="block pr-2">{item.icon}</span>}
-                                    {['xs', 'sm'].indexOf(breakpoints) === -1 && <div className="">{item.title}</div>}
+                                    {['xs', '2xs', 'sm'].indexOf(breakpoints) === -1 && <div className="">{item.title}</div>}
                                 </div>
                             </TabItem>
                         ))}

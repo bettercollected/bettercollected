@@ -2,6 +2,8 @@ import { createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
+import { RootState } from '@app/store/store';
+
 export interface BrandColor {
     primary_color: string;
     accent_color: string;
@@ -70,4 +72,5 @@ const reducerObj = { reducerPath: slice.name, reducer: workspaceReducer };
 // Action creators are generated for each case reducer function
 export const { setWorkspace } = slice.actions;
 
+export const selectWorkspace = (state: RootState) => state.workspace;
 export default reducerObj;

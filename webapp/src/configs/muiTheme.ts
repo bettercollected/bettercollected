@@ -10,6 +10,9 @@ import { PaletteOptions, createTheme, css } from '@mui/material/styles';
 export type AllowedTheme = NonNullable<PaletteOptions['mode']>;
 
 export const lightTheme = createTheme({
+    typography: {
+        fontFamily: `"Inter", "Roboto", "Helvetica", "Arial", sans-serif`
+    },
     palette: {
         primary: { main: '#007AFF' },
         secondary: { main: '#f04444' },
@@ -23,14 +26,44 @@ export const lightTheme = createTheme({
                 }
             }
         }
+    },
+    breakpoints: {
+        values: {
+            xs: 0,
+            sm: 640,
+            md: 768,
+            lg: 1024,
+            xl: 1280
+        }
     }
 });
 
 export const darkTheme = createTheme({
+    typography: {
+        fontFamily: `"Inter", "Roboto", "Helvetica", "Arial", sans-serif`
+    },
     palette: {
         primary: { main: '#ffa500' },
         secondary: { main: '#f04444' },
         mode: 'dark'
+    },
+    components: {
+        MuiPaper: {
+            styleOverrides: {
+                root: {
+                    borderRadius: '10px'
+                }
+            }
+        }
+    },
+    breakpoints: {
+        values: {
+            xs: 0,
+            sm: 640,
+            md: 768,
+            lg: 1024,
+            xl: 1280
+        }
     }
 });
 

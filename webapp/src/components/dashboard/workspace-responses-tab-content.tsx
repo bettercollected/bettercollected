@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { Tooltip } from '@mui/material';
+
 import EmptyTray from '@app/assets/svgs/empty-tray.svg';
 import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-badge';
 import Image from '@app/components/ui/image';
@@ -44,41 +46,41 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
 
     const submissions: Array<StandardFormResponseDto> = data?.items ?? [];
 
-    const isCustomDomain = window?.location.host !== environments.CLIENT_HOST;
+    const isCustomDomain = window?.location.host !== environments.CLIENT_DOMAIN;
 
-    const SubmissionCard = ({ submission, submittedAt }: any) => (
-        <div
-            className={`w-full overflow-hidden items-center justify-between h-full gap-8 p-5 border-[1px] border-neutral-300  drop-shadow-sm  ${
-                !deletionRequests && 'transition cursor-pointer hover:border-blue-500 hover:drop-shadow-lg'
-            }  bg-white rounded-[20px]`}
-        >
-            <div className="flex flex-col justify-start h-full">
-                <p className="text-sm text-gray-400 italic">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submission.formId, 30) : submission.formId}</p>
-                <p className="text-xl text-grey mb-4 p-0">{submission.formTitle}</p>
-                <div className=" w-full flex flex-col lg:flex-row justify-between">
-                    <p className="text-sm text-gray-400 italic">
-                        <span>Last submitted at {submittedAt}</span>
-                    </p>
-                    <p>{deletionRequests && submission?.deletionStatus && <RequestForDeletionBadge deletionStatus={submission?.deletionStatus} />}</p>
+    const submissionCard = ({ submission, submittedAt }: any) => (
+        <>
+            <div key={submission.responseId} className={`w-full overflow-hidden items-center justify-between h-full gap-8 p-5 border-[1px] border-black-400 ${!deletionRequests && 'transition cursor-pointer hover:border-brand-500'} rounded`}>
+                <div className="relative flex flex-col justify-start h-full">
+                    <p className="text-sm text-gray-400 italic break-all">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submission.formId, 30) : submission.formId}</p>
+                    <Tooltip title={submission?.formTitle || 'Untitled'} arrow placement="top-start" enterDelay={300} enterTouchDelay={0}>
+                        <p className="body3 !not-italic leading-none">{['xs', '2xs', 'sm', 'md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submission?.formTitle || 'Untitled', 15) : toEndDottedStr(submission?.formTitle || 'Untitled', 20)}</p>
+                    </Tooltip>
+                    <div className="w-full flex flex-col lg:flex-row justify-between">
+                        <p className="text-xs text-gray-400 italic">
+                            <span>Last submitted at {submittedAt}</span>
+                        </p>
+                        {deletionRequests && submission?.deletionStatus && <RequestForDeletionBadge deletionStatus={submission?.deletionStatus} className="absolute -bottom-4 -right-5" />}
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
     return (
-        <>
+        <div className="py-6 px-5 lg:px-10 xl:px-20">
             {submissions?.length === 0 && (
                 <div className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
                     <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />
                     <p className="mt-4 p-0">0 forms</p>
                 </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                 {submissions?.length !== 0 &&
                     submissions?.map((submission: StandardFormResponseDto) => {
                         const slug = submission.responseId;
                         const submittedAt = `${toMonthDateYearStr(parseDateStrToDate(submission.updatedAt))} ${toHourMinStr(parseDateStrToDate(submission.updatedAt))}`;
                         return deletionRequests ? (
-                            <SubmissionCard key={submission.responseId} submission={submission} submittedAt={submittedAt} />
+                            submissionCard({ submission, submittedAt })
                         ) : (
                             <ActiveLink
                                 key={submission.responseId}
@@ -86,11 +88,11 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
                                     pathname: deletionRequests ? '' : isCustomDomain ? `/submissions/${slug}` : `${workspace.workspaceName}/submissions/${slug}`
                                 }}
                             >
-                                <SubmissionCard submission={submission} submittedAt={submittedAt} />
+                                {submissionCard({ submission, submittedAt })}
                             </ActiveLink>
                         );
                     })}
             </div>
-        </>
+        </div>
     );
 }

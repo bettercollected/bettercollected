@@ -1,5 +1,9 @@
 import React from 'react';
 
+import Image from 'next/image';
+
+import _ from 'lodash';
+
 import { Domain, Logout, ManageAccounts, PrivacyTip } from '@mui/icons-material';
 import { Avatar, Box, Divider, IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 
@@ -29,6 +33,10 @@ export default function WorkspaceLoginMenuItems({ authStatus, handleLogout, work
         setAnchorEl(null);
     };
 
+    const user = authStatus?.data?.user;
+
+    const profileName = _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name);
+
     const handleUpdateTocAndPrivacyPolicy = () => {
         openModal('UPDATE_TERMS_OF_SERVICE_AND_PRIVACY_POLICY');
     };
@@ -36,7 +44,7 @@ export default function WorkspaceLoginMenuItems({ authStatus, handleLogout, work
     return (
         <>
             <Box sx={{ display: 'flex', alignItems: 'center', textAlign: 'center' }}>
-                <Tooltip title="Account settings">
+                <Tooltip title="Account settings" arrow placement="bottom-end" enterDelay={300} enterTouchDelay={0}>
                     <div onClick={handleClick} aria-controls={open ? 'account-menu' : undefined} aria-haspopup="true" aria-expanded={open ? 'true' : undefined}>
                         <Hamburger />
                     </div>
@@ -79,16 +87,22 @@ export default function WorkspaceLoginMenuItems({ authStatus, handleLogout, work
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
                 <MenuItem onClick={handleClose}>
-                    <Avatar>{isFormCreator ? 'C' : 'R'}</Avatar>
-                    <div className="flex flex-col">
-                        <span className="text-gray-800 font-bold">{authStatus?.data?.user?.sub}</span>
+                    {user?.profile_image ? <Image src={user?.profile_image} alt={isFormCreator ? 'C' : 'R'} className="rounded-full" width={48} height={48} /> : <Avatar>{isFormCreator ? 'C' : 'R'}</Avatar>}
+                    <div className=" ml-4 flex flex-col">
+                        <span className="text-gray-800 font-bold">{profileName.trim() || user?.email || ''}</span>
                         <span className="text-gray-600 italic">{isFormCreator ? 'Form Creator' : 'Form Responder'}</span>
                     </div>
                 </MenuItem>
                 <Divider />
                 {isFormCreator && (
                     <>
-                        <a className="w-full" target="_blank" referrerPolicy="no-referrer" href={`${environments.ADMIN_HOST.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_HOST}/${workspace.workspaceName}/dashboard`} rel="noreferrer">
+                        <a
+                            className="w-full"
+                            target="_blank"
+                            referrerPolicy="no-referrer"
+                            href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/dashboard`}
+                            rel="noreferrer"
+                        >
                             <MenuItem className="hover:bg-blue-500 hover:text-white text-gray-900 group flex w-full items-center">
                                 <div className="flex space-x-4">
                                     <HomeIcon width={20} height={20} />

@@ -43,7 +43,7 @@ const nextConfig = {
     images: {
         minimumCacheTTL: 600,
         formats: ['image/avif', 'image/webp'],
-        domains: [...googleImageDomains, 'images.typeform.com', 'lh5.googleusercontent.com', 's3.eu-west-1.wasabisys.com', 's3.eu-central-1.wasabisys.com', 'sireto.com']
+        domains: [...googleImageDomains, 'images.typeform.com', 'lh5.googleusercontent.com', 'lh3.googleusercontent.com', 's3.eu-west-1.wasabisys.com', 's3.eu-central-1.wasabisys.com', 'sireto.com']
     },
     publicRuntimeConfig: {
         CONTACT_US_URL: process.env.CONTACT_US_URL,
@@ -55,8 +55,9 @@ const nextConfig = {
         BUSINESS_FORM_URL: process.env.BUSINESS_FORM_URL,
         ENTERPRISE_FORM_URL: process.env.ENTERPRISE_FORM_URL,
         GOOGLE_IMAGE_DOMAINS: process.env.GOOGLE_IMAGE_DOMAINS,
-        CLIENT_HOST: process.env.CLIENT_HOST,
-        ADMIN_HOST: process.env.ADMIN_HOST,
+        CLIENT_DOMAIN: process.env.CLIENT_DOMAIN,
+        ADMIN_DOMAIN: process.env.ADMIN_DOMAIN,
+        HTTP_SCHEME: process.env.HTTP_SCHEME,
 
         // Custom Domain Variables
         IS_CUSTOM_DOMAIN: process.env.IS_CUSTOM_DOMAIN || false,

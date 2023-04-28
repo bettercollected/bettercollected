@@ -99,7 +99,7 @@ export default function Submission(props: any) {
     const deletionStatus = !!form?.response?.deletionStatus;
 
     return (
-        <div className="relative container mx-auto px-6 md:px-0">
+        <div className="relative container mx-auto px-6 md:px-0 pb-6">
             <div className="flex justify-between">
                 <Button className="w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={goToSubmissions}>
                     <LongArrowLeft width={15} height={15} />
@@ -115,7 +115,7 @@ export default function Submission(props: any) {
                     </span>
                 </Button>
             </div>
-            <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} />
+            {/* <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} /> */}
             <FormRenderer form={form.form} response={form.response} />
         </div>
     );

@@ -3,6 +3,7 @@ import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
 import { StandardFormDto } from '@app/models/dtos/form';
+import { RootState } from '@app/store/store';
 
 export const initialFormState: StandardFormDto = {
     formId: '',
@@ -45,6 +46,7 @@ const formReducer = persistReducer(
 
 const reducerObj = { reducerPath: slice.name, reducer: formReducer };
 
+export const selectForm = (state: RootState) => state.form;
 export const { setForm, setFormSettings } = slice.actions;
 
 export default reducerObj;

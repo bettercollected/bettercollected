@@ -60,7 +60,7 @@ const CardTitle = ({ title, tooltipDesc }: any) => {
     return (
         <div className="flex pl-[15px] h-4 items-center">
             <h1 className="text-gray-500 text-sm">{title}</h1>
-            <Tooltip title={tooltipDesc} arrow placement="right-start">
+            <Tooltip title={tooltipDesc} arrow placement="right-start" enterTouchDelay={0}>
                 <HelpIcon className="text-gray-500 cursor-pointer !w-5 !h-5 ml-2" />
             </Tooltip>
         </div>

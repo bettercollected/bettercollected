@@ -1,18 +1,18 @@
 import React, { useEffect } from 'react';
 
+import { Button, Divider } from '@mui/material';
+
 import BannerImageComponent from '@app/components/dashboard/banner-image';
 import ProfileImageComponent from '@app/components/dashboard/profile-image';
 import FormsAndSubmissionsTabContainer from '@app/components/forms-and-submisions-tabs/forms-and-submisisons-tab-container';
 import WorkspaceFooter from '@app/components/layout/workspace-footer';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import WorkspaceLoginMenuItems from '@app/components/workspace-login-menu';
-import WorkspaceHeader from '@app/components/workspace/workspace-header';
-import DynamicContainer from '@app/containers/DynamicContainer';
+import PublicWorkspaceTitleAndDescription from '@app/components/workspace/public-workspace-title-description';
+import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { useGetStatusQuery, useLazyGetLogoutQuery } from '@app/store/auth/api';
+import { useGetStatusQuery } from '@app/store/auth/api';
 import { useAppDispatch } from '@app/store/hooks';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
@@ -24,14 +24,14 @@ interface IDashboardContainer {
 export interface BannerImageComponentPropType {
     workspace: WorkspaceDto;
     isFormCreator: boolean;
+    className?: string;
 }
 
 export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: IDashboardContainer) {
-    const [trigger] = useLazyGetLogoutQuery();
-
     const authStatus = useGetStatusQuery('status');
-    const { openModal } = useModal();
+
     const dispatch = useAppDispatch();
+    const { openModal } = useModal();
 
     useEffect(() => {
         if (workspace.id) {
@@ -39,59 +39,38 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
         }
     }, [workspace]);
 
-    if (!workspace || authStatus.isLoading) return <FullScreenLoader />;
+    if (!workspace) return <FullScreenLoader />;
 
     const isFormCreator = authStatus.isSuccess && authStatus?.data?.user?.id === workspace?.ownerId;
 
-    const handleLogout = async () => {
-        trigger().finally(() => {
-            authStatus.refetch();
-        });
-    };
-
-    const handleCheckMyData = () => {
-        openModal('LOGIN_VIEW', { isCustomDomain: true });
+    const getWorkspaceUrl = () => {
+        const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
+        const domain = !!workspace.customDomain ? workspace.customDomain : environments.CLIENT_DOMAIN;
+        const w_name = !!workspace.customDomain ? '' : workspace.workspaceName;
+        return `${protocol}${domain}/${w_name}`;
     };
 
     return (
-        <>
-            <Layout className="!pt-0 relative min-h-screen bg-[#FBFBFB] pb-10 flex justify-center">
-                <DynamicContainer>
-                    <div className="min-h-screen">
-                        <div className="relative overflow-hidden rounded-b-3xl h-44 w-full md:h-80 xl:h-[380px] bannerdiv">
-                            <BannerImageComponent workspace={workspace} isFormCreator={isFormCreator} />
-                        </div>
-                        <div className="hidden justify-between items-start py-10 gap-6 md:flex">
-                            <ProfileImageComponent workspace={workspace} isFormCreator={isFormCreator} />
-                            <WorkspaceHeader isFormCreator={isFormCreator} />
-
-                            {!!authStatus.error ? (
-                                <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
-                                    Check My Data
-                                </Button>
-                            ) : (
-                                <WorkspaceLoginMenuItems workspace={workspace} authStatus={authStatus} isFormCreator={isFormCreator} handleLogout={handleLogout} />
-                            )}
-                        </div>
-                        <div className="block md:hidden">
-                            <div className="flex justify-between items-start py-10 gap-6">
-                                <ProfileImageComponent workspace={workspace} isFormCreator={isFormCreator} />
-
-                                {!!authStatus.error ? (
-                                    <Button variant="solid" className="ml-3 !px-8 !rounded-xl !bg-blue-500" onClick={handleCheckMyData}>
-                                        Check My Data
-                                    </Button>
-                                ) : (
-                                    <WorkspaceLoginMenuItems workspace={workspace} authStatus={authStatus} isFormCreator={isFormCreator} handleLogout={handleLogout} />
-                                )}
-                            </div>
-                            <WorkspaceHeader isFormCreator={isFormCreator} />
-                        </div>
-                        <FormsAndSubmissionsTabContainer workspace={workspace} workspaceId={workspace.id} showResponseBar={!!authStatus.error} />
-                    </div>
-                    <WorkspaceFooter workspace={workspace} isCustomDomain={isCustomDomain} />
-                </DynamicContainer>
-            </Layout>
-        </>
+        <Layout showNavbar checkMyDataEnabled className="!p-0 min-h-screen bg-white pb-10 flex flex-col">
+            <div className="relative overflow-hidden w-full">
+                <BannerImageComponent workspace={workspace} isFormCreator={isFormCreator} />
+            </div>
+            <div className="md:min-h-[235px] relative bg-brand-100 flex flex-col sm:flex-row pt-6 pb-10 gap-6 px-5 lg:px-10 xl:px-20">
+                <div className="absolute right-5 lg:right-10 xl:right-20">
+                    <Button onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: 'your workspace' })} variant="outlined" className="!text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize">
+                        Share
+                    </Button>
+                </div>
+                <ProfileImageComponent className="w-fit sm:w-auto sm:absolute -top-[51px] md:-top-[63px] lg:-top-[73px] rounded overflow-hidden border-4 border-brand-100" workspace={workspace} isFormCreator={isFormCreator} />
+                <PublicWorkspaceTitleAndDescription className="pl-0 ml-0 sm:ml-6 sm:pl-32 md:pl-40 lg:pl-[200px]" isFormCreator={isFormCreator} />
+            </div>
+            <div className="bg-white h-full">
+                <FormsAndSubmissionsTabContainer isFormCreator={isFormCreator} workspace={workspace} workspaceId={workspace.id} showResponseBar={!!authStatus.error} />
+                <div className="px-5 lg:px-10 xl:px-20">
+                    <Divider className="my-10" />
+                </div>
+                <WorkspaceFooter workspace={workspace} isCustomDomain={isCustomDomain} />
+            </div>
+        </Layout>
     );
 }

@@ -2,9 +2,9 @@ import React from 'react';
 
 export function Plus(props: React.SVGAttributes<{}>) {
     return (
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-            <path d="M6 11V1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M1 6L11 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+            <path d="M12 4L12 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <path d="M4 12L20 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
     );
 }

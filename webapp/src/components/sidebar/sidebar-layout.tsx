@@ -1,79 +1,31 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React from 'react';
 
+import { Box } from '@mui/material';
 import cn from 'classnames';
 
-import { Header } from '@app/layouts/_layout';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { authApi } from '@app/store/auth/api';
-import { useAppSelector } from '@app/store/hooks';
+import AuthNavbar from '@app/components/auth/navbar';
+import DashboardDrawer from '@app/components/sidebar/dashboard-drawer';
 
-import { useDrawer } from '../drawer-views/context';
-import Hamburger from '../ui/hamburger';
-import Logo from '../ui/logo';
-import SidebarExpandable from './_expandable';
+interface ISidebarLayout {
+    children: any;
+    DrawerComponent?: any;
+}
 
-export default function SidebarLayout(props: any) {
-    const children = props.children;
-    const isNavbarRequired = props.children;
-    const { openDrawer, isOpen } = useDrawer();
-    const [anchorEl, setAnchorEl] = useState(null);
+export default function SidebarLayout({ children, DrawerComponent = DashboardDrawer }: ISidebarLayout) {
+    const drawerWidth = 289;
 
-    const screenSize = useBreakpoint();
-
-    const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
-    const selectGetStatus = useAppSelector(statusQuerySelect);
-
-    const handleOpenSidebar = () => {
-        openDrawer('DASHBOARD_SIDEBAR');
-    };
-
-    const checkIfSideBarRender = () => {
-        switch (screenSize) {
-            case 'xs':
-            case 'sm':
-            case 'md':
-            case 'lg':
-                return false;
-            default:
-                return true;
-        }
-    };
-
-    const profileName = selectGetStatus?.data?.user?.sub ?? '';
-
-    const handleClose = () => {
-        setAnchorEl(null);
-    };
-
-    const handleClick = (event: any) => {
-        event.preventDefault();
-        setAnchorEl(event.currentTarget);
+    const [mobileOpen, setMobileOpen] = React.useState(false);
+    const handleDrawerToggle = () => {
+        setMobileOpen(!mobileOpen);
     };
 
     return (
-        <div className="ltr:xl:pl-24 rtl:xl:pr-24 ltr:2xl:pl-28 rtl:2xl:pr-28">
-            {isNavbarRequired && (
-                <Header>
-                    <>
-                        <div className="flex flex-row w-full h-full py-2 md:py-0 justify-between items-center">
-                            <div className={'flex'}>
-                                {!checkIfSideBarRender() && <Hamburger isOpen={isOpen} className="!shadow-none !bg-white !text-black !flex !justify-start" onClick={handleOpenSidebar} />}
-                                <Logo />
-                            </div>
-                            {['xs', 'sm'].indexOf(screenSize) === -1 && !!profileName[0] && (
-                                <div className="flex items-center mt-2">
-                                    <div className="flex rounded-md w-full p-3 h-10 items-center justify-center mr-2 bg-blue-50">{profileName[0]?.toUpperCase()}</div>
-                                    <div className="italic font-bold text-md text-gray-600 flex flex-row items-center">
-                                        <p className="mr-2">{profileName}</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </>
-                </Header>
-            )}
-            {checkIfSideBarRender() && <SidebarExpandable />}
-            <main className={cn('px-4 xl:left-24 right-0 w-full xl:w-auto absolute top-24 md:pt-4 sm:px-6 lg:px-8 3xl:px-10 3xl:pt-2.5')}>{children}</main>
+        <div className="relative min-h-screen w-full">
+            <AuthNavbar handleDrawerToggle={handleDrawerToggle} mobileOpen={mobileOpen} />
+            <DrawerComponent drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
+            <Box className={`float-none lg:float-right mt-[68px] min-h-calc-68 px-5 lg:px-10`} component="main" sx={{ display: 'flex', width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
+                <div className={cn('w-full h-full')}>{children}</div>
+            </Box>
         </div>
     );
 }

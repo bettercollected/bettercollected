@@ -7,7 +7,7 @@ import mockUseRouter from '@app/utils/__test_utils__/mock-use-router';
 jest.mock('@app/configs/environments', () => ({
     ENABLE_GOOGLE: true,
     ENABLE_TYPEFORM: true,
-    CLIENT_HOST: 'localhost:3000',
+    CLIENT_DOMAIN: 'localhost:3000',
     // api host configs
     API_ENDPOINT_HOST: 'http://localhost:8000'
 }));

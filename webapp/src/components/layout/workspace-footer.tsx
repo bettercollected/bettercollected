@@ -3,7 +3,6 @@ import React from 'react';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
-import DynamicContainer from '@app/containers/DynamicContainer';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
 interface FooterProps {
@@ -13,25 +12,21 @@ interface FooterProps {
 
 export default function WorkspaceFooter({ workspace, isCustomDomain }: FooterProps) {
     return (
-        <div className="w-full flex justify-center">
-            <DynamicContainer>
-                <div className=" w-full flex flex-col justify-start md:flex-row md:justify-between md:items-center border-t-[1.5px] border-[#eaeaea] bg-transparent drop-shadow-main pt-3 mb-0">
-                    <div className="flex justify-between mb-4">
-                        <ActiveLink target={'_blank'} className="mt-6 md:mt-0 text-sm md:text-lg mr-6 hover:text-gray-600" href={workspace.terms_of_service_url ?? `https://${environments.CLIENT_HOST}/legal/terms-and-conditions-2022.pdf`}>
-                            Terms of service
-                        </ActiveLink>
-                        <ActiveLink target={'_blank'} className="mt-6 md:mt-0 text-sm md:text-lg hover:text-gray-600" href={workspace.privacy_policy_url ?? `https://${environments.CLIENT_HOST}/legal/privacy-policy-2022.pdf`}>
-                            Privacy Policy
-                        </ActiveLink>
-                    </div>
-                    {isCustomDomain && (
-                        <div data-testid="logo" className="mb-2">
-                            <p>Powered by</p>
-                            <Logo className="!text-lg" />
-                        </div>
-                    )}
+        <div className="w-full flex flex-col pb-6 px-5 lg:px-10 xl:px-20 min-h-[44px] justify-start md:flex-row md:justify-between md:items-center gap-10">
+            <div className="flex flex-col gap-6 justify-center items-start sm:flex-row sm:gap-10 sm:justify-between sm:items-center">
+                <ActiveLink target="_blank" className="body3 !not-italic !text-black-800 hover:!text-brand-500" href={workspace.terms_of_service_url ?? `https://bettercollected.com/terms-of-service/`}>
+                    Terms of service
+                </ActiveLink>
+                <ActiveLink target="_blank" className="body3 !not-italic !text-black-800 hover:!text-brand-500" href={workspace.privacy_policy_url ?? `https://bettercollected.com/privacy-policy/`}>
+                    Privacy Policy
+                </ActiveLink>
+            </div>
+            {isCustomDomain && (
+                <div data-testid="logo">
+                    <p className="body3 !not-italic !text-black-800">Powered by</p>
+                    <Logo />
                 </div>
-            </DynamicContainer>
+            )}
         </div>
     );
 }

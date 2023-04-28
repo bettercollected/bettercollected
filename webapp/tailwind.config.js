@@ -5,28 +5,50 @@ module.exports = {
     darkMode: 'class',
     theme: {
         screens: {
-            xs: '500px',
+            xs: '360px',
+            '2xs': '480px',
             sm: '640px',
             md: '768px',
             lg: '1024px',
             xl: '1280px',
-            '2xl': '1440px',
-            '3xl': '1780px',
-            '4xl': '2160px' // only need to control product grid mode in ultra 4k device
+            '2xl': '1536px'
         },
         extend: {
             blur: {
                 dashboardBackground: '105px'
             },
             colors: {
-                brand: 'rgb(var(--color-brand) / <alpha-value>)',
-                body: '#ffffff',
+                // brand: 'rgb(var(--color-brand) / <alpha-value>)',
                 dark: '#1c1917',
-                // dark: '#0D1321',
                 'light-dark': '#171e2e',
-                darkGrey: '#333333',
-                grey: '#4F4F4F',
-                softBlue: '#9AA8BD'
+                white: '#ffffff',
+                brand: {
+                    100: '#F2F7FF',
+                    200: '#D8E8FF',
+                    300: '#A8C6F0',
+                    400: '#82A2CF',
+                    500: '#0764EB',
+                    600: '#0C50B4',
+                    700: '#2C2C60',
+                    800: '#11114C',
+                    900: '#111134',
+
+                    DEFAULT: '#0764EB'
+                },
+                'brand-accent': '#F8B940',
+                black: {
+                    100: '#F8F9FA',
+                    200: '#E9ECEF',
+                    300: '#DEE2E6',
+                    400: '#CED4DA',
+                    500: '#ADB5BD',
+                    600: '#6C757D',
+                    700: '#495057',
+                    800: '#343A40',
+                    900: '#212529',
+
+                    DEFAULT: '#ADB5BD'
+                }
             },
             spacing: {
                 13: '3.375rem'
@@ -39,14 +61,15 @@ module.exports = {
             },
             width: {
                 'calc-320': 'calc(100% - 320px)',
-                'calc-358': 'calc(100% - 358px)'
+                'calc-358': 'calc(100% - 358px)',
+                '289-calc-289': 'calc(100vh - 592px)',
+                'calc-289': 'calc(100% - 578px)'
             },
-            fontFamily: {
-                righteous: ['Righteous', 'cursive'],
-                body: ['Roboto', 'Open Sans', 'monospace']
+            maxWidth: {
+                '289-calc-289': 'calc(100vw - 592px)'
             },
-            fontSize: {
-                '13px': ['13px', '18px']
+            minHeight: {
+                'calc-68': 'calc(100vh - 68px)'
             },
             borderWidth: {
                 3: '3px'
@@ -123,6 +146,49 @@ module.exports = {
                     '0%': { transform: 'scale(0)' },
                     '100%': { transform: 'scale(1)' }
                 }
+            },
+            screens: {
+                xs: '360px',
+                '2xs': '480px',
+                sm: '640px',
+                md: '768px',
+                lg: '1024px',
+                xl: '1280px',
+                '2xl': '1536px'
+            },
+            fontFamily: {
+                inter: ['Inter', 'Open Sans', 'monospace'],
+                roboto: ['Roboto', 'Inter', 'Open Sans', 'monospace']
+            },
+            fontSize: {
+                xs: ['0.75rem', { lineHeight: '1rem' }],
+                sm: ['0.875rem', { lineHeight: '1.25rem' }],
+                base: ['1rem', { lineHeight: '1.5rem' }],
+                lg: ['1.125rem', { lineHeight: '1.75rem' }],
+                xl: ['1.25rem', { lineHeight: '1.75rem' }],
+                '2xl': ['1.5rem', { lineHeight: '2rem' }],
+                '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
+                '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
+                '5xl': ['3rem', { lineHeight: '1' }],
+                '6xl': ['3.75rem', { lineHeight: '1' }],
+                '7xl': ['4.5rem', { lineHeight: '1' }],
+                '8xl': ['6rem', { lineHeight: '1' }],
+                '9xl': ['8rem', { lineHeight: '1' }]
+            },
+            fontWeight: {
+                thin: '100',
+                extralight: '200',
+                light: '300',
+                normal: '400',
+                medium: '500',
+                semibold: '600',
+                bold: '700',
+                extrabold: '800',
+                black: '900'
+            },
+            aspectRatio: {
+                'banner-desktop': '5 / 1',
+                'banner-mobile': '3 / 1'
             }
         }
     },
@@ -140,33 +206,25 @@ module.exports = {
                 '.container': {
                     maxWidth: '100%',
                     '@screen xs': {
-                        maxWidth: '500px'
+                        maxWidth: '360px'
+                    },
+                    '@screen 2xs': {
+                        maxWidth: '440px'
                     },
                     '@screen sm': {
-                        maxWidth: '640px'
+                        maxWidth: '670px'
                     },
                     '@screen md': {
                         maxWidth: '800px'
                     },
                     '@screen lg': {
-                        maxWidth: '800px'
-                        // maxWidth: '1176px'
+                        maxWidth: '1176px'
                     },
                     '@screen xl': {
-                        maxWidth: '800px'
-                        // maxWidth: '1310px'
+                        maxWidth: '1310px'
                     },
                     '@screen 2xl': {
-                        maxWidth: '800px'
-                        // maxWidth: '1352px'
-                    },
-                    '@screen 3xl': {
-                        maxWidth: '800px'
-                        // maxWidth: '1536px'
-                    },
-                    '@screen 4xl': {
-                        maxWidth: '800px'
-                        // maxWidth: '1536px'
+                        maxWidth: '1352px'
                     }
                 }
             });
