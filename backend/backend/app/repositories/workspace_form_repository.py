@@ -98,3 +98,42 @@ class WorkspaceFormRepository:
         return await WorkspaceFormDocument.find_one(
             {"workspace_id": workspace_id, "settings.custom_url": custom_url}
         )
+
+    async def get_workspace_ids_for_form_id(self, form_id):
+        workspace_forms = await WorkspaceFormDocument.find(
+            {"form_id": form_id}
+        ).to_list()
+        return [workspace_form.workspace_id for workspace_form in workspace_forms]
+
+    async def delete_form_in_workspace(
+        self, workspace_id: PydanticObjectId, form_id: str
+    ):
+        workspace_form = await WorkspaceFormDocument.find_one(
+            {"form_id": form_id, "workspace_id": workspace_id}
+        )
+        if not workspace_form:
+            raise HTTPException(status_code=404, content="Form not found in Workspace")
+        await workspace_form.delete()
+        return workspace_form
+
+    async def check_is_form_imported_in_other_workspace(
+        self, workspace_id: PydanticObjectId, form_id: str
+    ):
+        workspace_forms = await WorkspaceFormDocument.find(
+            {"form_id": form_id}
+        ).to_list()
+        if len(workspace_forms) != 0:
+            for workspace_form in workspace_forms:
+                if workspace_form.workspace_id != workspace_id:
+                    raise HTTPException(
+                        status_code=HTTPStatus.CONFLICT,
+                        content="Form has already been imported to another workspace",
+                    )
+
+    async def get_form_ids_imported_by_user(
+        self, workspace_id: PydanticObjectId, user_id: str
+    ):
+        forms = await WorkspaceFormDocument.find(
+            {"workspace_id": workspace_id, "user_id": user_id}
+        ).to_list()
+        return [form.form_id for form in forms]

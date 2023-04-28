@@ -22,7 +22,7 @@ def set_token_to_response(
             "id": user.id,
             "sub": user.sub,
             "roles": user.roles,
-            "services": user.services,
+            "plan": user.plan,
             "exp": expiry,
             "jti": str(uuid.uuid4()),
         },

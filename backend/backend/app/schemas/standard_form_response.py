@@ -29,7 +29,6 @@ class FormResponseDeletionRequest(MongoDocument):
     provider: str
     status: DeletionRequestStatus = DeletionRequestStatus.PENDING
     deleted_at: Optional[str]
-    created_at: Optional[str] = dt.datetime.utcnow()
 
     class Settings:
         name = "responses_deletion_requests"

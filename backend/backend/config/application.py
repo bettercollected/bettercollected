@@ -7,6 +7,7 @@ from backend.config.api_settings import ApiSettings
 from backend.config.auth_settings import AuthSettings
 from backend.config.aws import AWSSettings
 from backend.config.database import MongoSettings
+from backend.config.https_certificate import HttpsCertificateApiSettings
 from backend.config.schedular_settings import SchedularSettings
 
 from dotenv import load_dotenv
@@ -40,6 +41,7 @@ class Application(BaseSettings):
     mongo_settings: MongoSettings = MongoSettings()
     schedular_settings: SchedularSettings = SchedularSettings()
     aws_settings: AWSSettings = AWSSettings()
+    https_cert_api_settings: HttpsCertificateApiSettings = HttpsCertificateApiSettings()
 
     # All your additional application configuration should go either here or in
     # separate file in this submodule.

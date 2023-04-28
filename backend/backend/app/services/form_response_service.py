@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import List
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.response_dtos import (
@@ -35,7 +36,7 @@ class FormResponseService:
     async def get_all_workspace_responses(
         self, workspace_id: PydanticObjectId, request_for_deletion: bool, user: User
     ):
-        if not await self._workspace_user_repo.is_user_admin_in_workspace(
+        if not await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         ):
             raise HTTPException(
@@ -66,7 +67,7 @@ class FormResponseService:
         form_id: str,
         user: User,
     ):
-        if not await self._workspace_user_repo.is_user_admin_in_workspace(
+        if not await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id, user
         ):
             raise HTTPException(
@@ -90,7 +91,7 @@ class FormResponseService:
     async def get_workspace_submission(
         self, workspace_id: PydanticObjectId, response_id: str, user: User
     ):
-        is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
+        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id, user
         )
         # TODO : Handle case for multiple form import by other user
@@ -123,7 +124,7 @@ class FormResponseService:
     async def request_for_response_deletion(
         self, workspace_id: PydanticObjectId, response_id: str, user: User
     ):
-        is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
+        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id, user
         )
         # TODO : Handle case for multiple form import by other user
@@ -148,3 +149,19 @@ class FormResponseService:
             response_id=response_id,
             provider=response.provider,
         ).save()
+
+    async def get_responses_count_in_workspace(self, workspace_form_ids: List[str]):
+        return await self._form_response_repo.count_responses_for_form_ids(
+            workspace_form_ids
+        )
+
+    async def get_deletion_requests_count_in_workspace(self, form_ids: List[str]):
+        return await self._form_response_repo.get_deletion_requests_count_in_workspace(
+            form_ids
+        )
+
+    async def delete_form_responses(self, form_id):
+        return await self._form_response_repo.delete_by_form_id(form_id)
+
+    async def delete_deletion_requests(self, form_id):
+        return await self._form_response_repo.delete_deletion_requests(form_id=form_id)

@@ -7,14 +7,21 @@ from backend.app.models.workspace import (
     WorkspaceResponseDto,
 )
 from backend.app.repositories.workspace_repository import WorkspaceRepository
-from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
+from backend.app.schemas.allowed_origin import AllowedOriginsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.services.form_response_service import FormResponseService
+from backend.app.services.workspace_form_service import WorkspaceFormService
+from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.utils.domain import is_domain_available
 from backend.config import settings
 
 from beanie import PydanticObjectId
 
+from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from common.constants import MESSAGE_FORBIDDEN
+from common.enums.plan import Plans
 from common.models.user import User
 from common.services.http_client import HttpClient
 
@@ -29,12 +36,16 @@ class WorkspaceService:
         http_client: HttpClient,
         workspace_repo: WorkspaceRepository,
         aws_service: AWSS3Service,
-        workspace_user_repo: WorkspaceUserRepository,
+        workspace_user_service: WorkspaceUserService,
+        workspace_form_service: WorkspaceFormService,
+        form_response_service: FormResponseService,
     ):
         self.http_client = http_client
         self._workspace_repo = workspace_repo
         self._aws_service = aws_service
-        self._workspace_user_repo = workspace_user_repo
+        self._workspace_user_service = workspace_user_service
+        self.workspace_form_service = workspace_form_service
+        self.form_response_service = form_response_service
 
     async def get_workspace_by_id(self, workspace_id: PydanticObjectId):
         workspace = await self._workspace_repo.get_workspace_by_id(
@@ -42,8 +53,16 @@ class WorkspaceService:
         )
         return WorkspaceResponseDto(**workspace.dict())
 
-    async def get_workspace_by_query(self, query: str):
+    async def get_workspace_by_query(self, query: str, user: User):
         workspace = await self._workspace_repo.get_workspace_by_query(query)
+        if user:
+            try:
+                await self._workspace_user_service.check_user_has_access_in_workspace(
+                    workspace_id=workspace.id, user=user
+                )
+                return WorkspaceResponseDto(**workspace.dict(), dashboard_access=True)
+            except HTTPException:
+                pass
         return WorkspaceResponseDto(**workspace.dict())
 
     async def patch_workspace(
@@ -54,6 +73,9 @@ class WorkspaceService:
         workspace_patch: WorkspaceRequestDtoCamel,
         user: User,
     ):
+        await self._workspace_user_service.check_is_admin_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id
         )
@@ -109,15 +131,37 @@ class WorkspaceService:
         )
 
         if workspace_patch.custom_domain:
+            if user.plan == Plans.FREE:
+                raise HTTPException(status_code=403, content=MESSAGE_FORBIDDEN)
+
             try:
-                await self.get_workspace_by_query(workspace_patch.custom_domain)
-                raise HTTPException(409)
+                workspace = await WorkspaceDocument.find_one(
+                    {"custom_domain": workspace_patch.custom_domain}
+                )
+                origin = await AllowedOriginsDocument.find_one(
+                    {"origin": workspace_patch.custom_domain}
+                )
+                if (
+                    not workspace
+                    and not origin
+                    and is_domain_available(workspace_patch.custom_domain)
+                ):
+                    await AllowedOriginsDocument.save(
+                        AllowedOriginsDocument(
+                            origin="https://" + workspace_patch.custom_domain
+                        )
+                    )
+                    await self.update_https_server_for_certificate(
+                        workspace_patch.custom_domain
+                    )
+                else:
+                    raise HTTPException(409)
             except HTTPException as e:
                 if e.status_code == 409:
                     raise HTTPException(
-                        409, "Workspace with given custom domain already exists!"
+                        409,
+                        "Workspace with given custom domain already exists or Domain already exists.",
                     )
-                pass
 
         workspace_document.custom_domain = (
             workspace_patch.custom_domain
@@ -132,7 +176,13 @@ class WorkspaceService:
     async def delete_custom_domain_of_workspace(
         self, workspace_id: PydanticObjectId, user: User
     ):
-        await self._workspace_user_repo.is_user_admin_in_workspace(workspace_id, user)
+        if user.plan == Plans.FREE:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
+            )
+        await self._workspace_user_service.check_is_admin_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id=workspace_id
         )
@@ -143,7 +193,10 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.dict())
 
     async def get_mine_workspaces(self, user: User):
-        workspaces = await self._workspace_repo.get_user_workspaces(user.id)
+        workspace_ids = await self._workspace_user_service.get_mine_workspaces(user.id)
+        workspaces = await self._workspace_repo.get_workspace_by_ids(
+            workspace_ids=workspace_ids
+        )
         return [WorkspaceResponseDto(**workspace.dict()) for workspace in workspaces]
 
     async def send_otp_for_workspace(
@@ -159,6 +212,55 @@ class WorkspaceService:
             timeout=180,
         )
         return {"message": "Otp sent successfully"}
+
+    async def get_workspace_stats(self, workspace_id: PydanticObjectId, user: User):
+        await self._workspace_user_service.check_user_has_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        form_ids = await self.workspace_form_service.get_form_ids_in_workspace(
+            workspace_id=workspace_id
+        )
+        responses_count = (
+            await self.form_response_service.get_responses_count_in_workspace(
+                workspace_form_ids=form_ids
+            )
+        )
+        deletion_count = (
+            await self.form_response_service.get_deletion_requests_count_in_workspace(
+                form_ids=form_ids
+            )
+        )
+
+        return {
+            "forms": len(form_ids),
+            "responses": responses_count,
+            "deletion_requests": deletion_count,
+        }
+
+    async def downgrade_user_workspace(self, user_id: PydanticObjectId):
+        workspace = await self._workspace_repo.get_workspace_by_owner_id(
+            owner_id=user_id
+        )
+        await self._workspace_user_service.disable_other_users_in_workspace(
+            workspace_id=workspace.id, user_id=user_id
+        )
+        pass
+
+    async def upgrade_user_workspace(self, user_id: PydanticObjectId):
+        workspace = await self._workspace_repo.get_workspace_by_owner_id(
+            owner_id=user_id
+        )
+        await self._workspace_user_service.enable_all_users_in_workspace(
+            workspace_id=workspace.id
+        )
+        pass
+
+    async def update_https_server_for_certificate(self, domain: str):
+        await self.http_client.post(
+            f"{settings.https_cert_api_settings.host}/domain",
+            headers={"api_key": settings.https_cert_api_settings.key},
+            params={"host": domain},
+        )
 
 
 async def create_workspace(user: User):
@@ -177,10 +279,10 @@ async def create_workspace(user: User):
         await workspace.save()
     # Save new workspace user if it is not associated yet
     existing_workspace_user = await WorkspaceUserDocument.find_one(
-        {"workspace_id": workspace.id, "user_id": user.id}
+        {"workspace_id": workspace.id, "user_id": PydanticObjectId(user.id)}
     )
     if not existing_workspace_user:
         workspace_user = WorkspaceUserDocument(
-            workspace_id=workspace.id, user_id=user.id
+            workspace_id=workspace.id, user_id=user.id, roles=[WorkspaceRoles.ADMIN]
         )
         await workspace_user.save()

@@ -16,6 +16,7 @@ class WorkspaceFormSettingsCamelModal(WorkspaceFormSettings, CamelModel):
 
 class StandardFormCamelModel(StandardForm, CamelModel):
     settings: Optional[WorkspaceFormSettingsCamelModal]
+    responses: Optional[int] = 0
 
 
 class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):

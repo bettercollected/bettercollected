@@ -4,11 +4,11 @@ from typing import Optional
 
 from beanie import PydanticObjectId
 
+from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from common.configs.mongo_document import MongoDocument
 from common.enums.workspace_invitation_status import InvitationStatus
 
 from pymongo import IndexModel
-
 
 _time_delta = timedelta()
 
@@ -25,9 +25,6 @@ def _get_expiry_epoch_after(time_delta: timedelta = _time_delta):
         int: The Unix epoch time of the given time in the future.
     """
     return calendar.timegm((datetime.utcnow() + time_delta).utctimetuple())
-
-
-_expiry = _get_expiry_epoch_after()
 
 
 class WorkspaceUserInvitesDocument(MongoDocument):
@@ -56,12 +53,13 @@ class WorkspaceUserInvitesDocument(MongoDocument):
     workspace_id: PydanticObjectId
     email: str
     invitation_status: Optional[InvitationStatus] = InvitationStatus.PENDING
-    expiry: int = _expiry
+    role: Optional[WorkspaceRoles] = WorkspaceRoles.COLLABORATOR
+    expiry: int = _get_expiry_epoch_after(time_delta=timedelta(days=7))
     invitation_token: str
 
     class Settings:
         name = "workspace_invites"
-        indexes = [IndexModel([("workspace_id", 1), ("user_id", 1)], unique=True)]
+        indexes = [IndexModel([("workspace_id", 1), ("email", 1)], unique=True)]
         bson_encoders = {
             datetime: lambda o: datetime.isoformat(o),
         }

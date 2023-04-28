@@ -11,7 +11,7 @@ from backend.app.services.workspace_form_service import WorkspaceFormService
 
 from beanie import PydanticObjectId
 
-from classy_fastapi import Routable, get, patch, post
+from classy_fastapi import Routable, get, patch, post, delete
 
 from common.models.form_import import FormImportRequestBody
 from common.models.user import User
@@ -90,3 +90,14 @@ class WorkspaceFormsRouter(Routable):
             workspace_id, provider, form, user, request
         )
         return {"message": "Import successful."}
+
+    @delete("/{form_id}")
+    async def _delete_form_from_workspace(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        user: User = Depends(get_logged_user),
+    ):
+        return await self.workspace_form_service.delete_form_from_workspace(
+            workspace_id=workspace_id, form_id=form_id, user=user
+        )

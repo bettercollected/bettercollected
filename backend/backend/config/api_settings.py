@@ -9,6 +9,7 @@ class ApiSettings(BaseSettings):
     VERSION: str = __version__
     ROOT_PATH: str = "/api/v1"
     HOST: str = ""
+    ALLOWED_COLLABORATORS = 10
 
     class Config:
         env_prefix = "API_"

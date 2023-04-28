@@ -28,7 +28,8 @@ class WorkspaceUserDocument(MongoDocument):
 
     workspace_id: PydanticObjectId
     user_id: PydanticObjectId
-    roles: List[str] = ["FORM_CREATOR"]
+    roles: List[str] = []
+    disabled: bool = False
 
     class Settings:
         name = "workspace_users"

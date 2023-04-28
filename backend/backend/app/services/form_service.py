@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from backend.app.exceptions import HTTPException
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.response_dtos import StandardFormCamelModel
@@ -28,14 +30,16 @@ class FormService:
         self._workspace_form_repo = workspace_form_repo
 
     async def get_forms_in_workspace(self, workspace_id, user) -> Page[MinifiedForm]:
-        is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
+        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id, not is_admin
         )
         forms_query = self._form_repo.get_forms_in_workspace_query(
-            workspace_id=workspace_id, form_id_list=workspace_form_ids
+            workspace_id=workspace_id,
+            form_id_list=workspace_form_ids,
+            is_admin=is_admin,
         )
         forms_page = await paginate(forms_query)
         return forms_page
@@ -54,7 +58,7 @@ class FormService:
     async def get_form_by_id(
         self, workspace_id: PydanticObjectId, form_id: str, user: User
     ):
-        is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
+        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
         # TODO : Refactor confusing function get but it instead throws inside
@@ -64,7 +68,9 @@ class FormService:
             )
         )
         form = await self._form_repo.get_forms_in_workspace_query(
-            workspace_id=workspace_id, form_id_list=[workspace_form.form_id]
+            workspace_id=workspace_id,
+            form_id_list=[workspace_form.form_id],
+            is_admin=is_admin,
         ).to_list()
         return StandardFormCamelModel(**form[0])
 
@@ -73,6 +79,11 @@ class FormService:
         form_document = FormDocument(**form.dict())
         if existing_form:
             form_document.id = existing_form.id
+            form_document.created_at = (
+                existing_form.created_at
+                if existing_form.created_at
+                else datetime.utcnow()
+            )
         return await self._form_repo.save_form(form_document)
 
     async def patch_settings_in_workspace_form(
@@ -82,7 +93,7 @@ class FormService:
         settings: SettingsPatchDto,
         user: User,
     ):
-        is_admin = await self._workspace_user_repo.is_user_admin_in_workspace(
+        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
         workspace_form = (
@@ -112,3 +123,6 @@ class FormService:
                 settings.responseDataOwnerField
             )
         return await self._workspace_form_repo.update(workspace_form.id, workspace_form)
+
+    async def delete_form(self, form_id: str):
+        return await self._form_repo.delete_form(form_id)

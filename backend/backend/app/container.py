@@ -10,6 +10,7 @@ from backend.app.repositories.form_plugin_provider_repository import (
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
+from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schedulers.form_schedular import FormSchedular
@@ -20,7 +21,9 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
+from backend.app.services.stripe_service import StripeService
 from backend.app.services.workspace_form_service import WorkspaceFormService
+from backend.app.services.workspace_members_service import WorkspaceMembersService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
@@ -88,14 +91,6 @@ class AppContainer(containers.DeclarativeContainer):
         jwt_service=jwt_service,
     )
 
-    workspace_service: WorkspaceService = providers.Singleton(
-        WorkspaceService,
-        http_client=http_client,
-        workspace_repo=workspace_repo,
-        aws_service=aws_service,
-        workspace_user_repo=workspace_user_repo,
-    )
-
     form_service: FormService = providers.Singleton(
         FormService,
         workspace_user_repo=workspace_user_repo,
@@ -148,6 +143,38 @@ class AppContainer(containers.DeclarativeContainer):
         form_schedular=form_schedular,
         form_import_service=form_import_service,
         schedular=schedular,
+        form_response_service=form_response_service,
+    )
+
+    workspace_service: WorkspaceService = providers.Singleton(
+        WorkspaceService,
+        http_client=http_client,
+        workspace_repo=workspace_repo,
+        aws_service=aws_service,
+        workspace_user_service=workspace_user_service,
+        workspace_form_service=workspace_form_service,
+        form_response_service=form_response_service,
+    )
+
+    workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(
+        WorkspaceInvitationRepo
+    )
+
+    workspace_members_service: WorkspaceMembersService = providers.Singleton(
+        WorkspaceMembersService,
+        workspace_user_service=workspace_user_service,
+        workspace_invitation_repo=workspace_invitation_repo,
+        http_client=http_client,
+        workspace_form_service=workspace_form_service,
+    )
+
+    stripe_service: StripeService = providers.Singleton(
+        StripeService,
+        http_client=http_client,
+        plugin_proxy_service=plugin_proxy_service,
+        form_provider_service=form_provider_service,
+        jwt_service=jwt_service,
+        workspace_service=workspace_service,
     )
 
 

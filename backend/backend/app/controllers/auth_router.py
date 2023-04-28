@@ -31,7 +31,7 @@ class AuthRoutes(Routable):
 
     @get("/status")
     async def status(self, user: User = Depends(get_logged_user)):
-        return AuthenticationStatus(user=user)
+        return await self.auth_service.get_user_status(user)
 
     @post("/otp/validate")
     async def _validate_otp(self, login_details: UserLoginWithOTP, response: Response):
@@ -66,7 +66,9 @@ class AuthRoutes(Routable):
         user, state_data = await self.auth_service.handle_backend_auth_callback(
             provider_name=provider_name, state=state, request=request
         )
-        response = RedirectResponse(state_data.client_referer_uri)
+        response = RedirectResponse(
+            state_data.client_referer_uri + "?modal=" + provider_name
+        )
         set_tokens_to_response(user, response)
         if state_data.client_referer_uri:
             return response
@@ -81,7 +83,11 @@ class AuthRoutes(Routable):
         return RedirectResponse(basic_auth_url)
 
     @get("/{provider}/basic/callback")
-    async def _basic_auth_callback(self, provider: str, code: str, state: str):
+    async def _basic_auth_callback(
+        self, provider: str, code: Optional[str] = None, state: Optional[str] = None
+    ):
+        if not state or not code:
+            return {"message": "You cancelled the authorization request."}
         user, client_referer_url = await self.auth_service.basic_auth_callback(
             provider, code, state
         )
