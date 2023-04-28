@@ -19,10 +19,10 @@ class WorkspaceUserService:
     async def check_user_has_access_in_workspace(
         self, workspace_id: PydanticObjectId, user: User
     ):
-        is_admin = await self.workspace_user_repository.has_user_access_in_workspace(
+        has_access = await self.workspace_user_repository.has_user_access_in_workspace(
             workspace_id, user
         )
-        if not is_admin:
+        if not has_access:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
@@ -30,10 +30,10 @@ class WorkspaceUserService:
     async def check_is_admin_in_workspace(
         self, workspace_id: PydanticObjectId, user: User
     ):
-        has_access = await self.workspace_user_repository.is_user_admin_in_workspace(
+        is_admin = await self.workspace_user_repository.is_user_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        if not has_access:
+        if not is_admin:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
@@ -82,3 +82,6 @@ class WorkspaceUserService:
         return await self.workspace_user_repository.enable_all_user_in_workspace(
             workspace_id
         )
+
+    async def delete_user_from_workspace(self, workspace_id: PydanticObjectId, user_id: PydanticObjectId):
+        return await self.workspace_user_repository.delete(workspace_id, user_id)

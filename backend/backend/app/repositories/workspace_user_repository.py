@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 
@@ -5,7 +7,7 @@ from beanie import PydanticObjectId
 
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from common.models.user import User
-
+from backend.app.exceptions import HTTPException
 
 class WorkspaceUserRepository:
     async def has_user_access_in_workspace(
@@ -66,3 +68,14 @@ class WorkspaceUserRepository:
         return await WorkspaceUserDocument.find(
             {"workspace_id": workspace_id}
         ).update_many({"$set": {"disabled": False}})
+
+    async def delete(self, workspace_id, user_id):
+        workspace_user = await WorkspaceUserDocument.find_one(
+            {
+                "workspace_id": PydanticObjectId(workspace_id),
+                "user_id": PydanticObjectId(user_id)
+            }
+        )
+        if not workspace_user:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Resource doesn't exist")
+        return await WorkspaceUserDocument.delete(workspace_user)
