@@ -32,6 +32,7 @@ class WorkspaceDocument(MongoDocument, Workspace):
     workspace_name: Indexed(str, unique=True)
     custom_domain: Optional[Indexed(str)]
     default: bool = False
+    custom_domain_disabled = False
 
     class Settings:
         name = "workspaces"

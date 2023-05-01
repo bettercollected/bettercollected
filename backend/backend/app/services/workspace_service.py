@@ -241,23 +241,25 @@ class WorkspaceService:
         workspace = await self._workspace_repo.get_workspace_by_owner_id(
             owner_id=user_id
         )
+        workspace.custom_domain_disabled = True
+        await workspace.save()
         await self._workspace_user_service.disable_other_users_in_workspace(
             workspace_id=workspace.id, user_id=user_id
         )
-        pass
 
     async def upgrade_user_workspace(self, user_id: PydanticObjectId):
         workspace = await self._workspace_repo.get_workspace_by_owner_id(
             owner_id=user_id
         )
+        workspace.custom_domain_disabled = False
+        await workspace.save()
         await self._workspace_user_service.enable_all_users_in_workspace(
             workspace_id=workspace.id
         )
-        pass
 
     async def update_https_server_for_certificate(self, domain: str):
         await self.http_client.post(
-            f"{settings.https_cert_api_settings.host}/domain",
+            f"{settings.https_cert_api_settings.host}/domains",
             headers={"api_key": settings.https_cert_api_settings.key},
             params={"host": domain},
         )
