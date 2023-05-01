@@ -53,3 +53,10 @@ class WorkspaceInvitationRepo:
             return None
 
         return invitation_request
+
+    async def update_status_to_removed(
+        self, workspace_id: PydanticObjectId, email: str
+    ):
+        await WorkspaceUserInvitesDocument.find_one(
+            {"workspace_id": workspace_id, "email": email}
+        ).update({"$set": {"invitation_status": InvitationStatus.REMOVED}})

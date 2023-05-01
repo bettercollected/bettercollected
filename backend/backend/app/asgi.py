@@ -10,7 +10,7 @@ from backend.app.handlers.database import close_db, init_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
 from backend.app.services.blacklist_token_schedular import (
-    run_blacklisted_token_scheduler,
+    init_schedulers,
 )
 from backend.app.utils import AiohttpClient
 from backend.config import settings
@@ -39,7 +39,7 @@ async def on_startup():
     await init_db(settings.mongo_settings.DB, client)
     if settings.schedular_settings.ENABLED:
         container.schedular().start()
-        run_blacklisted_token_scheduler(container.schedular())
+        init_schedulers(container.schedular())
 
 
 async def on_shutdown():

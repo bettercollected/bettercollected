@@ -1,6 +1,9 @@
+from datetime import timedelta
 from http import HTTPStatus
 from typing import List, Any
+
 from beanie import PydanticObjectId
+
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.invitation_response import InvitationResponse
 from backend.app.models.invitation_request import InvitationRequest
@@ -15,7 +18,6 @@ from common.constants import MESSAGE_NOT_FOUND
 from common.enums.plan import Plans
 from common.enums.workspace_invitation_status import InvitationStatus
 from common.models.user import User
-from datetime import timedelta
 from common.services.http_client import HttpClient
 
 
@@ -37,7 +39,7 @@ class WorkspaceMembersService:
             workspace_id=workspace_id, user=user
         )
         user_ids = [user.user_id for user in workspace_users]
-        users_info = await self._get_user_info_form_ids(user_ids)
+        users_info = await self._get_user_info_from_ids(user_ids)
         workspace_users = sorted(workspace_users, key=lambda w_user: w_user.user_id)
         users_info = sorted(users_info, key=lambda u_info: u_info.get("_id"))
         response_user_list = []
@@ -163,7 +165,7 @@ class WorkspaceMembersService:
 
         return "Request Processed Successfully."
 
-    async def _get_user_info_form_ids(
+    async def _get_user_info_from_ids(
         self, user_ids: List[PydanticObjectId]
     ) -> List[Any]:
         response_data = await self.http_client.get(
@@ -187,4 +189,9 @@ class WorkspaceMembersService:
         await self.workspace_user_service.delete_user_from_workspace(
             workspace_id, user_id
         )
+        users_info = await self._get_user_info_from_ids([user_id])
+        if users_info:
+            await self.workspace_invitation_repository.update_status_to_removed(
+                workspace_id, users_info[0].get("email")
+            )
         return {"message": "Deleted Successfully"}
