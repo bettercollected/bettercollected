@@ -8,3 +8,4 @@ class InvitationStatus(str, Enum):
     PENDING = "PENDING"
     DECLINED = "DECLINED"
     EXPIRED = "EXPIRED"
+    REMOVED = "REMOVED"
