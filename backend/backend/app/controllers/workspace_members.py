@@ -84,10 +84,12 @@ class WorkspaceMembersRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         invitation_token: str,
-        user: User = Depends(get_logged_user)
+        user: User = Depends(get_logged_user),
     ):
-        return await self.workspace_members_service.delete_workspace_invitation_by_token(
-            workspace_id=workspace_id, user=user, invitation_token=invitation_token
+        return (
+            await self.workspace_members_service.delete_workspace_invitation_by_token(
+                workspace_id=workspace_id, user=user, invitation_token=invitation_token
+            )
         )
 
     @post("/invitations/{invitation_token}")

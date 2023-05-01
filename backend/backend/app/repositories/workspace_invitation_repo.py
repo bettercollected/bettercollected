@@ -65,7 +65,9 @@ class WorkspaceInvitationRepo:
         elif invitation_request.invitation_status == InvitationStatus.PENDING:
             await WorkspaceUserInvitesDocument.delete(invitation_request)
         else:
-            raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, "Invitation not in pending state")
+            raise HTTPException(
+                HTTPStatus.UNPROCESSABLE_ENTITY, "Invitation not in pending state"
+            )
 
     async def update_status_to_removed(
         self, workspace_id: PydanticObjectId, email: str

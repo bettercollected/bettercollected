@@ -26,7 +26,7 @@ class WorkspaceMembersService:
         workspace_user_service: WorkspaceUserService,
         workspace_invitation_repo: WorkspaceInvitationRepo,
         http_client: HttpClient,
-        workspace_form_service: WorkspaceFormService
+        workspace_form_service: WorkspaceFormService,
     ):
         self.workspace_user_service = workspace_user_service
         self.workspace_invitation_repository = workspace_invitation_repo
@@ -195,8 +195,13 @@ class WorkspaceMembersService:
             )
         return {"message": "Deleted Successfully"}
 
-    async def delete_workspace_invitation_by_token(self, workspace_id, user, invitation_token):
-        await self.workspace_user_service.check_is_admin_in_workspace(workspace_id, user)
-        await self.workspace_invitation_repository.delete_invitation_by_token_if_pending_state(invitation_token)
+    async def delete_workspace_invitation_by_token(
+        self, workspace_id, user, invitation_token
+    ):
+        await self.workspace_user_service.check_is_admin_in_workspace(
+            workspace_id, user
+        )
+        await self.workspace_invitation_repository.delete_invitation_by_token_if_pending_state(
+            invitation_token
+        )
         return {"message": "Invitation deleted successfully."}
-
