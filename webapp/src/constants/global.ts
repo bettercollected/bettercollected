@@ -1,10 +1,3 @@
-/**
- * Created By: Rupan Chaulagain
- * Date: 2022-10-11
- * Time: 14:33
- * Project: formintegratorwebapp
- * Organization: Sireto Technology
- */
 import environments from '@app/configs/environments';
 
 const globalConstants = {

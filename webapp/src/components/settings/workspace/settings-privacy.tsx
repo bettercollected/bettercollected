@@ -81,9 +81,10 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
 
     useEffect(() => {
         const domain = 'https://bettercollected.com';
-        const privacyPolicyUrl = workspace.privacy_policy_url ? workspace.privacy_policy_url : `${domain}${environments.PRIVACY_POLICY}`;
-        const termsAndConditionsUrl = workspace.terms_of_service_url ? workspace.terms_of_service_url : `${domain}${environments.TERMS_AND_CONDITIONS}`;
-        setPolicies({ privacy_policy_url: privacyPolicyUrl, terms_of_service_url: termsAndConditionsUrl });
+        // TODO: Update privacy policy URL and TOC URL
+        // const privacyPolicyUrl = workspace.privacy_policy_url ? workspace.privacy_policy_url : `${domain}${environments.PRIVACY_POLICY}`;
+        // const termsAndConditionsUrl = workspace.terms_of_service_url ? workspace.terms_of_service_url : `${domain}${environments.TERMS_AND_CONDITIONS}`;
+        // setPolicies({ privacy_policy_url: privacyPolicyUrl, terms_of_service_url: termsAndConditionsUrl });
     }, []);
 
     useEffect(() => {

@@ -10,8 +10,8 @@ const WorkspaceHomeContainer = dynamic(() => import('@app/containers/dashboard/W
 
 interface IHome extends IServerSideProps {}
 
-const Home = ({ hasCustomDomain, workspace }: IHome) => {
-    if (hasCustomDomain && workspace) return <WorkspaceHomeContainer workspace={workspace} isCustomDomain={true} />;
+const Home = ({ workspace }: IHome) => {
+    if (workspace) return <WorkspaceHomeContainer workspace={workspace} isCustomDomain={true} />;
     return <></>;
 };
 
