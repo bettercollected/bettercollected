@@ -43,7 +43,6 @@ class WorkspaceFormService:
         self.form_schedular = form_schedular
         self.form_import_service = form_import_service
         self.schedular = schedular
-        self.schedular = schedular
         self.form_response_service = form_response_service
 
     # TODO : Use plugin interface for importing for now endpoint is used here

@@ -3,6 +3,7 @@ import asyncio
 from backend.app.schemas.allowed_origin import (
     AllowedOriginsDocument,
 )
+from backend.app.schemas.blacklisted_refresh_tokens import BlackListedRefreshTokens
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
@@ -67,6 +68,7 @@ async def init_db(db: str, client: AsyncIOMotorClient):
             WorkspaceUserInvitesDocument,
             WorkspaceUserDocument,
             FormResponseDeletionRequest,
+            BlackListedRefreshTokens,
         ],
     )
     logger.info("Database connected successfully.")
