@@ -6,16 +6,17 @@ import styled from '@emotion/styled';
 import { IconButton, InputAdornment } from '@mui/material';
 import TextField from '@mui/material/TextField';
 
-import EmptyTray from '@app/assets/svgs/empty-tray.svg';
+import EmptyFormsView from '@app/components/dashboard/empty-form';
 import FormCards from '@app/components/dashboard/form-cards';
 import { SearchIcon } from '@app/components/icons/search';
-import Image from '@app/components/ui/image';
 import Loader from '@app/components/ui/loader';
 import { StandardFormDto } from '@app/models/dtos/form';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
 
-interface IFormCard {
-    workspaceId: string;
+interface IWorkspaceFormsTabContentProps {
+    workspace: WorkspaceDto;
+    isFormCreator?: boolean;
 }
 
 const StyledTextField = styled.div`
@@ -37,7 +38,7 @@ const StyledTextField = styled.div`
     }
 `;
 
-export default function WorkspaceFormsTabContent({ workspace, isFormCreator }: any) {
+export default function WorkspaceFormsTabContent({ workspace, isFormCreator = false }: IWorkspaceFormsTabContentProps) {
     const workspaceId = workspace.id;
     const query = {
         workspace_id: workspaceId
@@ -47,16 +48,6 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator }: a
     const [pinnedForms, setPinnedForms] = useState<any>([]);
     const [unpinnedForms, setUnpinnedForms] = useState<any>([]);
     const [showUnpinnedForms, setShowUnpinnedForms] = useState(false);
-
-    useEffect(() => {
-        if (!!data) {
-            const pinnedForms = data.items.filter((form) => form.settings?.pinned);
-            const unpinnedForms = data.items.filter((form) => !form.settings?.pinned);
-            setPinnedForms(pinnedForms);
-            setUnpinnedForms(unpinnedForms);
-            setShowUnpinnedForms(unpinnedForms.length > 0);
-        }
-    }, [data]);
 
     const handleSearch = async (event: any) => {
         const response: any = await searchWorkspaceForms({
@@ -77,6 +68,16 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator }: a
         debouncedResults.cancel();
     }, []);
 
+    useEffect(() => {
+        if (!!data) {
+            const pinnedForms = data.items.filter((form) => form.settings?.pinned);
+            const unpinnedForms = data.items.filter((form) => !form.settings?.pinned);
+            setPinnedForms(pinnedForms);
+            setUnpinnedForms(unpinnedForms);
+            setShowUnpinnedForms(unpinnedForms.length > 0);
+        }
+    }, [data]);
+
     if (isLoading)
         return (
             <div data-testid="loader" className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
@@ -85,13 +86,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator }: a
         );
     const forms: Array<StandardFormDto> = data?.items ?? [];
 
-    if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0)
-        return (
-            <div data-testid="empty-view" className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
-                <Image src={EmptyTray} width={40} height={40} alt="Empty Tray" />
-                <p className="mt-4 p-0">0 forms</p>
-            </div>
-        );
+    if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0) return <EmptyFormsView />;
 
     return (
         <div className="py-6 px-5 lg:px-10 xl:px-20 flex flex-col gap-6">
