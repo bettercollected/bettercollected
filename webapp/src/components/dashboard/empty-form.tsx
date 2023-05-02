@@ -9,7 +9,7 @@ interface IEmptyFormsViewProps {
 
 export default function EmptyFormsView({ description = '0 Forms', className = '' }: IEmptyFormsViewProps) {
     return (
-        <div className={`w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey ${className}`}>
+        <div data-testid="empty-forms-view-image" className={`w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey ${className}`}>
             <Archive fontSize="large" width={40} height={40} />
             <p className="mt-4 p-0">{description}</p>
         </div>

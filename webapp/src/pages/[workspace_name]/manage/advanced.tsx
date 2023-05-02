@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import BetterInput from '@app/components/common/input';
+import BetterInput from '@app/components/Common/input';
 import ManageWorkspaceLayout from '@app/components/layout/manage-workspace';
 import UpdateCustomDomain from '@app/components/settings/advanced/update-custom-domain';
 import UpdateHandle from '@app/components/settings/advanced/update-handle';

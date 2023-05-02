@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { toast } from 'react-toastify';
 
-import BetterInput from '@app/components/common/input';
+import BetterInput from '@app/components/Common/input';
 import ManageWorkspaceLayout from '@app/components/layout/manage-workspace';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';

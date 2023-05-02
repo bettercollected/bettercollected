@@ -2,7 +2,7 @@ import React, { ChangeEvent, FormEvent, useState } from 'react';
 
 import { handle } from 'mdast-util-to-markdown/lib/handle';
 
-import BetterInput from '@app/components/common/input';
+import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
