@@ -5,7 +5,12 @@ import { IconButton, ListItemIcon, Menu, MenuItem, Tooltip } from '@mui/material
 
 import { useModal } from '@app/components/modal-views/context';
 
-export default function MemberOptions({ member }: any) {
+interface IMemberOptionProps {
+    member?: any;
+    invitation?: any;
+}
+
+export default function MemberOptions({ member, invitation }: IMemberOptionProps) {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
     const [currentActiveMember, setCurrentActiveMember] = React.useState<any | null>(null);
     const open = Boolean(anchorEl);
@@ -74,7 +79,11 @@ export default function MemberOptions({ member }: any) {
             >
                 <MenuItem
                     onClick={() => {
-                        openModal('DELETE_MEMBER', { member });
+                        if (member) {
+                            openModal('DELETE_MEMBER', { member });
+                        } else {
+                            openModal('DELETE_INVITATION', { invitation });
+                        }
                     }}
                     className="body4"
                 >

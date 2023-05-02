@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import DeleteFormModal from '@app/components/form/delete-form-modal';
 import { Close } from '@app/components/icons/close';
 import LogoutView from '@app/components/logout/logout-view';
+import DeleteInvitationModal from '@app/components/modal-views/modals/delete-invitation-modal';
 import DeleteMemberModal from '@app/components/modal-views/modals/delete-member-modal';
 import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
@@ -46,6 +47,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <InviteMemberModal />;
         case 'DELETE_MEMBER':
             return <DeleteMemberModal {...modalProps} />;
+        case 'DELETE_INVITATION':
+            return <DeleteInvitationModal {...modalProps} />;
         default:
             return <></>;
     }

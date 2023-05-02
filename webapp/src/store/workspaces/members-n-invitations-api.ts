@@ -43,7 +43,14 @@ export const membersNInvitationsApi = createApi({
                 url: `/${request.workspaceId}/members/${request.userId}`,
                 method: 'DELETE'
             }),
-            invalidatesTags: [WORKSPACE_MEMBERS_TAG]
+            invalidatesTags: [WORKSPACE_MEMBERS_TAG, WORKSPACE_INVITATIONS_TAG]
+        }),
+        deleteWorkspaceInvitation: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/${request.workspaceId}/members/invitations/${request.invitationToken}`,
+                method: 'DELETE'
+            }),
+            invalidatesTags: [WORKSPACE_INVITATIONS_TAG]
         }),
         getWorkspaceMembersInvitations: builder.query<any, any>({
             query: (request) => ({
@@ -63,4 +70,4 @@ export const membersNInvitationsApi = createApi({
     })
 });
 
-export const { useRespondToWorkspaceInvitationMutation, useGetWorkspaceMembersQuery, useGetWorkspaceMembersInvitationsQuery, useInviteToWorkspaceMutation, useDeleteWorkspaceMemberMutation } = membersNInvitationsApi;
+export const { useRespondToWorkspaceInvitationMutation, useGetWorkspaceMembersQuery, useGetWorkspaceMembersInvitationsQuery, useInviteToWorkspaceMutation, useDeleteWorkspaceMemberMutation, useDeleteWorkspaceInvitationMutation } = membersNInvitationsApi;
