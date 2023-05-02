@@ -1,7 +1,8 @@
 import React from 'react';
 
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import Chevron from '@Components/Common/Icons/Chevron';
-import { IconButton, IconButtonPropsSizeOverrides, Menu, PaperProps, PopoverOrigin, Tooltip } from '@mui/material';
+import { IconButton, IconButtonPropsSizeOverrides, Menu, PaperProps, PopoverOrigin } from '@mui/material';
 import { OverridableStringUnion } from '@mui/types';
 
 interface IMenuDropdownProps {
@@ -9,6 +10,9 @@ interface IMenuDropdownProps {
     menuTitle: string;
     menuContent: React.ReactNode | React.ReactNode[];
     children: React.ReactNode | React.ReactNode[];
+    enterDelay?: number;
+    leaveDelay?: number;
+    enterTouchDelay?: number;
     size?: OverridableStringUnion<'small' | 'large' | 'medium', IconButtonPropsSizeOverrides>;
     fullWidth?: boolean;
     showExpandMore?: boolean;
@@ -20,31 +24,12 @@ interface IMenuDropdownProps {
 const defaultPaperProps: PaperProps = {
     elevation: 0,
     sx: {
-        width: 320,
+        width: 289,
         overflow: 'hidden',
-        borderRadius: 1,
-        filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+        borderRadius: 2,
+        filter: 'drop-shadow(0px 0px 15px rgba(0, 0, 0, 0.15))',
         mt: 0.5,
-        padding: 0,
-        '& .MuiAvatar-root': {
-            width: 32,
-            height: 32,
-            ml: -0.5,
-            mr: 2,
-            borderRadius: 1
-        },
-        '&:before': {
-            content: '""',
-            display: 'block',
-            position: 'absolute',
-            top: 0,
-            right: 14,
-            width: 10,
-            height: 10,
-            bgcolor: 'background.paper',
-            transform: 'translateY(-50%) rotate(45deg)',
-            zIndex: 0
-        }
+        padding: 0
     }
 };
 
@@ -56,6 +41,9 @@ export default function MenuDropdown({
     menuTitle,
     menuContent,
     children,
+    enterDelay = 100,
+    leaveDelay = 100,
+    enterTouchDelay = 100,
     size = 'small',
     fullWidth = false,
     showExpandMore = true,
@@ -77,7 +65,7 @@ export default function MenuDropdown({
 
     return (
         <>
-            <Tooltip title={menuTitle} arrow enterDelay={400} enterTouchDelay={0}>
+            <Tooltip title={menuTitle} enterDelay={enterDelay} leaveDelay={leaveDelay} enterTouchDelay={enterTouchDelay}>
                 <IconButton
                     sx={{ padding: 1 }}
                     className={`${fullWidth ? 'w-full' : 'w-fit'} flex justify-between gap-2 body3 rounded hover:rounded hover:bg-brand-200`}

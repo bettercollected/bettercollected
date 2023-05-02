@@ -83,6 +83,7 @@ module.exports = {
                 button: '0px 2px 4px rgba(0, 0, 0, 0.06), 0px 4px 6px rgba(0, 0, 0, 0.1)'
             },
             dropShadow: {
+                paper: '0px 0px 15px rgba(0, 0, 0, 0.15)',
                 main: '0px 4px 8px rgba(0, 0, 0, 0.08)'
             },
             backgroundImage: {

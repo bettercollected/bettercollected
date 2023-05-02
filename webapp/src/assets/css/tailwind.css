@@ -153,7 +153,7 @@ input.spin-button-hidden::-webkit-inner-spin-button {
 
 .body5 {
     leading-trim: both;
-    @apply text-[14px] font-normal leading-[20px] text-black-900;
+    @apply text-[12px] font-normal leading-[20px] text-black-900;
 }
 
 p {
