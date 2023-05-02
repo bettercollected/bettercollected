@@ -2,12 +2,12 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/dist/query/react';
 
 import environments from '@app/configs/environments';
 
-import { AUTH_OTP_TAGS, AUTH_TAG_TYPES, VerifyOtp } from './types';
+import { AUTH_OTP_TAGS, AUTH_REFRESH_TAG, AUTH_TAG_TYPES, VerifyOtp } from './types';
 
 export const AUTH_REDUCER_PATH = 'authApi';
 export const authApi = createApi({
     reducerPath: AUTH_REDUCER_PATH,
-    tagTypes: [AUTH_TAG_TYPES, AUTH_OTP_TAGS],
+    tagTypes: [AUTH_TAG_TYPES, AUTH_OTP_TAGS, AUTH_REFRESH_TAG],
     refetchOnReconnect: true,
     refetchOnMountOrArgChange: true,
     keepUnusedDataFor: 0,
@@ -23,13 +23,15 @@ export const authApi = createApi({
             query: (status) => ({
                 url: `/auth/${status}`,
                 method: 'GET'
-            })
+            }),
+            providesTags: [AUTH_REFRESH_TAG]
         }),
-        refreshToken: builder.query<any, void>({
+        refreshToken: builder.mutation<any, void>({
             query: () => ({
                 url: `/auth/refresh`,
                 method: 'POST'
-            })
+            }),
+            invalidatesTags: [AUTH_REFRESH_TAG]
         }),
         postSendOtp: builder.mutation<any, { workspace_id?: string; receiver_email: string }>({
             query: (body) => ({
@@ -56,4 +58,4 @@ export const authApi = createApi({
     })
 });
 
-export const { useGetStatusQuery, useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation, useLazyGetLogoutQuery, useRefreshTokenQuery } = authApi;
+export const { useGetStatusQuery, useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation, useLazyGetLogoutQuery, useRefreshTokenMutation } = authApi;
