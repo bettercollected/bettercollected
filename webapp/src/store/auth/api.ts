@@ -1,7 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/dist/query/react';
 
 import environments from '@app/configs/environments';
-import { workspacesApi } from '@app/store/workspaces/api';
 
 import { AUTH_OTP_TAGS, AUTH_TAG_TYPES, VerifyOtp } from './types';
 
@@ -24,6 +23,12 @@ export const authApi = createApi({
             query: (status) => ({
                 url: `/auth/${status}`,
                 method: 'GET'
+            })
+        }),
+        refreshToken: builder.query<any, void>({
+            query: () => ({
+                url: `/auth/refresh`,
+                method: 'POST'
             })
         }),
         postSendOtp: builder.mutation<any, { workspace_id?: string; receiver_email: string }>({
@@ -51,4 +56,4 @@ export const authApi = createApi({
     })
 });
 
-export const { useGetStatusQuery, useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation, useLazyGetLogoutQuery } = authApi;
+export const { useGetStatusQuery, useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation, useLazyGetLogoutQuery, useRefreshTokenQuery } = authApi;
