@@ -1,13 +1,12 @@
 from http import HTTPStatus
 
-from backend.app.schemas.workspace import WorkspaceDocument
-from backend.app.schemas.workspace_user import WorkspaceUserDocument
-
 from beanie import PydanticObjectId
 
-from backend.app.models.enum.workspace_roles import WorkspaceRoles
-from common.models.user import User
 from backend.app.exceptions import HTTPException
+from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.schemas.workspace import WorkspaceDocument
+from backend.app.schemas.workspace_user import WorkspaceUserDocument
+from common.models.user import User
 
 
 class WorkspaceUserRepository:
@@ -82,3 +81,8 @@ class WorkspaceUserRepository:
                 status_code=HTTPStatus.NOT_FOUND, content="Resource doesn't exist"
             )
         return await WorkspaceUserDocument.delete(workspace_user)
+
+    async def get_mine_workspaces(self, user_id: str):
+        return await WorkspaceUserDocument.find(
+            {"user_id": PydanticObjectId(user_id)}
+        ).to_list()

@@ -1,7 +1,12 @@
 import os
 from http import HTTPStatus
 
+from beanie import PydanticObjectId
+from fastapi import UploadFile
+from pydantic import EmailStr
+
 from backend.app.exceptions import HTTPException
+from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
     WorkspaceResponseDto,
@@ -16,18 +21,10 @@ from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.utils.domain import is_domain_available
 from backend.config import settings
-
-from beanie import PydanticObjectId
-
-from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from common.constants import MESSAGE_FORBIDDEN
 from common.enums.plan import Plans
 from common.models.user import User
 from common.services.http_client import HttpClient
-
-from fastapi import UploadFile
-
-from pydantic import EmailStr
 
 
 class WorkspaceService:
@@ -237,17 +234,17 @@ class WorkspaceService:
             "deletion_requests": deletion_count,
         }
 
-    async def downgrade_user_workspace(self, user_id: PydanticObjectId):
+    async def downgrade_user_workspace(self, user_id: str):
         workspace = await self._workspace_repo.get_workspace_by_owner_id(
             owner_id=user_id
         )
         workspace.custom_domain_disabled = True
         await workspace.save()
         await self._workspace_user_service.disable_other_users_in_workspace(
-            workspace_id=workspace.id, user_id=user_id
+            workspace_id=workspace.id, user_id=PydanticObjectId(user_id)
         )
 
-    async def upgrade_user_workspace(self, user_id: PydanticObjectId):
+    async def upgrade_user_workspace(self, user_id: str):
         workspace = await self._workspace_repo.get_workspace_by_owner_id(
             owner_id=user_id
         )
