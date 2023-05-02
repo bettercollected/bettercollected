@@ -10,7 +10,11 @@ AuthAccountProfileImage.defaultProps = {
     size: 36
 };
 export default function AuthAccountProfileImage({ size, image, name }: IAuthAccountProfileImageProps) {
-    if (image) return <Avatar sx={{ width: size, height: size, borderRadius: 1 }} src={image} className="rounded-[4px] overflow-hidden !mr-0" />;
+    if (image) return <Avatar sx={{ width: size, height: size, borderRadius: 1 }} src={image} className="rounded overflow-hidden" />;
 
-    return <Avatar sx={{ width: size, height: size, borderRadius: 1 }}>{name[0]?.toUpperCase()}</Avatar>;
+    return (
+        <Avatar sx={{ width: size, height: size, borderRadius: 1 }} className="rounded sh1 !bg-brand-400 !text-white overflow-hidden">
+            <span>{name[0]?.toUpperCase()}</span>
+        </Avatar>
+    );
 }
