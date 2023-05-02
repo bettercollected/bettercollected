@@ -1,3 +1,4 @@
+import datetime
 import secrets
 from datetime import timedelta
 from http import HTTPStatus
@@ -24,6 +25,7 @@ class WorkspaceInvitationRepo:
             existing_invitation.expiry = get_expiry_epoch_after(
                 time_delta=timedelta(days=7)
             )
+            existing_invitation.created_at = datetime.datetime.utcnow()
             existing_invitation.invitation_token = secrets.token_hex(16)
         else:
             existing_invitation = WorkspaceUserInvitesDocument(
