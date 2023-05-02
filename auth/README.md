@@ -19,3 +19,12 @@
 4. Run `make flake8` and fix up the flake issues.
 5. Run `make test` to run all the tests.
 6. Run `make coverage` to run code coverage.
+
+
+### Command to listen for stripe webhooks
+```
+stripe listen --forward-to localhost:8000/api/v1/stripe/webhooks
+```
+
+### Link to StripeCLI docs
+https://stripe.com/docs/stripe-cli
