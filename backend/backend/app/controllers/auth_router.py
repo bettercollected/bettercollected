@@ -2,6 +2,11 @@
 import logging
 from typing import Optional
 
+from classy_fastapi import Routable, get, post
+from fastapi import Depends
+from starlette.requests import Request
+from starlette.responses import RedirectResponse, Response
+
 from backend.app.container import container
 from backend.app.router import router
 from backend.app.services.auth_cookie_service import (
@@ -14,15 +19,7 @@ from backend.app.services.user_service import (
     get_user_if_logged_in,
     add_refresh_token_to_blacklist,
 )
-
-from classy_fastapi import Routable, get, post
-
-from common.models.user import AuthenticationStatus, User, UserLoginWithOTP
-
-from fastapi import Depends
-
-from starlette.requests import Request
-from starlette.responses import RedirectResponse, Response
+from common.models.user import User, UserLoginWithOTP
 
 log = logging.getLogger(__name__)
 
@@ -49,7 +46,10 @@ class AuthRoutes(Routable):
         self, response: Response, user=Depends(get_logged_user)
     ):
         user_response = await self.auth_service.get_user_status(user=user)
-        set_access_token_to_response(user=user_response.get("user"), response=response)
+        user_response.get("user")["sub"] = user_response["user"].get("email")
+        set_access_token_to_response(
+            user=User(**user_response.get("user")), response=response
+        )
 
     @get("/{provider_name}/oauth")
     async def _oauth_provider(
