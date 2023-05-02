@@ -1,6 +1,9 @@
 import React from 'react';
 
+import Pro from '@Components/Common/Icons/Pro';
+
 import AnchorLink from '@app/components/ui/links/anchor-link';
+import { selectAuthStatus } from '@app/store/auth/selectors';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
@@ -11,12 +14,25 @@ interface ILogo {
 
 const Logo: React.FC<React.SVGAttributes<{}>> = ({ className, ...props }: ILogo) => {
     const workspace = useAppSelector(selectWorkspace);
+    const authStatus: any = useAppSelector(selectAuthStatus);
+
+    const user = authStatus?.data?.user ?? null;
+
+    const isProAndIsWorkspaceAdmin = user ? user?.id === workspace?.ownerId && user?.plan === 'PRO' : false;
 
     return (
-        <AnchorLink href={`/${workspace?.workspaceName}/dashboard`} className="flex items-center w-fit outline-none" {...props}>
-            <div className={`text-[28px] font-semibold leading-8 ${className}`}>
-                <span className="text-brand-500">Better</span>
-                <span className="text-black-900">Collected.</span>
+        <AnchorLink href={`/${workspace?.workspaceName}/dashboard`} className="w-fit outline-none" {...props}>
+            <div className="flex items-center gap-2">
+                <div className={`text-[28px] font-semibold leading-8 ${className}`}>
+                    <span className="text-brand-500">Better</span>
+                    <span className="text-black-900">Collected.</span>
+                </div>
+                {isProAndIsWorkspaceAdmin && (
+                    <div className="h-6 rounded p-[6px] bg-brand-500 body5 gap-[2px] uppercase !leading-none !font-semibold !text-white flex items-center">
+                        <Pro width={12} height={12} />
+                        <span className="leading-none">Pro</span>
+                    </div>
+                )}
             </div>
         </AnchorLink>
     );
