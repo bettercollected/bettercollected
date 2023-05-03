@@ -55,14 +55,11 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
     let url = globalConstants.socialPreview.url;
     let imageUrl = globalConstants.socialPreview.image;
 
-    const hasCustomDomain = !!pageProps?.hasCustomDomain;
     const workspace: WorkspaceDto | null = pageProps?.workspace;
-    if (hasCustomDomain && !!workspace) {
-        title = workspace?.title ?? title;
-        imageUrl = workspace?.profileImage ?? imageUrl;
-        url = workspace?.customDomain ?? url;
-        description = workspace?.description ?? description;
-    }
+    title = workspace?.title ?? title;
+    imageUrl = workspace?.profileImage ?? imageUrl;
+    url = workspace?.customDomain ?? url;
+    description = workspace?.description ?? description;
 
     usePreserveScroll();
 
@@ -111,7 +108,7 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                             images: [
                                 {
                                     url: imageUrl,
-                                    alt: hasCustomDomain ? title : 'Better Collected'
+                                    alt: title ?? 'Better Collected'
                                 }
                             ]
                         }}
