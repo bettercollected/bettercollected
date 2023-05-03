@@ -1,7 +1,8 @@
 import React from 'react';
 
+import Divider from '@Components/Common/DataDisplay/Divider';
 import Toolbar from '@Components/Common/Layout/Toolbar';
-import { Box, Divider, List, ListItem } from '@mui/material';
+import { Box, List, ListItem } from '@mui/material';
 
 import { DashboardIcon } from '@app/components/icons/dashboard-icon';
 import { FormIcon } from '@app/components/icons/form-icon';
@@ -30,7 +31,7 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                     </ListItem>
                 </List>
                 <Divider />
-                <NavigationList navigationList={topNavList} />
+                <NavigationList sx={{ paddingY: '20px' }} navigationList={topNavList} />
                 {isAdmin && (
                     <>
                         <Divider />

@@ -2,19 +2,20 @@ import React from 'react';
 
 import { useRouter } from 'next/router';
 
-import { List, ListItem, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
+import { List, ListItem, ListItemButton, ListItemIcon, ListItemText, SxProps, Theme } from '@mui/material';
 
 import { INavbarItem } from '@app/models/props/navbar';
 
 interface INavigationListProps {
     navigationList: Array<INavbarItem>;
+    sx?: SxProps<Theme>;
 }
 
-export default function NavigationList({ navigationList }: INavigationListProps) {
+export default function NavigationList({ navigationList, sx = {} }: INavigationListProps) {
     const router = useRouter();
 
     return (
-        <List>
+        <List disablePadding sx={sx}>
             {navigationList.map((element) => {
                 const active = element.url == router.asPath;
                 return (

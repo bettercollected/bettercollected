@@ -2,10 +2,11 @@ import React from 'react';
 
 import _ from 'lodash';
 
+import Divider from '@Components/Common/DataDisplay/Divider';
 import Billing from '@Components/Common/Icons/Billing';
 import Logout from '@Components/Common/Icons/Logout';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { Divider, ListItem, ListItemIcon, ListItemText, MenuItem } from '@mui/material';
+import { ListItem, ListItemIcon, ListItemText, MenuItem } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import WorkspaceAdminHoc from '@app/components/hoc/workspace-admin-hoc';

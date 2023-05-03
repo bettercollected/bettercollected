@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
-import { Divider } from '@mui/material';
+import Divider from '@Components/Common/DataDisplay/Divider';
 import { toast } from 'react-toastify';
 
 import ResponsesTable from '@app/components/datatable/responses';

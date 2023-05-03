@@ -2,9 +2,10 @@ import React from 'react';
 
 import { useRouter } from 'next/router';
 
+import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { Divider, IconButton, ListItem } from '@mui/material';
+import { IconButton, ListItem } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { Check } from '@app/components/icons/check';
@@ -81,7 +82,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                             <div className="flex items-center gap-3">
                                 <AuthAccountProfileImage size={40} image={workspace?.profileImage} name={workspaceName} />
                                 <Tooltip title={fullWorkspaceName}>
-                                    <p className="body3 !not-italic">{workspaceName}</p>
+                                    <p className="body3">{workspaceName}</p>
                                 </Tooltip>
                             </div>
                             <Check color="#0764EB" />
@@ -90,7 +91,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                 </ListItem>
             )}
             {!isLoading && (
-                <div>
+                <>
                     <Divider className="my-2" />
                     <ListItem disablePadding alignItems="center">
                         <IconButton className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'}`} onClick={handleCreateWorkspace} size="small">
@@ -102,7 +103,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                             </span>
                         </IconButton>
                     </ListItem>
-                </div>
+                </>
             )}
         </MenuDropdown>
     );

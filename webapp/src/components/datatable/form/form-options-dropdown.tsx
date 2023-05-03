@@ -1,7 +1,8 @@
 import React from 'react';
 
+import Divider from '@Components/Common/DataDisplay/Divider';
 import { DeleteOutline, MoreHoriz, PushPin, PushPinOutlined, Share, Visibility, VisibilityOff } from '@mui/icons-material';
-import { Divider, IconButton, ListItemIcon, Menu, MenuItem, Tooltip } from '@mui/material';
+import { IconButton, ListItemIcon, Menu, MenuItem, Tooltip } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
@@ -164,7 +165,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     <ListItemIcon>{currentActiveForm?.form?.settings?.private ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}</ListItemIcon>
                     <span>Update form visibility</span>
                 </MenuItem>
-                <Divider />
+                <Divider className="!my-0" />
                 {!!currentActiveForm?.form?.settings?.private ? (
                     <Tooltip arrow placement="bottom-end" title="Visibility of the form should be public to pin it into the workspace.">
                         <div>{menuItemShareSettings}</div>
@@ -173,7 +174,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     menuItemShareSettings
                 )}
 
-                <Divider />
+                <Divider className="!my-0" />
                 <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} className="body4">
                     <ListItemIcon>
                         <DeleteOutline fontSize="small" color="error" />

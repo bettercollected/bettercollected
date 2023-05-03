@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 
-import { MoreHoriz } from '@mui/icons-material';
-import { Divider, IconButton, Tooltip } from '@mui/material';
+import Divider from '@Components/Common/DataDisplay/Divider';
+import { IconButton, Tooltip } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { EyeIcon } from '@app/components/icons/eye-icon';

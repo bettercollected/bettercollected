@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 
-import { Button, Divider } from '@mui/material';
+import Divider from '@Components/Common/DataDisplay/Divider';
+import { Button } from '@mui/material';
 
 import BannerImageComponent from '@app/components/dashboard/banner-image';
 import ProfileImageComponent from '@app/components/dashboard/profile-image';

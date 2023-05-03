@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { useRouter } from 'next/router';
 
-import { Divider } from '@mui/material';
+import Divider from '@Components/Common/DataDisplay/Divider';
 import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
@@ -37,7 +37,7 @@ export default function ManageMembers() {
             {isProPlan && (
                 <>
                     <div className="h4 mt-10">Invitations</div>
-                    <Divider className="mt-5" />
+                    <Divider className="my-5" />
                     <InvitationsTable />
                 </>
             )}

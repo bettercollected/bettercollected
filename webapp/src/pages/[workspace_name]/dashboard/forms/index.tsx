@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { Divider } from '@mui/material';
+import Divider from '@Components/Common/DataDisplay/Divider';
 import DataTable from 'react-data-table-component';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
