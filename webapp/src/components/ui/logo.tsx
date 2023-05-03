@@ -23,12 +23,12 @@ const Logo: React.FC<React.SVGAttributes<{}>> = ({ className, ...props }: ILogo)
     return (
         <AnchorLink href={`/${workspace?.workspaceName}/dashboard`} className="w-fit outline-none" {...props}>
             <div className="flex items-center gap-2">
-                <div className={`text-[28px] font-semibold leading-8 ${className}`}>
+                <div className={`text-[20px] sm:text-[28px] font-semibold leading-8 ${className}`}>
                     <span className="text-brand-500">Better</span>
                     <span className="text-black-900">Collected.</span>
                 </div>
                 {isProAndIsWorkspaceAdmin && (
-                    <div className="h-6 rounded p-[6px] bg-brand-500 body5 gap-[2px] uppercase !leading-none !font-semibold !text-white flex items-center">
+                    <div className="flex items-center rounded gap-[2px] h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
                         <Pro width={12} height={12} />
                         <span className="leading-none">Pro</span>
                     </div>
