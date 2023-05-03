@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
+import Toolbar from '@Components/Common/Layout/Toolbar';
 import { Share } from '@mui/icons-material';
-import { Box, IconButton, Toolbar, Tooltip, Typography } from '@mui/material';
+import { Box, IconButton, Tooltip, Typography } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import { Close } from '@app/components/icons/close';
-import { Copy } from '@app/components/icons/copy';
-import { ShareIcon } from '@app/components/icons/share-icon';
 import FormDrawer from '@app/components/sidebar/form-drawer';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';

@@ -55,7 +55,7 @@ export default function AuthNavbar({ showHamburgerIcon, checkMyDataEnabled, show
     return (
         <Header className="!z-[1300]">
             <div className="flex flex-row w-full h-full py-2 md:py-0 justify-between items-center">
-                <div className="flex">
+                <div className="flex gap-4">
                     {!isMobileView() && showHamburgerIcon && <Hamburger isOpen={mobileOpen} className="!shadow-none mr-2 !bg-white hover:!bg-white !text-black-900 !flex !justify-start" onClick={handleDrawerToggle} />}
                     <Logo />
                 </div>

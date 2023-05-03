@@ -1,6 +1,7 @@
 import React from 'react';
 
-import { Box, Toolbar } from '@mui/material';
+import Toolbar from '@Components/Common/Layout/Toolbar';
+import { Box } from '@mui/material';
 
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';

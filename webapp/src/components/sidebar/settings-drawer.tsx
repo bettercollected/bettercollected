@@ -1,9 +1,8 @@
 import React from 'react';
 
-import { Box, Toolbar } from '@mui/material';
+import Toolbar from '@Components/Common/Layout/Toolbar';
+import { Box } from '@mui/material';
 
-import { DashboardIcon } from '@app/components/icons/dashboard-icon';
-import { FormIcon } from '@app/components/icons/form-icon';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';

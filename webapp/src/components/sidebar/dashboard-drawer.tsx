@@ -1,6 +1,7 @@
 import React from 'react';
 
-import { Box, Divider, List, ListItem, Toolbar } from '@mui/material';
+import Toolbar from '@Components/Common/Layout/Toolbar';
+import { Box, Divider, List, ListItem } from '@mui/material';
 
 import { DashboardIcon } from '@app/components/icons/dashboard-icon';
 import { FormIcon } from '@app/components/icons/form-icon';
@@ -23,8 +24,8 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
         <>
             <Toolbar />
             <Box sx={{ overflow: 'auto', height: '100%' }}>
-                <List>
-                    <ListItem disablePadding sx={{ paddingY: '20px', paddingX: '20px', width: '100%' }}>
+                <List disablePadding>
+                    <ListItem disablePadding>
                         <WorkspaceMenuDropdown fullWidth />
                     </ListItem>
                 </List>
@@ -51,13 +52,13 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
             key: 'dashboard',
             name: 'Dashboard',
             url: commonWorkspaceUrl,
-            icon: DashboardIcon
+            icon: <DashboardIcon />
         },
         {
             key: 'forms',
             name: 'Forms',
             url: `${commonWorkspaceUrl}/forms`,
-            icon: FormIcon
+            icon: <FormIcon />
         }
     ];
     const bottomNavList: Array<INavbarItem> = [
@@ -65,7 +66,7 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
             key: 'manage-workspace',
             name: 'Manage workspace',
             url: `/${workspace?.workspaceName}/manage`,
-            icon: SettingIcon
+            icon: <SettingIcon />
         }
     ];
 

@@ -2,7 +2,7 @@ export interface INavbarItem {
     key: string;
     name: string;
     url: string;
-    icon?: any;
+    icon?: React.ReactNode;
 }
 
 export interface IDrawerProps {
