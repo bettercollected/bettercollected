@@ -102,7 +102,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 className={cn(
                     'relative inline-flex shrink-0 items-center justify-center overflow-hidden text-center text-xs font-medium tracking-wider outline-none transition-all sm:text-sm',
                     !disabled ? buttonColorClassNames : 'cursor-not-allowed bg-brand-300',
-                    disabled || isLoading || variant === 'transparent' || variant === 'ghost' ? '' : 'hover:shadow-large focus:shadow-large focus:outline-none',
+                    disabled || isLoading || variant === 'transparent' || variant === 'ghost' ? '' : ' hover:shadow-md focus:shadow-large focus:outline-none',
                     isLoading && 'pointer-events-auto cursor-default focus:outline-none',
                     fullWidth && 'w-full',
                     color === 'white' || color === 'gray' ? 'text-gray-900 dark:text-white' : variants[variant],
