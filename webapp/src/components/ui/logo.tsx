@@ -9,10 +9,11 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface ILogo {
     className?: string;
+    showProTag?: boolean;
     [props: string]: any;
 }
 
-const Logo: React.FC<React.SVGAttributes<{}>> = ({ className, ...props }: ILogo) => {
+const Logo = ({ className, showProTag = true, ...props }: ILogo) => {
     const workspace = useAppSelector(selectWorkspace);
     const authStatus: any = useAppSelector(selectAuthStatus);
 
@@ -27,7 +28,7 @@ const Logo: React.FC<React.SVGAttributes<{}>> = ({ className, ...props }: ILogo)
                     <span className="text-brand-500">Better</span>
                     <span className="text-black-900">Collected.</span>
                 </div>
-                {isProAndIsWorkspaceAdmin && (
+                {isProAndIsWorkspaceAdmin && showProTag && (
                     <div className="flex items-center rounded gap-[2px] h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
                         <Pro width={12} height={12} />
                         <span className="leading-none">Pro</span>
@@ -39,6 +40,7 @@ const Logo: React.FC<React.SVGAttributes<{}>> = ({ className, ...props }: ILogo)
 };
 
 Logo.defaultProps = {
-    className: ''
+    className: '',
+    showProTag: true
 };
 export default Logo;

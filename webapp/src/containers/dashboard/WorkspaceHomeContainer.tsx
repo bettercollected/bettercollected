@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import { Button } from '@mui/material';
@@ -14,12 +14,12 @@ import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetStatusQuery } from '@app/store/auth/api';
-import { useAppDispatch } from '@app/store/hooks';
-import { setWorkspace } from '@app/store/workspaces/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface IDashboardContainer {
-    workspace: WorkspaceDto;
     isCustomDomain: boolean;
+    showProTag?: boolean;
 }
 
 export interface BannerImageComponentPropType {
@@ -28,17 +28,12 @@ export interface BannerImageComponentPropType {
     className?: string;
 }
 
-export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: IDashboardContainer) {
+export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = true }: IDashboardContainer) {
     const authStatus = useGetStatusQuery('status');
 
-    const dispatch = useAppDispatch();
-    const { openModal } = useModal();
+    const workspace = useAppSelector(selectWorkspace);
 
-    useEffect(() => {
-        if (workspace.id) {
-            dispatch(setWorkspace(workspace));
-        }
-    }, [workspace]);
+    const { openModal } = useModal();
 
     if (!workspace) return <FullScreenLoader />;
 
@@ -70,7 +65,7 @@ export default function WorkspaceHomeContainer({ workspace, isCustomDomain }: ID
                 <div className="px-5 lg:px-10 xl:px-20">
                     <Divider className="my-10" />
                 </div>
-                <WorkspaceFooter workspace={workspace} isCustomDomain={isCustomDomain} />
+                <WorkspaceFooter showProTag={showProTag} workspace={workspace} isCustomDomain={isCustomDomain} />
             </div>
         </Layout>
     );
