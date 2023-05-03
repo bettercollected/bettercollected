@@ -2,9 +2,9 @@ import React from 'react';
 
 import _ from 'lodash';
 
+import Billing from '@Components/Common/Icons/Billing';
 import Logout from '@Components/Common/Icons/Logout';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { CreditScore } from '@mui/icons-material';
 import { Divider, ListItem, ListItemIcon, ListItemText, MenuItem } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
@@ -65,7 +65,7 @@ export default function AuthAccountMenuDropdown({ fullWidth, checkMyDataEnabled 
             fullWidth={fullWidth}
             menuContent={
                 <>
-                    <AuthAccountProfileImage image={user?.profile_image} name={profileName} />
+                    <AuthAccountProfileImage size={['xs', '2xs'].indexOf(screenSize) === -1 ? 36 : 28} image={user?.profile_image} name={profileName} />
                     {['xs', '2xs', 'sm'].indexOf(screenSize) === -1 && (profileName?.trim() || user?.email || '')}
                 </>
             }
@@ -83,11 +83,11 @@ export default function AuthAccountMenuDropdown({ fullWidth, checkMyDataEnabled 
                     secondaryTypographyProps={{ fontSize: '12px', lineHeight: '20px', color: '#6C757D' }}
                 />
             </ListItem>
-            <Divider className="my-2" />
             <WorkspaceAdminHoc>
+                <Divider className="my-2" />
                 <ActiveLink href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/dashboard`} referrerPolicy="no-referrer">
                     <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
-                        <ListItemIcon>
+                        <ListItemIcon className="text-black-900">
                             <DashboardIcon width={20} height={20} />
                         </ListItemIcon>
                         <span>My Dashboard</span>
@@ -96,8 +96,8 @@ export default function AuthAccountMenuDropdown({ fullWidth, checkMyDataEnabled 
                 {user.stripe_customer_id && (
                     <ActiveLink href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer">
                         <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
-                            <ListItemIcon>
-                                <CreditScore fontSize="small" />
+                            <ListItemIcon className="text-black-900">
+                                <Billing width={20} height={20} />
                             </ListItemIcon>
                             <span>Billing</span>
                         </MenuItem>

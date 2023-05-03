@@ -10,6 +10,7 @@ interface IMenuDropdownProps {
     menuTitle: string;
     menuContent: React.ReactNode | React.ReactNode[];
     children: React.ReactNode | React.ReactNode[];
+    className?: string;
     enterDelay?: number;
     leaveDelay?: number;
     enterTouchDelay?: number;
@@ -41,6 +42,7 @@ export default function MenuDropdown({
     menuTitle,
     menuContent,
     children,
+    className = '',
     enterDelay = 1000,
     leaveDelay = 100,
     enterTouchDelay = 300,
@@ -68,7 +70,7 @@ export default function MenuDropdown({
             <Tooltip title={menuTitle} enterDelay={enterDelay} leaveDelay={leaveDelay} enterTouchDelay={enterTouchDelay}>
                 <IconButton
                     sx={{ padding: 1 }}
-                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex justify-between gap-2 body3 rounded hover:rounded hover:bg-brand-200`}
+                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex justify-between gap-2 body3 rounded hover:rounded hover:bg-brand-200 ${className}`}
                     onClick={handleClick}
                     size={size}
                     aria-controls={open ? id : undefined}
