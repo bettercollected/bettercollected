@@ -144,7 +144,8 @@ class WorkspaceService:
                         )
                     )
                     await self.update_https_server_for_certificate(
-                        workspace_patch.custom_domain
+                        old_domain=workspace_document.custom_domain,
+                        new_domain=workspace_patch.custom_domain,
                     )
                 else:
                     raise HTTPException(409)
@@ -249,11 +250,19 @@ class WorkspaceService:
             workspace_id=workspace.id
         )
 
-    async def update_https_server_for_certificate(self, domain: str):
+    async def update_https_server_for_certificate(
+        self, old_domain: str, new_domain: str
+    ):
+        if old_domain:
+            await self.http_client.delete(
+                f"{settings.https_cert_api_settings.host}/domains",
+                headers={"api_key": settings.https_cert_api_settings.key},
+                params={"host": new_domain},
+            )
         await self.http_client.post(
             f"{settings.https_cert_api_settings.host}/domains",
             headers={"api_key": settings.https_cert_api_settings.key},
-            params={"host": domain},
+            params={"host": new_domain},
         )
 
 
