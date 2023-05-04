@@ -17,20 +17,25 @@ class UserService:
         return await UserDocument.find({"_id": {"$in": user_ids}}).to_list()
 
     async def send_mail_to_user_for_invitation(
-        self,
-        workspace_title: str,
-        workspace_name: str,
-        role: str,
-        email: str,
-        token: str,
+            self,
+            workspace_title: str,
+            workspace_name: str,
+            role: str,
+            email: str,
+            token: str,
+            inviter_id: str
     ):
+        inviter: UserDocument = await self.user_repo.get_user_by_id(inviter_id)
         invitation_link = (
-            settings.CLIENT_ADMIN_URL + "/" + workspace_name + "/invitation/" + token
+                settings.CLIENT_ADMIN_URL + "/" + workspace_name + "/invitation/" + token
         )
         template_body = {
             "workspace_title": workspace_title,
             "role": role,
             "invitation_link": invitation_link,
+            "inviter_name": inviter.first_name,
+            "image_url": inviter.profile_image,
+            "image_alternative": inviter.first_name[0]
         }
         message = MessageSchema(
             subject=f"{workspace_title} invitation",
@@ -39,6 +44,11 @@ class UserService:
             subtype="html",
         )
         mail_service = MailService(organization_name=workspace_title)
-        await mail_service.send_async_mail(
-            message, template_name="invitation_mail.html"
-        )
+        if inviter.profile_image:
+            await mail_service.send_async_mail(
+                message, template_name="invitation_mail.html"
+            )
+        else:
+            await mail_service.send_async_mail(
+                message, template_name="invitation_mail_without_image.html"
+            )

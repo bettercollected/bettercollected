@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 @router(prefix="/auth")
 class AuthRoutes(Routable):
     def __init__(
-        self, auth_service: AuthService = container.auth_service(), *args, **kwargs
+            self, auth_service: AuthService = container.auth_service(), *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.auth_service = auth_service
@@ -35,15 +35,17 @@ class AuthRoutes(Routable):
 
     @get("/otp/send")
     async def _send_otp_to_email(
-        self,
-        receiver_email: EmailStr,
-        workspace_title: str,
-        background_tasks: BackgroundTasks,
+            self,
+            receiver_email: EmailStr,
+            workspace_title: str,
+            workspace_profile_image: str,
+            background_tasks: BackgroundTasks,
     ):
         background_tasks.add_task(
             self.auth_service.send_code_to_user_for_workspace_sync,
             receiver_email,
             workspace_title,
+            workspace_profile_image,
         )
         return "Email set to be sent"
 
@@ -54,7 +56,7 @@ class AuthRoutes(Routable):
 
     @get("/{provider_name}/basic")
     async def _basic_auth(
-        self, provider_name: str, client_referer_url, creator: bool = False
+            self, provider_name: str, client_referer_url, creator: bool = False
     ):
         basic_auth_url = await self.auth_service.get_basic_auth_url(
             provider_name, client_referer_url, creator
@@ -63,7 +65,7 @@ class AuthRoutes(Routable):
 
     @get("/{provider}/basic/callback")
     async def _basic_auth_callback(
-        self, provider: str, code: str, state: str, request: Request
+            self, provider: str, code: str, state: str, request: Request
     ):
         basic_auth_url = await self.auth_service.basic_auth_callback(
             provider, code, state, request=request
