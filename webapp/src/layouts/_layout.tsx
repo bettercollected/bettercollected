@@ -20,7 +20,7 @@ export default function Layout({ children, checkMyDataEnabled = false, showHambu
         <div className="!min-h-screen !min-w-full bg-brand-100 dark:bg-dark z-20">
             {showNavbar && <AuthNavbar showHamburgerIcon={showHamburgerIcon} checkMyDataEnabled={checkMyDataEnabled} showPlans={false} showAuthAccount={showAuthAccount} />}
 
-            <Box className={`float-none lg:float-right ${showNavbar ? 'mt-[68px] min-h-calc-68' : ''} px-5 lg:px-10 ${className}`} component="main" sx={{ display: 'flex', width: '100%' }}>
+            <Box className={`float-none lg:float-right ${showNavbar ? 'mt-[68px] min-h-calc-68' : 'min-h-screen'} px-5 lg:px-10 ${className}`} component="main" sx={{ display: 'flex', width: '100%' }}>
                 <div className={cn('w-full h-full')}>{children}</div>
             </Box>
         </div>

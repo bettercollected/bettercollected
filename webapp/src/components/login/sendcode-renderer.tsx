@@ -6,10 +6,14 @@ import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
 import { useAppSelector } from '@app/store/hooks';
 
+import FormInput from '../ui/FormInput';
+
 export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustomDomain }: any) {
     const workspace = useAppSelector((state) => state.workspace);
 
     const [emailInput, setEmailInput] = useState('');
+
+    const [emailValid, setEmailValid] = useState(false);
 
     const handleClick = (e: any) => {
         e.preventDefault();
@@ -19,19 +23,24 @@ export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustom
         postSendOtp(email);
     };
 
+    const handleValidation = (isValid: boolean) => {
+        setEmailValid(isValid);
+    };
+
     const handleChangeOnInput = (e: any) => {
         setEmailInput(e.target.value.toLowerCase());
     };
 
     return (
-        <form onSubmit={handleClick} className="relative flex flex-col items-center justify-between p-10">
+        <form onSubmit={handleClick} className="relative flex flex-col items-center gap-8 justify-between p-10">
             <div>
                 <h2 className="sh1 text-center">Enter your email</h2>
                 <p className="!text-black-600 mt-2 body4 text-center leading-none">An OTP code will be sent to your email account</p>
             </div>
-            <BetterInput type="email" className="mt-8" value={emailInput} placeholder={'Enter your email'} onChange={handleChangeOnInput} />
-            <div className="w-full px-2">
-                <Button data-testid="get-in-button" size="medium" type="submit" isLoading={isLoading} variant="solid" className={`w-full`} onClick={handleClick}>
+            <FormInput inputFieldType="email" value={emailInput} placeholder={'Enter your email'} onChange={handleChangeOnInput} handleValidation={handleValidation} />
+            {/* <BetterInput type="email" className="mt-8" value={emailInput} placeholder={'Enter your email'} onChange={handleChangeOnInput} /> */}
+            <div>
+                <Button data-testid="get-in-button" type="submit" disabled={!emailValid} isLoading={isLoading} variant="solid" className={`w-60 mx-auto !rounded-[1px] !h-[50px]`} onClick={handleClick}>
                     Get In
                 </Button>
                 <div className="flex py-5 items-center justify-center">
