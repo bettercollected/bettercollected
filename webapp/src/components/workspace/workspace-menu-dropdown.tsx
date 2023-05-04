@@ -91,7 +91,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                 </ListItem>
             )}
             {!isLoading && (
-                <>
+                <div>
                     <Divider className="my-2" />
                     <ListItem disablePadding alignItems="center">
                         <IconButton className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'}`} onClick={handleCreateWorkspace} size="small">
@@ -103,7 +103,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                             </span>
                         </IconButton>
                     </ListItem>
-                </>
+                </div>
             )}
         </MenuDropdown>
     );

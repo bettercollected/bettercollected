@@ -16,6 +16,7 @@ import { ToastId } from '@app/constants/toastId';
 import Layout from '@app/layouts/_layout';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuthStatus } from '@app/store/auth/selectors';
+import { selectAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormsQuery, useGetWorkspaceStatsQuery, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
@@ -31,10 +32,10 @@ interface onBoardingProps {
 }
 
 export default function Onboarding({ workspace }: onBoardingProps) {
-    const authStatus = useAppSelector(selectAuthStatus);
-    const data: any = authStatus?.data ? authStatus.data : null;
     const router = useRouter();
-    const user = data?.user;
+    const authStatus = useAppSelector(selectAuth);
+
+    const user: any = !!authStatus ? authStatus : null;
     let workspaceLogoRef = useRef<HTMLInputElement>(null);
     const dispatch = useAppDispatch();
     const [isError, setError] = useState(false);

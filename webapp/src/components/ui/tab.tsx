@@ -14,10 +14,10 @@ export function TabItem({ children, className }: React.PropsWithChildren<{ class
         <Tab
             className={({ selected }) =>
                 cn(
-                    'relative py-2 tracking-wider text-lg hover:text-blue-400 focus:outline-none dark:hover:text-gray-100 xs:py-2.5 sm:py-3',
+                    'relative p-0 body1 hover:!text-brand-600 focus:outline-none !leading-none',
                     {
-                        'font-bold text-blue-500 dark:text-gray-100': selected,
-                        'text-gray-600 dark:text-gray-400': !selected
+                        '!text-brand-900': selected,
+                        '!text-black-600': !selected
                     },
                     className
                 )
@@ -26,7 +26,7 @@ export function TabItem({ children, className }: React.PropsWithChildren<{ class
             {({ selected }) => (
                 <>
                     <span className="flex w-full justify-between px-3 md:px-0">{children}</span>
-                    {selected && <motion.span className="absolute left-0 right-0 bottom-0 h-[2px] w-full rounded-lg bg-blue-400 dark:bg-gray-400 md:z-0" layoutId="activeTabIndicator" />}
+                    {/* {selected && <motion.span className="absolute left-0 right-0 bottom-0 h-[2px] w-full rounded-lg bg-blue-400 dark:bg-gray-400 md:z-0" layoutId="activeTabIndicator" />} */}
                 </>
             )}
         </Tab>

@@ -3,7 +3,7 @@ import React from 'react';
 import Pro from '@Components/Common/Icons/Pro';
 
 import AnchorLink from '@app/components/ui/links/anchor-link';
-import { selectAuthStatus } from '@app/store/auth/selectors';
+import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
@@ -15,9 +15,9 @@ interface ILogo {
 
 const Logo = ({ className, showProTag = true, ...props }: ILogo) => {
     const workspace = useAppSelector(selectWorkspace);
-    const authStatus: any = useAppSelector(selectAuthStatus);
+    const authStatus: any = useAppSelector(selectAuth);
 
-    const user = authStatus?.data?.user ?? null;
+    const user = !!authStatus ? authStatus : null;
 
     const isProAndIsWorkspaceAdmin = user ? user?.id === workspace?.ownerId && user?.plan === 'PRO' : false;
 

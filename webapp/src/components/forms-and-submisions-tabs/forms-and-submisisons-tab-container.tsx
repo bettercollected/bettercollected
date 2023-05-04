@@ -1,7 +1,6 @@
-import { Feed } from '@mui/icons-material';
-
 import WorkspaceFormsTabContent from '@app/components/dashboard/workspace-forms-tab-content';
 import WorkspaceResponsesTabContent from '@app/components/dashboard/workspace-responses-tab-content';
+import { FormIcon } from '@app/components/icons/form-icon';
 import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
@@ -16,8 +15,8 @@ interface ISubmissionTabContainer {
 export default function FormsAndSubmissionsTabContainer({ showResponseBar, workspace, isFormCreator = false }: ISubmissionTabContainer) {
     const paramTabs = [
         {
-            icon: <Feed />,
-            title: 'Forms',
+            icon: <FormIcon />,
+            title: 'Public forms',
             path: 'forms'
         }
     ];
@@ -25,12 +24,12 @@ export default function FormsAndSubmissionsTabContainer({ showResponseBar, works
     if (!showResponseBar && paramTabs.length === 1) {
         paramTabs.push({
             icon: <HistoryIcon className="w-5 h-5" />,
-            title: 'My Submissions',
+            title: 'Submitted forms',
             path: 'mySubmissions'
         });
         paramTabs.push({
             icon: <TrashIcon className="w-5 h-5" />,
-            title: 'Deletion Requests',
+            title: 'Deletion requests',
             path: 'deletion-requests'
         });
     } else if (showResponseBar && paramTabs.length === 3) {

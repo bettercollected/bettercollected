@@ -6,17 +6,16 @@ import Divider from '@Components/Common/DataDisplay/Divider';
 import Billing from '@Components/Common/Icons/Billing';
 import Logout from '@Components/Common/Icons/Logout';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
+import WorkspaceAdminSelector from '@Components/HOCs/WorkspaceAdminSelector';
 import { ListItem, ListItemIcon, ListItemText, MenuItem } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import WorkspaceAdminHoc from '@app/components/hoc/workspace-admin-hoc';
 import { DashboardIcon } from '@app/components/icons/dashboard-icon';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { selectAuthStatus } from '@app/store/auth/selectors';
+import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
@@ -32,9 +31,9 @@ AuthAccountMenuDropdown.defaultProps = {
 export default function AuthAccountMenuDropdown({ fullWidth, checkMyDataEnabled }: IAuthAccountMenuDropdownProps) {
     const workspace = useAppSelector(selectWorkspace);
 
-    const authStatus = useAppSelector(selectAuthStatus);
-    const data: any = authStatus?.data ? authStatus.data : null;
-    const isError = !!authStatus?.error;
+    const authStatus = useAppSelector(selectAuth);
+
+    const user: any = authStatus ?? null;
 
     const screenSize = useBreakpoint();
     const { openModal } = useModal();
@@ -43,19 +42,8 @@ export default function AuthAccountMenuDropdown({ fullWidth, checkMyDataEnabled 
         openModal('LOGOUT_VIEW');
     };
 
-    const handleCheckMyData = () => {
-        openModal('LOGIN_VIEW', { isCustomDomain: true });
-    };
-
-    if (isError && checkMyDataEnabled)
-        return (
-            <Button size="small" variant="solid" onClick={handleCheckMyData}>
-                Check My Data
-            </Button>
-        );
-    if (!data || isError) return <div className="w-9 sm:w-32 h-9 rounded-[4px] animate-pulse bg-black-300" />;
-
-    const user = data?.user;
+    if (user?.isLoading) return <div className="w-9 sm:w-32 h-9 rounded-[4px] animate-pulse bg-black-300" />;
+    if (!user?.isLoading && !user?.id) return null;
 
     const profileName = _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name);
 
@@ -84,7 +72,7 @@ export default function AuthAccountMenuDropdown({ fullWidth, checkMyDataEnabled 
                     secondaryTypographyProps={{ fontSize: '12px', lineHeight: '20px', color: '#6C757D' }}
                 />
             </ListItem>
-            <WorkspaceAdminHoc>
+            <WorkspaceAdminSelector>
                 <Divider className="my-2" />
                 <ActiveLink href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/dashboard`} referrerPolicy="no-referrer">
                     <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
@@ -104,7 +92,7 @@ export default function AuthAccountMenuDropdown({ fullWidth, checkMyDataEnabled 
                         </MenuItem>
                     </ActiveLink>
                 )}
-            </WorkspaceAdminHoc>
+            </WorkspaceAdminSelector>
 
             <Divider className="my-2" />
             <MenuItem onClick={handleLogout} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-red-100 !text-red-500">

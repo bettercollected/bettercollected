@@ -47,18 +47,18 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
     };
 
     return (
-        <Layout showNavbar checkMyDataEnabled className="!p-0 min-h-screen bg-white pb-10 flex flex-col">
+        <Layout showNavbar={!isCustomDomain} checkMyDataEnabled className="!p-0 min-h-screen bg-white pb-10 flex flex-col">
             <div className="relative overflow-hidden w-full">
                 <BannerImageComponent workspace={workspace} isFormCreator={isFormCreator} />
             </div>
-            <div className="md:min-h-[235px] relative bg-brand-100 flex flex-col sm:flex-row pt-6 pb-10 gap-6 px-5 lg:px-10 xl:px-20">
+            <div className="md:min-h-[157px] relative bg-brand-100 flex flex-col sm:flex-row pt-4 gap-6 px-5 lg:px-10 xl:px-20">
                 <div className="absolute right-5 lg:right-10 xl:right-20">
                     <Button onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: 'your workspace' })} variant="outlined" className="!text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize">
                         Share
                     </Button>
                 </div>
-                <ProfileImageComponent className="w-fit sm:w-auto sm:absolute -top-[51px] md:-top-[63px] lg:-top-[73px] rounded overflow-hidden border-4 border-brand-100" workspace={workspace} isFormCreator={isFormCreator} />
-                <PublicWorkspaceTitleAndDescription className="pl-0 ml-0 sm:ml-6 sm:pl-32 md:pl-40 lg:pl-[200px]" isFormCreator={isFormCreator} />
+                <ProfileImageComponent className="w-fit sm:w-auto rounded overflow-hidden sm:absolute -top-[51px] md:-top-[63px] lg:-top-[73px] border-4 border-brand-100" workspace={workspace} isFormCreator={isFormCreator} />
+                <PublicWorkspaceTitleAndDescription className="max-w-[400px] ml-0 sm:ml-[152px] md:ml-[176px] lg:ml-[216px]" isFormCreator={false} />
             </div>
             <div className="bg-white h-full">
                 <FormsAndSubmissionsTabContainer isFormCreator={isFormCreator} workspace={workspace} workspaceId={workspace.id} showResponseBar={!!authStatus.error} />
