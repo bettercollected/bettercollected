@@ -22,13 +22,19 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 interface IAuthAccountMenuDropdownProps {
     fullWidth?: boolean;
     checkMyDataEnabled?: boolean;
+    className?: string;
+    menuContent?: React.ReactNode | React.ReactNode[];
+    showExpandMore?: boolean;
 }
 
 AuthAccountMenuDropdown.defaultProps = {
     fullWidth: false,
-    checkMyDataEnabled: false
+    checkMyDataEnabled: false,
+    className: '',
+    menuContent: undefined,
+    showExpandMore: undefined
 };
-export default function AuthAccountMenuDropdown({ fullWidth, checkMyDataEnabled }: IAuthAccountMenuDropdownProps) {
+export default function AuthAccountMenuDropdown({ fullWidth, checkMyDataEnabled, className, showExpandMore, menuContent }: IAuthAccountMenuDropdownProps) {
     const workspace = useAppSelector(selectWorkspace);
 
     const authStatus = useAppSelector(selectAuth);
@@ -45,24 +51,20 @@ export default function AuthAccountMenuDropdown({ fullWidth, checkMyDataEnabled 
     if (user?.isLoading) return <div className="w-9 sm:w-32 h-9 rounded-[4px] animate-pulse bg-black-300" />;
     if (!user?.isLoading && !user?.id) return null;
 
-    const profileName = _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name);
+    const profileName = user?.first_name || user?.last_name ? _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name) : null;
+
+    const newMenuContent = menuContent ?? (
+        <>
+            <AuthAccountProfileImage size={['xs', '2xs'].indexOf(screenSize) === -1 ? 36 : 28} image={user?.profile_image} name={profileName ?? ''} />
+            {['xs', '2xs', 'sm'].indexOf(screenSize) === -1 && (profileName?.trim() || user?.email || '')}
+        </>
+    );
 
     return (
-        <MenuDropdown
-            id="account-menu"
-            menuTitle="Account Settings"
-            fullWidth={fullWidth}
-            menuContent={
-                <>
-                    <AuthAccountProfileImage size={['xs', '2xs'].indexOf(screenSize) === -1 ? 36 : 28} image={user?.profile_image} name={profileName} />
-                    {['xs', '2xs', 'sm'].indexOf(screenSize) === -1 && (profileName?.trim() || user?.email || '')}
-                </>
-            }
-            showExpandMore={['xs', '2xs', 'sm'].indexOf(screenSize) === -1}
-        >
+        <MenuDropdown className={className} id="account-menu" menuTitle="Account Settings" fullWidth={fullWidth} menuContent={newMenuContent} showExpandMore={showExpandMore ?? ['xs', '2xs', 'sm'].indexOf(screenSize) === -1}>
             <ListItem className="py-3 px-5 flex items-center hover:bg-brand-100" alignItems="flex-start">
                 <ListItemIcon sx={{ margin: 0 }}>
-                    <AuthAccountProfileImage size={40} image={user?.profile_image} name={profileName} />
+                    <AuthAccountProfileImage size={40} image={user?.profile_image} name={profileName ?? ''} />
                 </ListItemIcon>
                 <ListItemText
                     sx={{ margin: 0 }}
