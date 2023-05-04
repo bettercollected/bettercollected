@@ -259,7 +259,7 @@ class WorkspaceService:
         )
 
     async def update_https_server_for_certificate(
-        self, old_domain: str, new_domain: str
+        self, old_domain: str = None, new_domain: str = None
     ):
         try:
             if old_domain:
