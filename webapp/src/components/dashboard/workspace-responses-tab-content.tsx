@@ -1,5 +1,6 @@
 import React from 'react';
 
+import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
 import { Tooltip } from '@mui/material';
 
 import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-badge';
@@ -36,7 +37,14 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
             </div>
         );
 
-    if ((data?.items && Array.isArray(data?.items) && data?.items?.length === 0) || isError) return <EmptyFormsView description="0 responses" />;
+    if ((data?.items && Array.isArray(data?.items) && data?.items?.length === 0) || isError)
+        return (
+            <ZeroElement
+                title={deletionRequests ? 'No requests to show' : 'No responses to show'}
+                description={deletionRequests ? 'You have not requested any deletion for your filled responses.' : 'You have not submitted any response on the forms provided in this workspace.'}
+                className="!pb-[20px]"
+            />
+        );
 
     const submissions: Array<StandardFormResponseDto> = data?.items ?? [];
 

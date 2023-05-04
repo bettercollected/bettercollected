@@ -47,7 +47,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
     };
 
     return (
-        <Layout showNavbar={!isCustomDomain} checkMyDataEnabled className="!p-0 min-h-screen bg-white pb-10 flex flex-col">
+        <Layout showNavbar={!isCustomDomain} checkMyDataEnabled className="!p-0 bg-white flex flex-col">
             <div className="relative overflow-hidden w-full">
                 <BannerImageComponent workspace={workspace} isFormCreator={isFormCreator} />
             </div>
@@ -63,7 +63,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
             <div className="bg-white h-full">
                 <FormsAndSubmissionsTabContainer isFormCreator={isFormCreator} workspace={workspace} workspaceId={workspace.id} showResponseBar={!!authStatus.error} />
                 <div className="px-5 lg:px-10 xl:px-20">
-                    <Divider className="my-10" />
+                    <Divider className="mt-10 mb-6" />
                 </div>
                 <WorkspaceFooter showProTag={showProTag} workspace={workspace} isCustomDomain={isCustomDomain} />
             </div>

@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import { debounce, escapeRegExp } from 'lodash';
 
+import Divider from '@Components/Common/DataDisplay/Divider';
+import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
 import styled from '@emotion/styled';
-import { IconButton, InputAdornment } from '@mui/material';
+import { InputAdornment } from '@mui/material';
 import TextField from '@mui/material/TextField';
 
-import EmptyFormsView from '@app/components/dashboard/empty-form';
 import FormCards from '@app/components/dashboard/form-cards';
 import { SearchIcon } from '@app/components/icons/search';
 import Loader from '@app/components/ui/loader';
@@ -28,7 +29,19 @@ const StyledTextField = styled.div`
 
     .MuiOutlinedInput-notchedOutline {
         border-radius: 4px;
-        border-width: 0.5px;
+        border: 1px solid #ced4da;
+    }
+
+    .MuiInputBase-input,
+    .MuiOutlinedInput-root {
+        height: 46px;
+    }
+
+    .MuiInputBase-input,
+    .MuiOutlinedInput-input,
+    .MuiInputBase-inputSizeSmall,
+    .MuiInputBase-inputAdornedEnd {
+        padding: 0;
     }
 
     @media screen and (max-width: 640px) {
@@ -86,38 +99,36 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
         );
     const forms: Array<StandardFormDto> = data?.items ?? [];
 
-    if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0) return <EmptyFormsView />;
+    if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0)
+        return <ZeroElement title="No forms to show" description="There are no forms imported in this workspace. If you are an admin of this workspace, you can import the forms through the admin panel." className="!pb-[20px]" />;
 
     return (
         <div className="py-6 px-5 lg:px-10 xl:px-20 flex flex-col gap-6">
-            {pinnedForms.length !== 0 && <FormCards title="Pinned Forms" isFormCreator={isFormCreator} workspace={workspace} formsArray={pinnedForms} />}
-            {showUnpinnedForms && (
-                <>
-                    {pinnedForms.length !== 0 && <hr />}
-                    {pinnedForms.length !== 0 && <h1 className=" text-gray-700 font-semibold text-md md:text-lg">All Forms</h1>}
-                    <div className={`w-full md:w-[30%]`}>
-                        <StyledTextField>
-                            <TextField
-                                size="small"
-                                name="search-input"
-                                placeholder="Search forms..."
-                                onChange={debouncedResults}
-                                className={'w-full'}
-                                InputProps={{
-                                    endAdornment: (
-                                        <InputAdornment position="end">
-                                            <IconButton>
-                                                <SearchIcon />
-                                            </IconButton>
-                                        </InputAdornment>
-                                    )
-                                }}
-                            />
-                        </StyledTextField>
-                    </div>
-                </>
-            )}
-            {unpinnedForms.length !== 0 && <FormCards title="" isFormCreator={isFormCreator} formsArray={unpinnedForms} workspace={workspace} />}
+            <div className={`w-full md:w-[282px]`}>
+                <StyledTextField>
+                    <TextField
+                        sx={{ height: '46px', padding: 0 }}
+                        size="small"
+                        name="search-input"
+                        placeholder="Search"
+                        onChange={debouncedResults}
+                        className={'w-full'}
+                        InputProps={{
+                            sx: {
+                                padding: '16px'
+                            },
+                            endAdornment: (
+                                <InputAdornment sx={{ padding: 0 }} position="end">
+                                    <SearchIcon />
+                                </InputAdornment>
+                            )
+                        }}
+                    />
+                </StyledTextField>
+            </div>
+            {pinnedForms.length !== 0 && <FormCards title="Pinned forms" isFormCreator={isFormCreator} workspace={workspace} formsArray={pinnedForms} />}
+            {showUnpinnedForms && pinnedForms.length !== 0 && <Divider />}
+            {unpinnedForms.length !== 0 && <FormCards title={pinnedForms.length !== 0 ? 'All forms' : ''} isFormCreator={isFormCreator} formsArray={unpinnedForms} workspace={workspace} />}
         </div>
     );
 }
