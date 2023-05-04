@@ -34,7 +34,8 @@ class UserService:
             "role": role,
             "invitation_link": invitation_link,
             "inviter_name": inviter.first_name,
-            "image_url": inviter.profile_image
+            "image_url": inviter.profile_image,
+            "image_alternative": inviter.first_name[0]
         }
         message = MessageSchema(
             subject=f"{workspace_title} invitation",
@@ -43,6 +44,11 @@ class UserService:
             subtype="html",
         )
         mail_service = MailService(organization_name=workspace_title)
-        await mail_service.send_async_mail(
-            message, template_name="invitation_mail.html"
-        )
+        if inviter.profile_image:
+            await mail_service.send_async_mail(
+                message, template_name="invitation_mail.html"
+            )
+        else:
+            await mail_service.send_async_mail(
+                message, template_name="invitation_mail_without_image.html"
+            )
