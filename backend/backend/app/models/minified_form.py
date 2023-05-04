@@ -16,3 +16,5 @@ class MinifiedForm(CamelModel):
     published_at: Optional[dt.datetime]
     responses: Optional[int]
     deletion_requests: Optional[int]
+    imported_by: Optional[str]
+    importer_details: Optional[dict]
