@@ -55,7 +55,7 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
                 </p>
             </div>
             <BetterInput data-testid="otp-input" className="mt-6" spellCheck={false} value={otp} type="text" placeholder={'Enter the OTP code'} onChange={handleChange} />
-            <div className="w-full px-2">
+            <div className="w-full">
                 <Button data-testid="verify-button" isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} size="medium" className="w-full">
                     Verify
                 </Button>

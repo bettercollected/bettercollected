@@ -19,7 +19,7 @@ import Button from '../ui/button/button';
 export default function UpdateWorkspaceSettings({ updateDomain = false }: { updateDomain: boolean }) {
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const workspace = useAppSelector((state) => state.workspace);
-    const [deleteWorkspaceDomain] = useDeleteWorkspaceDomainMutation();
+    const [deleteWorkspaceDomain, result] = useDeleteWorkspaceDomainMutation();
     const { closeModal } = useModal();
     const [error, setError] = useState(false);
 
@@ -68,7 +68,8 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             }
             closeModal();
         } else if (response.error) {
-            toast.error(response.error.data.message, { toastId: ToastId.ERROR_TOAST });
+            console.log(response.error);
+            toast.error(response.error.data?.message || 'Something went wrong', { toastId: ToastId.ERROR_TOAST });
         }
     };
 
@@ -92,11 +93,17 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                 }}
             />
             <div className="flex space-x-4">
-                <div className="sh1  leading-tight tracking-tight md:text-2xl text-black-900">{updateDomain ? (workspace.customDomain ? 'Update your Custom Domain' : 'Setup your custom domain for workspace') : 'Update Workspace Handle'}</div>
+                <div className="sh1 mb-6 leading-tight tracking-tight md:text-2xl text-black-900">{updateDomain ? (workspace.customDomain ? 'Update your Custom Domain' : 'Setup your custom domain for workspace') : 'Update Workspace Handle'}</div>
             </div>
-            <form className="flex items-start mt-6 flex-col">
+            <form className="flex items-start flex-col">
                 <div className="text-start max-w-full">
-                    <div className="body-3 text-black-700 ">{updateDomain ? (workspace?.customDomain ? "Form links with previous domain won't work after updating." : '') : "Form links with previous workspace handle won't work after updating."}</div>
+                    <div className="body-3 text-black-700 ">
+                        {updateDomain
+                            ? workspace?.customDomain
+                                ? "Form links with previous domain won't work after updating."
+                                : 'Make sure that the domain is pointed to XX.XX.XX.XX'
+                            : "Form links with previous workspace handle won't work after updating."}
+                    </div>
                 </div>
                 <div className="body1 mt-6">{updateDomain ? 'Domain' : 'Workspace Handle'}</div>
                 <div className="flex items-start mt-3 justify-start gap-4  w-full">
@@ -112,14 +119,13 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                         className="font-bold w-full"
                     />
                     {workspace.customDomain && updateDomain && (
-                        <button data-testid="delete-button" onClick={delete_custom_domain}>
+                        <button data-testid="delete-button" type="button" onClick={delete_custom_domain}>
                             <DeleteOutline className="text-red-500 mt-2 bg-red-100 h-[35px] w-[35px] rounded p-1.5" />
                         </button>
                     )}
                 </div>
-
                 <div className="flex mt-8 w-full gap-4 justify-end">
-                    <Button data-testid="save-button" variant="solid" size="medium" onClick={handleSubmit}>
+                    <Button data-testid="save-button" type="submit" isLoading={isLoading || result?.isLoading} variant="solid" size="medium" onClick={handleSubmit}>
                         Save
                     </Button>
                 </div>

@@ -18,7 +18,7 @@ export default function UpdateHandle() {
     };
 
     return (
-        <SettingsCard>
+        <SettingsCard className="!mt-2">
             <div className="body1">Workspace Handle</div>
             <div className="flex w-full justify-between">
                 <div className="w-full text-sm text-gray-600">
