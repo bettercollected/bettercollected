@@ -5,6 +5,8 @@ import { Tooltip as MuiTooltip, PopperProps, SxProps, Theme } from '@mui/materia
 interface ITooltipProps {
     title: string;
     children: React.ReactElement;
+    className?: string;
+    onClick?: any;
     components?: { Arrow?: any; Popper?: any; Tooltip?: any; Transition?: any };
     componentsProps?: { arrow?: object; popper?: object; tooltip?: object; transition?: object };
     arrow?: boolean;
@@ -30,6 +32,8 @@ export default function Tooltip({
     title,
     children,
     components = {},
+    className = '',
+    onClick = () => {},
     componentsProps = {
         tooltip: {
             sx: {
@@ -69,6 +73,8 @@ export default function Tooltip({
         <MuiTooltip
             title={title}
             sx={sx}
+            className={className}
+            onClick={onClick}
             components={components}
             componentsProps={componentsProps}
             arrow={arrow}

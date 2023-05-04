@@ -1,7 +1,7 @@
 import React from 'react';
 
 import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
-import { Tooltip } from '@mui/material';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 
 import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-badge';
 import EmptyFormsView from '@app/components/dashboard/empty-form';
@@ -55,7 +55,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
             <div key={submission.responseId} className={`w-full overflow-hidden items-center justify-between h-full gap-8 p-5 border-[1px] border-black-400 ${!deletionRequests && 'transition cursor-pointer hover:border-brand-500'} rounded`}>
                 <div className="relative flex flex-col justify-start h-full">
                     <p className="text-sm text-gray-400 italic break-all">{['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submission.formId, 30) : submission.formId}</p>
-                    <Tooltip title={submission?.formTitle || 'Untitled'} arrow placement="top-start" enterDelay={300} enterTouchDelay={0}>
+                    <Tooltip title={submission?.formTitle || 'Untitled'}>
                         <p className="body3 !not-italic leading-none">{['xs', '2xs', 'sm', 'md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(submission?.formTitle || 'Untitled', 15) : toEndDottedStr(submission?.formTitle || 'Untitled', 20)}</p>
                     </Tooltip>
                     <div className="w-full flex flex-col lg:flex-row justify-between">

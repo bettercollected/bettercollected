@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
-import { Tooltip } from '@mui/material';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 
 import { useModal } from '@app/components/modal-views/context';
 import Button, { ButtonProps } from '@app/components/ui/button';
@@ -49,11 +49,7 @@ export default function ImportFormsButton({ size }: ButtonProps) {
     );
 
     if (!googleEnabled && !typeformEnabled) {
-        return (
-            <Tooltip arrow placement="bottom-end" title="Form Providers are disabled.">
-                {importFormButton}
-            </Tooltip>
-        );
+        return <Tooltip title="Form Providers are disabled.">{importFormButton}</Tooltip>;
     }
 
     return importFormButton;

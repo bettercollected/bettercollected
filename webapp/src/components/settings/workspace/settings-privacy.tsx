@@ -2,11 +2,11 @@ import React, { MutableRefObject, useEffect, useRef, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import styled from '@emotion/styled';
 import HelpIcon from '@mui/icons-material/Help';
 import ModeEditIcon from '@mui/icons-material/ModeEdit';
 import SaveIcon from '@mui/icons-material/Save';
-import { Tooltip } from '@mui/material';
 import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
@@ -60,7 +60,7 @@ const CardTitle = ({ title, tooltipDesc }: any) => {
     return (
         <div className="flex pl-[15px] h-4 items-center">
             <h1 className="text-gray-500 text-sm">{title}</h1>
-            <Tooltip title={tooltipDesc} arrow placement="right-start" enterTouchDelay={0}>
+            <Tooltip title={tooltipDesc}>
                 <HelpIcon className="text-gray-500 cursor-pointer !w-5 !h-5 ml-2" />
             </Tooltip>
         </div>

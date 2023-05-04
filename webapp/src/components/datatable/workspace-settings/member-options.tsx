@@ -1,7 +1,8 @@
 import React from 'react';
 
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import { DeleteOutline, MoreHoriz } from '@mui/icons-material';
-import { IconButton, ListItemIcon, Menu, MenuItem, Tooltip } from '@mui/material';
+import { IconButton, ListItemIcon, Menu, MenuItem } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
 
@@ -25,7 +26,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
 
     return (
         <>
-            <Tooltip title="Options" arrow={true} placement="top-start" enterDelay={300} enterTouchDelay={0}>
+            <Tooltip title="Options">
                 <IconButton
                     className="rounded-[4px] text-black-900 hover:rounded-[4px] hover:bg-black-200"
                     onClick={(e) => handleClick(e, member)}

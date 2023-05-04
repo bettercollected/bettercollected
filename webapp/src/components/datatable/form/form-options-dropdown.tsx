@@ -1,8 +1,9 @@
 import React from 'react';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import { DeleteOutline, MoreHoriz, PushPin, PushPinOutlined, Share, Visibility, VisibilityOff } from '@mui/icons-material';
-import { IconButton, ListItemIcon, Menu, MenuItem, Tooltip } from '@mui/material';
+import { IconButton, ListItemIcon, Menu, MenuItem } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
@@ -103,7 +104,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
 
     return (
         <div className={className} onClick={(e) => e.preventDefault()}>
-            <Tooltip title="Form options" arrow={true} placement="top-start" enterDelay={300} enterTouchDelay={0}>
+            <Tooltip title="Form options">
                 <IconButton
                     className="rounded-[4px] text-black-900 hover:rounded-[4px] hover:bg-black-200"
                     onClick={(e) => handleClick(e, form)}
@@ -155,7 +156,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
                 {!!currentActiveForm?.form?.settings?.private ? (
-                    <Tooltip arrow placement="bottom-end" title="Visibility of the form should be public to pin it into the workspace.">
+                    <Tooltip title="Visibility of the form should be public to pin it into the workspace.">
                         <div>{menuItemPinSettings}</div>
                     </Tooltip>
                 ) : (
@@ -167,7 +168,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 </MenuItem>
                 <Divider className="!my-0" />
                 {!!currentActiveForm?.form?.settings?.private ? (
-                    <Tooltip arrow placement="bottom-end" title="Visibility of the form should be public to pin it into the workspace.">
+                    <Tooltip title="Visibility of the form should be public to pin it into the workspace.">
                         <div>{menuItemShareSettings}</div>
                     </Tooltip>
                 ) : (
