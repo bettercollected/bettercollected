@@ -99,8 +99,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
         );
     const forms: Array<StandardFormDto> = data?.items ?? [];
 
-    if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0)
-        return <ZeroElement title="No forms to show" description="There are no forms imported in this workspace. If you are an admin of this workspace, you can import the forms through the admin panel." className="!pb-[20px]" />;
+    if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0) return <ZeroElement title="No forms to show" description="There are no forms imported in this workspace." className="!pb-[20px]" />;
 
     return (
         <div className="py-6 px-5 lg:px-10 xl:px-20 flex flex-col gap-6">

@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 
 import _ from 'lodash';
 
-import { ChevronLeft, Height } from '@mui/icons-material';
+import { ChevronLeft } from '@mui/icons-material';
 import { TextField } from '@mui/material';
 import cn from 'classnames';
 import { toast } from 'react-toastify';
@@ -17,7 +17,6 @@ import { ToastId } from '@app/constants/toastId';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { selectAuthStatus } from '@app/store/auth/selectors';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
@@ -35,7 +34,6 @@ interface onBoardingProps {
 
 export async function getServerSideProps(_context: GetServerSidePropsContext) {
     const authUserProps = (await getAuthUserPropsWithWorkspace(_context)).props;
-    console.log(!authUserProps);
     if (!authUserProps) {
         return {
             redirect: {
@@ -92,7 +90,6 @@ export default function Onboarding({ workspace }: onBoardingProps) {
         }
     };
     const handleOnchange = (e: any) => {
-        console.log(e);
         setFormProvider({
             ...formProvider,
             [e.target.id]: e.target.value
@@ -106,7 +103,6 @@ export default function Onboarding({ workspace }: onBoardingProps) {
         }
         formData.append('title', formProvider.title);
         formData.append('description', formProvider.description);
-        console.log(formData);
         const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
         if (response.error) {
             toast('Something went wrong', { toastId: ToastId.ERROR_TOAST });

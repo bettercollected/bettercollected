@@ -15,7 +15,6 @@ export default function DeleteInvitationModal({ invitation }: any) {
 
     const handleDelete = async () => {
         const response: any = await trigger({ workspaceId: workspace.id, invitationToken: invitation.invitation_token });
-        console.log(response);
         if (response.data) {
             toast('Invitation Deleted', { type: 'success' });
         }

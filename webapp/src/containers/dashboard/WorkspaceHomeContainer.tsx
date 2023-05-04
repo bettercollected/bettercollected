@@ -49,7 +49,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
     return (
         <Layout showNavbar={!isCustomDomain} checkMyDataEnabled className="!p-0 bg-white flex flex-col">
             <div className="relative overflow-hidden w-full">
-                <BannerImageComponent workspace={workspace} isFormCreator={isFormCreator} />
+                <BannerImageComponent workspace={workspace} isFormCreator={false} />
             </div>
             <div className="md:min-h-[157px] relative bg-brand-100 flex flex-col sm:flex-row pt-4 gap-6 px-5 lg:px-10 xl:px-20">
                 <div className="absolute right-5 lg:right-10 xl:right-20">
@@ -57,11 +57,11 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
                         Share
                     </Button>
                 </div>
-                <ProfileImageComponent className="w-fit sm:w-auto rounded overflow-hidden sm:absolute -top-[51px] md:-top-[63px] lg:-top-[73px] border-4 border-brand-100" workspace={workspace} isFormCreator={isFormCreator} />
+                <ProfileImageComponent className="w-fit sm:w-auto rounded overflow-hidden sm:absolute -top-[51px] md:-top-[63px] lg:-top-[73px] border-4 border-brand-100" workspace={workspace} isFormCreator={false} />
                 <PublicWorkspaceTitleAndDescription className="max-w-[400px] ml-0 sm:ml-[152px] md:ml-[176px] lg:ml-[216px]" isFormCreator={false} />
             </div>
             <div className="bg-white h-full">
-                <FormsAndSubmissionsTabContainer isFormCreator={isFormCreator} workspace={workspace} workspaceId={workspace.id} showResponseBar={!!authStatus.error} />
+                <FormsAndSubmissionsTabContainer isFormCreator={false} workspace={workspace} workspaceId={workspace.id} showResponseBar={!!authStatus.error} />
                 <div className="px-5 lg:px-10 xl:px-20">
                     <Divider className="mt-10 mb-6" />
                 </div>
