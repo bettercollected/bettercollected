@@ -64,7 +64,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
     );
 
     return (
-        <Layout showNavbar={!isCustomDomain} checkMyDataEnabled className="!p-0 bg-white flex flex-col min-h-screen">
+        <Layout showNavbar={!isCustomDomain} hideMenu={!isCustomDomain} className="!p-0 bg-white flex flex-col min-h-screen">
             <div className="relative overflow-hidden w-full">
                 <BannerImageComponent workspace={workspace} isFormCreator={false} />
             </div>

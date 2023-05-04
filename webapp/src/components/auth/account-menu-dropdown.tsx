@@ -21,7 +21,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface IAuthAccountMenuDropdownProps {
     fullWidth?: boolean;
-    checkMyDataEnabled?: boolean;
+    hideMenu?: boolean;
     className?: string;
     menuContent?: React.ReactNode | React.ReactNode[];
     showExpandMore?: boolean;
@@ -29,12 +29,12 @@ interface IAuthAccountMenuDropdownProps {
 
 AuthAccountMenuDropdown.defaultProps = {
     fullWidth: false,
-    checkMyDataEnabled: false,
+    hideMenu: false,
     className: '',
     menuContent: undefined,
     showExpandMore: undefined
 };
-export default function AuthAccountMenuDropdown({ fullWidth, checkMyDataEnabled, className, showExpandMore, menuContent }: IAuthAccountMenuDropdownProps) {
+export default function AuthAccountMenuDropdown({ fullWidth, hideMenu, className, showExpandMore, menuContent }: IAuthAccountMenuDropdownProps) {
     const workspace = useAppSelector(selectWorkspace);
 
     const authStatus = useAppSelector(selectAuth);
@@ -49,7 +49,7 @@ export default function AuthAccountMenuDropdown({ fullWidth, checkMyDataEnabled,
     };
 
     if (user?.isLoading) return <div className="w-9 sm:w-32 h-9 rounded-[4px] animate-pulse bg-black-300" />;
-    if (!user?.isLoading && !user?.id) return null;
+    if ((!user?.isLoading && !user?.id) || hideMenu) return null;
 
     const profileName = user?.first_name || user?.last_name ? _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name) : null;
 

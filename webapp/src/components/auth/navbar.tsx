@@ -11,8 +11,8 @@ import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
 
 interface IAuthNavbarProps {
+    hideMenu?: boolean;
     showHamburgerIcon?: boolean;
-    checkMyDataEnabled?: boolean;
     showPlans?: boolean;
     mobileOpen?: boolean;
     showAuthAccount?: boolean;
@@ -21,8 +21,8 @@ interface IAuthNavbarProps {
 }
 
 AuthNavbar.defaultProps = {
+    hideMenu: false,
     showPlans: true,
-    checkMyDataEnabled: false,
     showHamburgerIcon: true,
     isMobileView: false,
     showAuthAccount: true,
@@ -39,7 +39,7 @@ export function Header(props: any) {
     return <nav className={`fixed top-0 !z-30 flex w-full items-center justify-between px-5 lg:pr-10 transition-all duration-300 ltr:right-0 rtl:left-0 h-[68px] ${navClassNames} ${propClassNames}`}>{props.children}</nav>;
 }
 
-export default function AuthNavbar({ showHamburgerIcon, checkMyDataEnabled, showPlans, mobileOpen, handleDrawerToggle, drawerView = 'DASHBOARD_SIDEBAR', showAuthAccount }: IAuthNavbarProps) {
+export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerToggle, hideMenu = false, drawerView = 'DASHBOARD_SIDEBAR', showAuthAccount }: IAuthNavbarProps) {
     const screenSize = useBreakpoint();
 
     const isMobileView = () => {
@@ -67,7 +67,7 @@ export default function AuthNavbar({ showHamburgerIcon, checkMyDataEnabled, show
                             <Button size="small">Upgrade</Button>
                         </ProPlanHoc>
                     )}
-                    {showAuthAccount && <AuthAccountMenuDropdown checkMyDataEnabled={checkMyDataEnabled} />}
+                    {showAuthAccount && <AuthAccountMenuDropdown hideMenu={hideMenu} />}
                 </div>
             </div>
         </Header>
