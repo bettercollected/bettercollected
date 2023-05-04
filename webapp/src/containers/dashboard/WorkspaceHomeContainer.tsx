@@ -51,7 +51,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
     };
 
     const handleCheckMyData = () => {
-        openModal('LOGIN_VIEW', { isCustomDomain: true });
+        openModal('LOGIN_VIEW');
     };
 
     const workspaceOptions = (
@@ -59,7 +59,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
             <Button onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: 'your workspace' })} variant="outlined" className="body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize">
                 Share
             </Button>
-            <AuthAccountMenuDropdown menuContent={<EllipsisOption />} showExpandMore={false} className="!text-black-900 !py-0 !px-1" />
+            <AuthAccountMenuDropdown isClientDomain={isCustomDomain ? false : true} menuContent={<EllipsisOption />} showExpandMore={false} className="!text-black-900 !py-0 !px-1" />
         </div>
     );
 

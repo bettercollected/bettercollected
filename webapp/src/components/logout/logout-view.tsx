@@ -5,18 +5,28 @@ import { Logout } from '@mui/icons-material';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
-import { useLazyGetLogoutQuery } from '@app/store/auth/api';
+import { useLazyGetLogoutQuery, useLazyGetStatusQuery } from '@app/store/auth/api';
+import { initialAuthState, setAuth } from '@app/store/auth/slice';
+import { useAppDispatch } from '@app/store/hooks';
 
 export default function LogoutView(props: any) {
     const { closeModal } = useModal();
 
     const [trigger] = useLazyGetLogoutQuery();
+    const [authTrigger] = useLazyGetStatusQuery();
+    const dispatch = useAppDispatch();
+
+    const workspace = props?.workspace;
 
     const router = useRouter();
     const handleLogout = async () => {
-        await trigger();
-        router.push('/');
-        closeModal();
+        await trigger().then(async () => {
+            await authTrigger('status');
+            if (!!workspace && !!workspace?.workspaceName && !!props?.isClientDomain) router.push(`/${workspace.workspaceName}`);
+            else router.push('/');
+            dispatch(setAuth(initialAuthState));
+            closeModal();
+        });
     };
 
     return (

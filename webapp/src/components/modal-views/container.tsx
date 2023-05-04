@@ -34,7 +34,7 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
         case 'IMPORT_PROVIDER_FORMS_VIEW':
             return <ImportProviderForms {...modalProps} />; // Done
         case 'LOGOUT_VIEW':
-            return <LogoutView />; // Done
+            return <LogoutView {...modalProps} />; // Done
         case 'SHARE_VIEW':
             return <ShareModalView {...modalProps} />; // Done
         case 'UPDATE_WORKSPACE_DOMAIN':
