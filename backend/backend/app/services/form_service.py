@@ -85,7 +85,7 @@ class FormService:
                 if form["imported_by"] == user["_id"]:
                     form["importer_details"] = user
                     break
-        return [StandardForm(**form) for form in forms]
+        return [MinifiedForm(**form) for form in forms]
 
     async def get_form_by_id(
         self, workspace_id: PydanticObjectId, form_id: str, user: User
@@ -111,7 +111,7 @@ class FormService:
             params={"user_ids": user_ids},
         )
         form[0]["importer_details"] = user_details.get("users_info")[0]
-        return StandardFormCamelModel(**form[0])
+        return MinifiedForm(**form[0])
 
     async def save_form(self, form: StandardForm):
         existing_form = await FormDocument.find_one({"form_id": form.form_id})
