@@ -14,7 +14,7 @@ export default function ServerSideWorkspaceDispatcher({ children, workspace }: I
 
     useEffect(() => {
         if (workspace) dispatch(setWorkspace(workspace));
-    }, []);
+    }, [workspace]);
 
     return <>{children}</>;
 }
