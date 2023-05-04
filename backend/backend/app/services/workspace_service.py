@@ -121,11 +121,6 @@ class WorkspaceService:
             if workspace_patch.description
             else workspace_document.description
         )
-        workspace_document.owner_id = (
-            workspace_patch.owner_id
-            if workspace_patch.owner_id
-            else workspace_document.owner_id
-        )
 
         if workspace_patch.custom_domain:
             if user.plan == Plans.FREE:
