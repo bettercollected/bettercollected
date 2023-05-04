@@ -9,7 +9,7 @@ import { LoaderSizeTypes, LoaderVariantTypes } from '@app/components/ui/loader';
 type ShapeNames = 'rounded' | 'pill' | 'circle';
 type VariantNames = 'ghost' | 'solid' | 'transparent' | 'outline';
 type ColorNames = 'primary' | 'white' | 'gray' | 'success' | 'info' | 'warning' | 'danger';
-type SizeNames = 'large' | 'medium' | 'small';
+type SizeNames = 'large' | 'medium' | 'small' | 'extraSmall';
 
 const shapes: Record<ShapeNames, string[]> = {
     rounded: ['rounded-[4px]'],
@@ -34,7 +34,8 @@ const colors: Record<ColorNames, string[]> = {
 const sizes: Record<SizeNames, string[]> = {
     large: ['py-6 px-8 h-[63px] sh1 !text-white focus:ring-1 focus:ring-offset-1'],
     medium: ['py-2 px-8 h-[46px] sh3 !text-white focus:ring-1 focus:ring-offset-1'],
-    small: ['py-3 px-4 h-[36px] body4 !text-white focus:ring-1 focus:ring-offset-1']
+    small: ['py-3 px-4 h-[36px] body4 !text-white focus:ring-1 focus:ring-offset-1'],
+    extraSmall: ['p-2 h-[26px] body4 !text-white focus:ring-1 focus:ring-offset-1']
 };
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
