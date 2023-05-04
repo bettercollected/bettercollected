@@ -54,22 +54,29 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
     if (!isFormCreator)
         return (
             <div className={`h-full w-full ${className}`}>
-                <div className="w-full md:w-9/12 flex flex-col gap-4">
+                <div className="w-full flex flex-col gap-4">
                     <Tooltip title={fullWorkspaceName}>
                         <h4 className="h4">{strippedWorkspaceTitle}</h4>
                     </Tooltip>
-                    <MarkdownText scrollTitle={fullWorkspaceName} description={workspace.description} contentStripLength={60} markdownClassName="text-black-700 body3" textClassName="text-black-700 body3" />
+                    <MarkdownText scrollTitle={fullWorkspaceName} description={workspace.description} contentStripLength={82} markdownClassName="text-black-700 body3 !leading-none" textClassName="text-black-700 body3 !leading-none" />
                 </div>
             </div>
         );
     return (
         <div className={`h-full w-full ${className}`}>
-            <div className="w-full md:w-9/12 flex flex-col gap-4">
+            <div className="w-full flex flex-col gap-4">
                 <ReactContentEditable callback={handleTitleChange} tag="h4" content={fullWorkspaceName} className="h4" />
                 {isMarkdownEditable ? (
                     <ReactContentEditable callback={handleDescriptionChange} tag="p" content={workspace?.description} className="text-black-700 body3" />
                 ) : (
-                    <MarkdownText scrollTitle={fullWorkspaceName} onClick={() => setIsMarkdownEditable(true)} description={workspace.description} contentStripLength={200} markdownClassName="text-black-700 body3" textClassName="text-black-700 body3" />
+                    <MarkdownText
+                        scrollTitle={fullWorkspaceName}
+                        onClick={() => setIsMarkdownEditable(true)}
+                        description={workspace.description}
+                        contentStripLength={82}
+                        markdownClassName="text-black-700 body3 !leading-none"
+                        textClassName="text-black-700 body3 !leading-none"
+                    />
                 )}
             </div>
         </div>

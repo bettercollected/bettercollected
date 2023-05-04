@@ -71,7 +71,7 @@ export default function MarkdownText({ description, scrollTitle = '', onClick = 
         <>
             {description && (
                 <div>
-                    <p onClick={onClick} className="body3 !text-black-700">
+                    <p onClick={onClick} className="body3 !text-black-700 !leading-tight">
                         {source}
                         {displayShowMore && description.length > contentStripLength && (
                             <span onClick={handleClickOpen('paper')} className={`show-more-less-text ml-2 hover:underline capitalize p-0 cursor-pointer !text-brand-500 hover:!text-brand-600 ${textClassName}`}>

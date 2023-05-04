@@ -25,7 +25,7 @@ export function TabItem({ children, className }: React.PropsWithChildren<{ class
         >
             {({ selected }) => (
                 <>
-                    <span className="flex w-full justify-between px-3 md:px-0">{children}</span>
+                    <span className="flex w-full justify-between md:px-0">{children}</span>
                     {/* {selected && <motion.span className="absolute left-0 right-0 bottom-0 h-[2px] w-full rounded-lg bg-blue-400 dark:bg-gray-400 md:z-0" layoutId="activeTabIndicator" />} */}
                 </>
             )}
