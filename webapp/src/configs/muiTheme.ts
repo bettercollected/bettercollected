@@ -16,6 +16,13 @@ export const lightTheme = createTheme({
                     borderRadius: '4px'
                 }
             }
+        },
+        MuiTooltip: {
+            styleOverrides: {
+                popper: {
+                    zIndex: '3000 !important'
+                }
+            }
         }
     },
     breakpoints: {

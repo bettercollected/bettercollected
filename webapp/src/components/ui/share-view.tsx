@@ -1,26 +1,27 @@
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode } from 'react';
 
+import cn from 'classnames';
 import { FacebookShareButton, LinkedinShareButton, TelegramShareButton, TwitterShareButton } from 'react-share';
-import { useCopyToClipboard } from 'react-use';
 
 import { Facebook } from '@app/components/icons/brands/facebook';
 import { Linkedin } from '@app/components/icons/brands/linkedin';
 import { Telegram } from '@app/components/icons/brands/telegram';
 import { Twitter } from '@app/components/icons/brands/twitter';
-import { Copy } from '@app/components/icons/copy';
+
+import Button from './button';
+import LinkView from './link-view';
 
 type SizeNames = 'large' | 'small';
 interface Props {
     url: string;
     title?: string;
     showCopy?: boolean;
-    showBorder?: boolean;
     iconSize?: SizeNames;
 }
 
 const sizes: Record<SizeNames, string> = {
-    large: 'h-9 w-9 pr-5',
-    small: 'h-[26px] w-[26px] pr-2'
+    large: 'h-9 w-9 mr-5',
+    small: 'h-[26px] w-[26px] mr-2'
 };
 
 ShareView.defaultProps = {
@@ -35,26 +36,14 @@ interface IconWrapperProps {
     className?: string;
 }
 
-export const IconWrapper = ({ children, showBorder, className = '' }: IconWrapperProps) => <span className={`text-md flex items-center p-[2px] justify-center  ${className}`}>{children}</span>;
+export const IconWrapper = ({ children, className = '' }: IconWrapperProps) => <span className={`text-md flex items-center p-[2px] justify-center  ${className}`}>{children}</span>;
 
-IconWrapper.defaultProps = {
-    showBorder: true
-};
-export default function ShareView({ url, title, showCopy, showBorder, iconSize = 'large' }: Props) {
-    let [copyButtonStatus, setCopyButtonStatus] = useState('Copy');
-    let [_, copyToClipboard] = useCopyToClipboard();
-    const handleCopyToClipboard = () => {
-        copyToClipboard(url);
-        setCopyButtonStatus('Copied!');
-        setTimeout(() => {
-            setCopyButtonStatus(copyButtonStatus);
-        }, 1000);
-    };
+export default function ShareView({ url, title, showCopy, iconSize = 'large' }: Props) {
     return (
         <div>
-            <div className="-tracking-wide text-gray-900 ltr:text-left rtl:text-right dark:text-white body1 !leading-none">Share {title}</div>
-            <div className="flex flex-wrap gap-3 pt-4 md:gap-4 xl:pt-[18px]">
-                <div className="product-share flex flex-shrink-0 flex-wrap items-center gap-3 md:gap-4">
+            <p className={cn('-tracking-wide text-gray-900 ltr:text-left rtl:text-right dark:text-white  !leading-none', showCopy ? 'sh1' : 'body1')}>Share {title}</p>
+            <div className="flex flex-col gap-5 flex-wrap md:gap-10">
+                <div className="product-share mt-6 flex flex-shrink-0 flex-wrap items-center ">
                     <TwitterShareButton url={url}>
                         <IconWrapper>
                             <Twitter className={sizes[iconSize]} />
@@ -62,20 +51,28 @@ export default function ShareView({ url, title, showCopy, showBorder, iconSize =
                     </TwitterShareButton>
                     <FacebookShareButton url={url}>
                         <IconWrapper>
-                            <Facebook className={iconSize} />
+                            <Facebook className={sizes[iconSize]} />
                         </IconWrapper>
                     </FacebookShareButton>
                     <LinkedinShareButton url={url}>
                         <IconWrapper>
-                            <Linkedin className={iconSize} />
+                            <Linkedin className={sizes[iconSize]} />
                         </IconWrapper>
                     </LinkedinShareButton>
                     <TelegramShareButton url={url}>
                         <IconWrapper>
-                            <Telegram className={iconSize} />
+                            <Telegram className={sizes[iconSize]} />
                         </IconWrapper>
                     </TelegramShareButton>
                 </div>
+                {showCopy && <LinkView buttonSize="medium" className="flex md:flex-row flex-col items-center gap-2 w-full" url={url} toastMessage="Copied!"></LinkView>}
+                {showCopy && (
+                    <div>
+                        <Button variant="transparent" className="!text-brand-500">
+                            Customize your link
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     );

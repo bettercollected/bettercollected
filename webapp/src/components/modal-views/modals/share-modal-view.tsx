@@ -1,3 +1,5 @@
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
 import ShareView from '@app/components/ui/share-view';
 
 interface Props {
@@ -7,8 +9,10 @@ interface Props {
 }
 
 export default function ShareModalView({ url, title, showCopy }: Props) {
+    const { closeModal } = useModal();
     return (
-        <div className="rounded-[4px] bg-white pt-5 pb-7 px-7 lg:px-5 dark:border-gray-700 dark:bg-light-dark sm:pb-8 sm:pt-6">
+        <div className="rounded-[4px] relative bg-white md:p-10 p-5  dark:border-gray-700 dark:bg-light-dark">
+            <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
             <ShareView url={url} title={title} showCopy={showCopy} />
         </div>
     );
