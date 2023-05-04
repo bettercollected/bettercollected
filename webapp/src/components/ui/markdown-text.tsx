@@ -74,12 +74,12 @@ export default function MarkdownText({ description, scrollTitle = '', onClick = 
                         <ReactMarkdown remarkPlugins={[remarkGfm]} className={`m-0 p-0 mark-down-text ${markdownClassName}`}>
                             {source}
                         </ReactMarkdown>
+                        {displayShowMore && description.length > contentStripLength && (
+                            <Button fullWidth={false} variant="text" onClick={handleClickOpen('paper')} className={`show-more-less-text capitalize p-0 cursor-pointer !text-brand-500 hover:text-brand-600 ${textClassName}`}>
+                                Read more
+                            </Button>
+                        )}
                     </div>
-                    {displayShowMore && description.length > contentStripLength && (
-                        <Button fullWidth={false} variant="text" onClick={handleClickOpen('paper')} className={`show-more-less-text mt-2 p-0 cursor-pointer text-blue-500 hover:text-blue-400 ${textClassName}`}>
-                            Show more
-                        </Button>
-                    )}
                     <Dialog
                         disableScrollLock
                         PaperProps={{

@@ -12,16 +12,18 @@ import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitati
 import workspaceSlice from '@app/store/workspaces/slice';
 
 import { authApi } from './auth/api';
+import { providerApi } from './providers/api';
 import { workspacesApi } from './workspaces/api';
 
 const loggerMiddleware = createLogger();
 
 // Add more middlewares here
-const middlewares = [authApi.middleware, workspacesApi.middleware, plansApi.middleware, membersNInvitationsApi.middleware];
+const middlewares = [providerApi.middleware, authApi.middleware, workspacesApi.middleware, plansApi.middleware, membersNInvitationsApi.middleware];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewaress.splice(0, 1);
 
 const reducers = {
+    [providerApi.reducerPath]: providerApi.reducer,
     [authSlice.reducerPath]: authSlice.reducer,
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
     [formSlice.reducerPath]: formSlice.reducer,

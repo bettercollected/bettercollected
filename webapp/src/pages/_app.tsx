@@ -5,6 +5,9 @@ import { NextSeo } from 'next-seo';
 import { ThemeProvider } from 'next-themes';
 import type { AppProps } from 'next/app';
 
+import AuthStatusDispatcher from '@Components/HOCs/AuthStatusDispatcher';
+import EnabledFormProviders from '@Components/HOCs/EnabledFormProviders';
+import ServerSideWorkspaceDispatcher from '@Components/HOCs/ServerSideWorkspaceDispatcher';
 import { CacheProvider, EmotionCache, css } from '@emotion/react';
 import { GlobalStyles } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -20,7 +23,6 @@ import 'vanilla-cookieconsent/dist/cookieconsent.css';
 import '@app/assets/css/globals.css';
 import CookieConsent from '@app/components/cookie/cookie-consent';
 import DrawersContainer from '@app/components/drawer-views/container';
-import WorkspaceNStatusHoc from '@app/components/hoc/workspace-n-status-hoc';
 import ModalContainer from '@app/components/modal-views/container';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import NextNProgress from '@app/components/ui/nprogress';
@@ -122,13 +124,17 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                     <NextNProgress color="#f04444" startPosition={0} stopDelayMs={400} height={5} options={{ easing: 'ease' }} />
                     <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
                     <Provider store={store}>
-                        <WorkspaceNStatusHoc {...pageProps}>
-                            <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
-                                {getLayout(<Component {...pageProps} />)}
-                                <ModalContainer />
-                                <DrawersContainer />
-                            </PersistGate>
-                        </WorkspaceNStatusHoc>
+                        <EnabledFormProviders>
+                            <ServerSideWorkspaceDispatcher workspace={pageProps?.workspace}>
+                                <AuthStatusDispatcher workspace={pageProps?.workspace}>
+                                    <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
+                                        {getLayout(<Component {...pageProps} />)}
+                                        <ModalContainer />
+                                        <DrawersContainer />
+                                    </PersistGate>
+                                </AuthStatusDispatcher>
+                            </ServerSideWorkspaceDispatcher>
+                        </EnabledFormProviders>
                     </Provider>
                 </MuiThemeProvider>
             </CacheProvider>

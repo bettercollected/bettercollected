@@ -18,22 +18,24 @@ export interface IUserStats {
     roles: Array<string>;
     id: string;
     isAdmin: boolean;
+    isLoading: boolean;
 }
 
-const initialState: IUserStats = {
+export const initialAuthState: IUserStats = {
     email: '',
     plan: Plans.FREE,
     roles: [],
     id: '',
-    isAdmin: false
+    isAdmin: false,
+    isLoading: true
 };
 
 export const slice = createSlice({
     name: 'auth',
-    initialState,
+    initialState: initialAuthState,
     reducers: {
         setAuth: (state, action) => {
-            return { ...action.payload };
+            return { ...state, ...action.payload };
         }
     }
 });

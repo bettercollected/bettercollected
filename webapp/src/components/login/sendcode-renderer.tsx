@@ -47,7 +47,7 @@ export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustom
                     <span className="flex-shrink text-xs mx-4 text-gray-400">or</span>
                     <div className="border-t w-5 border-gray-200"></div>
                 </div>
-                <ConnectWithProviderButton url={`${environments.API_ENDPOINT_HOST}/auth/google/basic`} text="Sign in with Google" creator />
+                <ConnectWithProviderButton url={`${environments.API_ENDPOINT_HOST}/auth/google/basic`} text="Sign in with Google" creator={false} />
             </div>
         </form>
     );

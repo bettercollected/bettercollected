@@ -21,11 +21,11 @@ export default function WorkspaceFormCard({ form, workspace, hasCustomDomain, is
     const breakpoint = useBreakpoint();
 
     return (
-        <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px] border-black-400 hover:border-brand-500 transition cursor-pointer rounded-[4px] ${className}`}>
-            <div className="rounded-[4px] relative w-full px-4 py-6 flex min-h-28 flex-col gap-3 items-start justify-between">
-                <div className="rounded-[4px] h-[34px] w-[34px] relative">{form?.settings?.provider === 'typeform' ? <TypeformIcon /> : <GoogleFormIcon className="-ml-2" />}</div>
+        <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px] border-brand-100 hover:border-brand-500 transition cursor-pointer rounded ${className}`}>
+            <div className="rounded relative w-full px-4 py-6 flex min-h-28 flex-col gap-4 items-start justify-between">
+                <div className="rounded h-[34px] w-[34px] relative">{form?.settings?.provider === 'typeform' ? <TypeformIcon /> : <GoogleFormIcon className="-ml-2" />}</div>
                 <Tooltip title={form?.title || 'Untitled'} arrow placement="top-start" enterDelay={300} enterTouchDelay={0}>
-                    <p className="body3 !not-italic leading-none">{['xs', '2xs', 'sm', 'md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.title || 'Untitled', 15) : toEndDottedStr(form?.title || 'Untitled', 20)}</p>
+                    <p className="body3 leading-none">{['xs', '2xs', 'sm', 'md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.title || 'Untitled', 15) : toEndDottedStr(form?.title || 'Untitled', 20)}</p>
                 </Tooltip>
                 {!isResponderPortal && (
                     <Tooltip className="absolute top-4 right-4" title={form?.settings?.private ? 'Hidden from your public workspace' : 'Public'} arrow placement="bottom-end" enterDelay={300} enterTouchDelay={0}>
