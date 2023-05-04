@@ -7,6 +7,7 @@ import { Box, IconButton } from '@mui/material';
 import CustomizeLink from '@app/components/cards/customizelink-card';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
 import FormDrawer from '@app/components/sidebar/form-drawer';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
@@ -23,6 +24,7 @@ import { toEndDottedStr } from '@app/utils/stringUtils';
 export default function FormPageLayout(props: any) {
     const form = useAppSelector((state) => state.form);
     const workspace = useAppSelector((state) => state.workspace);
+    const { openModal } = useModal();
     const dispatch = useAppDispatch();
     useEffect(() => {
         dispatch(setForm(props.form));
@@ -106,7 +108,12 @@ export default function FormPageLayout(props: any) {
                                     ))}
                                 </div>
                                 <div className="my-12">
-                                    <CustomizeLink title={formCustomizeLink.title} subtitle={formCustomizeLink.subtitle} buttonText="Customize link" onClick={() => {}} />
+                                    <CustomizeLink
+                                        title={formCustomizeLink.title}
+                                        subtitle={formCustomizeLink.description}
+                                        buttonText="Customize link"
+                                        onClick={() => openModal('CUSTOMIZE_URL', { description: formCustomizeLink.description, domain: environments.CLIENT_DOMAIN })}
+                                    />
                                 </div>
                             </div>
                         </Box>

@@ -6,10 +6,15 @@ import Toolbar from '@Components/Common/Layout/Toolbar';
 import { Share } from '@mui/icons-material';
 import { Box, IconButton } from '@mui/material';
 
+import CustomizeLink from '@app/components/cards/customizelink-card';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
+import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import SettingsDrawer from '@app/components/sidebar/settings-drawer';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
+import LinkView from '@app/components/ui/link-view';
+import ShareView from '@app/components/ui/share-view';
 import environments from '@app/configs/environments';
 import { workspaceCustomizeLink } from '@app/constants/Customize-link';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
@@ -17,15 +22,11 @@ import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-import CustomizeLink from '../cards/customizelink-card';
-import MuiDrawer from '../sidebar/mui-drawer';
-import LinkView from '../ui/link-view';
-import ShareView from '../ui/share-view';
-
 export default function ManageWorkspaceLayout({ children }: any) {
     const workspace = useAppSelector(selectWorkspace);
     const [mobileOpen, setMobileOpen] = useState(false);
     const router = useRouter();
+    const { openModal } = useModal();
     const isProPlan = useAppSelector(selectIsProPlan);
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
@@ -46,6 +47,8 @@ export default function ManageWorkspaceLayout({ children }: any) {
     const handleClick = () => {
         if (!isProPlan) {
             router.push(`/${workspace.workspaceName}/upgrade`);
+        } else {
+            openModal('CUSTOMIZE_URL', { description: workspaceCustomizeLink.description, domain: environments.CLIENT_DOMAIN });
         }
     };
     return (
@@ -82,7 +85,7 @@ export default function ManageWorkspaceLayout({ children }: any) {
                                 <LinkView url={isCustomDomain ? customDomainUrl : clientHostUrl} toastMessage="Workspace Url Copied" className="flex flex-col" />
                             </div>
                             <div className="my-12">
-                                <CustomizeLink title={workspaceCustomizeLink.title} subtitle={workspaceCustomizeLink.subtitle} buttonText={isProPlan ? 'Customize Link' : 'Upgrade TO PRO'} onClick={handleClick} />
+                                <CustomizeLink title={workspaceCustomizeLink.title} subtitle={workspaceCustomizeLink.description} buttonText={isProPlan ? 'Customize Link' : 'Upgrade TO PRO'} onClick={handleClick} />
                             </div>
                         </div>
                     </Box>

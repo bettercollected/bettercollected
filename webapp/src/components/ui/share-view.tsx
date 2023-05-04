@@ -7,9 +7,11 @@ import { Facebook } from '@app/components/icons/brands/facebook';
 import { Linkedin } from '@app/components/icons/brands/linkedin';
 import { Telegram } from '@app/components/icons/brands/telegram';
 import { Twitter } from '@app/components/icons/brands/twitter';
-
-import Button from './button';
-import LinkView from './link-view';
+import { useModal } from '@app/components/modal-views/context';
+import Button from '@app/components/ui/button';
+import LinkView from '@app/components/ui/link-view';
+import environments from '@app/configs/environments';
+import { workspaceCustomizeLink } from '@app/constants/Customize-link';
 
 type SizeNames = 'large' | 'small';
 interface Props {
@@ -39,6 +41,7 @@ interface IconWrapperProps {
 export const IconWrapper = ({ children, className = '' }: IconWrapperProps) => <span className={`text-md flex items-center p-[2px] justify-center  ${className}`}>{children}</span>;
 
 export default function ShareView({ url, title, showCopy, iconSize = 'large' }: Props) {
+    const { openModal } = useModal();
     return (
         <div>
             <p className={cn('-tracking-wide text-gray-900 ltr:text-left rtl:text-right dark:text-white  !leading-none', showCopy ? 'sh1' : 'body1')}>Share {title}</p>
@@ -68,7 +71,7 @@ export default function ShareView({ url, title, showCopy, iconSize = 'large' }: 
                 {showCopy && <LinkView buttonSize="medium" className="flex md:flex-row flex-col items-center " url={url} toastMessage="Copied!" buttonVarient="solid"></LinkView>}
                 {showCopy && (
                     <div>
-                        <Button variant="transparent" className="!text-brand-500">
+                        <Button variant="transparent" className="!text-brand-500" onClick={() => openModal('CUSTOMIZE_URL', { description: workspaceCustomizeLink.description, domain: environments.CLIENT_DOMAIN })}>
                             Customize your link
                         </Button>
                     </div>
