@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 
+import { GetServerSidePropsContext } from 'next';
 import { useRouter } from 'next/router';
 
 import _ from 'lodash';
@@ -14,10 +15,11 @@ import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { ToastId } from '@app/constants/toastId';
 import Layout from '@app/layouts/_layout';
+import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuthStatus } from '@app/store/auth/selectors';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useGetWorkspaceFormsQuery, useGetWorkspaceStatsQuery, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
+import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
 interface addWorkspaceFormProviderDtos {
@@ -28,6 +30,30 @@ interface addWorkspaceFormProviderDtos {
 
 interface onBoardingProps {
     workspace: WorkspaceDto;
+}
+
+export async function getServerSideProps(_context: GetServerSidePropsContext) {
+    const authUserProps = (await getAuthUserPropsWithWorkspace(_context)).props;
+    console.log(!authUserProps);
+    if (!authUserProps) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: '/'
+            }
+        };
+    }
+    if (authUserProps && authUserProps.workspace.title.toLowerCase() !== 'untitled') {
+        return {
+            redirect: {
+                permanent: false,
+                destination: `/${authUserProps.workspace.workspaceName}/dashboard`
+            }
+        };
+    }
+    return {
+        props: { ...authUserProps }
+    };
 }
 
 export default function Onboarding({ workspace }: onBoardingProps) {
@@ -129,7 +155,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
                     }}
                     id="title"
                     error={formProvider.title === '' && isError}
-                    placeholder="Eg. Google"
+                    placeholder="Eg. Sireto Technology"
                     className="w-full"
                     value={formProvider.title}
                     onChange={handleOnchange}
@@ -197,4 +223,4 @@ export default function Onboarding({ workspace }: onBoardingProps) {
     );
 }
 
-export { getAuthUserPropsWithWorkspace as getServerSideProps } from '@app/lib/serverSideProps';
+// export { getAuthUserPropsWithWorkspace as getServerSideProps } from '@app/lib/serverSideProps';

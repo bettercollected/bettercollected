@@ -26,6 +26,7 @@ export async function getGlobalServerSidePropsByDomain({ locale, ..._context }: 
     try {
         const workspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`).catch((e) => e);
         workspace = (await workspaceResponse?.json().catch((e: any) => e)) ?? null;
+        console.log(workspace);
         workspaceId = workspace.id;
     } catch (e) {}
 
