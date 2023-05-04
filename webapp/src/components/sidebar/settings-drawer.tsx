@@ -16,7 +16,7 @@ export default function SettingsDrawer({ drawerWidth, mobileOpen, handleDrawerTo
     const navbarItems: Array<INavbarItem> = [
         {
             key: 'basic',
-            name: 'Basic information',
+            name: 'Manage Workspace',
             url: commonUrl
         },
         {

@@ -6,6 +6,7 @@ import Divider from '@Components/Common/DataDisplay/Divider';
 import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
+import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import ManageWorkspaceLayout from '@app/components/layout/manage-workspace';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
@@ -23,13 +24,15 @@ export default function ManageMembers() {
         <ManageWorkspaceLayout>
             <div className="flex justify-between">
                 <div className="h4">Members</div>
-                <Button
-                    onClick={() => {
-                        openModal('INVITE_MEMBER');
-                    }}
-                >
-                    Invite Collaborator
-                </Button>
+                <ProPlanHoc hideChildrenIfPro={false}>
+                    <Button
+                        onClick={() => {
+                            openModal('INVITE_MEMBER');
+                        }}
+                    >
+                        Invite Collaborator
+                    </Button>
+                </ProPlanHoc>
             </div>
             <Divider className="mt-5" />
 
