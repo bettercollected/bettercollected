@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { toast } from 'react-toastify';
 
+import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
 import { ToastId } from '@app/constants/toastId';
@@ -11,7 +12,7 @@ import { useAppSelector } from '@app/store/hooks';
 export default function OtpRenderer({ email, isCustomDomain }: any) {
     const { closeModal } = useModal();
     const workspace = useAppSelector((state) => state.workspace);
-    const [counter, setCounter] = useState(0);
+    const [counter, setCounter] = useState(60);
     const [otp, setOtp] = useState('');
     const [postSendOtp, response] = usePostSendOtpMutation();
 
@@ -45,36 +46,26 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
     };
 
     return (
-        <form className="relative flex flex-col items-center gap-8 justify-between p-10">
+        <form className="relative flex flex-col items-center justify-between p-10">
             <div>
                 <h2 className="sh1 text-center">Enter OTP code</h2>
-                <p className="!text-black-600 body4 text-center leading-none">
+                <p className="!text-black-600 body4 text-center mt-4 leading-none">
                     We have just sent a verification code to <br />
                     <span className="text-brand-500 italic">{email}</span>
                 </p>
             </div>
-            <input
-                data-testid="otp-input"
-                spellCheck={false}
-                className={`border-solid tracking-[0.5rem] font-bold placeholder:font-normal placeholder:text-sm placeholder:tracking-normal mb-4 w-60 mx-auto !rounded-[1px] !h-[50px] text-gray-900 p-2.5`}
-                value={otp}
-                type="text"
-                placeholder={'Enter the OTP code'}
-                onChange={handleChange}
-            />
-            <div>
-                <Button data-testid="verify-button" isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} className="w-60 mb-0 mx-auto !rounded-[1px] !h-[50px]">
+            <BetterInput data-testid="otp-input" className="mt-6" spellCheck={false} value={otp} type="text" placeholder={'Enter the OTP code'} onChange={handleChange} />
+            <div className="w-full px-2">
+                <Button data-testid="verify-button" isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} size="medium" className="w-full">
                     Verify
                 </Button>
-                <div className={'text-md align flex mt-4 cursor-pointer items-center justify-center text-primary hover:text-blue-500 hover:underline'}>
-                    {counter !== 0 && <div className="text-gray-500 underline-offset-0 border-none">Resend code ({counter})</div>}
+                <div className={'text-md align flex mt-4 items-center justify-center text-black-900'}>
+                    {counter !== 0 && <div className="text-gray-500 cursor-not-allowed border-none">Resend code ({counter})</div>}
                     {counter === 0 && (
                         <div
-                            className="hover:underline-offset-1"
+                            className="cursor-pointer"
                             onClick={() => {
-                                if (isCustomDomain) {
-                                    emailRequest.workspace_id = workspace.id;
-                                }
+                                emailRequest.workspace_id = workspace.id;
                                 postSendOtp(emailRequest);
                                 setCounter(60);
                             }}

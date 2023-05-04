@@ -20,11 +20,11 @@ export default function LoginView(props: any) {
     const ref = useRef<HTMLDivElement>(null);
 
     return (
-        <div ref={ref} className="relative z-50 mx-auto max-w-full min-w-full md:max-w-[600px] lg:max-w-[600px]" {...props}>
+        <div ref={ref} className="relative z-50 mx-auto max-w-full min-w-full md:max-w-[470px] lg:max-w-[470px]" {...props}>
             <div className="rounded-[4px] relative m-auto max-w-[500px] items-start justify-between bg-white">
                 {isSuccess ? <OtpRenderer email={email} isCustomDomain={isCustomDomain} /> : <SendCode updateEmail={updateEmail} isCustomDomain={isCustomDomain} isLoading={isLoading} postSendOtp={postSendOtp} />}
             </div>
-            <Close onClick={() => closeModal()} className="cursor-pointer absolute top-3 right-3 h-auto w-3 text-gray-600 hover:text-black dark:text-white" />
+            <Close onClick={() => closeModal()} className="cursor-pointer absolute top-5 right-5 hover:text-black dark:text-white" />
         </div>
     );
 }
