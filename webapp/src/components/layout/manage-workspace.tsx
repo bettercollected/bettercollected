@@ -78,8 +78,8 @@ export default function ManageWorkspaceLayout({ children }: any) {
                             <ShareView url={clientHostUrl} showCopy={false} showBorder={false} title="Workspace" iconSize="small" />
 
                             <div className="mt-12">
-                                <div className="body1 !leading-none">Workspace Url</div>
-                                <LinkView url={isCustomDomain ? customDomainUrl : clientHostUrl} toastMessage="Workspace Url Copied" />
+                                <div className="body1 !leading-none mb-4">Workspace Url</div>
+                                <LinkView url={isCustomDomain ? customDomainUrl : clientHostUrl} toastMessage="Workspace Url Copied" className="flex flex-col" />
                             </div>
                             <div className="my-12">
                                 <CustomizeLink title={workspaceCustomizeLink.title} subtitle={workspaceCustomizeLink.subtitle} buttonText={isProPlan ? 'Customize Link' : 'Upgrade TO PRO'} onClick={handleClick} />

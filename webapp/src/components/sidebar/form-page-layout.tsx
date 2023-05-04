@@ -100,9 +100,9 @@ export default function FormPageLayout(props: any) {
                                 <ShareView url={clientHostUrl} showCopy={false} showBorder={false} iconSize="small" />
 
                                 <div className="mt-12">
-                                    <div className="body1 !leading-none ">Form Links</div>
+                                    <div className="body1 mb-4 !leading-none ">Form Links</div>
                                     {getFormLinks().map((formLink: any) => (
-                                        <LinkView key={formLink.url} url={formLink.url} toastMessage="Form URL Copied" />
+                                        <LinkView key={formLink.url} url={formLink.url} toastMessage="Form URL Copied" className="flex flex-col mb-4" />
                                     ))}
                                 </div>
                                 <div className="my-12">

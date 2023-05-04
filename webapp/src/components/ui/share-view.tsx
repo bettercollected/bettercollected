@@ -65,7 +65,7 @@ export default function ShareView({ url, title, showCopy, iconSize = 'large' }: 
                         </IconWrapper>
                     </TelegramShareButton>
                 </div>
-                {showCopy && <LinkView buttonSize="medium" className="flex md:flex-row flex-col items-center gap-2 w-full" url={url} toastMessage="Copied!"></LinkView>}
+                {showCopy && <LinkView buttonSize="medium" className="flex md:flex-row flex-col items-center " url={url} toastMessage="Copied!" buttonVarient="solid"></LinkView>}
                 {showCopy && (
                     <div>
                         <Button variant="transparent" className="!text-brand-500">
