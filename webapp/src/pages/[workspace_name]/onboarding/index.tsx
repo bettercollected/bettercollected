@@ -12,10 +12,8 @@ import AvatarEditor from 'react-avatar-editor';
 import { toast } from 'react-toastify';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import ProfileImageComponent from '@app/components/dashboard/profile-image';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
-import { Dialog } from '@app/components/ui/dialog';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import WorkSpaceLogoUi from '@app/components/ui/workspace-logo-ui';
 import { ToastId } from '@app/constants/toastId';
@@ -89,7 +87,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
         if (image.size / MB > 100) {
             toast('Image size is greater than 100MB', { toastId: ToastId.ERROR_TOAST });
         } else {
-            openModal('CROP_IMAGE', { profileEditorRef: profileEditorRef, uploadImage: image, isLoading: isLoading, profileInputRef: workspaceLogoRef, onSave: handleUpdateProfile });
+            openModal('CROP_IMAGE', { profileEditorRef: profileEditorRef, uploadImage: image, profileInputRef: workspaceLogoRef, onSave: handleUpdateProfile });
         }
     };
     const handleOnchange = (e: any) => {

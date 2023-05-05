@@ -1,16 +1,9 @@
 import React, { useRef } from 'react';
 import { useState } from 'react';
 
-import { useRouter } from 'next/router';
-
-import _ from 'lodash';
-
-import ModeEditIcon from '@mui/icons-material/ModeEdit';
-import { Dialog } from '@mui/material';
 import AvatarEditor from 'react-avatar-editor';
 import { toast } from 'react-toastify';
 
-import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
 import { ToastId } from '@app/constants/toastId';
 import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
@@ -33,14 +26,8 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
     const onUploadFileChange = (e: any) => {
         if (e.target.files.length === 0) return;
         const image = e.target.files[0];
-        openModal('CROP_IMAGE', { profileEditorRef: profileEditorRef, uploadImage: image, isLoading: isLoading, profileInputRef: profileInputRef, onSave: updateProfileHandler });
+        openModal('CROP_IMAGE', { profileEditorRef: profileEditorRef, uploadImage: image, profileInputRef: profileInputRef, onSave: updateProfileHandler });
     };
-
-    // const onEditButtonClick = () => {
-    //     if (!workspace.profileImage) return;
-    //     setUploadImage(workspace.profileImage);
-    //     openModal('CROP_IMAGE', { profileEditorRef: profileEditorRef, uploadImage: uploadImage, isLoading: isLoading, profileInputRef: profileInputRef, onSave: updateProfileHandler });
-    // };
 
     const updateProfileHandler = async () => {
         if (!!profileEditorRef.current) {
@@ -58,7 +45,6 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
             }
             if (response.data) {
                 toast('Workspace Updated', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
-                // @ts-ignore
 
                 dispatch(setWorkspace(response.data));
                 setUploadImage(response.data.profileImage);
@@ -73,7 +59,6 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
             {isFormCreator ? (
                 <>
                     <WorkSpaceLogoUi workspaceLogoRef={profileInputRef} onChange={onUploadFileChange} onClick={() => profileInputRef.current?.click()} image={uploadImage} profileName={workspace.title}></WorkSpaceLogoUi>
-                    {/* <input data-testid="file-upload-profile" ref={profileInputRef} type="file" accept="image/*" className="hidden" onChange={onUploadFileChange} /> */}
                 </>
             ) : (
                 <div className={`relative bannerdiv aspect-square product-image bg-white ${!!workspace?.profileImage ? '' : 'border-[4px] border-brand-100 hover:border-brand-400'} z-10  w-24  sm:w-32  md:w-40  lg:w-[200px] overflow-hidden`}>
