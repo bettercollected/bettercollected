@@ -1,7 +1,9 @@
 from datetime import timedelta
 from http import HTTPStatus
 from typing import List, Any
+
 from beanie import PydanticObjectId
+
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.invitation_response import InvitationResponse
 from backend.app.models.invitation_request import InvitationRequest
@@ -16,7 +18,6 @@ from common.constants import MESSAGE_NOT_FOUND
 from common.enums.plan import Plans
 from common.enums.workspace_invitation_status import InvitationStatus
 from common.models.user import User
-from datetime import timedelta
 from common.services.http_client import HttpClient
 
 
@@ -81,6 +82,7 @@ class WorkspaceMembersService:
                 "workspace_name": workspace.workspace_name,
                 "role": invitation.role.title(),
                 "email": invitation.email,
+                "inviter_id": user.id,
                 "token": workspace_invitation.invitation_token,
             },
             timeout=60,

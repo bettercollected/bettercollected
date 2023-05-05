@@ -209,6 +209,7 @@ class WorkspaceService:
             params={
                 "receiver_email": receiver_email,
                 "workspace_title": workspace.title,
+                "workspace_profile_image": workspace.profile_image,
             },
             timeout=180,
         )
