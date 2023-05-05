@@ -50,13 +50,17 @@ class FormService:
 
         user_ids = [form.imported_by for form in forms_page.items]
 
-        user_details = await self._http_client.get(
-            f"{settings.auth_settings.BASE_URL}/users",
-            params={"user_ids": user_ids},
+        user_details = (
+            {"users_info": []}
+            if not user_ids
+            else await self._http_client.get(
+                f"{settings.auth_settings.BASE_URL}/users",
+                params={"user_ids": user_ids},
+            )
         )
 
         for form in forms_page.items:
-            for user in user_details["users_info"]:
+            for user in user_details.get("users_info", []):
                 if form.imported_by == user["_id"]:
                     form.importer_details = user
                     break
@@ -75,9 +79,13 @@ class FormService:
 
         user_ids = [form["imported_by"] for form in forms]
 
-        user_details = await self._http_client.get(
-            f"{settings.auth_settings.BASE_URL}/users",
-            params={"user_ids": user_ids},
+        user_details = (
+            {"users_info": []}
+            if not user_ids
+            else await self._http_client.get(
+                f"{settings.auth_settings.BASE_URL}/users",
+                params={"user_ids": user_ids},
+            )
         )
 
         for form in forms:
@@ -105,10 +113,17 @@ class FormService:
             is_admin=is_admin,
         ).to_list()
 
-        user_ids = [form[0]["imported_by"]]
-        user_details = await self._http_client.get(
-            f"{settings.auth_settings.BASE_URL}/users",
-            params={"user_ids": user_ids},
+        if not form:
+            return []
+
+        user_ids = [form[0]["imported_by"]] if form else []
+        user_details = (
+            {"users_info": []}
+            if not user_ids
+            else await self._http_client.get(
+                f"{settings.auth_settings.BASE_URL}/users",
+                params={"user_ids": user_ids},
+            )
         )
         form[0]["importer_details"] = user_details.get("users_info")[0]
         return MinifiedForm(**form[0])

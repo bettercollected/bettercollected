@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import Optional, List
+from typing import Dict, Optional, List
 
 from backend.app.models.response_dtos import WorkspaceFormSettingsCamelModal
 
@@ -19,5 +19,5 @@ class MinifiedForm(CamelModel):
     responses: Optional[int]
     deletion_requests: Optional[int]
     imported_by: Optional[str]
-    importer_details: Optional[dict]
+    importer_details: Optional[Dict]
     fields: Optional[List[StandardFormField]]
