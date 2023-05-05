@@ -6,14 +6,15 @@ interface Props {
     url: string;
     title?: string;
     showCopy?: boolean;
+    [props: string]: any;
 }
 
-export default function ShareModalView({ url, title, showCopy }: Props) {
+export default function ShareModalView({ url, title, showCopy, ...props }: Props) {
     const { closeModal } = useModal();
     return (
         <div className="rounded-[4px] relative bg-white md:p-10 p-5  dark:border-gray-700 dark:bg-light-dark">
             <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
-            <ShareView url={url} title={title} showCopy={showCopy} />
+            <ShareView url={url} title={title} showCopy={showCopy} {...props} />
         </div>
     );
 }
