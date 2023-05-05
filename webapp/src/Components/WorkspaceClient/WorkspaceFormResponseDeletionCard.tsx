@@ -1,11 +1,10 @@
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import { Typography } from '@mui/material';
 
 import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
-import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface IWorkspaceFormResponseDeletionCardProps {
     response: StandardFormResponseDto;
@@ -14,8 +13,6 @@ interface IWorkspaceFormResponseDeletionCardProps {
 }
 
 export default function WorkspaceFormResponseDeletionCard({ response, isResponderPortal = false, className = '' }: IWorkspaceFormResponseDeletionCardProps) {
-    const breakpoint = useBreakpoint();
-
     const submittedAt = `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(response.updatedAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(response.updatedAt)))}`;
 
     return (
@@ -23,7 +20,9 @@ export default function WorkspaceFormResponseDeletionCard({ response, isResponde
             <div className="rounded relative w-full px-4 py-6 flex min-h-28 flex-col gap-4 items-start justify-between">
                 <div className="rounded h-[34px] w-[34px]">{response?.provider === 'typeform' ? <TypeformIcon width={34} height={34} /> : <GoogleFormIcon width={34} height={34} className="-ml-1" />}</div>
                 <Tooltip title={response?.formTitle || 'Untitled'}>
-                    <p className="body3 !leading-none">{['xs', '2xs', 'sm', 'md'].indexOf(breakpoint) !== -1 ? toEndDottedStr(response?.formTitle || 'Untitled', 15) : toEndDottedStr(response?.formTitle || 'Untitled', 20)}</p>
+                    <Typography className="body3 !leading-none w-[inherit]" noWrap>
+                        {response?.formTitle || 'Untitled'}
+                    </Typography>
                 </Tooltip>
                 {isResponderPortal && !!response?.deletionStatus && (
                     <Tooltip className="absolute top-4 right-4" title={response.deletionStatus}>
