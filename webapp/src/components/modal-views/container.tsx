@@ -18,6 +18,8 @@ import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 import UpdateWorkspaceSettings from '@app/components/workspace/update-workspace-settings';
 
+import CropImageModalView from './modals/crop-image-modal-view';
+
 // dynamic imports
 const LoginView = dynamic(() => import('@app/components/login/login-view'));
 const ImportProviderForms = dynamic(() => import('@app/components/form-integrations/import-provider-forms'));
@@ -51,6 +53,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <DeleteInvitationModal {...modalProps} />;
         case 'CUSTOMIZE_URL':
             return <CustomizeUrlModal {...modalProps} />;
+        case 'CROP_IMAGE':
+            return <CropImageModalView {...modalProps} />;
         default:
             return <></>;
     }

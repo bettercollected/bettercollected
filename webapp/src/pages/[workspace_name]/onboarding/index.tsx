@@ -8,11 +8,16 @@ import _ from 'lodash';
 import { ChevronLeft } from '@mui/icons-material';
 import { TextField } from '@mui/material';
 import cn from 'classnames';
+import AvatarEditor from 'react-avatar-editor';
 import { toast } from 'react-toastify';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import ProfileImageComponent from '@app/components/dashboard/profile-image';
+import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
+import { Dialog } from '@app/components/ui/dialog';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import WorkSpaceLogoUi from '@app/components/ui/workspace-logo-ui';
 import { ToastId } from '@app/constants/toastId';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
@@ -58,9 +63,10 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
 export default function Onboarding({ workspace }: onBoardingProps) {
     const router = useRouter();
     const authStatus = useAppSelector(selectAuth);
-
+    const { openModal, closeModal } = useModal();
     const user: any = !!authStatus ? authStatus : null;
     let workspaceLogoRef = useRef<HTMLInputElement>(null);
+    const profileEditorRef = useRef<AvatarEditor>(null);
     const dispatch = useAppDispatch();
     const [isError, setError] = useState(false);
     const profileName = _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name);
@@ -83,10 +89,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
         if (image.size / MB > 100) {
             toast('Image size is greater than 100MB', { toastId: ToastId.ERROR_TOAST });
         } else {
-            setFormProvider({
-                ...formProvider,
-                workspaceLogo: image
-            });
+            openModal('CROP_IMAGE', { profileEditorRef: profileEditorRef, uploadImage: image, isLoading: isLoading, profileInputRef: workspaceLogoRef, onSave: handleUpdateProfile });
         }
     };
     const handleOnchange = (e: any) => {
@@ -94,6 +97,20 @@ export default function Onboarding({ workspace }: onBoardingProps) {
             ...formProvider,
             [e.target.id]: e.target.value
         });
+    };
+
+    const handleUpdateProfile = async (e: any) => {
+        if (!!profileEditorRef.current) {
+            const dataUrl = profileEditorRef.current.getImage().toDataURL();
+            const result = await fetch(dataUrl);
+            const blob = await result.blob();
+            const file = new File([blob], 'profileImage.png', { type: blob.type });
+            setFormProvider({
+                ...formProvider,
+                workspaceLogo: file
+            });
+            closeModal();
+        }
     };
 
     const updateWorkspaceDetails = async () => {
@@ -189,18 +206,17 @@ export default function Onboarding({ workspace }: onBoardingProps) {
     const StepTwoContent = (
         <div className="md:w-[454px] w-full  p-10 bg-white rounded">
             {AddWorkspaceHeader}
-
             <p className="mt-7 mb-8  h4 text-brand-900">Add workspace logo</p>
-            <div className="flex md:flex-row flex-col gap-4 items-center">
-                <AuthAccountProfileImage image={formProvider.workspaceLogo && URL.createObjectURL(formProvider.workspaceLogo)} name={profileName} size={143} typography="h1" />
-                <div className="flex flex-col justify-center md:items-start items-center">
-                    <p className="body3 mb-5 !text-black-700 md:text-start text-center">Make sure your image is less than 100MB</p>
-                    <input type="file" accept="image/*" className="opacity-0 h-0 w-0" ref={workspaceLogoRef} onChange={handleFile} />
-                    <Button size="small" variant="ghost" className="!text-brand-500 hover:!bg-brand-200 !bg-white !border-brand-300" onClick={() => workspaceLogoRef.current?.click()}>
-                        Upload
-                    </Button>
-                </div>
-            </div>
+            {/* <div className="flex md:flex-row flex-col gap-4 items-center">
+                <AuthAccountProfileImage image={formProvider.workspaceLogo && URL.createObjectURL(formProvider.workspaceLogo)} name={profileName} size={143} typography="h1" /> */}
+            <WorkSpaceLogoUi
+                workspaceLogoRef={workspaceLogoRef}
+                onChange={handleFile}
+                onClick={() => workspaceLogoRef.current?.click()}
+                image={formProvider.workspaceLogo && URL.createObjectURL(formProvider.workspaceLogo)}
+                profileName={profileName}
+            ></WorkSpaceLogoUi>
+            {/* </div> */}
             <div className="flex justify-end mt-8 items-center">
                 <Button size="medium" onClick={updateWorkspaceDetails} isLoading={isLoading}>
                     Done
@@ -208,6 +224,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
             </div>
         </div>
     );
+
     if (isSuccess) return <FullScreenLoader />;
     return (
         <Layout showNavbar showAuthAccount={false}>
