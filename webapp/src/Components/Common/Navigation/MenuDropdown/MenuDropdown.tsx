@@ -11,6 +11,7 @@ interface IMenuDropdownProps {
     menuContent: React.ReactNode | React.ReactNode[];
     children: React.ReactNode | React.ReactNode[];
     className?: string;
+    onClick?: any;
     enterDelay?: number;
     leaveDelay?: number;
     enterTouchDelay?: number;
@@ -43,6 +44,7 @@ export default function MenuDropdown({
     menuContent,
     children,
     className = '',
+    onClick = undefined,
     enterDelay = 1000,
     leaveDelay = 100,
     enterTouchDelay = 300,
@@ -59,6 +61,7 @@ export default function MenuDropdown({
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
+        if (onClick) onClick(event);
     };
 
     const handleClose = () => {
