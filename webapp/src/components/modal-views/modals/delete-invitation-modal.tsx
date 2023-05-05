@@ -34,11 +34,11 @@ export default function DeleteInvitationModal({ invitation }: any) {
             />
             <div className="sh3 mb-5">Remove invitation for {invitation.email}?</div>
             <div className="flex w-full gap-4 justify-end">
-                <Button variant="solid" color="gray" size="medium" className="!bg-black-500" onClick={() => closeModal()}>
-                    Cancel
-                </Button>
                 <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
                     Delete
+                </Button>
+                <Button variant="solid" color="gray" size="medium" className="!bg-black-500" onClick={() => closeModal()}>
+                    Cancel
                 </Button>
             </div>
         </div>

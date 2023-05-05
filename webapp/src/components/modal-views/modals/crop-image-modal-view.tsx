@@ -12,6 +12,7 @@ interface ICropImageModalViewProps {
     profileInputRef: any;
     onSave: (e: any) => void;
 }
+
 export default function CropImageModalView({ profileEditorRef, uploadImage, profileInputRef, onSave }: ICropImageModalViewProps) {
     const [scale, setScale] = useState(1);
     const [isLoading, setLoading] = useState(false);
@@ -26,15 +27,12 @@ export default function CropImageModalView({ profileEditorRef, uploadImage, prof
                 <span>+</span>
             </div>
             <div className="flex justify-around w-full">
-                <Button variant="solid" color="info" disabled={isLoading} className="hover:!translate-y-0 !rounded !shadow-none" onClick={closeModal}>
-                    Cancel
-                </Button>
                 <Button
                     data-testid="save-button"
                     isLoading={isLoading}
                     variant="solid"
                     color="info"
-                    className="hover:!translate-y-0 !rounded shadow-none"
+                    className="hover:!translate-y-0 mr-2 flex-1 !rounded shadow-none"
                     disabled={!uploadImage}
                     onClick={(e) => {
                         onSave(e);
@@ -42,6 +40,9 @@ export default function CropImageModalView({ profileEditorRef, uploadImage, prof
                     }}
                 >
                     Save Image
+                </Button>
+                <Button variant="solid" color="info" disabled={isLoading} className="hover:!translate-y-0 !rounded !bg-black-500 hover:!bg-black-600 flex-1 !shadow-none" onClick={closeModal}>
+                    Cancel
                 </Button>
             </div>
         </div>
