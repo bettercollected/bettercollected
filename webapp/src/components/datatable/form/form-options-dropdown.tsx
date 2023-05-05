@@ -123,7 +123,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 ) : (
                     menuItemPinSettings
                 )}
-                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)} disabled={!!currentActiveForm?.form?.settings?.private}>
+                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)}>
                     <ListItemIcon>
                         <Eye width={20} height={20} />
                     </ListItemIcon>

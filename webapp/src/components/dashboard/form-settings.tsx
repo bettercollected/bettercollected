@@ -92,7 +92,7 @@ export default function FormSettingsTab() {
                 </FormSettingsCard>
             )}
 
-            <FormSettingsCard>
+            {/* <FormSettingsCard>
                 <div className="flex justify-between items-center w-full">
                     <span className={`body1 flex-1`}>Custom Slug</span>
                     <div className="w-full flex-1">
@@ -115,7 +115,7 @@ export default function FormSettingsTab() {
                         />
                     </div>
                 </div>
-            </FormSettingsCard>
+            </FormSettingsCard> */}
 
             <FormSettingsCard>
                 <div className="flex items-center justify-between">

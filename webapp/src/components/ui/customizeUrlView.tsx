@@ -71,7 +71,7 @@ export default function CustomizeUrlView({ description, url }: ICustomizeUrlModa
                 onChange={handleOnchange}
             />
             {slot === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">Slot is required</p>}
-            <div className="px-10 py-6 gap-6 bg-blue-100 mt-8 md:w-[454px] w-full md:-ml-10">
+            <div className="px-10 py-6 gap-6 bg-blue-100 mt-8 md:w-[454px] w-full md:-ml-10 break-all">
                 <p className="body1">New Link</p>
                 <p className="body3 ">
                     <span className="text-black-600"> {url}</span>/<span className="text-black-800 font-medium">{slot}</span>
