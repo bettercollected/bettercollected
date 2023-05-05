@@ -96,7 +96,6 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_repo=workspace_user_repo,
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
-        http_client=http_client
     )
 
     form_response_service: FormResponseService = providers.Singleton(

@@ -1,24 +1,20 @@
 from datetime import datetime
 
+from beanie import PydanticObjectId
+from fastapi_pagination import Page
+from fastapi_pagination.ext.beanie import paginate
+
 from backend.app.exceptions import HTTPException
 from backend.app.models.minified_form import MinifiedForm
-from backend.app.models.response_dtos import StandardFormCamelModel
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.standard_form import FormDocument
-
-from beanie import PydanticObjectId
-
+from backend.app.utils import AiohttpClient
 from backend.config import settings
 from common.models.standard_form import StandardForm
 from common.models.user import User
-
-from fastapi_pagination import Page
-from fastapi_pagination.ext.beanie import paginate
-
-from common.services.http_client import HttpClient
 
 
 class FormService:
@@ -27,12 +23,10 @@ class FormService:
         workspace_user_repo: WorkspaceUserRepository,
         form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
-        http_client: HttpClient,
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
-        self._http_client = http_client
 
     async def get_forms_in_workspace(self, workspace_id, user) -> Page[MinifiedForm]:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
@@ -53,10 +47,7 @@ class FormService:
         user_details = (
             {"users_info": []}
             if not user_ids
-            else await self._http_client.get(
-                f"{settings.auth_settings.BASE_URL}/users",
-                params={"user_ids": user_ids},
-            )
+            else await self.fetch_user_details(user_ids=user_ids)
         )
 
         for form in forms_page.items:
@@ -66,6 +57,13 @@ class FormService:
                     break
 
         return forms_page
+
+    async def fetch_user_details(self, user_ids):
+        response = await AiohttpClient.get_aiohttp_client().get(
+            f"{settings.auth_settings.BASE_URL}/users",
+            params={"user_ids": user_ids},
+        )
+        return await response.json()
 
     async def search_form_in_workspace(
         self, workspace_id: PydanticObjectId, query: str
@@ -82,10 +80,7 @@ class FormService:
         user_details = (
             {"users_info": []}
             if not user_ids
-            else await self._http_client.get(
-                f"{settings.auth_settings.BASE_URL}/users",
-                params={"user_ids": user_ids},
-            )
+            else await self.fetch_user_details(user_ids=user_ids)
         )
 
         for form in forms:
@@ -120,10 +115,7 @@ class FormService:
         user_details = (
             {"users_info": []}
             if not user_ids
-            else await self._http_client.get(
-                f"{settings.auth_settings.BASE_URL}/users",
-                params={"user_ids": user_ids},
-            )
+            else await self.fetch_user_details(user_ids=user_ids)
         )
         form[0]["importer_details"] = user_details.get("users_info")[0]
         return MinifiedForm(**form[0])
