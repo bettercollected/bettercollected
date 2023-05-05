@@ -28,7 +28,7 @@ export default function FormDrawer({ drawerWidth, mobileOpen, handleDrawerToggle
         },
         {
             key: 'deletion_requests',
-            name: 'Deletion Requests',
+            name: 'Deletion Requests (' + (form.deletionRequests || 0) + ')',
             url: `${commonUrl}/deletion-requests`
         },
         {
