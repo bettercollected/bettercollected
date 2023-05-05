@@ -10,10 +10,12 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 interface ILogo {
     className?: string;
     showProTag?: boolean;
+    isClientDomain?: boolean;
+    isCustomDomain?: boolean;
     [props: string]: any;
 }
 
-const Logo = ({ className, showProTag = true, ...props }: ILogo) => {
+const Logo = ({ className, isClientDomain = false, isCustomDomain = false, showProTag = true, ...props }: ILogo) => {
     const workspace = useAppSelector(selectWorkspace);
     const authStatus: any = useAppSelector(selectAuth);
 
@@ -21,8 +23,14 @@ const Logo = ({ className, showProTag = true, ...props }: ILogo) => {
 
     const isProAndIsWorkspaceAdmin = user ? user?.id === workspace?.ownerId && user?.plan === 'PRO' : false;
 
+    const customDomainUrl = '/';
+    const clientDomainUrl = `/${workspace?.workspaceName}`;
+    const adminDomainUrl = `/${workspace?.workspaceName}/dashboard`;
+
+    const url = isCustomDomain ? customDomainUrl : isClientDomain ? clientDomainUrl : adminDomainUrl;
+
     return (
-        <AnchorLink href={`/${workspace?.workspaceName}/dashboard`} className="w-fit outline-none" {...props}>
+        <AnchorLink href={url} className="w-fit outline-none" {...props}>
             <div className="flex items-center gap-2">
                 <div className={`text-[20px] sm:text-[28px] font-semibold leading-8 ${className}`}>
                     <span className="text-brand-500">Better</span>
