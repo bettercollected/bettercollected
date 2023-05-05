@@ -11,11 +11,14 @@ from backend.app.schemas.standard_form import FormDocument
 
 from beanie import PydanticObjectId
 
+from backend.config import settings
 from common.models.standard_form import StandardForm
 from common.models.user import User
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
+
+from common.services.http_client import HttpClient
 
 
 class FormService:
@@ -24,10 +27,12 @@ class FormService:
         workspace_user_repo: WorkspaceUserRepository,
         form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
+        http_client: HttpClient,
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
+        self._http_client = http_client
 
     async def get_forms_in_workspace(self, workspace_id, user) -> Page[MinifiedForm]:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
@@ -42,6 +47,20 @@ class FormService:
             is_admin=is_admin,
         )
         forms_page = await paginate(forms_query)
+
+        user_ids = [form.imported_by for form in forms_page.items]
+
+        user_details = await self._http_client.get(
+            f"{settings.auth_settings.BASE_URL}/users",
+            params={"user_ids": user_ids},
+        )
+
+        for form in forms_page.items:
+            for user in user_details["users_info"]:
+                if form.imported_by == user["_id"]:
+                    form.importer_details = user
+                    break
+
         return forms_page
 
     async def search_form_in_workspace(
@@ -53,7 +72,20 @@ class FormService:
         forms = await self._form_repo.search_form_in_workspace(
             workspace_id=workspace_id, form_ids=form_ids, query=query
         )
-        return [StandardForm(**form) for form in forms]
+
+        user_ids = [form["imported_by"] for form in forms]
+
+        user_details = await self._http_client.get(
+            f"{settings.auth_settings.BASE_URL}/users",
+            params={"user_ids": user_ids},
+        )
+
+        for form in forms:
+            for user in user_details["users_info"]:
+                if form["imported_by"] == user["_id"]:
+                    form["importer_details"] = user
+                    break
+        return [MinifiedForm(**form) for form in forms]
 
     async def get_form_by_id(
         self, workspace_id: PydanticObjectId, form_id: str, user: User
@@ -72,7 +104,14 @@ class FormService:
             form_id_list=[workspace_form.form_id],
             is_admin=is_admin,
         ).to_list()
-        return StandardFormCamelModel(**form[0])
+
+        user_ids = [form[0]["imported_by"]]
+        user_details = await self._http_client.get(
+            f"{settings.auth_settings.BASE_URL}/users",
+            params={"user_ids": user_ids},
+        )
+        form[0]["importer_details"] = user_details.get("users_info")[0]
+        return MinifiedForm(**form[0])
 
     async def save_form(self, form: StandardForm):
         existing_form = await FormDocument.find_one({"form_id": form.form_id})
