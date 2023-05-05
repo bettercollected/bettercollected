@@ -1,9 +1,13 @@
 import React from 'react';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import { DeleteOutline, MoreHoriz, PushPin, PushPinOutlined, Share, Visibility, VisibilityOff } from '@mui/icons-material';
-import { IconButton, ListItemIcon, Menu, MenuItem } from '@mui/material';
+import Delete from '@Components/Common/Icons/Delete';
+import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
+import Eye from '@Components/Common/Icons/Eye';
+import Pin from '@Components/Common/Icons/Pin';
+import Share from '@Components/Common/Icons/Share';
+import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
+import { ListItemIcon, MenuItem } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
@@ -87,16 +91,23 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     };
 
     const menuItemPinSettings = (
-        <MenuItem className="body4 text-black-900" onClick={(e) => onPinnedChange(e, currentActiveForm?.form)} disabled={!!currentActiveForm?.form?.settings?.private}>
-            <ListItemIcon>{currentActiveForm?.form?.settings?.pinned ? <PushPin fontSize="small" /> : <PushPinOutlined fontSize="small" />}</ListItemIcon>
+        <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPinnedChange(e, currentActiveForm?.form)} disabled={!!currentActiveForm?.form?.settings?.private}>
+            <ListItemIcon>
+                <Pin width={20} height={20} />
+            </ListItemIcon>
             <span>{currentActiveForm?.form?.settings?.pinned ? 'Unpin form' : 'Pin form'}</span>
         </MenuItem>
     );
 
     const menuItemShareSettings = (
-        <MenuItem className="body4 text-black-900" onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: 'this form' })} disabled={!!currentActiveForm?.form?.settings?.private}>
+        <MenuItem
+            sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
+            className="body4 hover:bg-brand-100"
+            onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: 'this form' })}
+            disabled={!!currentActiveForm?.form?.settings?.private}
+        >
             <ListItemIcon>
-                <Share fontSize="small" />
+                <Share width={20} height={20} />
             </ListItemIcon>
             <span>Share</span>
         </MenuItem>
@@ -104,57 +115,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
 
     return (
         <div className={className} onClick={(e) => e.preventDefault()}>
-            <Tooltip title="Form options">
-                <IconButton
-                    className="rounded-[4px] text-black-900 hover:rounded-[4px] hover:bg-black-200"
-                    onClick={(e) => handleClick(e, form)}
-                    size="small"
-                    aria-controls={open ? 'forms-menu' : undefined}
-                    aria-haspopup="true"
-                    aria-expanded={open ? 'true' : undefined}
-                >
-                    <MoreHoriz />
-                </IconButton>
-            </Tooltip>
-            <Menu
-                anchorEl={anchorEl}
-                id="forms-menu"
-                open={open}
-                onClose={() => setAnchorEl(null)}
-                onClick={() => setAnchorEl(null)}
-                disableScrollLock={true}
-                PaperProps={{
-                    elevation: 0,
-                    sx: {
-                        width: 230,
-                        overflow: 'hidden',
-                        borderRadius: 1,
-                        filter: 'drop-shadow(0px 0px 15px rgba(0,0,0,0.15))',
-                        mt: 1.5,
-                        '& .MuiAvatar-root': {
-                            width: 32,
-                            height: 32,
-                            ml: -0.5,
-                            mr: 2,
-                            borderRadius: 1
-                        },
-                        '&:before': {
-                            content: '""',
-                            display: 'block',
-                            position: 'absolute',
-                            top: 0,
-                            right: 14,
-                            width: 10,
-                            height: 10,
-                            bgcolor: 'background.paper',
-                            transform: 'translateY(-50%) rotate(45deg)',
-                            zIndex: 0
-                        }
-                    }
-                }}
-                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            >
+            <MenuDropdown onClick={(e: any) => handleClick(e, form)} id="form-menu" menuTitle="Form options" menuContent={<EllipsisOption />} showExpandMore={false}>
                 {!!currentActiveForm?.form?.settings?.private ? (
                     <Tooltip title="Visibility of the form should be public to pin it into the workspace.">
                         <div>{menuItemPinSettings}</div>
@@ -162,11 +123,12 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 ) : (
                     menuItemPinSettings
                 )}
-                <MenuItem className="body4 text-black-900" onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)}>
-                    <ListItemIcon>{currentActiveForm?.form?.settings?.private ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}</ListItemIcon>
-                    <span>Update form visibility</span>
+                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)} disabled={!!currentActiveForm?.form?.settings?.private}>
+                    <ListItemIcon>
+                        <Eye width={20} height={20} />
+                    </ListItemIcon>
+                    <span>Visibility</span>
                 </MenuItem>
-                <Divider className="!my-0" />
                 {!!currentActiveForm?.form?.settings?.private ? (
                     <Tooltip title="Visibility of the form should be public to pin it into the workspace.">
                         <div>{menuItemShareSettings}</div>
@@ -174,15 +136,13 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 ) : (
                     menuItemShareSettings
                 )}
-
-                <Divider className="!my-0" />
-                <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} className="body4">
+                <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-red-100 !text-red-500">
                     <ListItemIcon>
-                        <DeleteOutline fontSize="small" color="error" />
+                        <Delete width={20} height={20} />
                     </ListItemIcon>
-                    <span className="text-[#d32f2f]">Delete</span>
+                    <span>Delete form</span>
                 </MenuItem>
-            </Menu>
+            </MenuDropdown>
         </div>
     );
 }
