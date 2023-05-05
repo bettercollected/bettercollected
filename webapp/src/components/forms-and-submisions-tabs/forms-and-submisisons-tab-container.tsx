@@ -16,7 +16,7 @@ export default function FormsAndSubmissionsTabContainer({ showResponseBar, works
     const paramTabs = [
         {
             icon: <FormIcon />,
-            title: 'Public forms',
+            title: 'Forms',
             path: 'forms'
         }
     ];
