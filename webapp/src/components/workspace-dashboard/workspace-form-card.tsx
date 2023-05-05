@@ -11,13 +11,13 @@ import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface IWorkspaceFormCardProps {
     form: StandardFormDto;
-    workspace: WorkspaceDto;
     hasCustomDomain: boolean;
+    workspace?: WorkspaceDto;
     isResponderPortal?: boolean;
     className?: string;
 }
 
-export default function WorkspaceFormCard({ form, workspace, hasCustomDomain, isResponderPortal = false, className = '' }: IWorkspaceFormCardProps) {
+export default function WorkspaceFormCard({ form, hasCustomDomain, workspace = undefined, isResponderPortal = false, className = '' }: IWorkspaceFormCardProps) {
     const breakpoint = useBreakpoint();
 
     return (
@@ -38,7 +38,7 @@ export default function WorkspaceFormCard({ form, workspace, hasCustomDomain, is
                     </Tooltip>
                 )}
             </div>
-            {!isResponderPortal && (
+            {!isResponderPortal && !!workspace && (
                 <div className="relative flex justify-between items-center p-4 w-full border-t-[1px] border-black-400">
                     <p className="body4 !text-brand-600">{form?.responses} response</p>
                     <FormOptionsDropdownMenu redirectToDashboard={true} className="absolute right-4" form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
