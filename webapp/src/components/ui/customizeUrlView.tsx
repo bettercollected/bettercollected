@@ -14,9 +14,10 @@ import { ICustomizeUrlModalProps } from '../modal-views/modals/customize-url-mod
 import Button from './button/button';
 
 export default function CustomizeUrlView({ description, url }: ICustomizeUrlModalProps) {
-    const [slot, setSlot] = useState('');
     const workspace = useAppSelector((state) => state.workspace);
     const form = useAppSelector((state: { form: StandardFormDto & PersistPartial }) => state.form);
+    const customUrl = form?.settings?.customUrl || '';
+    const [slot, setSlot] = useState(customUrl);
     const [isError, setError] = useState(false);
     const { closeModal } = useModal();
     const dispatch = useAppDispatch();

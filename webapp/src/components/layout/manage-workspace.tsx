@@ -48,7 +48,7 @@ export default function ManageWorkspaceLayout({ children }: any) {
         if (!isProPlan) {
             router.push(`/${workspace.workspaceName}/upgrade`);
         } else {
-            openModal('CUSTOMIZE_URL', { description: workspaceCustomizeLink.description, domain: isCustomDomain ? workspace.customDomain : clientHostUrl });
+            openModal('CUSTOMIZE_URL', { description: workspaceCustomizeLink.description, domain: isCustomDomain ? customDomainUrl : clientHostUrl });
         }
     };
     return (
