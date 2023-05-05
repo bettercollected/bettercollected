@@ -14,7 +14,7 @@ import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import LinkView from '@app/components/ui/link-view';
 import ShareView from '@app/components/ui/share-view';
 import environments from '@app/configs/environments';
-import { formCustomizeLink } from '@app/constants/Customize-link';
+import { formCustomizeLink } from '@app/constants/Customize-domain';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { initialFormState, setForm } from '@app/store/forms/slice';
@@ -43,8 +43,10 @@ export default function FormPageLayout(props: any) {
 
     const customUrl = form?.settings?.customUrl || '';
 
-    const clientHostUrl = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${customUrl}`;
-    const customDomainUrl = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`;
+    const clientHost = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms`;
+    const customDomain = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
+    const clientHostUrl = `${clientHost}/${customUrl}`;
+    const customDomainUrl = `${customDomain}/${customUrl}`;
     const breakpoint = useBreakpoint();
 
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
@@ -112,7 +114,7 @@ export default function FormPageLayout(props: any) {
                                         title={formCustomizeLink.title}
                                         subtitle={formCustomizeLink.description}
                                         buttonText="Customize link"
-                                        onClick={() => openModal('CUSTOMIZE_URL', { description: formCustomizeLink.description, domain: environments.CLIENT_DOMAIN })}
+                                        onClick={() => openModal('CUSTOMIZE_URL', { description: formCustomizeLink.description, url: isCustomDomain ? customDomain : clientHost })}
                                     />
                                 </div>
                             </div>

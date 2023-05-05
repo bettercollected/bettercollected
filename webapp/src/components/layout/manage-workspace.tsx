@@ -16,7 +16,7 @@ import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import LinkView from '@app/components/ui/link-view';
 import ShareView from '@app/components/ui/share-view';
 import environments from '@app/configs/environments';
-import { workspaceCustomizeLink } from '@app/constants/Customize-link';
+import { workspaceCustomizeLink } from '@app/constants/Customize-domain';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -48,7 +48,7 @@ export default function ManageWorkspaceLayout({ children }: any) {
         if (!isProPlan) {
             router.push(`/${workspace.workspaceName}/upgrade`);
         } else {
-            openModal('CUSTOMIZE_URL', { description: workspaceCustomizeLink.description, domain: environments.CLIENT_DOMAIN });
+            openModal('CUSTOMIZE_URL', { description: workspaceCustomizeLink.description, domain: isCustomDomain ? workspace.customDomain : clientHostUrl });
         }
     };
     return (

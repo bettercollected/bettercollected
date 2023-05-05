@@ -11,7 +11,7 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import LinkView from '@app/components/ui/link-view';
 import environments from '@app/configs/environments';
-import { workspaceCustomizeLink } from '@app/constants/Customize-link';
+import { workspaceCustomizeLink } from '@app/constants/Customize-domain';
 
 type SizeNames = 'large' | 'small';
 interface Props {
@@ -71,7 +71,7 @@ export default function ShareView({ url, title, showCopy, iconSize = 'large' }: 
                 {showCopy && <LinkView buttonSize="medium" className="flex md:flex-row flex-col items-center " url={url} toastMessage="Copied!" buttonVarient="solid"></LinkView>}
                 {showCopy && (
                     <div>
-                        <Button variant="transparent" className="!text-brand-500" onClick={() => openModal('CUSTOMIZE_URL', { description: workspaceCustomizeLink.description, domain: environments.CLIENT_DOMAIN })}>
+                        <Button variant="transparent" className="!text-brand-500" onClick={() => openModal('CUSTOMIZE_URL', { description: workspaceCustomizeLink.description, url: environments.CLIENT_DOMAIN })}>
                             Customize your link
                         </Button>
                     </div>
