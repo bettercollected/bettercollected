@@ -2,8 +2,7 @@ import React from 'react';
 
 import Image from 'next/image';
 
-import oop from 'public/oop.svg';
-
+import oop from '@app/assets/SVGs/lost.svg';
 import Layout from '@app/layouts/_layout';
 
 const Error = () => {
