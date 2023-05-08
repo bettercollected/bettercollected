@@ -37,6 +37,10 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
         }
     };
 
+    const onClickCancelButton = () => {
+        setImage('');
+    };
+
     const onClickFileSaveButton = (e: any) => {
         const croppedImageDiv: any = document.getElementsByClassName('react-transform-wrapper')[0];
         if (!croppedImageDiv) return;
@@ -66,7 +70,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
     };
 
     return (
-        <div className={`relative aspect-banner-mobile lg:aspect-banner-desktop ${!!workspace?.bannerImage ? '' : 'border border-brand-300'} w-full bannerdiv`}>
+        <div className={`relative aspect-editable-banner-mobile lg:aspect-editable-banner-desktop ${!!workspace?.bannerImage ? '' : 'border border-brand-300'} w-full bannerdiv`}>
             {!!image ? (
                 <TransformWrapper centerOnInit ref={transformComponentRef}>
                     {({ resetTransform }) => {
@@ -80,7 +84,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                                     cursor: 'grabbing'
                                 }}
                             >
-                                <img style={{ width: '100%', height: '100%' }} src={image} alt="test" />
+                                <img style={{ width: '100%', height: '100%', objectFit: 'fill' }} src={image} alt="test" />
                             </TransformComponent>
                         );
                     }}
@@ -90,15 +94,15 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                     {!!workspace.bannerImage ? (
                         <Image src={workspace?.bannerImage ?? ''} priority layout="fill" objectFit="cover" objectPosition="center" alt={workspace?.title} />
                     ) : isFormCreator ? (
-                        <div className="flex body1 text-black-700 flex-col  lg:space-y-5 items-center justify-center h-full">
+                        <div className="flex body1 text-black-700 flex-col   items-center justify-center h-full">
                             <Image src="/upload.png" height="46px" width={'72px'} alt={'upload'} />
-                            <div>
+                            <div className="lg:mt-2">
                                 <span className=" cursor-pointer text-brand-500" onClick={onClickFileUploadButton}>
                                     Upload
                                 </span>{' '}
                                 a Image
                             </div>
-                            <div className="hidden lg:flex">You can drag to adjust the image.</div>
+                            <div className="hidden lg:mt-[18px] lg:flex">You can drag to adjust the image.</div>
                         </div>
                     ) : (
                         <div className="flex h-full justify-center items-center">No image available</div>
@@ -106,26 +110,33 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                     <input ref={imageInputRef} data-testid="file-upload" type="file" accept="image/*" className="hidden" onChange={onUploadFileChange} />
                 </>
             )}
-            {isFormCreator && <UpdateImageOptions getUpdateOptionsClassName={getUpdateOptionsClassName} isLoading={isLoading} onClickFileUploadButton={onClickFileUploadButton} onClickFileSaveButton={onClickFileSaveButton} image={image} />}
+            {isFormCreator && (
+                <UpdateImageOptions
+                    getUpdateOptionsClassName={getUpdateOptionsClassName}
+                    isLoading={isLoading}
+                    onClickFileUploadButton={onClickFileUploadButton}
+                    onClickFileSaveButton={onClickFileSaveButton}
+                    image={image}
+                    onCLickCancelButton={onClickCancelButton}
+                />
+            )}
         </div>
     );
 }
 
-function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileUploadButton, onClickFileSaveButton, image }: any) {
+function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileUploadButton, onClickFileSaveButton, image, onCLickCancelButton }: any) {
     return (
         <div className={`absolute bottom-2 right-2 hidden ${getUpdateOptionsClassName()}`}>
             <div className="flex justify-between">
                 {!isLoading && !image && <Button onClick={onClickFileUploadButton}>Update</Button>}
                 {!isLoading && image && (
-                    <Button className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2" size="small">
-                        {' '}
+                    <Button className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2" size="small" onClick={onCLickCancelButton}>
                         Cancel
                     </Button>
                 )}
                 {!!image && (
                     <>
                         <Button isLoading={isLoading} onClick={onClickFileSaveButton}>
-                            {' '}
                             {isLoading ? 'Saving' : 'Save'}
                         </Button>
                     </>

@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 
-type SizeNames = 'large' | 'medium' | 'small' | 'extraSmall';
+type SizeNames = 'large' | 'medium' | 'small';
 type VariantNames = 'ghost' | 'solid' | 'transparent' | 'outline';
 interface ILinkViewProps {
     url: string;
@@ -33,6 +33,7 @@ export default function LinkView({ url, toastMessage, className, buttonSize = 's
                             type: 'info'
                         });
                     }}
+                    size={buttonSize}
                     variant="outlined"
                     className=" !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize"
                 >

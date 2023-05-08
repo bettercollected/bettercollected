@@ -51,11 +51,11 @@ export default function WorkspaceInfo({ workspace }: any) {
         <SettingsCard>
             <form onSubmit={onSubmit}>
                 <div>
-                    <div className="body1">Workspace Title</div>
+                    <div className="body1 mb-4">Workspace Title</div>
                     <BetterInput onChange={onChange} value={workspaceInfo.title} name="title" placeholder="Enter your workspace title" />
                 </div>
-                <div>
-                    <div className="body1">Workspace Description</div>
+                <div className="mt-6">
+                    <div className="body1 mb-4">Workspace Description</div>
                     <BetterInput className="w-full" size="medium" rows={5} multiline onChange={onChange} value={workspaceInfo.description} name="description" placeholder="Enter your workspace description" />
                 </div>
                 <div>
