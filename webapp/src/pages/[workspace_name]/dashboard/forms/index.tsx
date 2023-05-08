@@ -63,8 +63,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             grow: 2,
             style: {
                 color: '#202124',
-                fontSize: '14px',
-                fontWeight: 500,
+                fontSize: '16px',
                 marginLeft: '-5px',
                 paddingLeft: '16px',
                 paddingRight: '16px'
@@ -80,7 +79,8 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                paddingRight: '16px',
+                fontSize: '18px'
             }
         },
         {
@@ -94,7 +94,8 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                paddingRight: '16px',
+                fontSize: '18px'
             }
         },
         {
@@ -103,7 +104,8 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                paddingRight: '16px',
+                fontSize: '16px'
             }
         },
         {

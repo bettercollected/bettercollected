@@ -35,7 +35,7 @@ export default function InvitationsTable() {
             grow: 2,
             style: {
                 color: '#202124',
-                fontSize: '14px',
+                fontSize: '16px',
                 fontWeight: 500,
                 marginLeft: '-5px',
                 paddingLeft: '16px',
@@ -48,6 +48,7 @@ export default function InvitationsTable() {
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
+                fontSize: '16px',
                 paddingRight: '16px'
             }
         },
@@ -57,7 +58,8 @@ export default function InvitationsTable() {
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                paddingRight: '16px',
+                fontSize: '16px'
             }
         },
         {
@@ -66,7 +68,8 @@ export default function InvitationsTable() {
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                paddingRight: '16px',
+                fontSize: '16px'
             }
         },
         {
@@ -76,7 +79,8 @@ export default function InvitationsTable() {
             width: '60px',
             style: {
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                paddingRight: '16px',
+                fontSize: '16px'
             }
         }
     ];
