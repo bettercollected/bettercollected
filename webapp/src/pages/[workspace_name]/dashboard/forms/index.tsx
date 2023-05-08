@@ -8,6 +8,7 @@ import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options
 import DataTableProviderFormCell from '@app/components/datatable/form/provider-form-cell';
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
+import ActiveLink from '@app/components/ui/links/active-link';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
@@ -71,7 +72,11 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
         },
         {
             name: 'Responses',
-            selector: (row: StandardFormDto) => row?.responses ?? 0,
+            selector: (row: StandardFormDto) => (
+                <ActiveLink className="hover:text-brand-500 hover:underline" href={`/${workspace.workspaceName}/dashboard/forms/${row.formId}/responses`}>
+                    {row?.responses ?? 0}
+                </ActiveLink>
+            ),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
@@ -80,7 +85,12 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
         },
         {
             name: 'Deletion requests',
-            selector: (row: StandardFormDto) => row?.deletionRequests ?? 0,
+            selector: (row: StandardFormDto) => (
+                <ActiveLink className="hover:text-brand-500 hover:underline paragraph" href={`/${workspace.workspaceName}/dashboard/forms/${row.formId}/deletion-requests`}>
+                    {' '}
+                    {row?.deletionRequests ?? 0}
+                </ActiveLink>
+            ),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',

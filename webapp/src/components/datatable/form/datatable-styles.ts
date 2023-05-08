@@ -24,7 +24,9 @@ export const dataTableCustomStyles = {
     },
     cells: {
         style: {
-            padding: '0'
+            padding: '0',
+            fontSize: '18px',
+            color: '#343A40 !important'
             // paddingLeft: '16px',
             // paddingRight: '16px'
         }
