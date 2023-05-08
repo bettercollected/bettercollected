@@ -2,7 +2,7 @@ import React from 'react';
 
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import SingleFormPage from '@app/pages/forms/[id]';
-import { checkHasClientDomain } from '@app/utils/serverSidePropsUtils';
+import { checkHasClientDomain, getRequestHost } from '@app/utils/serverSidePropsUtils';
 
 export default SingleFormPage;
 
@@ -15,7 +15,7 @@ export async function getServerSideProps(_context: any) {
         back = (query?.back && (query?.back === 'true' || query?.back === true)) ?? false;
     }
 
-    const hasClientDomain = checkHasClientDomain(_context);
+    const hasClientDomain = checkHasClientDomain(getRequestHost(_context));
     if (!hasClientDomain) {
         return {
             redirect: {

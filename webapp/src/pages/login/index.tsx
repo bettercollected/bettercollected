@@ -10,7 +10,7 @@ import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import { checkHasCustomDomain, getRequestHost, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export async function getServerSideProps(_context: any) {
     if (checkHasCustomDomain(_context)) {

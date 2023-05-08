@@ -16,7 +16,7 @@ import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { useGetWorkspaceSubmissionQuery, useRequestWorkspaceSubmissionDeletionMutation } from '@app/store/workspaces/api';
-import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import { checkHasCustomDomain, getRequestHost, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface ISubmission extends IServerSideProps {
@@ -84,7 +84,13 @@ export default function Submission(props: any) {
         {
             title: 'Home',
             icon: <HomeIcon className="w-4 h-4 mr-2" />,
-            onClick: () => (hasCustomDomain ? router.push('/', undefined, { scroll: true, shallow: true }) : router.push(`/${router.query.workspace_name}`, undefined, { scroll: true, shallow: true }))
+            onClick: () =>
+                hasCustomDomain
+                    ? router.push('/', undefined, {
+                          scroll: true,
+                          shallow: true
+                      })
+                    : router.push(`/${router.query.workspace_name}`, undefined, { scroll: true, shallow: true })
         },
         {
             title: 'Submissions',
@@ -125,9 +131,7 @@ export async function getServerSideProps(_context: any) {
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
     let form: StandardFormDto | null = null;
     const submissionId = _context.query.id;
-
     const hasCustomDomain = checkHasCustomDomain(_context);
-
     if (!hasCustomDomain) {
         return {
             redirect: {

@@ -2,14 +2,13 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 import environments from '@app/configs/environments';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
-import { checkHasAdminDomain, checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage, checkIfUserIsAuthorizedToViewWorkspaceSettingsPage, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import { checkHasAdminDomain, checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage, checkIfUserIsAuthorizedToViewWorkspaceSettingsPage, getRequestHost, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export async function getGlobalServerSidePropsByDomain({ locale, ..._context }: any): Promise<{
     props: IServerSideProps;
 }> {
-    const domain = _context.req.headers.host;
-
-    const hasCustomDomain = domain !== environments.CLIENT_DOMAIN;
+    const domain = getRequestHost(_context);
+    const hasCustomDomain = checkHasCustomDomain(_context);
     let workspaceId = '';
     let workspace = null;
 
@@ -78,7 +77,7 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
 }
 
 export async function getAuthUserPropsWithWorkspace(_context: any) {
-    const hasAdminDomain = checkHasAdminDomain(_context);
+    const hasAdminDomain = checkHasAdminDomain(getRequestHost(_context));
     if (!hasAdminDomain) {
         return {
             redirect: {
@@ -108,7 +107,7 @@ export async function getAuthUserPropsWithWorkspace(_context: any) {
 }
 
 export async function getServerSidePropsForWorkspaceAdmin(_context: any) {
-    const hasAdminDomain = checkHasAdminDomain(_context);
+    const hasAdminDomain = checkHasAdminDomain(getRequestHost(_context));
     if (!hasAdminDomain) {
         return {
             redirect: {
