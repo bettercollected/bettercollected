@@ -9,6 +9,7 @@ import { toast } from 'react-toastify';
 import BetterInput from '@app/components/Common/input';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
+import environments from '@app/configs/environments';
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceDomainMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
@@ -80,7 +81,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             dispatch(setWorkspace(res.data));
             router.push(router.asPath);
         } else {
-            toast.error('Error Deleting Workspace');
+            toast.error('Error Deleting Custom Domain');
         }
     };
 
@@ -101,7 +102,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                         {updateDomain
                             ? workspace?.customDomain
                                 ? "Form links with previous domain won't work after updating."
-                                : 'Make sure that the domain is pointed to XX.XX.XX.XX'
+                                : `Add CNAME record of your domain to point to 'custom.${environments.IS_IN_PRODUCTION_MODE ? 'bettercollected.com' : 'sireto.dev'}'`
                             : "Form links with previous workspace handle won't work after updating."}
                     </div>
                 </div>
