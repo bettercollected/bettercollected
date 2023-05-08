@@ -53,9 +53,9 @@ export default function ManageWorkspaceLayout({ children }: any) {
     };
     return (
         <SidebarLayout DrawerComponent={SettingsDrawer}>
-            <div className="py-5 relative">
+            <div className=" relative">
                 <div className="flex z-10 justify-between">
-                    <div className=" flex  items-center space-x-4">
+                    <div className=" flex   items-center space-x-4">
                         <BreadcrumbsRenderer items={breadcrumbsItem} />
                     </div>
                     <div onClick={handleDrawerToggle}>
@@ -64,7 +64,7 @@ export default function ManageWorkspaceLayout({ children }: any) {
                         </IconButton>
                     </div>
                 </div>
-                <div className="absolute lg:left-[-40px] px-5 lg:px-10 pb-10 mt-16 top-0 w-full xl:max-w-289-calc-289">{children}</div>
+                <div className="absolute lg:left-[-40px] px-5 lg:px-10 pb-10 mt-[73px] top-0 w-full xl:max-w-289-calc-289">{children}</div>
             </div>
             <MuiDrawer
                 mobileOpen={mobileOpen}
@@ -76,7 +76,7 @@ export default function ManageWorkspaceLayout({ children }: any) {
                 <>
                     <Toolbar />
                     <Box sx={{ overflow: 'auto', height: '100%' }}>
-                        <div className=" px-5 h-full py-6 relative w-full">
+                        <div className=" px-5 h-full py-8 relative w-full">
                             <Close onClick={handleDrawerToggle} className="absolute blocks lg:hidden right-5 top-5 cursor-pointer" />
                             <ShareView url={clientHostUrl} showCopy={false} showBorder={false} title="Workspace" iconSize="small" />
 

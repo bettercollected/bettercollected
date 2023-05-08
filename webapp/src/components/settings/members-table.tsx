@@ -58,7 +58,8 @@ export default function MembersTable() {
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                paddingRight: '16px',
+                fontSize: '16px'
             }
         },
         {
@@ -67,7 +68,8 @@ export default function MembersTable() {
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                paddingRight: '16px',
+                fontSize: '16px'
             }
         },
         {

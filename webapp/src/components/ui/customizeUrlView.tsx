@@ -17,20 +17,20 @@ export default function CustomizeUrlView({ description, url }: ICustomizeUrlModa
     const workspace = useAppSelector((state) => state.workspace);
     const form = useAppSelector((state: { form: StandardFormDto & PersistPartial }) => state.form);
     const customUrl = form?.settings?.customUrl || '';
-    const [slot, setSlot] = useState(customUrl);
+    const [slug, setSlug] = useState(customUrl);
     const [isError, setError] = useState(false);
     const { closeModal } = useModal();
     const dispatch = useAppDispatch();
     const [patchFormSettings, { isLoading }] = usePatchFormSettingsMutation();
     const handleOnchange = (e: any) => {
-        setSlot(e.target.value);
+        setSlug(e.target.value);
     };
 
     const handleUpdate = async () => {
         const body = {
-            customUrl: slot
+            customUrl: slug
         };
-        if (slot === '') {
+        if (slug === '') {
             setError(true);
         } else {
             const response: any = await patchFormSettings({
@@ -64,17 +64,17 @@ export default function CustomizeUrlView({ description, url }: ICustomizeUrlModa
                     }
                 }}
                 id="title"
-                error={slot === '' && isError}
+                error={slug === '' && isError}
                 placeholder="Eg. My form"
                 className="w-full"
-                value={slot}
+                value={slug}
                 onChange={handleOnchange}
             />
-            {slot === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">Slot is required</p>}
+            {slug === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">Slot is required</p>}
             <div className="px-10 py-6 gap-6 bg-blue-100 mt-8 md:w-[454px] w-full md:-ml-10 break-all">
                 <p className="body1">New Link</p>
                 <p className="body3 ">
-                    <span className="text-black-600"> {url}</span>/<span className="text-black-800 font-medium">{slot}</span>
+                    <span className="text-black-600"> {url}</span>/<span className="text-black-800 font-medium">{slug}</span>
                 </p>
             </div>
             <div className="mt-5 flex justify-end">

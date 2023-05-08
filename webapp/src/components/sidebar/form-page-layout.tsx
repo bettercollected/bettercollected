@@ -77,9 +77,9 @@ export default function FormPageLayout(props: any) {
 
     return (
         <SidebarLayout DrawerComponent={FormDrawer}>
-            <div className="py-5 w-full relative">
-                <div className="flex z-10 justify-between">
-                    <div className=" flex items-center space-x-4">
+            <div className=" w-full relative">
+                <div className="flex h-full z-10 justify-between">
+                    <div className=" flex items-center h-full space-x-4">
                         <BreadcrumbsRenderer items={breadcrumbsItem} />
                     </div>
                     <div onClick={handleDrawerToggle}>
@@ -88,7 +88,7 @@ export default function FormPageLayout(props: any) {
                         </IconButton>
                     </div>
                 </div>
-                <div className="absolute xl:left-[-40px] px-5 xl:px-10 pb-10 mt-16 top-0 w-full py-6 xl:max-w-289-calc-289">{props.children}</div>
+                <div className="absolute xl:left-[-40px] px-5 xl:px-10 pb-10 mt-14 top-0 w-full py-4 xl:max-w-289-calc-289">{props.children}</div>
                 <MuiDrawer
                     mobileOpen={mobileOpen}
                     anchor="right"

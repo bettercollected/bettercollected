@@ -2,8 +2,6 @@ import '@testing-library/jest-dom';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import fetchMock, { enableFetchMocks } from 'jest-fetch-mock';
 
-import BannerImageComponent from '@app/components/dashboard/banner-image';
-import { initWorkspaceDto } from '@app/models/dtos/workspaceDto';
 import mockUseRouter from '@app/utils/__test_utils__/mock-use-router';
 import { renderWithProviders } from '@app/utils/__test_utils__/render-with-provider';
 

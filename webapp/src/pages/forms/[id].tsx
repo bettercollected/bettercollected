@@ -12,7 +12,7 @@ import Loader from '@app/components/ui/loader';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
-import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
+import { checkHasCustomDomain, getRequestHost } from '@app/utils/serverSidePropsUtils';
 
 export default function SingleFormPage(props: any) {
     const { back, slug, hasCustomDomain, workspace } = props;

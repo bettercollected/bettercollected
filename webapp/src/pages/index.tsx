@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import environments from '@app/configs/environments';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
-import { checkHasAdminDomain, checkHasClientDomain } from '@app/utils/serverSidePropsUtils';
+import { checkHasAdminDomain, checkHasClientDomain, checkHasCustomDomain, getRequestHost } from '@app/utils/serverSidePropsUtils';
 
 const WorkspaceHomeContainer = dynamic(() => import('@app/containers/dashboard/WorkspaceHomeContainer'), { ssr: false });
 
@@ -18,11 +18,9 @@ const Home = ({ workspace }: IHome) => {
 export default Home;
 
 export async function getServerSideProps(_context: GetServerSidePropsContext) {
-    const hasAdminDomain = checkHasAdminDomain(_context);
-    const hasClientDomain = checkHasClientDomain(_context);
+    const hasCustomDomain = checkHasCustomDomain(_context);
 
-    const scheme = _context.req.headers?.referer?.includes('https://') ? 'https://' : 'http://';
-    if (!hasAdminDomain && !hasClientDomain) {
+    if (hasCustomDomain) {
         const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
         if (!globalProps?.workspace?.id) {
             return {
@@ -33,7 +31,9 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
             props: { ...globalProps }
         };
     }
+    const scheme = _context.req.headers?.referer?.includes('https://') ? 'https://' : 'http://';
 
+    const hasClientDomain = checkHasClientDomain(getRequestHost(_context));
     if (hasClientDomain) {
         return {
             redirect: {

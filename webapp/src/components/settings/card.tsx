@@ -3,5 +3,5 @@ export default function SettingsCard({ className = '', children }: any) {
 }
 
 export function FormSettingsCard({ className = '', children }: any) {
-    return <SettingsCard className="!p-6 !mt-5">{children}</SettingsCard>;
+    return <SettingsCard className="!p-6 !mt-4">{children}</SettingsCard>;
 }
