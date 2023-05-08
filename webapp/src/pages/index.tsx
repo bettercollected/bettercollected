@@ -21,6 +21,7 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
     const hasAdminDomain = checkHasAdminDomain(_context);
     const hasClientDomain = checkHasClientDomain(_context);
 
+    console.log('Request for Host:', _context.req.headers.host);
     const scheme = _context.req.headers?.referer?.includes('https://') ? 'https://' : 'http://';
     if (!hasAdminDomain && !hasClientDomain) {
         const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
