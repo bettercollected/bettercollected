@@ -1,12 +1,11 @@
 from typing import Any, Dict
 
+from loguru import logger
+
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.utils import AiohttpClient
-
 from common.services.jwt_service import JwtService
-
-from loguru import logger
 
 
 class FormSchedular:
@@ -34,10 +33,15 @@ class FormSchedular:
         response_data = await self.perform_conversion_request(
             provider=provider, raw_form=raw_form, cookies=cookies
         )
-        await self.form_import_service.save_converted_form_and_responses(
-            response_data, response_data_owner
+        standard_form = (
+            await self.form_import_service.save_converted_form_and_responses(
+                response_data, response_data_owner
+            )
         )
-        logger.info(f"Form {form_id} is updated successfully by schedular.")
+        if standard_form:
+            logger.info(f"Form {form_id} is updated successfully by schedular.")
+        else:
+            logger.error(f"Error while updating form with id {form_id} by schedular")
 
     async def perform_conversion_request(
         self,
