@@ -71,7 +71,7 @@ export default function FormSettingsTab() {
     };
     return (
         <div>
-            <FormSettingsCard className="!p-6 !mt-5">
+            <FormSettingsCard>
                 <div className=" flex items-center justify-between">
                     <div>
                         <div className="body1">Hide Form</div>
@@ -81,7 +81,7 @@ export default function FormSettingsTab() {
                 </div>
             </FormSettingsCard>
             {!form?.settings?.private && (
-                <FormSettingsCard className="!p-6 !mt-5">
+                <FormSettingsCard>
                     <div className=" flex items-center justify-between">
                         <div>
                             <div className="body1">Pinned</div>

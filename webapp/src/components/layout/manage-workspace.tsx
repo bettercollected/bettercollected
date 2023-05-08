@@ -55,7 +55,7 @@ export default function ManageWorkspaceLayout({ children }: any) {
         <SidebarLayout DrawerComponent={SettingsDrawer}>
             <div className=" relative">
                 <div className="flex z-10 justify-between">
-                    <div className=" flex h-[56px]  items-center space-x-4">
+                    <div className=" flex   items-center space-x-4">
                         <BreadcrumbsRenderer items={breadcrumbsItem} />
                     </div>
                     <div onClick={handleDrawerToggle}>

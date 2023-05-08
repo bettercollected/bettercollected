@@ -10,8 +10,8 @@ interface BreadcrumbRendererProps {
 
 function BreadcrumbRenderer({ items }: BreadcrumbRendererProps) {
     return (
-        <div data-testid="breadcrumbs-renderer" className="overflow-auto">
-            <nav className="flex" aria-label="Breadcrumb">
+        <div data-testid="breadcrumbs-renderer" className="overflow-auto h-[56px]">
+            <nav className="flex h-full" aria-label="Breadcrumb">
                 <ol className="flex items-center">
                     {!!items &&
                         Array.isArray(items) &&

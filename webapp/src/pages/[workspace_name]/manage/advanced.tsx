@@ -10,7 +10,7 @@ import Button from '@app/components/ui/button';
 export default function AdvancedSettings({ workspace }: any) {
     return (
         <ManageWorkspaceLayout>
-            <div className="h4 mt-2">Advanced Settings</div>
+            <div className="h4">Advanced Settings</div>
             <UpdateHandle />
             <UpdateCustomDomain />
         </ManageWorkspaceLayout>
