@@ -6,7 +6,6 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
 )
 from backend.app.services.form_service import FormService
-
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm
 
@@ -17,8 +16,10 @@ class FormImportService:
 
     async def save_converted_form_and_responses(
         self, response_data: Dict[str, Any], form_response_data_owner: str
-    ) -> StandardForm:
+    ) -> StandardForm | None:
         form_data = FormImportResponse.parse_obj(response_data)
+        if not (form_data.form or form_data.responses):
+            return None
         standard_form = form_data.form
         await self.form_service.save_form(standard_form)
         responses = form_data.responses

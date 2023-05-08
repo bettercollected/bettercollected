@@ -267,13 +267,13 @@ class WorkspaceService:
                 await self.http_client.delete(
                     f"{settings.https_cert_api_settings.host}/domains",
                     headers={"api_key": settings.https_cert_api_settings.key},
-                    params={"host": new_domain},
+                    params={"domain": new_domain},
                 )
             if new_domain:
                 await self.http_client.post(
                     f"{settings.https_cert_api_settings.host}/domains",
                     headers={"api_key": settings.https_cert_api_settings.key},
-                    params={"host": new_domain},
+                    params={"domain": new_domain},
                 )
         except Exception as e:
             logger.error("Error form https server: ", e)
