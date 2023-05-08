@@ -63,6 +63,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
     const authStatus = useAppSelector(selectAuth);
     const { openModal, closeModal } = useModal();
     const user: any = !!authStatus ? authStatus : null;
+    console.log(workspace.profileImage);
     let workspaceLogoRef = useRef<HTMLInputElement>(null);
     const profileEditorRef = useRef<AvatarEditor>(null);
     const dispatch = useAppDispatch();
@@ -71,9 +72,9 @@ export default function Onboarding({ workspace }: onBoardingProps) {
     const [stepCount, setStepCount] = useState(0);
     const [patchExistingWorkspace, { isLoading, isSuccess }] = usePatchExistingWorkspaceMutation();
     const [formProvider, setFormProvider] = useState<addWorkspaceFormProviderDtos>({
-        title: '',
-        description: '',
-        workspaceLogo: null
+        title: workspace.title.toLowerCase() !== 'untitled' ? workspace.title : '',
+        description: workspace.description ?? '',
+        workspaceLogo: workspace.profileImage ?? ''
     });
     const increaseStep = () => {
         setStepCount(stepCount + 1);
@@ -113,7 +114,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
 
     const updateWorkspaceDetails = async () => {
         const formData = new FormData();
-        if (formProvider.workspaceLogo) {
+        if (formProvider.workspaceLogo && workspace.profileImage !== formProvider.workspaceLogo) {
             formData.append('profile_image', formProvider.workspaceLogo);
         }
         formData.append('title', formProvider.title);
@@ -137,7 +138,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
             </p>
             <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">Please create your workspace so that your team know you are here.</p>
             <Button size="large" className="mt-10 mb-4" onClick={increaseStep}>
-                Create A Workspace
+                {workspace.profileImage || workspace.description || workspace.title.toLowerCase() !== 'untitled' ? 'Update A Workspace' : 'Create A Workspace'}
             </Button>
             <p className="body2 !text-black-600 italic">It will only take few minutes</p>
         </div>
@@ -211,7 +212,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
                 workspaceLogoRef={workspaceLogoRef}
                 onChange={handleFile}
                 onClick={() => workspaceLogoRef.current?.click()}
-                image={formProvider.workspaceLogo && URL.createObjectURL(formProvider.workspaceLogo)}
+                image={formProvider.workspaceLogo && (formProvider.workspaceLogo.toString().startsWith('https') ? formProvider.workspaceLogo : URL.createObjectURL(formProvider.workspaceLogo))}
                 profileName={profileName}
             ></WorkSpaceLogoUi>
             {/* </div> */}
