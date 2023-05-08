@@ -1,33 +1,31 @@
 import React, { useEffect, useState } from 'react';
 
+import Toolbar from '@Components/Common/Layout/Toolbar';
 import { Share } from '@mui/icons-material';
-import { Box, IconButton, Toolbar, Tooltip, Typography } from '@mui/material';
-import { toast } from 'react-toastify';
+import { Box, IconButton } from '@mui/material';
 
+import CustomizeLink from '@app/components/cards/customizelink-card';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import { Close } from '@app/components/icons/close';
-import { Copy } from '@app/components/icons/copy';
-import { ShareIcon } from '@app/components/icons/share-icon';
+import { useModal } from '@app/components/modal-views/context';
 import FormDrawer from '@app/components/sidebar/form-drawer';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
-import Button from '@app/components/ui/button';
+import LinkView from '@app/components/ui/link-view';
 import ShareView from '@app/components/ui/share-view';
 import environments from '@app/configs/environments';
+import { formCustomizeLink } from '@app/constants/Customize-domain';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { initialFormState, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { toEndDottedStr, toMidDottedStr } from '@app/utils/stringUtils';
+import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function FormPageLayout(props: any) {
     const form = useAppSelector((state) => state.form);
     const workspace = useAppSelector((state) => state.workspace);
-
+    const { openModal } = useModal();
     const dispatch = useAppDispatch();
-    const [_, copyToClipboard] = useCopyToClipboard();
-
     useEffect(() => {
         dispatch(setForm(props.form));
         return () => {
@@ -45,8 +43,10 @@ export default function FormPageLayout(props: any) {
 
     const customUrl = form?.settings?.customUrl || '';
 
-    const clientHostUrl = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${customUrl}`;
-    const customDomainUrl = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms/${customUrl}`;
+    const clientHost = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms`;
+    const customDomain = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
+    const clientHostUrl = `${clientHost}/${customUrl}`;
+    const customDomainUrl = `${customDomain}/${customUrl}`;
     const breakpoint = useBreakpoint();
 
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
@@ -75,31 +75,6 @@ export default function FormPageLayout(props: any) {
         return links;
     };
 
-    const FormLinkView = ({ formLink }: any) => {
-        return (
-            <>
-                <div className="text-black-900 space-x-4 mt-4 underline max-w-full body4 items-center rounded p-4 flex bg-brand-100">
-                    <Tooltip title={formLink}>
-                        <Typography className="truncate">{formLink}</Typography>
-                    </Tooltip>
-                </div>
-                <div className="flex w-full mt-4 justify-end">
-                    <Button
-                        variant="outline"
-                        onClick={() => {
-                            copyToClipboard(formLink);
-                            toast('Form URL Copied', {
-                                type: 'info'
-                            });
-                        }}
-                    >
-                        Copy Link
-                    </Button>
-                </div>
-            </>
-        );
-    };
-
     return (
         <SidebarLayout DrawerComponent={FormDrawer}>
             <div className="py-5 w-full relative">
@@ -126,13 +101,21 @@ export default function FormPageLayout(props: any) {
                         <Box sx={{ overflow: 'auto', height: '100%' }}>
                             <div className=" px-5 h-full py-6 relative w-full">
                                 <Close onClick={handleDrawerToggle} className="absolute blocks lg:hidden right-5 top-5 cursor-pointer" />
-                                <ShareView url={clientHostUrl} showCopy={false} showBorder={false} />
+                                <ShareView url={clientHostUrl} showCopy={false} showBorder={false} iconSize="small" />
 
-                                <div className="mt-10">
-                                    <div className="body1 ">Form Links</div>
+                                <div className="mt-12">
+                                    <div className="body1 mb-4 !leading-none ">Form Links</div>
                                     {getFormLinks().map((formLink: any) => (
-                                        <FormLinkView key={formLink.url} formLink={formLink.url} />
+                                        <LinkView key={formLink.url} url={formLink.url} toastMessage="Form URL Copied" className="flex flex-col mb-4" />
                                     ))}
+                                </div>
+                                <div className="my-12">
+                                    <CustomizeLink
+                                        title={formCustomizeLink.title}
+                                        subtitle={formCustomizeLink.description}
+                                        buttonText="Customize link"
+                                        onClick={() => openModal('CUSTOMIZE_URL', { description: formCustomizeLink.description, url: isCustomDomain ? customDomain : clientHost })}
+                                    />
                                 </div>
                             </div>
                         </Box>

@@ -4,14 +4,14 @@ import dynamic from 'next/dynamic';
 import environments from '@app/configs/environments';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
-import { checkHasAdminDomain, checkHasClientDomain, checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
+import { checkHasAdminDomain, checkHasClientDomain } from '@app/utils/serverSidePropsUtils';
 
 const WorkspaceHomeContainer = dynamic(() => import('@app/containers/dashboard/WorkspaceHomeContainer'), { ssr: false });
 
 interface IHome extends IServerSideProps {}
 
-const Home = ({ hasCustomDomain, workspace }: IHome) => {
-    if (hasCustomDomain && workspace) return <WorkspaceHomeContainer workspace={workspace} isCustomDomain={true} />;
+const Home = ({ workspace }: IHome) => {
+    if (workspace) return <WorkspaceHomeContainer showProTag={false} isCustomDomain={true} />;
     return <></>;
 };
 

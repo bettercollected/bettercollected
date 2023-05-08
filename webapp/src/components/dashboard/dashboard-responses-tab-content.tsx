@@ -115,12 +115,11 @@ function DashboardResponsesTabContent({ workspaceId, formId, requestedForDeletio
             })
                 .then((data) => {
                     data.json().then((d) => {
-                        // console.log(d)
                         setTotal(d.total);
                         setResponses(d.items);
                     });
                 })
-                .catch((e) => console.log(e));
+                .catch((e) => e);
         }
     }, [formId, workspaceId, requestedForDeletion, page]);
 

@@ -7,6 +7,7 @@ import _ from 'lodash';
 
 import { toast } from 'react-toastify';
 
+import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import AuthNavbar from '@app/components/auth/navbar';
 import Button from '@app/components/ui/button';
 import MarkdownText from '@app/components/ui/markdown-text';
@@ -18,8 +19,6 @@ import { useRespondToWorkspaceInvitationMutation } from '@app/store/workspaces/m
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export default function Id({ workspace, user, invitation }: { workspace: WorkspaceDto; user: any; invitation: any }) {
-    const profileName = _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name);
-
     const [trigger, { isLoading }] = useRespondToWorkspaceInvitationMutation();
 
     const [rejected, setRejected] = useState(false);
@@ -41,6 +40,9 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
         if (response.data) {
             if (status == 'REJECTED') {
                 setRejected(true);
+                setTimeout(() => {
+                    window.close();
+                }, 2000);
             } else {
                 await router.push(`/${workspace.workspaceName}/dashboard`);
             }
@@ -64,38 +66,54 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
         return (
             <div className=" py-10 flex items-center flex-col">
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-                <div className="rounded mt-14 border flex flex-col items-center w-full border-gray-200 p-10 lg:max-w-[800px]">Request Rejected</div>
+                <div className="rounded-lg bg-white mt-14  flex flex-col items-center w-full p-10 md:max-w-[502px]">Request Rejected</div>
+            </div>
+        );
+    }
+
+    if (!invitation) {
+        return (
+            <div className=" py-10 flex items-center flex-col">
+                <AuthNavbar showHamburgerIcon={false} showPlans={false} />
+                <div className="rounded-lg bg-white mt-14  flex flex-col items-center w-full p-10 md:max-w-[502px]">Invitation Not Found</div>
             </div>
         );
     }
 
     return (
-        <div className=" py-10 flex items-center flex-col">
+        <div className=" py-10 px-5 w-full">
             <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-            <div className="rounded mt-[68px] border flex flex-col items-center w-full border-gray-200 p-10 lg:max-w-[800px]">
-                {!invitation ? (
-                    <div className="w-full h-full flex items-center justify-center">Invitation not Found</div>
-                ) : (
-                    <>
-                        <div className="flex rounded-full  items-center justify-center mr-2 bg-blue-50">
-                            {workspace?.profileImage ? <Image alt={workspace?.title} src={workspace.profileImage || ''} className="rounded-full" width={64} height={64} /> : <>{profileName[0]?.toUpperCase()}</>}
+            <div className="rounded w-full mt-[68px] flex flex-col items-center ">
+                <div className="md:max-w-[502px] flex flex-col">
+                    <div className="bg-white md:max-w-[502px] flex flex-col rounded p-10 items-center justify-center">
+                        <AuthAccountProfileImage size={60} image={workspace?.profileImage} name={workspace?.workspaceName} />
+                        <div className="text-2xl mt-6 mb-4 sh3 !font-normal !text-black-700 ">
+                            You have been invited to
+                            <span className="font-bold text-black-900">{' ' + workspace?.title || 'Untitled'}</span>
                         </div>
-                        <div className="text-2xl font-bold">{workspace?.title || 'Untitled'}</div>
-                        <MarkdownText description={workspace.description} contentStripLength={100} markdownClassName="pt-3 md:pt-7 text-base text-grey" textClassName="text-base" />
-
+                        <div className="body3 mb-10 !text-black-700">Join workspace and start collaborating</div>
                         <div className="flex flex-col space-y-4 items-center">
-                            <div className="text-xl">You have been invited to join this workspace!</div>
-                            <div className="flex space-x-8">
-                                <Button disabled={isLoading} size="small" onClick={onAccept}>
-                                    Accept
+                            <div className="flex space-x-5">
+                                <Button disabled={isLoading} size="large" onClick={onAccept}>
+                                    Join Workspace
                                 </Button>
-                                <Button disabled={isLoading} size="small" onClick={onDecline}>
+                                <Button className="text-white bg-black-500 hover:!bg-black-600" disabled={isLoading} size="large" onClick={onDecline}>
                                     Decline
                                 </Button>
                             </div>
                         </div>
-                    </>
-                )}
+                        <div className="mt-5 body3 !text-black-700">This link will expire in 7 days.</div>
+                    </div>
+                    <div className="ml-10 mt-8">
+                        <div className="body1 mb-6">You will have access to:</div>
+
+                        <ul className="list-disc body2 flex flex-col space-y-3 pl-10">
+                            <li>All forms and responses in workspace</li>
+                            <li>Importing forms to workspace</li>
+                            <li>Deleting form form workspace</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     );

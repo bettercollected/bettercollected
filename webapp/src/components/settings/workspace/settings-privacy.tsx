@@ -2,11 +2,11 @@ import React, { MutableRefObject, useEffect, useRef, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import styled from '@emotion/styled';
 import HelpIcon from '@mui/icons-material/Help';
 import ModeEditIcon from '@mui/icons-material/ModeEdit';
 import SaveIcon from '@mui/icons-material/Save';
-import { Tooltip } from '@mui/material';
 import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
@@ -60,7 +60,7 @@ const CardTitle = ({ title, tooltipDesc }: any) => {
     return (
         <div className="flex pl-[15px] h-4 items-center">
             <h1 className="text-gray-500 text-sm">{title}</h1>
-            <Tooltip title={tooltipDesc} arrow placement="right-start" enterTouchDelay={0}>
+            <Tooltip title={tooltipDesc}>
                 <HelpIcon className="text-gray-500 cursor-pointer !w-5 !h-5 ml-2" />
             </Tooltip>
         </div>
@@ -81,9 +81,10 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
 
     useEffect(() => {
         const domain = 'https://bettercollected.com';
-        const privacyPolicyUrl = workspace.privacy_policy_url ? workspace.privacy_policy_url : `${domain}${environments.PRIVACY_POLICY}`;
-        const termsAndConditionsUrl = workspace.terms_of_service_url ? workspace.terms_of_service_url : `${domain}${environments.TERMS_AND_CONDITIONS}`;
-        setPolicies({ privacy_policy_url: privacyPolicyUrl, terms_of_service_url: termsAndConditionsUrl });
+        // TODO: Update privacy policy URL and TOC URL
+        // const privacyPolicyUrl = workspace.privacy_policy_url ? workspace.privacy_policy_url : `${domain}${environments.PRIVACY_POLICY}`;
+        // const termsAndConditionsUrl = workspace.terms_of_service_url ? workspace.terms_of_service_url : `${domain}${environments.TERMS_AND_CONDITIONS}`;
+        // setPolicies({ privacy_policy_url: privacyPolicyUrl, terms_of_service_url: termsAndConditionsUrl });
     }, []);
 
     useEffect(() => {

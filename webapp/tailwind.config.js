@@ -48,6 +48,12 @@ module.exports = {
                     900: '#212529',
 
                     DEFAULT: '#ADB5BD'
+                },
+                red: {
+                    100: '#FFECE7',
+                    500: '#EA400E',
+
+                    DEFAULT: '#EA400E'
                 }
             },
             spacing: {
@@ -83,6 +89,7 @@ module.exports = {
                 button: '0px 2px 4px rgba(0, 0, 0, 0.06), 0px 4px 6px rgba(0, 0, 0, 0.1)'
             },
             dropShadow: {
+                paper: '0px 0px 15px rgba(0, 0, 0, 0.15)',
                 main: '0px 4px 8px rgba(0, 0, 0, 0.08)'
             },
             backgroundImage: {
@@ -187,7 +194,7 @@ module.exports = {
                 black: '900'
             },
             aspectRatio: {
-                'banner-desktop': '5 / 1',
+                'banner-desktop': '5.14285714 / 1',
                 'banner-mobile': '3 / 1'
             }
         }

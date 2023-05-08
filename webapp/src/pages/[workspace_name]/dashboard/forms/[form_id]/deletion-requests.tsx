@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Divider } from '@mui/material';
+import Divider from '@Components/Common/DataDisplay/Divider';
 
 import ResponsesTable from '@app/components/datatable/responses';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';

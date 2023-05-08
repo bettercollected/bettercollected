@@ -8,6 +8,7 @@ import WorkspaceInfo from '@app/components/settings/basic-information/workspace-
 export default function ManageWorkspace({ workspace }: any) {
     return (
         <ManageWorkspaceLayout>
+            <div className="h4 mt-2">Manage Workspace</div>
             <WorkspaceBanner />
             <WorkspaceImage />
             <WorkspaceInfo workspace={workspace} />

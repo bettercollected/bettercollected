@@ -2,35 +2,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 import environments from '@app/configs/environments';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { checkHasAdminDomain, checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage, checkIfUserIsAuthorizedToViewWorkspaceSettingsPage, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
-
-export default async function getServerSideProps({ locale, ..._context }: any): Promise<{
-    props: IServerSideProps;
-}> {
-    // const hasCustomDomain = !!environments.IS_CUSTOM_DOMAIN;
-    const hasCustomDomain = checkHasCustomDomain(_context);
-    // let workspaceId: string | null = null;
-    const workspaceId = environments.WORKSPACE_ID;
-    let workspace: WorkspaceDto | null = null;
-    try {
-        if (hasCustomDomain && workspaceId) {
-            const workspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${workspaceId}`).catch((e) => e);
-            workspace = (await workspaceResponse?.json().catch((e: any) => e)) ?? null;
-        }
-    } catch (err) {
-        workspace = null;
-        console.error(err);
-    }
-    return {
-        props: {
-            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
-            hasCustomDomain,
-            workspaceId,
-            workspace
-        }
-    };
-}
 
 export async function getGlobalServerSidePropsByDomain({ locale, ..._context }: any): Promise<{
     props: IServerSideProps;

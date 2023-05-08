@@ -1,4 +1,5 @@
-import { Tooltip, Typography } from '@mui/material';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import { Typography } from '@mui/material';
 
 import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
@@ -16,7 +17,7 @@ export default function DataTableProviderFormCell({ workspace, form }: IDataTabl
 
     return (
         <ActiveLink href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`} className="w-fit">
-            <Tooltip title={form?.title || 'Untitled'} arrow placement="top-start" enterDelay={300} enterTouchDelay={0}>
+            <Tooltip title={form?.title || 'Untitled'}>
                 <Typography className="hover:!text-brand-600 hover:!underline flex justify-start items-center gap-3 !body3 !not-italic" noWrap>
                     <span className="w-10 h-10">
                         <Icon width={40} height={40} />

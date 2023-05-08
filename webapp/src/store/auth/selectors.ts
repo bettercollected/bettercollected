@@ -1,3 +1,7 @@
-import { RootState } from '@app/store/store';
+import { createSelector } from '@reduxjs/toolkit';
 
-export const selectAuthStatus = (state: RootState) => state.authApi.queries['getStatus("status")'];
+import { authApi } from './api';
+
+const selectAuthStatusResult = authApi.endpoints.getStatus.select('status');
+
+export const selectAuthStatus = createSelector(selectAuthStatusResult, (providersResult) => providersResult?.data?.user ?? null);

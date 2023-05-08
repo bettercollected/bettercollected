@@ -50,18 +50,17 @@ export interface StandardFormDto {
 }
 
 export interface StandardFormResponseDto {
-    items: Array<any>;
+    answers: object;
     responseId: string;
     formId: string;
     formTitle: string;
     formCustomUrl: string;
     provider: string;
+    createdAt: string | Date;
+    updatedAt: string | Date;
 
     deletionStatus?: string;
     requestForDeletion?: boolean;
-    dataOwnerIdentifierType: string | null | undefined;
     dataOwnerIdentifier: string | null | undefined;
     responses: Array<{ questionId: string; answer: any }>;
-    createdAt: string | Date;
-    updatedAt: string | Date;
 }

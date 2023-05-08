@@ -101,11 +101,11 @@ export default function Submission(props: any) {
     return (
         <div className="relative container mx-auto px-6 md:px-0 pb-6">
             <div className="flex justify-between">
-                <Button className="w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={goToSubmissions}>
+                <Button variant="solid" className="top-3" onClick={goToSubmissions}>
                     <LongArrowLeft width={15} height={15} />
                 </Button>
                 <Button
-                    className={`w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded text-white ${deletionStatus ? 'bg-yellow-300' : 'bg-red-500'}  hover:!-translate-y-0 focus:-translate-y-0`}
+                    className={`w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded text-white ${deletionStatus ? '!bg-red-600 opacity-60' : 'bg-red-500'}  hover:!bg-red-700 hover:!-translate-y-0 focus:-translate-y-0`}
                     variant="solid"
                     onClick={handleRequestForDeletionModal}
                     disabled={!!form?.response?.deletionStatus}

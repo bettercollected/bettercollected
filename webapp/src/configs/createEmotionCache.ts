@@ -1,10 +1,3 @@
-/**
- * Created By: Rupan Chaulagain
- * Date: 2022-10-11
- * Time: 13:19
- * Project: formintegratorwebapp
- * Organization: Sireto Technology
- */
 import createCache from '@emotion/cache';
 
 // prepend: true moves MUI styles to the top of the <head> so they're loaded first.

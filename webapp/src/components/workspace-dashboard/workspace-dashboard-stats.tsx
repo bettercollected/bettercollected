@@ -1,4 +1,4 @@
-import { Tooltip } from '@mui/material';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import MuiButton from '@mui/material/Button';
 
 interface IWorkspaceDashboardStatsButtonProps {
@@ -19,7 +19,7 @@ const WorkspaceDashboardStats = ({ tooltipTitle, title, content, buttonProps }: 
         <div className="px-6 py-6 bg-white rounded-[4px] flex flex-col gap-6">
             <p className="body3 !not-italic text-black-700">{title}</p>
             <div className="flex flex-row gap-6 justify-between">
-                <Tooltip arrow enterDelay={300} placement="top-start" title={tooltipTitle}>
+                <Tooltip title={tooltipTitle}>
                     <p className="sh1 text-black-700">{content}</p>
                 </Tooltip>
                 {!!buttonProps?.enabled && buttonProps?.onClick && buttonProps?.text && (

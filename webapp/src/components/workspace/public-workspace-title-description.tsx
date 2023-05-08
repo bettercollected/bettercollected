@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import { toast } from 'react-toastify';
 
 import ReactContentEditable from '@app/components/inline-editable';
@@ -8,6 +9,7 @@ import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
+import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface IPublicWorkspaceTitleAndDescriptionProps {
     isFormCreator: boolean;
@@ -46,29 +48,34 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
         return await patchWorkspaceInformation(formData);
     };
 
+    const fullWorkspaceName = workspace?.title;
+    const strippedWorkspaceTitle = toEndDottedStr(fullWorkspaceName, 20);
+
     if (!isFormCreator)
         return (
             <div className={`h-full w-full ${className}`}>
-                <div className="w-full md:w-9/12 flex flex-col gap-4">
-                    <h4 className="h4">{workspace.title}</h4>
-                    <MarkdownText scrollTitle={workspace.title} description={workspace.description} contentStripLength={200} markdownClassName="text-black-700 body3 !not-italic" textClassName="text-black-700 body3 !not-italic" />
+                <div className="w-full flex flex-col gap-4">
+                    <Tooltip title={fullWorkspaceName}>
+                        <h4 className="h4">{strippedWorkspaceTitle}</h4>
+                    </Tooltip>
+                    <MarkdownText scrollTitle={fullWorkspaceName} description={workspace.description} contentStripLength={82} markdownClassName="text-black-700 body3 !leading-none" textClassName="text-black-700 body3 !leading-none" />
                 </div>
             </div>
         );
     return (
         <div className={`h-full w-full ${className}`}>
-            <div className="w-full md:w-9/12 flex flex-col gap-4">
-                <ReactContentEditable callback={handleTitleChange} tag="h4" content={workspace?.title} className="h4" />
+            <div className="w-full flex flex-col gap-4">
+                <ReactContentEditable callback={handleTitleChange} tag="h4" content={fullWorkspaceName} className="h4" />
                 {isMarkdownEditable ? (
-                    <ReactContentEditable callback={handleDescriptionChange} tag="p" content={workspace?.description} className="text-black-700 body3 !not-italic" />
+                    <ReactContentEditable callback={handleDescriptionChange} tag="p" content={workspace?.description} className="text-black-700 body3" />
                 ) : (
                     <MarkdownText
-                        scrollTitle={workspace.title}
+                        scrollTitle={fullWorkspaceName}
                         onClick={() => setIsMarkdownEditable(true)}
                         description={workspace.description}
-                        contentStripLength={200}
-                        markdownClassName="text-black-700 body3 !not-italic"
-                        textClassName="text-black-700 body3 !not-italic"
+                        contentStripLength={82}
+                        markdownClassName="text-black-700 body3 !leading-none"
+                        textClassName="text-black-700 body3 !leading-none"
                     />
                 )}
             </div>

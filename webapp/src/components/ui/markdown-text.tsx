@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 
-import { Button, Dialog, DialogContent, DialogContentText, DialogProps, DialogTitle, useMediaQuery, useTheme } from '@mui/material';
+import { Dialog, DialogContent, DialogContentText, DialogProps, DialogTitle, useMediaQuery, useTheme } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import { Close } from '@app/components/icons/close';
 // Absolute imports
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
@@ -70,16 +71,14 @@ export default function MarkdownText({ description, scrollTitle = '', onClick = 
         <>
             {description && (
                 <div>
-                    <div onClick={onClick}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]} className={`m-0 p-0 mark-down-text ${markdownClassName}`}>
-                            {source}
-                        </ReactMarkdown>
-                    </div>
-                    {displayShowMore && description.length > contentStripLength && (
-                        <Button fullWidth={false} variant="text" onClick={handleClickOpen('paper')} className={`show-more-less-text mt-2 p-0 cursor-pointer text-blue-500 hover:text-blue-400 ${textClassName}`}>
-                            Show more
-                        </Button>
-                    )}
+                    <p onClick={onClick} className="body3 !text-black-700 !leading-tight">
+                        {source}
+                        {displayShowMore && description.length > contentStripLength && (
+                            <span onClick={handleClickOpen('paper')} className={`show-more-less-text ml-2 hover:underline capitalize p-0 cursor-pointer !text-brand-500 hover:!text-brand-600 ${textClassName}`}>
+                                Read more
+                            </span>
+                        )}
+                    </p>
                     <Dialog
                         disableScrollLock
                         PaperProps={{
@@ -92,22 +91,22 @@ export default function MarkdownText({ description, scrollTitle = '', onClick = 
                         aria-labelledby="scroll-dialog-title"
                         aria-describedby="scroll-dialog-description"
                     >
-                        <DialogTitle className="flex justify-between items-center" id="scroll-dialog-title">
+                        <DialogTitle className="relative flex justify-between items-center h4" id="scroll-dialog-title">
                             {scrollTitle}
-                            <Button variant="outlined" onClick={handleClose}>
-                                Close
-                            </Button>
+                            <Close onClick={handleClose} className="cursor-pointer absolute top-3 right-3 h-auto w-3 text-gray-600 hover:text-black dark:text-white" />
                         </DialogTitle>
                         <DialogContent dividers={scroll === 'paper'}>
                             <DialogContentText className="" id="scroll-dialog-description" ref={descriptionElementRef} tabIndex={-1}>
-                                {description}
+                                <ReactMarkdown remarkPlugins={[remarkGfm]} className={`m-0 p-0 mark-down-text ${markdownClassName}`}>
+                                    {description}
+                                </ReactMarkdown>
                             </DialogContentText>
                         </DialogContent>
                     </Dialog>
                 </div>
             )}
             {!description && (
-                <p className={`m-0 p-0 ${textClassName}`} style={{ color: '#9b9b9b' }}>
+                <p className={`m-0 p-0 body3 !text-black-700 ${textClassName}`} style={{ color: '#9b9b9b' }}>
                     {source}
                 </p>
             )}

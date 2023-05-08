@@ -22,11 +22,11 @@ const FormCards = ({ title, formsArray, workspace, isFormCreator }: FormCardsPro
         <div data-testid="form-cards-container">
             {!!title && <h1 className="text-gray-700 font-semibold text-md md:text-lg mb-6">{title}</h1>}
             <FormsContainer>
-                {formsArray.map((form: StandardFormDto) => {
+                {formsArray.map((form: StandardFormDto, idx: number) => {
                     const slug = form.settings?.customUrl;
                     return (
                         <ActiveLink
-                            key={form.formId}
+                            key={form.formId + idx}
                             href={{
                                 pathname: isCustomDomain ? `/forms/${slug}` : `${workspace.workspaceName}/forms/${slug}`,
                                 query: { back: true }

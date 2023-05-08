@@ -3,7 +3,7 @@ import { ChangeEvent, FormEvent, useState } from 'react';
 import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
-import BetterInput from '@app/components/common/input';
+import BetterInput from '@app/components/Common/input';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import { ToastId } from '@app/constants/toastId';

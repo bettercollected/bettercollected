@@ -31,7 +31,7 @@ export default function InvitationsTable() {
     const dataTableResponseColumns: any = [
         {
             name: 'Member',
-            selector: (member: any) => member.email,
+            selector: (invitation: any) => invitation.email,
             grow: 2,
             style: {
                 color: '#202124',
@@ -44,7 +44,7 @@ export default function InvitationsTable() {
         },
         {
             name: 'Role',
-            selector: (member: any) => _.capitalize(member.role),
+            selector: (invitation: any) => _.capitalize(invitation.role),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
@@ -53,7 +53,7 @@ export default function InvitationsTable() {
         },
         {
             name: 'Status',
-            selector: (member: any) => _.capitalize(member.invitation_status),
+            selector: (invitation: any) => _.capitalize(invitation.invitation_status),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
@@ -62,23 +62,23 @@ export default function InvitationsTable() {
         },
         {
             name: 'Invitation Date',
-            selector: (member: any) => (!!member?.created_at ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(member?.created_at)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(member?.created_at)))}` : ''),
+            selector: (invitation: any) => (!!invitation?.created_at ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(invitation?.created_at)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(invitation?.created_at)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
                 paddingRight: '16px'
             }
+        },
+        {
+            cell: (invitation: any) => (invitation.invitation_status === 'PENDING' ? <MemberOptions invitation={invitation} /> : ''),
+            allowOverflow: true,
+            button: true,
+            width: '60px',
+            style: {
+                paddingLeft: '16px',
+                paddingRight: '16px'
+            }
         }
-        // {
-        //     cell: (member: any) => (member.invitation_status === 'PENDING' ? <MemberOptions member={member} /> : ''),
-        //     allowOverflow: true,
-        //     button: true,
-        //     width: '60px',
-        //     style: {
-        //         paddingLeft: '16px',
-        //         paddingRight: '16px'
-        //     }
-        // }
     ];
 
     return (

@@ -8,6 +8,8 @@ import html2canvas from 'html2canvas';
 import { toast } from 'react-toastify';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
+import { Close } from '@app/components/icons/close';
+import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
 import { ToastId } from '@app/constants/toastId';
 import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
@@ -113,23 +115,20 @@ function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileU
     return (
         <div className={`absolute bottom-2 right-2 hidden ${getUpdateOptionsClassName()}`}>
             <div className="flex justify-between">
-                {!isLoading && (
-                    <div className="p-2 ml-2 my-19 flex items-center !bg-blue-600 hover:bg-blue-700 cursor-pointer rounded" onClick={onClickFileUploadButton}>
-                        <ModeEditIcon className="!w-5 !h-5 text-white" />
-                        <span className="ml-1 hidden lg:flex  text-white">Update Banner</span>
-                    </div>
+                {!isLoading && !image && <Button onClick={onClickFileUploadButton}>Update</Button>}
+                {!isLoading && image && (
+                    <Button className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2" size="small">
+                        {' '}
+                        Cancel
+                    </Button>
                 )}
                 {!!image && (
-                    <div
-                        data-testid="save-button"
-                        style={{ pointerEvents: isLoading ? 'none' : 'auto' }}
-                        className={`p-2 ml-2 ${isLoading ? 'bg-gray-500' : '!bg-blue-600'} my-19 flex justify-center items-center  hover:bg-blue-700 cursor-pointer rounded-md`}
-                        onClick={onClickFileSaveButton}
-                    >
-                        {!isLoading ? <SaveIcon className="!w-5 !h-5 text-white" /> : <CircularProgress className="!w-5 !h-5 text-white" />}
-                        {isLoading && <span className="ml-1 hidden lg:block text-white">Saving...</span>}
-                        {!isLoading && <span className="ml-1 hidden lg:block text-white">Save image</span>}
-                    </div>
+                    <>
+                        <Button isLoading={isLoading} onClick={onClickFileSaveButton}>
+                            {' '}
+                            {isLoading ? 'Saving' : 'Save'}
+                        </Button>
+                    </>
                 )}
             </div>
         </div>

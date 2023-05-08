@@ -1,13 +1,4 @@
-/**
- * Created By: Rupan Chaulagain
- * Date: 2022-10-11
- * Time: 13:56
- * Project: formintegratorwebapp
- * Organization: Sireto Technology
- */
-import { PaletteOptions, createTheme, css } from '@mui/material/styles';
-
-export type AllowedTheme = NonNullable<PaletteOptions['mode']>;
+import { createTheme, css } from '@mui/material/styles';
 
 export const lightTheme = createTheme({
     typography: {
@@ -22,7 +13,14 @@ export const lightTheme = createTheme({
         MuiPaper: {
             styleOverrides: {
                 root: {
-                    borderRadius: '10px'
+                    borderRadius: '4px'
+                }
+            }
+        },
+        MuiTooltip: {
+            styleOverrides: {
+                popper: {
+                    zIndex: '3000 !important'
                 }
             }
         }
@@ -51,7 +49,7 @@ export const darkTheme = createTheme({
         MuiPaper: {
             styleOverrides: {
                 root: {
-                    borderRadius: '10px'
+                    borderRadius: '4px'
                 }
             }
         }
@@ -70,14 +68,14 @@ export const darkTheme = createTheme({
 export const globalStyles = css`
     :root {
         body {
-            background-color: #fff;
+            background-color: #ffffff;
             color: #121212;
         }
     }
     [data-theme='dark'] {
         body {
             background-color: #121212;
-            color: #fff;
+            color: #ffffff;
         }
     }
 `;

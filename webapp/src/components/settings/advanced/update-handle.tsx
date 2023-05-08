@@ -2,7 +2,7 @@ import React, { ChangeEvent, FormEvent, useState } from 'react';
 
 import { handle } from 'mdast-util-to-markdown/lib/handle';
 
-import BetterInput from '@app/components/common/input';
+import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
@@ -18,7 +18,7 @@ export default function UpdateHandle() {
     };
 
     return (
-        <SettingsCard>
+        <SettingsCard className="!mt-2">
             <div className="body1">Workspace Handle</div>
             <div className="flex w-full justify-between">
                 <div className="w-full text-sm text-gray-600">

@@ -30,16 +30,24 @@ export async function getServerSideProps(_context: any) {
             const userWorkspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/mine`, config);
             const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e)) ?? null;
             const defaultWorkspace = userWorkspace.filter((workspace: WorkspaceDto) => workspace.ownerId === user.id);
-            let redirectWorkspace;
+            let redirectWorkspace: WorkspaceDto | null;
             if (defaultWorkspace.length > 0) {
                 redirectWorkspace = defaultWorkspace[0];
             } else {
                 redirectWorkspace = userWorkspace[0];
             }
+            if (!redirectWorkspace?.title || redirectWorkspace.title.toLowerCase() === 'untitled') {
+                return {
+                    redirect: {
+                        permanent: false,
+                        destination: `/${redirectWorkspace?.workspaceName}/onboarding`
+                    }
+                };
+            }
             return {
                 redirect: {
                     permanent: false,
-                    destination: `/${redirectWorkspace.workspaceName}/dashboard`
+                    destination: `/${redirectWorkspace?.workspaceName}/dashboard`
                 }
             };
         }
