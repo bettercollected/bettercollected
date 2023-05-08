@@ -1,10 +1,9 @@
 import datetime as dt
 from typing import Optional
 
-from backend.app.models.workspace import Workspace
-
 from beanie import Indexed
 
+from backend.app.models.workspace import Workspace
 from common.configs.mongo_document import MongoDocument
 
 
@@ -32,6 +31,8 @@ class WorkspaceDocument(MongoDocument, Workspace):
     workspace_name: Indexed(str, unique=True)
     custom_domain: Optional[Indexed(str)]
     default: bool = False
+    owner_id: Optional[str]
+    custom_domain_disabled = False
 
     class Settings:
         name = "workspaces"

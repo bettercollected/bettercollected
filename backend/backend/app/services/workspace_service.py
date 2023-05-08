@@ -1,7 +1,13 @@
 import os
 from http import HTTPStatus
 
+from beanie import PydanticObjectId
+from fastapi import UploadFile
+from loguru import logger
+from pydantic import EmailStr
+
 from backend.app.exceptions import HTTPException
+from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
     WorkspaceResponseDto,
@@ -14,20 +20,11 @@ from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
-from backend.app.utils.domain import is_domain_available
 from backend.config import settings
-
-from beanie import PydanticObjectId
-
-from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from common.constants import MESSAGE_FORBIDDEN
 from common.enums.plan import Plans
 from common.models.user import User
 from common.services.http_client import HttpClient
-
-from fastapi import UploadFile
-
-from pydantic import EmailStr
 
 
 class WorkspaceService:
@@ -124,11 +121,6 @@ class WorkspaceService:
             if workspace_patch.description
             else workspace_document.description
         )
-        workspace_document.owner_id = (
-            workspace_patch.owner_id
-            if workspace_patch.owner_id
-            else workspace_document.owner_id
-        )
 
         if workspace_patch.custom_domain:
             if user.plan == Plans.FREE:
@@ -138,21 +130,27 @@ class WorkspaceService:
                 workspace = await WorkspaceDocument.find_one(
                     {"custom_domain": workspace_patch.custom_domain}
                 )
-                origin = await AllowedOriginsDocument.find_one(
-                    {"origin": workspace_patch.custom_domain}
-                )
-                if (
-                    not workspace
-                    and not origin
-                    and is_domain_available(workspace_patch.custom_domain)
-                ):
-                    await AllowedOriginsDocument.save(
-                        AllowedOriginsDocument(
-                            origin="https://" + workspace_patch.custom_domain
-                        )
+                if not workspace:
+                    existing_custom_domain = (
+                        workspace_document.custom_domain
+                        if workspace_document.custom_domain
+                        else ""
                     )
+                    await AllowedOriginsDocument.find_one(
+                        {"origin": "https://" + existing_custom_domain or ""}
+                    ).delete()
+                    allowed_origin = await AllowedOriginsDocument.find_one(
+                        {"origin": "https://" + workspace_patch.custom_domain}
+                    )
+                    if not allowed_origin:
+                        await AllowedOriginsDocument.save(
+                            AllowedOriginsDocument(
+                                origin="https://" + workspace_patch.custom_domain
+                            )
+                        )
                     await self.update_https_server_for_certificate(
-                        workspace_patch.custom_domain
+                        old_domain=workspace_document.custom_domain,
+                        new_domain=workspace_patch.custom_domain,
                     )
                 else:
                     raise HTTPException(409)
@@ -186,6 +184,9 @@ class WorkspaceService:
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id=workspace_id
         )
+        await self.update_https_server_for_certificate(
+            old_domain=workspace_document.custom_domain
+        )
         workspace_document.custom_domain = None
         saved_workspace = await self._workspace_repo.update(
             workspace_id, workspace_document
@@ -208,6 +209,7 @@ class WorkspaceService:
             params={
                 "receiver_email": receiver_email,
                 "workspace_title": workspace.title,
+                "workspace_profile_image": workspace.profile_image,
             },
             timeout=180,
         )
@@ -237,37 +239,52 @@ class WorkspaceService:
             "deletion_requests": deletion_count,
         }
 
-    async def downgrade_user_workspace(self, user_id: PydanticObjectId):
+    async def downgrade_user_workspace(self, user_id: str):
         workspace = await self._workspace_repo.get_workspace_by_owner_id(
             owner_id=user_id
         )
+        workspace.custom_domain_disabled = True
+        await workspace.save()
         await self._workspace_user_service.disable_other_users_in_workspace(
-            workspace_id=workspace.id, user_id=user_id
+            workspace_id=workspace.id, user_id=PydanticObjectId(user_id)
         )
-        pass
 
-    async def upgrade_user_workspace(self, user_id: PydanticObjectId):
+    async def upgrade_user_workspace(self, user_id: str):
         workspace = await self._workspace_repo.get_workspace_by_owner_id(
             owner_id=user_id
         )
+        workspace.custom_domain_disabled = False
+        await workspace.save()
         await self._workspace_user_service.enable_all_users_in_workspace(
             workspace_id=workspace.id
         )
-        pass
 
-    async def update_https_server_for_certificate(self, domain: str):
-        await self.http_client.post(
-            f"{settings.https_cert_api_settings.host}/domain",
-            headers={"api_key": settings.https_cert_api_settings.key},
-            params={"host": domain},
-        )
+    async def update_https_server_for_certificate(
+        self, old_domain: str = None, new_domain: str = None
+    ):
+        try:
+            if old_domain:
+                await self.http_client.delete(
+                    f"{settings.https_cert_api_settings.host}/domains",
+                    headers={"api_key": settings.https_cert_api_settings.key},
+                    params={"host": new_domain},
+                )
+            if new_domain:
+                await self.http_client.post(
+                    f"{settings.https_cert_api_settings.host}/domains",
+                    headers={"api_key": settings.https_cert_api_settings.key},
+                    params={"host": new_domain},
+                )
+        except Exception as e:
+            logger.error("Error form https server: ", e)
+            # raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, content="Could not update https certificate.")
 
 
 async def create_workspace(user: User):
     workspace = await WorkspaceDocument.find_one({"owner_id": user.id, "default": True})
     if not workspace:
         workspace = WorkspaceDocument(
-            title="Untitled",
+            title="",
             description="",
             owner_id=user.id,
             profile_image="",

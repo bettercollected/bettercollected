@@ -1,17 +1,11 @@
-import json
+from fastapi import Request
 
-from beanie import PydanticObjectId
-
-from backend.app.models.request_dtos import PriceIdRequest
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.config import settings
-from common.models.user import User
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
-
-from fastapi import Request
 
 
 class StripeService:
@@ -62,10 +56,10 @@ class StripeService:
             upgrade = json_response.get("upgrade")
             if downgrade:
                 await self.workspace_service.downgrade_user_workspace(
-                    user_id=PydanticObjectId(user.get("id"))
+                    user_id=user.get("_id")
                 )
             if upgrade:
                 await self.workspace_service.upgrade_user_workspace(
-                    user_id=PydanticObjectId(user.get("id"))
+                    user_id=user.get("_id")
                 )
-            return "Ok"
+        return response

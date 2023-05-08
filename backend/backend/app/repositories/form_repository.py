@@ -23,7 +23,12 @@ class FormRepository:
             },
             {"$unwind": "$workspace_form"},
             {"$match": {"workspace_form.workspace_id": workspace_id}},
-            {"$set": {"settings": "$workspace_form.settings"}},
+            {
+                "$set": {
+                    "settings": "$workspace_form.settings",
+                    "imported_by": "$workspace_form.user_id",
+                }
+            },
         ]
 
         if is_admin:
@@ -85,7 +90,12 @@ class FormRepository:
                     },
                     {"$unwind": "$workspace_form"},
                     {"$match": {"workspace_form.workspace_id": workspace_id}},
-                    {"$set": {"settings": "$workspace_form.settings"}},
+                    {
+                        "$set": {
+                            "settings": "$workspace_form.settings",
+                            "imported_by": "$workspace_form.user_id",
+                        }
+                    },
                 ]
             )
             .to_list()

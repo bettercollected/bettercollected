@@ -2,22 +2,24 @@
 import logging
 from typing import Optional
 
+from classy_fastapi import Routable, get, post
+from fastapi import Depends
+from starlette.requests import Request
+from starlette.responses import RedirectResponse, Response
+
 from backend.app.container import container
 from backend.app.router import router
 from backend.app.services.auth_cookie_service import (
     delete_token_cookie,
     set_tokens_to_response,
+    set_access_token_to_response,
 )
-from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
-
-from classy_fastapi import Routable, get, post
-
-from common.models.user import AuthenticationStatus, User, UserLoginWithOTP
-
-from fastapi import Depends
-
-from starlette.requests import Request
-from starlette.responses import RedirectResponse, Response
+from backend.app.services.user_service import (
+    get_logged_user,
+    get_user_if_logged_in,
+    add_refresh_token_to_blacklist,
+)
+from common.models.user import User, UserLoginWithOTP
 
 log = logging.getLogger(__name__)
 
@@ -38,6 +40,16 @@ class AuthRoutes(Routable):
         user = await self.auth_service.validate_otp(login_details)
         set_tokens_to_response(user, response)
         return "Logged In successfully"
+
+    @post("/refresh")
+    async def _refresh_access_token(
+        self, response: Response, user=Depends(get_logged_user)
+    ):
+        user_response = await self.auth_service.get_user_status(user=user)
+        user_response.get("user")["sub"] = user_response["user"].get("email")
+        set_access_token_to_response(
+            user=User(**user_response.get("user")), response=response
+        )
 
     @get("/{provider_name}/oauth")
     async def _oauth_provider(
@@ -97,6 +109,7 @@ class AuthRoutes(Routable):
         return response
 
     @get("/logout")
-    async def logout(self, response: Response):
+    async def logout(self, request: Request, response: Response):
+        await add_refresh_token_to_blacklist(request=request)
         delete_token_cookie(response=response)
         return "Logged out successfully!!!"

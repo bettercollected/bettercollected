@@ -1,11 +1,10 @@
 from http import HTTPStatus
 from typing import List
 
-from backend.app.exceptions import HTTPException
-from backend.app.schemas.workspace import WorkspaceDocument
-
 from beanie import PydanticObjectId
 
+from backend.app.exceptions import HTTPException
+from backend.app.schemas.workspace import WorkspaceDocument
 from common.base.repo import BaseRepository, T, U
 from common.enums.form_provider import FormProvider
 
@@ -44,7 +43,22 @@ class WorkspaceRepository(BaseRepository):
 
     async def get_workspace_by_query(self, query: str):
         workspace = await WorkspaceDocument.find_one(
-            {"$or": [{"workspace_name": query}, {"custom_domain": query}]}
+            {
+                "$or": [
+                    {"workspace_name": query},
+                    {
+                        "$and": [
+                            {"custom_domain": query},
+                            {
+                                "$or": [
+                                    {"custom_domain_disabled": {"$exists": False}},
+                                    {"custom_domain_disabled": False},
+                                ]
+                            },
+                        ]
+                    },
+                ]
+            }
         )
         if not workspace:
             raise HTTPException(HTTPStatus.NOT_FOUND)
@@ -56,7 +70,5 @@ class WorkspaceRepository(BaseRepository):
     async def get_workspace_by_ids(self, workspace_ids: List[PydanticObjectId]):
         return await WorkspaceDocument.find({"_id": {"$in": workspace_ids}}).to_list()
 
-    async def get_workspace_by_owner_id(
-        self, owner_id: PydanticObjectId
-    ) -> WorkspaceDocument:
-        return await WorkspaceDocument.find_one({"ownerId": owner_id})
+    async def get_workspace_by_owner_id(self, owner_id: str) -> WorkspaceDocument:
+        return await WorkspaceDocument.find_one({"owner_id": owner_id})

@@ -1,9 +1,12 @@
+import datetime
 import secrets
 from datetime import timedelta
+from http import HTTPStatus
 
 from beanie import PydanticObjectId
 from fastapi_pagination.ext.beanie import paginate
 
+from backend.app.exceptions import HTTPException
 from backend.app.models.invitation_request import InvitationRequest
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
@@ -22,6 +25,7 @@ class WorkspaceInvitationRepo:
             existing_invitation.expiry = get_expiry_epoch_after(
                 time_delta=timedelta(days=7)
             )
+            existing_invitation.created_at = datetime.datetime.utcnow()
             existing_invitation.invitation_token = secrets.token_hex(16)
         else:
             existing_invitation = WorkspaceUserInvitesDocument(
@@ -53,3 +57,23 @@ class WorkspaceInvitationRepo:
             return None
 
         return invitation_request
+
+    async def delete_invitation_by_token_if_pending_state(self, invitation_token):
+        invitation_request = await WorkspaceUserInvitesDocument.find_one(
+            {"invitation_token": invitation_token}
+        )
+        if not invitation_request:
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Invitation not found")
+        elif invitation_request.invitation_status == InvitationStatus.PENDING:
+            await WorkspaceUserInvitesDocument.delete(invitation_request)
+        else:
+            raise HTTPException(
+                HTTPStatus.UNPROCESSABLE_ENTITY, "Invitation not in pending state"
+            )
+
+    async def update_status_to_removed(
+        self, workspace_id: PydanticObjectId, email: str
+    ):
+        await WorkspaceUserInvitesDocument.find_one(
+            {"workspace_id": workspace_id, "email": email}
+        ).update({"$set": {"invitation_status": InvitationStatus.REMOVED}})

@@ -1,14 +1,13 @@
 from http import HTTPStatus
 
+from beanie import PydanticObjectId
+
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
-
-from beanie import PydanticObjectId
-
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.config import settings
-from common.constants import MESSAGE_UNAUTHORIZED, MESSAGE_FORBIDDEN
+from common.constants import MESSAGE_FORBIDDEN
 from common.models.user import User
 
 
@@ -66,10 +65,14 @@ class WorkspaceUserService:
         return await self.workspace_user_repository.save(workspace_user)
 
     async def get_mine_workspaces(self, user_id: str):
-        workspace_users = await WorkspaceUserDocument.find(
-            {"user_id": PydanticObjectId(user_id)}
-        ).to_list()
-        return [workspace.workspace_id for workspace in workspace_users]
+        workspace_users = await self.workspace_user_repository.get_mine_workspaces(
+            user_id=user_id
+        )
+        return [
+            workspace_user.workspace_id
+            for workspace_user in workspace_users
+            if not workspace_user.disabled
+        ]
 
     async def disable_other_users_in_workspace(
         self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
