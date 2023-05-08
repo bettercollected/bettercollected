@@ -1,8 +1,8 @@
 from typing import Any, Dict, List, Optional
 
-from common.models.standard_form import StandardForm, StandardFormResponse
-
 from pydantic import BaseModel
+
+from common.models.standard_form import StandardForm, StandardFormResponse
 
 
 class FormImportRequestBody(BaseModel):
@@ -11,5 +11,5 @@ class FormImportRequestBody(BaseModel):
 
 
 class FormImportResponse(BaseModel):
-    form: StandardForm
-    responses: List[StandardFormResponse]
+    form: Optional[StandardForm] = None
+    responses: Optional[List[StandardFormResponse]] = None
