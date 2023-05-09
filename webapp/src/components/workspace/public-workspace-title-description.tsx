@@ -58,7 +58,7 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
                     <Tooltip title={fullWorkspaceName}>
                         <h4 className="h4">{strippedWorkspaceTitle}</h4>
                     </Tooltip>
-                    <MarkdownText scrollTitle={fullWorkspaceName} description={workspace.description} contentStripLength={82} markdownClassName="text-black-700 body3 !leading-none" textClassName="text-black-700 body3 !leading-none" />
+                    <MarkdownText scrollTitle={fullWorkspaceName} description={workspace.description} contentStripLength={280} markdownClassName="text-black-700 body3 !leading-none" textClassName="text-black-700 body3 !leading-none" />
                 </div>
             </div>
         );
@@ -73,7 +73,7 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
                         scrollTitle={fullWorkspaceName}
                         onClick={() => setIsMarkdownEditable(true)}
                         description={workspace.description}
-                        contentStripLength={82}
+                        contentStripLength={280}
                         markdownClassName="text-black-700 body3 !leading-none"
                         textClassName="text-black-700 body3 !leading-none"
                     />

@@ -11,6 +11,7 @@ import cn from 'classnames';
 import AvatarEditor from 'react-avatar-editor';
 import { toast } from 'react-toastify';
 
+import BetterInput from '@app/components/Common/input';
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
@@ -63,7 +64,6 @@ export default function Onboarding({ workspace }: onBoardingProps) {
     const authStatus = useAppSelector(selectAuth);
     const { openModal, closeModal } = useModal();
     const user: any = !!authStatus ? authStatus : null;
-    console.log(workspace.profileImage);
     let workspaceLogoRef = useRef<HTMLInputElement>(null);
     const profileEditorRef = useRef<AvatarEditor>(null);
     const dispatch = useAppDispatch();
@@ -175,15 +175,17 @@ export default function Onboarding({ workspace }: onBoardingProps) {
                 />
                 {formProvider.title === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">Workspace title is required</p>}
                 <p className={cn('mb-3 body1 text-black-900', formProvider.title === '' && isError ? 'mt-[24px]' : 'mt-[42px]')}>Description</p>
-                <textarea
+                <BetterInput
+                    inputProps={{ maxLength: 280 }}
+                    className="!border-solid !border-gray-300 !text-gray-900 !body3 !rounded !w-full"
+                    size="medium"
+                    rows={4}
+                    multiline
+                    onChange={handleOnchange}
+                    value={formProvider.description}
                     id="description"
                     name="description"
-                    value={formProvider.description}
-                    rows={4}
-                    onChange={handleOnchange}
-                    className=" border-solid border-gray-300 text-gray-900 body3 rounded block w-full p-2.5"
-                    placeholder="Add your description"
-                    required
+                    placeholder="Enter your workspace description"
                 />
             </div>
             <div className="flex justify-end mt-8">

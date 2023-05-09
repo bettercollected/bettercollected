@@ -56,7 +56,7 @@ export default function WorkspaceInfo({ workspace }: any) {
                 </div>
                 <div className="mt-6">
                     <div className="body1 mb-4">Workspace Description</div>
-                    <BetterInput className="w-full" size="medium" rows={5} multiline onChange={onChange} value={workspaceInfo.description} name="description" placeholder="Enter your workspace description" />
+                    <BetterInput inputProps={{ maxLength: 280 }} className="w-full" size="medium" rows={5} multiline onChange={onChange} value={workspaceInfo.description} name="description" placeholder="Enter your workspace description" />
                 </div>
                 <div>
                     <Button type="submit" disabled={isLoading || !workspaceInfo.title}>

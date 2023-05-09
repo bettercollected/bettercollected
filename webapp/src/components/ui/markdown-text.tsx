@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 
-import { Dialog, DialogContent, DialogContentText, DialogProps, DialogTitle, useMediaQuery, useTheme } from '@mui/material';
+import { Dialog, DialogContent, DialogProps, DialogTitle, useMediaQuery, useTheme } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import { Close } from '@app/components/icons/close';
 // Absolute imports
+import { Close } from '@app/components/icons/close';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 type Props = {
@@ -71,14 +71,16 @@ export default function MarkdownText({ description, scrollTitle = '', onClick = 
         <>
             {description && (
                 <div>
-                    <p onClick={onClick} className="body3 !text-black-700 !leading-tight">
-                        {source}
+                    <div onClick={onClick} className="body3 !text-black-700 !leading-tight">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} className={`m-0 p-0 mark-down-text ${markdownClassName}`}>
+                            {source}
+                        </ReactMarkdown>
                         {displayShowMore && description.length > contentStripLength && (
-                            <span onClick={handleClickOpen('paper')} className={`show-more-less-text ml-2 hover:underline capitalize p-0 cursor-pointer !text-brand-500 hover:!text-brand-600 ${textClassName}`}>
+                            <span onClick={handleClickOpen('paper')} className={`show-more-less-text hover:underline capitalize p-0 cursor-pointer !text-brand-500 hover:!text-brand-600 ${textClassName}`}>
                                 Read more
                             </span>
                         )}
-                    </p>
+                    </div>
                     <Dialog
                         disableScrollLock
                         PaperProps={{
@@ -96,11 +98,9 @@ export default function MarkdownText({ description, scrollTitle = '', onClick = 
                             <Close onClick={handleClose} className="cursor-pointer absolute top-3 right-3 h-auto w-3 text-gray-600 hover:text-black dark:text-white" />
                         </DialogTitle>
                         <DialogContent dividers={scroll === 'paper'}>
-                            <DialogContentText className="" id="scroll-dialog-description" ref={descriptionElementRef} tabIndex={-1}>
-                                <ReactMarkdown remarkPlugins={[remarkGfm]} className={`m-0 p-0 mark-down-text ${markdownClassName}`}>
-                                    {description}
-                                </ReactMarkdown>
-                            </DialogContentText>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]} className={`m-0 p-0 mark-down-text ${markdownClassName}`}>
+                                {description}
+                            </ReactMarkdown>
                         </DialogContent>
                     </Dialog>
                 </div>

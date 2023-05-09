@@ -47,7 +47,7 @@ export default function Index() {
                     </ActiveLink>
                 )}
 
-                <div className="mt-2 body2 italic text-black ">No risk. Cancel any time.</div>
+                {/* <div className="mt-2 body2 italic text-black ">No risk. Cancel any time.</div> */}
             </div>
         </div>
     );

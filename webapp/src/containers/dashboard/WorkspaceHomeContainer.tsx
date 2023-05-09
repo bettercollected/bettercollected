@@ -79,7 +79,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
                 )}
                 {['md', 'lg', 'xl', '2xl'].indexOf(screenSize) === -1 && isSuccess && <div className="absolute right-5 lg:right-10 xl:right-20">{workspaceOptions}</div>}
                 <div className="flex h-fit w-full gap-10">
-                    <PublicWorkspaceTitleAndDescription className="max-w-[400px] ml-0 sm:ml-[152px] md:ml-[184px] lg:ml-[224px]" isFormCreator={false} />
+                    <PublicWorkspaceTitleAndDescription className="max-w-[800px] ml-0 sm:ml-[152px] md:ml-[184px] lg:ml-[224px]" isFormCreator={false} />
                     {['xs', '2xs', 'sm'].indexOf(screenSize) === -1 && isSuccess && <div className="flex h-fit gap-4 flex-col sm:flex-row">{workspaceOptions}</div>}
                 </div>
             </div>
