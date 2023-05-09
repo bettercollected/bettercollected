@@ -68,7 +68,7 @@ export default function ShareView({ url, title, showCopy, iconSize = 'large' }: 
                         </IconWrapper>
                     </TelegramShareButton>
                 </div>
-                {showCopy && <LinkView buttonSize="medium" className="flex md:flex-row flex-col items-center " url={url} toastMessage="Copied!" buttonVarient="solid"></LinkView>}
+                {showCopy && <LinkView className="flex md:flex-row flex-col items-center " buttonClassName="!h-[46px] sh3 !font-medium !bg-brand-500 hover:!bg-brand-600 !text-white !px-8 !py-2" url={url} toastMessage="Copied!"></LinkView>}
                 {/* {showCopy && (
                     <div>
                         <Button variant="transparent" className="!text-brand-500" onClick={() => openModal('CUSTOMIZE_URL', { description: workspaceCustomizeLink.description, url: environments.CLIENT_DOMAIN })}>

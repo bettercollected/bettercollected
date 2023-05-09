@@ -12,11 +12,12 @@ type VariantNames = 'ghost' | 'solid' | 'transparent' | 'outline';
 interface ILinkViewProps {
     url: string;
     toastMessage: string;
-    className?: any;
-    buttonSize?: SizeNames;
-    buttonVarient?: VariantNames;
+    className?: string;
+    buttonClassName?: string;
+    // buttonSize?: SizeNames;
+    // buttonVarient?: VariantNames;
 }
-export default function LinkView({ url, toastMessage, className, buttonSize = 'small', buttonVarient = 'outline' }: ILinkViewProps) {
+export default function LinkView({ url, toastMessage, className, buttonClassName }: ILinkViewProps) {
     const [_, copyToClipboard] = useCopyToClipboard();
     return (
         <div className={cn('gap-2', className)}>
@@ -33,9 +34,9 @@ export default function LinkView({ url, toastMessage, className, buttonSize = 's
                             type: 'info'
                         });
                     }}
-                    size={buttonSize}
+                    // size={buttonSize}
                     variant="outlined"
-                    className=" !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize"
+                    className={cn(' !leading-none  !p-2 capitalize', buttonClassName)}
                 >
                     Copy Link
                 </Button>

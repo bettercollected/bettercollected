@@ -82,7 +82,7 @@ export default function ManageWorkspaceLayout({ children }: any) {
 
                             <div className="mt-12">
                                 <div className="body1 !leading-none mb-4">Workspace Url</div>
-                                <LinkView url={isCustomDomain ? customDomainUrl : clientHostUrl} toastMessage="Workspace Url Copied" className="flex flex-col" />
+                                <LinkView url={isCustomDomain ? customDomainUrl : clientHostUrl} toastMessage="Workspace Url Copied" className="flex flex-col" buttonClassName="!text-brand-500 !border-blue-200 hover:!bg-brand-200 " />
                             </div>
                             <div className="my-12">
                                 <CustomizeLink title={workspaceCustomizeLink.title} subtitle={workspaceCustomizeLink.description} buttonText={isProPlan ? 'Customize Link' : 'Upgrade TO PRO'} onClick={handleClick} />

@@ -106,7 +106,7 @@ export default function FormPageLayout(props: any) {
                                 <div className="mt-12">
                                     <div className="body1 mb-4 !leading-none ">Form Links</div>
                                     {getFormLinks().map((formLink: any) => (
-                                        <LinkView key={formLink.url} url={formLink.url} toastMessage="Form URL Copied" className="flex flex-col mb-4" />
+                                        <LinkView key={formLink.url} url={formLink.url} toastMessage="Form URL Copied" className="flex flex-col mb-4" buttonClassName="!text-brand-500 !border-blue-200 hover:!bg-brand-200 " />
                                     ))}
                                 </div>
                                 <div className="my-12">

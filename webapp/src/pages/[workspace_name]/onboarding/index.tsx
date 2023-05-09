@@ -159,7 +159,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
                 <p className=" mb-3 body1 text-black-900">
                     Workspace title<span className="text-red-500">*</span>
                 </p>
-                <TextField
+                <BetterInput
                     InputProps={{
                         sx: {
                             height: '46px',
@@ -169,7 +169,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
                     id="title"
                     error={formProvider.title === '' && isError}
                     placeholder="Eg. Sireto Technology"
-                    className="w-full"
+                    className="w-full !mb-0"
                     value={formProvider.title}
                     onChange={handleOnchange}
                 />
