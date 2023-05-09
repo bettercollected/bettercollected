@@ -33,7 +33,7 @@ export default function AuthStatusDispatcher({ workspace, children, isCustomDoma
     });
 
     useEffect(() => {
-        if (workspace && data) {
+        if (data) {
             const user: IUserStats = { ...data, isLoading: false };
             dispatch(setAuth(user));
         }

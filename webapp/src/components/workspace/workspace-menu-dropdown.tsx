@@ -34,7 +34,10 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
     };
 
     const handleCreateWorkspace = () => {
-        // TODO: Create workspace here
+        if (!isLoading && data?.length > 2) {
+            return;
+        }
+        router.push('/create-workspace');
     };
 
     const fullWorkspaceName = workspace?.title || workspace?.workspaceName || '';
@@ -98,7 +101,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                             <span className="flex justify-between w-full items-center gap-4">
                                 <div className="flex items-center gap-3">
                                     <Plus className="text-black-500" />
-                                    <p className="body3 !not-italic !text-black-500">Create a new workspace</p>
+                                    <p className={`body3 !not-italic ${!isLoading && data?.length > 2 ? '!text-black-500 cursor-not-allowed' : '!text-black-800'} `}>Create a new workspace</p>
                                 </div>
                             </span>
                         </IconButton>
