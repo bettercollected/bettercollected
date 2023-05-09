@@ -1,6 +1,7 @@
 import React from 'react';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import Delete from '@Components/Common/Icons/Delete';
 import { DeleteOutline, MoreHoriz } from '@mui/icons-material';
 import { IconButton, ListItemIcon, Menu, MenuItem } from '@mui/material';
 
@@ -86,12 +87,13 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                             openModal('DELETE_INVITATION', { invitation });
                         }
                     }}
-                    className="body4"
+                    sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
+                    className="body4 hover:bg-red-100 !text-red-500"
                 >
                     <ListItemIcon>
-                        <DeleteOutline fontSize="small" color="error" />
+                        <Delete width={20} height={20} />
                     </ListItemIcon>
-                    <span className="text-[#d32f2f]">Delete</span>
+                    <span>Delete form</span>
                 </MenuItem>
             </Menu>
         </>
