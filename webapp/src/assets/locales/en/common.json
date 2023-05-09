@@ -1,29 +1,113 @@
 {
-    "BECOME_A_BETTER_COLLECTOR": "Become a better collector",
+    "BECOME_A_BETTER_COLLECTOR": "Become a better data collector",
     "CONTACT_US": "Contact us",
     "CONTACT_US_DESCRIPTION": "Any questions or remarks? Just write us a message!",
     "EARLY_ACCESS": "Get early access!",
     "EMAIL": "Email",
     "EMAIL_ADDRESS": "Email Address",
-    "FEATURES": "Features",
-    "FEATURE_1": "Integrate with your favourite form builder",
-    "FEATURE_1_DESC": "Better collected integrates with your favourite form solution like Google forms. All your forms and form responses are imported and a nice dashboard is prepared for your automatically.",
-    "FEATURE_2": "Portal for form responders",
-    "FEATURE_2_DESC": "Better collected provides a data portal where any user can verify their email address and view all their collected data associated to the verified email.",
-    "FEATURE_3": "Custom domain and form URLs",
-    "FEATURE_3_DESC": "You can use your own (sub) domain and create a nice profile with selected forms. You can also customise the form URLs with your own domain instead of random looking Google form URLs.",
-    "FEATURE_4": "Email validation (soon)",
-    "FEATURE_4_DESC": "With email validation, you’ll no longer need to worry about spam responses. All genuine verified responses. How cool is that?",
-    "INDIVIDUAL": "Individual",
-    "INDIVIDUAL_1": "Best for personal user",
-    "INDIVIDUAL_2": "monthly",
+    "BUTTONS": {
+        "LOGIN": "Login",
+        "LOGOUT": "Logout",
+        "GOOGLE_SIGNIN": "Sign in with Google",
+        "TYPEFORM_SIGNIN": "Sign in with Typeform",
+        "CREATE_WORKSPACE": "Create A workspace",
+        "UPDATE_WORKSPACE": "Update A workspace",
+        "NEXT": "Next",
+        "PREVIOUS": "Previous",
+        "DONE": "Done",
+        "UPLOAD": "Upload",
+        "SUBMIT": "Submit",
+        "SHARE": "Share",
+        "PRO": "PRO",
+        "UPGRADE": "Upgrade",
+        "IMPORT_FORM": "Import form",
+        "UPLOAD_UNLIMITED_FORMS": "Upload unlimited forms",
+        "COPY_LINK": "Copy link",
+        "CUSTOMIZE_LINK": "Customize your link",
+        "REQUEST_FOR_INTEGRATION": "Request for integration"
+    },
+    "PLACEHOLDER": {
+        "WORKSPACE_NAME_PALCEHOLDER": "Eg. Sireto Technology",
+        "DESCRIPTION_PLACEHOLDER": "Add your description"
+    },
+    "SIGNIN_SCREEN": {
+        "LOGIN_TITLE_SLOGAN": "Be a part of the greater community by signing in.",
+        "OR": "Or",
+        "READY_TO_GET_STARTED": "Ready to get started?",
+        "REVIEW_FORMS": "Review forms",
+        "COLLECT_FORMS": "Collect your forms",
+        "EASY_TO_MANAGE_FORMS": "Easy to manage forms",
+        "DELETE_RESPONSES": "Delete responses",
+        "WELCOME_MESSAGE": "Welcome back!",
+        "CONTINUE_WITH": "continue with:",
+        "SIGNIN_AGREEMENT_DESCRIPTION": "By signing in, you agree to our Terms of Service and Privacy Policy."
+    },
+    "FEATURES": {
+        "FEATURE_1": "Integrate with your favourite form builder",
+        "FEATURE_1_DESC": "Better collected integrates with your favourite form solution like Google forms. All your forms and form responses are imported and a nice dashboard is prepared for your automatically.",
+        "FEATURE_2": "Portal for form responders",
+        "FEATURE_2_DESC": "Better collected provides a data portal where any user can verify their email address and view all their collected data associated to the verified email.",
+        "FEATURE_3": "Custom domain and form URLs",
+        "FEATURE_3_DESC": "You can use your own (sub) domain and create a nice profile with selected forms. You can also customise the form URLs with your own domain instead of random looking Google form URLs.",
+        "FEATURE_4": "Email validation (soon)",
+        "FEATURE_4_DESC": "With email validation, you’ll no longer need to worry about spam responses. All genuine verified responses. How cool is that?",
+        "DEFAULT": "Features"
+    },
+
+    "INDIVIDUAL": {
+        "INDIVIDUAL_1": "Best for personal user",
+        "INDIVIDUAL_2": "monthly",
+        "DEFAULT": "Individual"
+    },
+    "ONBOARDING_SCREEN": {
+        "CREATE_WORKSPACE_WELCOME_MESSAGE": "Welcome to BetterCollected.",
+        "CREATE_WORKSPACE_DESCRIPTION": "Please create your workspace so that your team know you are here.",
+        "HEY": "Hey",
+        "TIME_MESSAGE": "It will only take few minutes",
+        "ADD_WORKSPACE": "Add your workspace",
+        "WORKSPACE_NAME": "Workspace name",
+        "DESCRIPTION": "Description",
+        "STEP": "step",
+        "OF": "of",
+        "WORKSPACE_NAME_ERROR_MESSAGE": "Workspace name is required",
+        "ADD_WORKSPACE_LOGO": "Add a workspace logo",
+        "WORKSPACE_LOGO_DESCRIPTION": "Make sure your image is less than 100mb"
+    },
+    "FORM_MENU": {
+        "PIN_FORM": "Pin form",
+        "VISIBILITY": "visibility",
+        "DELETE_FORM": "Delete form",
+        "SHARE": "Share"
+    },
+    "PROFILE_MENU": {
+        "MY_DASHBOARD": "My Dashboard",
+        "BILLING": "Billing",
+        "LOGOUT": "Logout"
+    },
+
+    "DASHBOARD": {
+        "CREATE_NEW_WORKSPACE": "Create a new workspace",
+        "DEFAULT": "Dashboard",
+        "FORMS": "Forms",
+        "MANAGE_WORKSPACE": "Manage workspace",
+        "IMPORTED_FORMS": "Imported forms",
+        "COLLECTED_RESPONSES": "Collected responses",
+        "DELETION_REQUESTS": "Deletion requests",
+        "RECENT_FORMS": "Recent forms",
+        "RESPONSES": "responses",
+        "VISIBILITY_TOAST": "Visibility of the form should be public to pin it into the workspace",
+        "FORM_TYPE": "Form type",
+        "IMPORTED_DATE": "Imported date",
+        "EMPTY_FORM_TITLE": "Import first form",
+        "EMPTY_FORM_SUBTITLE": "Upload your Google Forms or Typeform"
+    },
+    "IMPORT_FORM": {
+        "CHOISE": "Which form do you want to import"
+    },
+
     "JOIN_WAITLIST": "Join",
-    "LOGIN": "Login",
-    "LOGIN_TITLE_SLOGAN": "Be a part of the greater community by signing in.",
-    "OR": "Or",
-    "READY_TO_GET_STARTED": "Ready to get started?",
+
     "PAYMENT_DESC": "We don’t sell your data thus we need to charge you to sustain ourselves.",
     "SLOGAN_TITLE": "Collect form responses responsibly",
-    "SLOGAN_DESCRIPTION": "Empower your form responders to view their collected data and exercise their data rights.",
-    "SUBMIT": "Submit"
+    "SLOGAN_DESCRIPTION": "Empower your form responders to view their collected data and exercise their data rights."
 }

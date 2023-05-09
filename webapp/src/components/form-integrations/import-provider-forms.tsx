@@ -195,36 +195,37 @@ export default function ImportProviderForms(props: any) {
     const stepTwoContent = (
         <>
             {/* {backBreadcrumb} */}
-            <h4 className="sh1 w-full text-start">Response data owner</h4>
-            <p className="body1">Select another data response owner if the collect email setting is disabled in your form</p>
-            <div className="flex flex-col w-full h-full gap-10 items-end">
-                <Autocomplete
-                    loading={!!singleFormFromProviderResult?.isFetching}
-                    disablePortal
-                    id="field_list"
-                    fullWidth
-                    onChange={(e, value) => setResponseDataOwner(value)}
-                    value={responseDataOwner}
-                    filterOptions={createFilterOptions({
-                        matchFrom: 'start',
-                        stringify: (option: IAutoCompleteFormFieldProps) => option.label
-                    })}
-                    isOptionEqualToValue={(option: IAutoCompleteFormFieldProps, value: IAutoCompleteFormFieldProps) => option.questionId === value.questionId}
-                    getOptionLabel={(option: IAutoCompleteFormFieldProps) => option.label}
-                    options={singleFormFieldList}
-                    sx={{ width: '100%' }}
-                    renderOption={(props, option: IAutoCompleteFormFieldProps) => {
-                        return (
-                            <Box component="li" {...props} key={option.questionId}>
-                                {option.label}
-                            </Box>
-                        );
-                    }}
-                    renderInput={(params) => <TextField {...params} label="Choose a data owner field for this form" />}
-                />
-                <div>
-                    <Button isLoading={!!importFormResult?.isLoading || !!singleFormFromProviderResult?.isLoading} onClick={handleImportForm} disabled={!selectedForm || !!singleFormFromProviderResult?.isLoading} size="medium">
-                        Import
+            <h4 className="h4 w-full text-start">Response-owner tag</h4>
+            <div className="flex flex-col gap-5">
+                <p className="body1">Select field from where response owner can be identified</p>
+                <div className="flex flex-col w-full h-full gap-6 items-end">
+                    <Autocomplete
+                        loading={!!singleFormFromProviderResult?.isFetching}
+                        disablePortal
+                        id="field_list"
+                        fullWidth
+                        onChange={(e, value) => setResponseDataOwner(value)}
+                        value={responseDataOwner}
+                        filterOptions={createFilterOptions({
+                            matchFrom: 'start',
+                            stringify: (option: IAutoCompleteFormFieldProps) => option.label
+                        })}
+                        isOptionEqualToValue={(option: IAutoCompleteFormFieldProps, value: IAutoCompleteFormFieldProps) => option.questionId === value.questionId}
+                        getOptionLabel={(option: IAutoCompleteFormFieldProps) => option.label}
+                        options={singleFormFieldList}
+                        sx={{ width: '100%' }}
+                        renderOption={(props, option: IAutoCompleteFormFieldProps) => {
+                            return (
+                                <Box component="li" {...props} key={option.questionId}>
+                                    {option.label}
+                                </Box>
+                            );
+                        }}
+                        renderInput={(params) => <TextField {...params} label="Choose a data owner field for this form" />}
+                    />
+                    <div></div>
+                    <Button className="!font-medium" isLoading={!!importFormResult?.isLoading || !!singleFormFromProviderResult?.isLoading} onClick={handleImportForm} disabled={!selectedForm || !!singleFormFromProviderResult?.isLoading} size="medium">
+                        Import Now
                     </Button>
                 </div>
             </div>
@@ -238,7 +239,7 @@ export default function ImportProviderForms(props: any) {
     return (
         <div className="relative z-50 mx-auto max-w-full min-w-full md:max-w-[600px] md:min-w-[600px] lg:max-w-[600px] lg:min-w-[600px]" {...props}>
             <div className="rounded-[4px] relative m-auto max-w-[500px] md:min-w-[500px] items-start justify-between bg-white">
-                <div className="relative flex flex-col items-center gap-10 justify-between p-4 md:p-10">
+                <div className="relative flex flex-col items-center gap-7 justify-between p-4 md:p-10">
                     {stepCount === 0 && stepZeroContent}
                     {stepCount === 1 && stepOneContent}
                     {stepCount === 2 && stepTwoContent}
