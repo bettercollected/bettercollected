@@ -1,17 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+
+import { debounce, escapeRegExp } from 'lodash';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
+import { InputAdornment, TextField } from '@mui/material';
 import DataTable from 'react-data-table-component';
 
+import { StyledTextField } from '@app/components/dashboard/workspace-forms-tab-content';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
 import DataTableProviderFormCell from '@app/components/datatable/form/provider-form-cell';
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
+import { SearchIcon } from '@app/components/icons/search';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import ActiveLink from '@app/components/ui/links/active-link';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
+import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
 export default function FormPage({ workspace, hasCustomDomain }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
@@ -23,8 +28,9 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     };
 
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
-    const forms = workspaceForms?.data?.items;
-
+    const [searchWorkspaceForms] = useSearchWorkspaceFormsMutation();
+    const [forms, setForms] = useState<Array<any>>(workspaceForms?.data?.items);
+    console.log(workspace.id);
     const selectList = [
         {
             id: 'sort-select-label',
@@ -119,12 +125,49 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             }
         }
     ];
+    const handleSearch = async (event: any) => {
+        const response: any = await searchWorkspaceForms({
+            workspace_id: workspace.id,
+            query: escapeRegExp(event.target.value)
+        });
+        if (event.target.value) {
+            setForms(response?.data);
+        } else {
+            setForms(workspaceForms?.data?.items);
+        }
+    };
+    const debouncedResults = useMemo(() => {
+        return debounce(handleSearch, 500);
+    }, []);
+    useEffect(() => {
+        debouncedResults.cancel();
+    }, []);
 
     return (
         <SidebarLayout>
             <div className="py-10 w-full h-full">
                 <h1 className="sh1">Forms</h1>
                 <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
+                    <StyledTextField>
+                        <TextField
+                            sx={{ height: '46px', padding: 0 }}
+                            size="small"
+                            name="search-input"
+                            placeholder="Search"
+                            onChange={debouncedResults}
+                            className={'w-full'}
+                            InputProps={{
+                                sx: {
+                                    padding: '16px'
+                                },
+                                endAdornment: (
+                                    <InputAdornment sx={{ padding: 0 }} position="end">
+                                        <SearchIcon />
+                                    </InputAdornment>
+                                )
+                            }}
+                        />
+                    </StyledTextField>
                     <ImportFormsButton size="small" />
                     {/*<div className="grid grid-cols-2 items-center gap-2">*/}
                     {/*    {selectList.map((item) => (*/}

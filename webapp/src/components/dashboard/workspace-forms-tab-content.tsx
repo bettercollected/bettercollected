@@ -20,7 +20,7 @@ interface IWorkspaceFormsTabContentProps {
     isFormCreator?: boolean;
 }
 
-const StyledTextField = styled.div`
+export const StyledTextField = styled.div`
     .MuiFormControl-root {
         background: white;
         border-radius: 4px;
