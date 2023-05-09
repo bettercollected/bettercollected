@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
+import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
@@ -46,23 +47,25 @@ export default function InviteMemberModal() {
     };
     return (
         <>
-            <SettingsCard>
-                <div className="h4">Invite Collaborator</div>
-                <div className="body4">A collaborator can import and manage forms in workspace.</div>
-                <form onSubmit={handleSendInvitation} className="flex  flex-col justify-start">
-                    <div className="body1">Enter Email</div>
+            <SettingsCard className="!space-y-0 relative">
+                <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
+                <div className="sh1 !leading-none">Invite Collaborator</div>
+                <div className="body4 pt-6 !leading-none ">A collaborator can import and manage forms in workspace.</div>
+                <form onSubmit={handleSendInvitation} className="flex pt-8  flex-col justify-start">
+                    <div className="body1 mb-3 !leading-none">Enter Email</div>
                     <BetterInput
                         disabled={isLoading}
                         data-testid="otp-input"
                         spellCheck={false}
                         value={invitationMail}
                         type="email"
+                        className="!mb-0"
                         placeholder={'Enter Email'}
                         onChange={(event) => {
                             setInvitationMail(event.target.value);
                         }}
                     />
-                    <div className="flex w-full justify-end">
+                    <div className="flex w-full mt-8 justify-end">
                         <Button disabled={isLoading} isLoading={isLoading} size="small" type="submit">
                             Send Invitation
                         </Button>
