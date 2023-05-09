@@ -1,6 +1,7 @@
 import os
 from http import HTTPStatus
 
+import bson
 from beanie import PydanticObjectId
 from fastapi import UploadFile
 from loguru import logger
@@ -62,6 +63,53 @@ class WorkspaceService:
                 pass
         return WorkspaceResponseDto(**workspace.dict())
 
+    async def create_non_default_workspace(
+        self,
+        title: str,
+        description: str,
+        workspace_name: str,
+        profile_image_file: UploadFile,
+        banner_image_file: UploadFile,
+        user: User,
+    ):
+        if user.plan != "PRO":
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                content="Upgrade to Pro to add more workspace.",
+            )
+
+        user_owner_workspaces = await self._workspace_repo.get_user_workspaces(user.id)
+        if len(user_owner_workspaces) >= settings.api_settings.ALLOWED_WORKSPACES:
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT, content="Cannot add more workspaces"
+            )
+        workspace_document = WorkspaceDocument(
+            title=title,
+            description=description,
+            owner_id=user.id,
+            workspace_name=workspace_name if workspace_name else str(bson.ObjectId()),
+        )
+        workspace_document = await self.upload_images_of_workspace(
+            workspace_document=workspace_document,
+            profile_image_file=profile_image_file,
+            banner_image_file=banner_image_file,
+        )
+        workspace_document = await workspace_document.save()
+        existing_workspace_user = await WorkspaceUserDocument.find_one(
+            {
+                "workspace_id": workspace_document.id,
+                "user_id": PydanticObjectId(user.id),
+            }
+        )
+        if not existing_workspace_user:
+            workspace_user = WorkspaceUserDocument(
+                workspace_id=workspace_document.id,
+                user_id=user.id,
+                roles=[WorkspaceRoles.ADMIN],
+            )
+            await workspace_user.save()
+        return WorkspaceResponseDto(**workspace_document.dict())
+
     async def patch_workspace(
         self,
         profile_image_file: UploadFile,
@@ -80,26 +128,12 @@ class WorkspaceService:
             return HTTPException(
                 HTTPStatus.FORBIDDEN, "You are not authorized to perform this action."
             )
-        if profile_image_file:
-            profile_image = await self._aws_service.upload_file_to_s3(
-                profile_image_file.file,
-                str(workspace_document.id)
-                + f"profile{os.path.splitext(profile_image_file.filename)[1]}",
-                workspace_document.profile_image,
-            )
-            workspace_document.profile_image = (
-                profile_image if profile_image else workspace_document.profile_image
-            )
-        if banner_image_file:
-            banner_image = await self._aws_service.upload_file_to_s3(
-                banner_image_file.file,
-                str(workspace_document.id)
-                + f"banner{os.path.splitext(banner_image_file.filename)[1]}",
-                workspace_document.banner_image,
-            )
-            workspace_document.banner_image = (
-                banner_image if banner_image else workspace_document.banner_image
-            )
+
+        workspace_document = await self.upload_images_of_workspace(
+            workspace_document=workspace_document,
+            profile_image_file=profile_image_file,
+            banner_image_file=banner_image_file,
+        )
 
         if workspace_patch.workspace_name:
             exists_by_handle = await WorkspaceDocument.find_one(
@@ -240,24 +274,25 @@ class WorkspaceService:
         }
 
     async def downgrade_user_workspace(self, user_id: str):
-        workspace = await self._workspace_repo.get_workspace_by_owner_id(
-            owner_id=user_id
-        )
-        workspace.custom_domain_disabled = True
-        await workspace.save()
-        await self._workspace_user_service.disable_other_users_in_workspace(
-            workspace_id=workspace.id, user_id=PydanticObjectId(user_id)
-        )
+        workspaces = await self._workspace_repo.get_user_workspaces(owner_id=user_id)
+        for workspace in workspaces:
+            if not workspace.default:
+                workspace.disabled = True
+            workspace.custom_domain_disabled = True
+            await workspace.save()
+            await self._workspace_user_service.disable_other_users_in_workspace(
+                workspace_id=workspace.id, user_id=PydanticObjectId(user_id)
+            )
 
     async def upgrade_user_workspace(self, user_id: str):
-        workspace = await self._workspace_repo.get_workspace_by_owner_id(
-            owner_id=user_id
-        )
-        workspace.custom_domain_disabled = False
-        await workspace.save()
-        await self._workspace_user_service.enable_all_users_in_workspace(
-            workspace_id=workspace.id
-        )
+        workspaces = await self._workspace_repo.get_user_workspaces(owner_id=user_id)
+        for workspace in workspaces:
+            workspace.disabled = False
+            workspace.custom_domain_disabled = False
+            await workspace.save()
+            await self._workspace_user_service.enable_all_users_in_workspace(
+                workspace_id=workspace.id
+            )
 
     async def update_https_server_for_certificate(
         self, old_domain: str = None, new_domain: str = None
@@ -278,6 +313,34 @@ class WorkspaceService:
         except Exception as e:
             logger.error("Error form https server: ", e)
             # raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, content="Could not update https certificate.")
+
+    async def upload_images_of_workspace(
+        self,
+        workspace_document: WorkspaceDocument,
+        profile_image_file: UploadFile,
+        banner_image_file: UploadFile,
+    ):
+        if profile_image_file:
+            profile_image = await self._aws_service.upload_file_to_s3(
+                profile_image_file.file,
+                str(workspace_document.id)
+                + f"profile{os.path.splitext(profile_image_file.filename)[1]}",
+                workspace_document.profile_image,
+            )
+            workspace_document.profile_image = (
+                profile_image if profile_image else workspace_document.profile_image
+            )
+        if banner_image_file:
+            banner_image = await self._aws_service.upload_file_to_s3(
+                banner_image_file.file,
+                str(workspace_document.id)
+                + f"banner{os.path.splitext(banner_image_file.filename)[1]}",
+                workspace_document.banner_image,
+            )
+            workspace_document.banner_image = (
+                banner_image if banner_image else workspace_document.banner_image
+            )
+        return workspace_document
 
 
 async def create_workspace(user: User):
