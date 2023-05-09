@@ -29,7 +29,7 @@ export async function getServerSideProps(_context: any) {
         if (user?.roles?.includes('FORM_CREATOR')) {
             const userWorkspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/mine`, config);
             const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e)) ?? null;
-            const defaultWorkspace = userWorkspace.filter((workspace: WorkspaceDto) => workspace.ownerId === user.id);
+            const defaultWorkspace = userWorkspace.filter((workspace: WorkspaceDto) => workspace.ownerId === user.id && workspace?.default);
             let redirectWorkspace: WorkspaceDto | null;
             if (defaultWorkspace.length > 0) {
                 redirectWorkspace = defaultWorkspace[0];
