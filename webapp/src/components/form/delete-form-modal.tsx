@@ -35,14 +35,14 @@ export default function DeleteFormModal(props: any) {
             <div className="rounded-[4px] relative m-auto max-w-[500px] items-start justify-between bg-white">
                 <div className="relative flex flex-col items-start justify-start p-10">
                     <div>
-                        <h4 className="sh1 mb-6">Delete &quot;{props?.form?.title}&quot;</h4>
+                        <h4 className="sh1 mb-6">Delete &quot;{props?.form?.title}&quot;?</h4>
                         <p className="!text-black-600 mb-8 body4 leading-none">Once this action is completed, it can&apos;t be undone.</p>
                     </div>
                     <div className="flex w-full gap-4 justify-end">
-                        <Button className="flex-1" data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
+                        <Button className="flex-1 body4" data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
                             Delete
                         </Button>
-                        <Button variant="solid" color="gray" size="medium" className="flex-1 !bg-black-500" onClick={() => closeModal()}>
+                        <Button variant="solid" color="gray" size="medium" className="flex-1 body4 !bg-black-500" onClick={() => closeModal()}>
                             Cancel
                         </Button>
                     </div>
