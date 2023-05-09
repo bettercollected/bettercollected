@@ -4,6 +4,7 @@ import { useState } from 'react';
 import ModeEditIcon from '@mui/icons-material/ModeEdit';
 import SaveIcon from '@mui/icons-material/Save';
 import { CircularProgress } from '@mui/material';
+import cn from 'classnames';
 import html2canvas from 'html2canvas';
 import { toast } from 'react-toastify';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
@@ -70,7 +71,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
     };
 
     return (
-        <div className={`relative aspect-editable-banner-mobile lg:aspect-editable-banner-desktop ${!!workspace?.bannerImage ? '' : 'border border-brand-300'} w-full bannerdiv`}>
+        <div className={cn('relative  w-full bannerdiv', !!workspace?.bannerImage ? '' : 'border border-brand-300', isFormCreator ? 'aspect-editable-banner-mobile lg:aspect-editable-banner-desktop' : 'aspect-banner-mobile lg:aspect-banner-desktop')}>
             {!!image ? (
                 <TransformWrapper centerOnInit ref={transformComponentRef}>
                     {({ resetTransform }) => {
