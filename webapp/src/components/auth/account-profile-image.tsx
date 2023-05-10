@@ -14,7 +14,7 @@ AuthAccountProfileImage.defaultProps = {
     size: 36
 };
 
-export default function AuthAccountProfileImage({ size, image, name, typography = 'sh1' }: IAuthAccountProfileImageProps) {
+export default function AuthAccountProfileImage({ size, image, name = ' ', typography = 'sh1' }: IAuthAccountProfileImageProps) {
     if (image) return <Avatar sx={{ width: size, height: size, borderRadius: 1 }} variant="rounded" src={image} className="rounded overflow-hidden !mr-0" />;
 
     return (

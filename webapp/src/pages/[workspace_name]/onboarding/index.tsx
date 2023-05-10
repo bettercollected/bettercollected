@@ -23,17 +23,18 @@ import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
+import { useCreateWorkspaceMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
-interface addWorkspaceFormProviderDtos {
+interface FormDataDto {
     title: string;
     description: string;
     workspaceLogo: any;
 }
 
 interface onBoardingProps {
-    workspace: WorkspaceDto;
+    workspace?: WorkspaceDto;
+    createWorkspace?: boolean;
 }
 
 export async function getServerSideProps(_context: GetServerSidePropsContext) {
@@ -59,7 +60,7 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
     };
 }
 
-export default function Onboarding({ workspace }: onBoardingProps) {
+export default function Onboarding({ workspace, createWorkspace }: onBoardingProps) {
     const router = useRouter();
     const authStatus = useAppSelector(selectAuth);
     const { openModal, closeModal } = useModal();
@@ -69,12 +70,13 @@ export default function Onboarding({ workspace }: onBoardingProps) {
     const dispatch = useAppDispatch();
     const [isError, setError] = useState(false);
     const profileName = _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name);
-    const [stepCount, setStepCount] = useState(0);
+    const [stepCount, setStepCount] = useState(createWorkspace ? 1 : 0);
     const [patchExistingWorkspace, { isLoading, isSuccess }] = usePatchExistingWorkspaceMutation();
-    const [formProvider, setFormProvider] = useState<addWorkspaceFormProviderDtos>({
-        title: workspace.title.toLowerCase() !== 'untitled' ? workspace.title : '',
-        description: workspace.description ?? '',
-        workspaceLogo: workspace.profileImage ?? ''
+    const [createWorkspaceRequest, data] = useCreateWorkspaceMutation();
+    const [formData, setFormData] = useState<FormDataDto>({
+        title: workspace?.title.toLowerCase() !== 'untitled' ? workspace?.title || '' : '',
+        description: workspace?.description ?? '',
+        workspaceLogo: workspace?.profileImage ?? ''
     });
     const increaseStep = () => {
         setStepCount(stepCount + 1);
@@ -88,12 +90,17 @@ export default function Onboarding({ workspace }: onBoardingProps) {
         if (image.size / MB > 100) {
             toast('Image size is greater than 100MB', { toastId: ToastId.ERROR_TOAST });
         } else {
-            openModal('CROP_IMAGE', { profileEditorRef: profileEditorRef, uploadImage: image, profileInputRef: workspaceLogoRef, onSave: handleUpdateProfile });
+            openModal('CROP_IMAGE', {
+                profileEditorRef: profileEditorRef,
+                uploadImage: image,
+                profileInputRef: workspaceLogoRef,
+                onSave: handleUpdateProfile
+            });
         }
     };
     const handleOnchange = (e: any) => {
-        setFormProvider({
-            ...formProvider,
+        setFormData({
+            ...formData,
             [e.target.id]: e.target.value
         });
     };
@@ -104,29 +111,55 @@ export default function Onboarding({ workspace }: onBoardingProps) {
             const result = await fetch(dataUrl);
             const blob = await result.blob();
             const file = new File([blob], 'profileImage.png', { type: blob.type });
-            setFormProvider({
-                ...formProvider,
+            setFormData({
+                ...formData,
                 workspaceLogo: file
             });
             closeModal();
         }
     };
 
-    const updateWorkspaceDetails = async () => {
-        const formData = new FormData();
-        if (formProvider.workspaceLogo && workspace.profileImage !== formProvider.workspaceLogo) {
-            formData.append('profile_image', formProvider.workspaceLogo);
+    const onClickDone = async () => {
+        if (createWorkspace) {
+            await createNewWorkspace();
+        } else {
+            await updateWorkspaceDetails();
         }
-        formData.append('title', formProvider.title);
-        formData.append('description', formProvider.description);
-        const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
+    };
+
+    const createNewWorkspace = async () => {
+        const createFormData = new FormData();
+        if (formData.workspaceLogo) {
+            createFormData.append('profile_image', formData.workspaceLogo);
+        }
+        createFormData.append('title', formData.title);
+        createFormData.append('description', formData.description);
+        const response: any = await createWorkspaceRequest(createFormData);
         if (response.error) {
-            toast('Something went wrong', { toastId: ToastId.ERROR_TOAST });
+            toast(response.error?.data || 'Something went wrong', { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
         if (response.data) {
             toast('Workspace Updated', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
             dispatch(setWorkspace(response.data));
-            router.replace(`/${workspace.workspaceName}/dashboard`);
+            router.replace(`/${response.data?.workspaceName}/dashboard`);
+        }
+    };
+
+    const updateWorkspaceDetails = async () => {
+        const updateFormData = new FormData();
+        if (formData.workspaceLogo && workspace?.profileImage !== formData.workspaceLogo) {
+            updateFormData.append('profile_image', formData.workspaceLogo);
+        }
+        updateFormData.append('title', formData.title);
+        updateFormData.append('description', formData.description);
+        const response: any = await patchExistingWorkspace({ workspace_id: workspace?.id, body: updateFormData });
+        if (response.error) {
+            toast(response.error?.data || 'Something went wrong', { toastId: ToastId.ERROR_TOAST, type: 'error' });
+        }
+        if (response.data) {
+            toast('Workspace Updated', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            dispatch(setWorkspace(response.data));
+            router.replace(`/${workspace?.workspaceName}/dashboard`);
         }
     };
 
@@ -138,7 +171,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
             </p>
             <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">Please create your workspace so that your team know you are here.</p>
             <Button size="large" className="mt-10 mb-4" onClick={increaseStep}>
-                {workspace.profileImage || workspace.description || workspace.title.toLowerCase() !== 'untitled' ? 'Update A Workspace' : 'Create A Workspace'}
+                {workspace?.profileImage || workspace?.description || workspace?.title.toLowerCase() !== 'untitled' ? 'Update A Workspace' : 'Create A Workspace'}
             </Button>
             <p className="body2 !text-black-600 italic">It will only take few minutes</p>
         </div>
@@ -146,7 +179,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
     const AddWorkspaceHeader = (
         <div className="flex justify-between items-center">
             <div className=" cursor-pointer hover:bg-blue-200 rounded" onClick={decreaseStep}>
-                <ChevronLeft className="h-6 w-6" />
+                {stepCount === 1 && createWorkspace ? <></> : <ChevronLeft className="h-6 w-6" />}
             </div>
             <p className="body4 text-black-700">Step {stepCount} of 2</p>
         </div>
@@ -167,14 +200,14 @@ export default function Onboarding({ workspace }: onBoardingProps) {
                         }
                     }}
                     id="title"
-                    error={formProvider.title === '' && isError}
+                    error={formData.title === '' && isError}
                     placeholder="Eg. Sireto Technology"
                     className="w-full !mb-0"
-                    value={formProvider.title}
+                    value={formData.title}
                     onChange={handleOnchange}
                 />
-                {formProvider.title === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">Workspace title is required</p>}
-                <p className={cn('mb-3 body1 text-black-900', formProvider.title === '' && isError ? 'mt-[24px]' : 'mt-[42px]')}>Description</p>
+                {formData.title === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">Workspace title is required</p>}
+                <p className={cn('mb-3 body1 text-black-900', formData.title === '' && isError ? 'mt-[24px]' : 'mt-[42px]')}>Description</p>
                 <BetterInput
                     inputProps={{ maxLength: 280 }}
                     className="!border-solid !border-gray-300 !text-gray-900 !body3 !rounded !w-full"
@@ -182,7 +215,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
                     rows={4}
                     multiline
                     onChange={handleOnchange}
-                    value={formProvider.description}
+                    value={formData.description}
                     id="description"
                     name="description"
                     placeholder="Enter your workspace description"
@@ -192,7 +225,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
                 <Button
                     size="medium"
                     onClick={() => {
-                        if (formProvider.title !== '') {
+                        if (formData.title !== '') {
                             increaseStep();
                         } else {
                             setError(true);
@@ -214,12 +247,12 @@ export default function Onboarding({ workspace }: onBoardingProps) {
                 workspaceLogoRef={workspaceLogoRef}
                 onChange={handleFile}
                 onClick={() => workspaceLogoRef.current?.click()}
-                image={formProvider.workspaceLogo && (formProvider.workspaceLogo.toString().startsWith('https') ? formProvider.workspaceLogo : URL.createObjectURL(formProvider.workspaceLogo))}
+                image={formData.workspaceLogo && (formData.workspaceLogo.toString().startsWith('https') ? formData.workspaceLogo : URL.createObjectURL(formData.workspaceLogo))}
                 profileName={profileName}
             ></WorkSpaceLogoUi>
             {/* </div> */}
             <div className="flex justify-end mt-8 items-center">
-                <Button size="medium" onClick={updateWorkspaceDetails} isLoading={isLoading}>
+                <Button size="medium" onClick={onClickDone} isLoading={isLoading || data?.isLoading}>
                     Done
                 </Button>
             </div>
@@ -228,7 +261,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
 
     if (isSuccess) return <FullScreenLoader />;
     return (
-        <Layout showNavbar showAuthAccount={false}>
+        <Layout showNavbar showAuthAccount={createWorkspace} isCustomDomain>
             <div className=" flex flex-col my-[40px] items-center">
                 {stepCount === 0 && StepZeroContent}
                 {stepCount === 1 && StepOneContent}
@@ -237,5 +270,3 @@ export default function Onboarding({ workspace }: onBoardingProps) {
         </Layout>
     );
 }
-
-// export { getAuthUserPropsWithWorkspace as getServerSideProps } from '@app/lib/serverSideProps';
