@@ -1,16 +1,20 @@
 from typing import List
 
-from backend.app.exceptions import HTTPException
-from backend.app.schemas.standard_form import FormDocument
-
 from beanie import PydanticObjectId
 from beanie.odm.queries.aggregation import AggregationQuery
+
+from backend.app.exceptions import HTTPException
+from backend.app.schemas.standard_form import FormDocument
+from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 
 
 class FormRepository:
     @staticmethod
     def get_forms_in_workspace_query(
-        workspace_id: PydanticObjectId, form_id_list: List[str], is_admin: bool
+        workspace_id: PydanticObjectId,
+        form_id_list: List[str],
+        is_admin: bool,
+        sort=None,
     ) -> AggregationQuery:
         aggregation_pipeline = [
             {
@@ -30,6 +34,7 @@ class FormRepository:
                 }
             },
         ]
+        aggregation_pipeline.extend(create_filter_pipeline(sort=sort))
 
         if is_admin:
             aggregation_pipeline.extend(

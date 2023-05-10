@@ -28,7 +28,9 @@ class FormService:
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
 
-    async def get_forms_in_workspace(self, workspace_id, user) -> Page[MinifiedForm]:
+    async def get_forms_in_workspace(
+        self, workspace_id, sort, user
+    ) -> Page[MinifiedForm]:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
@@ -39,6 +41,7 @@ class FormService:
             workspace_id=workspace_id,
             form_id_list=workspace_form_ids,
             is_admin=is_admin,
+            sort=sort,
         )
         forms_page = await paginate(forms_query)
 
