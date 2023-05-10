@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import Depends
 from pydantic import BaseModel
 
-from backend.app.models.FilterQueries.sort import SortRequest
+from backend.app.models.filter_queries.sort import SortRequest
 
 
 class FormsFilterQuery(BaseModel):

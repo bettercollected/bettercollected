@@ -10,5 +10,5 @@ class SortOrder(str, enum.Enum):
 
 
 class SortRequest(BaseModel):
-    sort_by: Optional[str]
-    sort_order: Optional[str] = SortOrder.ASCENDING
+    sort_by: Optional[str] = "created_at"
+    sort_order: Optional[str] = SortOrder.DESCENDING

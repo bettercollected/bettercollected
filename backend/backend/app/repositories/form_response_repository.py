@@ -1,20 +1,20 @@
 from typing import Any, Dict, List
 
-from beanie import PydanticObjectId
+import fastapi_pagination.ext.beanie
+from fastapi_pagination import Page
 
+from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
+from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
     FormResponseDeletionRequest,
     DeletionRequestStatus,
 )
-
+from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 from common.base.repo import BaseRepository
 from common.enums.form_provider import FormProvider
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
-
-import fastapi_pagination.ext.beanie
-from fastapi_pagination import Page
 
 
 class FormResponseRepository(BaseRepository):
@@ -23,13 +23,14 @@ class FormResponseRepository(BaseRepository):
         form_ids,
         request_for_deletion: bool,
         extra_find_query: Dict[str, Any] = None,
+        filter_query: FormResponseFilterQuery = None,
+        sort: SortRequest = None,
     ) -> Page[FormResponseDocument]:
         find_query = {"form_id": {"$in": form_ids}}
         if not request_for_deletion:
             find_query["answers"] = {"$exists": True}
-        if extra_find_query:
+        if extra_find_query is not None:
             find_query.update(extra_find_query)
-
         aggregate_query = [
             {
                 "$lookup": {
@@ -64,7 +65,11 @@ class FormResponseRepository(BaseRepository):
                     },
                 ]
             )
-        aggregate_query.append({"$sort": {"created_at": -1}})
+
+        aggregate_query.extend(
+            create_filter_pipeline(filter_object=filter_query, sort=sort)
+        )
+
         form_responses_query = FormResponseDocument.find(find_query).aggregate(
             aggregate_query
         )
@@ -74,9 +79,15 @@ class FormResponseRepository(BaseRepository):
         return form_responses
 
     async def list(
-        self, form_ids: List[str], request_for_deletion: bool
+        self,
+        form_ids: List[str],
+        request_for_deletion: bool,
+        filter_query: FormResponseFilterQuery = None,
+        sort: SortRequest = None,
     ) -> Page[StandardFormResponse]:
-        form_responses = await self.get_form_responses(form_ids, request_for_deletion)
+        form_responses = await self.get_form_responses(
+            form_ids, request_for_deletion, filter_query=filter_query, sort=sort
+        )
         return form_responses
 
     async def get_user_submissions(

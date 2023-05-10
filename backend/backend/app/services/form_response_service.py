@@ -1,7 +1,11 @@
 from http import HTTPStatus
 from typing import List
 
+from beanie import PydanticObjectId
+
 from backend.app.exceptions import HTTPException
+from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
+from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.models.response_dtos import (
     StandardFormCamelModel,
     StandardFormResponseCamelModel,
@@ -15,9 +19,6 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-
-from beanie import PydanticObjectId
-
 from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.user import User
 
@@ -65,6 +66,8 @@ class FormResponseService:
         workspace_id: PydanticObjectId,
         request_for_deletion: bool,
         form_id: str,
+        filter_query: FormResponseFilterQuery,
+        sort: SortRequest,
         user: User,
     ):
         if not await self._workspace_user_repo.has_user_access_in_workspace(
@@ -84,7 +87,7 @@ class FormResponseService:
             )
         # TODO : Refactor with mongo query instead of python
         form_responses = await self._form_response_repo.list(
-            [form_id], request_for_deletion
+            [form_id], request_for_deletion, filter_query, sort
         )
         return form_responses
 

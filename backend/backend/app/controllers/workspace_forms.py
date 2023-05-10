@@ -5,7 +5,7 @@ from fastapi_pagination import Page
 from starlette.requests import Request
 
 from backend.app.container import container
-from backend.app.models.FilterQueries.sort import SortRequest
+from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.response_dtos import (
     WorkspaceFormPatchResponse,
