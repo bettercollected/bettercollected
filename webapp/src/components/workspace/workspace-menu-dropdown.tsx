@@ -30,7 +30,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
     const router = useRouter();
 
     const handleChangeWorkspace = (space: WorkspaceDto) => {
-        router.push(`/${space.workspaceName}/dashboard`);
+        if (!space?.disabled) router.push(`/${space.workspaceName}/dashboard`);
     };
 
     const handleCreateWorkspace = () => {
@@ -65,7 +65,11 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
             ) : !!data && Array.isArray(data) ? (
                 data.map((space: WorkspaceDto) => (
                     <ListItem key={space.id} disablePadding alignItems="flex-start">
-                        <IconButton className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'}`} onClick={() => handleChangeWorkspace(space)} size="small">
+                        <IconButton
+                            className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${space?.disabled && 'cursor-not-allowed'} ${fullWidth ? 'w-full flex justify-between' : 'w-fit'}`}
+                            onClick={() => handleChangeWorkspace(space)}
+                            size="small"
+                        >
                             <div className="flex justify-between w-full items-center gap-4">
                                 <div className="flex items-center gap-3">
                                     <AuthAccountProfileImage size={40} image={space?.profileImage} name={space?.title} />
