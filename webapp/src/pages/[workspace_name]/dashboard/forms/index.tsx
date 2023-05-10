@@ -125,30 +125,30 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             }
         }
     ];
-    const handleSearch = async (event: any) => {
-        const response: any = await searchWorkspaceForms({
-            workspace_id: workspace.id,
-            query: escapeRegExp(event.target.value)
-        });
-        if (event.target.value) {
-            setForms(response?.data);
-        } else {
-            setForms(workspaceForms?.data?.items);
-        }
-    };
-    const debouncedResults = useMemo(() => {
-        return debounce(handleSearch, 500);
-    }, []);
-    useEffect(() => {
-        debouncedResults.cancel();
-    }, []);
+    // const handleSearch = async (event: any) => {
+    //     const response: any = await searchWorkspaceForms({
+    //         workspace_id: workspace.id,
+    //         query: escapeRegExp(event.target.value)
+    //     });
+    //     if (event.target.value) {
+    //         setForms(response?.data);
+    //     } else {
+    //         setForms(workspaceForms?.data?.items);
+    //     }
+    // };
+    // const debouncedResults = useMemo(() => {
+    //     return debounce(handleSearch, 500);
+    // }, []);
+    // useEffect(() => {
+    //     debouncedResults.cancel();
+    // }, []);
 
     return (
         <SidebarLayout>
             <div className="py-10 w-full h-full">
                 <h1 className="sh1">Forms</h1>
                 <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
-                    <StyledTextField>
+                    {/* <StyledTextField>
                         <TextField
                             sx={{ height: '46px', padding: 0 }}
                             size="small"
@@ -167,7 +167,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                                 )
                             }}
                         />
-                    </StyledTextField>
+                    </StyledTextField> */}
                     <ImportFormsButton size="small" />
                     {/*<div className="grid grid-cols-2 items-center gap-2">*/}
                     {/*    {selectList.map((item) => (*/}

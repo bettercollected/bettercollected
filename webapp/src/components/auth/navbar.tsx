@@ -1,4 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
+
+import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
+import { MenuItem, Select } from '@mui/material';
+import cn from 'classnames';
 
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
 import { DRAWER_VIEW } from '@app/components/drawer-views/context';
@@ -9,6 +13,11 @@ import Logo from '@app/components/ui/logo';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
+
+import { Check } from '../icons/check';
+import Globe from '../icons/flags/globe';
+import Netherland from '../icons/flags/netherland';
+import USA from '../icons/flags/usa';
 
 interface IAuthNavbarProps {
     hideMenu?: boolean;
@@ -45,7 +54,7 @@ export function Header(props: any) {
 
 export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerToggle, isCustomDomain = false, isClientDomain = false, hideMenu = false, drawerView = 'DASHBOARD_SIDEBAR', showAuthAccount }: IAuthNavbarProps) {
     const screenSize = useBreakpoint();
-
+    const [language, setLanguage] = useState('EN');
     const isMobileView = () => {
         switch (screenSize) {
             case 'xs':
@@ -58,6 +67,23 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
         }
     };
 
+    const dropdownOptions = [
+        {
+            label: 'EN',
+            value: 'ENGLISH',
+            icon: USA
+        },
+        {
+            label: 'NL',
+            value: 'DUTCH',
+            icon: Netherland
+        }
+    ];
+
+    const handleLanguage = (language: string) => {
+        setLanguage(language);
+    };
+
     return (
         <Header className="!z-[1300]">
             <div className="flex flex-row w-full h-full py-2 md:py-0 justify-between items-center">
@@ -66,11 +92,45 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
                     <Logo isCustomDomain={isCustomDomain} isClientDomain={isClientDomain} />
                 </div>
                 <div className="flex items-center justify-center gap-7">
+                    <div className="flex items-center">
+                        <MenuDropdown
+                            PaperProps={{
+                                elevation: 0,
+                                sx: {
+                                    width: 200,
+                                    overflow: 'hidden',
+                                    borderRadius: 2,
+                                    filter: 'drop-shadow(0px 0px 15px rgba(0, 0, 0, 0.15))',
+                                    mt: 0.5,
+                                    padding: 0
+                                }
+                            }}
+                            id="language-menu"
+                            menuTitle={''}
+                            menuContent={
+                                <>
+                                    <Globe className="h-6 w-6" />
+                                    {language}
+                                </>
+                            }
+                        >
+                            {dropdownOptions.map((dd: any) => (
+                                <MenuItem onClick={() => handleLanguage(dd.label)} className="py-4 justify-between hover:bg-black-200" key={dd.value}>
+                                    <div className={cn('flex gap-3 body3  items-center  ', language === dd.label && '!text-brand-600 ')}>
+                                        {React.createElement(dd.icon, { className: 'h-5 w-6' })} {dd?.value}
+                                    </div>
+                                    {language === dd.label && <Check className="h-5 w-5" color="#0C50B4" />}
+                                </MenuItem>
+                            ))}
+                        </MenuDropdown>
+                    </div>
+
                     {showPlans && (
                         <ProPlanHoc hideChildrenIfPro={true}>
                             <Button size="small">Upgrade</Button>
                         </ProPlanHoc>
                     )}
+
                     {showAuthAccount && <AuthAccountMenuDropdown hideMenu={hideMenu} />}
                 </div>
             </div>
