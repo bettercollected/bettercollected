@@ -5,6 +5,7 @@ from beanie import PydanticObjectId
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
+from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.config import settings
 from common.constants import MESSAGE_FORBIDDEN
@@ -18,10 +19,11 @@ class WorkspaceUserService:
     async def check_user_has_access_in_workspace(
         self, workspace_id: PydanticObjectId, user: User
     ):
+        workspace = await WorkspaceDocument.find_one({"_id": workspace_id})
         has_access = await self.workspace_user_repository.has_user_access_in_workspace(
             workspace_id, user
         )
-        if not has_access:
+        if not has_access or workspace.disabled:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
@@ -29,10 +31,11 @@ class WorkspaceUserService:
     async def check_is_admin_in_workspace(
         self, workspace_id: PydanticObjectId, user: User
     ):
+        workspace = await WorkspaceDocument.find_one({"_id": workspace_id})
         is_admin = await self.workspace_user_repository.is_user_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        if not is_admin:
+        if not is_admin or workspace.disabled:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
