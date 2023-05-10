@@ -24,10 +24,10 @@ export async function getServerSideProps(_context: any) {
     const config = getServerSideAuthHeaderConfig(_context);
 
     try {
-        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
+        const userStatus = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, config);
         const user = (await userStatus?.json().catch((e: any) => e))?.user ?? null;
         if (user?.roles?.includes('FORM_CREATOR')) {
-            const userWorkspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/mine`, config);
+            const userWorkspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/mine`, config);
             const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e)) ?? null;
             const defaultWorkspace = userWorkspace.filter((workspace: WorkspaceDto) => workspace.ownerId === user.id && workspace?.default);
             let redirectWorkspace: WorkspaceDto | null;
@@ -36,7 +36,7 @@ export async function getServerSideProps(_context: any) {
             } else {
                 redirectWorkspace = userWorkspace[0];
             }
-            if (!redirectWorkspace?.title || redirectWorkspace.title.toLowerCase() === 'untitled') {
+            if (!redirectWorkspace?.title || redirectWorkspace?.title === '' || redirectWorkspace?.title.toLowerCase() === 'untitled') {
                 return {
                     redirect: {
                         permanent: false,

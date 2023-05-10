@@ -47,7 +47,7 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
             }
         };
     }
-    if (authUserProps && authUserProps.workspace.title.toLowerCase() !== 'untitled') {
+    if (authUserProps && authUserProps?.workspace?.title && authUserProps?.workspace?.title.toLowerCase() !== 'untitled') {
         return {
             redirect: {
                 permanent: false,

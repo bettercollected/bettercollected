@@ -145,7 +145,7 @@ export async function getServerSideProps(_context: any) {
 
     try {
         if (globalProps.hasCustomDomain && globalProps.workspaceId) {
-            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/submissions/${submissionId}`, config).catch((e) => e);
+            const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/submissions/${submissionId}`, config).catch((e) => e);
             form = (await formResponse?.json().catch((e: any) => e)) ?? null;
         }
     } catch (err) {

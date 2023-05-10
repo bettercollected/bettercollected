@@ -40,7 +40,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
         router.push('/create-workspace');
     };
 
-    const fullWorkspaceName = workspace?.title || workspace?.workspaceName || '';
+    const fullWorkspaceName = workspace?.title || 'Untitled';
     const workspaceName = toEndDottedStr(fullWorkspaceName, 15);
     const showExpandMore = true;
 
@@ -72,9 +72,9 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                         >
                             <div className="flex justify-between w-full items-center gap-4">
                                 <div className="flex items-center gap-3">
-                                    <AuthAccountProfileImage size={40} image={space?.profileImage} name={space?.title} />
-                                    <Tooltip title={space?.title}>
-                                        <p className="body3">{toEndDottedStr(space?.title, 15)}</p>
+                                    <AuthAccountProfileImage size={40} image={space?.profileImage} name={space?.title || 'Untitled'} />
+                                    <Tooltip title={space?.title || 'Untitled'}>
+                                        <p className="body3">{toEndDottedStr(space?.title || 'Untitled', 15)}</p>
                                     </Tooltip>
                                 </div>
                                 {workspace.id === space.id && <Check color="#0764EB" />}

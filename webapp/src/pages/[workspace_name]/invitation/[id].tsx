@@ -126,10 +126,10 @@ export async function getServerSideProps(_context: any) {
     let user = null;
     let invitation = null;
     try {
-        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
+        const userStatus = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, config);
         user = (await userStatus?.json().catch((e: any) => e))?.user ?? null;
         if (user !== null) {
-            const invitation_response = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace.id}/members/invitations/${id}`, config);
+            const invitation_response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace.id}/members/invitations/${id}`, config);
             invitation = await invitation_response?.json();
             if (invitation_response.status !== 200 || user?.email !== invitation?.email) {
                 return {
