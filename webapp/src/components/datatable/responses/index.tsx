@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import { useRouter } from 'next/router';
 
+import StyledPagination from '@Components/Common/Pagination';
 import { Typography } from '@mui/material';
-import TablePagination from '@mui/material/TablePagination';
 import DataTable from 'react-data-table-component';
 
 import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-badge';
@@ -11,7 +11,7 @@ import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
-import { useGetFormsSubmissionsQuery, useGetWorkspaceSubmissionsQuery } from '@app/store/workspaces/api';
+import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
 const responseTableStyles = {
@@ -28,7 +28,7 @@ const responseTableStyles = {
     }
 };
 const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
-    const [page, setPage] = useState(0);
+    const [page, setPage] = useState(1);
 
     const router = useRouter();
 
@@ -134,7 +134,9 @@ const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
                         onRowClicked={onRowClicked}
                     />
                     {Array.isArray(responses) && data?.total > globalConstants.pageSize && (
-                        <TablePagination component="div" rowsPerPageOptions={[]} rowsPerPage={globalConstants.pageSize} count={data?.total || 0} page={page} onPageChange={handlePageChange} />
+                        <div className="mt-8 flex justify-center">
+                            <StyledPagination shape="rounded" count={data?.total || 0} page={page} onChange={handlePageChange} />
+                        </div>
                     )}
                 </>
             )}
