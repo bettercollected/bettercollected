@@ -1,7 +1,7 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from backend.app.models.filter_queries.base_filter_query import BaseFilterQuery
 
 
-class FormResponseFilterQuery(BaseModel):
-    dataOwnerIdentifier: Optional[str] = None
+class FormResponseFilterQuery(BaseFilterQuery):
+    data_owner_identifier: Optional[str] = None
