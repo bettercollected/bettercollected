@@ -129,7 +129,7 @@ services:
       TYPEFORM_CLIENT_SECRET: 
       TYPEFORM_AUTH_URI: https://api.typeform.com/oauth/authorize?state={state}&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}
       TYPEFORM_TOKEN_URI: https://api.typeform.com/oauth/token
-      TYPEFORM_REDIRECT_URI: https://bettercollected-admin.sireto.dev/api/v1/auth/typeform/basic/callback
+      TYPEFORM_REDIRECT_URI: http://localhost:8000/api/v1/auth/typeform/basic/callback
       TYPEFORM_API_URI: https://api.typeform.com
 
       # Auth
