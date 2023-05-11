@@ -30,7 +30,10 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     const { openModal } = useModal();
 
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-    const [currentActiveForm, setCurrentActiveForm] = React.useState<{ form: StandardFormDto; shareUrl: string } | null>(null);
+    const [currentActiveForm, setCurrentActiveForm] = React.useState<{
+        form: StandardFormDto;
+        shareUrl: string;
+    } | null>(null);
 
     const dispatch = useAppDispatch();
     const [patchFormSettings] = usePatchFormSettingsMutation();
@@ -129,13 +132,6 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     </ListItemIcon>
                     <span>Visibility</span>
                 </MenuItem>
-                {!!currentActiveForm?.form?.settings?.private ? (
-                    <Tooltip title="Visibility of the form should be public to pin it into the workspace.">
-                        <div>{menuItemShareSettings}</div>
-                    </Tooltip>
-                ) : (
-                    menuItemShareSettings
-                )}
                 <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-red-100 !text-red-500">
                     <ListItemIcon>
                         <Delete width={20} height={20} />

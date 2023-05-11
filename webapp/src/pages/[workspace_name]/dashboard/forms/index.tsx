@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+import { useRouter } from 'next/router';
+
 import Divider from '@Components/Common/DataDisplay/Divider';
 import DataTable from 'react-data-table-component';
 
@@ -14,6 +16,20 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
+const formTableStyles = {
+    ...dataTableCustomStyles,
+    rows: {
+        style: {
+            ...dataTableCustomStyles.rows.style,
+            border: '1px solid transparent',
+            '&:hover': {
+                cursor: 'pointer',
+                border: '1px solid #0764EB'
+            }
+        }
+    }
+};
+
 export default function FormPage({ workspace, hasCustomDomain }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
     const [sortValue, setSortValue] = useState('newest_oldest');
     const [filterValue, setFilterValue] = useState('show_all');
@@ -24,6 +40,12 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
 
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
     const forms = workspaceForms?.data?.items;
+
+    const router = useRouter();
+
+    const onRowCLicked = (form: StandardFormDto) => {
+        router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}`);
+    };
 
     const selectList = [
         {
@@ -156,7 +178,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                 <Divider />
 
                 {/* @ts-ignore */}
-                <DataTable className="p-0 mt-2" columns={dataTableFormColumns} data={forms} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+                <DataTable className="p-0 mt-2" columns={dataTableFormColumns} data={forms} customStyles={formTableStyles} highlightOnHover={false} pointerOnHover={false} onRowClicked={onRowCLicked} />
             </div>
         </SidebarLayout>
     );

@@ -16,15 +16,13 @@ export default function DataTableProviderFormCell({ workspace, form }: IDataTabl
     const Icon = form?.settings?.provider === 'google' ? GoogleFormIcon : TypeformIcon;
 
     return (
-        <ActiveLink href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`} className="w-fit">
-            <Tooltip title={form?.title || 'Untitled'}>
-                <Typography className="hover:!text-brand-600 hover:!underline flex justify-start items-center gap-3 !body3 !not-italic" noWrap>
-                    <span className="w-10 h-10">
-                        <Icon width={40} height={40} />
-                    </span>
-                    {form?.title || 'Untitled'}
-                </Typography>
-            </Tooltip>
-        </ActiveLink>
+        <Tooltip title={form?.title || 'Untitled'}>
+            <Typography className="hover:!text-brand-600 hover:!underline flex justify-start items-center gap-3 !body3 !not-italic" noWrap>
+                <span className="w-10 h-10">
+                    <Icon width={40} height={40} />
+                </span>
+                {form?.title || 'Untitled'}
+            </Typography>
+        </Tooltip>
     );
 }

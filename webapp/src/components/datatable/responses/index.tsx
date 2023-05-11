@@ -14,6 +14,19 @@ import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { useGetFormsSubmissionsQuery, useGetWorkspaceSubmissionsQuery } from '@app/store/workspaces/api';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
+const responseTableStyles = {
+    ...dataTableCustomStyles,
+    rows: {
+        style: {
+            ...dataTableCustomStyles.rows.style,
+            border: '1px solid transparent',
+            '&:hover': {
+                cursor: 'pointer',
+                border: '1px solid #0764EB'
+            }
+        }
+    }
+};
 const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
     const [page, setPage] = useState(0);
 
@@ -34,21 +47,7 @@ const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
     const [responses, setResponses] = useState<Array<any>>([]);
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
-        <div
-            aria-hidden
-            onClick={() => {
-                if (!requestForDeletion)
-                    router.push(
-                        {
-                            pathname: router.pathname,
-                            query: { ...router.query, sub_id: response.responseId }
-                        },
-                        undefined,
-                        { scroll: true, shallow: true }
-                    );
-            }}
-            className="w-fit"
-        >
+        <div aria-hidden className="w-fit">
             <Typography className="!text-black-900 hover:!text-brand-500 cursor-pointer hover:underline" noWrap>
                 {response?.dataOwnerIdentifier ?? 'Anonymous'}
             </Typography>
@@ -103,6 +102,20 @@ const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
         dataTableResponseColumns.splice(1, 0, ...columnsToAdd);
     }
 
+    const onRowClicked = (response: StandardFormResponseDto) => {
+        if (!requestForDeletion) {
+            if (!requestForDeletion)
+                router.push(
+                    {
+                        pathname: router.pathname,
+                        query: { ...router.query, sub_id: response.responseId }
+                    },
+                    undefined,
+                    { scroll: true, shallow: true }
+                );
+        }
+    };
+
     return (
         <>
             {isLoading ? (
@@ -111,7 +124,15 @@ const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
                 </div>
             ) : (
                 <>
-                    <DataTable className="p-0 mt-2" columns={dataTableResponseColumns} data={data?.items || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+                    <DataTable
+                        className="p-0 mt-2"
+                        columns={dataTableResponseColumns}
+                        data={data?.items || []}
+                        customStyles={requestForDeletion ? dataTableCustomStyles : responseTableStyles}
+                        highlightOnHover={false}
+                        pointerOnHover={false}
+                        onRowClicked={onRowClicked}
+                    />
                     {Array.isArray(responses) && data?.total > globalConstants.pageSize && (
                         <TablePagination component="div" rowsPerPageOptions={[]} rowsPerPage={globalConstants.pageSize} count={data?.total || 0} page={page} onPageChange={handlePageChange} />
                     )}
