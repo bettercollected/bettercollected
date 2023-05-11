@@ -24,6 +24,7 @@ const environments = {
 
     // run-time configg
     GA_MEASUREMENT_ID: publicRuntimeConfig.GA_MEASUREMENT_ID,
+    MICROSOFT_CLARITY_TRACKING_CODE: publicRuntimeConfig.MICROSOFT_CLARITY_TRACKING_CODE,
 
     // Integrations enabled
     ENABLE_GOOGLE: (publicRuntimeConfig.ENABLE_GOOGLE && (publicRuntimeConfig.ENABLE_GOOGLE === 'true' || publicRuntimeConfig.ENABLE_GOOGLE === true)) ?? false,

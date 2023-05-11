@@ -59,6 +59,8 @@ const nextConfig = {
         ADMIN_DOMAIN: process.env.ADMIN_DOMAIN,
         HTTP_SCHEME: process.env.HTTP_SCHEME,
 
+        MICROSOFT_CLARITY_TRACKING_CODE: process.env.MICROSOFT_CLARITY_TRACKING_CODE,
+
         NEXT_PUBLIC_NODE_ENV: process.env.NEXT_PUBLIC_NODE_ENV || 'production',
 
         // Custom Domain Variables
