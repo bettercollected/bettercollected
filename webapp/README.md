@@ -89,7 +89,8 @@ The need for you to clone this repository is because you need it to seed the dat
 
 After configuring all the environments in the `docker-compose.yml` file, run the following command to start the services:
 
-## `docker compose up --build --remove-orphans -d`
+## `docker compose up --build --remove-orphans`
+After running this command, you may need to login into stripe.
 
 ##### Full docker-compose file
 ```yaml
