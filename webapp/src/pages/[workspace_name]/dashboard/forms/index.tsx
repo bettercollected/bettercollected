@@ -131,7 +131,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             }
         },
         {
-            cell: (form: StandardFormDto) => <FormOptionsDropdownMenu redirectToDashboard={false} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />,
+            cell: (form: StandardFormDto) => <FormOptionsDropdownMenu redirectToDashboard={false} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} showShare />,
             allowOverflow: true,
             button: true,
             width: '60px',
@@ -148,32 +148,6 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                 <h1 className="sh1">Forms</h1>
                 <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
                     <ImportFormsButton size="small" />
-                    {/*<div className="grid grid-cols-2 items-center gap-2">*/}
-                    {/*    {selectList.map((item) => (*/}
-                    {/*        <FormControl key={item.id} variant="outlined" sx={{ height: '36px' }} hiddenLabel size="small">*/}
-                    {/*            <InputLabel id={item.id}>{item.label}</InputLabel>*/}
-                    {/*            <Select*/}
-                    {/*                labelId={item.id}*/}
-                    {/*                id={item.selectId}*/}
-                    {/*                MenuProps={{*/}
-                    {/*                    disableScrollLock: true*/}
-                    {/*                }}*/}
-                    {/*                sx={{ height: '36px' }}*/}
-                    {/*                color="primary"*/}
-                    {/*                IconComponent={ExpandMoreOutlined}*/}
-                    {/*                value={item.value}*/}
-                    {/*                label={item.label}*/}
-                    {/*                onChange={item.onChange}*/}
-                    {/*            >*/}
-                    {/*                {item.menuItems.map((menuItem) => (*/}
-                    {/*                    <MenuItem key={menuItem.value} value={menuItem.value}>*/}
-                    {/*                        {menuItem.label}*/}
-                    {/*                    </MenuItem>*/}
-                    {/*                ))}*/}
-                    {/*            </Select>*/}
-                    {/*        </FormControl>*/}
-                    {/*    ))}*/}
-                    {/*</div>*/}
                 </div>
                 <Divider />
 
