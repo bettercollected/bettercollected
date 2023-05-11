@@ -87,6 +87,10 @@ The need for you to clone this repository is because you need it to seed the dat
 
 #### E. Configure `integrations-typeform` and `integrations-googleform`
 
+After configuring all the environments in the `docker-compose.yml` file, run the following command to start the services:
+
+## `docker compose up --build --remove-orphans -d`
+
 ##### Full docker-compose file
 ```yaml
 version: '3.7'
