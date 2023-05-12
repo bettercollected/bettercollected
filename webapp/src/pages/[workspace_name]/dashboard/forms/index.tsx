@@ -104,6 +104,8 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                     {row?.responses ?? 0}
                 </ActiveLink>
             ),
+            grow: 2,
+
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
@@ -119,6 +121,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                     {row?.deletionRequests ?? 0}
                 </ActiveLink>
             ),
+            grow: 2,
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',

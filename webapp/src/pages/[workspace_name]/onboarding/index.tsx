@@ -8,6 +8,7 @@ import _ from 'lodash';
 import { ChevronLeft } from '@mui/icons-material';
 import { TextField } from '@mui/material';
 import cn from 'classnames';
+import { util } from 'prettier';
 import AvatarEditor from 'react-avatar-editor';
 import { toast } from 'react-toastify';
 
@@ -25,6 +26,8 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateWorkspaceMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
+
+import skip = util.skip;
 
 interface FormDataDto {
     title: string;
@@ -119,17 +122,17 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         }
     };
 
-    const onClickDone = async () => {
+    const onClickDone = async (skip: boolean = false) => {
         if (createWorkspace) {
-            await createNewWorkspace();
+            await createNewWorkspace(skip);
         } else {
-            await updateWorkspaceDetails();
+            await updateWorkspaceDetails(skip);
         }
     };
 
-    const createNewWorkspace = async () => {
+    const createNewWorkspace = async (skip: boolean) => {
         const createFormData = new FormData();
-        if (formData.workspaceLogo) {
+        if (formData.workspaceLogo && !skip) {
             createFormData.append('profile_image', formData.workspaceLogo);
         }
         createFormData.append('title', formData.title);
@@ -145,9 +148,9 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         }
     };
 
-    const updateWorkspaceDetails = async () => {
+    const updateWorkspaceDetails = async (skip: boolean) => {
         const updateFormData = new FormData();
-        if (formData.workspaceLogo && workspace?.profileImage !== formData.workspaceLogo) {
+        if (formData.workspaceLogo && workspace?.profileImage !== formData.workspaceLogo && !skip) {
             updateFormData.append('profile_image', formData.workspaceLogo);
         }
         updateFormData.append('title', formData.title);
@@ -251,8 +254,23 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                 profileName={profileName}
             ></WorkSpaceLogoUi>
             {/* </div> */}
-            <div className="flex justify-end mt-8 items-center">
-                <Button size="medium" onClick={onClickDone} isLoading={isLoading || data?.isLoading}>
+            <div className="flex justify-between mt-8 items-center">
+                <div
+                    className="text-brand-500 hover:underline hover:cursor-pointer"
+                    onClick={async () => {
+                        await onClickDone(true);
+                    }}
+                >
+                    Skip
+                </div>
+
+                <Button
+                    size="medium"
+                    onClick={async () => {
+                        await onClickDone();
+                    }}
+                    isLoading={isLoading || data?.isLoading}
+                >
                     Done
                 </Button>
             </div>
