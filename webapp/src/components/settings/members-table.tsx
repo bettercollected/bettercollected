@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 import _ from 'lodash';
 
+import UserDetails from '@Components/Common/DataDisplay/UserDetails';
 import DataTable from 'react-data-table-component';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
@@ -24,15 +25,7 @@ export default function MembersTable() {
     const dataTableResponseColumns: any = [
         {
             name: 'Member',
-            selector: (member: any) => (
-                <div className="flex space-x-4">
-                    <AuthAccountProfileImage image={member.profile_image} name={getFullNameFromUser(member)} size={40} />
-                    <div className="flex flex-col">
-                        <div className="!body3">{getFullNameFromUser(member)}</div>
-                        <div className="!body5 !text-black-600">{member.email}</div>
-                    </div>
-                </div>
-            ),
+            selector: (member: any) => <UserDetails user={member} />,
             grow: 2,
             style: {
                 color: '#202124',
@@ -55,7 +48,7 @@ export default function MembersTable() {
         },
         {
             name: 'Joined',
-            selector: (member: any) => (!!member?.joined ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(member?.joined)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(member?.joined)))}` : ''),
+            selector: (member: any) => (!!member?.joined ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(member?.joined)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
+import UserDetails from '@Components/Common/DataDisplay/UserDetails';
 import DataTable from 'react-data-table-component';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
@@ -13,6 +14,8 @@ import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import ActiveLink from '@app/components/ui/links/active-link';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
@@ -37,6 +40,9 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     const workspaceQuery = {
         workspace_id: workspace.id
     };
+
+    const isAdmin = useAppSelector(selectIsAdmin);
+    const isProPlan = useAppSelector(selectIsProPlan);
 
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
     const forms = workspaceForms?.data?.items;
@@ -82,7 +88,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
         {
             name: 'Form type',
             selector: (form: StandardFormDto) => <DataTableProviderFormCell form={form} workspace={workspace} />,
-            grow: 2,
+            grow: 4,
             style: {
                 color: '#202124',
                 fontSize: '16px',
@@ -120,9 +126,18 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                 fontSize: '18px'
             }
         },
+        ...(isAdmin && !isProPlan
+            ? []
+            : [
+                  {
+                      name: 'Imported by',
+                      grow: 3,
+                      selector: (row: StandardFormDto) => <UserDetails user={row.importerDetails} />
+                  }
+              ]),
         {
             name: 'Imported date',
-            selector: (row: StandardFormDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))}` : ''),
+            selector: (row: StandardFormDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
