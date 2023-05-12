@@ -19,7 +19,7 @@ These are some of the required tools or process that you need to follow in order
     7. Click on the "Credentials" tab.
     8. Click on the "Create Credentials" button and select "OAuth client ID" from the dropdown menu.
     9. Select "Web App" as the application type and enter a name for your OAuth client ID.
-    10. Add two Redirect URIs: `http://localhost:8000/api/v1/auth/google/oauth/callback` and `http://localhost:8000/api/v1/auth/google/oauth/callback`. Also, add three JavaScript origins: `http://localhost:3000`, `http://localhost:3001`, and `http://localhost:3002`.
+    10. Add two Redirect URIs: `http://localhost:8000/api/v1/auth/google/basic/callback` and `http://localhost:8000/api/v1/auth/google/oauth/callback`. Also, add three JavaScript origins: `http://localhost:3000`, `http://localhost:3001`, and `http://localhost:3002`.
     11. Click on the "Create" button.
     12. Click on the "OAuth consent screen". From here, you can add new test users and add different scopes. The required scopes for our application to run are: `auth/userinfo.email`, `auth/userinfo.profile`, `openid`, `auth/forms.body.readonly`, `auth/forms.responses.readonly`, and `auth/drive.metadata.readonly`.
     13. In the "OAuth client ID" page, you can find your client ID and client secret.
@@ -40,7 +40,7 @@ Here are the steps you need to take to run the **BetterCollected** project.
 
 #### A. Clone the repo
 
-The need for you to clone this repository is because you need it to seed the data inside MongoDB. Or, you can copy [Dockerfile.mongo-seed](Dockerfile.mongo-seed), [seed-data.js](seed-data.js), and [nginx.conf](nginx.conf) files from this repo and save it locally on your device at the same directory level where you'll place your `docker-compose.yml` file.
+The need for you to clone this repository is because you need it to seed the data inside MongoDB. Or, you can copy [Dockerfile.mongo-seed](Dockerfile.mongo-seed), [seed-data.js](seed-data.js), and [nginx.conf](nginx.conf) files from this repo and save it locally on your device at the same directory level where you'll place your `docker-compose.yml` file, and update the `nginx.conf` file with `http://webapp:3000` to `http://localhost:3000`.
 
 #### B. Configure common docker-compose environments that are same in all the services used
 
@@ -237,7 +237,7 @@ services:
             TYPEFORM_CLIENT_SECRET:
             TYPEFORM_AUTH_URI: https://api.typeform.com/oauth/authorize?state={state}&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}
             TYPEFORM_TOKEN_URI: https://api.typeform.com/oauth/token
-            TYPEFORM_REDIRECT_URI: https://bettercollected-admin.sireto.dev/api/v1/auth/typeform/basic/callback
+            TYPEFORM_REDIRECT_URI: http://localhost:8000/api/v1/auth/typeform/basic/callback
             TYPEFORM_API_URI: https://api.typeform.com
 
             # Auth
