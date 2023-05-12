@@ -1,9 +1,12 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import { EmptyImportFormIcon } from '@app/components/icons/empty-import-form-icon';
 import ActiveLink from '@app/components/ui/links/active-link';
 import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
+import { formsConstant } from '@app/constants/locales';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
@@ -15,14 +18,15 @@ interface IWorkspaceDashboardFormsProps {
 
 export default function WorkspaceDashboardForms({ workspaceForms, workspace, hasCustomDomain }: IWorkspaceDashboardFormsProps) {
     const forms = workspaceForms?.data?.items;
+    const { t } = useTranslation();
 
     return (
         <div className="mb-10 w-full h-fit mt-5">
             {forms?.length === 0 ? (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-white rounded-[4px] py-[84px]">
                     <EmptyImportFormIcon className="mb-8" />
-                    <p className="sh1 mb-4 !leading-none">Import your first form</p>
-                    <p className="body4 mb-8 !leading-none">Import your Google Forms or Typeforms</p>
+                    <p className="sh1 mb-4 !leading-none">{t(formsConstant.empty.title)}</p>
+                    <p className="body4 mb-8 !leading-none">{t(formsConstant.empty.description)}</p>
                     <ImportFormsButton size="medium" />
                 </div>
             ) : (

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import _ from 'lodash';
 
 import Paper from '@mui/material/Paper';
@@ -14,12 +16,14 @@ import DataTable from 'react-data-table-component';
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import MemberOptions from '@app/components/datatable/workspace-settings/member-options';
+import { localesDefault, members } from '@app/constants/locales';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersInvitationsQuery, useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 import { parseDateStrToDate, toHourMinStr, toLocaleString, toLocaleStringFromDateString, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 import { getFullNameFromUser } from '@app/utils/userUtils';
 
 export default function InvitationsTable() {
+    const { t } = useTranslation();
     const workspace = useAppSelector((state) => state.workspace);
     const { data, isLoading } = useGetWorkspaceMembersInvitationsQuery({ workspaceId: workspace.id });
     const [invitations, setInvitations] = useState<Array<any>>([]);
@@ -30,7 +34,7 @@ export default function InvitationsTable() {
 
     const dataTableResponseColumns: any = [
         {
-            name: 'Member',
+            name: t(members.member),
             selector: (invitation: any) => invitation.email,
             grow: 2,
             style: {
@@ -43,7 +47,7 @@ export default function InvitationsTable() {
             }
         },
         {
-            name: 'Role',
+            name: t(members.role),
             selector: (invitation: any) => _.capitalize(invitation.role),
             style: {
                 color: 'rgba(0,0,0,.54)',
@@ -53,7 +57,7 @@ export default function InvitationsTable() {
             }
         },
         {
-            name: 'Status',
+            name: t(localesDefault.status),
             selector: (invitation: any) => _.capitalize(invitation.invitation_status),
             style: {
                 color: 'rgba(0,0,0,.54)',
@@ -63,7 +67,7 @@ export default function InvitationsTable() {
             }
         },
         {
-            name: 'Invitation Date',
+            name: t(members.invitationDate),
             selector: (invitation: any) => (!!invitation?.created_at ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(invitation?.created_at)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(invitation?.created_at)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',

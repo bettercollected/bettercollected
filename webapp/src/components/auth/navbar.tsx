@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
+
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { MenuItem, Select } from '@mui/material';
 import cn from 'classnames';
+import { t } from 'msw/lib/glossary-de6278a9';
 
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
 import { DRAWER_VIEW } from '@app/components/drawer-views/context';
@@ -10,6 +14,7 @@ import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import Button from '@app/components/ui/button';
 import Hamburger from '@app/components/ui/hamburger';
 import Logo from '@app/components/ui/logo';
+import { buttons } from '@app/constants/locales';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
@@ -54,7 +59,10 @@ export function Header(props: any) {
 
 export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerToggle, isCustomDomain = false, isClientDomain = false, hideMenu = false, drawerView = 'DASHBOARD_SIDEBAR', showAuthAccount }: IAuthNavbarProps) {
     const screenSize = useBreakpoint();
-    const [language, setLanguage] = useState('EN');
+    const { t } = useTranslation();
+    const router = useRouter();
+    const { pathname, asPath, query } = router;
+    const [language, setLanguage] = useState(router.locale ?? 'EN');
     const isMobileView = () => {
         switch (screenSize) {
             case 'xs':
@@ -69,18 +77,20 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
 
     const dropdownOptions = [
         {
-            label: 'EN',
+            label: 'en',
             value: 'ENGLISH',
             icon: USA
         },
         {
-            label: 'NL',
+            label: 'nl',
             value: 'DUTCH',
             icon: Netherland
         }
     ];
 
     const handleLanguage = (language: string) => {
+        router.push({ pathname, query }, asPath, { locale: language.toLowerCase() });
+        localStorage.setItem('language', language);
         setLanguage(language);
     };
 
@@ -110,7 +120,7 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
                             menuContent={
                                 <>
                                     <Globe className="h-6 w-6" />
-                                    {language}
+                                    {language.toUpperCase()}
                                 </>
                             }
                         >
@@ -127,7 +137,7 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
 
                     {showPlans && (
                         <ProPlanHoc hideChildrenIfPro={true}>
-                            <Button size="small">Upgrade</Button>
+                            <Button size="small">{t(buttons.upgrade)}</Button>
                         </ProPlanHoc>
                     )}
 

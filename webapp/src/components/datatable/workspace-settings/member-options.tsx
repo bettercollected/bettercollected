@@ -1,11 +1,14 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import Delete from '@Components/Common/Icons/Delete';
 import { DeleteOutline, MoreHoriz } from '@mui/icons-material';
 import { IconButton, ListItemIcon, Menu, MenuItem } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
+import { formsConstant } from '@app/constants/locales';
 
 interface IMemberOptionProps {
     member?: any;
@@ -16,7 +19,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
     const [currentActiveMember, setCurrentActiveMember] = React.useState<any | null>(null);
     const open = Boolean(anchorEl);
-
+    const { t } = useTranslation();
     const { openModal } = useModal();
     const handleClick = (event: React.MouseEvent<HTMLElement>, f: any) => {
         event.preventDefault();
@@ -93,7 +96,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                     <ListItemIcon>
                         <Delete width={20} height={20} />
                     </ListItemIcon>
-                    <span>Delete form</span>
+                    <span>{t(formsConstant.delete)}</span>
                 </MenuItem>
             </Menu>
         </>

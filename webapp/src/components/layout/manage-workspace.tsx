@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Toolbar from '@Components/Common/Layout/Toolbar';
@@ -17,6 +18,7 @@ import LinkView from '@app/components/ui/link-view';
 import ShareView from '@app/components/ui/share-view';
 import environments from '@app/configs/environments';
 import { workspaceCustomizeLink } from '@app/constants/Customize-domain';
+import { breadcrumbsItems, buttons, localesDefault, toastMessage, workspaceConstant } from '@app/constants/locales';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -25,16 +27,17 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 export default function ManageWorkspaceLayout({ children }: any) {
     const workspace = useAppSelector(selectWorkspace);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const { t } = useTranslation();
     const router = useRouter();
     const { openModal } = useModal();
     const isProPlan = useAppSelector(selectIsProPlan);
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
-            title: 'Dashboard',
+            title: t(breadcrumbsItems.dashboard),
             url: `/${workspace?.workspaceName}/dashboard`
         },
         {
-            title: 'Manage Workspace',
+            title: t(breadcrumbsItems.manageWorkspace),
             disabled: true
         }
     ];
@@ -48,7 +51,7 @@ export default function ManageWorkspaceLayout({ children }: any) {
         if (!isProPlan) {
             router.push(`/${workspace.workspaceName}/upgrade`);
         } else {
-            openModal('CUSTOMIZE_URL', { description: workspaceCustomizeLink.description, domain: isCustomDomain ? customDomainUrl : clientHostUrl });
+            openModal('CUSTOMIZE_URL', { description: t(workspaceCustomizeLink.description), domain: isCustomDomain ? customDomainUrl : clientHostUrl });
         }
     };
     return (
@@ -78,14 +81,14 @@ export default function ManageWorkspaceLayout({ children }: any) {
                     <Box sx={{ overflow: 'auto', height: '100%' }}>
                         <div className=" px-5 h-full py-8 relative w-full">
                             <Close onClick={handleDrawerToggle} className="absolute blocks lg:hidden right-5 top-5 cursor-pointer" />
-                            <ShareView url={clientHostUrl} showCopy={false} showBorder={false} title="Workspace" iconSize="small" />
+                            <ShareView url={clientHostUrl} showCopy={false} showBorder={false} title={t(workspaceConstant.default)} iconSize="small" />
 
                             <div className="mt-12">
-                                <div className="body1 !leading-none mb-4">Workspace Url</div>
-                                <LinkView url={isCustomDomain ? customDomainUrl : clientHostUrl} toastMessage="Workspace Url Copied" className="flex flex-col" buttonClassName="!text-brand-500 !border-blue-200 hover:!bg-brand-200 " />
+                                <div className="body1 !leading-none mb-4">{t(workspaceConstant.url)}</div>
+                                <LinkView url={isCustomDomain ? customDomainUrl : clientHostUrl} toastMessage={t(toastMessage.workspaceUrlCopied)} className="flex flex-col" buttonClassName="!text-brand-500 !border-blue-200 hover:!bg-brand-200 " />
                             </div>
                             <div className="my-12">
-                                <CustomizeLink title={workspaceCustomizeLink.title} subtitle={workspaceCustomizeLink.description} buttonText={isProPlan ? 'Customize Link' : 'Upgrade TO PRO'} onClick={handleClick} />
+                                <CustomizeLink title={t(workspaceCustomizeLink.title)} subtitle={t(workspaceCustomizeLink.description)} buttonText={isProPlan ? t(buttons.customizeLink) : t(buttons.upgradeToPro)} onClick={handleClick} />
                             </div>
                         </div>
                     </Box>

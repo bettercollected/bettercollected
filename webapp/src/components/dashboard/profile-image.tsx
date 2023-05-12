@@ -1,10 +1,13 @@
-import React, { useRef } from 'react';
+import React, { useRef, useTransition } from 'react';
 import { useState } from 'react';
+
+import { useTranslation } from 'next-i18next';
 
 import AvatarEditor from 'react-avatar-editor';
 import { toast } from 'react-toastify';
 
 import Image from '@app/components/ui/image';
+import { localesDefault, toastMessage, workspaceConstant } from '@app/constants/locales';
 import { ToastId } from '@app/constants/toastId';
 import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
 import { useAppDispatch } from '@app/store/hooks';
@@ -16,6 +19,7 @@ import WorkSpaceLogoUi from '../ui/workspace-logo-ui';
 
 export default function ProfileImageComponent(props: BannerImageComponentPropType) {
     const { workspace, isFormCreator } = props;
+    const { t } = useTranslation();
     const [uploadImage, setUploadImage] = useState(workspace.profileImage);
     const profileInputRef = useRef<HTMLInputElement>(null);
     const profileEditorRef = useRef<AvatarEditor>(null);
@@ -41,10 +45,10 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
 
             const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
             if (response.error) {
-                toast('Something went wrong', { toastId: ToastId.ERROR_TOAST });
+                toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
             }
             if (response.data) {
-                toast('Workspace Updated', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+                toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
 
                 dispatch(setWorkspace(response.data));
                 setUploadImage(response.data.profileImage);
@@ -66,13 +70,13 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
                         (!!workspace.profileImage ? (
                             <Image src={workspace?.profileImage ?? ''} layout="fill" objectFit="contain" alt={workspace.title} />
                         ) : (
-                            <div className="flex h-full justify-center items-center">
+                            <div className="flex h-full justify-center text-center items-center">
                                 {isFormCreator ? (
                                     <>
                                         <Image src="/upload.png" height="46px" width={'72px'} alt={'upload'} />
                                     </>
                                 ) : (
-                                    'No image available'
+                                    t(localesDefault.noImage)
                                 )}
                             </div>
                         ))}

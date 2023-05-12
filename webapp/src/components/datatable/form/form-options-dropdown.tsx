@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import Delete from '@Components/Common/Icons/Delete';
 import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
@@ -12,6 +14,8 @@ import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
+import { localesDefault, toastMessage, toolTipConstant } from '@app/constants/locales';
+import { formsConstant } from '@app/constants/locales';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { setFormSettings } from '@app/store/forms/slice';
@@ -34,7 +38,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
 
     const dispatch = useAppDispatch();
     const [patchFormSettings] = usePatchFormSettingsMutation();
-
+    const { t } = useTranslation();
     const open = Boolean(anchorEl);
 
     const handleShareUrl = () => {
@@ -66,13 +70,13 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             const settings = response.data.settings;
             dispatch(setFormSettings(settings));
         } else {
-            toast('Could not update this form setting!', { type: 'error' });
+            toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
             return response.error;
         }
     };
 
     const onPinnedChange = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast('Could not update this form setting!', { type: 'error', toastId: 'errorToast' });
+        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
         patchSettings({ pinned: !f?.settings?.pinned }, f)
             .then((res) => {})
             .catch((e) => {
@@ -81,7 +85,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     };
 
     const onPrivateChanged = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast('Could not update this form setting!', { type: 'error', toastId: 'errorToast' });
+        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
         const patchBody = { private: !f?.settings?.private, pinned: false };
         patchSettings(patchBody, f)
             .then((res) => {})
@@ -95,7 +99,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             <ListItemIcon>
                 <Pin width={20} height={20} />
             </ListItemIcon>
-            <span>{currentActiveForm?.form?.settings?.pinned ? 'Unpin form' : 'Pin form'}</span>
+            <span>{currentActiveForm?.form?.settings?.pinned ? t(formsConstant.unPinForm) : t(formsConstant.menu.pinForm)}</span>
         </MenuItem>
     );
 
@@ -103,13 +107,13 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         <MenuItem
             sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
             className="body4 hover:bg-brand-100"
-            onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: 'this form' })}
+            onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: t(formsConstant.thisForm) })}
             disabled={!!currentActiveForm?.form?.settings?.private}
         >
             <ListItemIcon>
                 <Share width={20} height={20} />
             </ListItemIcon>
-            <span>Share</span>
+            <span>{t(localesDefault.share)}</span>
         </MenuItem>
     );
 
@@ -117,7 +121,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         <div className={className} onClick={(e) => e.preventDefault()}>
             <MenuDropdown onClick={(e: any) => handleClick(e, form)} id="form-menu" menuTitle="Form options" menuContent={<EllipsisOption />} showExpandMore={false}>
                 {!!currentActiveForm?.form?.settings?.private ? (
-                    <Tooltip title="Visibility of the form should be public to pin it into the workspace.">
+                    <Tooltip title={t(toolTipConstant.visibility)}>
                         <div>{menuItemPinSettings}</div>
                     </Tooltip>
                 ) : (
@@ -127,10 +131,10 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     <ListItemIcon>
                         <Eye width={20} height={20} />
                     </ListItemIcon>
-                    <span>Visibility</span>
+                    <span>{t(formsConstant.menu.visibility)}</span>
                 </MenuItem>
                 {!!currentActiveForm?.form?.settings?.private ? (
-                    <Tooltip title="Visibility of the form should be public to pin it into the workspace.">
+                    <Tooltip title={t(toolTipConstant.visibility)}>
                         <div>{menuItemShareSettings}</div>
                     </Tooltip>
                 ) : (
@@ -140,7 +144,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     <ListItemIcon>
                         <Delete width={20} height={20} />
                     </ListItemIcon>
-                    <span>Delete form</span>
+                    <span>{t(formsConstant.menu.deleteForm)}</span>
                 </MenuItem>
             </MenuDropdown>
         </div>

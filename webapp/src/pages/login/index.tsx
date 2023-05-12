@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Image from 'next/image';
 
 import { Check } from '@mui/icons-material';
@@ -8,20 +10,24 @@ import ImageLoginLaptopScreen from '@app/assets/images/login-laptop-screen.png';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
 import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
+import { localesDefault, signInScreen } from '@app/constants/locales';
 import Layout from '@app/layouts/_layout';
+import { getGlobalServerSidePropsByDomain, getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { checkHasCustomDomain, getRequestHost, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export async function getServerSideProps(_context: any) {
+    const config = getServerSideAuthHeaderConfig(_context);
+    const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
+    const language = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
     if (checkHasCustomDomain(_context)) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/'
+                destination: `/${language}`
             }
         };
     }
-    const config = getServerSideAuthHeaderConfig(_context);
 
     try {
         const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
@@ -40,14 +46,14 @@ export async function getServerSideProps(_context: any) {
                 return {
                     redirect: {
                         permanent: false,
-                        destination: `/${redirectWorkspace?.workspaceName}/onboarding`
+                        destination: `/${language}${redirectWorkspace?.workspaceName}/onboarding`
                     }
                 };
             }
             return {
                 redirect: {
                     permanent: false,
-                    destination: `/${redirectWorkspace?.workspaceName}/dashboard`
+                    destination: `/${language}${redirectWorkspace?.workspaceName}/dashboard`
                 }
             };
         }
@@ -55,16 +61,17 @@ export async function getServerSideProps(_context: any) {
         console.error(e);
     }
     return {
-        props: {}
+        props: { ...globalProps }
     };
 }
 
 export const Login = () => {
+    const { t } = useTranslation();
     const constants = {
-        heading4: 'Become a better data collector',
-        heading3: 'Welcome back!',
-        subHeading2: 'Continue with:',
-        paragraphs: ['Review forms', 'Collect your forms', 'Easy to manage forms', 'Delete responses']
+        heading4: t(localesDefault.becomeABetterCollector),
+        heading3: t(signInScreen.welcomeMessage),
+        subHeading2: t(signInScreen.continueWIth),
+        paragraphs: [t(signInScreen.reviewForms), t(signInScreen.collectForms), t(signInScreen.easyToManageForms), t(signInScreen.deleteResponses)]
     };
 
     return (
@@ -99,13 +106,13 @@ export const Login = () => {
                     </div>
 
                     <div className="body4">
-                        By signing in, you agree to our
+                        {t(signInScreen.signinAgreementDescription)}
                         <a href="https://bettercollected.com/terms-of-service" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
-                            Terms of Service
+                            {t(localesDefault.termsOfServices)}
                         </a>
-                        and
+                        {t(localesDefault.and)}
                         <a href="https://bettercollected.com/privacy-policy" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
-                            Privacy Policy
+                            {t(localesDefault.privacyPolicy)}
                         </a>
                         .
                     </div>

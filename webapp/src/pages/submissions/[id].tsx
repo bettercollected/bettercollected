@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
@@ -11,6 +12,7 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
+import { breadcrumbsItems } from '@app/constants/locales';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -25,6 +27,7 @@ interface ISubmission extends IServerSideProps {
 
 export default function Submission(props: any) {
     const { workspace, submissionId, hasCustomDomain }: ISubmission = props;
+    const { t } = useTranslation();
 
     const router = useRouter();
     const breakpoint = useBreakpoint();
@@ -82,7 +85,7 @@ export default function Submission(props: any) {
 
     const breadcrumbsItem = [
         {
-            title: 'Home',
+            title: t(breadcrumbsItems.home),
             icon: <HomeIcon className="w-4 h-4 mr-2" />,
             onClick: () =>
                 hasCustomDomain
@@ -93,7 +96,7 @@ export default function Submission(props: any) {
                     : router.push(`/${router.query.workspace_name}`, undefined, { scroll: true, shallow: true })
         },
         {
-            title: 'Submissions',
+            title: t(breadcrumbsItems.submissions),
             onClick: goToSubmissions
         },
         {

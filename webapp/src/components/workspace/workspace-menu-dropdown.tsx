@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
@@ -11,6 +12,7 @@ import AuthAccountProfileImage from '@app/components/auth/account-profile-image'
 import { Check } from '@app/components/icons/check';
 import { Plus } from '@app/components/icons/plus';
 import Loader from '@app/components/ui/loader';
+import { menuDropdown } from '@app/constants/locales';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
@@ -28,7 +30,9 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
     const workspace = useAppSelector(selectWorkspace);
     const { data, isLoading } = useGetAllMineWorkspacesQuery();
     const router = useRouter();
+    const language = router?.locale === 'en' ? '' : router?.locale;
 
+    const { t } = useTranslation();
     const handleChangeWorkspace = (space: WorkspaceDto) => {
         router.push(`/${space.workspaceName}/dashboard`);
     };
@@ -37,7 +41,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
         if (!isLoading && data?.length > 2) {
             return;
         }
-        router.push('/create-workspace');
+        router.push(`/${language}create-workspace`);
     };
 
     const fullWorkspaceName = workspace?.title || workspace?.workspaceName || '';
@@ -101,7 +105,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                             <span className="flex justify-between w-full items-center gap-4">
                                 <div className="flex items-center gap-3">
                                     <Plus className="text-black-500" />
-                                    <p className={`body3 !not-italic ${!isLoading && data?.length > 2 ? '!text-black-500 cursor-not-allowed' : '!text-black-800'} `}>Create a new workspace</p>
+                                    <p className={`body3 !not-italic ${!isLoading && data?.length > 2 ? '!text-black-500 cursor-not-allowed' : '!text-black-800'} `}>{t(menuDropdown.createWorkspace)}</p>
                                 </div>
                             </span>
                         </IconButton>

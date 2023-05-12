@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 
 import { GetServerSidePropsContext } from 'next';
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import _ from 'lodash';
@@ -17,6 +18,7 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import WorkSpaceLogoUi from '@app/components/ui/workspace-logo-ui';
+import { buttons, localesDefault, onBoarding, placeHolder, regixMessage, toastMessage, workspaceConstant } from '@app/constants/locales';
 import { ToastId } from '@app/constants/toastId';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
@@ -61,6 +63,7 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
 }
 
 export default function Onboarding({ workspace, createWorkspace }: onBoardingProps) {
+    const { t } = useTranslation();
     const router = useRouter();
     const authStatus = useAppSelector(selectAuth);
     const { openModal, closeModal } = useModal();
@@ -88,7 +91,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         const image = e.target.files[0];
         const MB = 1048576;
         if (image.size / MB > 100) {
-            toast('Image size is greater than 100MB', { toastId: ToastId.ERROR_TOAST });
+            toast(t(toastMessage.imageSizeRestriction).toString(), { toastId: ToastId.ERROR_TOAST });
         } else {
             openModal('CROP_IMAGE', {
                 profileEditorRef: profileEditorRef,
@@ -136,10 +139,10 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         createFormData.append('description', formData.description);
         const response: any = await createWorkspaceRequest(createFormData);
         if (response.error) {
-            toast(response.error?.data || 'Something went wrong', { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast(response.error?.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
         if (response.data) {
-            toast('Workspace Updated', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
             dispatch(setWorkspace(response.data));
             router.replace(`/${response.data?.workspaceName}/dashboard`);
         }
@@ -154,10 +157,10 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         updateFormData.append('description', formData.description);
         const response: any = await patchExistingWorkspace({ workspace_id: workspace?.id, body: updateFormData });
         if (response.error) {
-            toast(response.error?.data || 'Something went wrong', { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast(response.error?.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
         if (response.data) {
-            toast('Workspace Updated', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
             dispatch(setWorkspace(response.data));
             router.replace(`/${workspace?.workspaceName}/dashboard`);
         }
@@ -167,13 +170,13 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         <div className="flex flex-col mt-[24px] justify-center items-center">
             <AuthAccountProfileImage image={user?.profile_image} name={profileName} size={143} />
             <p className="pt-6 text-center text-black-900 h4">
-                Hey {user?.first_name}! <br /> Welcome to BetterCollected{' '}
+                {t(localesDefault.hey)} {user?.first_name}! <br /> {t(onBoarding.welcomeMessage)}
             </p>
-            <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">Please create your workspace so that your team know you are here.</p>
+            <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">{t(onBoarding.description)}</p>
             <Button size="large" className="mt-10 mb-4" onClick={increaseStep}>
-                {workspace?.profileImage || workspace?.description || workspace?.title.toLowerCase() !== 'untitled' ? 'Update A Workspace' : 'Create A Workspace'}
+                {workspace?.profileImage || workspace?.description || workspace?.title.toLowerCase() !== 'untitled' ? t(buttons.updateWorkspace) : t(buttons.createWorkspace)}
             </Button>
-            <p className="body2 !text-black-600 italic">It will only take few minutes</p>
+            <p className="body2 !text-black-600 italic">{t(onBoarding.timeMessage)}</p>
         </div>
     );
     const AddWorkspaceHeader = (
@@ -181,16 +184,19 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
             <div className=" cursor-pointer hover:bg-blue-200 rounded" onClick={decreaseStep}>
                 {stepCount === 1 && createWorkspace ? <></> : <ChevronLeft className="h-6 w-6" />}
             </div>
-            <p className="body4 text-black-700">Step {stepCount} of 2</p>
+            <p className="body4 text-black-700">
+                {t(localesDefault.step)} {stepCount} {t(localesDefault.of)} 2
+            </p>
         </div>
     );
     const StepOneContent = (
         <div className="md:w-[454px] w-full  p-10 bg-white rounded">
             {AddWorkspaceHeader}
             <div className="pl-2">
-                <p className="mt-7 mb-8 h4 text-black-900">Add your workspace</p>
+                <p className="mt-7 mb-8 h4 text-black-900">{t(onBoarding.addWorkspace)}</p>
                 <p className=" mb-3 body1 text-black-900">
-                    Workspace title<span className="text-red-500">*</span>
+                    {t(workspaceConstant.title)}
+                    <span className="text-red-500">*</span>
                 </p>
                 <BetterInput
                     InputProps={{
@@ -201,13 +207,13 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                     }}
                     id="title"
                     error={formData.title === '' && isError}
-                    placeholder="Eg. Sireto Technology"
+                    placeholder={t(placeHolder.workspaceTitle)}
                     className="w-full !mb-0"
                     value={formData.title}
                     onChange={handleOnchange}
                 />
-                {formData.title === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">Workspace title is required</p>}
-                <p className={cn('mb-3 body1 text-black-900', formData.title === '' && isError ? 'mt-[24px]' : 'mt-[42px]')}>Description</p>
+                {formData.title === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">{t(regixMessage.workspaceTitle)}</p>}
+                <p className={cn('mb-3 body1 text-black-900', formData.title === '' && isError ? 'mt-[24px]' : 'mt-[42px]')}>{t(localesDefault.description)}</p>
                 <BetterInput
                     inputProps={{ maxLength: 280 }}
                     className="!border-solid !border-gray-300 !text-gray-900 !body3 !rounded !w-full"
@@ -218,7 +224,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                     value={formData.description}
                     id="description"
                     name="description"
-                    placeholder="Enter your workspace description"
+                    placeholder={t(placeHolder.description)}
                 />
             </div>
             <div className="flex justify-end mt-8">
@@ -232,7 +238,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                         }
                     }}
                 >
-                    Next
+                    {t(buttons.next)}
                 </Button>
             </div>
         </div>
@@ -240,7 +246,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
     const StepTwoContent = (
         <div className="md:w-[454px] w-full  p-10 bg-white rounded">
             {AddWorkspaceHeader}
-            <p className="mt-7 mb-8  h4 text-brand-900">Add workspace logo</p>
+            <p className="mt-7 mb-8  h4 text-brand-900">{t(onBoarding.addWorkspaceLogo)}</p>
             {/* <div className="flex md:flex-row flex-col gap-4 items-center">
                 <AuthAccountProfileImage image={formProvider.workspaceLogo && URL.createObjectURL(formProvider.workspaceLogo)} name={profileName} size={143} typography="h1" /> */}
             <WorkSpaceLogoUi
@@ -253,7 +259,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
             {/* </div> */}
             <div className="flex justify-end mt-8 items-center">
                 <Button size="medium" onClick={onClickDone} isLoading={isLoading || data?.isLoading}>
-                    Done
+                    {t(buttons.done)}
                 </Button>
             </div>
         </div>
@@ -261,7 +267,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
 
     if (isSuccess) return <FullScreenLoader />;
     return (
-        <Layout showNavbar showAuthAccount={createWorkspace} isCustomDomain>
+        <Layout showNavbar showAuthAccount={createWorkspace ? true : false} isCustomDomain>
             <div className=" flex flex-col my-[40px] items-center">
                 {stepCount === 0 && StepZeroContent}
                 {stepCount === 1 && StepOneContent}

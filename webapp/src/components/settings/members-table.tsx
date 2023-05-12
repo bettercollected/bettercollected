@@ -1,21 +1,15 @@
 import React, { useEffect, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import _ from 'lodash';
 
-import Paper from '@mui/material/Paper';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
 import DataTable from 'react-data-table-component';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
-import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
 import MemberOptions from '@app/components/datatable/workspace-settings/member-options';
-import { StandardFormDto } from '@app/models/dtos/form';
+import { members } from '@app/constants/locales';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 import { parseDateStrToDate, toHourMinStr, toLocaleStringFromDateString, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
@@ -24,15 +18,16 @@ import { getFullNameFromUser } from '@app/utils/userUtils';
 export default function MembersTable() {
     const workspace = useAppSelector((state) => state.workspace);
     const { data, isLoading } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
-    const [members, setMembers] = useState<Array<any>>([]);
+    // const [members, setMembers] = useState<Array<any>>([]);
+    const { t } = useTranslation();
 
-    useEffect(() => {
-        if (data && Array.isArray(data)) setMembers(data);
-    }, [data]);
+    // useEffect(() => {
+    //     if (data && Array.isArray(data)) setMembers(data);
+    // }, [data]);
 
     const dataTableResponseColumns: any = [
         {
-            name: 'Member',
+            name: t(members.member),
             selector: (member: any) => (
                 <div className="flex space-x-4">
                     <AuthAccountProfileImage image={member.profile_image} name={getFullNameFromUser(member)} size={40} />
@@ -53,7 +48,7 @@ export default function MembersTable() {
             }
         },
         {
-            name: 'Role',
+            name: t(members.role),
             selector: (member: any) => _.capitalize(member.roles[0]),
             style: {
                 color: 'rgba(0,0,0,.54)',
@@ -63,7 +58,7 @@ export default function MembersTable() {
             }
         },
         {
-            name: 'Joined',
+            name: t(members.join),
             selector: (member: any) => (!!member?.joined ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(member?.joined)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(member?.joined)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',

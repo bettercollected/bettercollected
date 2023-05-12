@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Toolbar from '@Components/Common/Layout/Toolbar';
 import { Box, List, ListItem } from '@mui/material';
@@ -10,6 +12,7 @@ import { SettingIcon } from '@app/components/icons/setting-icon';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import WorkspaceMenuDropdown from '@app/components/workspace/workspace-menu-dropdown';
+import { formsConstant, localesDefault, workspaceConstant } from '@app/constants/locales';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -45,19 +48,20 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
 
 export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerToggle }: IDrawerProps) {
     const workspace = useAppSelector(selectWorkspace);
+    const { t } = useTranslation();
     const isAdmin = useAppSelector(selectIsAdmin);
     const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
 
     const topNavList: Array<INavbarItem> = [
         {
             key: 'dashboard',
-            name: 'Dashboard',
+            name: t(localesDefault.dashboard),
             url: commonWorkspaceUrl,
             icon: <DashboardIcon />
         },
         {
             key: 'forms',
-            name: 'Forms',
+            name: t(formsConstant.default),
             url: `${commonWorkspaceUrl}/forms`,
             icon: <FormIcon />
         }
@@ -65,7 +69,7 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
     const bottomNavList: Array<INavbarItem> = [
         {
             key: 'manage-workspace',
-            name: 'Manage workspace',
+            name: t(workspaceConstant.manage),
             url: `/${workspace?.workspaceName}/manage`,
             icon: <SettingIcon />
         }

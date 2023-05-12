@@ -249,7 +249,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 }
                 return (
                     <StyledTextField>
-                        <SelectDropdown value={ans?.text} fullWidth>
+                        <SelectDropdown value={ans?.text} fullWidth disabled={ans}>
                             {dropdownOptions.map((dd: any, idx: any) => (
                                 <MenuItem key={idx} value={dd?.label}>
                                     {dd?.label}

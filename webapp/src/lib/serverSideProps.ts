@@ -15,7 +15,7 @@ export async function getGlobalServerSidePropsByDomain({ locale, ..._context }: 
     if (!hasCustomDomain) {
         return {
             props: {
-                ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
+                ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np'])),
                 hasCustomDomain,
                 workspaceId,
                 workspace
@@ -30,7 +30,7 @@ export async function getGlobalServerSidePropsByDomain({ locale, ..._context }: 
 
     return {
         props: {
-            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
+            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np'])),
             hasCustomDomain,
             workspaceId,
             workspace
@@ -54,7 +54,7 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
     if (!workspace_name) {
         return {
             props: {
-                ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
+                ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np'])),
                 hasCustomDomain,
                 workspaceId,
                 workspace
@@ -68,7 +68,7 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
     } catch (e) {}
     return {
         props: {
-            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
+            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np'])),
             hasCustomDomain,
             workspaceId,
             workspace
@@ -78,15 +78,16 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
 
 export async function getAuthUserPropsWithWorkspace(_context: any) {
     const hasAdminDomain = checkHasAdminDomain(getRequestHost(_context));
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
+    const language = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
     if (!hasAdminDomain) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/'
+                destination: `/${language}`
             }
         };
     }
-    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
     if (!globalProps?.workspace?.id) {
         return {
             notFound: true
@@ -96,7 +97,7 @@ export async function getAuthUserPropsWithWorkspace(_context: any) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/'
+                destination: `/${language}`
             }
         };
     return {
@@ -108,15 +109,19 @@ export async function getAuthUserPropsWithWorkspace(_context: any) {
 
 export async function getServerSidePropsForWorkspaceAdmin(_context: any) {
     const hasAdminDomain = checkHasAdminDomain(getRequestHost(_context));
+
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
+    const language = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
+
     if (!hasAdminDomain) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/'
+                destination: `/${language}`
             }
         };
     }
-    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
+
     if (!globalProps?.workspace?.id) {
         return {
             notFound: true
@@ -126,7 +131,7 @@ export async function getServerSidePropsForWorkspaceAdmin(_context: any) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/'
+                destination: `/${language}`
             }
         };
     return {

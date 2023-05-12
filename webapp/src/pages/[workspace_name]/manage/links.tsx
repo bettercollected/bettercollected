@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
 import ManageWorkspaceLayout from '@app/components/layout/manage-workspace';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
+import { buttons, localesDefault, placeHolder, toastMessage } from '@app/constants/locales';
 import { ToastId } from '@app/constants/toastId';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchWorkspacePoliciesMutation } from '@app/store/workspaces/api';
@@ -14,6 +17,7 @@ export default function ManageLinks() {
     const [policies, setPolicies] = useState({ privacy_policy_url: '', terms_of_service_url: '' });
     const workspace = useAppSelector((state) => state.workspace);
     const [patchWorkspacePolicies, { isLoading }] = usePatchWorkspacePoliciesMutation();
+    const { t } = useTranslation();
 
     const handleURLValidation = (str: string) => {
         if (!str) return false;
@@ -36,9 +40,9 @@ export default function ManageLinks() {
 
         const response: any = await patchWorkspacePolicies({ workspace_id: workspace.id, body: formData });
         if (response?.data) {
-            toast('Update successful', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            toast(t(toastMessage.updated).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         } else if (response.error) {
-            toast('Something went wrong.', { type: 'error', toastId: ToastId.ERROR_TOAST });
+            toast(t(toastMessage.somethingWentWrong).toString(), { type: 'error', toastId: ToastId.ERROR_TOAST });
         }
     };
 
@@ -53,17 +57,17 @@ export default function ManageLinks() {
         <ManageWorkspaceLayout>
             <SettingsCard>
                 <form onSubmit={handleSubmit}>
-                    <div className="body1">Link to Privacy Policy</div>
+                    <div className="body1">{t(localesDefault.linkToPrivacyPolicy)}</div>
                     <div>
-                        <BetterInput value={policies.privacy_policy_url} onChange={handleChange} name="privacy_policy_url" error={!handleURLValidation(policies.privacy_policy_url)} placeholder="Privacy Policy Link" />
+                        <BetterInput value={policies.privacy_policy_url} onChange={handleChange} name="privacy_policy_url" error={!handleURLValidation(policies.privacy_policy_url)} placeholder={t(placeHolder.privacyPolicyLink)} />
                     </div>
-                    <div className="body1">Link to Terms of Service</div>
+                    <div className="body1">{t(localesDefault.linkToTermsOfServices)}</div>
                     <div>
-                        <BetterInput onChange={handleChange} value={policies.terms_of_service_url} name="terms_of_service_url" error={!handleURLValidation(policies.terms_of_service_url)} placeholder="Terms of Service Link" />
+                        <BetterInput onChange={handleChange} value={policies.terms_of_service_url} name="terms_of_service_url" error={!handleURLValidation(policies.terms_of_service_url)} placeholder={t(placeHolder.termsOfServicesLink)} />
                     </div>
                     <div>
                         <Button disabled={saveButtonDisabled()} size="small">
-                            Save
+                            {t(buttons.save)}
                         </Button>
                     </div>
                 </form>

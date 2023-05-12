@@ -10,7 +10,6 @@ export interface ICustomizeUrlModalProps {
     url: string;
 }
 export default function CustomizeUrlModal({ description, url }: ICustomizeUrlModalProps) {
-    console.log(description);
     const { closeModal } = useModal();
     return (
         <div className="rounded-[4px] md:p-10 p-5 relative bg-white md:w-[454px] w-full   dark:border-gray-700 dark:bg-light-dark">

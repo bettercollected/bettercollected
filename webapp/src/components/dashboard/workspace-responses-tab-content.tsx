@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
 import WorkspaceFormResponseDeletionCard from '@Components/WorkspaceClient/WorkspaceFormResponseDeletionCard';
 
@@ -7,6 +9,7 @@ import EmptyFormsView from '@app/components/dashboard/empty-form';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
+import { formsConstant, localesDefault } from '@app/constants/locales';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceSubmissionsQuery } from '@app/store/workspaces/api';
@@ -17,6 +20,7 @@ interface IWorkspaceResponsesTabContentProps {
 }
 
 export default function WorkspaceResponsesTabContent({ workspace, deletionRequests = false }: IWorkspaceResponsesTabContentProps) {
+    const { t } = useTranslation();
     const { isLoading, data, isError } = useGetWorkspaceSubmissionsQuery(
         {
             workspaceId: workspace.id,
@@ -35,8 +39,8 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
     if ((data?.items && Array.isArray(data?.items) && data?.items?.length === 0) || isError)
         return (
             <ZeroElement
-                title={deletionRequests ? 'No requests to show' : 'No responses to show'}
-                description={deletionRequests ? 'You have not requested any deletion for your filled responses.' : 'You have not submitted any response on the forms provided in this workspace.'}
+                title={deletionRequests ? t(formsConstant.emptyDeletionRequestTitle) : t(formsConstant.emptyDeletionResponseTitle)}
+                description={deletionRequests ? t(formsConstant.deletionRequestDescription) : t(formsConstant.deletionResponseDescription)}
                 className="!pb-[20px]"
             />
         );
@@ -49,7 +53,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
 
     return (
         <div className="py-6 px-5 lg:px-10 xl:px-20">
-            {submissions?.length === 0 && <EmptyFormsView description="0 responses" />}
+            {submissions?.length === 0 && <EmptyFormsView description={`0 ${formsConstant.responses}`} />}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                 {submissions?.length !== 0 &&
                     submissions?.map((submission: StandardFormResponseDto) => {

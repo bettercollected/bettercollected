@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
@@ -12,6 +13,7 @@ import AuthNavbar from '@app/components/auth/navbar';
 import Button from '@app/components/ui/button';
 import MarkdownText from '@app/components/ui/markdown-text';
 import environments from '@app/configs/environments';
+import { buttons, invitationConstant, localesDefault, toastMessage, workspaceConstant } from '@app/constants/locales';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import Login from '@app/pages/login';
@@ -20,7 +22,7 @@ import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export default function Id({ workspace, user, invitation }: { workspace: WorkspaceDto; user: any; invitation: any }) {
     const [trigger, { isLoading }] = useRespondToWorkspaceInvitationMutation();
-
+    const { t } = useTranslation();
     const [rejected, setRejected] = useState(false);
     const router = useRouter();
     const onAccept = async () => {
@@ -48,7 +50,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
             }
         }
         if (response.error) {
-            toast(response.error?.data || 'Something went wrong.', {
+            toast(response.error?.data || t(toastMessage.somethingWentWrong), {
                 type: 'error'
             });
         }
@@ -75,7 +77,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
         return (
             <div className=" py-10 flex items-center flex-col">
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-                <div className="rounded-lg bg-white mt-14  flex flex-col items-center w-full p-10 md:max-w-[502px]">Invitation Not Found</div>
+                <div className="rounded-lg bg-white mt-14  flex flex-col items-center w-full p-10 md:max-w-[502px]">{t(workspaceConstant.invitationNotFound)}</div>
             </div>
         );
     }
@@ -88,29 +90,29 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
                     <div className="bg-white md:max-w-[502px] flex flex-col rounded p-10 items-center justify-center">
                         <AuthAccountProfileImage size={60} image={workspace?.profileImage} name={workspace?.workspaceName} />
                         <div className="text-2xl mt-6 mb-4 sh3 !font-normal !text-black-700 ">
-                            You have been invited to
-                            <span className="font-bold text-black-900">{' ' + workspace?.title || 'Untitled'}</span>
+                            {t(invitationConstant.title[1])}
+                            <span className="font-bold text-black-900">{' ' + workspace?.title || t(localesDefault.untitled)}</span>
                         </div>
-                        <div className="body3 mb-10 !text-black-700">Join workspace and start collaborating</div>
+                        <div className="body3 mb-10 !text-black-700">{t(invitationConstant.title[2])}</div>
                         <div className="flex flex-col space-y-4 items-center">
                             <div className="flex space-x-5">
                                 <Button disabled={isLoading} size="large" onClick={onAccept}>
-                                    Join Workspace
+                                    {t(buttons.joinWorkspace)}
                                 </Button>
                                 <Button className="text-white bg-black-500 hover:!bg-black-600" disabled={isLoading} size="large" onClick={onDecline}>
-                                    Decline
+                                    {t(buttons.decline)}
                                 </Button>
                             </div>
                         </div>
-                        <div className="mt-5 body3 !text-black-700">This link will expire in 7 days.</div>
+                        <div className="mt-5 body3 !text-black-700">{t(invitationConstant.expiryLink)}</div>
                     </div>
                     <div className="ml-10 mt-8">
-                        <div className="body1 mb-6">You will have access to:</div>
+                        <div className="body1 mb-6">{t(invitationConstant.listTitle)}</div>
 
                         <ul className="list-disc body2 flex flex-col space-y-3 pl-10">
-                            <li>All forms and responses in workspace</li>
-                            <li>Importing forms to workspace</li>
-                            <li>Deleting form form workspace</li>
+                            <li>{t(invitationConstant.listItem[1])}</li>
+                            <li>{t(invitationConstant.listItem[2])}</li>
+                            <li>{t(invitationConstant.listItem[3])}</li>
                         </ul>
                     </div>
                 </div>

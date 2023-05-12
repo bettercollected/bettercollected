@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import { toast } from 'react-toastify';
@@ -9,12 +10,14 @@ import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
+import { buttons, inviteCollaborator, localesDefault, toastMessage } from '@app/constants/locales';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
 
 export default function InviteMemberModal() {
     const [trigger, { data, isLoading }] = useInviteToWorkspaceMutation();
+    const { t } = useTranslation();
     const [invitationMail, setInvitationMail] = useState('');
     const workspace = useAppSelector((state) => state.workspace);
     const router = useRouter();
@@ -36,9 +39,9 @@ export default function InviteMemberModal() {
 
             if (response.data) {
                 setInvitationMail('');
-                toast('Invitation Sent', { type: 'success' });
+                toast(t(toastMessage.invitationSent).toString(), { type: 'success' });
             } else if (response.error) {
-                toast('Failed to send email.', { type: 'error' });
+                toast(t(toastMessage.failedToSentEmail).toString(), { type: 'error' });
             }
             closeModal();
         } else {
@@ -49,10 +52,10 @@ export default function InviteMemberModal() {
         <>
             <SettingsCard className="!space-y-0 relative">
                 <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
-                <div className="sh1 !leading-none">Invite Collaborator</div>
-                <div className="body4 pt-6 !leading-none ">A collaborator can import and manage forms in workspace.</div>
+                <div className="sh1 !leading-none">{t(inviteCollaborator.default)}</div>
+                <div className="body4 pt-6 !leading-none ">{t(inviteCollaborator.description)}</div>
                 <form onSubmit={handleSendInvitation} className="flex pt-8  flex-col justify-start">
-                    <div className="body1 mb-3 !leading-none">Enter Email</div>
+                    <div className="body1 mb-3 !leading-none">{t(localesDefault.enterEmail)}</div>
                     <BetterInput
                         disabled={isLoading}
                         data-testid="otp-input"
@@ -60,14 +63,14 @@ export default function InviteMemberModal() {
                         value={invitationMail}
                         type="email"
                         className="!mb-0"
-                        placeholder={'Enter Email'}
+                        placeholder={t(localesDefault.enterEmail)}
                         onChange={(event) => {
                             setInvitationMail(event.target.value);
                         }}
                     />
                     <div className="flex w-full mt-8 justify-end">
                         <Button disabled={isLoading} isLoading={isLoading} size="small" type="submit">
-                            Send Invitation
+                            {t(buttons.sendInvitation)}
                         </Button>
                     </div>
                 </form>

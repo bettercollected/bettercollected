@@ -1,9 +1,12 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import _ from 'lodash';
 
 import Radio from '@mui/material/Radio';
 
+import { localesDefault } from '@app/constants/locales';
 import { Plan } from '@app/store/plans/types';
 
 interface IPlanCardProps {
@@ -14,6 +17,7 @@ interface IPlanCardProps {
 
 export default function PlanCard({ plan, activePlan, onClick }: IPlanCardProps) {
     const active = activePlan?.price_id === plan.price_id;
+    const { t } = useTranslation();
 
     const currency = plan.currency === 'eur' ? '€' : '$';
     const interval = _.capitalize(plan.recurring_interval) + 'ly';
@@ -33,7 +37,7 @@ export default function PlanCard({ plan, activePlan, onClick }: IPlanCardProps) 
                 </div>
                 <div>
                     <div className={`sh1 ${!active ? '!text-black-600' : ''}`}>{interval}</div>
-                    {plan.recurring_interval === 'year' && <div className="body1 !text-[#E79B0B] ">Save 17%</div>}
+                    {plan.recurring_interval === 'year' && <div className="body1 !text-[#E79B0B] ">{t(localesDefault.save)} 17%</div>}
                 </div>
             </div>
 

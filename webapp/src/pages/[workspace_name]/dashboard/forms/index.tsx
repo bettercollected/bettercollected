@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import { debounce, escapeRegExp } from 'lodash';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
@@ -14,6 +16,7 @@ import ImportFormsButton from '@app/components/form-integrations/import-forms-bu
 import { SearchIcon } from '@app/components/icons/search';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import ActiveLink from '@app/components/ui/links/active-link';
+import { formsConstant } from '@app/constants/locales';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
@@ -22,6 +25,7 @@ import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } 
 export default function FormPage({ workspace, hasCustomDomain }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
     const [sortValue, setSortValue] = useState('newest_oldest');
     const [filterValue, setFilterValue] = useState('show_all');
+    const { t } = useTranslation();
 
     const workspaceQuery = {
         workspace_id: workspace.id
@@ -30,7 +34,6 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
     const [searchWorkspaceForms] = useSearchWorkspaceFormsMutation();
     const [forms, setForms] = useState<Array<any>>(workspaceForms?.data?.items);
-    console.log(workspace.id);
     const selectList = [
         {
             id: 'sort-select-label',
@@ -64,7 +67,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
 
     const dataTableFormColumns = [
         {
-            name: 'Form type',
+            name: t(formsConstant.formType),
             selector: (form: StandardFormDto) => <DataTableProviderFormCell form={form} workspace={workspace} />,
             grow: 2,
             style: {
@@ -76,7 +79,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             }
         },
         {
-            name: 'Responses',
+            name: t(formsConstant.responses),
             selector: (row: StandardFormDto) => (
                 <ActiveLink className="hover:text-brand-500 hover:underline" href={`/${workspace.workspaceName}/dashboard/forms/${row.formId}/responses`}>
                     {row?.responses ?? 0}
@@ -90,7 +93,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             }
         },
         {
-            name: 'Deletion requests',
+            name: t(formsConstant.deletionRequests),
             selector: (row: StandardFormDto) => (
                 <ActiveLink className="hover:text-brand-500 hover:underline paragraph" href={`/${workspace.workspaceName}/dashboard/forms/${row.formId}/deletion-requests`}>
                     {' '}
@@ -105,7 +108,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             }
         },
         {
-            name: 'Imported date',
+            name: t(formsConstant.importedDate),
             selector: (row: StandardFormDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
@@ -146,7 +149,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     return (
         <SidebarLayout>
             <div className="py-10 w-full h-full">
-                <h1 className="sh1">Forms</h1>
+                <h1 className="sh1">{t(formsConstant.default)}</h1>
                 <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
                     {/* <StyledTextField>
                         <TextField

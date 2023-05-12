@@ -1,3 +1,4 @@
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import { DeleteForever } from '@mui/icons-material';
@@ -6,11 +7,14 @@ import { toast } from 'react-toastify';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
+import { buttons, formsConstant, toastMessage } from '@app/constants/locales';
+import { localesDefault } from '@app/constants/locales';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteFormMutation } from '@app/store/workspaces/api';
 
 export default function DeleteFormModal(props: any) {
     const { closeModal } = useModal();
+    const { t } = useTranslation();
 
     const [trigger] = useDeleteFormMutation();
     const workspace = useAppSelector((state) => state.workspace);
@@ -23,10 +27,10 @@ export default function DeleteFormModal(props: any) {
         }).finally(() => closeModal());
         if (response?.data && !!props?.redirectToDashboard) {
             router.push(`/${workspace.workspaceName}/dashboard`);
-            toast('Form Deleted', { type: 'success' });
+            toast(t(toastMessage.formDeleted).toString(), { type: 'success' });
         }
         if (response?.error) {
-            toast('Could not delete form.', { type: 'error' });
+            toast(t(toastMessage.formDeletionFail).toString(), { type: 'error' });
         }
     };
 
@@ -35,15 +39,17 @@ export default function DeleteFormModal(props: any) {
             <div className="rounded-[4px] relative m-auto max-w-[500px] items-start justify-between bg-white">
                 <div className="relative flex flex-col items-start justify-start p-10">
                     <div>
-                        <h4 className="sh1 mb-6">Delete &quot;{props?.form?.title}&quot;?</h4>
-                        <p className="!text-black-600 mb-8 body4 leading-none">Once this action is completed, it can&apos;t be undone.</p>
+                        <h4 className="sh1 mb-6">
+                            {t(localesDefault.delete)} &quot;{props?.form?.title}&quot;?
+                        </h4>
+                        <p className="!text-black-600 mb-8 body4 leading-none">{t(localesDefault.deleteMessage)}</p>
                     </div>
                     <div className="flex w-full gap-4 justify-end">
                         <Button className="flex-1 body4" data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
-                            Delete
+                            {t(buttons.delete)}
                         </Button>
                         <Button variant="solid" color="gray" size="medium" className="flex-1 body4 !bg-black-500" onClick={() => closeModal()}>
-                            Cancel
+                            {t(buttons.cancel)}
                         </Button>
                     </div>
                 </div>
