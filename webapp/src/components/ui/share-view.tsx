@@ -62,11 +62,6 @@ export default function ShareView({ url, title, showCopy, iconSize = 'large' }: 
                             <Linkedin className={sizes[iconSize]} />
                         </IconWrapper>
                     </LinkedinShareButton>
-                    <TelegramShareButton url={url}>
-                        <IconWrapper>
-                            <Telegram className={sizes[iconSize]} />
-                        </IconWrapper>
-                    </TelegramShareButton>
                 </div>
                 {showCopy && <LinkView className="flex md:flex-row flex-col items-center " buttonClassName="!h-[46px] sh3 !font-medium !bg-brand-500 hover:!bg-brand-600 !text-white !px-8 !py-2" url={url} toastMessage="Copied!"></LinkView>}
                 {/* {showCopy && (

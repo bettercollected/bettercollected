@@ -40,7 +40,7 @@ const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
         formId,
         workspaceId: workspaceId,
         requestedForDeletionOly: requestForDeletion,
-        page: page + 1,
+        page: page,
         size: globalConstants.pageSize
     });
 

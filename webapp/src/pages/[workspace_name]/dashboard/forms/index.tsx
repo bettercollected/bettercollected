@@ -163,9 +163,11 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     return (
         <SidebarLayout>
             <div className="py-10 w-full h-full">
-                <h1 className="sh1">Forms</h1>
-                <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
-                    <ImportFormsButton size="small" />
+                <div className="min-h-9 flex  gap-5 items-center justify-between">
+                    <h1 className="sh1">Forms</h1>
+                    <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
+                        <ImportFormsButton size="small" />
+                    </div>
                 </div>
                 <Divider />
 
