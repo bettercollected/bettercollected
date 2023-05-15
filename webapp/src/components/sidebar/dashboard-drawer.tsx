@@ -2,6 +2,7 @@ import React from 'react';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Toolbar from '@Components/Common/Layout/Toolbar';
+import Joyride from '@Components/Joyride';
 import { Box, List, ListItem } from '@mui/material';
 
 import { DashboardIcon } from '@app/components/icons/dashboard-icon';
@@ -23,19 +24,40 @@ DashboardDrawer.defaultProps = {
 const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
     return (
         <>
+            <Joyride
+                id="workspace-admin-dashboard-drawer"
+                scrollOffset={0}
+                steps={[
+                    {
+                        title: <span className="sh3">Your workspace</span>,
+                        content: <p className="body4">This is your current active workspace. You can switch to other workspaces, or create your own new personal workspace from here.</p>,
+                        target: '.joyride-workspace-switcher'
+                    },
+                    {
+                        title: <span className="sh3">Workspace navigations</span>,
+                        content: <p className="body4">Using these navigation links, you can navigate to your imported forms, responses, and deletion requests.</p>,
+                        target: '.joyride-workspace-navigations'
+                    },
+                    {
+                        title: <span className="sh3">Advance navigations</span>,
+                        content: <p className="body4">Using these navigation links, you can navigate to workspace settings, update your workspace, manage members, and many more.</p>,
+                        target: '.joyride-workspace-settings'
+                    }
+                ]}
+            />
             <Toolbar />
             <Box sx={{ overflow: 'auto', height: '100%' }}>
-                <List disablePadding>
+                <List disablePadding className="joyride-workspace-switcher">
                     <ListItem disablePadding>
                         <WorkspaceMenuDropdown fullWidth />
                     </ListItem>
                 </List>
                 <Divider />
-                <NavigationList sx={{ paddingY: '20px' }} navigationList={topNavList} />
+                <NavigationList className="joyride-workspace-navigations" sx={{ paddingY: '20px' }} navigationList={topNavList} />
                 {isAdmin && (
                     <>
                         <Divider />
-                        <NavigationList navigationList={bottomNavList} />
+                        <NavigationList className="joyride-workspace-settings" navigationList={bottomNavList} />
                     </>
                 )}
             </Box>

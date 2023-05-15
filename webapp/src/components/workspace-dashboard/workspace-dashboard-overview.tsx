@@ -88,7 +88,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                 <div className="flex items-center">
                     <AuthAccountProfileImage size={48} image={workspace?.profileImage} name={workspace?.title || 'Untitled'} />
                     <Tooltip title={workspace?.title}>
-                        <h1 className="sh1 ml-3">{toEndDottedStr(workspace?.title?.trim() || 'Untitled', 30)}</h1>
+                        <h1 className="sh1 ml-3 joyride-workspace-title">{toEndDottedStr(workspace?.title?.trim() || 'Untitled', 30)}</h1>
                     </Tooltip>
                 </div>
                 <div className="flex items-center gap-3 ml-0 mt-3 md:mt-0 md:ml-10 min-h-[28px]">
