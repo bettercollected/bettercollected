@@ -133,6 +133,7 @@ export default function ImportProviderForms(props: any) {
                 showCloseButton={false}
                 continuous={false}
                 placement="top"
+                scrollOffset={0}
                 steps={[
                     {
                         title: <span className="sh3">Select a provider</span>,
@@ -167,6 +168,7 @@ export default function ImportProviderForms(props: any) {
                 showCloseButton={false}
                 continuous={false}
                 placement="top"
+                scrollOffset={0}
                 steps={[
                     {
                         title: <span className="sh3">Select your form</span>,
@@ -183,11 +185,12 @@ export default function ImportProviderForms(props: any) {
                 ]}
             />
             <h4 className="sh1 w-full text-start">Import form</h4>
-            <div className="flex flex-col w-full h-full gap-10 items-end joyride-workspace-admin-form-import-list-forms">
+            <div className="flex flex-col w-full h-full gap-10 items-end">
                 <Autocomplete
                     loading={!!minifiedFormsResult?.isFetching}
                     disablePortal
                     id="form_list"
+                    className="joyride-workspace-admin-form-import-list-forms"
                     fullWidth
                     onChange={(e, value) => setSelectedForm(value)}
                     value={selectedForm}
@@ -224,6 +227,7 @@ export default function ImportProviderForms(props: any) {
                 showCloseButton={false}
                 continuous={false}
                 placement="top"
+                scrollOffset={0}
                 steps={[
                     {
                         title: <span className="sh3">Select the data owner field for your form response</span>,
@@ -243,11 +247,12 @@ export default function ImportProviderForms(props: any) {
             <h4 className="h4 w-full text-start">Response-owner tag</h4>
             <div className="flex flex-col gap-5">
                 <p className="body1">Select field from where response owner can be identified</p>
-                <div className="flex flex-col w-full h-full gap-6 items-end joyride-workspace-admin-form-import-data-owner">
+                <div className="flex flex-col w-full h-full gap-6 items-end">
                     <Autocomplete
                         loading={!!singleFormFromProviderResult?.isFetching}
                         disablePortal
                         id="field_list"
+                        className="joyride-workspace-admin-form-import-data-owner"
                         fullWidth
                         onChange={(e, value) => setResponseDataOwner(value)}
                         value={responseDataOwner}
