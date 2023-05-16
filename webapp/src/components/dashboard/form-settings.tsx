@@ -8,7 +8,10 @@ import { toast } from 'react-toastify';
 import { useModal } from '@app/components/modal-views/context';
 import { FormSettingsCard } from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
-import { buttons, formsConstant, localesDefault, toastMessage } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
+import { formsConstant } from '@app/constants/locales/forms';
+import { localesGlobal } from '@app/constants/locales/global';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -34,7 +37,7 @@ export default function FormSettingsTab() {
         if (response.data) {
             const settings = response.data.settings;
             dispatch(setFormSettings(settings));
-            toast(t(localesDefault.updated).toString(), { type: 'success' });
+            toast(t(localesGlobal.updated).toString(), { type: 'success' });
         } else {
             toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
             return response.error;

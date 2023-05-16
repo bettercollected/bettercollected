@@ -8,7 +8,7 @@ import { DeleteOutline, MoreHoriz } from '@mui/icons-material';
 import { IconButton, ListItemIcon, Menu, MenuItem } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
-import { formsConstant } from '@app/constants/locales';
+import { formsConstant } from '@app/constants/locales/forms';
 
 interface IMemberOptionProps {
     member?: any;

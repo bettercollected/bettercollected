@@ -6,7 +6,7 @@ import Divider from '@Components/Common/DataDisplay/Divider';
 
 import ResponsesTable from '@app/components/datatable/responses';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';
-import { formsConstant } from '@app/constants/locales';
+import { formsConstant } from '@app/constants/locales/forms';
 
 export default function DeletionRequests(props: any) {
     const { formId } = props;

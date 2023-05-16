@@ -4,10 +4,10 @@ import { useTranslation } from 'next-i18next';
 
 import AvatarEditor from 'react-avatar-editor';
 
+import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
-import { buttons, localesDefault } from '@app/constants/locales';
-
-import { useModal } from '../context';
+import { buttons } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
 
 interface ICropImageModalViewProps {
     profileEditorRef: React.LegacyRef<AvatarEditor> | undefined;
@@ -23,7 +23,7 @@ export default function CropImageModalView({ profileEditorRef, uploadImage, prof
     const { closeModal } = useModal();
     return (
         <div className="p-4 bg-white flex flex-col items-center rounded-[8px]">
-            <h1 className="font-bold text-lg mb-2">{t(localesDefault.updateYourProfileImage)}</h1>
+            <h1 className="font-bold text-lg mb-2">{t(localesGlobal.updateYourProfileImage)}</h1>
             <AvatarEditor crossOrigin="anonymous" ref={profileEditorRef} image={uploadImage} width={250} height={250} border={50} borderRadius={16} color={[0, 0, 0, 0.6]} scale={scale} rotate={0} />
             <div className="flex mb-2 gap-1 text-3xl text-gray-600 justify-center items-center">
                 <span>-</span>

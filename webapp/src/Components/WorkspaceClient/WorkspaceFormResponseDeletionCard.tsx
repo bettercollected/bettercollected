@@ -5,7 +5,7 @@ import { Typography } from '@mui/material';
 
 import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
-import { localesDefault } from '@app/constants/locales';
+import { localesGlobal } from '@app/constants/locales/global';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
@@ -22,9 +22,9 @@ export default function WorkspaceFormResponseDeletionCard({ response, isResponde
         <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px] border-brand-100 ${!!response?.deletionStatus ? '' : 'hover:border-brand-500'} transition cursor-pointer rounded ${className}`}>
             <div className="rounded relative w-full px-4 py-6 flex min-h-28 flex-col gap-4 items-start justify-between">
                 <div className="rounded h-[34px] w-[34px]">{response?.provider === 'typeform' ? <TypeformIcon width={34} height={34} /> : <GoogleFormIcon width={34} height={34} className="-ml-1" />}</div>
-                <Tooltip title={response?.formTitle || t(localesDefault.untitled)}>
+                <Tooltip title={response?.formTitle || t(localesGlobal.untitled)}>
                     <Typography className="body3 !leading-none w-[inherit]" noWrap>
-                        {response?.formTitle || t(localesDefault.untitled)}
+                        {response?.formTitle || t(localesGlobal.untitled)}
                     </Typography>
                 </Tooltip>
                 {isResponderPortal && !!response?.deletionStatus && (
@@ -35,7 +35,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, isResponde
                 <div className="w-full flex flex-col lg:flex-row justify-between">
                     <p className="text-xs text-gray-400 italic">
                         <span>
-                            ${t(localesDefault.lastSubmittedAt)} {submittedAt}
+                            ${t(localesGlobal.lastSubmittedAt)} {submittedAt}
                         </span>
                     </p>
                 </div>

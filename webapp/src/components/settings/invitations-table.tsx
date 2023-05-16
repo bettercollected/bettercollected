@@ -16,7 +16,8 @@ import DataTable from 'react-data-table-component';
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import MemberOptions from '@app/components/datatable/workspace-settings/member-options';
-import { localesDefault, members } from '@app/constants/locales';
+import { localesGlobal } from '@app/constants/locales/global';
+import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersInvitationsQuery, useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 import { parseDateStrToDate, toHourMinStr, toLocaleString, toLocaleStringFromDateString, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
@@ -57,7 +58,7 @@ export default function InvitationsTable() {
             }
         },
         {
-            name: t(localesDefault.status),
+            name: t(localesGlobal.status),
             selector: (invitation: any) => _.capitalize(invitation.invitation_status),
             style: {
                 color: 'rgba(0,0,0,.54)',

@@ -16,7 +16,7 @@ import ImportFormsButton from '@app/components/form-integrations/import-forms-bu
 import { SearchIcon } from '@app/components/icons/search';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import ActiveLink from '@app/components/ui/links/active-link';
-import { formsConstant } from '@app/constants/locales';
+import { formsConstant } from '@app/constants/locales/forms';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';

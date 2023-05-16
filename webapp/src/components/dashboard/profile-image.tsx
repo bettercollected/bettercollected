@@ -7,7 +7,9 @@ import AvatarEditor from 'react-avatar-editor';
 import { toast } from 'react-toastify';
 
 import Image from '@app/components/ui/image';
-import { localesDefault, toastMessage, workspaceConstant } from '@app/constants/locales';
+import { localesGlobal } from '@app/constants/locales/global';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { ToastId } from '@app/constants/toastId';
 import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
 import { useAppDispatch } from '@app/store/hooks';
@@ -76,7 +78,7 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
                                         <Image src="/upload.png" height="46px" width={'72px'} alt={'upload'} />
                                     </>
                                 ) : (
-                                    t(localesDefault.noImage)
+                                    t(localesGlobal.noImage)
                                 )}
                             </div>
                         ))}

@@ -11,7 +11,8 @@ import { Telegram } from '@app/components/icons/brands/telegram';
 import { Twitter } from '@app/components/icons/brands/twitter';
 import { useModal } from '@app/components/modal-views/context';
 import LinkView from '@app/components/ui/link-view';
-import { localesDefault, toastMessage } from '@app/constants/locales';
+import { localesGlobal } from '@app/constants/locales/global';
+import { toastMessage } from '@app/constants/locales/toast-message';
 
 type SizeNames = 'large' | 'small';
 interface Props {
@@ -44,9 +45,7 @@ export default function ShareView({ url, title, showCopy, iconSize = 'large' }: 
     const { t } = useTranslation();
     return (
         <div>
-            <p className={cn('-tracking-wide text-gray-900 ltr:text-left rtl:text-right dark:text-white  !leading-none', showCopy ? 'sh1' : 'body1')}>
-                {t(localesDefault.share)} {title}
-            </p>
+            <p className={cn('-tracking-wide text-gray-900 ltr:text-left rtl:text-right dark:text-white  !leading-none', showCopy ? 'sh1' : 'body1')}>{title}</p>
             <div className="flex flex-col gap-5 flex-wrap md:gap-10">
                 <div className="product-share mt-6 flex flex-shrink-0 flex-wrap items-center ">
                     <TwitterShareButton url={url}>

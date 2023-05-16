@@ -6,7 +6,7 @@ import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { HomeIcon } from '@app/components/icons/home';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import { breadcrumbsItems } from '@app/constants/locales';
+import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';

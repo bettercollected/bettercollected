@@ -8,7 +8,9 @@ import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
-import { advanceSetting, buttons, workspaceConstant } from '@app/constants/locales';
+import { advanceSetting } from '@app/constants/locales/advance-setting';
+import { buttons } from '@app/constants/locales/buttons';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 

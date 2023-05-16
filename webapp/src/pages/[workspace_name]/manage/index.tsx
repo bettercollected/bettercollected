@@ -6,7 +6,7 @@ import ManageWorkspaceLayout from '@app/components/layout/manage-workspace';
 import WorkspaceImage from '@app/components/settings/basic-information/worksapce-image';
 import WorkspaceBanner from '@app/components/settings/basic-information/workspace-banner';
 import WorkspaceInfo from '@app/components/settings/basic-information/workspace-info';
-import { workspaceConstant } from '@app/constants/locales';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 
 export default function ManageWorkspace({ workspace }: any) {
     const { t } = useTranslation();

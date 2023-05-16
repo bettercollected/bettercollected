@@ -15,7 +15,10 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
-import { buttons, formsConstant, importFormConstant, toastMessage } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
+import { formsConstant } from '@app/constants/locales/forms';
+import { importFormConstant } from '@app/constants/locales/import-form';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppSelector } from '@app/store/hooks';
 import { useImportFormMutation, useLazyGetMinifiedFormsQuery, useLazyGetSingleFormFromProviderQuery } from '@app/store/workspaces/api';
 
@@ -199,7 +202,7 @@ export default function ImportProviderForms(props: any) {
         <>
             {/* {backBreadcrumb} */}
             <h4 className="h4 w-full text-start">{t(importFormConstant.responseOwnerTagTitle)}</h4>
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-5 w-full">
                 <p className="body1">{t(importFormConstant.responseOwnerTagDescription)}</p>
                 <div className="flex flex-col w-full h-full gap-6 items-end">
                     <Autocomplete
@@ -226,7 +229,6 @@ export default function ImportProviderForms(props: any) {
                         }}
                         renderInput={(params) => <TextField {...params} label={t(importFormConstant.responseOwnerTagLabel)} />}
                     />
-                    <div></div>
                     <Button className="!font-medium" isLoading={!!importFormResult?.isLoading || !!singleFormFromProviderResult?.isLoading} onClick={handleImportForm} disabled={!selectedForm || !!singleFormFromProviderResult?.isLoading} size="medium">
                         {t(buttons.importNow)}
                     </Button>

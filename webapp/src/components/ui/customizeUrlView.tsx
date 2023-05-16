@@ -6,7 +6,11 @@ import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 import { PersistPartial } from 'redux-persist/es/persistReducer';
 
-import { buttons, customize, localesDefault, regixMessage, toastMessage } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
+import { customize } from '@app/constants/locales/customize';
+import { localesGlobal } from '@app/constants/locales/global';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { validationMessage } from '@app/constants/locales/validation-message';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -45,7 +49,7 @@ export default function CustomizeUrlView({ description, url }: ICustomizeUrlModa
             if (response.data) {
                 const settings = response.data.settings;
                 dispatch(setFormSettings(settings));
-                toast(t(localesDefault.updated).toString(), { type: 'success' });
+                toast(t(localesGlobal.updated).toString(), { type: 'success' });
             } else {
                 toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
                 return response.error;
@@ -58,7 +62,7 @@ export default function CustomizeUrlView({ description, url }: ICustomizeUrlModa
             <p className="sh1 ">{t(customize.url)}</p>
             <p className="pt-6  pb-8 !text-black-600">{description}</p>
             <p className=" mb-3 body1  !leading-none">
-                {t(localesDefault.slug)}
+                {t(localesGlobal.slug)}
                 <span className="text-red-500">*</span>
             </p>
             <TextField
@@ -74,9 +78,9 @@ export default function CustomizeUrlView({ description, url }: ICustomizeUrlModa
                 value={slug}
                 onChange={handleOnchange}
             />
-            {slug === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">{t(regixMessage.slug)}</p>}
+            {slug === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">{t(validationMessage.slug)}</p>}
             <div className="px-10 py-6 gap-6 bg-blue-100 mt-8 md:w-[454px] w-full md:-ml-10 break-all">
-                <p className="body1">{t(localesDefault.newLink)}</p>
+                <p className="body1">{t(localesGlobal.newLink)}</p>
                 <p className="body3 ">
                     <span className="text-black-600"> {url}</span>/<span className="text-black-800 font-medium">{slug}</span>
                 </p>

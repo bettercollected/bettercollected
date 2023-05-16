@@ -6,7 +6,7 @@ import _ from 'lodash';
 
 import Radio from '@mui/material/Radio';
 
-import { localesDefault } from '@app/constants/locales';
+import { localesGlobal } from '@app/constants/locales/global';
 import { Plan } from '@app/store/plans/types';
 
 interface IPlanCardProps {
@@ -37,7 +37,7 @@ export default function PlanCard({ plan, activePlan, onClick }: IPlanCardProps) 
                 </div>
                 <div>
                     <div className={`sh1 ${!active ? '!text-black-600' : ''}`}>{interval}</div>
-                    {plan.recurring_interval === 'year' && <div className="body1 !text-[#E79B0B] ">{t(localesDefault.save)} 17%</div>}
+                    {plan.recurring_interval === 'year' && <div className="body1 !text-[#E79B0B] ">{t(localesGlobal.save)} 17%</div>}
                 </div>
             </div>
 

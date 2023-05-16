@@ -10,7 +10,8 @@ import ImageLoginLaptopScreen from '@app/assets/images/login-laptop-screen.png';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
 import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
-import { localesDefault, signInScreen } from '@app/constants/locales';
+import { localesGlobal } from '@app/constants/locales/global';
+import { signInScreen } from '@app/constants/locales/signin-screen';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain, getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -68,7 +69,7 @@ export async function getServerSideProps(_context: any) {
 export const Login = () => {
     const { t } = useTranslation();
     const constants = {
-        heading4: t(localesDefault.becomeABetterCollector),
+        heading4: t(localesGlobal.becomeABetterCollector),
         heading3: t(signInScreen.welcomeMessage),
         subHeading2: t(signInScreen.continueWIth),
         paragraphs: [t(signInScreen.reviewForms), t(signInScreen.collectForms), t(signInScreen.easyToManageForms), t(signInScreen.deleteResponses)]
@@ -108,11 +109,11 @@ export const Login = () => {
                     <div className="body4">
                         {t(signInScreen.signinAgreementDescription)}
                         <a href="https://bettercollected.com/terms-of-service" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
-                            {t(localesDefault.termsOfServices)}
+                            {t(localesGlobal.termsOfServices)}
                         </a>
-                        {t(localesDefault.and)}
+                        {t(localesGlobal.and)}
                         <a href="https://bettercollected.com/privacy-policy" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
-                            {t(localesDefault.privacyPolicy)}
+                            {t(localesGlobal.privacyPolicy)}
                         </a>
                         .
                     </div>

@@ -11,7 +11,12 @@ import BetterInput from '@app/components/Common/input';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
-import { buttons, localesDefault, toastMessage, updateWorkspace, workspaceConstant } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
+import { placeHolder } from '@app/constants/locales/placeholder';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { updateWorkspace } from '@app/constants/locales/update-workspace';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceDomainMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
@@ -109,13 +114,13 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                             : t(updateWorkspace.formLinkWithPreviousworkspaceHandleError)}
                     </div>
                 </div>
-                <div className="body1 mt-6">{updateDomain ? t(localesDefault.domain) : t(workspaceConstant.handle)}</div>
+                <div className="body1 mt-6">{updateDomain ? t(localesGlobal.domain) : t(workspaceConstant.handle)}</div>
                 <div className="flex items-start mt-3 justify-start gap-4  w-full">
                     <BetterInput
                         inputProps={{ 'data-testid': 'update-field' }}
                         error={error}
                         helperText={error ? (updateDomain ? t(updateWorkspace.invalidDomain) : t(updateWorkspace.invalidWorkspaceHandle)) : ''}
-                        placeholder={updateDomain ? t(updateWorkspace.enterCustomDomain) : t(updateWorkspace.enterWorkspaceHandle)}
+                        placeholder={updateDomain ? t(placeHolder.enterCustomDomain) : t(placeHolder.enterWorkspaceHandle)}
                         value={updateText}
                         onChange={(e) => {
                             setUpdateText(e.target.value);

@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function Netherland(props: React.SVGAttributes<{}>) {
     return (
-        <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 130 120" enable-background="new 0 0 130 120" xmlSpace="preserve" fill="#000000" {...props}>
+        <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 130 120" enableBackground="new 0 0 130 120" xmlSpace="preserve" fill="#000000" {...props}>
             <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
             <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
             <g id="SVGRepo_iconCarrier">

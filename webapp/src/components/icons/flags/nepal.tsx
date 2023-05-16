@@ -3,8 +3,8 @@ import React from 'react';
 export default function Nepal(props: React.SVGAttributes<{}>) {
     return (
         <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" className="iconify iconify--twemoji" preserveAspectRatio="xMidYMid meet" fill="#000000" {...props}>
-            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+            <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+            <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
             <g id="SVGRepo_iconCarrier">
                 <path fill="#22408B" d="M27.796 19L8 5v26h19.796L15.918 19z"></path>
                 <path fill="#DD2F45" d="M25 18L9 7.196V30h16L13.574 18z"></path>

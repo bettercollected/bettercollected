@@ -10,7 +10,10 @@ import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
-import { buttons, inviteCollaborator, localesDefault, toastMessage } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
+import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
@@ -55,7 +58,7 @@ export default function InviteMemberModal() {
                 <div className="sh1 !leading-none">{t(inviteCollaborator.default)}</div>
                 <div className="body4 pt-6 !leading-none ">{t(inviteCollaborator.description)}</div>
                 <form onSubmit={handleSendInvitation} className="flex pt-8  flex-col justify-start">
-                    <div className="body1 mb-3 !leading-none">{t(localesDefault.enterEmail)}</div>
+                    <div className="body1 mb-3 !leading-none">{t(localesGlobal.enterEmail)}</div>
                     <BetterInput
                         disabled={isLoading}
                         data-testid="otp-input"
@@ -63,7 +66,7 @@ export default function InviteMemberModal() {
                         value={invitationMail}
                         type="email"
                         className="!mb-0"
-                        placeholder={t(localesDefault.enterEmail)}
+                        placeholder={t(localesGlobal.enterEmail)}
                         onChange={(event) => {
                             setInvitationMail(event.target.value);
                         }}

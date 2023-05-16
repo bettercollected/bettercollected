@@ -10,7 +10,8 @@ import Button from '@app/components/ui/button';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
-import { buttons, pricingPlan } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
+import { pricingPlan } from '@app/constants/locales/pricingplan';
 import { useGetPlansQuery } from '@app/store/plans/api';
 
 export default function Index() {

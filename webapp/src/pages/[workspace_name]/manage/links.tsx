@@ -8,7 +8,10 @@ import BetterInput from '@app/components/Common/input';
 import ManageWorkspaceLayout from '@app/components/layout/manage-workspace';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
-import { buttons, localesDefault, placeHolder, toastMessage } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
+import { placeHolder } from '@app/constants/locales/placeholder';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchWorkspacePoliciesMutation } from '@app/store/workspaces/api';
@@ -57,11 +60,11 @@ export default function ManageLinks() {
         <ManageWorkspaceLayout>
             <SettingsCard>
                 <form onSubmit={handleSubmit}>
-                    <div className="body1">{t(localesDefault.linkToPrivacyPolicy)}</div>
+                    <div className="body1">{t(localesGlobal.linkToPrivacyPolicy)}</div>
                     <div>
                         <BetterInput value={policies.privacy_policy_url} onChange={handleChange} name="privacy_policy_url" error={!handleURLValidation(policies.privacy_policy_url)} placeholder={t(placeHolder.privacyPolicyLink)} />
                     </div>
-                    <div className="body1">{t(localesDefault.linkToTermsOfServices)}</div>
+                    <div className="body1">{t(localesGlobal.linkToTermsOfServices)}</div>
                     <div>
                         <BetterInput onChange={handleChange} value={policies.terms_of_service_url} name="terms_of_service_url" error={!handleURLValidation(policies.terms_of_service_url)} placeholder={t(placeHolder.termsOfServicesLink)} />
                     </div>

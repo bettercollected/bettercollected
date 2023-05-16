@@ -15,7 +15,8 @@ import { useModal } from '@app/components/modal-views/context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import PublicWorkspaceTitleAndDescription from '@app/components/workspace/public-workspace-title-description';
 import environments from '@app/configs/environments';
-import { buttons, localesDefault } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import Layout from '@app/layouts/_layout';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -59,7 +60,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
 
     const workspaceOptions = (
         <div className="flex gap-6">
-            <Button onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: t(localesDefault.yourWorkspace) })} variant="outlined" className="body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize">
+            <Button onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: t(workspaceConstant.share) })} variant="outlined" className="body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize">
                 {t(buttons.share)}
             </Button>
             <AuthAccountMenuDropdown isClientDomain={isCustomDomain ? false : true} menuContent={<EllipsisOption />} showExpandMore={false} className="!text-black-900 !py-0 !px-1" />

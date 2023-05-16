@@ -8,7 +8,7 @@ import remarkGfm from 'remark-gfm';
 
 // Absolute imports
 import { Close } from '@app/components/icons/close';
-import { localesDefault } from '@app/constants/locales';
+import { localesGlobal } from '@app/constants/locales/global';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 type Props = {
@@ -39,7 +39,7 @@ export default function MarkdownText({ description, scrollTitle = '', onClick = 
     const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
     useEffect(() => {
-        const desc = description || t(localesDefault.noDescription);
+        const desc = description || t(localesGlobal.noDescription);
         let descStripped = desc;
         if (desc.length > contentStripLength && displayShowMore) {
             descStripped = toEndDottedStr(desc, contentStripLength);
@@ -80,7 +80,7 @@ export default function MarkdownText({ description, scrollTitle = '', onClick = 
                         </ReactMarkdown>
                         {displayShowMore && description.length > contentStripLength && (
                             <span onClick={handleClickOpen('paper')} className={`show-more-less-text hover:underline capitalize p-0 cursor-pointer !text-brand-500 hover:!text-brand-600 ${textClassName}`}>
-                                {t(localesDefault.readMore)}
+                                {t(localesGlobal.readMore)}
                             </span>
                         )}
                     </div>

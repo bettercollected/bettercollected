@@ -14,8 +14,10 @@ import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
-import { localesDefault, toastMessage, toolTipConstant } from '@app/constants/locales';
-import { formsConstant } from '@app/constants/locales';
+import { formsConstant } from '@app/constants/locales/forms';
+import { localesGlobal } from '@app/constants/locales/global';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { setFormSettings } from '@app/store/forms/slice';
@@ -107,13 +109,13 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         <MenuItem
             sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
             className="body4 hover:bg-brand-100"
-            onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: t(formsConstant.thisForm) })}
+            onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: t(formsConstant.shareThisForm) })}
             disabled={!!currentActiveForm?.form?.settings?.private}
         >
             <ListItemIcon>
                 <Share width={20} height={20} />
             </ListItemIcon>
-            <span>{t(localesDefault.share)}</span>
+            <span>{t(localesGlobal.share)}</span>
         </MenuItem>
     );
 

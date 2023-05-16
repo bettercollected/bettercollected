@@ -10,7 +10,10 @@ import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
 import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
-import { buttons, localesDefault, toastMessage, workspaceConstant } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { ToastId } from '@app/constants/toastId';
 import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
 import { useAppDispatch } from '@app/store/hooks';
@@ -100,12 +103,12 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                                 <span className="cursor-pointer text-brand-500 pr-1" onClick={onClickFileUploadButton}>
                                     {t(buttons.upload)}
                                 </span>
-                                {t(localesDefault.a)} {t(localesDefault.image)}
+                                {t(localesGlobal.a)} {t(localesGlobal.image)}
                             </div>
                             <div className="hidden lg:mt-[18px] lg:flex">{t(workspaceConstant.bannerEmptyMessage)}</div>
                         </div>
                     ) : (
-                        <div className="flex h-full justify-center items-center">{t(localesDefault.noImage)}</div>
+                        <div className="flex h-full justify-center items-center">{t(localesGlobal.noImage)}</div>
                     )}
                     <input ref={imageInputRef} data-testid="file-upload" type="file" accept="image/*" className="hidden" onChange={onUploadFileChange} />
                 </>

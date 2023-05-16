@@ -7,7 +7,9 @@ import { Box } from '@mui/material';
 
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
-import { advanceSetting, localesDefault, members, workspaceConstant } from '@app/constants/locales';
+import { advanceSetting } from '@app/constants/locales/advance-setting';
+import { members } from '@app/constants/locales/members';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -25,7 +27,7 @@ export default function SettingsDrawer({ drawerWidth, mobileOpen, handleDrawerTo
         },
         {
             key: 'members',
-            name: t(members.member),
+            name: t(members.default),
             url: `${commonUrl}/members`
         },
         {

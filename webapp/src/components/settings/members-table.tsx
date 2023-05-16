@@ -9,7 +9,7 @@ import DataTable from 'react-data-table-component';
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import MemberOptions from '@app/components/datatable/workspace-settings/member-options';
-import { members } from '@app/constants/locales';
+import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 import { parseDateStrToDate, toHourMinStr, toLocaleStringFromDateString, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';

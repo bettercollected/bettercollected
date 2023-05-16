@@ -9,7 +9,9 @@ import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
-import { advanceSetting, buttons, localesDefault } from '@app/constants/locales';
+import { advanceSetting } from '@app/constants/locales/advance-setting';
+import { buttons } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
@@ -31,7 +33,7 @@ export default function UpdateCustomDomain() {
 
     return (
         <SettingsCard>
-            <div className="body1">{t(localesDefault.customDomain)}</div>
+            <div className="body1">{t(localesGlobal.customDomain)}</div>
             <div className="flex w-full justify-between">
                 <div className="w-full text-sm text-gray-600">
                     {workspace.customDomain ? (

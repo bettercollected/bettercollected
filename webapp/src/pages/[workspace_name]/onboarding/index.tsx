@@ -7,7 +7,6 @@ import { useRouter } from 'next/router';
 import _ from 'lodash';
 
 import { ChevronLeft } from '@mui/icons-material';
-import { TextField } from '@mui/material';
 import cn from 'classnames';
 import AvatarEditor from 'react-avatar-editor';
 import { toast } from 'react-toastify';
@@ -18,7 +17,13 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import WorkSpaceLogoUi from '@app/components/ui/workspace-logo-ui';
-import { buttons, localesDefault, onBoarding, placeHolder, regixMessage, toastMessage, workspaceConstant } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
+import { onBoarding } from '@app/constants/locales/onboarding-screen';
+import { placeHolder } from '@app/constants/locales/placeholder';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { validationMessage } from '@app/constants/locales/validation-message';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { ToastId } from '@app/constants/toastId';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
@@ -170,7 +175,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         <div className="flex flex-col mt-[24px] justify-center items-center">
             <AuthAccountProfileImage image={user?.profile_image} name={profileName} size={143} />
             <p className="pt-6 text-center text-black-900 h4">
-                {t(localesDefault.hey)} {user?.first_name}! <br /> {t(onBoarding.welcomeMessage)}
+                {t(localesGlobal.hey)} {user?.first_name}! <br /> {t(onBoarding.welcomeMessage)}
             </p>
             <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">{t(onBoarding.description)}</p>
             <Button size="large" className="mt-10 mb-4" onClick={increaseStep}>
@@ -185,7 +190,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                 {stepCount === 1 && createWorkspace ? <></> : <ChevronLeft className="h-6 w-6" />}
             </div>
             <p className="body4 text-black-700">
-                {t(localesDefault.step)} {stepCount} {t(localesDefault.of)} 2
+                {t(localesGlobal.step)} {stepCount} {t(localesGlobal.of)} 2
             </p>
         </div>
     );
@@ -212,8 +217,8 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                     value={formData.title}
                     onChange={handleOnchange}
                 />
-                {formData.title === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">{t(regixMessage.workspaceTitle)}</p>}
-                <p className={cn('mb-3 body1 text-black-900', formData.title === '' && isError ? 'mt-[24px]' : 'mt-[42px]')}>{t(localesDefault.description)}</p>
+                {formData.title === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">{t(validationMessage.workspaceTitle)}</p>}
+                <p className={cn('mb-3 body1 text-black-900', formData.title === '' && isError ? 'mt-[24px]' : 'mt-[42px]')}>{t(localesGlobal.description)}</p>
                 <BetterInput
                     inputProps={{ maxLength: 280 }}
                     className="!border-solid !border-gray-300 !text-gray-900 !body3 !rounded !w-full"

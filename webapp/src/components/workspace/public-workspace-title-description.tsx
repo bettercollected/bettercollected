@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 
 import ReactContentEditable from '@app/components/inline-editable';
 import MarkdownText from '@app/components/ui/markdown-text';
-import { toastMessage } from '@app/constants/locales';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';

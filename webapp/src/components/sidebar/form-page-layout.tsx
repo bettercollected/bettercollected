@@ -16,7 +16,10 @@ import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import LinkView from '@app/components/ui/link-view';
 import ShareView from '@app/components/ui/share-view';
 import environments from '@app/configs/environments';
-import { breadcrumbsItems, customize, formsConstant } from '@app/constants/locales';
+import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
+import { customize } from '@app/constants/locales/customize';
+import { formsConstant } from '@app/constants/locales/forms';
+import { localesGlobal } from '@app/constants/locales/global';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { initialFormState, setForm } from '@app/store/forms/slice';
@@ -104,7 +107,7 @@ export default function FormPageLayout(props: any) {
                         <Box sx={{ overflow: 'auto', height: '100%' }}>
                             <div className=" px-5 h-full py-6 relative w-full">
                                 <Close onClick={handleDrawerToggle} className="absolute blocks lg:hidden right-5 top-5 cursor-pointer" />
-                                <ShareView url={clientHostUrl} showCopy={false} showBorder={false} iconSize="small" />
+                                <ShareView url={clientHostUrl} showCopy={false} showBorder={false} iconSize="small" title={t(localesGlobal.share)} />
 
                                 <div className="mt-12">
                                     <div className="body1 mb-4 !leading-none ">{t(formsConstant.link)}</div>

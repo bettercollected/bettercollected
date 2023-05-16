@@ -12,7 +12,7 @@ import AuthAccountProfileImage from '@app/components/auth/account-profile-image'
 import { Check } from '@app/components/icons/check';
 import { Plus } from '@app/components/icons/plus';
 import Loader from '@app/components/ui/loader';
-import { menuDropdown } from '@app/constants/locales';
+import { menuDropdown } from '@app/constants/locales/menu-dropdown';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';

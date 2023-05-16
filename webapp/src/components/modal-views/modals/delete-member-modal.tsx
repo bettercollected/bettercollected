@@ -5,7 +5,9 @@ import { toast } from 'react-toastify';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
-import { buttons, localesDefault, toastMessage } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceMemberMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -37,9 +39,9 @@ export default function DeleteMemberModal({ member }: any) {
                 }}
             />
             <div className="sh3 mb-5">
-                {t(localesDefault.remove)} {getFullNameFromUser(member)}?
+                {t(localesGlobal.remove)} {getFullNameFromUser(member)}?
             </div>
-            <div className="body4 text-black-600 text-center mb-10">{t(localesDefault.removeWarningMessage)}</div>
+            <div className="body4 text-black-600 text-center mb-10">{t(localesGlobal.removeWarningMessage)}</div>
             <div className="flex w-full gap-4 justify-end">
                 <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
                     {t(buttons.delete)}

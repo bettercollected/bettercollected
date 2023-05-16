@@ -11,9 +11,12 @@ import { toast } from 'react-toastify';
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import AuthNavbar from '@app/components/auth/navbar';
 import Button from '@app/components/ui/button';
-import MarkdownText from '@app/components/ui/markdown-text';
 import environments from '@app/configs/environments';
-import { buttons, invitationConstant, localesDefault, toastMessage, workspaceConstant } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
+import { invitationConstant } from '@app/constants/locales/invitations';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import Login from '@app/pages/login';
@@ -91,7 +94,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
                         <AuthAccountProfileImage size={60} image={workspace?.profileImage} name={workspace?.workspaceName} />
                         <div className="text-2xl mt-6 mb-4 sh3 !font-normal !text-black-700 ">
                             {t(invitationConstant.title[1])}
-                            <span className="font-bold text-black-900">{' ' + workspace?.title || t(localesDefault.untitled)}</span>
+                            <span className="font-bold text-black-900">{' ' + workspace?.title || t(localesGlobal.untitled)}</span>
                         </div>
                         <div className="body3 mb-10 !text-black-700">{t(invitationConstant.title[2])}</div>
                         <div className="flex flex-col space-y-4 items-center">

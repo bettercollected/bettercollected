@@ -12,7 +12,9 @@ import { SettingIcon } from '@app/components/icons/setting-icon';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import WorkspaceMenuDropdown from '@app/components/workspace/workspace-menu-dropdown';
-import { formsConstant, localesDefault, workspaceConstant } from '@app/constants/locales';
+import { formsConstant } from '@app/constants/locales/forms';
+import { localesGlobal } from '@app/constants/locales/global';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -55,7 +57,7 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
     const topNavList: Array<INavbarItem> = [
         {
             key: 'dashboard',
-            name: t(localesDefault.dashboard),
+            name: t(localesGlobal.dashboard),
             url: commonWorkspaceUrl,
             icon: <DashboardIcon />
         },

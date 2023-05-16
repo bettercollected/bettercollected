@@ -4,7 +4,7 @@ import { useTranslation } from 'next-i18next';
 
 import ProfileImageComponent from '@app/components/dashboard/profile-image';
 import SettingsCard from '@app/components/settings/card';
-import { workspaceConstant } from '@app/constants/locales';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useAppSelector } from '@app/store/hooks';
 
 export default function WorkspaceImage() {

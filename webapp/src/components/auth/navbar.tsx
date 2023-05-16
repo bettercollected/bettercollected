@@ -14,13 +14,14 @@ import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import Button from '@app/components/ui/button';
 import Hamburger from '@app/components/ui/hamburger';
 import Logo from '@app/components/ui/logo';
-import { buttons } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
 
 import { Check } from '../icons/check';
 import Globe from '../icons/flags/globe';
+import Nepal from '../icons/flags/nepal';
 import Netherland from '../icons/flags/netherland';
 import USA from '../icons/flags/usa';
 
@@ -85,6 +86,11 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
             label: 'nl',
             value: 'DUTCH',
             icon: Netherland
+        },
+        {
+            label: 'np',
+            value: 'NEPALI',
+            icon: Nepal
         }
     ];
 

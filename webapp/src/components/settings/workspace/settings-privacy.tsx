@@ -12,7 +12,8 @@ import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
 import environments from '@app/configs/environments';
-import { localesDefault, toastMessage } from '@app/constants/locales';
+import { localesGlobal } from '@app/constants/locales/global';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { privacyPolicyTooltip, termsOfServiceTooltip } from '@app/constants/tooltipContent';
 import { useAppSelector } from '@app/store/hooks';
@@ -163,7 +164,7 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
     return (
         <div className={`lg:w-2/3 mb-10 ${className}`}>
             <CardContainer className={childClassName}>
-                <CardTitle title={t(localesDefault.linkToPrivacyPolicy)} tooltipDesc={privacyPolicyTooltip} />
+                <CardTitle title={t(localesGlobal.linkToPrivacyPolicy)} tooltipDesc={privacyPolicyTooltip} />
                 <div className="flex items-center h-24 justify-between">
                     <StyledTextField>
                         <TextField

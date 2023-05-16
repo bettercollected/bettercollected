@@ -11,7 +11,8 @@ import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
-import { formsConstant, localesDefault } from '@app/constants/locales';
+import { formsConstant } from '@app/constants/locales/forms';
+import { localesGlobal } from '@app/constants/locales/global';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { useGetFormsSubmissionsQuery, useGetWorkspaceSubmissionsQuery } from '@app/store/workspaces/api';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
@@ -94,7 +95,7 @@ const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
                 }
             },
             {
-                name: t(localesDefault.status),
+                name: t(localesGlobal.status),
                 selector: (row: StandardFormResponseDto) => <RequestForDeletionBadge deletionStatus={row?.deletionStatus || t(formsConstant.status.pending)} />,
                 style: {
                     color: 'rgba(0,0,0,.54)',

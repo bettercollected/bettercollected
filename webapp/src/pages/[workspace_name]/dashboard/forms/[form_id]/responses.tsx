@@ -10,7 +10,7 @@ import ResponsesTable from '@app/components/datatable/responses';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import BackButton from '@app/components/settings/back';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';
-import { formsConstant } from '@app/constants/locales';
+import { formsConstant } from '@app/constants/locales/forms';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { IGetWorkspaceSubmissionQuery } from '@app/store/workspaces/types';
 

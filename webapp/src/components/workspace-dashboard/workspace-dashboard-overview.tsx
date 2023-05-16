@@ -12,7 +12,10 @@ import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import WorkspaceDashboardStats from '@app/components/workspace-dashboard/workspace-dashboard-stats';
 import environments from '@app/configs/environments';
-import { buttons, formsConstant, localesDefault, toolTipConstant } from '@app/constants/locales';
+import { buttons } from '@app/constants/locales/buttons';
+import { formsConstant } from '@app/constants/locales/forms';
+import { localesGlobal } from '@app/constants/locales/global';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -104,7 +107,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                         </Tooltip>
                     </ActiveLink>
                     <Button
-                        onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: t(localesDefault.yourWorkspace).toString() })}
+                        onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: t(localesGlobal.shareYourWorkspace).toString() })}
                         variant="outlined"
                         className="body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize"
                     >

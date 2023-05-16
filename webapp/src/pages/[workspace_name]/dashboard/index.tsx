@@ -8,7 +8,7 @@ import ImportFormsButton from '@app/components/form-integrations/import-forms-bu
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
 import WorkspaceDashboardOverview from '@app/components/workspace-dashboard/workspace-dashboard-overview';
-import { formsConstant } from '@app/constants/locales';
+import { formsConstant } from '@app/constants/locales/forms';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceFormsQuery, useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 

@@ -7,7 +7,8 @@ import { Box } from '@mui/material';
 
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
-import { formsConstant, localesDefault } from '@app/constants/locales';
+import { formsConstant } from '@app/constants/locales/forms';
+import { localesGlobal } from '@app/constants/locales/global';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -37,7 +38,7 @@ export default function FormDrawer({ drawerWidth, mobileOpen, handleDrawerToggle
         },
         {
             key: 'settings',
-            name: t(localesDefault.settings),
+            name: t(localesGlobal.settings),
             url: `${commonUrl}/settings`
         }
     ];

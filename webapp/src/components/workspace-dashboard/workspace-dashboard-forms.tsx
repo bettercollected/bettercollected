@@ -6,7 +6,7 @@ import ImportFormsButton from '@app/components/form-integrations/import-forms-bu
 import { EmptyImportFormIcon } from '@app/components/icons/empty-import-form-icon';
 import ActiveLink from '@app/components/ui/links/active-link';
 import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
-import { formsConstant } from '@app/constants/locales';
+import { formsConstant } from '@app/constants/locales/forms';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 

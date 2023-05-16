@@ -6,7 +6,7 @@ import { FormIcon } from '@app/components/icons/form-icon';
 import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
-import { formsConstant } from '@app/constants/locales';
+import { formsConstant } from '@app/constants/locales/forms';
 
 interface ISubmissionTabContainer {
     workspaceId: string;

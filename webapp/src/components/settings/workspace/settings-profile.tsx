@@ -10,7 +10,7 @@ import { toast } from 'react-toastify';
 import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
 import environments from '@app/configs/environments';
-import { toastMessage } from '@app/constants/locales';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import DynamicContainer from '@app/containers/DynamicContainer';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';

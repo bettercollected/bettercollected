@@ -6,7 +6,10 @@ import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 
 import BackButton from '@app/components/settings/back';
 import environments from '@app/configs/environments';
-import { advanceSetting, localesDefault, members, workspaceConstant } from '@app/constants/locales';
+import { advanceSetting } from '@app/constants/locales/advance-setting';
+import { localesGlobal } from '@app/constants/locales/global';
+import { members } from '@app/constants/locales/members';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useAppSelector } from '@app/store/hooks';
 
 interface IMenuItemProps {
@@ -34,17 +37,17 @@ export function SettingsSidebar() {
         <div className="flex py-6 space-y-6 flex-col">
             <BackButton />
             <div className="paragraph text-black-800">
-                <Link href={`/${workspace.workspaceName}/dashboard`}>{t(localesDefault.dashboard)}</Link>
+                <Link href={`/${workspace.workspaceName}/dashboard`}>{t(localesGlobal.dashboard)}</Link>
                 <ChevronRight />
                 <Link href={`${environments.HTTP_SCHEME}/${environments.CLIENT_DOMAIN}/${workspace.workspaceName}`}>{t(workspaceConstant.default)}</Link>
                 <ChevronRight />
-                <span>{t(localesDefault.manage)}</span>
+                <span>{t(localesGlobal.manage)}</span>
             </div>
             <div className="bg-white rounded flex flex-col">
-                <MenuItem href={`/${workspace?.workspaceName}/manage`}>{t(localesDefault.basicInformation)}</MenuItem>
+                <MenuItem href={`/${workspace?.workspaceName}/manage`}>{t(localesGlobal.basicInformation)}</MenuItem>
                 <MenuItem href={`/${workspace?.workspaceName}/manage/members`}>{t(members.default)}</MenuItem>
                 {/*<MenuItem href={`/${workspace?.workspaceName}/manage/links`}>Links</MenuItem>*/}
-                <MenuItem href={`/${workspace?.workspaceName}/manage/advanced`}>{t(localesDefault.advance)}</MenuItem>
+                <MenuItem href={`/${workspace?.workspaceName}/manage/advanced`}>{t(localesGlobal.advance)}</MenuItem>
             </div>
         </div>
     );

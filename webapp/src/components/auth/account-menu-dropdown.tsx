@@ -16,7 +16,7 @@ import { DashboardIcon } from '@app/components/icons/dashboard-icon';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
-import { menuDropdown, profileMenu } from '@app/constants/locales';
+import { profileMenu } from '@app/constants/locales/profile-menu';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
