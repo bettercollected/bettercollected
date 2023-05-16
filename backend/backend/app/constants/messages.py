@@ -7,3 +7,5 @@ multiple_provider_config_found = (
 )
 
 proxy_server_error = "Error : Could not fetch data from proxy server."
+
+not_found = "NOT FOUND"
