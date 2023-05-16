@@ -24,27 +24,6 @@ DashboardDrawer.defaultProps = {
 const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
     return (
         <>
-            <Joyride
-                id="workspace-admin-dashboard-drawer"
-                scrollOffset={0}
-                steps={[
-                    {
-                        title: <span className="sh3">Your workspace</span>,
-                        content: <p className="body4">This is your current active workspace. You can switch to other workspaces, or create your own new personal workspace from here.</p>,
-                        target: '.joyride-workspace-switcher'
-                    },
-                    {
-                        title: <span className="sh3">Workspace navigations</span>,
-                        content: <p className="body4">Using these navigation links, you can navigate to your imported forms, responses, and deletion requests.</p>,
-                        target: '.joyride-workspace-navigations'
-                    },
-                    {
-                        title: <span className="sh3">Advance navigations</span>,
-                        content: <p className="body4">Using these navigation links, you can navigate to workspace settings, update your workspace, manage members, and many more.</p>,
-                        target: '.joyride-workspace-settings'
-                    }
-                ]}
-            />
             <Toolbar />
             <Box sx={{ overflow: 'auto', height: '100%' }}>
                 <List disablePadding className="joyride-workspace-switcher">
@@ -95,6 +74,27 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
 
     return (
         <>
+            <Joyride
+                id="workspace-admin-dashboard-drawer"
+                scrollOffset={0}
+                steps={[
+                    {
+                        title: <span className="sh3">Your workspace</span>,
+                        content: <p className="body4">This is your current active workspace. You can switch to other workspaces, or create your own new personal workspace from here.</p>,
+                        target: '.joyride-workspace-switcher'
+                    },
+                    {
+                        title: <span className="sh3">Workspace navigations</span>,
+                        content: <p className="body4">Using these navigation links, you can navigate to your imported forms, responses, and deletion requests.</p>,
+                        target: '.joyride-workspace-navigations'
+                    },
+                    {
+                        title: <span className="sh3">Advance navigations</span>,
+                        content: <p className="body4">Using these navigation links, you can navigate to workspace settings, update your workspace, manage members, and many more.</p>,
+                        target: '.joyride-workspace-settings'
+                    }
+                ]}
+            />
             <MuiDrawer handleDrawerToggle={handleDrawerToggle} drawerWidth={drawerWidth} mobileOpen={mobileOpen}>
                 <Drawer topNavList={topNavList} isAdmin={isAdmin} bottomNavList={bottomNavList} />
             </MuiDrawer>
