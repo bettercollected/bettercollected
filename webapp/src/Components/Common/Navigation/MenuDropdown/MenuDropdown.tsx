@@ -10,6 +10,7 @@ interface IMenuDropdownProps {
     menuTitle: string;
     menuContent: React.ReactNode | React.ReactNode[];
     children: React.ReactNode | React.ReactNode[];
+    width?: number;
     className?: string;
     onClick?: any;
     enterDelay?: number;
@@ -26,7 +27,6 @@ interface IMenuDropdownProps {
 const defaultPaperProps: PaperProps = {
     elevation: 0,
     sx: {
-        width: 289,
         overflow: 'hidden',
         borderRadius: 2,
         filter: 'drop-shadow(0px 0px 15px rgba(0, 0, 0, 0.15))',
@@ -44,6 +44,7 @@ export default function MenuDropdown({
     menuContent,
     children,
     className = '',
+    width = 289,
     onClick = undefined,
     enterDelay = 1000,
     leaveDelay = 100,
@@ -67,6 +68,8 @@ export default function MenuDropdown({
     const handleClose = () => {
         setAnchorEl(null);
     };
+
+    if (width) PaperProps.sx = { ...PaperProps.sx, width: width };
 
     return (
         <>

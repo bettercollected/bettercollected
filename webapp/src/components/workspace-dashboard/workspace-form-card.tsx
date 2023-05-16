@@ -1,13 +1,14 @@
+import { useRouter } from 'next/router';
+
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import Share from '@Components/Common/Icons/Share';
 import { PushPin } from '@mui/icons-material';
-import { Typography } from '@mui/material';
+import { MenuItem, Typography } from '@mui/material';
 
 import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
 import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
 import { useModal } from '@app/components/modal-views/context';
-import ActiveLink from '@app/components/ui/links/active-link';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { getFormUrl } from '@app/utils/urlUtils';
@@ -22,6 +23,7 @@ interface IWorkspaceFormCardProps {
 
 export default function WorkspaceFormCard({ form, hasCustomDomain, workspace = undefined, isResponderPortal = false, className = '' }: IWorkspaceFormCardProps) {
     const { openModal } = useModal();
+    const router = useRouter();
     return (
         <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px] border-brand-100 hover:border-brand-500 transition cursor-pointer rounded ${className}`}>
             <div className="rounded relative w-full px-4 py-6 flex min-h-28 flex-col gap-4 items-start justify-between overflow-hidden">
@@ -44,14 +46,23 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, workspace = u
             </div>
             {!isResponderPortal && !!workspace && (
                 <div className="relative flex justify-between items-center p-3 w-full border-t-[1px] border-black-400">
-                    <ActiveLink href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/responses`}>
-                        <p className="body4 !text-brand-600 hover:underline">
-                            {form?.responses} response{!!form?.responses && form.responses > 1 ? 's' : ''}
-                        </p>
-                    </ActiveLink>
+                    <div
+                        onClick={(event: any) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/responses`);
+                        }}
+                        className="h-full"
+                    >
+                        <MenuItem sx={{ padding: '8px', maxHeight: '40px', borderRadius: '4px' }} className="body4 bg-brand-100 hover:bg-brand-200">
+                            <p className="body4 !text-brand-600">
+                                {form?.responses} response{!!form?.responses && form.responses > 1 ? 's' : ''}
+                            </p>
+                        </MenuItem>
+                    </div>
                     <div className="flex space-x-4 items-center">
                         <div
-                            className="hover:bg-brand-200 p-2.5 rounded"
+                            className="hover:bg-brand-200 p-2.5 h-10 w-10 rounded"
                             onClick={(event: any) => {
                                 event.preventDefault();
                                 event.stopPropagation();
