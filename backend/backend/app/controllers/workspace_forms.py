@@ -84,7 +84,7 @@ class WorkspaceFormsRouter(Routable):
         group_id: PydanticObjectId,
         user: User = Depends(get_logged_user),
     ):
-        await self.workspace_form_service.add_group_to_form(
+        return await self.workspace_form_service.add_group_to_form(
             workspace_id, form_id, group_id, user
         )
 

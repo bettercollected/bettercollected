@@ -34,6 +34,7 @@ class FormRepository:
                 }
             },
         ]
+
         aggregation_pipeline.extend(create_filter_pipeline(sort=sort))
 
         if is_admin:

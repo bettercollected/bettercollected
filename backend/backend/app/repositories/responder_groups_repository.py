@@ -96,7 +96,7 @@ class ResponderGroupsRepository:
         ).to_list()
 
     async def add_group_to_form(self, form_id: str, group_id: PydanticObjectId):
-        existing_document = ResponderGroupFormDocument.find_one(
+        existing_document = await ResponderGroupFormDocument.find_one(
             {"form_id": form_id, "group_id": group_id}
         )
         if not existing_document:

@@ -4,7 +4,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from beanie import PydanticObjectId
 from starlette.requests import Request
 
-from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
@@ -35,7 +34,7 @@ class WorkspaceFormService:
         form_import_service: FormImportService,
         schedular: AsyncIOScheduler,
         form_response_service: FormResponseService,
-        responder_groups_service: ResponderGroupsService = container.responder_groups_service(),
+        responder_groups_service: ResponderGroupsService,
     ):
         self.form_provider_service = form_provider_service
         self.plugin_proxy_service = plugin_proxy_service
