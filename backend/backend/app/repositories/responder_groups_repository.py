@@ -6,6 +6,7 @@ from pydantic import EmailStr
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
     ResponderGroupEmailsDocument,
+    ResponderGroupFormDocument,
 )
 
 
@@ -93,3 +94,19 @@ class ResponderGroupsRepository:
         return await ResponderGroupDocument.find(
             {"workspace_id": workspace_id}
         ).to_list()
+
+    async def add_group_to_form(self, form_id: str, group_id: PydanticObjectId):
+        existing_document = ResponderGroupFormDocument.find_one(
+            {"form_id": form_id, "group_id": group_id}
+        )
+        if not existing_document:
+            responder_group_form_document = ResponderGroupFormDocument(
+                form_id=form_id, group_id=group_id
+            )
+            return await responder_group_form_document.save()
+        return existing_document
+
+    async def remove_group_from_form(self, form_id: str, group_id: PydanticObjectId):
+        return await ResponderGroupFormDocument.find_one(
+            {"form_id": form_id, "group_id": group_id}
+        ).delete()

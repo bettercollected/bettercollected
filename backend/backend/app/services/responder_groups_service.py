@@ -101,3 +101,13 @@ class ResponderGroupsService:
         return await self.responder_groups_repo.get_groups_in_workspace(
             workspace_id=workspace_id
         )
+
+    async def add_group_to_form(self, form_id: str, group_id: PydanticObjectId):
+        return await self.responder_groups_repo.add_group_to_form(
+            form_id=form_id, group_id=group_id
+        )
+
+    async def remove_group_from_form(self, form_id: str, group_id: PydanticObjectId):
+        return await self.responder_groups_repo.remove_group_from_form(
+            form_id=form_id, group_id=group_id
+        )

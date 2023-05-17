@@ -136,6 +136,12 @@ class AppContainer(containers.DeclarativeContainer):
         jwt_service=jwt_service,
     )
 
+    responder_groups_service = providers.Singleton(
+        ResponderGroupsService,
+        responder_groups_repo=responder_groups_repository,
+        workspace_user_service=workspace_user_service,
+    )
+
     workspace_form_service: WorkspaceFormService = providers.Singleton(
         WorkspaceFormService,
         form_provider_service=form_provider_service,
@@ -147,6 +153,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_import_service=form_import_service,
         schedular=schedular,
         form_response_service=form_response_service,
+        responder_groups_service=responder_groups_service,
     )
 
     workspace_service: WorkspaceService = providers.Singleton(
@@ -178,12 +185,6 @@ class AppContainer(containers.DeclarativeContainer):
         form_provider_service=form_provider_service,
         jwt_service=jwt_service,
         workspace_service=workspace_service,
-    )
-
-    responder_groups_service = providers.Singleton(
-        ResponderGroupsService,
-        responder_groups_repo=responder_groups_repository,
-        workspace_user_service=workspace_user_service,
     )
 
 

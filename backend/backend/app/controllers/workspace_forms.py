@@ -76,6 +76,30 @@ class WorkspaceFormsRouter(Routable):
         )
         return WorkspaceFormPatchResponse(**data.dict())
 
+    @patch("/{form_id}/groups/add")
+    async def patch_groups_for_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        group_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ):
+        await self.workspace_form_service.add_group_to_form(
+            workspace_id, form_id, group_id, user
+        )
+
+    @delete("/{form_id}/groups")
+    async def delete_group_from_workspace(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        group_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ):
+        await self.workspace_form_service.delete_group_from_form(
+            workspace_id=workspace_id, form_id=form_id, group_id=group_id, user=user
+        )
+
     @post("/import/{provider}")
     async def _import_form_to_workspace(
         self,
