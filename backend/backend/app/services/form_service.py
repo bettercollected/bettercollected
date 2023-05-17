@@ -100,14 +100,16 @@ class FormService:
             workspace_id=workspace_id, user=user
         )
         # TODO : Refactor confusing function get but it instead throws inside
-        workspace_form = (
-            await self._workspace_form_repo.get_workspace_form_in_workspace(
-                workspace_id=workspace_id, query=form_id, is_admin=is_admin
-            )
+        #  and it also check if the user can access the form
+        workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
+            workspace_id=workspace_id,
+            is_not_admin=not is_admin,
+            user=user,
+            match_query={"form_id": form_id},
         )
         form = await self._form_repo.get_forms_in_workspace_query(
             workspace_id=workspace_id,
-            form_id_list=[workspace_form.form_id],
+            form_id_list=workspace_form_ids,
             is_admin=is_admin,
         ).to_list()
 

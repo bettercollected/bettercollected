@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import Dict, Any
 
 from beanie import PydanticObjectId
 from pymongo.errors import (
@@ -77,9 +78,12 @@ class WorkspaceFormRepository:
         workspace_id: PydanticObjectId,
         is_not_admin: bool = False,
         user: User = None,
+        match_query: Dict[str, Any] = None,
     ):
         try:
             query = {"workspace_id": workspace_id}
+            if match_query:
+                query.update(match_query)
             aggregation_pipeline = []
             if is_not_admin and user:
                 aggregation_pipeline.extend(
