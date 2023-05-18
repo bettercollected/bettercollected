@@ -82,6 +82,8 @@ class WorkspaceFormRepository:
     ):
         try:
             query = {"workspace_id": workspace_id}
+            if is_not_admin and not user:
+                query["settings.private"] = False
             if match_query:
                 query.update(match_query)
             aggregation_pipeline = []
@@ -104,7 +106,14 @@ class WorkspaceFormRepository:
                                 "as": "emails",
                             }
                         },
-                        {"$match": {"emails.email": user.sub}},
+                        {
+                            "$match": {
+                                "$or": [
+                                    {"settings.private": False},
+                                    {"emails.email": user.sub},
+                                ]
+                            }
+                        },
                     ]
                 )
                 pass
