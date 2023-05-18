@@ -25,7 +25,6 @@ class MyDocument extends Document {
 }
 
 function embedMicrosoftClarityScript() {
-    console.log(environments);
     if (environments.MICROSOFT_CLARITY_TRACKING_CODE)
         return (
             <script

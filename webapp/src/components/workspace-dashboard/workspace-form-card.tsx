@@ -1,4 +1,7 @@
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import PinnedIcon from '@Components/Common/Icons/Pinned';
+import PrivateIcon from '@Components/Common/Icons/Private';
+import PublicIcon from '@Components/Common/Icons/Public';
 import Share from '@Components/Common/Icons/Share';
 import { PushPin } from '@mui/icons-material';
 import { Typography } from '@mui/material';
@@ -23,7 +26,7 @@ interface IWorkspaceFormCardProps {
 export default function WorkspaceFormCard({ form, hasCustomDomain, workspace = undefined, isResponderPortal = false, className = '' }: IWorkspaceFormCardProps) {
     const { openModal } = useModal();
     return (
-        <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px] border-brand-100 hover:border-brand-500 transition cursor-pointer rounded ${className}`}>
+        <div className={`flex flex-col items-start justify-between h-full bg-white border-[2px] border-brand-100 hover:border-black-500 transition cursor-pointer rounded-lg shadow-formCard ${className}`}>
             <div className="rounded relative w-full px-4 py-6 flex min-h-28 flex-col gap-4 items-start justify-between overflow-hidden">
                 <div className="rounded h-[34px] w-[34px]">{form?.settings?.provider === 'typeform' ? <TypeformIcon width={34} height={34} /> : <GoogleFormIcon width={34} height={34} className="-ml-1" />}</div>
                 <Tooltip title={form?.title || 'Untitled'}>
@@ -32,20 +35,23 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, workspace = u
                     </Typography>
                 </Tooltip>
                 {!isResponderPortal && (
-                    <Tooltip className="absolute top-4 right-4" title={form?.settings?.private ? 'Hidden from your public workspace' : 'Public'}>
-                        <p className={`rounded-full leading-none text-[10px] px-2 flex py-1 items-center justify-center ${form?.settings?.private ? 'bg-brand-accent' : 'bg-green-600'} text-white`}>{form?.settings?.private ? 'Hidden' : 'Public'}</p>
+                    <Tooltip title={form?.settings?.private ? 'Hidden from your public workspace' : 'Public'}>
+                        <div className="flex items-center">
+                            {form?.settings?.private ? <PrivateIcon /> : <PublicIcon />}
+                            <p className={`leading-none text-[10px] text-black-900 ml-2`}>{form?.settings?.private ? 'Private' : 'Public'}</p>
+                        </div>
                     </Tooltip>
                 )}
                 {!isResponderPortal && form?.settings?.pinned && (
-                    <Tooltip onClick={(e: any) => e.preventDefault()} className="absolute -top-2 -left-2 bg-white border-[1px] border-black-300 rounded-full p-2" title="Pinned to your public workspace view">
-                        <PushPin fontSize="large" className="-rotate-45 text-brand-500" />
+                    <Tooltip onClick={(e: any) => e.preventDefault()} className="absolute top-2 right-2 bg-white " title="Pinned to your public workspace view">
+                        <PinnedIcon />
                     </Tooltip>
                 )}
             </div>
             {!isResponderPortal && !!workspace && (
-                <div className="relative flex justify-between items-center p-3 w-full border-t-[1px] border-black-400">
+                <div className="relative flex justify-between items-center px-6 p-3 w-full border-t-[1px] border-black-400">
                     <ActiveLink href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/responses`}>
-                        <p className="body4 !text-brand-600 hover:underline">
+                        <p className="body4  hover:underline">
                             {form?.responses} response{!!form?.responses && form.responses > 1 ? 's' : ''}
                         </p>
                     </ActiveLink>

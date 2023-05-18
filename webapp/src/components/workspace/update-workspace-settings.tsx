@@ -69,7 +69,6 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             }
             closeModal();
         } else if (response.error) {
-            console.log(response.error);
             toast.error(response.error.data?.message || 'Something went wrong', { toastId: ToastId.ERROR_TOAST });
         }
     };
