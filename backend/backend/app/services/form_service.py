@@ -105,7 +105,9 @@ class FormService:
             workspace_id=workspace_id,
             is_not_admin=not is_admin,
             user=user,
-            match_query={"form_id": form_id},
+            match_query={
+                "$or": [{"form_id": form_id}, {"settings.custom_url": form_id}]
+            },
         )
         form = await self._form_repo.get_forms_in_workspace_query(
             workspace_id=workspace_id,
