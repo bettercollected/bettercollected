@@ -35,7 +35,11 @@ class FormResponseService:
         self._workspace_user_repo = workspace_user_repo
 
     async def get_all_workspace_responses(
-        self, workspace_id: PydanticObjectId, request_for_deletion: bool, user: User
+        self,
+        workspace_id: PydanticObjectId,
+        request_for_deletion: bool,
+        data_subjects: bool,
+        user: User,
     ):
         if not await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -46,7 +50,9 @@ class FormResponseService:
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id
         )
-        return await self._form_response_repo.list(form_ids, request_for_deletion)
+        return await self._form_response_repo.list(
+            form_ids, request_for_deletion, data_subjects=data_subjects
+        )
 
     async def get_user_submissions(
         self,

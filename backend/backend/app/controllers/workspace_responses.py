@@ -1,3 +1,5 @@
+from typing import Any
+
 from beanie import PydanticObjectId
 from classy_fastapi import delete, get
 from fastapi import Depends
@@ -46,15 +48,19 @@ class WorkspaceResponsesRouter(CustomRoutable):
         )
         return responses
 
-    @get("/allSubmissions", response_model=Page[StandardFormResponseCamelModel])
+    @get("/allSubmissions", response_model=Page[StandardFormResponseCamelModel | Any])
     async def _get_all_workspace_responses(
         self,
         workspace_id: PydanticObjectId,
         request_for_deletion: bool = False,
+        data_subjects: bool = None,
         user=Depends(get_logged_user),
     ):
         responses = await self._form_response_service.get_all_workspace_responses(
-            workspace_id, request_for_deletion, user
+            workspace_id=workspace_id,
+            request_for_deletion=request_for_deletion,
+            data_subjects=data_subjects,
+            user=user,
         )
         return responses
 

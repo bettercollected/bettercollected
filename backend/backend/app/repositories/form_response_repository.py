@@ -25,6 +25,7 @@ class FormResponseRepository(BaseRepository):
         extra_find_query: Dict[str, Any] = None,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
+        data_subjects: bool = None,
     ) -> Page[FormResponseDocument]:
         find_query = {"form_id": {"$in": form_ids}}
         if not request_for_deletion:
@@ -43,6 +44,33 @@ class FormResponseRepository(BaseRepository):
             {"$set": {"form_title": "$form.title"}},
             {"$unwind": "$form_title"},
         ]
+
+        if data_subjects:
+            aggregate_query.extend(
+                [
+                    {
+                        "$group": {
+                            "_id": "$dataOwnerIdentifier",
+                            "response_ids": {"$push": "$$CURRENT.response_id"},
+                            "responses": {"$sum": 1},
+                        }
+                    },
+                    {
+                        "$lookup": {
+                            "from": "responses_deletion_requests",
+                            "localField": "response_ids",
+                            "foreignField": "response_id",
+                            "as": "deletion_requests",
+                        }
+                    },
+                    {
+                        "$project": {
+                            "responses": 1,
+                            "deletion_requests": {"$size": "$deletion_requests"},
+                        }
+                    },
+                ]
+            )
 
         if request_for_deletion:
             aggregate_query.extend(
@@ -84,9 +112,14 @@ class FormResponseRepository(BaseRepository):
         request_for_deletion: bool,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
+        data_subjects: bool = None,
     ) -> Page[StandardFormResponse]:
         form_responses = await self.get_form_responses(
-            form_ids, request_for_deletion, filter_query=filter_query, sort=sort
+            form_ids,
+            request_for_deletion,
+            filter_query=filter_query,
+            sort=sort,
+            data_subjects=data_subjects,
         )
         return form_responses
 
