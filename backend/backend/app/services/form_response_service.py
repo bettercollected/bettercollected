@@ -37,6 +37,8 @@ class FormResponseService:
     async def get_all_workspace_responses(
         self,
         workspace_id: PydanticObjectId,
+        filter_query: FormResponseFilterQuery,
+        sort: SortRequest,
         request_for_deletion: bool,
         data_subjects: bool,
         user: User,
@@ -51,7 +53,11 @@ class FormResponseService:
             workspace_id=workspace_id
         )
         return await self._form_response_repo.list(
-            form_ids, request_for_deletion, data_subjects=data_subjects
+            form_ids,
+            request_for_deletion,
+            data_subjects=data_subjects,
+            filter_query=filter_query,
+            sort=sort,
         )
 
     async def get_user_submissions(

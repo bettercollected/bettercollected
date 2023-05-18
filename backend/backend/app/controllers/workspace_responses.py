@@ -52,12 +52,16 @@ class WorkspaceResponsesRouter(CustomRoutable):
     async def _get_all_workspace_responses(
         self,
         workspace_id: PydanticObjectId,
+        filter_query: FormResponseFilterQuery = Depends(None),
+        sort: SortRequest = Depends(),
         request_for_deletion: bool = False,
         data_subjects: bool = None,
         user=Depends(get_logged_user),
     ):
         responses = await self._form_response_service.get_all_workspace_responses(
             workspace_id=workspace_id,
+            filter_query=filter_query,
+            sort=sort,
             request_for_deletion=request_for_deletion,
             data_subjects=data_subjects,
             user=user,
