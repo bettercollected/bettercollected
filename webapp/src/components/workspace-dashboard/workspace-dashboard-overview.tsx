@@ -17,6 +17,7 @@ import { workspaceConstant } from '@app/constants/locales/workspace';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface IWorkspaceDashboardOverviewProps {
@@ -52,7 +53,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
     const workspaceDashboardStatsList = [
         {
             key: 'imported-forms',
-            className: 'joyride-workspace-stats-forms',
+            className: JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_FORMS,
             title: t(formsConstant.importedForms),
             tooltipTitle: `${workspaceStats?.forms ?? 0} ${t(toolTipConstant.formImported)}${isAdmin && !isProPlan ? ` ${t(toolTipConstant.outOfLimited)}` : ''}`,
             content: importedFormsContent,
@@ -66,7 +67,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
         },
         {
             key: 'collected-responses',
-            className: 'joyride-workspace-stats-responses',
+            className: JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_RESPONSES,
             title: t(formsConstant.collectedResponses),
             tooltipTitle: `${workspaceStats?.responses ?? 0} ${t(toolTipConstant.formResponses)}`,
             content: importedResponses,
@@ -78,7 +79,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
         },
         {
             key: 'deletion-requests',
-            className: 'joyride-workspace-stats-deletion-requests',
+            className: JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_DELETION_REQUESTS,
             title: t(formsConstant.deletionRequests),
             tooltipTitle: `${workspaceStats?.deletion_requests?.success ?? 0} ${t(toolTipConstant.responseDeletionOutOf)} ${workspaceStats?.deletion_requests?.total ?? 0} ${t(toolTipConstant.deletionRequest)}`,
             content: deletionRequests,
@@ -93,19 +94,19 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
     return (
         <>
             <div className="flex flex-col md:flex-row justify-center md:justify-start md:items-center mb-4">
-                <div className="flex items-center joyride-workspace-info">
+                <div className={`flex items-center ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_INFO}`}>
                     <AuthAccountProfileImage size={48} image={workspace?.profileImage} name={workspace?.title || 'Untitled'} className="bg-blend-darken	" />
                     <Tooltip title={workspace?.title}>
                         <h1 className="sh1 ml-3 h-12 flex items-center joyride-workspace-title">{toEndDottedStr(workspace?.title?.trim() || 'Untitled', 30)}</h1>
                     </Tooltip>
                 </div>
                 <div className="flex items-center gap-3 ml-0 mt-3 md:mt-0 md:ml-10 min-h-[28px]">
-                    <div onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: t(workspaceConstant.share) })} className="body4 rounded !leading-none mr-4 hover:cursor-pointer capitalize joyride-workspace-share">
+                    <div onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: t(workspaceConstant.share) })} className={`body4 rounded !leading-none mr-4 hover:cursor-pointer capitalize ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_SHARE}`}>
                         <Share />
                     </div>
                     <ActiveLink href={getWorkspaceUrl()} target="_blank" referrerPolicy="origin">
                         <Tooltip title={t(toolTipConstant.previewWorkspace)}>
-                            <Button variant="outlined" className="body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize joyride-workspace-preview">
+                            <Button variant="outlined" className={`body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_PREVIEW}`}>
                                 Preview
                             </Button>
                         </Tooltip>

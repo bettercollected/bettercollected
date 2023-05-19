@@ -148,7 +148,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                         menuItemShareSettings
                     ))}
                 <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-red-100 !text-red-500">
-                    <ListItemIcon>
+                    <ListItemIcon className="!text-red-500">
                         <Delete width={20} height={20} />
                     </ListItemIcon>
                     <span>{t(formsConstant.menu.deleteForm)}</span>

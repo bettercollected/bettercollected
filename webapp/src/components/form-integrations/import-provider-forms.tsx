@@ -20,6 +20,7 @@ import { formsConstant } from '@app/constants/locales/forms';
 import { importFormConstant } from '@app/constants/locales/import-form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppSelector } from '@app/store/hooks';
+import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
 import { useImportFormMutation, useLazyGetMinifiedFormsQuery, useLazyGetSingleFormFromProviderQuery } from '@app/store/workspaces/api';
 
 interface IIntegrations {
@@ -135,7 +136,7 @@ export default function ImportProviderForms(props: any) {
     const stepZeroContent = (
         <>
             {/* <Joyride
-                id="workspace-admin-form-import-provider-selection"
+                id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}
                 continuous={false}
                 placement="top"
                 scrollOffset={0}
@@ -143,14 +144,14 @@ export default function ImportProviderForms(props: any) {
                     {
                         title: <span className="sh3">Select a provider</span>,
                         content: <p className="body4">Select one of the listed form providers from where you want to import your forms onto Better Collected.</p>,
-                        target: '.joyride-workspace-admin-form-import-provider-selection',
+                        target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`,
                         hideFooter: true
                     }
                 ]}
             /> */}
 
             <h4 className="sh1 text-center">{t(importFormConstant.choise)}</h4>
-            <div className="grid grid-cols-2 w-full h-full gap-4 lg:gap-10">
+            <div className={`grid grid-cols-2 w-full h-full gap-4 lg:gap-10 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`}>
                 {integrations.map((integration) => (
                     <MuiButton key={integration.provider} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={integration.onClick} className="sh1 h-[120px] w-full md:h-[200px] md:w-[200px] !text-brand-500 capitalize">
                         <div className="h-full w-full flex flex-col items-center justify-center gap-5">
@@ -169,7 +170,7 @@ export default function ImportProviderForms(props: any) {
     const stepOneContent = (
         <>
             <Joyride
-                id="workspace-admin-form-import-list-forms"
+                id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_LIST_FORMS}
                 continuous={false}
                 placement="top"
                 scrollOffset={0}
@@ -182,7 +183,7 @@ export default function ImportProviderForms(props: any) {
                                 <br /> If you do not see any forms in the list, then you may need to create some forms within the form provider account that you selected (Google Forms, Typeform).
                             </p>
                         ),
-                        target: '.joyride-workspace-admin-form-import-list-forms',
+                        target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_LIST_FORMS}`,
                         placementBeacon: 'top-end',
                         hideFooter: true
                     }
@@ -194,7 +195,7 @@ export default function ImportProviderForms(props: any) {
                     loading={!!minifiedFormsResult?.isFetching}
                     disablePortal
                     id="form_list"
-                    className="joyride-workspace-admin-form-import-list-forms"
+                    className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_LIST_FORMS}
                     fullWidth
                     onChange={(e, value) => setSelectedForm(value)}
                     value={selectedForm}
@@ -227,7 +228,7 @@ export default function ImportProviderForms(props: any) {
     const stepTwoContent = (
         <>
             <Joyride
-                id="workspace-admin-form-import-data-owner"
+                id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_DATA_OWNER}
                 continuous={false}
                 placement="top"
                 scrollOffset={0}
@@ -241,7 +242,7 @@ export default function ImportProviderForms(props: any) {
                                 responders.
                             </p>
                         ),
-                        target: '.joyride-workspace-admin-form-import-data-owner',
+                        target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_DATA_OWNER}`,
                         placementBeacon: 'top-end',
                         hideFooter: true
                     }
@@ -255,7 +256,7 @@ export default function ImportProviderForms(props: any) {
                         loading={!!singleFormFromProviderResult?.isFetching}
                         disablePortal
                         id="field_list"
-                        className="joyride-workspace-admin-form-import-data-owner"
+                        className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_DATA_OWNER}
                         fullWidth
                         onChange={(e, value) => setResponseDataOwner(value)}
                         value={responseDataOwner}

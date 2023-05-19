@@ -6,6 +6,7 @@ import PinnedIcon from '@Components/Common/Icons/Pinned';
 import PrivateIcon from '@Components/Common/Icons/Private';
 import PublicIcon from '@Components/Common/Icons/Public';
 import Share from '@Components/Common/Icons/Share';
+import Joyride from '@Components/Joyride';
 import { Typography } from '@mui/material';
 
 import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
@@ -16,6 +17,7 @@ import ActiveLink from '@app/components/ui/links/active-link';
 import { localesGlobal } from '@app/constants/locales/global';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
 import { getFormUrl } from '@app/utils/urlUtils';
 
 interface IWorkspaceFormCardProps {
@@ -34,19 +36,19 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
     const { t } = useTranslation();
     return (
         <div className={`flex flex-col items-start justify-between h-full bg-white border-[2px] border-brand-100 hover:border-black-500 transition cursor-pointer rounded-lg shadow-formCard ${className}`}>
-            {/* {typeof index !== undefined && index === 0 && !isResponderPortal && (
+            {typeof index !== undefined && index === 0 && !isResponderPortal && (
                 <Joyride
-                    id="workspace-admin-dashboard-form-card-navigations"
+                    id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION}
                     placement="bottom-start"
                     steps={[
                         {
                             title: <span className="sh3">Share your form</span>,
                             content: <p className="body4">You can use this button to share your form to your desired audience.</p>,
-                            target: '.workspace-admin-dashboard-form-card-navigations-share'
+                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_SHARE}`
                         }
                     ]}
                 />
-            )} */}
+            )}
             <div className="rounded relative w-full px-4 py-6 flex min-h-28 flex-col gap-4 items-start justify-between overflow-hidden">
                 <div className="rounded h-[34px] w-[34px]">{form?.settings?.provider === 'typeform' ? <TypeformIcon width={34} height={34} /> : <GoogleFormIcon width={34} height={34} className="-ml-1" />}</div>
                 <Tooltip title={form?.title || t(localesGlobal.untitled)}>
@@ -77,7 +79,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                     </ActiveLink>
                     <div className="flex space-x-4 items-center">
                         <div
-                            className="hover:bg-brand-200 p-2.5 h-10 w-10 rounded workspace-admin-dashboard-form-card-navigations-share"
+                            className={`hover:bg-brand-200 p-2.5 h-10 w-10 rounded ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_SHARE}`}
                             onClick={(event: any) => {
                                 event.preventDefault();
                                 event.stopPropagation();

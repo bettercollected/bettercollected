@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from 'react';
 
-import JR, { ACTIONS, BeaconRenderProps, CallBackProps, EVENTS, Props as JoyRideState, STATUS, Step, Styles } from 'react-joyride';
+import JR, { ACTIONS, BeaconRenderProps, CallBackProps, EVENTS, STATUS, Step, Styles } from 'react-joyride';
 
 import { useLocalStorage } from '@app/lib/hooks/use-local-storage';
+import { JoyrideState } from '@app/models/dtos/joyride';
 
 import BeaconComponent from './JoyrideBeacon';
-
-export interface JoyrideState extends JoyRideState {
-    id: string;
-    finished: boolean;
-}
 
 interface LocalStorageJoyrideState {
     id: string;

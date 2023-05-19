@@ -8,6 +8,7 @@ import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
 import authSlice from '@app/store/auth/slice';
 import formSlice from '@app/store/forms/slice';
 import { plansApi } from '@app/store/plans/api';
+import joyrideSlice from '@app/store/tours/slice';
 import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitations-api';
 import workspaceSlice from '@app/store/workspaces/slice';
 
@@ -18,19 +19,21 @@ import { workspacesApi } from './workspaces/api';
 const loggerMiddleware = createLogger();
 
 // Add more middlewares here
-const middlewares = [providerApi.middleware, authApi.middleware, workspacesApi.middleware, plansApi.middleware, membersNInvitationsApi.middleware];
+const middlewares = [authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewaress.splice(0, 1);
 
 const reducers = {
-    [providerApi.reducerPath]: providerApi.reducer,
     [authSlice.reducerPath]: authSlice.reducer,
-    [workspaceSlice.reducerPath]: workspaceSlice.reducer,
     [formSlice.reducerPath]: formSlice.reducer,
+    [joyrideSlice.reducerPath]: joyrideSlice.reducer,
+    [workspaceSlice.reducerPath]: workspaceSlice.reducer,
+
     [authApi.reducerPath]: authApi.reducer,
+    [membersNInvitationsApi.reducerPath]: membersNInvitationsApi.reducer,
+    [providerApi.reducerPath]: providerApi.reducer,
     [plansApi.reducerPath]: plansApi.reducer,
-    [workspacesApi.reducerPath]: workspacesApi.reducer,
-    [membersNInvitationsApi.reducerPath]: membersNInvitationsApi.reducer
+    [workspacesApi.reducerPath]: workspacesApi.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);

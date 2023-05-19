@@ -12,6 +12,7 @@ import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-for
 import { formsConstant } from '@app/constants/locales/forms';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { JOYRIDE_ID } from '@app/store/tours/types';
 
 interface IWorkspaceDashboardFormsProps {
     workspaceForms: any;
@@ -38,7 +39,7 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                 <div className="w-full h-full flex flex-col items-center justify-center bg-white rounded-[4px] py-[84px]">
                     {ref.current && (
                         <Joyride
-                            id="workspace-admin-form-import-button"
+                            id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_BUTTON}
                             placement="top"
                             continuous={false}
                             showCloseButton={false}

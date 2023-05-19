@@ -21,6 +21,7 @@ import { workspaceConstant } from '@app/constants/locales/workspace';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 DashboardDrawer.defaultProps = {
@@ -33,17 +34,17 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
         <>
             <Toolbar />
             <Box sx={{ overflow: 'auto', height: '100%' }}>
-                <List disablePadding className="joyride-workspace-switcher">
+                <List disablePadding className={JOYRIDE_CLASS.WORKSPACE_SWITCHER}>
                     <ListItem disablePadding>
                         <WorkspaceMenuDropdown fullWidth />
                     </ListItem>
                 </List>
                 <Divider />
-                <NavigationList className="joyride-workspace-navigations" sx={{ paddingY: '20px' }} navigationList={topNavList} />
+                <NavigationList className={JOYRIDE_CLASS.WORKSPACE_NAVIGATION} sx={{ paddingY: '20px' }} navigationList={topNavList} />
                 {isAdmin && (
                     <>
                         <Divider />
-                        <NavigationList className="joyride-workspace-settings" navigationList={bottomNavList} />
+                        <NavigationList className={JOYRIDE_CLASS.WORKSPACE_ADVANCE_NAVIGATION} navigationList={bottomNavList} />
                     </>
                 )}
             </Box>
