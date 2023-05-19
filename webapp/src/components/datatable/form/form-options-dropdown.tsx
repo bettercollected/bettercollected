@@ -125,7 +125,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
 
     return (
         <div className={className} onClick={(e) => e.preventDefault()}>
-            <MenuDropdown onClick={(e: any) => handleClick(e, form)} id="form-menu" menuTitle="Form options" menuContent={<EllipsisOption />} showExpandMore={false}>
+            <MenuDropdown width={180} onClick={(e: any) => handleClick(e, form)} id="form-menu" menuTitle="Form options" menuContent={<EllipsisOption />} showExpandMore={false}>
                 {!!currentActiveForm?.form?.settings?.private ? (
                     <Tooltip title={t(toolTipConstant.visibility)}>
                         <div>{menuItemPinSettings}</div>

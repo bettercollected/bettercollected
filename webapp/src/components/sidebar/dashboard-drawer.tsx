@@ -33,17 +33,17 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
         <>
             <Toolbar />
             <Box sx={{ overflow: 'auto', height: '100%' }}>
-                <List disablePadding>
+                <List disablePadding className="joyride-workspace-switcher">
                     <ListItem disablePadding>
                         <WorkspaceMenuDropdown fullWidth />
                     </ListItem>
                 </List>
                 <Divider />
-                <NavigationList sx={{ paddingY: '20px' }} navigationList={topNavList} />
+                <NavigationList className="joyride-workspace-navigations" sx={{ paddingY: '20px' }} navigationList={topNavList} />
                 {isAdmin && (
                     <>
                         <Divider />
-                        <NavigationList navigationList={bottomNavList} />
+                        <NavigationList className="joyride-workspace-settings" navigationList={bottomNavList} />
                     </>
                 )}
             </Box>

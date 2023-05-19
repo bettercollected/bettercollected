@@ -35,7 +35,12 @@ module.exports = {
 
                     DEFAULT: '#0764EB'
                 },
-                'brand-accent': '#F8B940',
+                'brand-accent': {
+                    500: '#F8B940',
+                    600: '#E79B0B',
+
+                    DEFAULT: '#F8B940'
+                },
                 black: {
                     100: '#F8F9FA',
                     200: '#E9ECEF',

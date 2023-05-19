@@ -10,7 +10,7 @@ import Button, { ButtonProps } from '@app/components/ui/button';
 import environments from '@app/configs/environments';
 import { buttons } from '@app/constants/locales/buttons';
 
-export default function ImportFormsButton({ size }: ButtonProps) {
+export default function ImportFormsButton({ size, className = '' }: ButtonProps) {
     const { openModal } = useModal();
     const router = useRouter();
     const { t } = useTranslation();
@@ -46,7 +46,7 @@ export default function ImportFormsButton({ size }: ButtonProps) {
     }, []);
 
     const importFormButton = (
-        <Button variant="solid" className="w-full sm:w-auto" disabled={!googleEnabled && !typeformEnabled} size={size} onClick={handleClick}>
+        <Button variant="solid" className={`w-full sm:w-auto ${className}`} disabled={!googleEnabled && !typeformEnabled} size={size} onClick={handleClick}>
             {t(buttons.importForms)}
         </Button>
     );

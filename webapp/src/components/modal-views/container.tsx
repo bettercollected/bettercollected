@@ -3,6 +3,7 @@ import { Fragment, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 
+import ImportProviderForms from '@app/components/form-integrations/import-provider-forms';
 import DeleteFormModal from '@app/components/form/delete-form-modal';
 import { Close } from '@app/components/icons/close';
 import LogoutView from '@app/components/logout/logout-view';
@@ -22,7 +23,6 @@ import CropImageModalView from './modals/crop-image-modal-view';
 
 // dynamic imports
 const LoginView = dynamic(() => import('@app/components/login/login-view'));
-const ImportProviderForms = dynamic(() => import('@app/components/form-integrations/import-provider-forms'));
 const RequestForDeletionView = dynamic(() => import('@app/components/submission-request-for-deletion'));
 
 function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
