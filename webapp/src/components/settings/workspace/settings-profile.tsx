@@ -1,5 +1,6 @@
 import React, { BaseSyntheticEvent, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import { Popover, TextField } from '@mui/material';
@@ -9,6 +10,7 @@ import { toast } from 'react-toastify';
 import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
 import environments from '@app/configs/environments';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import DynamicContainer from '@app/containers/DynamicContainer';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -34,6 +36,7 @@ export default function SettingsProfile() {
     const dispatch = useAppDispatch();
     const router = useRouter();
     const workspace = useAppSelector((state) => state.workspace);
+    const { t } = useTranslation();
 
     const [patchReq, setPatchReq] = useState<PatchRequestType>({
         title: workspace.title,
@@ -99,7 +102,7 @@ export default function SettingsProfile() {
             router.push(router.asPath, undefined);
             toast('Theme updated!!!', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         } catch (e) {
-            toast('Something went wrong.', { type: 'error', toastId: ToastId.ERROR_TOAST });
+            toast(t(toastMessage.somethingWentWrong).toString(), { type: 'error', toastId: ToastId.ERROR_TOAST });
         }
     };
 
@@ -112,11 +115,11 @@ export default function SettingsProfile() {
 
         const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
         if (response.error) {
-            toast('Something went wrong!!!', { toastId: ToastId.ERROR_TOAST });
+            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
         }
         if (response.data) {
             dispatch(setWorkspace(response.data));
-            toast('Workspace Updated!!!', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         }
     };
 

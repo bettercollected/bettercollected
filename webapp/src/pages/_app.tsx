@@ -22,7 +22,6 @@ import 'vanilla-cookieconsent/dist/cookieconsent.css';
 
 import '@app/assets/css/globals.css';
 import CookieConsent from '@app/components/cookie/cookie-consent';
-import DrawersContainer from '@app/components/drawer-views/container';
 import ModalContainer from '@app/components/modal-views/container';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import NextNProgress from '@app/components/ui/nprogress';
@@ -130,7 +129,6 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                                     <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
                                         {getLayout(<Component {...pageProps} />)}
                                         <ModalContainer />
-                                        <DrawersContainer />
                                     </PersistGate>
                                 </AuthStatusDispatcher>
                             </ServerSideWorkspaceDispatcher>

@@ -1,7 +1,5 @@
 import { rest } from 'msw';
 
-import { importGoogleFormsArrayMock } from '@app/mock/data/import-type-form-mock';
-
 export const auth_handlers = [
     rest.get('http://localhost:8000/auth/status', (req, res, context) => {
         return res(

@@ -1,7 +1,4 @@
-import { render, screen } from '@testing-library/react';
-
-import WorkspaceFooter from '@app/components/layout/workspace-footer';
-import { initWorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { render } from '@testing-library/react';
 
 jest.mock('next/router', () => ({
     useRouter() {

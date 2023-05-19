@@ -1,3 +1,5 @@
+import { UserDto } from '@app/models/dtos/UserDto';
+
 export interface StandardFormQuestionDto {
     id?: string;
     questionId: string;
@@ -41,6 +43,7 @@ export interface StandardFormDto {
         provider: string;
         roles?: Array<string>;
     };
+    importerDetails: UserDto;
     fields: Array<StandardFormQuestionDto>;
     createdTime?: string | Date;
     modifiedTime?: string | Date;

@@ -20,7 +20,7 @@ export default function NavigationList({ navigationList, className = '', sx = {}
             {navigationList.map((element) => {
                 const active = element.url == router.asPath;
                 return (
-                    <ListItem key={element.key} disablePadding className={`${active ? 'bg-brand-200 text-brand-600' : ''}`} onClick={() => router.push(element.url, undefined, { shallow: true })}>
+                    <ListItem key={element.key} disablePadding className={`body4 ${active ? 'bg-brand-200 !text-brand-600' : ''}`} onClick={() => router.push(element.url, undefined, { shallow: true })}>
                         <ListItemButton sx={{ paddingY: '16px', paddingX: '20px' }} className={`${active ? '' : 'hover:bg-brand-100'}`}>
                             {element.icon && (
                                 <ListItemIcon sx={{ minWidth: '32px' }} className={`${active ? 'text-brand-600' : 'text-black-900'}`}>

@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 
 import ProfileImageComponent from '@app/components/dashboard/profile-image';
 import { initWorkspaceDto } from '@app/models/dtos/workspaceDto';

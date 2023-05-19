@@ -1,16 +1,19 @@
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
-import { Button, IconButton } from '@mui/material';
+import Share from '@Components/Common/Icons/Share';
+import { Button } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import { EyeIcon } from '@app/components/icons/eye-icon';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import WorkspaceDashboardStats from '@app/components/workspace-dashboard/workspace-dashboard-stats';
 import environments from '@app/configs/environments';
+import { formsConstant } from '@app/constants/locales/forms';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -30,12 +33,14 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
     const isProPlan = useAppSelector(selectIsProPlan);
     const isAdmin = useAppSelector(selectIsAdmin);
     const router = useRouter();
+    const { t } = useTranslation();
+    const language = router?.locale === 'en' ? '' : `${router?.locale}/`;
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
         const domain = !!workspace.customDomain ? workspace.customDomain : environments.CLIENT_DOMAIN;
         const w_name = !!workspace.customDomain ? '' : workspace.workspaceName;
-        return `${protocol}${domain}/${w_name}`;
+        return `${protocol}${domain}/${language}${w_name}`;
     };
 
     const handleWorkspaceEllipsisClick = () => {};
@@ -47,13 +52,13 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
     const workspaceDashboardStatsList = [
         {
             key: 'imported-forms',
-            title: 'Imported forms',
             className: 'joyride-workspace-stats-forms',
-            tooltipTitle: `${workspaceStats?.forms ?? 0} forms imported${isAdmin && !isProPlan ? ' out of limited 100 forms' : ''}`,
+            title: t(formsConstant.importedForms),
+            tooltipTitle: `${workspaceStats?.forms ?? 0} ${t(toolTipConstant.formImported)}${isAdmin && !isProPlan ? ` ${t(toolTipConstant.outOfLimited)}` : ''}`,
             content: importedFormsContent,
             buttonProps: {
                 enabled: isAdmin && !isProPlan,
-                text: 'Import unlimited forms',
+                text: t(formsConstant.importUnlimited),
                 onClick: () => {
                     router.push(`/${workspace.workspaceName}/upgrade`);
                 }
@@ -61,25 +66,25 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
         },
         {
             key: 'collected-responses',
-            title: 'Collected responses',
             className: 'joyride-workspace-stats-responses',
-            tooltipTitle: `${workspaceStats?.responses ?? 0} form responses`,
+            title: t(formsConstant.collectedResponses),
+            tooltipTitle: `${workspaceStats?.responses ?? 0} ${t(toolTipConstant.formResponses)}`,
             content: importedResponses,
             buttonProps: {
                 enabled: false,
-                text: 'Import unlimited forms',
+                text: t(formsConstant.importUnlimited),
                 onClick: () => {}
             }
         },
         {
             key: 'deletion-requests',
-            title: 'Deletion requests',
             className: 'joyride-workspace-stats-deletion-requests',
-            tooltipTitle: `${workspaceStats?.deletion_requests?.success ?? 0} responses deleted out of ${workspaceStats?.deletion_requests?.total ?? 0} deletion requests`,
+            title: t(formsConstant.deletionRequests),
+            tooltipTitle: `${workspaceStats?.deletion_requests?.success ?? 0} ${t(toolTipConstant.responseDeletionOutOf)} ${workspaceStats?.deletion_requests?.total ?? 0} ${t(toolTipConstant.deletionRequest)}`,
             content: deletionRequests,
             buttonProps: {
                 enabled: false,
-                text: 'Import unlimited forms',
+                text: t(formsConstant.importUnlimited),
                 onClick: () => {}
             }
         }
@@ -95,20 +100,17 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                     </Tooltip>
                 </div>
                 <div className="flex items-center gap-3 ml-0 mt-3 md:mt-0 md:ml-10 min-h-[28px]">
-                    <ActiveLink href={getWorkspaceUrl()}>
-                        <Tooltip title="Preview your workspace">
-                            <IconButton size="small" className="rounded-[4px] text-brand-500 hover:rounded-[4px] hover:bg-brand-200 joyride-workspace-preview">
-                                <EyeIcon height={22} width={22} />
-                            </IconButton>
+                    <div onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: t(workspaceConstant.share) })} className="body4 rounded !leading-none mr-4 hover:cursor-pointer capitalize joyride-workspace-share">
+                        <Share />
+                    </div>
+                    <ActiveLink href={getWorkspaceUrl()} target="_blank" referrerPolicy="origin">
+                        <Tooltip title={t(toolTipConstant.previewWorkspace)}>
+                            <Button variant="outlined" className="body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize joyride-workspace-preview">
+                                Preview
+                            </Button>
                         </Tooltip>
                     </ActiveLink>
-                    <Button
-                        onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: 'your workspace' })}
-                        variant="outlined"
-                        className="body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize joyride-workspace-share"
-                    >
-                        Share
-                    </Button>
+
                     {/* <Tooltip title="Workspace settings">
                         <IconButton onClick={handleWorkspaceEllipsisClick} size="medium" className="rounded-[4px] text-black-900 hover:rounded-[4px] hover:bg-black-200">
                             <EllipsisOption />

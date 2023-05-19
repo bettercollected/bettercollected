@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import AvatarEditor from 'react-avatar-editor';
 
+import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
-
-import { useModal } from '../context';
+import { buttons } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
 
 interface ICropImageModalViewProps {
     profileEditorRef: React.LegacyRef<AvatarEditor> | undefined;
@@ -15,11 +18,12 @@ interface ICropImageModalViewProps {
 
 export default function CropImageModalView({ profileEditorRef, uploadImage, profileInputRef, onSave }: ICropImageModalViewProps) {
     const [scale, setScale] = useState(1);
+    const { t } = useTranslation();
     const [isLoading, setLoading] = useState(false);
     const { closeModal } = useModal();
     return (
         <div className="p-4 bg-white flex flex-col items-center rounded-[8px]">
-            <h1 className="font-bold text-lg mb-2">Update your Workspace Profile picture</h1>
+            <h1 className="font-bold text-lg mb-2">{t(localesGlobal.updateYourProfileImage)}</h1>
             <AvatarEditor crossOrigin="anonymous" ref={profileEditorRef} image={uploadImage} width={250} height={250} border={50} borderRadius={16} color={[0, 0, 0, 0.6]} scale={scale} rotate={0} />
             <div className="flex mb-2 gap-1 text-3xl text-gray-600 justify-center items-center">
                 <span>-</span>
@@ -39,10 +43,10 @@ export default function CropImageModalView({ profileEditorRef, uploadImage, prof
                         setLoading(true);
                     }}
                 >
-                    Save Image
+                    {t(buttons.saveImage)}
                 </Button>
                 <Button variant="solid" color="info" disabled={isLoading} className="hover:!translate-y-0 !rounded !bg-black-500 hover:!bg-black-600 flex-1 !shadow-none" onClick={closeModal}>
-                    Cancel
+                    {t(buttons.cancel)}
                 </Button>
             </div>
         </div>

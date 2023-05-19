@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Joyride from '@Components/Joyride';
 import { Autocomplete, Box, TextField, createFilterOptions } from '@mui/material';
 import MuiButton from '@mui/material/Button';
@@ -13,6 +15,10 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
+import { buttons } from '@app/constants/locales/buttons';
+import { formsConstant } from '@app/constants/locales/forms';
+import { importFormConstant } from '@app/constants/locales/import-form';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppSelector } from '@app/store/hooks';
 import { useImportFormMutation, useLazyGetMinifiedFormsQuery, useLazyGetSingleFormFromProviderQuery } from '@app/store/workspaces/api';
 
@@ -35,7 +41,7 @@ interface IAutoCompleteFormFieldProps {
 
 export default function ImportProviderForms(props: any) {
     const { closeModal } = useModal();
-
+    const { t } = useTranslation();
     const [provider, setProvider] = useState(props?.provider ?? null);
 
     const [integrations, setIntegrations] = useState<Array<IIntegrations>>([]);
@@ -55,7 +61,7 @@ export default function ImportProviderForms(props: any) {
 
     const requestAnIntegration = {
         href: 'https://forms.bettercollected.com/bettercollected/forms/request-integration',
-        name: 'Request an integration'
+        name: t(buttons.requestAnIntegration)
     };
 
     const cleanup = () => {
@@ -73,11 +79,11 @@ export default function ImportProviderForms(props: any) {
             workspaceId: workspace.id
         });
         if (response.data) {
-            toast.success('Form imported successfully.');
+            toast.success(t(toastMessage.formImportedSuccessfully).toString());
             cleanup();
             closeModal();
         } else {
-            toast.error(response.error?.data || 'Could not import the form.');
+            toast.error(response.error?.data || t(toastMessage.couldNotImportedForm));
         }
     };
 
@@ -143,8 +149,8 @@ export default function ImportProviderForms(props: any) {
                 ]}
             /> */}
 
-            <h4 className="sh1 text-center">Which form do you want to import?</h4>
-            <div className="grid grid-cols-2 w-full h-full gap-4 lg:gap-10 joyride-workspace-admin-form-import-provider-selection">
+            <h4 className="sh1 text-center">{t(importFormConstant.choise)}</h4>
+            <div className="grid grid-cols-2 w-full h-full gap-4 lg:gap-10">
                 {integrations.map((integration) => (
                     <MuiButton key={integration.provider} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={integration.onClick} className="sh1 h-[120px] w-full md:h-[200px] md:w-[200px] !text-brand-500 capitalize">
                         <div className="h-full w-full flex flex-col items-center justify-center gap-5">
@@ -182,7 +188,7 @@ export default function ImportProviderForms(props: any) {
                     }
                 ]}
             />
-            <h4 className="sh1 w-full text-start">Import form</h4>
+            <h4 className="sh1 w-full text-start">{t(formsConstant.importedForms)}</h4>
             <div className="flex flex-col w-full h-full gap-10 items-end">
                 <Autocomplete
                     loading={!!minifiedFormsResult?.isFetching}
@@ -207,11 +213,11 @@ export default function ImportProviderForms(props: any) {
                             </Box>
                         );
                     }}
-                    renderInput={(params) => <TextField {...params} label="Choose your form that you want to import" />}
+                    renderInput={(params) => <TextField {...params} label={t(importFormConstant.textLabel)} />}
                 />
                 <div>
                     <Button isLoading={!!minifiedFormsResult?.isLoading} onClick={() => handleNext(provider)} disabled={!selectedForm} size="medium">
-                        Next
+                        {t(buttons.next)}
                     </Button>
                 </div>
             </div>
@@ -241,9 +247,9 @@ export default function ImportProviderForms(props: any) {
                     }
                 ]}
             />
-            <h4 className="h4 w-full text-start">Response-owner tag</h4>
-            <div className="flex flex-col gap-5">
-                <p className="body1">Select field from where response owner can be identified</p>
+            <h4 className="h4 w-full text-start">{t(importFormConstant.responseOwnerTagTitle)}</h4>
+            <div className="flex flex-col gap-5 w-full">
+                <p className="body1">{t(importFormConstant.responseOwnerTagDescription)}</p>
                 <div className="flex flex-col w-full h-full gap-6 items-end">
                     <Autocomplete
                         loading={!!singleFormFromProviderResult?.isFetching}
@@ -268,10 +274,10 @@ export default function ImportProviderForms(props: any) {
                                 </Box>
                             );
                         }}
-                        renderInput={(params) => <TextField {...params} label="Choose a data owner field for this form" />}
+                        renderInput={(params) => <TextField {...params} label={t(importFormConstant.responseOwnerTagLabel)} />}
                     />
                     <Button className="!font-medium" isLoading={!!importFormResult?.isLoading || !!singleFormFromProviderResult?.isLoading} onClick={handleImportForm} disabled={!selectedForm || !!singleFormFromProviderResult?.isLoading} size="medium">
-                        Import Now
+                        {t(buttons.importNow)}
                     </Button>
                 </div>
             </div>

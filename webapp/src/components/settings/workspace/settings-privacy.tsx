@@ -1,5 +1,6 @@
 import React, { MutableRefObject, useEffect, useRef, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
@@ -11,6 +12,8 @@ import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
 import environments from '@app/configs/environments';
+import { localesGlobal } from '@app/constants/locales/global';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { privacyPolicyTooltip, termsOfServiceTooltip } from '@app/constants/tooltipContent';
 import { useAppSelector } from '@app/store/hooks';
@@ -69,7 +72,7 @@ const CardTitle = ({ title, tooltipDesc }: any) => {
 
 export default function Settingsprivacy({ className = '', childClassName = '' }: { className?: string; childClassName?: string }) {
     const [policies, setPolicies] = useState({ privacy_policy_url: '', terms_of_service_url: '' });
-
+    const { t } = useTranslation();
     const workspace = useAppSelector((state) => state.workspace);
     const [patchWorkspacePolicies, { isLoading }] = usePatchWorkspacePoliciesMutation();
 
@@ -115,7 +118,7 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
         if (!policies.privacy_policy_url) return;
 
         if (!handleEmailValidation(policies.privacy_policy_url)) {
-            toast.error('Invalid URL', { type: 'error', toastId: ToastId.ERROR_TOAST });
+            toast.error(t(toastMessage.invalidUrl).toString(), { type: 'error', toastId: ToastId.ERROR_TOAST });
             return;
         }
         if (workspace.privacy_policy_url === policies.privacy_policy_url) {
@@ -128,9 +131,9 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
             await patchWorkspacePolicies({ workspace_id: workspace.id, body: formData });
             setEditMode({ ...editMode, privacy_policy_editMode: false });
             router.push(router.asPath, undefined);
-            toast('Update successful', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            toast(t(toastMessage.updated).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         } catch (e) {
-            toast('Something went wrong.', { type: 'error', toastId: ToastId.ERROR_TOAST });
+            toast(t(toastMessage.somethingWentWrong).toString(), { type: 'error', toastId: ToastId.ERROR_TOAST });
         }
     };
 
@@ -139,7 +142,7 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
         if (!policies.terms_of_service_url) return;
 
         if (!handleEmailValidation(policies.terms_of_service_url)) {
-            toast.error('Invalid URL', { type: 'error', toastId: ToastId.ERROR_TOAST });
+            toast.error(t(toastMessage.invalidUrl).toString(), { type: 'error', toastId: ToastId.ERROR_TOAST });
             return;
         }
         if (workspace.terms_of_service_url === policies.terms_of_service_url) {
@@ -152,16 +155,16 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
             await patchWorkspacePolicies({ workspace_id: workspace.id, body: formData });
             setEditMode({ ...editMode, terms_of_service_editMode: false });
             router.push(router.asPath, undefined);
-            toast('Update successful', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            toast(t(toastMessage.updated).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         } catch (e) {
-            toast('Something went wrong.', { type: 'error', toastId: ToastId.ERROR_TOAST });
+            toast(t(toastMessage.somethingWentWrong).toString(), { type: 'error', toastId: ToastId.ERROR_TOAST });
         }
     };
 
     return (
         <div className={`lg:w-2/3 mb-10 ${className}`}>
             <CardContainer className={childClassName}>
-                <CardTitle title="Link to privacy policy" tooltipDesc={privacyPolicyTooltip} />
+                <CardTitle title={t(localesGlobal.linkToPrivacyPolicy)} tooltipDesc={privacyPolicyTooltip} />
                 <div className="flex items-center h-24 justify-between">
                     <StyledTextField>
                         <TextField

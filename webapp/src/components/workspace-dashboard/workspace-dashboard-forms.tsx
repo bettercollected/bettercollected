@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Joyride from '@Components/Joyride';
 
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
@@ -7,6 +9,7 @@ import { EmptyImportFormIcon } from '@app/components/icons/empty-import-form-ico
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
+import { formsConstant } from '@app/constants/locales/forms';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
@@ -20,6 +23,7 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
     const { isOpen, view } = useModal();
 
     const forms = workspaceForms?.data?.items;
+    const { t } = useTranslation();
 
     const ref = React.useRef<HTMLDivElement>(null);
     const [firstStepClicked, setFirstStepClicked] = React.useState(false);
@@ -51,8 +55,8 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                         />
                     )}
                     <EmptyImportFormIcon className="mb-8 animate-move-up-small" />
-                    <p className="sh1 mb-4 !leading-none">Import your first form</p>
-                    <p className="body4 mb-8 !leading-none">Import your Google Forms or Typeform</p>
+                    <p className="sh1 mb-4 !leading-none">{t(formsConstant.empty.title)}</p>
+                    <p className="body4 mb-8 !leading-none">{t(formsConstant.empty.description)}</p>
                     <div ref={ref} onClick={handleOnClick} className="animate-pulse hover:animate-none">
                         <ImportFormsButton size="medium" />
                     </div>

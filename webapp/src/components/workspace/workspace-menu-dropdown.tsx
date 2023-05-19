@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
@@ -8,10 +9,14 @@ import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdow
 import { IconButton, ListItem } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import { Check } from '@app/components/icons/check';
 import { Plus } from '@app/components/icons/plus';
 import Loader from '@app/components/ui/loader';
+import { menuDropdown } from '@app/constants/locales/menu-dropdown';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { selectAuthStatus } from '@app/store/auth/selectors';
+import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -28,21 +33,35 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
     const workspace = useAppSelector(selectWorkspace);
     const { data, isLoading } = useGetAllMineWorkspacesQuery();
     const router = useRouter();
+    const isProPlan = useAppSelector(selectIsProPlan);
+    const language = router?.locale === 'en' ? '' : router?.locale;
 
+    const { t } = useTranslation();
     const handleChangeWorkspace = (space: WorkspaceDto) => {
         if (!space?.disabled) router.push(`/${space.workspaceName}/dashboard`);
     };
+    const auth = useAppSelector(selectAuthStatus);
 
     const handleCreateWorkspace = () => {
-        if (!isLoading && data?.length > 2) {
+        if (!enableCreateWorkspaceButton()) {
             return;
         }
-        router.push('/create-workspace');
+        router.push(`/${language}workspace/create`);
     };
 
     const fullWorkspaceName = workspace?.title || 'Untitled';
     const workspaceName = toEndDottedStr(fullWorkspaceName, 15);
     const showExpandMore = true;
+
+    const enableCreateWorkspaceButton = () => {
+        if (!data || isLoading || !Array.isArray(data)) {
+            return false;
+        }
+        const usersWorkspaces = data.filter((space: WorkspaceDto) => {
+            return space.ownerId === auth?.id;
+        });
+        return usersWorkspaces.length < 3;
+    };
 
     return (
         <MenuDropdown
@@ -100,16 +119,18 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
             {!isLoading && (
                 <div>
                     <Divider className="my-2" />
-                    <ListItem disablePadding alignItems="center">
-                        <IconButton className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'}`} onClick={handleCreateWorkspace} size="small">
-                            <span className="flex justify-between w-full items-center gap-4">
-                                <div className="flex items-center gap-3">
-                                    <Plus className="text-black-500" />
-                                    <p className={`body3 !not-italic ${!isLoading && data?.length > 2 ? '!text-black-500 cursor-not-allowed' : '!text-black-800'} `}>Create a new workspace</p>
-                                </div>
-                            </span>
-                        </IconButton>
-                    </ListItem>
+                    <ProPlanHoc hideChildrenIfPro={false}>
+                        <ListItem disablePadding alignItems="center">
+                            <IconButton className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'}`} onClick={handleCreateWorkspace} size="small">
+                                <span className="flex justify-between w-full items-center gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <Plus className="text-black-500" />
+                                        <p className={`body3 !not-italic ${!enableCreateWorkspaceButton() ? '!text-black-500 cursor-not-allowed' : '!text-black-800'} `}>{t(menuDropdown.createWorkspace)}</p>
+                                    </div>
+                                </span>
+                            </IconButton>
+                        </ListItem>
+                    </ProPlanHoc>
                 </div>
             )}
         </MenuDropdown>

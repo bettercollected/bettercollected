@@ -1,7 +1,5 @@
 import { act, renderHook, screen } from '@testing-library/react';
 
-import DrawersContainer from '@app/components/drawer-views/container';
-import { useDrawer } from '@app/components/drawer-views/context';
 import ModalContainer from '@app/components/modal-views/container';
 import { useModal } from '@app/components/modal-views/context';
 import { renderWithProviders } from '@app/utils/__test_utils__/render-with-provider';

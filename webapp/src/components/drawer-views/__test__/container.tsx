@@ -1,4 +1,4 @@
-import { act, render, renderHook, screen } from '@testing-library/react';
+import { act, renderHook, screen } from '@testing-library/react';
 
 import DrawersContainer from '@app/components/drawer-views/container';
 import { useDrawer } from '@app/components/drawer-views/context';
