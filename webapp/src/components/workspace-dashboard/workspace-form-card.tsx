@@ -40,12 +40,25 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
             {typeof index !== undefined && index === 0 && environments.ENABLE_JOYRIDE_TOURS && !isResponderPortal && (
                 <Joyride
                     id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION}
-                    placement="bottom-start"
+                    placement="top"
                     steps={[
+                        {
+                            title: <span className="sh3">View form responses</span>,
+                            content: <p className="body4">You can see total responses in each form here and navigate to the responses page.</p>,
+                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_RESPONSES}`,
+                            placementBeacon: 'bottom-start'
+                        },
                         {
                             title: <span className="sh3">Share your form</span>,
                             content: <p className="body4">You can use this button to share your form to your desired audience.</p>,
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_SHARE}`
+                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_SHARE}`,
+                            placementBeacon: 'bottom-start'
+                        },
+                        {
+                            title: <span className="sh3">Update form settings</span>,
+                            content: <p className="body4">You can use this button to view the available options and settings of the form, or navigate inside individual form page to view it&apos;s settings.</p>,
+                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS}`,
+                            placementBeacon: 'bottom-start'
                         }
                     ]}
                 />
@@ -73,7 +86,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
             </div>
             {!isResponderPortal && !!workspace && (
                 <div className="relative flex justify-between items-center py-2 px-4 gap-4 w-full border-t-[1px] border-black-400">
-                    <Button className="p-2 capitalize hover:bg-brand-100" variant="text" onClick={() => router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/responses`)}>
+                    <Button className={`p-2 capitalize hover:bg-brand-100 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_RESPONSES}`} variant="text" onClick={() => router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/responses`)}>
                         <span className="body4">
                             {form?.responses} response{!!form?.responses && form.responses > 1 ? 's' : ''}
                         </span>
@@ -92,7 +105,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                         >
                             <Share />
                         </div>
-                        <FormOptionsDropdownMenu redirectToDashboard={true} className="" form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
+                        <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                     </div>
                 </div>
             )}
