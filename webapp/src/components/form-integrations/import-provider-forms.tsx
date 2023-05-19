@@ -128,9 +128,8 @@ export default function ImportProviderForms(props: any) {
 
     const stepZeroContent = (
         <>
-            <Joyride
+            {/* <Joyride
                 id="workspace-admin-form-import-provider-selection"
-                showCloseButton={false}
                 continuous={false}
                 placement="top"
                 scrollOffset={0}
@@ -142,7 +141,7 @@ export default function ImportProviderForms(props: any) {
                         hideFooter: true
                     }
                 ]}
-            />
+            /> */}
 
             <h4 className="sh1 text-center">Which form do you want to import?</h4>
             <div className="grid grid-cols-2 w-full h-full gap-4 lg:gap-10 joyride-workspace-admin-form-import-provider-selection">
@@ -165,7 +164,6 @@ export default function ImportProviderForms(props: any) {
         <>
             <Joyride
                 id="workspace-admin-form-import-list-forms"
-                showCloseButton={false}
                 continuous={false}
                 placement="top"
                 scrollOffset={0}
@@ -224,7 +222,6 @@ export default function ImportProviderForms(props: any) {
         <>
             <Joyride
                 id="workspace-admin-form-import-data-owner"
-                showCloseButton={false}
                 continuous={false}
                 placement="top"
                 scrollOffset={0}

@@ -12,11 +12,12 @@ interface IWorkspaceDashboardStats {
     title: string;
     content: string;
     buttonProps?: IWorkspaceDashboardStatsButtonProps;
+    className?: string;
 }
 
-const WorkspaceDashboardStats = ({ tooltipTitle, title, content, buttonProps }: IWorkspaceDashboardStats) => {
+const WorkspaceDashboardStats = ({ tooltipTitle, title, content, buttonProps, className = '' }: IWorkspaceDashboardStats) => {
     return (
-        <div className="px-6 py-6 bg-white rounded-[4px] flex flex-col gap-6">
+        <div className={`px-6 py-6 bg-white rounded-[4px] flex flex-col gap-6 ${className}`}>
             <p className="body3 !not-italic text-black-700">{title}</p>
             <div className="flex flex-row gap-6 justify-between">
                 <Tooltip title={tooltipTitle}>

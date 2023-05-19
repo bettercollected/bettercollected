@@ -8,7 +8,7 @@ import { useModal } from '@app/components/modal-views/context';
 import Button, { ButtonProps } from '@app/components/ui/button';
 import environments from '@app/configs/environments';
 
-export default function ImportFormsButton({ size }: ButtonProps) {
+export default function ImportFormsButton({ size, className = '' }: ButtonProps) {
     const { openModal } = useModal();
     const router = useRouter();
 
@@ -43,7 +43,7 @@ export default function ImportFormsButton({ size }: ButtonProps) {
     }, []);
 
     const importFormButton = (
-        <Button variant="solid" className="w-full sm:w-auto" disabled={!googleEnabled && !typeformEnabled} size={size} onClick={handleClick}>
+        <Button variant="solid" className={`w-full sm:w-auto ${className}`} disabled={!googleEnabled && !typeformEnabled} size={size} onClick={handleClick}>
             Import Forms
         </Button>
     );

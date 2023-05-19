@@ -1,12 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import JR, { ACTIONS, BeaconRenderProps, CallBackProps, EVENTS, Props as JoyRideState, STATUS, Step, Styles } from 'react-joyride';
-import { useMount, useSetState } from 'react-use';
+
+import { useLocalStorage } from '@app/lib/hooks/use-local-storage';
 
 import BeaconComponent from './JoyrideBeacon';
 
 export interface JoyrideState extends JoyRideState {
-    id?: string;
+    id: string;
+    finished: boolean;
+}
+
+interface LocalStorageJoyrideState {
+    id: string;
+    run?: boolean;
+    finished?: boolean;
+    stepIndex?: number;
 }
 
 export interface IJoyrideProps {
@@ -14,6 +23,7 @@ export interface IJoyrideProps {
     id: string;
     placement?: 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'left' | 'left-start' | 'left-end' | 'right' | 'right-start' | 'right-end' | 'auto' | 'center';
     scrollToFirstStep?: boolean;
+    saveToLocalStorage?: boolean;
     scrollOffset?: number;
     floaterProps?: any;
     styles?: Styles;
@@ -35,6 +45,7 @@ export default function Joyride({
     placement = 'bottom-end',
     floaterProps = { styles: { arrow: { length: 10, spread: 10 } } },
     continuous = true,
+    saveToLocalStorage = false,
     showProgress = true,
     spotlightClicks = true,
     showSkipButton = true,
@@ -77,12 +88,14 @@ export default function Joyride({
         },
         options: {
             beaconSize: 20,
-            zIndex: 3100
+            zIndex: 3000
         }
     }
 }: IJoyrideProps) {
-    const [state, setState] = useSetState<JoyrideState>({
+    const [state, setState] = useState<JoyrideState>({
+        id: id,
         run: false,
+        finished: false,
         stepIndex: 0,
         steps: steps,
         hideBackButton: hideBackButton,
@@ -93,17 +106,25 @@ export default function Joyride({
     });
 
     const { run, stepIndex, steps: jrSteps } = state;
+    const localStorageJoyrideId = `joyride:id:${id}`;
 
-    useMount(() => {
-        // Fetch from localStorage and check if the tour should be displayed
-        // set `run` to false if it has already been displayed
-        if (id) setState({ ...state, run: true, id });
-    });
+    const getFilteredState = ({ id, run, stepIndex, finished }: JoyrideState): LocalStorageJoyrideState => {
+        return { id, run, stepIndex, finished };
+    };
+
+    const [localStorageJoyrideState, setLocalStorageJoyrideState] = useLocalStorage(localStorageJoyrideId, getFilteredState(state));
+
+    useEffect(() => {
+        if (saveToLocalStorage) setState({ ...state, ...localStorageJoyrideState, run: !localStorageJoyrideState?.finished });
+        else setState({ ...state, run: true });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         if (firstStepClicked) {
             setState({
                 ...state,
+                run: true,
                 stepIndex: stepIndex === 0 ? 1 : stepIndex,
                 disableOverlayClose: disableOverlayClose,
                 hideCloseButton: hideCloseButton,
@@ -120,21 +141,22 @@ export default function Joyride({
     const handleJoyrideCallback = (data: CallBackProps): void => {
         const { action, index, status, type } = data;
 
+        let newState = { ...state };
         // @ts-ignore
         if ([EVENTS.STEP_AFTER, EVENTS.TARGET_NOT_FOUND].includes(type)) {
             // Update state to advance the tour
             const nextStepIndex = index + (action === ACTIONS.PREV ? -1 : 1);
-            setState({ ...state, stepIndex: nextStepIndex });
+            newState = { ...newState, stepIndex: nextStepIndex };
+            setState(newState);
         }
         // @ts-ignore
         else if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
             // Need to set our running state to false, so we can restart if we click start again.
-            setState({ ...state, run: false, stepIndex: 0 });
+            newState = { ...newState, run: false, stepIndex: 0, finished: true };
+            setState(newState);
         }
 
-        console.groupCollapsed(type);
-        console.log(data);
-        console.groupEnd();
+        if (saveToLocalStorage) setLocalStorageJoyrideState(getFilteredState(newState));
     };
 
     if (placement) floaterProps.placement = placement;

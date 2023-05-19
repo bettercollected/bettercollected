@@ -45,30 +45,24 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                                     content: <p className="body4">Import your forms from other providers into Better Collected. Click &quot;Import Forms&quot; button below to import your forms.</p>,
                                     target: ref.current,
                                     placementBeacon: 'bottom-start',
-                                    disableBeacon: true,
-                                    disableOverlayClose: true,
-                                    hideCloseButton: true,
-                                    disableCloseOnEsc: true,
-                                    showSkipButton: false,
-                                    hideBackButton: true,
                                     hideFooter: true
                                 }
                             ]}
                         />
                     )}
-                    <EmptyImportFormIcon className="mb-8" />
+                    <EmptyImportFormIcon className="mb-8 animate-move-up-small" />
                     <p className="sh1 mb-4 !leading-none">Import your first form</p>
-                    <p className="body4 mb-8 !leading-none">Import your Google Forms or Typeforms</p>
-                    <div ref={ref} onClick={handleOnClick}>
+                    <p className="body4 mb-8 !leading-none">Import your Google Forms or Typeform</p>
+                    <div ref={ref} onClick={handleOnClick} className="animate-pulse hover:animate-none">
                         <ImportFormsButton size="medium" />
                     </div>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
                     {forms?.length !== 0 &&
-                        forms?.map((form: StandardFormDto) => (
+                        forms?.map((form: StandardFormDto, index: number) => (
                             <ActiveLink key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
-                                <WorkspaceFormCard form={form} workspace={workspace} hasCustomDomain={hasCustomDomain} />
+                                <WorkspaceFormCard index={index} form={form} workspace={workspace} hasCustomDomain={hasCustomDomain} />
                             </ActiveLink>
                         ))}
                 </div>
