@@ -15,6 +15,7 @@ import { Box, List, ListItem } from '@mui/material';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import WorkspaceMenuDropdown from '@app/components/workspace/workspace-menu-dropdown';
+import dashboardConstants from '@app/constants/locales/dashboard';
 import { formsConstant } from '@app/constants/locales/forms';
 import { localesGlobal } from '@app/constants/locales/global';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -73,13 +74,13 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
         },
         {
             key: 'responders',
-            name: 'Responders',
+            name: t(formsConstant.responders),
             url: `${commonWorkspaceUrl}/responders`,
             icon: <ResponderIcon />
         },
         {
             key: 'deletion_requests',
-            name: 'Deletion Requests',
+            name: t(formsConstant.deletionRequests),
             url: `${commonWorkspaceUrl}/deletion-requests`,
             icon: <DeleteIcon />
         }
@@ -87,7 +88,7 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
     const bottomNavList: Array<INavbarItem> = [
         {
             key: 'collaborators',
-            name: 'Collaborators',
+            name: t(dashboardConstants.drawer.collaborator),
             url: `/${workspace?.workspaceName}/manage/members`,
             icon: <MembersIcon />
         },

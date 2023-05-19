@@ -1,6 +1,6 @@
 export const breadcrumbsItems = {
     dashboard: 'BREAD_CRUMBS_ITEM.DASHBOARD',
-    manageWorkspace: 'BREAD_CRUMBS_ITEM_MANAGE.WORKSPACE',
+    manageWorkspace: 'BREAD_CRUMBS_ITEM.MANAGE_WORKSPACE',
     forms: 'BREAD_CRUMBS_ITEM.FORMS',
     responses: 'BREAD_CRUMBS_ITEM.RESPONSES',
     home: 'BREAD_CRUMBS_ITEM.HOME',

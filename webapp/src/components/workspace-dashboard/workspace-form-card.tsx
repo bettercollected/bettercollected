@@ -74,7 +74,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                     <Tooltip title={form?.settings?.private ? 'Hidden from your public workspace' : t(localesGlobal.public)}>
                         <div className="flex items-center">
                             {form?.settings?.private ? <PrivateIcon /> : <PublicIcon />}
-                            <p className={`leading-none text-[10px] text-black-900 ml-2`}>{form?.settings?.private ? t(localesGlobal.hidden) : t(localesGlobal.public)}</p>
+                            <p className={`leading-none text-[12px] text-black-900 ml-2`}>{form?.settings?.private ? t(localesGlobal.hidden) : t(localesGlobal.public)}</p>
                         </div>
                     </Tooltip>
                 )}
@@ -88,7 +88,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                 <div className="relative flex justify-between items-center py-2 px-4 gap-4 w-full border-t-[1px] border-black-400">
                     <Button className={`p-2 capitalize hover:bg-brand-100 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_RESPONSES}`} variant="text" onClick={() => router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/responses`)}>
                         <span className="body4">
-                            {form?.responses} response{!!form?.responses && form.responses > 1 ? 's' : ''}
+                            {form?.responses} {!!form?.responses && form.responses > 1 ? t(formsConstant.responses) : t(formsConstant.response)}
                         </span>
                     </Button>
                     <div className="flex space-x-4 items-center">

@@ -1,8 +1,8 @@
 export const members = {
     member: 'MEMBER',
-    role: 'MEMBERS_ROLE',
-    join: 'MEMBERS_JOIN',
-    invitations: 'MEMBERS_INVITATION',
-    invitationDate: 'MEMBERS_INVITATION_DATE',
+    role: 'MEMBERS.ROLE',
+    join: 'MEMBERS.JOIN',
+    invitations: 'MEMBERS.INVITATION',
+    invitationDate: 'MEMBERS.INVITATION_DATE',
     default: 'MEMBERS'
 };

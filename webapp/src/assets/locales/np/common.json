@@ -11,12 +11,15 @@
     "AND": "र",
     "BASIC_INFORMATION": "आधारभूत जानकारी",
     "BECOME_A_BETTER_COLLECTOR": "एक राम्रो डाटा सङ्कलक बन्नुहोस्",
-    "BREAD_CRUMBS_ITEM.DASHBOARD": "ड्यासबोर्ड",
-    "BREAD_CRUMBS_ITEM.FORMS": "फारामहरू",
-    "BREAD_CRUMBS_ITEM.HOME": "घर",
-    "BREAD_CRUMBS_ITEM.MANAGE_WORKSPACE": "कार्यस्थान व्यवस्थापन गर्नुहोस्",
-    "BREAD_CRUMBS_ITEM.RESPONSES": "प्रतिक्रियाहरू",
-    "BREAD_CRUMBS_ITEM.SUBMISSIONS": "सबमिशनहरू",
+    "BREAD_CRUMBS_ITEM": {
+        "DASHBOARD": "ड्यासबोर्ड",
+        "FORMS": "फारामहरू",
+        "HOME": "घर",
+        "MANAGE_WORKSPACE": "कार्यस्थान व्यवस्थापन गर्नुहोस्",
+        "RESPONSES": "प्रतिक्रियाहरू",
+        "SUBMISSIONS": "सबमिशनहरू"
+    },
+
     "BUTTON.BACK": "पछाडि",
     "BUTTON.CANCEL": "रद्द गर्नुहोस्",
     "BUTTON.CHECK_MY_DATA": "मेरो डाटा जाँच गर्नुहोस्",
@@ -68,6 +71,10 @@
     "CUSTOMIZE_URL": "URL अनुकूलित गर्नुहोस्",
     "CUSTOM_DOMAIN": "अनुकूल डोमेन",
     "DASHBOARD": "ड्यासबोर्ड",
+    "DASHBOARD.PREVIEW": "पूर्वावलोकन",
+    "DASHBOARD_DRAWER": {
+        "COLLABORATOR": "सहयोगी"
+    },
     "DELETE": "मेट्नुहोस्",
     "DELETE.MESSAGE": "एक पटक यो कार्य पूरा भएपछि, यसलाई पूर्ववत गर्न सकिँदैन।",
     "DESCRIPTION": "विवरण",
@@ -103,6 +110,7 @@
     "FORMS.PINNED_DESCRIPTION": "यो फारम पिन गरिएको खण्डमा देखाउनुहोस्",
     "FORMS.RECENT_FORMS": "हालका फारमहरू",
     "FORMS.RESPONDER": "जवाफ दिने",
+    "FORMS.RESPONDERS": "जवाफ दिनेहरू",
     "FORMS.RESPONSE": "प्रतिक्रिया",
     "FORMS.RESPONSES": "प्रतिक्रियाहरू",
     "FORMS.STATUS_DELETED": "मेटाइयो",

@@ -11,6 +11,7 @@ export const formsConstant = {
     importedDate: 'FORMS.IMPORTED_DATE',
     submittedForms: 'FORMS.SUBMITTED_FORMS',
     responder: 'FORMS.RESPONDER',
+    responders: 'FORMS.RESPONDERS',
     submissionDate: 'FORMS.SUBMISSION_DATE',
     status: {
         pending: 'FORMS.STATUS_PENDING',
