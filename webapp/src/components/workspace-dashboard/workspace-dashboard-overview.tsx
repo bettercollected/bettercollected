@@ -100,10 +100,15 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                         <h1 className="sh1 ml-3 h-12 flex items-center joyride-workspace-title">{toEndDottedStr(workspace?.title?.trim() || 'Untitled', 30)}</h1>
                     </Tooltip>
                 </div>
-                <div className="flex items-center gap-3 ml-0 mt-3 md:mt-0 md:ml-10 min-h-[28px]">
-                    <div onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: t(workspaceConstant.share) })} className={`body4 rounded !leading-none mr-4 hover:cursor-pointer capitalize ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_SHARE}`}>
+                <div className="flex items-center gap-4 ml-0 mt-3 md:mt-0 md:ml-10 min-h-[28px]">
+                    <Button
+                        variant="text"
+                        sx={{ minWidth: '24px', maxWidth: '48px' }}
+                        onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: t(workspaceConstant.share) })}
+                        className={`body4 rounded !leading-none hover:cursor-pointer capitalize ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_SHARE}`}
+                    >
                         <Share />
-                    </div>
+                    </Button>
                     <ActiveLink href={getWorkspaceUrl()} target="_blank" referrerPolicy="origin">
                         <Tooltip title={t(toolTipConstant.previewWorkspace)}>
                             <Button variant="outlined" className={`body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_PREVIEW}`}>

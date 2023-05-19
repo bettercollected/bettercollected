@@ -76,7 +76,7 @@ export default function MenuDropdown({
             <Tooltip title={menuTitle} enterDelay={enterDelay} leaveDelay={leaveDelay} enterTouchDelay={enterTouchDelay}>
                 <IconButton
                     sx={{ padding: 1 }}
-                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex justify-between gap-2 body3 rounded hover:rounded hover:bg-brand-200 ${className}`}
+                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex justify-between gap-2 body3 rounded hover:rounded hover:bg-brand-100 ${className}`}
                     onClick={handleClick}
                     size={size}
                     aria-controls={open ? id : undefined}

@@ -7,14 +7,14 @@ import PrivateIcon from '@Components/Common/Icons/Private';
 import PublicIcon from '@Components/Common/Icons/Public';
 import Share from '@Components/Common/Icons/Share';
 import Joyride from '@Components/Joyride';
-import { Typography } from '@mui/material';
+import { Button, Typography } from '@mui/material';
 
 import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
 import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
 import { useModal } from '@app/components/modal-views/context';
-import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
+import { formsConstant } from '@app/constants/locales/forms';
 import { localesGlobal } from '@app/constants/locales/global';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -72,21 +72,21 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                 )}
             </div>
             {!isResponderPortal && !!workspace && (
-                <div className="relative flex justify-between items-center px-6 p-3 w-full border-t-[1px] border-black-400">
-                    <ActiveLink href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/responses`}>
-                        <p className="body4  hover:underline">
+                <div className="relative flex justify-between items-center py-2 px-4 gap-4 w-full border-t-[1px] border-black-400">
+                    <Button className="p-2 capitalize hover:bg-brand-100" variant="text" onClick={() => router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/responses`)}>
+                        <span className="body4">
                             {form?.responses} response{!!form?.responses && form.responses > 1 ? 's' : ''}
-                        </p>
-                    </ActiveLink>
+                        </span>
+                    </Button>
                     <div className="flex space-x-4 items-center">
                         <div
-                            className={`hover:bg-brand-200 p-2.5 h-10 w-10 rounded ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_SHARE}`}
+                            className={`hover:bg-brand-100 p-2.5 h-10 w-10 rounded ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_SHARE}`}
                             onClick={(event: any) => {
                                 event.preventDefault();
                                 event.stopPropagation();
                                 openModal('SHARE_VIEW', {
                                     url: getFormUrl(form, workspace),
-                                    title: 'this form'
+                                    title: t(formsConstant.shareThisForm)
                                 });
                             }}
                         >
