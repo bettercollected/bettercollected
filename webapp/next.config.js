@@ -76,6 +76,7 @@ const nextConfig = {
         ENABLE_GOOGLE: process.env.ENABLE_GOOGLE || false,
         ENABLE_CHECK_MY_DATA: process.env.ENABLE_CHECK_MY_DATA || false,
         ENABLE_BRAND_COLORS: process.env.ENABLE_BRAND_COLORS || false,
+        ENABLE_JOYRIDE_TOURS: process.env.ENABLE_JOYRIDE_TOURS || false,
 
         // api hosts
         API_ENDPOINT_HOST: process.env.API_ENDPOINT_HOST,

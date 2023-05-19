@@ -9,6 +9,7 @@ import { EmptyImportFormIcon } from '@app/components/icons/empty-import-form-ico
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
+import environments from '@app/configs/environments';
 import { formsConstant } from '@app/constants/locales/forms';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -37,7 +38,7 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
         <div className="mb-10 w-full h-fit mt-5">
             {forms?.length === 0 ? (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-white rounded-[4px] py-[84px]">
-                    {ref.current && (
+                    {ref.current && environments.ENABLE_JOYRIDE_TOURS && (
                         <Joyride
                             id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_BUTTON}
                             placement="top"

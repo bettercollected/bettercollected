@@ -15,6 +15,7 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
+import environments from '@app/configs/environments';
 import { buttons } from '@app/constants/locales/buttons';
 import { formsConstant } from '@app/constants/locales/forms';
 import { importFormConstant } from '@app/constants/locales/import-form';
@@ -135,20 +136,22 @@ export default function ImportProviderForms(props: any) {
 
     const stepZeroContent = (
         <>
-            {/* <Joyride
-                id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}
-                continuous={false}
-                placement="top"
-                scrollOffset={0}
-                steps={[
-                    {
-                        title: <span className="sh3">Select a provider</span>,
-                        content: <p className="body4">Select one of the listed form providers from where you want to import your forms onto Better Collected.</p>,
-                        target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`,
-                        hideFooter: true
-                    }
-                ]}
-            /> */}
+            {/* {environments.ENABLE_JOYRIDE_TOURS && (
+                <Joyride
+                    id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}
+                    continuous={false}
+                    placement="top"
+                    scrollOffset={0}
+                    steps={[
+                        {
+                            title: <span className="sh3">Select a provider</span>,
+                            content: <p className="body4">Select one of the listed form providers from where you want to import your forms onto Better Collected.</p>,
+                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`,
+                            hideFooter: true
+                        }
+                    ]}
+                />
+            )} */}
 
             <h4 className="sh1 text-center">{t(importFormConstant.choise)}</h4>
             <div className={`grid grid-cols-2 w-full h-full gap-4 lg:gap-10 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`}>
@@ -169,26 +172,28 @@ export default function ImportProviderForms(props: any) {
 
     const stepOneContent = (
         <>
-            <Joyride
-                id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_LIST_FORMS}
-                continuous={false}
-                placement="top"
-                scrollOffset={0}
-                steps={[
-                    {
-                        title: <span className="sh3">Select your form</span>,
-                        content: (
-                            <p className="body4">
-                                Select the form that you want to import. <br />
-                                <br /> If you do not see any forms in the list, then you may need to create some forms within the form provider account that you selected (Google Forms, Typeform).
-                            </p>
-                        ),
-                        target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_LIST_FORMS}`,
-                        placementBeacon: 'top-end',
-                        hideFooter: true
-                    }
-                ]}
-            />
+            {environments.ENABLE_JOYRIDE_TOURS && (
+                <Joyride
+                    id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_LIST_FORMS}
+                    continuous={false}
+                    placement="top"
+                    scrollOffset={0}
+                    steps={[
+                        {
+                            title: <span className="sh3">Select your form</span>,
+                            content: (
+                                <p className="body4">
+                                    Select the form that you want to import. <br />
+                                    <br /> If you do not see any forms in the list, then you may need to create some forms within the form provider account that you selected (Google Forms, Typeform).
+                                </p>
+                            ),
+                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_LIST_FORMS}`,
+                            placementBeacon: 'top-end',
+                            hideFooter: true
+                        }
+                    ]}
+                />
+            )}
             <h4 className="sh1 w-full text-start">{t(formsConstant.importedForms)}</h4>
             <div className="flex flex-col w-full h-full gap-10 items-end">
                 <Autocomplete
@@ -227,27 +232,29 @@ export default function ImportProviderForms(props: any) {
 
     const stepTwoContent = (
         <>
-            <Joyride
-                id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_DATA_OWNER}
-                continuous={false}
-                placement="top"
-                scrollOffset={0}
-                steps={[
-                    {
-                        title: <span className="sh3">Select the data owner field for your form response</span>,
-                        content: (
-                            <p className="body4">
-                                Select your own field to be set as the data owner identifier. <br />
-                                <br /> When responders respond to this form, data owner simply means the field you selected will be used to identify your responders. Typically, this will be an email, a phone number, or any other identifier unique to your
-                                responders.
-                            </p>
-                        ),
-                        target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_DATA_OWNER}`,
-                        placementBeacon: 'top-end',
-                        hideFooter: true
-                    }
-                ]}
-            />
+            {environments.ENABLE_JOYRIDE_TOURS && (
+                <Joyride
+                    id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_DATA_OWNER}
+                    continuous={false}
+                    placement="top"
+                    scrollOffset={0}
+                    steps={[
+                        {
+                            title: <span className="sh3">Select the data owner field for your form response</span>,
+                            content: (
+                                <p className="body4">
+                                    Select your own field to be set as the data owner identifier. <br />
+                                    <br /> When responders respond to this form, data owner simply means the field you selected will be used to identify your responders. Typically, this will be an email, a phone number, or any other identifier unique to
+                                    your responders.
+                                </p>
+                            ),
+                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_DATA_OWNER}`,
+                            placementBeacon: 'top-end',
+                            hideFooter: true
+                        }
+                    ]}
+                />
+            )}
             <h4 className="h4 w-full text-start">{t(importFormConstant.responseOwnerTagTitle)}</h4>
             <div className="flex flex-col gap-5 w-full">
                 <p className="body1">{t(importFormConstant.responseOwnerTagDescription)}</p>
