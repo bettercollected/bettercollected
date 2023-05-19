@@ -23,7 +23,7 @@ export async function getGlobalServerSidePropsByDomain({ locale, ..._context }: 
         };
     }
     try {
-        const workspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`).catch((e) => e);
+        const workspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`).catch((e) => e);
         workspace = (await workspaceResponse?.json().catch((e: any) => e)) ?? null;
         workspaceId = workspace.id;
     } catch (e) {}
@@ -62,7 +62,7 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
         };
     }
     try {
-        const workspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces?workspace_name=${workspace_name}`, config).catch((e) => e);
+        const workspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?workspace_name=${workspace_name}`, config).catch((e) => e);
         workspace = (await workspaceResponse?.json().catch((e: any) => e)) ?? null;
         workspaceId = workspace.id;
     } catch (e) {}
@@ -151,7 +151,7 @@ export async function getServerSidePropsForDashboardFormPage(_context: any) {
     let form = null;
     const config = getServerSideAuthHeaderConfig(_context);
     try {
-        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${form_id}`, config);
+        const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${form_id}`, config);
         form = (await formResponse?.json().catch((e: any) => e)) ?? null;
         if (!form) {
             return {

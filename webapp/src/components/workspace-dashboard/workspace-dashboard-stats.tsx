@@ -1,5 +1,4 @@
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import MuiButton from '@mui/material/Button';
 
 interface IWorkspaceDashboardStatsButtonProps {
     enabled?: boolean;
@@ -23,9 +22,9 @@ const WorkspaceDashboardStats = ({ tooltipTitle, title, content, buttonProps }: 
                     <p className="sh1 text-black-700">{content}</p>
                 </Tooltip>
                 {!!buttonProps?.enabled && buttonProps?.onClick && buttonProps?.text && (
-                    <MuiButton onClick={buttonProps?.onClick} size="small" className="body4 !not-italic !text-brand-500">
+                    <div onClick={buttonProps?.onClick} className="body4 cursor-pointer !text-brand-500">
                         {buttonProps?.text}
-                    </MuiButton>
+                    </div>
                 )}
             </div>
         </div>

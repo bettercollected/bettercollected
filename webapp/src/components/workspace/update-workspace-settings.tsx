@@ -4,7 +4,6 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import { DeleteOutline } from '@mui/icons-material';
-import { TextField } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
@@ -77,7 +76,6 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             }
             closeModal();
         } else if (response.error) {
-            console.log(response.error);
             toast.error(response.error.data?.message || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
         }
     };

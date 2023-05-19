@@ -1,9 +1,7 @@
 import '@testing-library/jest-dom';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
 import fetchMock, { enableFetchMocks } from 'jest-fetch-mock';
 
 import mockUseRouter from '@app/utils/__test_utils__/mock-use-router';
-import { renderWithProviders } from '@app/utils/__test_utils__/render-with-provider';
 
 enableFetchMocks();
 

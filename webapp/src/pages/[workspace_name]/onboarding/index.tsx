@@ -8,6 +8,7 @@ import _ from 'lodash';
 
 import { ChevronLeft } from '@mui/icons-material';
 import cn from 'classnames';
+import { util } from 'prettier';
 import AvatarEditor from 'react-avatar-editor';
 import { toast } from 'react-toastify';
 
@@ -54,7 +55,7 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
             }
         };
     }
-    if (authUserProps && authUserProps.workspace.title.toLowerCase() !== 'untitled') {
+    if (authUserProps && authUserProps?.workspace?.title && authUserProps?.workspace?.title.toLowerCase() !== 'untitled') {
         return {
             redirect: {
                 permanent: false,
@@ -127,17 +128,17 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         }
     };
 
-    const onClickDone = async () => {
+    const onClickDone = async (skip: boolean = false) => {
         if (createWorkspace) {
-            await createNewWorkspace();
+            await createNewWorkspace(skip);
         } else {
-            await updateWorkspaceDetails();
+            await updateWorkspaceDetails(skip);
         }
     };
 
-    const createNewWorkspace = async () => {
+    const createNewWorkspace = async (skip: boolean) => {
         const createFormData = new FormData();
-        if (formData.workspaceLogo) {
+        if (formData.workspaceLogo && !skip) {
             createFormData.append('profile_image', formData.workspaceLogo);
         }
         createFormData.append('title', formData.title);
@@ -153,9 +154,9 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         }
     };
 
-    const updateWorkspaceDetails = async () => {
+    const updateWorkspaceDetails = async (skip: boolean) => {
         const updateFormData = new FormData();
-        if (formData.workspaceLogo && workspace?.profileImage !== formData.workspaceLogo) {
+        if (formData.workspaceLogo && workspace?.profileImage !== formData.workspaceLogo && !skip) {
             updateFormData.append('profile_image', formData.workspaceLogo);
         }
         updateFormData.append('title', formData.title);
@@ -262,8 +263,23 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                 profileName={profileName}
             ></WorkSpaceLogoUi>
             {/* </div> */}
-            <div className="flex justify-end mt-8 items-center">
-                <Button size="medium" onClick={onClickDone} isLoading={isLoading || data?.isLoading}>
+            <div className="flex justify-between mt-8 items-center">
+                <div
+                    className="text-brand-500 hover:underline hover:cursor-pointer"
+                    onClick={async () => {
+                        await onClickDone(true);
+                    }}
+                >
+                    Skip
+                </div>
+
+                <Button
+                    size="medium"
+                    onClick={async () => {
+                        await onClickDone();
+                    }}
+                    isLoading={isLoading || data?.isLoading}
+                >
                     {t(buttons.done)}
                 </Button>
             </div>
@@ -272,7 +288,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
 
     if (isSuccess) return <FullScreenLoader />;
     return (
-        <Layout showNavbar showAuthAccount={createWorkspace ? true : false} isCustomDomain>
+        <Layout showNavbar showAuthAccount={!!createWorkspace} isCustomDomain>
             <div className=" flex flex-col my-[40px] items-center">
                 {stepCount === 0 && StepZeroContent}
                 {stepCount === 1 && StepOneContent}

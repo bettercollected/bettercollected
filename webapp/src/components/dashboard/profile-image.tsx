@@ -1,5 +1,4 @@
-import React, { useRef, useTransition } from 'react';
-import { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -9,7 +8,6 @@ import { toast } from 'react-toastify';
 import Image from '@app/components/ui/image';
 import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { workspaceConstant } from '@app/constants/locales/workspace';
 import { ToastId } from '@app/constants/toastId';
 import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
 import { useAppDispatch } from '@app/store/hooks';

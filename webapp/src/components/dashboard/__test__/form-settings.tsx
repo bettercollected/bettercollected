@@ -1,5 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { toast } from 'react-toastify';
+import { fireEvent, screen } from '@testing-library/react';
 
 import FormSettingsTab from '@app/components/dashboard/form-settings';
 import { renderWithProviders } from '@app/utils/__test_utils__/render-with-provider';

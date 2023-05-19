@@ -4,24 +4,15 @@ import { useTranslation } from 'next-i18next';
 
 import _ from 'lodash';
 
-import Paper from '@mui/material/Paper';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
 import DataTable from 'react-data-table-component';
 
-import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import MemberOptions from '@app/components/datatable/workspace-settings/member-options';
 import { localesGlobal } from '@app/constants/locales/global';
 import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetWorkspaceMembersInvitationsQuery, useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
-import { parseDateStrToDate, toHourMinStr, toLocaleString, toLocaleStringFromDateString, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
-import { getFullNameFromUser } from '@app/utils/userUtils';
+import { useGetWorkspaceMembersInvitationsQuery } from '@app/store/workspaces/members-n-invitations-api';
+import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
 export default function InvitationsTable() {
     const { t } = useTranslation();

@@ -11,7 +11,6 @@ import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { getFullNameFromUser } from '@app/utils/userUtils';
 
 export default function DeleteInvitationModal({ invitation }: any) {
     const { closeModal } = useModal();

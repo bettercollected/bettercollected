@@ -45,6 +45,10 @@ const nextConfig = {
         formats: ['image/avif', 'image/webp'],
         domains: [...googleImageDomains, 'images.typeform.com', 'lh5.googleusercontent.com', 'lh3.googleusercontent.com', 's3.eu-west-1.wasabisys.com', 's3.eu-central-1.wasabisys.com', 'sireto.com']
     },
+    serverRuntimeConfig: {
+        // Use this environment separately if you are running your webapp through docker compose
+        INTERNAL_DOCKER_API_ENDPOINT_HOST: process.env.INTERNAL_DOCKER_API_ENDPOINT_HOST || process.env.API_ENDPOINT_HOST
+    },
     publicRuntimeConfig: {
         CONTACT_US_URL: process.env.CONTACT_US_URL,
         CONTACT_US_FORM_NAVIGATION_URL: process.env.CONTACT_US_FORM_NAVIGATION_URL,
@@ -58,6 +62,8 @@ const nextConfig = {
         CLIENT_DOMAIN: process.env.CLIENT_DOMAIN,
         ADMIN_DOMAIN: process.env.ADMIN_DOMAIN,
         HTTP_SCHEME: process.env.HTTP_SCHEME,
+
+        MICROSOFT_CLARITY_TRACKING_CODE: process.env.MICROSOFT_CLARITY_TRACKING_CODE,
 
         NEXT_PUBLIC_NODE_ENV: process.env.NEXT_PUBLIC_NODE_ENV || 'production',
 

@@ -4,9 +4,8 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { MenuItem, Select } from '@mui/material';
+import { MenuItem } from '@mui/material';
 import cn from 'classnames';
-import { t } from 'msw/lib/glossary-de6278a9';
 
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
 import { DRAWER_VIEW } from '@app/components/drawer-views/context';

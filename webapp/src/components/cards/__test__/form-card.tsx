@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import FormsCard from 'src/components/cards/form-card';
 
 describe('Form Card Render Test', () => {

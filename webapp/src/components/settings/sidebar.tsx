@@ -2,11 +2,10 @@ import { useTranslation } from 'next-i18next';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
-import { ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { ChevronRight } from '@mui/icons-material';
 
 import BackButton from '@app/components/settings/back';
 import environments from '@app/configs/environments';
-import { advanceSetting } from '@app/constants/locales/advance-setting';
 import { localesGlobal } from '@app/constants/locales/global';
 import { members } from '@app/constants/locales/members';
 import { workspaceConstant } from '@app/constants/locales/workspace';

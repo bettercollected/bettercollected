@@ -1,8 +1,9 @@
 import { useTranslation } from 'next-i18next';
 
+import { FormIcon } from '@Components/Common/Icons/FormIcon';
+
 import WorkspaceFormsTabContent from '@app/components/dashboard/workspace-forms-tab-content';
 import WorkspaceResponsesTabContent from '@app/components/dashboard/workspace-responses-tab-content';
-import { FormIcon } from '@app/components/icons/form-icon';
 import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';

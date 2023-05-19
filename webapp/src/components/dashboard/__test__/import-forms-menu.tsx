@@ -1,7 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
-import { renderWithProviders } from '@app/utils/__test_utils__/render-with-provider';
 
 jest.mock('@app/configs/environments', () => ({
     ENABLE_GOOGLE: true,

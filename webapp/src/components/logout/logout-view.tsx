@@ -1,8 +1,6 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import { Logout } from '@mui/icons-material';
-
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';

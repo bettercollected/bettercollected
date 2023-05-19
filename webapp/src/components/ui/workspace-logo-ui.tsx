@@ -4,7 +4,6 @@ import { useTranslation } from 'next-i18next';
 
 import { buttons } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
-import { onBoarding } from '@app/constants/locales/onboarding-screen';
 
 import AuthAccountProfileImage from '../auth/account-profile-image';
 import Button from './button';

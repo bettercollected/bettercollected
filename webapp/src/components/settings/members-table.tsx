@@ -1,19 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import _ from 'lodash';
 
+import UserDetails from '@Components/Common/DataDisplay/UserDetails';
 import DataTable from 'react-data-table-component';
 
-import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import MemberOptions from '@app/components/datatable/workspace-settings/member-options';
 import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
-import { parseDateStrToDate, toHourMinStr, toLocaleStringFromDateString, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
-import { getFullNameFromUser } from '@app/utils/userUtils';
+import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
 export default function MembersTable() {
     const workspace = useAppSelector((state) => state.workspace);
@@ -27,16 +26,8 @@ export default function MembersTable() {
 
     const dataTableResponseColumns: any = [
         {
+            selector: (member: any) => <UserDetails user={member} />,
             name: t(members.member),
-            selector: (member: any) => (
-                <div className="flex space-x-4">
-                    <AuthAccountProfileImage image={member.profile_image} name={getFullNameFromUser(member)} size={40} />
-                    <div className="flex flex-col">
-                        <div className="!body3">{getFullNameFromUser(member)}</div>
-                        <div className="!body5 !text-black-600">{member.email}</div>
-                    </div>
-                </div>
-            ),
             grow: 2,
             style: {
                 color: '#202124',

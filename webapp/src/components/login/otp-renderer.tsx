@@ -8,7 +8,6 @@ import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
 import { buttons } from '@app/constants/locales/buttons';
-import { importFormConstant } from '@app/constants/locales/import-form';
 import { otpRenderer } from '@app/constants/locales/otp-renderer';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';

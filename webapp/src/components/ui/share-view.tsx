@@ -3,15 +3,12 @@ import React, { ReactNode } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import cn from 'classnames';
-import { FacebookShareButton, LinkedinShareButton, TelegramShareButton, TwitterShareButton } from 'react-share';
+import { FacebookShareButton, LinkedinShareButton, TwitterShareButton } from 'react-share';
 
 import { Facebook } from '@app/components/icons/brands/facebook';
 import { Linkedin } from '@app/components/icons/brands/linkedin';
-import { Telegram } from '@app/components/icons/brands/telegram';
 import { Twitter } from '@app/components/icons/brands/twitter';
-import { useModal } from '@app/components/modal-views/context';
 import LinkView from '@app/components/ui/link-view';
-import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
 
 type SizeNames = 'large' | 'small';
@@ -63,11 +60,6 @@ export default function ShareView({ url, title, showCopy, iconSize = 'large' }: 
                             <Linkedin className={sizes[iconSize]} />
                         </IconWrapper>
                     </LinkedinShareButton>
-                    <TelegramShareButton url={url}>
-                        <IconWrapper>
-                            <Telegram className={sizes[iconSize]} />
-                        </IconWrapper>
-                    </TelegramShareButton>
                 </div>
                 {showCopy && <LinkView className="flex md:flex-row flex-col items-center " buttonClassName="!h-[46px] sh3 !font-medium !bg-brand-500 hover:!bg-brand-600 !text-white !px-8 !py-2" url={url} toastMessage={t(toastMessage.copied)}></LinkView>}
                 {/* {showCopy && (

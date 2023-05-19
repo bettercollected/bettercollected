@@ -5,7 +5,6 @@ import { useRouter } from 'next/router';
 import { Tab, TabItem, TabPanel, TabPanels } from '@app/components/ui/tab';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useClickAway } from '@app/lib/hooks/use-click-away';
-import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { authApi } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 

@@ -30,13 +30,17 @@ interface IFormOptionsDropdownMenuProps {
     hasCustomDomain: boolean;
     className?: string;
     redirectToDashboard?: boolean;
+    showShare?: boolean;
 }
 
-export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDomain, className = '', redirectToDashboard = false }: IFormOptionsDropdownMenuProps) {
+export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDomain, className = '', redirectToDashboard = false, showShare = false }: IFormOptionsDropdownMenuProps) {
     const { openModal } = useModal();
 
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-    const [currentActiveForm, setCurrentActiveForm] = React.useState<{ form: StandardFormDto; shareUrl: string } | null>(null);
+    const [currentActiveForm, setCurrentActiveForm] = React.useState<{
+        form: StandardFormDto;
+        shareUrl: string;
+    } | null>(null);
 
     const dispatch = useAppDispatch();
     const [patchFormSettings] = usePatchFormSettingsMutation();
@@ -135,13 +139,14 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     </ListItemIcon>
                     <span>{t(formsConstant.menu.visibility)}</span>
                 </MenuItem>
-                {!!currentActiveForm?.form?.settings?.private ? (
-                    <Tooltip title={t(toolTipConstant.visibility)}>
-                        <div>{menuItemShareSettings}</div>
-                    </Tooltip>
-                ) : (
-                    menuItemShareSettings
-                )}
+                {showShare &&
+                    (!!currentActiveForm?.form?.settings?.private ? (
+                        <Tooltip title={t(toolTipConstant.visibility)}>
+                            <div>{menuItemShareSettings}</div>
+                        </Tooltip>
+                    ) : (
+                        menuItemShareSettings
+                    ))}
                 <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-red-100 !text-red-500">
                     <ListItemIcon>
                         <Delete width={20} height={20} />

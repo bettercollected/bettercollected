@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Image from 'next/image';
 
 import { Check } from '@mui/icons-material';
@@ -13,9 +12,9 @@ import environments from '@app/configs/environments';
 import { localesGlobal } from '@app/constants/locales/global';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import Layout from '@app/layouts/_layout';
-import { getGlobalServerSidePropsByDomain, getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
+import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { checkHasCustomDomain, getRequestHost, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export async function getServerSideProps(_context: any) {
     const config = getServerSideAuthHeaderConfig(_context);
@@ -31,10 +30,10 @@ export async function getServerSideProps(_context: any) {
     }
 
     try {
-        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
+        const userStatus = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, config);
         const user = (await userStatus?.json().catch((e: any) => e))?.user ?? null;
         if (user?.roles?.includes('FORM_CREATOR')) {
-            const userWorkspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/mine`, config);
+            const userWorkspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/mine`, config);
             const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e)) ?? null;
             const defaultWorkspace = userWorkspace.filter((workspace: WorkspaceDto) => workspace.ownerId === user.id && workspace?.default);
             let redirectWorkspace: WorkspaceDto | null;
@@ -43,7 +42,7 @@ export async function getServerSideProps(_context: any) {
             } else {
                 redirectWorkspace = userWorkspace[0];
             }
-            if (!redirectWorkspace?.title || redirectWorkspace.title.toLowerCase() === 'untitled') {
+            if (!redirectWorkspace?.title || redirectWorkspace?.title === '' || redirectWorkspace?.title.toLowerCase() === 'untitled') {
                 return {
                     redirect: {
                         permanent: false,

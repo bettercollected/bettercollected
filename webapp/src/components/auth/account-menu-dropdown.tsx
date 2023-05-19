@@ -6,13 +6,13 @@ import _ from 'lodash';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Billing from '@Components/Common/Icons/Billing';
+import DashboardIcon from '@Components/Common/Icons/Dashboard';
 import Logout from '@Components/Common/Icons/Logout';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import WorkspaceAdminSelector from '@Components/HOCs/WorkspaceAdminSelector';
 import { ListItem, ListItemIcon, ListItemText, MenuItem } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import { DashboardIcon } from '@app/components/icons/dashboard-icon';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';

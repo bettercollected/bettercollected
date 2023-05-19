@@ -3,12 +3,15 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
+import DashboardIcon from '@Components/Common/Icons/Dashboard';
+import DeleteIcon from '@Components/Common/Icons/Delete';
+import { FormIcon } from '@Components/Common/Icons/FormIcon';
+import MembersIcon from '@Components/Common/Icons/Members';
+import ResponderIcon from '@Components/Common/Icons/Responder';
+import SettingsIcon from '@Components/Common/Icons/Settings';
 import Toolbar from '@Components/Common/Layout/Toolbar';
 import { Box, List, ListItem } from '@mui/material';
 
-import { DashboardIcon } from '@app/components/icons/dashboard-icon';
-import { FormIcon } from '@app/components/icons/form-icon';
-import { SettingIcon } from '@app/components/icons/setting-icon';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import WorkspaceMenuDropdown from '@app/components/workspace/workspace-menu-dropdown';
@@ -59,21 +62,39 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
             key: 'dashboard',
             name: t(localesGlobal.dashboard),
             url: commonWorkspaceUrl,
-            icon: <DashboardIcon />
+            icon: <DashboardIcon height="24px" width="24px" />
         },
         {
             key: 'forms',
             name: t(formsConstant.default),
             url: `${commonWorkspaceUrl}/forms`,
             icon: <FormIcon />
+        },
+        {
+            key: 'responders',
+            name: 'Responders',
+            url: `${commonWorkspaceUrl}/responders`,
+            icon: <ResponderIcon />
+        },
+        {
+            key: 'deletion_requests',
+            name: 'Deletion Requests',
+            url: `${commonWorkspaceUrl}/deletion-requests`,
+            icon: <DeleteIcon />
         }
     ];
     const bottomNavList: Array<INavbarItem> = [
         {
+            key: 'collaborators',
+            name: 'Collaborators',
+            url: `/${workspace?.workspaceName}/manage/members`,
+            icon: <MembersIcon />
+        },
+        {
             key: 'manage-workspace',
             name: t(workspaceConstant.manage),
             url: `/${workspace?.workspaceName}/manage`,
-            icon: <SettingIcon />
+            icon: <SettingsIcon />
         }
     ];
 

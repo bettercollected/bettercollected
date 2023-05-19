@@ -1,7 +1,6 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import { DeleteForever } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 
 import { Close } from '@app/components/icons/close';

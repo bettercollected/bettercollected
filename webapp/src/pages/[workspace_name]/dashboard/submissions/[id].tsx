@@ -1,7 +1,6 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import BreadcrumbRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { HomeIcon } from '@app/components/icons/home';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';

@@ -1,11 +1,8 @@
-import React, { ChangeEvent, FormEvent, useState } from 'react';
+import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import { handle } from 'mdast-util-to-markdown/lib/handle';
-
-import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
@@ -14,7 +11,6 @@ import { buttons } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 
 export default function UpdateCustomDomain() {
     const { t } = useTranslation();

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 
 import OtpRenderer from '@app/components/login/otp-renderer';
 import { renderWithProviders } from '@app/utils/__test_utils__/render-with-provider';

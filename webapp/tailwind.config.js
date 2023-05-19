@@ -86,6 +86,7 @@ module.exports = {
                 large: '0px 8px 16px rgba(17, 24, 39, 0.1)',
                 card: '0px 2px 6px rgba(0, 0, 0, 0.06)',
                 transaction: '0px 8px 16px rgba(17, 24, 39, 0.06)',
+                formCard: '0px 0px 30px rgba(3, 3, 80, 0.08)',
                 button: '0px 2px 4px rgba(0, 0, 0, 0.06), 0px 4px 6px rgba(0, 0, 0, 0.1)'
             },
             dropShadow: {

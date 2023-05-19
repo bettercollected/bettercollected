@@ -2,8 +2,6 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Button from '@Components/Common/Input/Button';
-
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';

@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import { Avatar } from '@mui/material';
 import cn from 'classnames';
 

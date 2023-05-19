@@ -10,7 +10,6 @@ import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
 import { formsConstant } from '@app/constants/locales/forms';
-import { localesGlobal } from '@app/constants/locales/global';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceSubmissionsQuery } from '@app/store/workspaces/api';

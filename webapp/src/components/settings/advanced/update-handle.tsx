@@ -1,10 +1,7 @@
-import React, { ChangeEvent, FormEvent, useState } from 'react';
+import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { handle } from 'mdast-util-to-markdown/lib/handle';
-
-import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
@@ -12,7 +9,6 @@ import { advanceSetting } from '@app/constants/locales/advance-setting';
 import { buttons } from '@app/constants/locales/buttons';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useAppSelector } from '@app/store/hooks';
-import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 
 export default function UpdateHandle() {
     const workspace = useAppSelector((state) => state.workspace);
