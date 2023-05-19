@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Divider from '@Components/Common/DataDisplay/Divider';
 import DashboardIcon from '@Components/Common/Icons/Dashboard';
 import DeleteIcon from '@Components/Common/Icons/Delete';
@@ -13,6 +15,9 @@ import { Box, List, ListItem } from '@mui/material';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import WorkspaceMenuDropdown from '@app/components/workspace/workspace-menu-dropdown';
+import { formsConstant } from '@app/constants/locales/forms';
+import { localesGlobal } from '@app/constants/locales/global';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -48,19 +53,20 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
 
 export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerToggle }: IDrawerProps) {
     const workspace = useAppSelector(selectWorkspace);
+    const { t } = useTranslation();
     const isAdmin = useAppSelector(selectIsAdmin);
     const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
 
     const topNavList: Array<INavbarItem> = [
         {
             key: 'dashboard',
-            name: 'Dashboard',
+            name: t(localesGlobal.dashboard),
             url: commonWorkspaceUrl,
             icon: <DashboardIcon height="24px" width="24px" />
         },
         {
             key: 'forms',
-            name: 'Forms',
+            name: t(formsConstant.default),
             url: `${commonWorkspaceUrl}/forms`,
             icon: <FormIcon />
         },
@@ -86,7 +92,7 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
         },
         {
             key: 'manage-workspace',
-            name: 'Manage workspace',
+            name: t(workspaceConstant.manage),
             url: `/${workspace?.workspaceName}/manage`,
             icon: <SettingsIcon />
         }

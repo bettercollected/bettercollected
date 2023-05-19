@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
+import { buttons } from '@app/constants/locales/buttons';
+import { otpRenderer } from '@app/constants/locales/otp-renderer';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
@@ -14,6 +19,7 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
     const workspace = useAppSelector((state) => state.workspace);
     const [counter, setCounter] = useState(60);
     const [otp, setOtp] = useState('');
+    const { t } = useTranslation();
     const [postSendOtp, response] = usePostSendOtpMutation();
 
     const [postVerifyOtp, result] = usePostVerifyOtpMutation();
@@ -30,7 +36,7 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
     const handleVerifyButtonClick = async (e: any) => {
         e.preventDefault();
         if (otp.length === 0) {
-            toast.error('OTP field cannot be empty!', { toastId: ToastId.ERROR_TOAST });
+            toast.error(t(toastMessage.otpFieldNullError).toString(), { toastId: ToastId.ERROR_TOAST });
             return;
         }
         const response = { email: email, otp_code: otp };
@@ -48,19 +54,23 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
     return (
         <form className="relative flex flex-col items-center justify-between p-10">
             <div>
-                <h2 className="sh1 text-center">Enter OTP code</h2>
+                <h2 className="sh1 text-center">{t(otpRenderer.title)}</h2>
                 <p className="!text-black-600 body4 text-center mt-4 leading-none">
-                    We have just sent a verification code to <br />
+                    {t(otpRenderer.subtitle)} <br />
                     <span className="text-brand-500 italic">{email}</span>
                 </p>
             </div>
             <BetterInput data-testid="otp-input" className="mt-6" spellCheck={false} value={otp} type="text" placeholder={'Enter the OTP code'} onChange={handleChange} />
             <div className="w-full">
                 <Button data-testid="verify-button" isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} size="medium" className="w-full">
-                    Verify
+                    {t(buttons.verify)}
                 </Button>
                 <div className={'text-md align flex mt-4 items-center justify-center text-black-900'}>
-                    {counter !== 0 && <div className="text-gray-500 cursor-not-allowed border-none">Resend code ({counter})</div>}
+                    {counter !== 0 && (
+                        <div className="text-gray-500 cursor-not-allowed border-none">
+                            {t(buttons.resendCode)} ({counter})
+                        </div>
+                    )}
                     {counter === 0 && (
                         <div
                             className="cursor-pointer"
@@ -70,7 +80,7 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
                                 setCounter(60);
                             }}
                         >
-                            Resend code
+                            {t(buttons.resendCode)}
                         </div>
                     )}
                 </div>

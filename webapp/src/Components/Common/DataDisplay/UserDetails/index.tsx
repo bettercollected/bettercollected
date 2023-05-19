@@ -1,7 +1,5 @@
 import React from 'react';
 
-import { Typography } from '@mui/material';
-
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { UserDto } from '@app/models/dtos/UserDto';
 import { getFullNameFromUser } from '@app/utils/userUtils';

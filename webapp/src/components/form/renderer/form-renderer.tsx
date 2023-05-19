@@ -1,20 +1,18 @@
 import React from 'react';
 
 import styled from '@emotion/styled';
-import TextareaAutosize from '@mui/base/TextareaAutosize';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Radio from '@mui/material/Radio';
 import Rating from '@mui/material/Rating';
-import Select from '@mui/material/Select';
-import Slider from '@mui/material/Slider';
 import TextField from '@mui/material/TextField';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import BetterInput from '@app/components/Common/input';
+import SelectDropdown from '@app/components/dropdown/select';
 import Button from '@app/components/ui/button';
 import Loader from '@app/components/ui/loader';
 import MarkdownText from '@app/components/ui/markdown-text';
@@ -224,13 +222,13 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                             {choices.map((choice: any, idx: number) => {
                                 return (
                                     <div key={idx} className="p-3 mt-3 mb-3 rounded">
-                                        <Select defaultValue={''} className="h-6" value={''} disabled>
+                                        <SelectDropdown value={''} className="h-6" disabled>
                                             {choicesArray.map((dd: number) => (
                                                 <MenuItem key={dd} value={''}>
                                                     {dd}
                                                 </MenuItem>
                                             ))}
-                                        </Select>
+                                        </SelectDropdown>
                                         <span className="ml-2">{choice.label}</span>
                                     </div>
                                 );
@@ -249,13 +247,13 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 }
                 return (
                     <StyledTextField>
-                        <Select defaultValue={''} value={ans?.text} fullWidth>
+                        <SelectDropdown value={ans?.text} fullWidth disabled={ans}>
                             {dropdownOptions.map((dd: any, idx: any) => (
                                 <MenuItem key={idx} value={dd?.label}>
                                     {dd?.label}
                                 </MenuItem>
                             ))}
-                        </Select>
+                        </SelectDropdown>
                     </StyledTextField>
                 );
 

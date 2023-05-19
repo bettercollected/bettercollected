@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Toolbar from '@Components/Common/Layout/Toolbar';
 import { Share } from '@mui/icons-material';
 import { Box, IconButton } from '@mui/material';
@@ -14,7 +16,10 @@ import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import LinkView from '@app/components/ui/link-view';
 import ShareView from '@app/components/ui/share-view';
 import environments from '@app/configs/environments';
-import { formCustomizeLink } from '@app/constants/Customize-domain';
+import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
+import { customize } from '@app/constants/locales/customize';
+import { formsConstant } from '@app/constants/locales/forms';
+import { localesGlobal } from '@app/constants/locales/global';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { initialFormState, setForm } from '@app/store/forms/slice';
@@ -22,6 +27,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function FormPageLayout(props: any) {
+    const { t } = useTranslation();
     const form = useAppSelector((state) => state.form);
     const workspace = useAppSelector((state) => state.workspace);
     const { openModal } = useModal();
@@ -51,11 +57,11 @@ export default function FormPageLayout(props: any) {
 
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
-            title: 'Dashboard',
+            title: t(breadcrumbsItems.dashboard),
             url: `/${props?.workspace?.workspaceName}/dashboard`
         },
         {
-            title: 'Forms',
+            title: t(breadcrumbsItems.forms),
             url: `/${props?.workspace?.workspaceName}/dashboard/forms`
         },
         {
@@ -101,20 +107,20 @@ export default function FormPageLayout(props: any) {
                         <Box sx={{ overflow: 'auto', height: '100%' }}>
                             <div className=" px-5 h-full py-6 relative w-full">
                                 <Close onClick={handleDrawerToggle} className="absolute blocks lg:hidden right-5 top-5 cursor-pointer" />
-                                <ShareView url={clientHostUrl} showCopy={false} showBorder={false} iconSize="small" />
+                                <ShareView url={clientHostUrl} showCopy={false} showBorder={false} iconSize="small" title={t(localesGlobal.share)} />
 
                                 <div className="mt-12">
-                                    <div className="body1 mb-4 !leading-none ">Form Links</div>
+                                    <div className="body1 mb-4 !leading-none ">{t(formsConstant.link)}</div>
                                     {getFormLinks().map((formLink: any) => (
                                         <LinkView key={formLink.url} url={formLink.url} toastMessage="Form URL Copied" className="flex flex-col mb-4" buttonClassName="!text-brand-500 !border-blue-200 hover:!bg-brand-200 " />
                                     ))}
                                 </div>
                                 <div className="my-12">
                                     <CustomizeLink
-                                        title={formCustomizeLink.title}
-                                        subtitle={formCustomizeLink.description}
-                                        buttonText="Customize link"
-                                        onClick={() => openModal('CUSTOMIZE_URL', { description: formCustomizeLink.description, url: isCustomDomain ? customDomain : clientHost })}
+                                        title={t(customize.link.title)}
+                                        subtitle={t(customize.link.description)}
+                                        buttonText={t(customize.link.default)}
+                                        onClick={() => openModal('CUSTOMIZE_URL', { description: customize.link.description, url: isCustomDomain ? customDomain : clientHost })}
                                     />
                                 </div>
                             </div>

@@ -2,9 +2,7 @@
  * Change text changes the input fields
  * Save and assert api responses
  */
-import { useRouter } from 'next/router';
-
-import { fireEvent, getByText, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, getByText, screen, waitFor } from '@testing-library/react';
 import { rest } from 'msw';
 import { toast } from 'react-toastify';
 

@@ -1,18 +1,18 @@
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
 import Share from '@Components/Common/Icons/Share';
-import { Button, IconButton } from '@mui/material';
+import { Button } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import { EyeIcon } from '@app/components/icons/eye-icon';
-import { ShareIcon } from '@app/components/icons/share-icon';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import WorkspaceDashboardStats from '@app/components/workspace-dashboard/workspace-dashboard-stats';
 import environments from '@app/configs/environments';
+import { formsConstant } from '@app/constants/locales/forms';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -32,12 +32,14 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
     const isProPlan = useAppSelector(selectIsProPlan);
     const isAdmin = useAppSelector(selectIsAdmin);
     const router = useRouter();
+    const { t } = useTranslation();
+    const language = router?.locale === 'en' ? '' : `${router?.locale}/`;
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
         const domain = !!workspace.customDomain ? workspace.customDomain : environments.CLIENT_DOMAIN;
         const w_name = !!workspace.customDomain ? '' : workspace.workspaceName;
-        return `${protocol}${domain}/${w_name}`;
+        return `${protocol}${domain}/${language}${w_name}`;
     };
 
     const handleWorkspaceEllipsisClick = () => {};
@@ -49,12 +51,12 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
     const workspaceDashboardStatsList = [
         {
             key: 'imported-forms',
-            title: 'Imported forms',
-            tooltipTitle: `${workspaceStats?.forms ?? 0} forms imported${isAdmin && !isProPlan ? ' out of limited 100 forms' : ''}`,
+            title: t(formsConstant.importedForms),
+            tooltipTitle: `${workspaceStats?.forms ?? 0} ${t(toolTipConstant.formImported)}${isAdmin && !isProPlan ? ` ${t(toolTipConstant.outOfLimited)}` : ''}`,
             content: importedFormsContent,
             buttonProps: {
                 enabled: isAdmin && !isProPlan,
-                text: 'Import unlimited forms',
+                text: t(formsConstant.importUnlimited),
                 onClick: () => {
                     router.push(`/${workspace.workspaceName}/upgrade`);
                 }
@@ -62,23 +64,23 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
         },
         {
             key: 'collected-responses',
-            title: 'Collected responses',
-            tooltipTitle: `${workspaceStats?.responses ?? 0} form responses`,
+            title: t(formsConstant.collectedResponses),
+            tooltipTitle: `${workspaceStats?.responses ?? 0} ${t(toolTipConstant.formResponses)}`,
             content: importedResponses,
             buttonProps: {
                 enabled: false,
-                text: 'Import unlimited forms',
+                text: t(formsConstant.importUnlimited),
                 onClick: () => {}
             }
         },
         {
             key: 'deletion-requests',
-            title: 'Deletion requests',
-            tooltipTitle: `${workspaceStats?.deletion_requests?.success ?? 0} responses deleted out of ${workspaceStats?.deletion_requests?.total ?? 0} deletion requests`,
+            title: t(formsConstant.deletionRequests),
+            tooltipTitle: `${workspaceStats?.deletion_requests?.success ?? 0} ${t(toolTipConstant.responseDeletionOutOf)} ${workspaceStats?.deletion_requests?.total ?? 0} ${t(toolTipConstant.deletionRequest)}`,
             content: deletionRequests,
             buttonProps: {
                 enabled: false,
-                text: 'Import unlimited forms',
+                text: t(formsConstant.importUnlimited),
                 onClick: () => {}
             }
         }

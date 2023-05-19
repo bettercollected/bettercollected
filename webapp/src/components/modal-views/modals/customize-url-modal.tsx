@@ -3,7 +3,6 @@ import React from 'react';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import CustomizeUrlView from '@app/components/ui/customizeUrlView';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
 export interface ICustomizeUrlModalProps {
     description: string;

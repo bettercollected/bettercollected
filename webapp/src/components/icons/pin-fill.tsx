@@ -2,7 +2,7 @@ import React from 'react';
 
 export function PinFillIcon(props: React.SVGAttributes<{}>) {
     return (
-        <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 122.879 122.867" enable-background="new 0 0 122.879 122.867" {...props}>
+        <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 122.879 122.867" enableBackground="new 0 0 122.879 122.867" {...props}>
             <path
                 fillRule="evenodd"
                 clipRule="evenodd"

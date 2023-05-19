@@ -1,16 +1,18 @@
-import React, { useRef } from 'react';
-import { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
-import ModeEditIcon from '@mui/icons-material/ModeEdit';
-import SaveIcon from '@mui/icons-material/Save';
-import { CircularProgress } from '@mui/material';
+import { useTranslation } from 'next-i18next';
+
+import cn from 'classnames';
 import html2canvas from 'html2canvas';
 import { toast } from 'react-toastify';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
-import { Close } from '@app/components/icons/close';
 import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
+import { buttons } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { ToastId } from '@app/constants/toastId';
 import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
 import { useAppDispatch } from '@app/store/hooks';
@@ -20,10 +22,10 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 export default function BannerImageComponent(props: BannerImageComponentPropType) {
     const { workspace, isFormCreator } = props;
     const transformComponentRef = useRef(null);
-
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const [image, setImage] = useState('');
     const imageInputRef = useRef<HTMLInputElement>(null);
+    const { t } = useTranslation();
 
     const dispatch = useAppDispatch();
     const onUploadFileChange = (e: any) => {
@@ -51,10 +53,10 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                 formData.append('banner_image', file);
                 const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
                 if (response.error) {
-                    toast('Something went wrong', { toastId: ToastId.ERROR_TOAST });
+                    toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
                 }
                 if (response.data) {
-                    toast('Workspace Updated', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+                    toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
                     setImage('');
                     dispatch(setWorkspace(response.data));
                 }
@@ -70,7 +72,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
     };
 
     return (
-        <div className={`relative aspect-editable-banner-mobile lg:aspect-editable-banner-desktop ${!!workspace?.bannerImage ? '' : 'border border-brand-300'} w-full bannerdiv`}>
+        <div className={cn('relative  w-full bannerdiv', !!workspace?.bannerImage ? '' : 'border border-brand-300', isFormCreator ? 'aspect-editable-banner-mobile lg:aspect-editable-banner-desktop' : 'aspect-banner-mobile lg:aspect-banner-desktop')}>
             {!!image ? (
                 <TransformWrapper centerOnInit ref={transformComponentRef}>
                     {({ resetTransform }) => {
@@ -97,21 +99,22 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                         <div className="flex body1 text-black-700 flex-col   items-center justify-center h-full">
                             <Image src="/upload.png" height="46px" width={'72px'} alt={'upload'} />
                             <div className="lg:mt-2">
-                                <span className=" cursor-pointer text-brand-500" onClick={onClickFileUploadButton}>
-                                    Upload
-                                </span>{' '}
-                                a Image
+                                <span className="cursor-pointer text-brand-500 pr-1" onClick={onClickFileUploadButton}>
+                                    {t(buttons.upload)}
+                                </span>
+                                {t(localesGlobal.a)} {t(localesGlobal.image)}
                             </div>
-                            <div className="hidden lg:mt-[18px] lg:flex">You can drag to adjust the image.</div>
+                            <div className="hidden lg:mt-[18px] lg:flex">{t(workspaceConstant.bannerEmptyMessage)}</div>
                         </div>
                     ) : (
-                        <div className="flex h-full justify-center items-center">No image available</div>
+                        <div className="flex h-full justify-center items-center">{t(localesGlobal.noImage)}</div>
                     )}
                     <input ref={imageInputRef} data-testid="file-upload" type="file" accept="image/*" className="hidden" onChange={onUploadFileChange} />
                 </>
             )}
             {isFormCreator && (
                 <UpdateImageOptions
+                    t={t}
                     getUpdateOptionsClassName={getUpdateOptionsClassName}
                     isLoading={isLoading}
                     onClickFileUploadButton={onClickFileUploadButton}
@@ -124,20 +127,20 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
     );
 }
 
-function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileUploadButton, onClickFileSaveButton, image, onCLickCancelButton }: any) {
+function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileUploadButton, onClickFileSaveButton, image, onCLickCancelButton, t }: any) {
     return (
         <div className={`absolute bottom-2 right-2 hidden ${getUpdateOptionsClassName()}`}>
             <div className="flex justify-between">
-                {!isLoading && !image && <Button onClick={onClickFileUploadButton}>Update</Button>}
+                {!isLoading && !image && <Button onClick={onClickFileUploadButton}>{t(buttons.update)}</Button>}
                 {!isLoading && image && (
                     <Button className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2" size="small" onClick={onCLickCancelButton}>
-                        Cancel
+                        {t(buttons.cancel)}
                     </Button>
                 )}
                 {!!image && (
                     <>
                         <Button isLoading={isLoading} onClick={onClickFileSaveButton}>
-                            {isLoading ? 'Saving' : 'Save'}
+                            {isLoading ? t(buttons.saving) : t(buttons.save)}
                         </Button>
                     </>
                 )}

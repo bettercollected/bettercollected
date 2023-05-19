@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { rest } from 'msw';
 
 import { server } from '@app/mock/api/server';

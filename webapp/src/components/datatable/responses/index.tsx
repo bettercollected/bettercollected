@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import StyledPagination from '@Components/Common/Pagination';
@@ -10,6 +11,8 @@ import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
+import { formsConstant } from '@app/constants/locales/forms';
+import { localesGlobal } from '@app/constants/locales/global';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
@@ -35,6 +38,7 @@ const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
     };
+    const { t } = useTranslation();
 
     const { data, isLoading }: any = useGetFormsSubmissionsQuery({
         formId,
@@ -56,7 +60,7 @@ const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
 
     const dataTableResponseColumns: any = [
         {
-            name: 'Responder',
+            name: t(formsConstant.responder),
             selector: (response: StandardFormResponseDto) => responseDataOwnerField(response),
             grow: 2,
             style: {
@@ -68,7 +72,7 @@ const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
             }
         },
         {
-            name: 'Submission Date',
+            name: t(formsConstant.submissionDate),
             selector: (row: StandardFormResponseDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
@@ -81,7 +85,7 @@ const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
     if (!!requestForDeletion) {
         const columnsToAdd = [
             {
-                name: 'Response ID',
+                name: t(formsConstant.responseId),
                 selector: (row: StandardFormResponseDto) => row.responseId,
                 style: {
                     color: 'rgba(0,0,0,.54)',
@@ -90,8 +94,8 @@ const ResponsesTable = ({ requestForDeletion, workspaceId, formId }: any) => {
                 }
             },
             {
-                name: 'Status',
-                selector: (row: StandardFormResponseDto) => <RequestForDeletionBadge deletionStatus={row?.deletionStatus || 'pending'} />,
+                name: t(localesGlobal.status),
+                selector: (row: StandardFormResponseDto) => <RequestForDeletionBadge deletionStatus={row?.deletionStatus || t(formsConstant.status.pending)} />,
                 style: {
                     color: 'rgba(0,0,0,.54)',
                     paddingLeft: '16px',

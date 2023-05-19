@@ -1,10 +1,5 @@
 import React from 'react';
 
-import { render, screen } from '@testing-library/react';
-
-import FormCards from '@app/components/dashboard/form-cards';
-import { initWorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { formArray } from '@app/utils/__test_utils__/mock-form-data';
 import mockUseBreakPoint from '@app/utils/__test_utils__/mock-use-breakpoint';
 
 mockUseBreakPoint('lg');

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 
 import WorkspaceResponsesTabContent from '@app/components/dashboard/workspace-responses-tab-content';
 import { initWorkspaceDto } from '@app/models/dtos/workspaceDto';

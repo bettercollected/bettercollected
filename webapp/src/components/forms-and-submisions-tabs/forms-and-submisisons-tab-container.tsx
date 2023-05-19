@@ -1,3 +1,5 @@
+import { useTranslation } from 'next-i18next';
+
 import { FormIcon } from '@Components/Common/Icons/FormIcon';
 
 import WorkspaceFormsTabContent from '@app/components/dashboard/workspace-forms-tab-content';
@@ -5,6 +7,7 @@ import WorkspaceResponsesTabContent from '@app/components/dashboard/workspace-re
 import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
+import { formsConstant } from '@app/constants/locales/forms';
 
 interface ISubmissionTabContainer {
     workspaceId: string;
@@ -14,10 +17,11 @@ interface ISubmissionTabContainer {
 }
 
 export default function FormsAndSubmissionsTabContainer({ showResponseBar, workspace, isFormCreator = false }: ISubmissionTabContainer) {
+    const { t } = useTranslation();
     const paramTabs = [
         {
             icon: <FormIcon />,
-            title: 'Forms',
+            title: t(formsConstant.default),
             path: 'forms'
         }
     ];
@@ -25,12 +29,12 @@ export default function FormsAndSubmissionsTabContainer({ showResponseBar, works
     if (!showResponseBar && paramTabs.length === 1) {
         paramTabs.push({
             icon: <HistoryIcon className="w-5 h-5" />,
-            title: 'Submitted forms',
+            title: t(formsConstant.submittedForms),
             path: 'mySubmissions'
         });
         paramTabs.push({
             icon: <TrashIcon className="w-5 h-5" />,
-            title: 'Deletion requests',
+            title: t(formsConstant.deletionRequests),
             path: 'deletion-requests'
         });
     } else if (showResponseBar && paramTabs.length === 3) {

@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
@@ -12,6 +13,7 @@ import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import { Check } from '@app/components/icons/check';
 import { Plus } from '@app/components/icons/plus';
 import Loader from '@app/components/ui/loader';
+import { menuDropdown } from '@app/constants/locales/menu-dropdown';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuthStatus } from '@app/store/auth/selectors';
 import { selectIsProPlan } from '@app/store/auth/slice';
@@ -32,7 +34,9 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
     const { data, isLoading } = useGetAllMineWorkspacesQuery();
     const router = useRouter();
     const isProPlan = useAppSelector(selectIsProPlan);
+    const language = router?.locale === 'en' ? '' : router?.locale;
 
+    const { t } = useTranslation();
     const handleChangeWorkspace = (space: WorkspaceDto) => {
         if (!space?.disabled) router.push(`/${space.workspaceName}/dashboard`);
     };
@@ -42,7 +46,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
         if (!enableCreateWorkspaceButton()) {
             return;
         }
-        router.push('/workspace/create');
+        router.push(`/${language}workspace/create`);
     };
 
     const fullWorkspaceName = workspace?.title || 'Untitled';
@@ -121,7 +125,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                                 <span className="flex justify-between w-full items-center gap-4">
                                     <div className="flex items-center gap-3">
                                         <Plus className="text-black-500" />
-                                        <p className={`body3 !not-italic ${!enableCreateWorkspaceButton() ? '!text-black-500 cursor-not-allowed' : '!text-black-800'} `}>Create a new workspace</p>
+                                        <p className={`body3 !not-italic ${!enableCreateWorkspaceButton() ? '!text-black-500 cursor-not-allowed' : '!text-black-800'} `}>{t(menuDropdown.createWorkspace)}</p>
                                     </div>
                                 </span>
                             </IconButton>

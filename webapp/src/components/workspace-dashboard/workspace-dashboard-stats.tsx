@@ -1,6 +1,4 @@
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import Button from '@Components/Common/Input/Button';
-import MuiButton from '@mui/material/Button';
 
 interface IWorkspaceDashboardStatsButtonProps {
     enabled?: boolean;
