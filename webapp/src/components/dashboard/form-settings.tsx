@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Switch from '@mui/material/Switch';
-import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
 import { FormSettingsCard } from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
+import { buttons } from '@app/constants/locales/buttons';
+import { formsConstant } from '@app/constants/locales/forms';
+import { localesGlobal } from '@app/constants/locales/global';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
 export default function FormSettingsTab() {
+    const { t } = useTranslation();
     const form = useAppSelector((state) => state.form);
     const [patchFormSettings] = usePatchFormSettingsMutation();
     const workspace = useAppSelector((state) => state.workspace);
@@ -31,15 +37,15 @@ export default function FormSettingsTab() {
         if (response.data) {
             const settings = response.data.settings;
             dispatch(setFormSettings(settings));
-            toast('Updated', { type: 'success' });
+            toast(t(localesGlobal.updated).toString(), { type: 'success' });
         } else {
-            toast('Could not update this form setting!', { type: 'error' });
+            toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
             return response.error;
         }
     };
 
     const onPinnedChange = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast('Could not update this form setting!', { type: 'error', toastId: 'errorToast' });
+        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
         patchSettings({ pinned: !f?.settings?.pinned }, f)
             .then((res) => {})
             .catch((e) => {
@@ -48,7 +54,7 @@ export default function FormSettingsTab() {
     };
 
     const onPrivateChanged = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast('Could not update this form setting!', { type: 'error', toastId: 'errorToast' });
+        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
         const patchBody = { private: !f?.settings?.private, pinned: false };
         patchSettings(patchBody, f)
             .then((res) => {})
@@ -74,8 +80,8 @@ export default function FormSettingsTab() {
             <FormSettingsCard>
                 <div className=" flex items-center justify-between">
                     <div>
-                        <div className="body1">Hide Form</div>
-                        <div className="body3">Do not show this form in workspace page.</div>
+                        <div className="body1">{t(formsConstant.hide)}</div>
+                        <div className="body3">{t(formsConstant.hideDescription)}</div>
                     </div>
                     <Switch data-testid="private-switch" checked={!!form?.settings?.private} onClick={(e) => onPrivateChanged(e, form)} />
                 </div>
@@ -84,8 +90,8 @@ export default function FormSettingsTab() {
                 <FormSettingsCard>
                     <div className=" flex items-center justify-between">
                         <div>
-                            <div className="body1">Pinned</div>
-                            <div className="body3">Show this form in pinned section</div>
+                            <div className="body1">{t(formsConstant.pinned)}</div>
+                            <div className="body3">{t(formsConstant.pinnedDescription)}</div>
                         </div>
                         <Switch data-testid="pinned-switch" checked={!!form?.settings?.pinned} onClick={(e) => onPinnedChange(e, form)} />
                     </div>
@@ -120,9 +126,9 @@ export default function FormSettingsTab() {
             <FormSettingsCard>
                 <div className="flex items-center justify-between">
                     <div className="">
-                        <div className="body1">Delete Form</div>
+                        <div className="body1">{t(formsConstant.delete)}</div>
                         <div className="body3">
-                            <div>Deleting this form will also remove all the responses and deletion requests.</div>
+                            <div>{t(formsConstant.deleteDescription)}</div>
                         </div>
                     </div>
                     <Button
@@ -134,7 +140,7 @@ export default function FormSettingsTab() {
                             openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
                         }}
                     >
-                        Delete
+                        {t(buttons.delete)}
                     </Button>
                 </div>
             </FormSettingsCard>

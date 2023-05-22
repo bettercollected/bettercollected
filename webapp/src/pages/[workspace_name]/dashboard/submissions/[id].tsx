@@ -1,10 +1,11 @@
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import BreadcrumbRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { HomeIcon } from '@app/components/icons/home';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
@@ -22,6 +23,7 @@ export default function SubmissionDashboard(props: any) {
 
     const breakpoint = useBreakpoint();
     const router = useRouter();
+    const { t } = useTranslation();
     const handleRemoveSubmissionId = () => {
         router.push(router.asPath.substring(0, router.asPath.lastIndexOf('/')), undefined, {
             shallow: true
@@ -30,7 +32,7 @@ export default function SubmissionDashboard(props: any) {
 
     const breadcrumbsItem = [
         {
-            title: 'Responses',
+            title: t(breadcrumbsItems.responses),
             icon: <HomeIcon className="w-4 h-4 mr-2" />,
             onClick: handleRemoveSubmissionId
         },

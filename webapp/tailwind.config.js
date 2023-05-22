@@ -20,6 +20,7 @@ module.exports = {
             colors: {
                 // brand: 'rgb(var(--color-brand) / <alpha-value>)',
                 dark: '#1c1917',
+                success: '#B5F4AF',
                 'light-dark': '#171e2e',
                 white: '#ffffff',
                 brand: {
@@ -35,7 +36,12 @@ module.exports = {
 
                     DEFAULT: '#0764EB'
                 },
-                'brand-accent': '#F8B940',
+                'brand-accent': {
+                    500: '#F8B940',
+                    600: '#E79B0B',
+
+                    DEFAULT: '#F8B940'
+                },
                 black: {
                     100: '#F8F9FA',
                     200: '#E9ECEF',
@@ -52,8 +58,10 @@ module.exports = {
                 red: {
                     100: '#FFECE7',
                     500: '#EA400E',
-
                     DEFAULT: '#EA400E'
+                },
+                orange: {
+                    100: '#EB8E07'
                 }
             },
             spacing: {
@@ -86,6 +94,7 @@ module.exports = {
                 large: '0px 8px 16px rgba(17, 24, 39, 0.1)',
                 card: '0px 2px 6px rgba(0, 0, 0, 0.06)',
                 transaction: '0px 8px 16px rgba(17, 24, 39, 0.06)',
+                formCard: '0px 0px 30px rgba(3, 3, 80, 0.08)',
                 button: '0px 2px 4px rgba(0, 0, 0, 0.06), 0px 4px 6px rgba(0, 0, 0, 0.1)'
             },
             dropShadow: {

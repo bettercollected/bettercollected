@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
+
 import Divider from '@Components/Common/DataDisplay/Divider';
+import UserDetails from '@Components/Common/DataDisplay/UserDetails';
 import DataTable from 'react-data-table-component';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
@@ -9,21 +13,48 @@ import DataTableProviderFormCell from '@app/components/datatable/form/provider-f
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import ActiveLink from '@app/components/ui/links/active-link';
+import { formsConstant } from '@app/constants/locales/forms';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
+import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
+
+const formTableStyles = {
+    ...dataTableCustomStyles,
+    rows: {
+        style: {
+            ...dataTableCustomStyles.rows.style,
+            border: '1px solid transparent',
+            '&:hover': {
+                cursor: 'pointer',
+                border: '1px solid #0764EB'
+            }
+        }
+    }
+};
 
 export default function FormPage({ workspace, hasCustomDomain }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
     const [sortValue, setSortValue] = useState('newest_oldest');
     const [filterValue, setFilterValue] = useState('show_all');
+    const { t } = useTranslation();
 
     const workspaceQuery = {
         workspace_id: workspace.id
     };
 
+    const isAdmin = useAppSelector(selectIsAdmin);
+    const isProPlan = useAppSelector(selectIsProPlan);
+
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
-    const forms = workspaceForms?.data?.items;
+    const [searchWorkspaceForms] = useSearchWorkspaceFormsMutation();
+    const forms = workspaceForms?.data?.items || [];
+    const router = useRouter();
+
+    const onRowCLicked = (form: StandardFormDto) => {
+        router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}`);
+    };
 
     const selectList = [
         {
@@ -58,9 +89,9 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
 
     const dataTableFormColumns = [
         {
-            name: 'Form type',
+            name: t(formsConstant.formType),
             selector: (form: StandardFormDto) => <DataTableProviderFormCell form={form} workspace={workspace} />,
-            grow: 2,
+            grow: 4,
             style: {
                 color: '#202124',
                 fontSize: '16px',
@@ -70,12 +101,14 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             }
         },
         {
-            name: 'Responses',
+            name: t(formsConstant.responses),
             selector: (row: StandardFormDto) => (
                 <ActiveLink className="hover:text-brand-500 hover:underline" href={`/${workspace.workspaceName}/dashboard/forms/${row.formId}/responses`}>
                     {row?.responses ?? 0}
                 </ActiveLink>
             ),
+            grow: 2,
+
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
@@ -84,13 +117,14 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             }
         },
         {
-            name: 'Deletion requests',
+            name: t(formsConstant.deletionRequests),
             selector: (row: StandardFormDto) => (
                 <ActiveLink className="hover:text-brand-500 hover:underline paragraph" href={`/${workspace.workspaceName}/dashboard/forms/${row.formId}/deletion-requests`}>
                     {' '}
                     {row?.deletionRequests ?? 0}
                 </ActiveLink>
             ),
+            grow: 2,
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
@@ -98,8 +132,17 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                 fontSize: '18px'
             }
         },
+        ...(isAdmin && !isProPlan
+            ? []
+            : [
+                  {
+                      name: 'Imported by',
+                      grow: 3,
+                      selector: (row: StandardFormDto) => <UserDetails user={row.importerDetails} />
+                  }
+              ]),
         {
-            name: 'Imported date',
+            name: t(formsConstant.importedDate),
             selector: (row: StandardFormDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
@@ -109,7 +152,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             }
         },
         {
-            cell: (form: StandardFormDto) => <FormOptionsDropdownMenu redirectToDashboard={false} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />,
+            cell: (form: StandardFormDto) => <FormOptionsDropdownMenu redirectToDashboard={false} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} showShare />,
             allowOverflow: true,
             button: true,
             width: '60px',
@@ -119,12 +162,49 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             }
         }
     ];
+    // const handleSearch = async (event: any) => {
+    //     const response: any = await searchWorkspaceForms({
+    //         workspace_id: workspace.id,
+    //         query: escapeRegExp(event.target.value)
+    //     });
+    //     if (event.target.value) {
+    //         setForms(response?.data);
+    //     } else {
+    //         setForms(workspaceForms?.data?.items);
+    //     }
+    // };
+    // const debouncedResults = useMemo(() => {
+    //     return debounce(handleSearch, 500);
+    // }, []);
+    // useEffect(() => {
+    //     debouncedResults.cancel();
+    // }, []);
 
     return (
         <SidebarLayout>
             <div className="py-10 w-full h-full">
-                <h1 className="sh1">Forms</h1>
+                <h1 className="sh1">{t(formsConstant.default)}</h1>
                 <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
+                    {/* <StyledTextField>
+                        <TextField
+                            sx={{ height: '46px', padding: 0 }}
+                            size="small"
+                            name="search-input"
+                            placeholder="Search"
+                            onChange={debouncedResults}
+                            className={'w-full'}
+                            InputProps={{
+                                sx: {
+                                    padding: '16px'
+                                },
+                                endAdornment: (
+                                    <InputAdornment sx={{ padding: 0 }} position="end">
+                                        <SearchIcon />
+                                    </InputAdornment>
+                                )
+                            }}
+                        />
+                    </StyledTextField> */}
                     <ImportFormsButton size="small" />
                     {/*<div className="grid grid-cols-2 items-center gap-2">*/}
                     {/*    {selectList.map((item) => (*/}
@@ -156,7 +236,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                 <Divider />
 
                 {/* @ts-ignore */}
-                <DataTable className="p-0 mt-2" columns={dataTableFormColumns} data={forms} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+                <DataTable className="p-0 mt-2" columns={dataTableFormColumns} data={forms} customStyles={formTableStyles} highlightOnHover={false} pointerOnHover={false} onRowClicked={onRowCLicked} />
             </div>
         </SidebarLayout>
     );

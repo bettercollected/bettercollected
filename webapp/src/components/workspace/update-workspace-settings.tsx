@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import { DeleteOutline } from '@mui/icons-material';
-import { TextField } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
+import { buttons } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
+import { placeHolder } from '@app/constants/locales/placeholder';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { updateWorkspace } from '@app/constants/locales/update-workspace';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceDomainMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
@@ -21,6 +27,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const workspace = useAppSelector((state) => state.workspace);
     const [deleteWorkspaceDomain, result] = useDeleteWorkspaceDomainMutation();
+    const { t } = useTranslation();
     const { closeModal } = useModal();
     const [error, setError] = useState(false);
 
@@ -63,14 +70,13 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
         const response: any = await patchExistingWorkspace(body);
         if (response.data) {
             dispatch(setWorkspace(response.data));
-            toast.info(updateDomain ? 'Updated custom Domain of workspace!' : 'Updated workspace handle', { toastId: ToastId.SUCCESS_TOAST });
+            toast.info(updateDomain ? t(toastMessage.customDomainUpdated).toString() : t(updateWorkspace.handle).toString(), { toastId: ToastId.SUCCESS_TOAST });
             if (!updateDomain) {
                 router.replace(`/${response.data.workspaceName}/dashboard`);
             }
             closeModal();
         } else if (response.error) {
-            console.log(response.error);
-            toast.error(response.error.data?.message || 'Something went wrong', { toastId: ToastId.ERROR_TOAST });
+            toast.error(response.error.data?.message || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
         }
     };
 
@@ -81,7 +87,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             dispatch(setWorkspace(res.data));
             router.push(router.asPath);
         } else {
-            toast.error('Error Deleting Custom Domain');
+            toast.error(t(toastMessage.customDomainDeletionError).toString());
         }
     };
 
@@ -94,25 +100,25 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                 }}
             />
             <div className="flex space-x-4">
-                <div className="sh1 mb-6 leading-tight tracking-tight md:text-2xl text-black-900">{updateDomain ? (workspace.customDomain ? 'Update your Custom Domain' : 'Setup your custom domain for workspace') : 'Update Workspace Handle'}</div>
+                <div className="sh1 mb-6 leading-tight tracking-tight md:text-2xl text-black-900">{updateDomain ? (workspace.customDomain ? t(updateWorkspace.customDomain) : t(updateWorkspace.setupCustomDomain)) : t(updateWorkspace.handle)}</div>
             </div>
             <form className="flex items-start flex-col">
                 <div className="text-start max-w-full">
                     <div className="body-3 text-black-700 ">
                         {updateDomain
                             ? workspace?.customDomain
-                                ? "Form links with previous domain won't work after updating."
-                                : `Add CNAME record of your domain to point to 'custom.${environments.IS_IN_PRODUCTION_MODE ? 'bettercollected.com' : 'sireto.dev'}'`
-                            : "Form links with previous workspace handle won't work after updating."}
+                                ? t(updateWorkspace.formLinkWithPreviousDomainError)
+                                : `${updateWorkspace.addCnameRecordMessage}${environments.IS_IN_PRODUCTION_MODE ? 'bettercollected.com' : 'sireto.dev'}'`
+                            : t(updateWorkspace.formLinkWithPreviousworkspaceHandleError)}
                     </div>
                 </div>
-                <div className="body1 mt-6">{updateDomain ? 'Domain' : 'Workspace Handle'}</div>
+                <div className="body1 mt-6">{updateDomain ? t(localesGlobal.domain) : t(workspaceConstant.handle)}</div>
                 <div className="flex items-start mt-3 justify-start gap-4  w-full">
                     <BetterInput
                         inputProps={{ 'data-testid': 'update-field' }}
                         error={error}
-                        helperText={error ? (updateDomain ? 'Invalid domain' : 'Invalid Workspace Handle') : ''}
-                        placeholder={updateDomain ? 'Enter your custom domain' : 'Enter workspace handle'}
+                        helperText={error ? (updateDomain ? t(updateWorkspace.invalidDomain) : t(updateWorkspace.invalidWorkspaceHandle)) : ''}
+                        placeholder={updateDomain ? t(placeHolder.enterCustomDomain) : t(placeHolder.enterWorkspaceHandle)}
                         value={updateText}
                         onChange={(e) => {
                             setUpdateText(e.target.value);
@@ -127,7 +133,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                 </div>
                 <div className="flex mt-8 w-full gap-4 justify-end">
                     <Button data-testid="save-button" type="submit" isLoading={isLoading || result?.isLoading} variant="solid" size="medium" onClick={handleSubmit}>
-                        Save
+                        {t(buttons.save)}
                     </Button>
                 </div>
             </form>

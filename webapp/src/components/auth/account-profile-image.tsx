@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import { Avatar } from '@mui/material';
 import cn from 'classnames';
 
@@ -8,14 +6,15 @@ interface IAuthAccountProfileImageProps {
     image?: string;
     name: string;
     typography?: string;
+    className?: string;
 }
 
 AuthAccountProfileImage.defaultProps = {
     size: 36
 };
 
-export default function AuthAccountProfileImage({ size, image, name, typography = 'sh1' }: IAuthAccountProfileImageProps) {
-    if (image) return <Avatar sx={{ width: size, height: size, borderRadius: 1 }} variant="rounded" src={image} className="rounded overflow-hidden !mr-0" />;
+export default function AuthAccountProfileImage({ size, image, name = ' ', className = '', typography = 'sh1' }: IAuthAccountProfileImageProps) {
+    if (image) return <Avatar sx={{ width: size, height: size, borderRadius: 1 }} variant="rounded" src={image} className={`rounded overflow-hidden !mr-0`} />;
 
     return (
         <Avatar sx={{ width: size, height: size, borderRadius: 1 }} variant="rounded" className="rounded !bg-brand-400 overflow-hidden">

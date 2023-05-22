@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
-import BetterInput from '@app/components/Common/input';
+import { useTranslation } from 'next-i18next';
+
 import ManageWorkspaceLayout from '@app/components/layout/manage-workspace';
 import UpdateCustomDomain from '@app/components/settings/advanced/update-custom-domain';
 import UpdateHandle from '@app/components/settings/advanced/update-handle';
-import SettingsCard from '@app/components/settings/card';
-import Button from '@app/components/ui/button';
+import { advanceSetting } from '@app/constants/locales/advance-setting';
 
 export default function AdvancedSettings({ workspace }: any) {
+    const { t } = useTranslation();
     return (
         <ManageWorkspaceLayout>
-            <div className="h4">Advanced Settings</div>
+            <div className="h4">{t(advanceSetting.default)}</div>
             <UpdateHandle />
             <UpdateCustomDomain />
         </ManageWorkspaceLayout>

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
@@ -7,10 +8,12 @@ import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import { useModal } from '@app/components/modal-views/context';
 import Button, { ButtonProps } from '@app/components/ui/button';
 import environments from '@app/configs/environments';
+import { buttons } from '@app/constants/locales/buttons';
 
-export default function ImportFormsButton({ size }: ButtonProps) {
+export default function ImportFormsButton({ size, className = '' }: ButtonProps) {
     const { openModal } = useModal();
     const router = useRouter();
+    const { t } = useTranslation();
 
     const googleEnabled = environments.ENABLE_GOOGLE;
     const typeformEnabled = environments.ENABLE_TYPEFORM;
@@ -43,8 +46,8 @@ export default function ImportFormsButton({ size }: ButtonProps) {
     }, []);
 
     const importFormButton = (
-        <Button variant="solid" className="w-full sm:w-auto" disabled={!googleEnabled && !typeformEnabled} size={size} onClick={handleClick}>
-            Import Forms
+        <Button variant="solid" className={`w-full sm:w-auto ${className}`} disabled={!googleEnabled && !typeformEnabled} size={size} onClick={handleClick}>
+            {t(buttons.importForms)}
         </Button>
     );
 

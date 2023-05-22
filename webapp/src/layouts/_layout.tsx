@@ -2,7 +2,6 @@ import React from 'react';
 
 import { Box } from '@mui/material';
 import cn from 'classnames';
-import { S } from 'msw/lib/glossary-de6278a9';
 
 import AuthNavbar from '@app/components/auth/navbar';
 

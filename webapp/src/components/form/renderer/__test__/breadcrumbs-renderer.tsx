@@ -1,7 +1,5 @@
 import '@testing-library/jest-dom';
-import { cleanup, fireEvent, getByText, render, screen, within } from '@testing-library/react';
-
-import BreadcrumbsRenderer from '../breadcrumbs-renderer';
+import { cleanup, render } from '@testing-library/react';
 
 describe('Breadcrumbs render test', () => {
     afterEach(cleanup);

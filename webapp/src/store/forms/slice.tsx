@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
+import { Plans } from '@app/models/dtos/UserDto';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { RootState } from '@app/store/store';
 
@@ -17,6 +18,11 @@ export const initialFormState: StandardFormDto = {
         private: false,
         provider: '',
         roles: []
+    },
+    importerDetails: {
+        email: '',
+        roles: [],
+        plan: Plans.FREE
     },
     fields: [],
     modifiedTime: ''

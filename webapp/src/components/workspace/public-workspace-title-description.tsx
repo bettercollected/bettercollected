@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import { toast } from 'react-toastify';
 
 import ReactContentEditable from '@app/components/inline-editable';
 import MarkdownText from '@app/components/ui/markdown-text';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
@@ -18,6 +21,7 @@ interface IPublicWorkspaceTitleAndDescriptionProps {
 
 export default function PublicWorkspaceTitleAndDescription({ isFormCreator, className = '' }: IPublicWorkspaceTitleAndDescriptionProps) {
     const [isMarkdownEditable, setIsMarkdownEditable] = useState(false);
+    const { t } = useTranslation();
     const dispatch = useAppDispatch();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const workspace = useAppSelector((state) => state.workspace);
@@ -25,11 +29,11 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
     const patchWorkspaceInformation = async (formData: any) => {
         const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
         if (response.error) {
-            toast('Something went wrong!!!', { toastId: ToastId.ERROR_TOAST });
+            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
         }
         if (response.data) {
             dispatch(setWorkspace(response.data));
-            toast('Workspace Updated!!!', { type: 'default', toastId: ToastId.SUCCESS_TOAST });
+            toast(t(toastMessage.workspaceUpdate).toString(), { type: 'default', toastId: ToastId.SUCCESS_TOAST });
         }
     };
 
@@ -58,7 +62,7 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
                     <Tooltip title={fullWorkspaceName}>
                         <h4 className="h4">{strippedWorkspaceTitle}</h4>
                     </Tooltip>
-                    <MarkdownText scrollTitle={fullWorkspaceName} description={workspace.description} contentStripLength={82} markdownClassName="text-black-700 body3 !leading-none" textClassName="text-black-700 body3 !leading-none" />
+                    <MarkdownText scrollTitle={fullWorkspaceName} description={workspace.description} contentStripLength={280} markdownClassName="text-black-700 body3 !leading-none" textClassName="text-black-700 body3 !leading-none" />
                 </div>
             </div>
         );
@@ -73,7 +77,7 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
                         scrollTitle={fullWorkspaceName}
                         onClick={() => setIsMarkdownEditable(true)}
                         description={workspace.description}
-                        contentStripLength={82}
+                        contentStripLength={280}
                         markdownClassName="text-black-700 body3 !leading-none"
                         textClassName="text-black-700 body3 !leading-none"
                     />

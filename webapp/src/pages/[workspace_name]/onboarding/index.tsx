@@ -1,38 +1,48 @@
 import React, { useRef, useState } from 'react';
 
 import { GetServerSidePropsContext } from 'next';
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import _ from 'lodash';
 
 import { ChevronLeft } from '@mui/icons-material';
-import { TextField } from '@mui/material';
 import cn from 'classnames';
+import { util } from 'prettier';
 import AvatarEditor from 'react-avatar-editor';
 import { toast } from 'react-toastify';
 
+import BetterInput from '@app/components/Common/input';
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import WorkSpaceLogoUi from '@app/components/ui/workspace-logo-ui';
+import { buttons } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
+import { onBoarding } from '@app/constants/locales/onboarding-screen';
+import { placeHolder } from '@app/constants/locales/placeholder';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { validationMessage } from '@app/constants/locales/validation-message';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { ToastId } from '@app/constants/toastId';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
+import { useCreateWorkspaceMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
-interface addWorkspaceFormProviderDtos {
+interface FormDataDto {
     title: string;
     description: string;
     workspaceLogo: any;
 }
 
 interface onBoardingProps {
-    workspace: WorkspaceDto;
+    workspace?: WorkspaceDto;
+    createWorkspace?: boolean;
 }
 
 export async function getServerSideProps(_context: GetServerSidePropsContext) {
@@ -45,7 +55,7 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
             }
         };
     }
-    if (authUserProps && authUserProps.workspace.title.toLowerCase() !== 'untitled') {
+    if (authUserProps && authUserProps?.workspace?.title && authUserProps?.workspace?.title.toLowerCase() !== 'untitled') {
         return {
             redirect: {
                 permanent: false,
@@ -58,23 +68,24 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
     };
 }
 
-export default function Onboarding({ workspace }: onBoardingProps) {
+export default function Onboarding({ workspace, createWorkspace }: onBoardingProps) {
+    const { t } = useTranslation();
     const router = useRouter();
     const authStatus = useAppSelector(selectAuth);
     const { openModal, closeModal } = useModal();
     const user: any = !!authStatus ? authStatus : null;
-    console.log(workspace.profileImage);
     let workspaceLogoRef = useRef<HTMLInputElement>(null);
     const profileEditorRef = useRef<AvatarEditor>(null);
     const dispatch = useAppDispatch();
     const [isError, setError] = useState(false);
     const profileName = _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name);
-    const [stepCount, setStepCount] = useState(0);
+    const [stepCount, setStepCount] = useState(createWorkspace ? 1 : 0);
     const [patchExistingWorkspace, { isLoading, isSuccess }] = usePatchExistingWorkspaceMutation();
-    const [formProvider, setFormProvider] = useState<addWorkspaceFormProviderDtos>({
-        title: workspace.title.toLowerCase() !== 'untitled' ? workspace.title : '',
-        description: workspace.description ?? '',
-        workspaceLogo: workspace.profileImage ?? ''
+    const [createWorkspaceRequest, data] = useCreateWorkspaceMutation();
+    const [formData, setFormData] = useState<FormDataDto>({
+        title: workspace?.title.toLowerCase() !== 'untitled' ? workspace?.title || '' : '',
+        description: workspace?.description ?? '',
+        workspaceLogo: workspace?.profileImage ?? ''
     });
     const increaseStep = () => {
         setStepCount(stepCount + 1);
@@ -86,14 +97,19 @@ export default function Onboarding({ workspace }: onBoardingProps) {
         const image = e.target.files[0];
         const MB = 1048576;
         if (image.size / MB > 100) {
-            toast('Image size is greater than 100MB', { toastId: ToastId.ERROR_TOAST });
+            toast(t(toastMessage.imageSizeRestriction).toString(), { toastId: ToastId.ERROR_TOAST });
         } else {
-            openModal('CROP_IMAGE', { profileEditorRef: profileEditorRef, uploadImage: image, profileInputRef: workspaceLogoRef, onSave: handleUpdateProfile });
+            openModal('CROP_IMAGE', {
+                profileEditorRef: profileEditorRef,
+                uploadImage: image,
+                profileInputRef: workspaceLogoRef,
+                onSave: handleUpdateProfile
+            });
         }
     };
     const handleOnchange = (e: any) => {
-        setFormProvider({
-            ...formProvider,
+        setFormData({
+            ...formData,
             [e.target.id]: e.target.value
         });
     };
@@ -104,29 +120,55 @@ export default function Onboarding({ workspace }: onBoardingProps) {
             const result = await fetch(dataUrl);
             const blob = await result.blob();
             const file = new File([blob], 'profileImage.png', { type: blob.type });
-            setFormProvider({
-                ...formProvider,
+            setFormData({
+                ...formData,
                 workspaceLogo: file
             });
             closeModal();
         }
     };
 
-    const updateWorkspaceDetails = async () => {
-        const formData = new FormData();
-        if (formProvider.workspaceLogo && workspace.profileImage !== formProvider.workspaceLogo) {
-            formData.append('profile_image', formProvider.workspaceLogo);
+    const onClickDone = async (skip: boolean = false) => {
+        if (createWorkspace) {
+            await createNewWorkspace(skip);
+        } else {
+            await updateWorkspaceDetails(skip);
         }
-        formData.append('title', formProvider.title);
-        formData.append('description', formProvider.description);
-        const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
+    };
+
+    const createNewWorkspace = async (skip: boolean) => {
+        const createFormData = new FormData();
+        if (formData.workspaceLogo && !skip) {
+            createFormData.append('profile_image', formData.workspaceLogo);
+        }
+        createFormData.append('title', formData.title);
+        createFormData.append('description', formData.description);
+        const response: any = await createWorkspaceRequest(createFormData);
         if (response.error) {
-            toast('Something went wrong', { toastId: ToastId.ERROR_TOAST });
+            toast(response.error?.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
         if (response.data) {
-            toast('Workspace Updated', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
             dispatch(setWorkspace(response.data));
-            router.replace(`/${workspace.workspaceName}/dashboard`);
+            router.replace(`/${response.data?.workspaceName}/dashboard`);
+        }
+    };
+
+    const updateWorkspaceDetails = async (skip: boolean) => {
+        const updateFormData = new FormData();
+        if (formData.workspaceLogo && workspace?.profileImage !== formData.workspaceLogo && !skip) {
+            updateFormData.append('profile_image', formData.workspaceLogo);
+        }
+        updateFormData.append('title', formData.title);
+        updateFormData.append('description', formData.description);
+        const response: any = await patchExistingWorkspace({ workspace_id: workspace?.id, body: updateFormData });
+        if (response.error) {
+            toast(response.error?.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+        }
+        if (response.data) {
+            toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            dispatch(setWorkspace(response.data));
+            router.replace(`/${workspace?.workspaceName}/dashboard`);
         }
     };
 
@@ -134,32 +176,35 @@ export default function Onboarding({ workspace }: onBoardingProps) {
         <div className="flex flex-col mt-[24px] justify-center items-center">
             <AuthAccountProfileImage image={user?.profile_image} name={profileName} size={143} />
             <p className="pt-6 text-center text-black-900 h4">
-                Hey {user?.first_name}! <br /> Welcome to BetterCollected{' '}
+                {t(localesGlobal.hey)} {user?.first_name}! <br /> {t(onBoarding.welcomeMessage)}
             </p>
-            <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">Please create your workspace so that your team know you are here.</p>
+            <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">{t(onBoarding.description)}</p>
             <Button size="large" className="mt-10 mb-4" onClick={increaseStep}>
-                {workspace.profileImage || workspace.description || workspace.title.toLowerCase() !== 'untitled' ? 'Update A Workspace' : 'Create A Workspace'}
+                {workspace?.profileImage || workspace?.description || workspace?.title.toLowerCase() !== 'untitled' ? t(buttons.updateWorkspace) : t(buttons.createWorkspace)}
             </Button>
-            <p className="body2 !text-black-600 italic">It will only take few minutes</p>
+            <p className="body2 !text-black-600 italic">{t(onBoarding.timeMessage)}</p>
         </div>
     );
     const AddWorkspaceHeader = (
         <div className="flex justify-between items-center">
             <div className=" cursor-pointer hover:bg-blue-200 rounded" onClick={decreaseStep}>
-                <ChevronLeft className="h-6 w-6" />
+                {stepCount === 1 && createWorkspace ? <></> : <ChevronLeft className="h-6 w-6" />}
             </div>
-            <p className="body4 text-black-700">Step {stepCount} of 2</p>
+            <p className="body4 text-black-700">
+                {t(localesGlobal.step)} {stepCount} {t(localesGlobal.of)} 2
+            </p>
         </div>
     );
     const StepOneContent = (
         <div className="md:w-[454px] w-full  p-10 bg-white rounded">
             {AddWorkspaceHeader}
             <div className="pl-2">
-                <p className="mt-7 mb-8 h4 text-black-900">Add your workspace</p>
+                <p className="mt-7 mb-8 h4 text-black-900">{t(onBoarding.addWorkspace)}</p>
                 <p className=" mb-3 body1 text-black-900">
-                    Workspace title<span className="text-red-500">*</span>
+                    {t(workspaceConstant.title)}
+                    <span className="text-red-500">*</span>
                 </p>
-                <TextField
+                <BetterInput
                     InputProps={{
                         sx: {
                             height: '46px',
@@ -167,37 +212,39 @@ export default function Onboarding({ workspace }: onBoardingProps) {
                         }
                     }}
                     id="title"
-                    error={formProvider.title === '' && isError}
-                    placeholder="Eg. Sireto Technology"
-                    className="w-full"
-                    value={formProvider.title}
+                    error={formData.title === '' && isError}
+                    placeholder={t(placeHolder.workspaceTitle)}
+                    className="w-full !mb-0"
+                    value={formData.title}
                     onChange={handleOnchange}
                 />
-                {formProvider.title === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">Workspace title is required</p>}
-                <p className={cn('mb-3 body1 text-black-900', formProvider.title === '' && isError ? 'mt-[24px]' : 'mt-[42px]')}>Description</p>
-                <textarea
+                {formData.title === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">{t(validationMessage.workspaceTitle)}</p>}
+                <p className={cn('mb-3 body1 text-black-900', formData.title === '' && isError ? 'mt-[24px]' : 'mt-[42px]')}>{t(localesGlobal.description)}</p>
+                <BetterInput
+                    inputProps={{ maxLength: 280 }}
+                    className="!border-solid !border-gray-300 !text-gray-900 !body3 !rounded !w-full"
+                    size="medium"
+                    rows={4}
+                    multiline
+                    onChange={handleOnchange}
+                    value={formData.description}
                     id="description"
                     name="description"
-                    value={formProvider.description}
-                    rows={4}
-                    onChange={handleOnchange}
-                    className=" border-solid border-gray-300 text-gray-900 body3 rounded block w-full p-2.5"
-                    placeholder="Add your description"
-                    required
+                    placeholder={t(placeHolder.description)}
                 />
             </div>
             <div className="flex justify-end mt-8">
                 <Button
                     size="medium"
                     onClick={() => {
-                        if (formProvider.title !== '') {
+                        if (formData.title !== '') {
                             increaseStep();
                         } else {
                             setError(true);
                         }
                     }}
                 >
-                    Next
+                    {t(buttons.next)}
                 </Button>
             </div>
         </div>
@@ -205,20 +252,35 @@ export default function Onboarding({ workspace }: onBoardingProps) {
     const StepTwoContent = (
         <div className="md:w-[454px] w-full  p-10 bg-white rounded">
             {AddWorkspaceHeader}
-            <p className="mt-7 mb-8  h4 text-brand-900">Add workspace logo</p>
+            <p className="mt-7 mb-8  h4 text-brand-900">{t(onBoarding.addWorkspaceLogo)}</p>
             {/* <div className="flex md:flex-row flex-col gap-4 items-center">
                 <AuthAccountProfileImage image={formProvider.workspaceLogo && URL.createObjectURL(formProvider.workspaceLogo)} name={profileName} size={143} typography="h1" /> */}
             <WorkSpaceLogoUi
                 workspaceLogoRef={workspaceLogoRef}
                 onChange={handleFile}
                 onClick={() => workspaceLogoRef.current?.click()}
-                image={formProvider.workspaceLogo && (formProvider.workspaceLogo.toString().startsWith('https') ? formProvider.workspaceLogo : URL.createObjectURL(formProvider.workspaceLogo))}
+                image={formData.workspaceLogo && (formData.workspaceLogo.toString().startsWith('https') ? formData.workspaceLogo : URL.createObjectURL(formData.workspaceLogo))}
                 profileName={profileName}
             ></WorkSpaceLogoUi>
             {/* </div> */}
-            <div className="flex justify-end mt-8 items-center">
-                <Button size="medium" onClick={updateWorkspaceDetails} isLoading={isLoading}>
-                    Done
+            <div className="flex justify-between mt-8 items-center">
+                <div
+                    className="text-brand-500 hover:underline hover:cursor-pointer"
+                    onClick={async () => {
+                        await onClickDone(true);
+                    }}
+                >
+                    Skip
+                </div>
+
+                <Button
+                    size="medium"
+                    onClick={async () => {
+                        await onClickDone();
+                    }}
+                    isLoading={isLoading || data?.isLoading}
+                >
+                    {t(buttons.done)}
                 </Button>
             </div>
         </div>
@@ -226,7 +288,7 @@ export default function Onboarding({ workspace }: onBoardingProps) {
 
     if (isSuccess) return <FullScreenLoader />;
     return (
-        <Layout showNavbar showAuthAccount={false}>
+        <Layout showNavbar showAuthAccount={!!createWorkspace} isCustomDomain>
             <div className=" flex flex-col my-[40px] items-center">
                 {stepCount === 0 && StepZeroContent}
                 {stepCount === 1 && StepOneContent}
@@ -235,5 +297,3 @@ export default function Onboarding({ workspace }: onBoardingProps) {
         </Layout>
     );
 }
-
-// export { getAuthUserPropsWithWorkspace as getServerSideProps } from '@app/lib/serverSideProps';

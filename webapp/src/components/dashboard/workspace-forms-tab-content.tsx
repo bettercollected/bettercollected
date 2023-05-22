@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import { debounce, escapeRegExp } from 'lodash';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
+import SearchInput from '@Components/Common/Search/SearchInput';
 import styled from '@emotion/styled';
 import { InputAdornment } from '@mui/material';
 import TextField from '@mui/material/TextField';
@@ -11,6 +14,8 @@ import TextField from '@mui/material/TextField';
 import FormCards from '@app/components/dashboard/form-cards';
 import { SearchIcon } from '@app/components/icons/search';
 import Loader from '@app/components/ui/loader';
+import { formsConstant } from '@app/constants/locales/forms';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
@@ -20,7 +25,7 @@ interface IWorkspaceFormsTabContentProps {
     isFormCreator?: boolean;
 }
 
-const StyledTextField = styled.div`
+export const StyledTextField = styled.div`
     .MuiFormControl-root {
         background: white;
         border-radius: 4px;
@@ -61,6 +66,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
     const [pinnedForms, setPinnedForms] = useState<any>([]);
     const [unpinnedForms, setUnpinnedForms] = useState<any>([]);
     const [showUnpinnedForms, setShowUnpinnedForms] = useState(false);
+    const { t } = useTranslation();
 
     const handleSearch = async (event: any) => {
         const response: any = await searchWorkspaceForms({
@@ -73,13 +79,6 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
             setUnpinnedForms(response?.data.filter((form: any) => !form.settings.pinned) || []);
         }
     };
-    const debouncedResults = useMemo(() => {
-        return debounce(handleSearch, 500);
-    }, []);
-
-    useEffect(() => {
-        debouncedResults.cancel();
-    }, []);
 
     useEffect(() => {
         if (!!data) {
@@ -99,35 +98,16 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
         );
     const forms: Array<StandardFormDto> = data?.items ?? [];
 
-    if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0) return <ZeroElement title="No forms to show" description="There are no forms imported in this workspace." className="!pb-[20px]" />;
+    if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0) return <ZeroElement title={t(workspaceConstant.preview.emptyFormTitle)} description={t(workspaceConstant.preview.emptyFormDescription)} className="!pb-[20px]" />;
 
     return (
         <div className="py-6 px-5 lg:px-10 xl:px-20 flex flex-col gap-6">
             <div className={`w-full md:w-[282px]`}>
-                <StyledTextField>
-                    <TextField
-                        sx={{ height: '46px', padding: 0 }}
-                        size="small"
-                        name="search-input"
-                        placeholder="Search"
-                        onChange={debouncedResults}
-                        className={'w-full'}
-                        InputProps={{
-                            sx: {
-                                padding: '16px'
-                            },
-                            endAdornment: (
-                                <InputAdornment sx={{ padding: 0 }} position="end">
-                                    <SearchIcon />
-                                </InputAdornment>
-                            )
-                        }}
-                    />
-                </StyledTextField>
+                <SearchInput handleSearch={handleSearch} />
             </div>
-            {pinnedForms.length !== 0 && <FormCards title="Pinned forms" isFormCreator={isFormCreator} workspace={workspace} formsArray={pinnedForms} />}
+            {pinnedForms.length !== 0 && <FormCards title={t(formsConstant.pinnedforms)} isFormCreator={isFormCreator} workspace={workspace} formsArray={pinnedForms} />}
             {showUnpinnedForms && pinnedForms.length !== 0 && <Divider />}
-            {unpinnedForms.length !== 0 && <FormCards title={pinnedForms.length !== 0 ? 'All forms' : ''} isFormCreator={isFormCreator} formsArray={unpinnedForms} workspace={workspace} />}
+            {unpinnedForms.length !== 0 && <FormCards title={pinnedForms.length !== 0 ? t(formsConstant.all) : ''} isFormCreator={isFormCreator} formsArray={unpinnedForms} workspace={workspace} />}
         </div>
     );
 }

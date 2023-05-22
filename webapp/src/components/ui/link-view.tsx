@@ -1,10 +1,13 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import { Button, Typography } from '@mui/material';
 import cn from 'classnames';
 import { toast } from 'react-toastify';
 
+import { buttons } from '@app/constants/locales/buttons';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 
 type SizeNames = 'large' | 'medium' | 'small';
@@ -12,12 +15,14 @@ type VariantNames = 'ghost' | 'solid' | 'transparent' | 'outline';
 interface ILinkViewProps {
     url: string;
     toastMessage: string;
-    className?: any;
-    buttonSize?: SizeNames;
-    buttonVarient?: VariantNames;
+    className?: string;
+    buttonClassName?: string;
+    // buttonSize?: SizeNames;
+    // buttonVarient?: VariantNames;
 }
-export default function LinkView({ url, toastMessage, className, buttonSize = 'small', buttonVarient = 'outline' }: ILinkViewProps) {
+export default function LinkView({ url, toastMessage, className, buttonClassName }: ILinkViewProps) {
     const [_, copyToClipboard] = useCopyToClipboard();
+    const { t } = useTranslation();
     return (
         <div className={cn('gap-2', className)}>
             <div className="text-black-900 h-[46px] space-x-4 max-w-[444px]   w-full body4 items-center rounded p-4 flex bg-brand-100">
@@ -33,11 +38,11 @@ export default function LinkView({ url, toastMessage, className, buttonSize = 's
                             type: 'info'
                         });
                     }}
-                    size={buttonSize}
+                    // size={buttonSize}
                     variant="outlined"
-                    className=" !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize"
+                    className={cn(' !leading-none  !p-2 capitalize', buttonClassName)}
                 >
-                    Copy Link
+                    {t(buttons.copyLink)}
                 </Button>
             </div>
         </div>

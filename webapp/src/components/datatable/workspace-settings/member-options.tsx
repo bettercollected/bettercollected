@@ -1,10 +1,14 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import { DeleteOutline, MoreHoriz } from '@mui/icons-material';
+import Delete from '@Components/Common/Icons/Delete';
+import { MoreHoriz } from '@mui/icons-material';
 import { IconButton, ListItemIcon, Menu, MenuItem } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
+import { formsConstant } from '@app/constants/locales/forms';
 
 interface IMemberOptionProps {
     member?: any;
@@ -15,7 +19,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
     const [currentActiveMember, setCurrentActiveMember] = React.useState<any | null>(null);
     const open = Boolean(anchorEl);
-
+    const { t } = useTranslation();
     const { openModal } = useModal();
     const handleClick = (event: React.MouseEvent<HTMLElement>, f: any) => {
         event.preventDefault();
@@ -86,12 +90,13 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                             openModal('DELETE_INVITATION', { invitation });
                         }
                     }}
-                    className="body4"
+                    sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
+                    className="body4 hover:bg-red-100 !text-red-500"
                 >
                     <ListItemIcon>
-                        <DeleteOutline fontSize="small" color="error" />
+                        <Delete width={20} height={20} />
                     </ListItemIcon>
-                    <span className="text-[#d32f2f]">Delete</span>
+                    <span>{t(formsConstant.delete)}</span>
                 </MenuItem>
             </Menu>
         </>

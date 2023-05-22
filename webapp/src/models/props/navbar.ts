@@ -8,5 +8,6 @@ export interface INavbarItem {
 export interface IDrawerProps {
     drawerWidth?: number;
     mobileOpen?: boolean;
+    className?: string;
     handleDrawerToggle: () => void;
 }

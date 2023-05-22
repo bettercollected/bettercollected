@@ -1,8 +1,8 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { HomeIcon } from '@app/components/icons/home';
 import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
@@ -11,12 +11,13 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
+import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { useGetWorkspaceSubmissionQuery, useRequestWorkspaceSubmissionDeletionMutation } from '@app/store/workspaces/api';
-import { checkHasCustomDomain, getRequestHost, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface ISubmission extends IServerSideProps {
@@ -25,6 +26,7 @@ interface ISubmission extends IServerSideProps {
 
 export default function Submission(props: any) {
     const { workspace, submissionId, hasCustomDomain }: ISubmission = props;
+    const { t } = useTranslation();
 
     const router = useRouter();
     const breakpoint = useBreakpoint();
@@ -82,7 +84,7 @@ export default function Submission(props: any) {
 
     const breadcrumbsItem = [
         {
-            title: 'Home',
+            title: t(breadcrumbsItems.home),
             icon: <HomeIcon className="w-4 h-4 mr-2" />,
             onClick: () =>
                 hasCustomDomain
@@ -93,7 +95,7 @@ export default function Submission(props: any) {
                     : router.push(`/${router.query.workspace_name}`, undefined, { scroll: true, shallow: true })
         },
         {
-            title: 'Submissions',
+            title: t(breadcrumbsItems.submissions),
             onClick: goToSubmissions
         },
         {
@@ -145,7 +147,7 @@ export async function getServerSideProps(_context: any) {
 
     try {
         if (globalProps.hasCustomDomain && globalProps.workspaceId) {
-            const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/submissions/${submissionId}`, config).catch((e) => e);
+            const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/submissions/${submissionId}`, config).catch((e) => e);
             form = (await formResponse?.json().catch((e: any) => e)) ?? null;
         }
     } catch (err) {

@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
-import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
@@ -176,12 +176,15 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
-        getWorkspaceAllSubmissions: builder.query<Page<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
+        getWorkspaceAllSubmissions: builder.query<Page<StandardFormResponseDto | WorkspaceResponderDto>, IGetAllSubmissionsQuery>({
             query: (query: IGetAllSubmissionsQuery) => {
                 return {
                     url: `/workspaces/${query.workspaceId}/allSubmissions`,
                     params: {
+                        data_subjects: query.data_subjects,
+                        email: query.email,
                         request_for_deletion: query.requestedForDeletionOly,
+                        dataOwnerIdentifier: query.dataOwnerIdentifier,
                         page: query.page || 1,
                         size: query.size || 50
                     },

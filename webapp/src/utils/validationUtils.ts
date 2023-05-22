@@ -1,4 +1,9 @@
+import { useTranslation } from 'next-i18next';
+
 import _ from 'lodash';
+
+import { buttons } from '@app/constants/locales/buttons';
+import { formsConstant } from '@app/constants/locales/forms';
 
 /**
  * Validation method to check if the given value is undefined or not.
@@ -42,12 +47,12 @@ export function isNetherUndefinedNorNull(data: unknown): boolean {
     return !isUndefined(data) && !isNull(data);
 }
 
-export const requestForDeletionProps = (deletionStatus: string) => {
-    let status = 'Success';
-    let cName = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+export const requestForDeletionProps = (deletionStatus: string, t: any) => {
+    let status = t(buttons.done);
+    let cName = 'bg-success text-green-800 dark:bg-green-900 dark:text-green-300';
     if (deletionStatus === 'pending') {
-        status = 'Pending';
-        cName = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+        status = t(formsConstant.status.pending);
+        cName = 'bg-black-400 text-black-800 dark:bg-yellow-900 dark:text-yellow-300';
     }
     return {
         status,

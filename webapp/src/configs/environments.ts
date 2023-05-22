@@ -2,8 +2,13 @@ import getConfig from 'next/config';
 
 const config = getConfig();
 let publicRuntimeConfig: any = {};
+let serverRuntimeConfig: any = {};
 if (config && config.publicRuntimeConfig) {
     publicRuntimeConfig = config.publicRuntimeConfig;
+}
+
+if (config && config.serverRuntimeConfig) {
+    serverRuntimeConfig = config.serverRuntimeConfig;
 }
 
 const IS_IN_PRODUCTION_MODE = publicRuntimeConfig.NEXT_PUBLIC_NODE_ENV === 'production';
@@ -17,6 +22,7 @@ const environments = {
     ADMIN_DOMAIN: publicRuntimeConfig.ADMIN_DOMAIN || 'localhost:3000',
     // api host configs
     API_ENDPOINT_HOST: publicRuntimeConfig.API_ENDPOINT_HOST,
+    INTERNAL_DOCKER_API_ENDPOINT_HOST: serverRuntimeConfig.INTERNAL_DOCKER_API_ENDPOINT_HOST,
 
     METATAG_TITLE: publicRuntimeConfig.METATAG_TITLE,
     METATAG_DESCRIPTION: publicRuntimeConfig.METATAG_DESCRIPTION,
@@ -30,6 +36,7 @@ const environments = {
     ENABLE_GOOGLE: (publicRuntimeConfig.ENABLE_GOOGLE && (publicRuntimeConfig.ENABLE_GOOGLE === 'true' || publicRuntimeConfig.ENABLE_GOOGLE === true)) ?? false,
     ENABLE_TYPEFORM: (publicRuntimeConfig.ENABLE_TYPEFORM && (publicRuntimeConfig.ENABLE_TYPEFORM === 'true' || publicRuntimeConfig.ENABLE_TYPEFORM === true)) ?? false,
     ENABLE_BRAND_COLORS: (publicRuntimeConfig.ENABLE_BRAND_COLORS && (publicRuntimeConfig.ENABLE_BRAND_COLORS === 'true' || publicRuntimeConfig.ENABLE_BRAND_COLORS === true)) ?? false,
+    ENABLE_JOYRIDE_TOURS: (publicRuntimeConfig.ENABLE_JOYRIDE_TOURS && (publicRuntimeConfig.ENABLE_JOYRIDE_TOURS === 'true' || publicRuntimeConfig.ENABLE_JOYRIDE_TOURS === true)) ?? false,
     // internal configs
     IS_IN_PRODUCTION_MODE,
     ELASTIC_APM_SERVER_URL: publicRuntimeConfig.ELASTIC_APM_SERVER_URL,

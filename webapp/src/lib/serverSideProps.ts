@@ -15,7 +15,7 @@ export async function getGlobalServerSidePropsByDomain({ locale, ..._context }: 
     if (!hasCustomDomain) {
         return {
             props: {
-                ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
+                ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np'])),
                 hasCustomDomain,
                 workspaceId,
                 workspace
@@ -23,14 +23,14 @@ export async function getGlobalServerSidePropsByDomain({ locale, ..._context }: 
         };
     }
     try {
-        const workspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`).catch((e) => e);
+        const workspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`).catch((e) => e);
         workspace = (await workspaceResponse?.json().catch((e: any) => e)) ?? null;
         workspaceId = workspace.id;
     } catch (e) {}
 
     return {
         props: {
-            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
+            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np'])),
             hasCustomDomain,
             workspaceId,
             workspace
@@ -54,7 +54,7 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
     if (!workspace_name) {
         return {
             props: {
-                ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
+                ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np'])),
                 hasCustomDomain,
                 workspaceId,
                 workspace
@@ -62,13 +62,13 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
         };
     }
     try {
-        const workspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces?workspace_name=${workspace_name}`, config).catch((e) => e);
+        const workspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?workspace_name=${workspace_name}`, config).catch((e) => e);
         workspace = (await workspaceResponse?.json().catch((e: any) => e)) ?? null;
         workspaceId = workspace.id;
     } catch (e) {}
     return {
         props: {
-            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'de'])),
+            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np'])),
             hasCustomDomain,
             workspaceId,
             workspace
@@ -78,15 +78,16 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
 
 export async function getAuthUserPropsWithWorkspace(_context: any) {
     const hasAdminDomain = checkHasAdminDomain(getRequestHost(_context));
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
+    const language = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
     if (!hasAdminDomain) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/'
+                destination: `/${language}`
             }
         };
     }
-    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
     if (!globalProps?.workspace?.id) {
         return {
             notFound: true
@@ -96,7 +97,7 @@ export async function getAuthUserPropsWithWorkspace(_context: any) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/'
+                destination: `/${language}`
             }
         };
     return {
@@ -108,15 +109,19 @@ export async function getAuthUserPropsWithWorkspace(_context: any) {
 
 export async function getServerSidePropsForWorkspaceAdmin(_context: any) {
     const hasAdminDomain = checkHasAdminDomain(getRequestHost(_context));
+
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
+    const language = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
+
     if (!hasAdminDomain) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/'
+                destination: `/${language}`
             }
         };
     }
-    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
+
     if (!globalProps?.workspace?.id) {
         return {
             notFound: true
@@ -126,7 +131,7 @@ export async function getServerSidePropsForWorkspaceAdmin(_context: any) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/'
+                destination: `/${language}`
             }
         };
     return {
@@ -146,7 +151,7 @@ export async function getServerSidePropsForDashboardFormPage(_context: any) {
     let form = null;
     const config = getServerSideAuthHeaderConfig(_context);
     try {
-        const formResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${form_id}`, config);
+        const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${form_id}`, config);
         form = (await formResponse?.json().catch((e: any) => e)) ?? null;
         if (!form) {
             return {

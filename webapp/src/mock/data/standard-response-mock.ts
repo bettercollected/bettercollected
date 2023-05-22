@@ -1,5 +1,3 @@
-import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form';
-
 export const standardResponseMock = {
     formId: '1HsoSajeOrNZhdddDwquVzwIHp1b9UHccZp8AiYFNslk',
     title: 'Contact information',

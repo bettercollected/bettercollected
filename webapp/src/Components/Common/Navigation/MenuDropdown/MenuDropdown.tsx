@@ -10,6 +10,7 @@ interface IMenuDropdownProps {
     menuTitle: string;
     menuContent: React.ReactNode | React.ReactNode[];
     children: React.ReactNode | React.ReactNode[];
+    width?: number;
     className?: string;
     onClick?: any;
     enterDelay?: number;
@@ -26,7 +27,6 @@ interface IMenuDropdownProps {
 const defaultPaperProps: PaperProps = {
     elevation: 0,
     sx: {
-        width: 289,
         overflow: 'hidden',
         borderRadius: 2,
         filter: 'drop-shadow(0px 0px 15px rgba(0, 0, 0, 0.15))',
@@ -44,6 +44,7 @@ export default function MenuDropdown({
     menuContent,
     children,
     className = '',
+    width = 289,
     onClick = undefined,
     enterDelay = 1000,
     leaveDelay = 100,
@@ -68,12 +69,14 @@ export default function MenuDropdown({
         setAnchorEl(null);
     };
 
+    if (width) PaperProps.sx = { ...PaperProps.sx, width: width };
+
     return (
         <>
             <Tooltip title={menuTitle} enterDelay={enterDelay} leaveDelay={leaveDelay} enterTouchDelay={enterTouchDelay}>
                 <IconButton
                     sx={{ padding: 1 }}
-                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex justify-between gap-2 body3 rounded hover:rounded hover:bg-brand-200 ${className}`}
+                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex justify-between gap-2 body3 rounded hover:rounded hover:bg-brand-100 ${className}`}
                     onClick={handleClick}
                     size={size}
                     aria-controls={open ? id : undefined}
