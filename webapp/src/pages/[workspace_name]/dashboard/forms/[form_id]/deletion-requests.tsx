@@ -1,22 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 
+import FormResponsesTable from '@app/components/datatable/form/form-responses';
 import ResponsesTable from '@app/components/datatable/responses';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';
 import { formsConstant } from '@app/constants/locales/forms';
 
 export default function DeletionRequests(props: any) {
-    const { formId } = props;
     const { t } = useTranslation();
+    const requestForDeletion = true;
 
     return (
         <FormPageLayout {...props}>
             <div className="heading4">{t(formsConstant.deletionRequests)}</div>
             <Divider className="my-4" />
-            <ResponsesTable formId={formId} workspaceId={props.workspace.id} requestForDeletion={true} />
+            <FormResponsesTable props={{ ...props, requestForDeletion }} />
         </FormPageLayout>
     );
 }

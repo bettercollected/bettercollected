@@ -11,6 +11,7 @@ export const formsConstant = {
     importedDate: 'FORMS.IMPORTED_DATE',
     submittedForms: 'FORMS.SUBMITTED_FORMS',
     responder: 'FORMS.RESPONDER',
+    requestedBy: 'FORMS.REQUESTED_BY',
     responders: 'FORMS.RESPONDERS',
     submissionDate: 'FORMS.SUBMISSION_DATE',
     status: {
@@ -35,14 +36,21 @@ export const formsConstant = {
     all: 'ALL_FORMS',
     unPinForm: 'FORM.UNPIN_FORM',
     shareThisForm: 'SHARE_THIS_FORM',
-    emptyDeletionRequestTitle: 'FORMS.EMPTY_DELETION_REQUEST_TITLE',
-    emptyDeletionResponseTitle: 'FORMS.EMPTY_DELETION_RESPONSE_TITLE',
-    deletionRequestDescription: 'FORMS.DELETION_REQUEST_DESCRIPTION',
-    deletionResponseDescription: 'FORMS.DELETION_RESPONSE_DESCRIPTION',
+    emptyDeletionResponseTitle: 'FORMS.EMPTY_DELETION_RESPONSE.TITLE',
+    deletionRequestDescription: 'FORMS.DELETION_REQUEST.DESCRIPTION',
+    deletionResponseDescription: 'FORMS.DELETION_RESPONSE.DESCRIPTION',
     responseId: 'FORMS.RESPONSE_ID',
     empty: {
-        title: 'FORMS.EMPTY_TITLE',
-        description: 'FORMS.EMPTY_DESCRIPTION'
+        title: 'FORMS.EMPTY.TITLE',
+        description: 'FORMS.EMPTY.DESCRIPTION',
+        response: {
+            title: 'FORMS.EMPTY_RESPONSE.TITLE',
+            description: 'FORMS.EMPTY_RESPONSE.DESCRIPTION'
+        },
+        deletionRequest: {
+            title: 'FORMS.EMPTY_DELETION_REQUEST.TITLE',
+            description: 'FORMS.EMPTY_DELETION_REQUEST.DESCRIPTION'
+        }
     },
     importUnlimited: 'FORMS.IMPORT_UNLIMITED'
 };

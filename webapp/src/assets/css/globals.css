@@ -74,3 +74,8 @@ body {
     max-height: calc(100vh - 68px);
     overflow: auto;
 }
+.geIUsg div:first-child {
+    white-space: nowrap;
+    overflow: visible !important;
+    text-overflow: ellipsis;
+}

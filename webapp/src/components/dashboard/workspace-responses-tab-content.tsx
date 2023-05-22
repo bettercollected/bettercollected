@@ -39,7 +39,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
     if ((data?.items && Array.isArray(data?.items) && data?.items?.length === 0) || isError)
         return (
             <ZeroElement
-                title={deletionRequests ? t(formsConstant.emptyDeletionRequestTitle) : t(formsConstant.emptyDeletionResponseTitle)}
+                title={deletionRequests ? t(formsConstant.empty.deletionRequest.title) : t(formsConstant.emptyDeletionResponseTitle)}
                 description={deletionRequests ? t(formsConstant.deletionRequestDescription) : t(formsConstant.deletionResponseDescription)}
                 className="!pb-[20px]"
             />

@@ -20,6 +20,7 @@ module.exports = {
             colors: {
                 // brand: 'rgb(var(--color-brand) / <alpha-value>)',
                 dark: '#1c1917',
+                success: '#B5F4AF',
                 'light-dark': '#171e2e',
                 white: '#ffffff',
                 brand: {
@@ -57,8 +58,10 @@ module.exports = {
                 red: {
                     100: '#FFECE7',
                     500: '#EA400E',
-
                     DEFAULT: '#EA400E'
+                },
+                orange: {
+                    100: '#EB8E07'
                 }
             },
             spacing: {

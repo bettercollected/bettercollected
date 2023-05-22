@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import Divider from '@Components/Common/DataDisplay/Divider';
 import { toast } from 'react-toastify';
 
+import FormResponsesTable from '@app/components/datatable/form/form-responses';
 import ResponsesTable from '@app/components/datatable/responses';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import BackButton from '@app/components/settings/back';
@@ -22,6 +23,7 @@ export default function Responses(props: any) {
     const [trigger, { isLoading, isError, error }] = useLazyGetWorkspaceSubmissionQuery();
     const { t } = useTranslation();
     const [form, setForm] = useState<any>([]);
+    const requestForDeletion = false;
 
     useEffect(() => {
         if (!!submissionId) {
@@ -45,7 +47,7 @@ export default function Responses(props: any) {
             {!submissionId && (
                 <>
                     <Divider className="my-4" />
-                    <ResponsesTable formId={formId} workspaceId={props.workspace.id} requestForDeletion={false} />
+                    <FormResponsesTable props={{ ...props, requestForDeletion }} />
                 </>
             )}
             {!!form && !!submissionId && (
