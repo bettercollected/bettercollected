@@ -3,7 +3,9 @@ from camel_converter import to_camel, to_snake
 from backend.app.models.filter_queries.sort import SortRequest, SortOrder
 
 
-def create_filter_pipeline(filter_object=None, sort: SortRequest = None):
+def create_filter_pipeline(
+    filter_object=None, sort: SortRequest = None, default_sort: bool = True
+):
     pipeline = []
     if filter_object:
         matching_dict = filter_object.dict(exclude_unset=True, exclude_none=True)
@@ -19,7 +21,7 @@ def create_filter_pipeline(filter_object=None, sort: SortRequest = None):
                     }
                 )
             pipeline.append({"$match": {"$and": all_matchers}})
-    if sort and sort.sort_by:
+    if sort and sort.sort_by and default_sort:
         sort_order = 1 if sort.sort_order == SortOrder.ASCENDING else -1
         pipeline.append({"$sort": {sort.sort_by: sort_order}})
     return pipeline

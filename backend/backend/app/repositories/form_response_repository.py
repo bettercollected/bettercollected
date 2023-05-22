@@ -98,7 +98,9 @@ class FormResponseRepository(BaseRepository):
             )
 
         aggregate_query.extend(
-            create_filter_pipeline(filter_object=filter_query, sort=sort)
+            create_filter_pipeline(
+                filter_object=filter_query, sort=sort, default_sort=False
+            )
         )
 
         form_responses_query = FormResponseDocument.find(find_query).aggregate(
