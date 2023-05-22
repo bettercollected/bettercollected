@@ -36,6 +36,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
     const router = useRouter();
     const workspaceStats = useGetWorkspaceStatsQuery(workspaceId, { pollingInterval: 30000 });
 
+    console.log(submissions);
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
     };
@@ -135,36 +136,33 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
                 <div className=" w-full py-10 flex justify-center">
                     <Loader />
                 </div>
-            ) : (
-                submissions?.data?.items &&
-                (submissions?.data?.items.length > 0 ? (
-                    <>
-                        {!formId && (
-                            <p className="body1 text-black-900 my-10">
-                                {workspaceStats?.data?.deletion_requests.pending || 0}/{workspaceStats?.data?.deletion_requests.total} {t(localesGlobal.deletionRemaining)}
-                            </p>
-                        )}
-                        <DataTable
-                            className="p-0 mt-2 h-full !overflow-visible"
-                            columns={dataTableResponseColumns}
-                            data={submissions?.data?.items || []}
-                            customStyles={requestForDeletion ? dataTableCustomStyles : responseTableStyles}
-                            highlightOnHover={false}
-                            pointerOnHover={false}
-                            onRowClicked={onRowClicked}
-                        />
-                        {Array.isArray(responses) && submissions?.data?.total > globalConstants.pageSize && (
-                            <div className="mt-8 flex justify-center">
-                                <StyledPagination shape="rounded" count={submissions?.data?.total || 0} page={page} onChange={handlePageChange} />
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <EmptyResponse
-                        title={t(requestForDeletion ? formsConstant.empty.deletionRequest.title : formsConstant.empty.response.title)}
-                        description={t(requestForDeletion ? formsConstant.empty.deletionRequest.description : formsConstant.empty.response.description)}
+            ) : submissions?.data?.items && submissions?.data?.items.length > 0 ? (
+                <>
+                    {!formId && (
+                        <p className="body1 text-black-900 my-10">
+                            {workspaceStats?.data?.deletion_requests.pending || 0}/{workspaceStats?.data?.deletion_requests.total} {t(localesGlobal.deletionRemaining)}
+                        </p>
+                    )}
+                    <DataTable
+                        className="p-0 mt-2 h-full !overflow-visible"
+                        columns={dataTableResponseColumns}
+                        data={submissions?.data?.items || []}
+                        customStyles={requestForDeletion ? dataTableCustomStyles : responseTableStyles}
+                        highlightOnHover={false}
+                        pointerOnHover={false}
+                        onRowClicked={onRowClicked}
                     />
-                ))
+                    {Array.isArray(responses) && submissions?.data?.total > globalConstants.pageSize && (
+                        <div className="mt-8 flex justify-center">
+                            <StyledPagination shape="rounded" count={submissions?.data?.total || 0} page={page} onChange={handlePageChange} />
+                        </div>
+                    )}
+                </>
+            ) : (
+                <EmptyResponse
+                    title={t(requestForDeletion ? formsConstant.empty.deletionRequest.title : formsConstant.empty.response.title)}
+                    description={t(requestForDeletion ? formsConstant.empty.deletionRequest.description : formsConstant.empty.response.description)}
+                />
             )}
         </>
     );
