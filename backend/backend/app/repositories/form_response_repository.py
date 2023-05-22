@@ -48,6 +48,7 @@ class FormResponseRepository(BaseRepository):
         if data_subjects:
             aggregate_query.extend(
                 [
+                    {"$match": {"dataOwnerIdentifier": {"$exists": True, "$ne": None}}},
                     {
                         "$group": {
                             "_id": "$dataOwnerIdentifier",
