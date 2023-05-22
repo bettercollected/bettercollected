@@ -241,6 +241,7 @@
     "TOAST.FAILED_TO_SEND_EMAIL": "Kan geen e-mail verzenden",
     "TOAST.FORMS DELETED": "Van verwijderd",
     "TOAST.FORMS_DELETE_FAIL": "Kan formulier niet verwijderen",
+    "TOAST.FORM_URL_COPIED":"Formulier-URL gekopieerd!",
     "TOAST.FORM_IMPORTED_SUCCESSFULLY": "Form imported successfully.",
     "TOAST.FORM_SETTING_UPDATE_ERROR": "Kan deze formulierinstelling niet bijwerken!",
     "TOAST.IMAGE_SIZE_RESTRICTION": "Afbeeldingsgrootte is groter dan 100 MB",

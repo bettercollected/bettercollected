@@ -240,6 +240,7 @@
     "TOAST.FAILED_TO_REMOVE_USER": "Failed to remove user",
     "TOAST.FAILED_TO_SEND_EMAIL": "Failed to send email",
     "TOAST.FORMS_DELETED": "Form Deleted",
+    "TOAST.FORM_URL_COPIED":"Form URL Copied !",
     "TOAST.FORMS_DELETE_FAIL": "Could not delete form",
     "TOAST.FORM_IMPORTED_SUCCESSFULLY": "Form imported successfully.",
     "TOAST.FORM_SETTING_UPDATE_ERROR": "Could not update this form setting!",

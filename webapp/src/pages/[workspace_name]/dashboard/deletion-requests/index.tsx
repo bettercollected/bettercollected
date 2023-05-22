@@ -22,7 +22,6 @@ export default function DeletionRequests({ workspace }: { workspace: WorkspaceDt
         page: page,
         size: globalConstants.pageSize
     });
-    console.log(submissions);
     return (
         <DashboardLayout>
             <div className="heading4">{t(formsConstant.deletionRequests)}</div>

@@ -244,6 +244,7 @@
     "TOAST.FORMS_DELETE_FAIL": "फाराम मेटाउन सकिएन",
     "TOAST.FORM_IMPORTED_SUCCESSFULLY": "फाराम सफलतापूर्वक आयात गरियो।",
     "TOAST.FORM_SETTING_UPDATE_ERROR": "यो फारम सेटिङ अद्यावधिक गर्न सकिएन!",
+    "TOAST.FORM_URL_COPIED":"फारम URL प्रतिलिपि गरियो!",
     "TOAST.IMAGE_SIZE_RESTRICTION": "छविको साइज १०० एमबी भन्दा ठूलो छ",
     "TOAST.INVALID_URL": "अमान्य URL",
     "TOAST.INVITATION_DELETED": "निमन्त्रणा मेटियो",

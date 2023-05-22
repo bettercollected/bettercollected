@@ -20,6 +20,7 @@ import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { customize } from '@app/constants/locales/customize';
 import { formsConstant } from '@app/constants/locales/forms';
 import { localesGlobal } from '@app/constants/locales/global';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { initialFormState, setForm } from '@app/store/forms/slice';
@@ -112,7 +113,7 @@ export default function FormPageLayout(props: any) {
                                 <div className="mt-12">
                                     <div className="body1 mb-4 !leading-none ">{t(formsConstant.link)}</div>
                                     {getFormLinks().map((formLink: any) => (
-                                        <LinkView key={formLink.url} url={formLink.url} toastMessage="Form URL Copied" className="flex flex-col mb-4" buttonClassName="!text-brand-500 !border-blue-200 hover:!bg-brand-200 " />
+                                        <LinkView key={formLink.url} url={formLink.url} toastMessage={t(toastMessage.formUrlCopied)} className="flex flex-col mb-4" buttonClassName="!text-brand-500 !border-blue-200 hover:!bg-brand-200 " />
                                     ))}
                                 </div>
                                 <div className="my-12">
@@ -120,7 +121,7 @@ export default function FormPageLayout(props: any) {
                                         title={t(customize.link.title)}
                                         subtitle={t(customize.link.description)}
                                         buttonText={t(customize.link.default)}
-                                        onClick={() => openModal('CUSTOMIZE_URL', { description: customize.link.description, url: isCustomDomain ? customDomain : clientHost })}
+                                        onClick={() => openModal('CUSTOMIZE_URL', { description: t(customize.link.description), url: isCustomDomain ? customDomain : clientHost })}
                                     />
                                 </div>
                             </div>
