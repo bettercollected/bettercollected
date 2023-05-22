@@ -67,3 +67,9 @@ export interface StandardFormResponseDto {
     dataOwnerIdentifier: string | null | undefined;
     responses: Array<{ questionId: string; answer: any }>;
 }
+
+export interface WorkspaceResponderDto {
+    _id: string;
+    responses: number;
+    deletion_requests: number;
+}

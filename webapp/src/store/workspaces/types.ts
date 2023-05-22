@@ -23,6 +23,7 @@ export interface IGetAllSubmissionsQuery {
     workspaceId: string;
     requestedForDeletionOly?: boolean;
     page?: number;
+    data_subjects?: boolean;
     size?: number;
 }
 
