@@ -13,6 +13,7 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
+from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
@@ -33,6 +34,7 @@ class WorkspaceFormService:
         form_import_service: FormImportService,
         schedular: AsyncIOScheduler,
         form_response_service: FormResponseService,
+        responder_groups_service: ResponderGroupsService,
     ):
         self.form_provider_service = form_provider_service
         self.plugin_proxy_service = plugin_proxy_service
@@ -43,6 +45,7 @@ class WorkspaceFormService:
         self.form_import_service = form_import_service
         self.schedular = schedular
         self.form_response_service = form_response_service
+        self.responder_groups_service = responder_groups_service
 
     # TODO : Use plugin interface for importing for now endpoint is used here
     async def import_form_to_workspace(
@@ -169,4 +172,32 @@ class WorkspaceFormService:
     ):
         return await self.workspace_form_repository.get_form_ids_imported_by_user(
             workspace_id, str(user_id)
+        )
+
+    async def add_group_to_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        group_id: PydanticObjectId,
+        user: User,
+    ):
+        await self.workspace_user_service.check_user_has_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        return await self.responder_groups_service.add_group_to_form(
+            form_id=form_id, group_id=group_id
+        )
+
+    async def delete_group_from_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        group_id: PydanticObjectId,
+        user: User,
+    ):
+        await self.workspace_user_service.check_user_has_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        return await self.responder_groups_service.remove_group_from_form(
+            form_id=form_id, group_id=group_id
         )

@@ -1,6 +1,11 @@
 from http import HTTPStatus
 from typing import List, Optional
 
+from beanie import PydanticObjectId
+from classy_fastapi import Routable, delete, get, patch, post
+from fastapi import Depends, Form, UploadFile
+from pydantic import EmailStr
+
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.models.workspace import (
@@ -10,16 +15,7 @@ from backend.app.models.workspace import (
 from backend.app.router import router
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_service import WorkspaceService
-
-from beanie import PydanticObjectId
-
-from classy_fastapi import Routable, delete, get, patch, post
-
 from common.models.user import User
-
-from fastapi import Depends, Form, UploadFile
-
-from pydantic import EmailStr
 
 
 @router(prefix="/workspaces", tags=["Workspaces"])
@@ -43,6 +39,25 @@ class WorkspaceRouter(Routable):
             )
         query = workspace_name if workspace_name else custom_domain
         return await self.workspace_service.get_workspace_by_query(query, user)
+
+    @post("")
+    async def _create_workspace(
+        self,
+        title=Form(None),
+        description=Form(None),
+        workspace_name=Form(None),
+        profile_image: UploadFile = None,
+        banner_image: UploadFile = None,
+        user: User = Depends(get_logged_user),
+    ):
+        return await self.workspace_service.create_non_default_workspace(
+            title=title,
+            description=description,
+            workspace_name=workspace_name,
+            profile_image_file=profile_image,
+            banner_image_file=banner_image,
+            user=user,
+        )
 
     @get("/mine")
     async def _get_mine_workspaces(

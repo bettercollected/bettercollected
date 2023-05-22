@@ -1,5 +1,10 @@
 """Application implementation - ASGI."""
 
+from fastapi import FastAPI
+from fastapi_pagination import add_pagination
+from fastapi_utils.timing import add_timing_middleware
+from loguru import logger
+
 from backend.app.container import container
 from backend.app.exceptions import (
     HTTPException,
@@ -9,19 +14,9 @@ from backend.app.handlers import init_logging
 from backend.app.handlers.database import close_db, init_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
-from backend.app.services.blacklist_token_schedular import (
-    init_schedulers,
-)
+from backend.app.services.init_schedulers import init_schedulers
 from backend.app.utils import AiohttpClient
 from backend.config import settings
-
-from fastapi import FastAPI
-
-from fastapi_pagination import add_pagination
-
-from fastapi_utils.timing import add_timing_middleware
-
-from loguru import logger
 
 
 async def on_startup():
@@ -38,8 +33,7 @@ async def on_startup():
     client = container.database_client()
     await init_db(settings.mongo_settings.DB, client)
     if settings.schedular_settings.ENABLED:
-        container.schedular().start()
-        init_schedulers(container.schedular())
+        await init_schedulers(container.schedular())
 
 
 async def on_shutdown():

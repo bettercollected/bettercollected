@@ -1,7 +1,11 @@
 from http import HTTPStatus
 from typing import List
 
+from beanie import PydanticObjectId
+
 from backend.app.exceptions import HTTPException
+from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
+from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.models.response_dtos import (
     StandardFormCamelModel,
     StandardFormResponseCamelModel,
@@ -15,9 +19,6 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-
-from beanie import PydanticObjectId
-
 from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.user import User
 
@@ -34,7 +35,13 @@ class FormResponseService:
         self._workspace_user_repo = workspace_user_repo
 
     async def get_all_workspace_responses(
-        self, workspace_id: PydanticObjectId, request_for_deletion: bool, user: User
+        self,
+        workspace_id: PydanticObjectId,
+        filter_query: FormResponseFilterQuery,
+        sort: SortRequest,
+        request_for_deletion: bool,
+        data_subjects: bool,
+        user: User,
     ):
         if not await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -45,7 +52,13 @@ class FormResponseService:
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id
         )
-        return await self._form_response_repo.list(form_ids, request_for_deletion)
+        return await self._form_response_repo.list(
+            form_ids,
+            request_for_deletion,
+            data_subjects=data_subjects,
+            filter_query=filter_query,
+            sort=sort,
+        )
 
     async def get_user_submissions(
         self,
@@ -65,6 +78,8 @@ class FormResponseService:
         workspace_id: PydanticObjectId,
         request_for_deletion: bool,
         form_id: str,
+        filter_query: FormResponseFilterQuery,
+        sort: SortRequest,
         user: User,
     ):
         if not await self._workspace_user_repo.has_user_access_in_workspace(
@@ -84,7 +99,7 @@ class FormResponseService:
             )
         # TODO : Refactor with mongo query instead of python
         form_responses = await self._form_response_repo.list(
-            [form_id], request_for_deletion
+            [form_id], request_for_deletion, filter_query, sort
         )
         return form_responses
 

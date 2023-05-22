@@ -1,10 +1,20 @@
 import asyncio
 
+from beanie import init_beanie
+from loguru import logger
+from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.errors import InvalidOperation
+
 from backend.app.schemas.allowed_origin import (
     AllowedOriginsDocument,
 )
 from backend.app.schemas.blacklisted_refresh_tokens import BlackListedRefreshTokens
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
+from backend.app.schemas.responder_group import (
+    ResponderGroupDocument,
+    ResponderGroupEmailsDocument,
+    ResponderGroupFormDocument,
+)
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
     FormResponseDeletionRequest,
@@ -20,14 +30,6 @@ from backend.app.schemas.workspace_invitation import (
 from backend.app.schemas.workspace_user import (
     WorkspaceUserDocument,
 )
-
-from beanie import init_beanie
-
-from loguru import logger
-
-from motor.motor_asyncio import AsyncIOMotorClient
-
-from pymongo.errors import InvalidOperation
 
 document_models = []
 
@@ -69,6 +71,9 @@ async def init_db(db: str, client: AsyncIOMotorClient):
             WorkspaceUserDocument,
             FormResponseDeletionRequest,
             BlackListedRefreshTokens,
+            ResponderGroupFormDocument,
+            ResponderGroupEmailsDocument,
+            ResponderGroupDocument,
         ],
     )
     logger.info("Database connected successfully.")

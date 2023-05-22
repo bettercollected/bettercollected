@@ -70,5 +70,7 @@ class WorkspaceRepository(BaseRepository):
     async def get_workspace_by_ids(self, workspace_ids: List[PydanticObjectId]):
         return await WorkspaceDocument.find({"_id": {"$in": workspace_ids}}).to_list()
 
-    async def get_workspace_by_owner_id(self, owner_id: str) -> WorkspaceDocument:
-        return await WorkspaceDocument.find_one({"owner_id": owner_id})
+    async def get_default_workspace_by_owner_id(
+        self, owner_id: str
+    ) -> WorkspaceDocument:
+        return await WorkspaceDocument.find_one({"owner_id": owner_id, "default": True})

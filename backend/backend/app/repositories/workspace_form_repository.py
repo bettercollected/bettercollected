@@ -1,19 +1,19 @@
 from http import HTTPStatus
-
-from backend.app.exceptions import HTTPException
-from backend.app.models.workspace import WorkspaceFormSettings
-from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from typing import Dict, Any
 
 from beanie import PydanticObjectId
-
-from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
-
 from pymongo.errors import (
     InvalidOperation,
     InvalidURI,
     NetworkTimeout,
     OperationFailure,
 )
+
+from backend.app.exceptions import HTTPException
+from backend.app.models.workspace import WorkspaceFormSettings
+from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
+from common.models.user import User
 
 
 class WorkspaceFormRepository:
@@ -74,15 +74,53 @@ class WorkspaceFormRepository:
             )
 
     async def get_form_ids_in_workspace(
-        self, workspace_id: PydanticObjectId, public_only: bool = False
+        self,
+        workspace_id: PydanticObjectId,
+        is_not_admin: bool = False,
+        user: User = None,
+        match_query: Dict[str, Any] = None,
     ):
         try:
             query = {"workspace_id": workspace_id}
-            if public_only:
+            if is_not_admin and not user:
                 query["settings.private"] = False
+            if match_query:
+                query.update(match_query)
+            aggregation_pipeline = []
+            if is_not_admin and user:
+                aggregation_pipeline.extend(
+                    [
+                        {
+                            "$lookup": {
+                                "from": "responder_group_form",
+                                "localField": "form_id",
+                                "foreignField": "form_id",
+                                "as": "groups",
+                            }
+                        },
+                        {
+                            "$lookup": {
+                                "from": "responder_group_email",
+                                "localField": "groups.group_id",
+                                "foreignField": "group_id",
+                                "as": "emails",
+                            }
+                        },
+                        {
+                            "$match": {
+                                "$or": [
+                                    {"settings.private": False},
+                                    {"emails.email": user.sub},
+                                ]
+                            }
+                        },
+                    ]
+                )
+                pass
+            aggregation_pipeline.extend([{"$project": {"form_id": 1, "_id": 0}}])
             workspace_forms = (
                 await WorkspaceFormDocument.find(query)
-                .aggregate([{"$project": {"form_id": 1, "_id": 0}}])
+                .aggregate(aggregation_pipeline)
                 .to_list()
             )
             return [a["form_id"] for a in workspace_forms]

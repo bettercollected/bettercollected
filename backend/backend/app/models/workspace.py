@@ -45,3 +45,4 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     id: Optional[PydanticObjectId]
     owner_id: Optional[str]
     dashboard_access: Optional[bool]
+    disabled: Optional[bool]

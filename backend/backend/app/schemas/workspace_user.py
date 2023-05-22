@@ -3,6 +3,7 @@ from typing import List
 
 from beanie import PydanticObjectId
 
+from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from common.configs.mongo_document import MongoDocument
 
 
@@ -14,7 +15,7 @@ class WorkspaceUserDocument(MongoDocument):
     Attributes:
         workspace_id (PydanticObjectId): The ID of the workspace.
         userId (PydanticObjectId): The ID of the user.
-        roles (List[str]): A list of roles that the user has in the
+        roles (List[WorkspaceRoles]): A list of roles that the user has in the
             workspace. Defaults to ["FORM_CREATOR"].
 
     Classes Attributes:
@@ -28,7 +29,7 @@ class WorkspaceUserDocument(MongoDocument):
 
     workspace_id: PydanticObjectId
     user_id: PydanticObjectId
-    roles: List[str] = []
+    roles: List[WorkspaceRoles] = []
     disabled: bool = False
 
     class Settings:

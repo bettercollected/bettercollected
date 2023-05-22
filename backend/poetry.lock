@@ -413,6 +413,21 @@ urllib3 = ">=1.25.4,<1.27"
 crt = ["awscrt (==0.16.9)"]
 
 [[package]]
+name = "camel-converter"
+version = "3.0.0"
+description = "Converts a string from snake case to camel case or camel case to snake case"
+category = "main"
+optional = false
+python-versions = ">=3.7,<4.0"
+files = [
+    {file = "camel_converter-3.0.0-py3-none-any.whl", hash = "sha256:4b01725c8ccf918752436a8aab595fa153c5123c147225434bf1f40041acb3c7"},
+    {file = "camel_converter-3.0.0.tar.gz", hash = "sha256:7f200e1d1067245f39ae2df6c547dc3de8619060012679702f6471187280e6eb"},
+]
+
+[package.extras]
+pydantic = ["pydantic (>=1.8.2)"]
+
+[[package]]
 name = "certifi"
 version = "2022.12.7"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -3568,4 +3583,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "a21f12554e7090e97840b23211359d829042ca9b55a65ddf973483e75a7d4858"
+content-hash = "931f56731e3b093b88f8146cf44b5eb9b4ce0d624a559f835c5291d2d87c2058"

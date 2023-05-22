@@ -10,6 +10,7 @@ class ApiSettings(BaseSettings):
     ROOT_PATH: str = "/api/v1"
     HOST: str = ""
     ALLOWED_COLLABORATORS = 10
+    ALLOWED_WORKSPACES = 3
 
     class Config:
         env_prefix = "API_"

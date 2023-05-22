@@ -1,9 +1,11 @@
 from datetime import datetime
+from http import HTTPStatus
 
 from beanie import PydanticObjectId
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
 
+from backend.app.constants import messages
 from backend.app.exceptions import HTTPException
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.settings_patch import SettingsPatchDto
@@ -13,6 +15,7 @@ from backend.app.repositories.workspace_user_repository import WorkspaceUserRepo
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.utils import AiohttpClient
 from backend.config import settings
+from common.constants import messages
 from common.models.standard_form import StandardForm
 from common.models.user import User
 
@@ -28,17 +31,20 @@ class FormService:
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
 
-    async def get_forms_in_workspace(self, workspace_id, user) -> Page[MinifiedForm]:
+    async def get_forms_in_workspace(
+        self, workspace_id, sort, user
+    ) -> Page[MinifiedForm]:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
-            workspace_id, not is_admin
+            workspace_id, not is_admin, user
         )
         forms_query = self._form_repo.get_forms_in_workspace_query(
             workspace_id=workspace_id,
             form_id_list=workspace_form_ids,
             is_admin=is_admin,
+            sort=sort,
         )
         forms_page = await paginate(forms_query)
 
@@ -97,19 +103,25 @@ class FormService:
             workspace_id=workspace_id, user=user
         )
         # TODO : Refactor confusing function get but it instead throws inside
-        workspace_form = (
-            await self._workspace_form_repo.get_workspace_form_in_workspace(
-                workspace_id=workspace_id, query=form_id, is_admin=is_admin
-            )
+        #  and it also check if the user can access the form
+        workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
+            workspace_id=workspace_id,
+            is_not_admin=not is_admin,
+            user=user,
+            match_query={
+                "$or": [{"form_id": form_id}, {"settings.custom_url": form_id}]
+            },
         )
         form = await self._form_repo.get_forms_in_workspace_query(
             workspace_id=workspace_id,
-            form_id_list=[workspace_form.form_id],
+            form_id_list=workspace_form_ids,
             is_admin=is_admin,
         ).to_list()
 
         if not form:
-            return []
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
+            )
 
         user_ids = [form[0]["imported_by"]] if form else []
         user_details = (

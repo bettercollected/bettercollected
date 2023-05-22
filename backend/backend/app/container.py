@@ -3,12 +3,17 @@ from pathlib import Path
 
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from dependency_injector import containers, providers
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
 )
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
+from backend.app.repositories.responder_groups_repository import (
+    ResponderGroupsRepository,
+)
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
@@ -21,19 +26,15 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
+from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_members_service import WorkspaceMembersService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
-
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
-
-from dependency_injector import containers, providers
-
-from motor.motor_asyncio import AsyncIOMotorClient
 
 current_path = Path(os.path.abspath(os.path.dirname(__file__))).absolute()
 
@@ -63,6 +64,8 @@ class AppContainer(containers.DeclarativeContainer):
     form_provider_repo: FormPluginProviderRepository = providers.Singleton(
         FormPluginProviderRepository
     )
+
+    responder_groups_repository = providers.Singleton(ResponderGroupsRepository)
 
     # Services
     aws_service: AWSS3Service = providers.Singleton(
@@ -133,6 +136,12 @@ class AppContainer(containers.DeclarativeContainer):
         jwt_service=jwt_service,
     )
 
+    responder_groups_service = providers.Singleton(
+        ResponderGroupsService,
+        responder_groups_repo=responder_groups_repository,
+        workspace_user_service=workspace_user_service,
+    )
+
     workspace_form_service: WorkspaceFormService = providers.Singleton(
         WorkspaceFormService,
         form_provider_service=form_provider_service,
@@ -144,6 +153,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_import_service=form_import_service,
         schedular=schedular,
         form_response_service=form_response_service,
+        responder_groups_service=responder_groups_service,
     )
 
     workspace_service: WorkspaceService = providers.Singleton(
