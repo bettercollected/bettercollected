@@ -6,6 +6,7 @@ import { debounce, escapeRegExp } from 'lodash';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
+import SearchInput from '@Components/Common/Search/SearchInput';
 import styled from '@emotion/styled';
 import { InputAdornment } from '@mui/material';
 import TextField from '@mui/material/TextField';
@@ -78,13 +79,6 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
             setUnpinnedForms(response?.data.filter((form: any) => !form.settings.pinned) || []);
         }
     };
-    const debouncedResults = useMemo(() => {
-        return debounce(handleSearch, 500);
-    }, []);
-
-    useEffect(() => {
-        debouncedResults.cancel();
-    }, []);
 
     useEffect(() => {
         if (!!data) {
@@ -109,26 +103,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
     return (
         <div className="py-6 px-5 lg:px-10 xl:px-20 flex flex-col gap-6">
             <div className={`w-full md:w-[282px]`}>
-                <StyledTextField>
-                    <TextField
-                        sx={{ height: '46px', padding: 0 }}
-                        size="small"
-                        name="search-input"
-                        placeholder="Search"
-                        onChange={debouncedResults}
-                        className={'w-full'}
-                        InputProps={{
-                            sx: {
-                                padding: '16px'
-                            },
-                            endAdornment: (
-                                <InputAdornment sx={{ padding: 0 }} position="end">
-                                    <SearchIcon />
-                                </InputAdornment>
-                            )
-                        }}
-                    />
-                </StyledTextField>
+                <SearchInput handleSearch={handleSearch} />
             </div>
             {pinnedForms.length !== 0 && <FormCards title={t(formsConstant.pinnedforms)} isFormCreator={isFormCreator} workspace={workspace} formsArray={pinnedForms} />}
             {showUnpinnedForms && pinnedForms.length !== 0 && <Divider />}

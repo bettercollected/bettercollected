@@ -182,7 +182,9 @@ export const workspacesApi = createApi({
                     url: `/workspaces/${query.workspaceId}/allSubmissions`,
                     params: {
                         data_subjects: query.data_subjects,
+                        email: query.email,
                         request_for_deletion: query.requestedForDeletionOly,
+                        dataOwnerIdentifier: query.dataOwnerIdentifier,
                         page: query.page || 1,
                         size: query.size || 50
                     },

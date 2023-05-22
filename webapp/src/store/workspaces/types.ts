@@ -20,7 +20,9 @@ export interface IPatchFormSettingsRequest {
 }
 
 export interface IGetAllSubmissionsQuery {
+    dataOwnerIdentifier?: string;
     workspaceId: string;
+    email?: string;
     requestedForDeletionOly?: boolean;
     page?: number;
     data_subjects?: boolean;

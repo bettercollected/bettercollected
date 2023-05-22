@@ -65,7 +65,7 @@ export default function SingleFormPage(props: any) {
     };
 
     // TODO: Update this component to be reusable
-    if (form?.settings?.provider && form.settings.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
+    if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
         return (
             <Layout className="relative !min-h-screen">
                 {back && (
@@ -108,12 +108,12 @@ export default function SingleFormPage(props: any) {
                 </Button>
             )}
             <div className={'absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
-                {form.settings.provider === 'google' && !!responderUri && (
+                {form.settings?.provider === 'google' && !!responderUri && (
                     <iframe ref={iframeRef} src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0">
                         <Loader />
                     </iframe>
                 )}
-                {form.settings.provider === 'typeform' && <Widget id={form.formId} style={{ height: '100vh' }} className="my-form" />}
+                {form.settings?.provider === 'typeform' && <Widget id={form.formId} style={{ height: '100vh' }} className="my-form" />}
             </div>
         </Layout>
     );

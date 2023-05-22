@@ -120,12 +120,16 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                 <div>
                     <Divider className="my-2" />
                     <ProPlanHoc hideChildrenIfPro={false}>
-                        <ListItem disablePadding alignItems="center">
-                            <IconButton className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'}`} onClick={handleCreateWorkspace} size="small">
+                        <ListItem disablePadding alignItems="center" className={``}>
+                            <IconButton
+                                className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'} ${!enableCreateWorkspaceButton() ? '!text-black-500 cursor-not-allowed' : '!text-black-800'}`}
+                                onClick={handleCreateWorkspace}
+                                size="small"
+                            >
                                 <span className="flex justify-between w-full items-center gap-4">
                                     <div className="flex items-center gap-3">
                                         <Plus className="text-black-500" />
-                                        <p className={`body3 !not-italic ${!enableCreateWorkspaceButton() ? '!text-black-500 cursor-not-allowed' : '!text-black-800'} `}>{t(menuDropdown.createWorkspace)}</p>
+                                        <p className={`body3 !not-italic  `}>{t(menuDropdown.createWorkspace)}</p>
                                     </div>
                                 </span>
                             </IconButton>

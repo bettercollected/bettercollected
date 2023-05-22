@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import StyledPagination from '@Components/Common/Pagination';
+import SearchInput from '@Components/Common/Search/SearchInput';
 import DataTable from 'react-data-table-component';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
@@ -10,18 +11,21 @@ import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { formsConstant } from '@app/constants/locales/forms';
-import { StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
+import { WorkspaceResponderDto } from '@app/models/dtos/form';
 import { useGetWorkspaceAllSubmissionsQuery } from '@app/store/workspaces/api';
-import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
+import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 
 export default function Responders({ workspace }: any) {
     const [page, setPage] = useState(0);
-    const { data, isLoading, isError } = useGetWorkspaceAllSubmissionsQuery({
+
+    const [query, setQuery] = useState<IGetAllSubmissionsQuery>({
         workspaceId: workspace.id,
         data_subjects: true,
         page: page,
         size: globalConstants.pageSize
     });
+
+    const { data, isLoading, isError } = useGetWorkspaceAllSubmissionsQuery(query);
 
     const { t } = useTranslation();
 
@@ -62,6 +66,14 @@ export default function Responders({ workspace }: any) {
         }
     ];
 
+    const handleSearch = (event: any) => {
+        if (event.target.value) setQuery({ ...query, email: event.target.value });
+        else {
+            const { email, ...removedQuery } = query;
+            setQuery(removedQuery);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className=" w-full py-10 flex justify-center">
@@ -69,11 +81,17 @@ export default function Responders({ workspace }: any) {
             </div>
         );
     }
+
     return (
         <DashboardLayout>
             <div className="flex flex-col py-4">
-                <div className="h4">Responders {data && ' (' + data.total + ')'}</div>
-                <DataTable className="p-0 mt-2" columns={dataTableResponseColumns} data={data?.items || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+                <div className="h4">
+                    {t(formsConstant.responders)} {data && ' (' + data.total + ')'}
+                </div>
+                <div className="w-full md:w-[282px] mt-6">
+                    <SearchInput handleSearch={handleSearch} />
+                </div>
+                <DataTable className="p-0 mt-4" columns={dataTableResponseColumns} data={data?.items || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
                 {Array.isArray(data?.items) && (data?.total || 0) > globalConstants.pageSize && (
                     <div className="mt-8 flex justify-center">
                         <StyledPagination shape="rounded" count={data?.total || 0} page={page} onChange={handlePageChange} />
