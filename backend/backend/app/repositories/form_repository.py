@@ -48,6 +48,19 @@ class FormRepository:
                             "as": "responses",
                         }
                     },
+                    {
+                        "$set": {
+                            "responses": {
+                                "$filter": {
+                                    "input": "$responses",
+                                    "as": "item",
+                                    "cond": {
+                                        "$ne": [{"$type": "$$item.answers"}, "missing"]
+                                    },
+                                }
+                            }
+                        }
+                    },
                     {"$set": {"responses": {"$size": "$responses"}}},
                     {
                         "$lookup": {
