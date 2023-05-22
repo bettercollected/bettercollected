@@ -7,6 +7,7 @@ import PrivateIcon from '@Components/Common/Icons/Private';
 import PublicIcon from '@Components/Common/Icons/Public';
 import Share from '@Components/Common/Icons/Share';
 import Joyride from '@Components/Joyride';
+import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { Button, Typography } from '@mui/material';
 
 import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
@@ -49,20 +50,20 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                     placement="top"
                     steps={[
                         {
-                            title: <span className="sh3">View form responses</span>,
-                            content: <p className="body4">You can see total responses in each form here and navigate to the responses page.</p>,
+                            title: <JoyrideStepTitle text="View form responses" />,
+                            content: <JoyrideStepContent>You can see total responses in each form here and navigate to the responses page.</JoyrideStepContent>,
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_RESPONSES}`,
                             placementBeacon: 'bottom-start'
                         },
                         {
-                            title: <span className="sh3">Share your form</span>,
-                            content: <p className="body4">You can use this button to share your form to your desired audience.</p>,
+                            title: <JoyrideStepTitle text="Share your form" />,
+                            content: <JoyrideStepContent>You can use this button to share your form to your desired audience.</JoyrideStepContent>,
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_SHARE}`,
                             placementBeacon: 'bottom-start'
                         },
                         {
-                            title: <span className="sh3">Update form settings</span>,
-                            content: <p className="body4">You can use this button to view the available options and settings of the form, or navigate inside individual form page to view it&apos;s settings.</p>,
+                            title: <JoyrideStepTitle text="Update form settings" />,
+                            content: <JoyrideStepContent>You can use this button to view the available options and settings of the form, or navigate inside individual form page to view it&apos;s settings.</JoyrideStepContent>,
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS}`,
                             placementBeacon: 'bottom-start'
                         }

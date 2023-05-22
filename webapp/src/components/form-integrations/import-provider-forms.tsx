@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Joyride from '@Components/Joyride';
+import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { Autocomplete, Box, TextField, createFilterOptions } from '@mui/material';
 import MuiButton from '@mui/material/Button';
 import { toast } from 'react-toastify';
@@ -144,8 +145,8 @@ export default function ImportProviderForms(props: any) {
                     scrollOffset={0}
                     steps={[
                         {
-                            title: <span className="sh3">Select a provider</span>,
-                            content: <p className="body4">Select one of the listed form providers from where you want to import your forms onto Better Collected.</p>,
+                            title: <JoyrideStepTitle text="Select a provider" />,
+                            content: <JoyrideStepContent>Select one of the listed form providers from where you want to import your forms onto Better Collected.</JoyrideStepContent>,
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`,
                             hideFooter: true
                         }
@@ -180,12 +181,12 @@ export default function ImportProviderForms(props: any) {
                     scrollOffset={0}
                     steps={[
                         {
-                            title: <span className="sh3">Select your form</span>,
+                            title: <JoyrideStepTitle text="Select your form" />,
                             content: (
-                                <p className="body4">
+                                <JoyrideStepContent>
                                     Select the form that you want to import. <br />
                                     <br /> If you do not see any forms in the list, then you may need to create some forms within the form provider account that you selected (Google Forms, Typeform).
-                                </p>
+                                </JoyrideStepContent>
                             ),
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_LIST_FORMS}`,
                             placementBeacon: 'top-end',
@@ -240,13 +241,13 @@ export default function ImportProviderForms(props: any) {
                     scrollOffset={0}
                     steps={[
                         {
-                            title: <span className="sh3">Select the data owner field for your form response</span>,
+                            title: <JoyrideStepTitle text="Select the data owner field for your form response" />,
                             content: (
-                                <p className="body4">
+                                <JoyrideStepContent>
                                     Select your own field to be set as the data owner identifier. <br />
                                     <br /> When responders respond to this form, data owner simply means the field you selected will be used to identify your responders. Typically, this will be an email, a phone number, or any other identifier unique to
                                     your responders.
-                                </p>
+                                </JoyrideStepContent>
                             ),
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_DATA_OWNER}`,
                             placementBeacon: 'top-end',

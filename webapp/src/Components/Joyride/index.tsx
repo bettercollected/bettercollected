@@ -29,6 +29,7 @@ export interface IJoyrideProps {
     showSkipButton?: boolean;
     showCloseButton?: boolean;
     hideBackButton?: boolean;
+    disableOverlay?: boolean;
     disableOverlayClose?: boolean;
     hideCloseButton?: boolean;
     firstStepClicked?: boolean;
@@ -49,6 +50,7 @@ export default function Joyride({
     scrollToFirstStep = false,
     firstStepClicked = false,
     hideBackButton = false,
+    disableOverlay = false,
     disableCloseOnEsc = false,
     disableOverlayClose = false,
     hideCloseButton = false,
@@ -82,9 +84,15 @@ export default function Joyride({
             backgroundColor: '#0764EB',
             borderRadius: 4
         },
+        overlay: {
+            backgroundColor: 'rgba(0, 0, 0, 0.09)'
+        },
+        beacon: {
+            zIndex: 2100
+        },
         options: {
             beaconSize: 20,
-            zIndex: 3000
+            zIndex: 2200
         }
     }
 }: IJoyrideProps) {
@@ -103,6 +111,9 @@ export default function Joyride({
 
     const { run, stepIndex, steps: jrSteps } = state;
     const localStorageJoyrideId = `joyride:id:${id}`;
+
+    const [showContent, setShowContent] = useState(false);
+    const [isFloaterOpen, setIsFloaterOpen] = useState(false);
 
     const getFilteredState = ({ id, run, stepIndex, finished }: JoyrideState): LocalStorageJoyrideState => {
         return { id, run, stepIndex, finished };
@@ -134,6 +145,17 @@ export default function Joyride({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [firstStepClicked]);
 
+    useEffect(() => {
+        // Delay showing the content to allow for smoother transitions
+        const showContentTimeout = setTimeout(() => {
+            setShowContent(true);
+        }, 400);
+
+        return () => {
+            clearTimeout(showContentTimeout);
+        };
+    }, [state.run]);
+
     const handleJoyrideCallback = (data: CallBackProps): void => {
         const { action, index, status, type } = data;
 
@@ -157,6 +179,7 @@ export default function Joyride({
 
     if (placement) floaterProps.placement = placement;
     if (showCloseButton) floaterProps.showCloseButton = true;
+    styles.beacon = { zIndex: isFloaterOpen ? 2000 : 2200 };
 
     return (
         <JR
@@ -168,6 +191,8 @@ export default function Joyride({
             continuous={continuous}
             showProgress={showProgress}
             spotlightClicks={spotlightClicks}
+            disableScrolling={showContent}
+            disableOverlay={disableOverlay}
             showSkipButton={showSkipButton}
             floaterProps={floaterProps}
             callback={handleJoyrideCallback}

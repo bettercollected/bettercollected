@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Joyride from '@Components/Joyride';
+import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import { EmptyImportFormIcon } from '@app/components/icons/empty-import-form-icon';
@@ -47,8 +48,8 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                             firstStepClicked={isOpen && view === 'IMPORT_PROVIDER_FORMS_VIEW' && firstStepClicked}
                             steps={[
                                 {
-                                    title: <span className="sh3">You are one step closer to importing the forms</span>,
-                                    content: <p className="body4">Import your forms from other providers into Better Collected. Click &quot;Import Forms&quot; button below to import your forms.</p>,
+                                    title: <JoyrideStepTitle text="You are one step closer to importing the forms" />,
+                                    content: <JoyrideStepContent>Import your forms from other providers into Better Collected. Click &quot;Import Forms&quot; button below to import your forms.</JoyrideStepContent>,
                                     target: ref.current,
                                     placementBeacon: 'bottom-start',
                                     hideFooter: true
