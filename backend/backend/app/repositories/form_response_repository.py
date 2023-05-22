@@ -65,10 +65,12 @@ class FormResponseRepository(BaseRepository):
                     },
                     {
                         "$project": {
+                            "email": "$_id",
                             "responses": 1,
                             "deletion_requests": {"$size": "$deletion_requests"},
                         }
                     },
+                    {"$sort": {"email": 1}},
                 ]
             )
 

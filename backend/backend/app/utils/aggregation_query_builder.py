@@ -10,7 +10,14 @@ def create_filter_pipeline(filter_object=None, sort: SortRequest = None):
         if matching_dict:
             all_matchers = []
             for k, v in matching_dict.items():
-                all_matchers.append({"$or": [{to_camel(k): v}, {to_snake(k): v}]})
+                all_matchers.append(
+                    {
+                        "$or": [
+                            {to_camel(k): {"$regex": v, "$options": "i"}},
+                            {to_snake(k): {"$regex": v, "$options": "i"}},
+                        ]
+                    }
+                )
             pipeline.append({"$match": {"$and": all_matchers}})
     if sort and sort.sort_by:
         sort_order = 1 if sort.sort_order == SortOrder.ASCENDING else -1
