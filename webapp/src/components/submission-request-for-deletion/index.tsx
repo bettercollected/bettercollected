@@ -8,6 +8,8 @@ import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/buttons';
 import { formConstant } from '@app/constants/locales/form';
 
+import { InfoCircle } from '../icons/info-circle';
+
 export default function RequestForDeletionView(props: any) {
     const { closeModal } = useModal();
     const { handleRequestForDeletion } = props;
@@ -24,11 +26,9 @@ export default function RequestForDeletionView(props: any) {
     return (
         <div ref={ref} className="relative m-auto w-full items-start justify-between rounded-lg bg-white">
             <div className="relative max-w-[465px] text-center flex flex-col items-center justify-between p-10">
-                <svg aria-hidden="true" className="mx-auto mb-4 text-gray-400 w-14 h-14 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <h3 className="mb-5 text-lg font-normal max-w-[352px] text-gray-500 dark:text-gray-400">{t(formConstant.deletionResponseWarningMessage)}</h3>
-                <div className="flex items-center justify-between">
+                <InfoCircle className="mx-auto mb-6 text-gray-400 w-14 h-14 dark:text-gray-200" />
+                <h3 className="mb-8 text-lg font-normal max-w-[352px] text-gray-500 dark:text-gray-400">{t(formConstant.deletionResponseWarningMessage)}</h3>
+                <div className="flex items-center justify-between w-full">
                     <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
                         {t(buttonConstant.yes)}
                     </Button>

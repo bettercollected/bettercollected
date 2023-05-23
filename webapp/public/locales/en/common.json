@@ -63,8 +63,13 @@
 		"VERIFY": "Verify",
 		"DECLINE": "Decline",
 		"JOIN_WORKSPACE": "Join Workspace",
-		"YES":"Yes",
-		"NO":"No"
+		"YES": "Yes",
+		"NO": "No",
+		"REQUEST_FOR_DELETION": "Request for deletion",
+		"REQUESTED_FOR_DELETION": "Requested for deletion",
+		"REMOVE_INVITATION":"Remove invitation",
+		"DELETE_MEMBER":"Delete member",
+		"SKIP":"Skip"
 	},
 	"CONTACT_US": {
 		"DESCRIPTION": "Any questions or remarks? Just write us a message",
@@ -90,7 +95,7 @@
 	},
 	"DELETE": {
 		"DEFAULT": "Delete",
-		"DELETE.MESSAGE": "Once this action is completed, it can't be undone."
+		"MESSAGE": "Once this action is completed, it can't be undone."
 	},
 	"DELETION_REMAINING": "deletion remaining",
 	"DESCRIPTION": "Description",
@@ -108,7 +113,7 @@
 		"DELETION_REQUEST.DESCRIPTION": "You have not requested any deletion for your filled responses.",
 		"DELETION_REQUESTS": "Deletion Requests",
 		"DELETION_RESPONSE.DESCRIPTION": "You have not submitted any response on the forms provided in this workspace.",
-		"DELETION_RESPONSE_WARNING_MESSAGE":"Are you sure you want to request your response to be deleted?",
+		"DELETION_RESPONSE_WARNING_MESSAGE": "Are you sure you want to request your response to be deleted?",
 		"EMPTY": {
 			"DESCRIPTION": "Import your Google Forms or Typeforms",
 			"TITLE": "Import your first form"
@@ -141,7 +146,10 @@
 		"STATUS_PENDING": "Pending",
 		"SUBMISSION_DATE": "Submission Date",
 		"SUBMITTED_FORMS": "Submitted forms",
-		"PREVIEW": "Form Preview"
+		"PREVIEW": "Form Preview",
+		"URL": "Form URL",
+		"IMPORTED_BY":"Imported By",
+		"IMPORTED_ON":"Imported On"
 	},
 	"FORMS": "Forms",
 	"FORMS_LINK": "Forms Links",
@@ -153,7 +161,6 @@
 		"SHARE": "Share",
 		"VISIBILITY": "Visibility"
 	},
-	"FORM_URL": "Form URL",
 	"HEY": "Hey",
 	"HIDDEN": "Hidden",
 	"IMAGE": "Image",
@@ -203,10 +210,10 @@
 	"NO_IMAGE": "No image available",
 	"OF": "of",
 	"ONBOARDING": {
-		"ONBOARDING.ADD_WORKSPACE": "Add your workspace",
-		"ONBOARDING.DESCRIPTION": "Please create your workspace so that your team know you are here.",
-		"ONBOARDING.TIME_MESSAGE": "It will only take few minutes",
-		"ONBOARDING.WELCOME_MESSAGE": "Welcome to BetterCollected."
+		"ADD_WORKSPACE": "Add your workspace",
+		"DESCRIPTION": "Please create your workspace so that your team know you are here.",
+		"TIME_MESSAGE": "It will only take few minutes",
+		"WELCOME_MESSAGE": "Welcome to BetterCollected."
 	},
 	"OR": "Or",
 	"OTP_RENDERER": {

@@ -136,7 +136,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             ? []
             : [
                   {
-                      name: 'Imported by',
+                      name: t(formConstant.importedBy),
                       grow: 3,
                       selector: (row: StandardFormDto) => <UserDetails user={row.importerDetails} />
                   }

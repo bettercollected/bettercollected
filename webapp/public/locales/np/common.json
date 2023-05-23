@@ -64,7 +64,12 @@
         "DECLINE": "अस्वीकार",
         "JOIN_WORKSPACE": "कार्यक्षेत्रमा सामेल हुनुहोस्",
         "YES": " हो",
-        "NO": "होइन"
+        "NO": "होइन",
+        "REQUEST_FOR_DELETION": "मेटाउनको लागि अनुरोध",
+        "REQUESTED_FOR_DELETION": "मेटाउन अनुरोध गरियो",
+        "REMOVE_INVITATION": "निमन्त्रणा हटाउनुहोस्",
+        "DELETE_MEMBER": "सदस्य मेट्नुहोस्",
+        "SKIP":"छाड्नुहोस्"
     },
     "CONTACT_US": {
         "DESCRIPTION": "कुनै प्रश्न वा टिप्पणी? हामीलाई सन्देश लेख्नुहोस्",
@@ -86,11 +91,11 @@
         "PREVIEW": "पूर्वावलोकन"
     },
     "DASHBOARD_DRAWER": {
-        "Collaborator": "सहयोगी"
+        "COLLABORATOR": "सहयोगी"
     },
     "DELETE": {
         "DEFAULT": "मेट्नुहोस्",
-        "DELETE.MESSAGE": "एक पटक यो कार्य पूरा भएपछि, यसलाई पूर्ववत गर्न सकिँदैन।"
+        "MESSAGE": "एक पटक यो कार्य पूरा भएपछि, यसलाई पूर्ववत गर्न सकिँदैन।"
     },
     "DELETION_REMAINING": "मेट्ने बाँकी",
     "DESCRIPTION": "विवरण",
@@ -133,19 +138,21 @@
         "RECENT_FORMS": "हालका फारमहरू",
         "REQUESTED_BY": "द्वारा अनुरोध गरिएको",
         "RESPONDER": "प्रतिक्रियाकर्ता",
-        "ReSPONDERS": "जवाफ दिनेहरू",
+        "RESPONDERS": "जवाफ दिनेहरू",
         "RESPONSE": "प्रतिक्रिया",
-        "ReSPONSES": "प्रतिक्रियाहरू",
+        "RESPONSES": "प्रतिक्रियाहरू",
         "RESPONSE_ID": "प्रतिक्रिया ID",
         "STATUS_DELETED": "मेटाइयो",
         "STATUS_PENDING": "बाँकी",
         "SUBMISSION_DATE": "पेस गर्ने मिति",
         "SUBMITTED_FORMS": "पेस गरिएका फारमहरू",
-        "PREVIEW": "फारम पूर्वावलोकन"
+        "PREVIEW": "फारम पूर्वावलोकन",
+        "URL": "फारम URL",
+        "IMPORTED_BY": "द्वारा आयात गरिएको",
+        "IMPORTED_ON": "आयात गरिएको छ"
     },
     "FORMS": "फारामहरू",
     "FORMS_LINK": "फारम लिङ्कहरू",
-    
     "FORM_LINK_WITH_PREVIOUS_DOMAIN_WONT_WORK": "अद्यावधिक गरेपछि अघिल्लो डोमेनका फारम लिङ्कहरूले काम गर्ने छैनन्।",
     "FORM_LINK_WITH_PREVIOUS_WORKSPACE_HANDLE_WONT_WORK": "अद्यावधिक गरेपछि अघिल्लो कार्यस्थान ह्यान्डल भएका फारम लिङ्कहरूले काम गर्ने छैनन्।",
     "FORM_MENU": {
@@ -154,7 +161,6 @@
         "SHARE": "शेयर गर्नुहोस्",
         "VISIBILITY": "दृश्यता"
     },
-    "FORM_URL": "फारम URL",
     "HEY": "हे",
     "HIDDEN": "लुकेको",
     "IMAGE": "छवि",
@@ -204,10 +210,10 @@
     "NO_IMAGE": "कुनै छवि उपलब्ध छैन",
     "OF": "को",
     "ONBOARDING": {
-        "ONBOARDING.ADD_WORKSPACE": "तपाईंको कार्यस्थान थप्नुहोस्",
-        "ONBOARDING.DESCRIPTION": "कृपया आफ्नो कार्यस्थान सिर्जना गर्नुहोस् ताकि तपाइँको टोलीले तपाइँ यहाँ हुनुहुन्छ भनेर थाहा पाउनुहोस्।",
-        "ONBOARDING.TIME_MESSAGE": "केही मिनेट मात्र लाग्नेछ",
-        "ONBOARDING.WELCOME_MESSAGE": "BetterCollected मा स्वागत छ।"
+        "ADD_WORKSPACE": "तपाईंको कार्यस्थान थप्नुहोस्",
+        "DESCRIPTION": "कृपया आफ्नो कार्यस्थान सिर्जना गर्नुहोस् ताकि तपाइँको टोलीले तपाइँ यहाँ हुनुहुन्छ भनेर थाहा पाउनुहोस्।",
+        "TIME_MESSAGE": "केही मिनेट मात्र लाग्नेछ",
+        "WELCOME_MESSAGE": "BetterCollected मा स्वागत छ।"
     },
     "OR": "वा",
     "OTP_RENDERER": {
@@ -327,6 +333,6 @@
         "PROFILE_IMAGE": "कार्यस्थान प्रोफाइल छवि",
         "TITLE": "कार्यस्थान शीर्षक",
         "TITLE.VALIDATION_MESSAGE": "कार्यस्थान शीर्षक आवश्यक छ",
-        "URL": "Worksapce URL"
+        "URL": "कार्यस्थान URL"
     }
 }

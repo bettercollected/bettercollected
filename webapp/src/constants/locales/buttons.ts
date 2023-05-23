@@ -41,5 +41,10 @@ export const buttonConstant = {
     decline: 'BUTTON.DECLINE',
     importNow: 'BUTTON.IMPORT_NOW',
     yes: 'BUTTON.YES',
-    no: 'BUTTON.NO'
+    no: 'BUTTON.NO',
+    requestForDeletion: 'BUTTON.REQUEST_FOR_DELETION',
+    requestedForDeletion: 'BUTTON.REQUESTED_FOR_DELETION',
+    removeInvitation: 'BUTTON.REMOVE_INVITATION',
+    deleteMember: 'BUTTON.DELETE_MEMBER',
+    skip: 'BUTTON.SKIP'
 };

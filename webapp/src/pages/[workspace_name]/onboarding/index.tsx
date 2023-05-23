@@ -270,7 +270,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                         await onClickDone(true);
                     }}
                 >
-                    Skip
+                    {t(buttonConstant.skip)}
                 </div>
 
                 <Button

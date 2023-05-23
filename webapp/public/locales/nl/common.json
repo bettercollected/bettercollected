@@ -51,7 +51,7 @@
         "SEND_CODE": "Code verzenden",
         "SEND_INVITATION": "Uitnodiging verzenden",
         "SHARE": "deel",
-        "VERZENDEN": "Verzenden",
+        "SUBMIT": "Verzenden",
         "TYPEFORM_SIGNIN": "Aanmelden met Typeform",
         "UPDATE": "Bijwerken",
         "UPDATE_URL": "URL bijwerken",
@@ -64,7 +64,12 @@
         "DECLINE": "Weigeren",
         "JOIN_WORKSPACE": "Deelnemen aan werkruimte",
         "YES": "Ja",
-        "NO": "nee"
+        "NO": "nee",
+        "REQUEST_FOR_DELETION": "Verzoek om verwijdering",
+        "REQUESTED_FOR_DELETION": "Verzoek om verwijdering",
+        "REMOVE_INVITATION": "Uitnodiging verwijderen",
+        "DELETE_MEMBER": "Lid verwijderen",
+        "SKIP":"Overslaan"
     },
     "CONTACT_US": {
         "DESCRIPTION": "Vragen of opmerkingen? Schrijf ons gewoon een bericht",
@@ -90,7 +95,7 @@
     },
     "DELETE": {
         "DEFAULT": "Verwijderen",
-        "DELETE.MESSAGE": "Als deze actie eenmaal is voltooid, kan deze niet meer ongedaan worden gemaakt."
+        "MESSAGE": "Als deze actie eenmaal is voltooid, kan deze niet meer ongedaan worden gemaakt."
     },
     "DELETION_REMAINING": "verwijdering resterend",
     "DESCRIPTION": "Beschrijving",
@@ -141,7 +146,10 @@
         "STATUS_PENDING": "In behandeling",
         "SUBMISSION_DATE": "Indieningsdatum",
         "SUBMITTED_FORMS": "Ingediende formulieren",
-        "PREVIEW": "Formuliervoorbeeld"
+        "PREVIEW": "Formuliervoorbeeld",
+        "URL": "Formulier-URL",
+        "IMPORTED_BY": "Geïmporteerd door",
+        "IMPORTED_ON": "Geïmporteerd op"
     },
     "FORMS": "Formulieren",
     "FORMS_LINK": "Links naar formulieren",
@@ -153,7 +161,6 @@
         "SHARE": "deel",
         "ZICHTBAARHEID": "Zichtbaarheid"
     },
-    "FORM_URL": "Formulier-URL",
     "HEY": "hoi",
     "HIDDEN": "Verborgen",
     "IMAGE": "Afbeelding",
@@ -203,10 +210,10 @@
     "NO_IMAGE": "Geen afbeelding beschikbaar",
     "OF": "Van",
     "ONBOARDING": {
-        "ONBOARDING.ADD_WORKSPACE": "Voeg je werkruimte toe",
-        "ONBOARDING.DESCRIPTION": "Maak uw werkruimte aan zodat uw team weet dat u er bent.",
-        "ONBOARDING.TIME_MESSAGE": "Het duurt maar een paar minuten",
-        "ONBOARDING.WELCOME_MESSAGE": "Welkom bij BetterCollected."
+        "ADD_WORKSPACE": "Voeg je werkruimte toe",
+        "DESCRIPTION": "Maak uw werkruimte aan zodat uw team weet dat u er bent.",
+        "TIME_MESSAGE": "Het duurt maar een paar minuten",
+        "WELCOME_MESSAGE": "Welkom bij BetterCollected."
     },
     "OR": "of",
     "OTP_RENDERER": {

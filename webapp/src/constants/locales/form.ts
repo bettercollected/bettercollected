@@ -53,5 +53,7 @@ export const formConstant = {
             description: 'FORM.EMPTY_DELETION_REQUEST.DESCRIPTION'
         }
     },
-    importUnlimited: 'FORM.IMPORT_UNLIMITED'
+    importUnlimited: 'FORM.IMPORT_UNLIMITED',
+    importedBy: 'FORM.IMPORTED_BY',
+    importedOn: 'FORM.IMPORTED_ON'
 };

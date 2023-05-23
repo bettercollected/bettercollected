@@ -12,6 +12,7 @@ import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -119,7 +120,8 @@ export default function Submission(props: any) {
                     disabled={!!form?.response?.deletionStatus}
                 >
                     <span className="flex gap-2 items-center">
-                        <TrashIcon width={15} height={15} /> {form?.response?.deletionStatus ? 'Requested ' : 'Request '}for deletion
+                        <TrashIcon width={15} height={15} />
+                        {/* {form?.response?.deletionStatus ? t(buttonConstant.requestedForDeletion) : t(buttonConstant.requestForDeletion)} */}
                     </span>
                 </Button>
             </div>
