@@ -69,7 +69,7 @@ export interface StandardFormResponseDto {
 }
 
 export interface WorkspaceResponderDto {
-    _id: string;
+    email: string;
     responses: number;
-    deletion_requests: number;
+    deletionRequests: number;
 }

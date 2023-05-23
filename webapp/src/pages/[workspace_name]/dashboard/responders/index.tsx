@@ -12,31 +12,28 @@ import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { formConstant } from '@app/constants/locales/form';
 import { WorkspaceResponderDto } from '@app/models/dtos/form';
-import { useGetWorkspaceAllSubmissionsQuery } from '@app/store/workspaces/api';
+import { useGetWorkspaceAllSubmissionsQuery, useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 
 export default function Responders({ workspace }: any) {
-    const [page, setPage] = useState(0);
-
     const [query, setQuery] = useState<IGetAllSubmissionsQuery>({
         workspaceId: workspace.id,
-        data_subjects: true,
-        page: page,
+        page: 1,
         size: globalConstants.pageSize
     });
 
-    const { data, isLoading, isError } = useGetWorkspaceAllSubmissionsQuery(query);
+    const { data, isLoading, isError } = useGetWorkspaceRespondersQuery(query);
 
     const { t } = useTranslation();
 
     const handlePageChange = (e: any, page: number) => {
-        setPage(page);
+        setQuery({ ...query, page: page });
     };
 
     const dataTableResponseColumns: any = [
         {
             name: t(formConstant.responder),
-            selector: (responder: WorkspaceResponderDto) => responder._id,
+            selector: (responder: WorkspaceResponderDto) => responder.email,
             grow: 2,
             style: {
                 color: '#202124',
@@ -57,7 +54,7 @@ export default function Responders({ workspace }: any) {
         },
         {
             name: t(formConstant.deletionRequests),
-            selector: (responder: WorkspaceResponderDto) => responder.deletion_requests,
+            selector: (responder: WorkspaceResponderDto) => responder.deletionRequests,
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
@@ -94,7 +91,7 @@ export default function Responders({ workspace }: any) {
                 <DataTable className="p-0 mt-4" columns={dataTableResponseColumns} data={data?.items || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
                 {Array.isArray(data?.items) && (data?.total || 0) > globalConstants.pageSize && (
                     <div className="mt-8 flex justify-center">
-                        <StyledPagination shape="rounded" count={data?.total || 0} page={page} onChange={handlePageChange} />
+                        <StyledPagination shape="rounded" count={data?.total || 0} page={query.page || 1} onChange={handlePageChange} />
                     </div>
                 )}
             </div>

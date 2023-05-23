@@ -179,7 +179,7 @@ export const workspacesApi = createApi({
         getWorkspaceAllSubmissions: builder.query<Page<StandardFormResponseDto | WorkspaceResponderDto>, IGetAllSubmissionsQuery>({
             query: (query: IGetAllSubmissionsQuery) => {
                 return {
-                    url: `/workspaces/${query.workspaceId}/allSubmissions`,
+                    url: `/workspaces/${query.workspaceId}/all-submissions`,
                     params: {
                         data_subjects: query.data_subjects,
                         email: query.email,
@@ -192,6 +192,19 @@ export const workspacesApi = createApi({
                 };
             },
             providesTags: [WORKSPACE_TAGS]
+        }),
+        getWorkspaceResponders: builder.query<Page<StandardFormResponseDto | WorkspaceResponderDto>, IGetAllSubmissionsQuery>({
+            query: (query: IGetAllSubmissionsQuery) => {
+                return {
+                    url: `/workspaces/${query.workspaceId}/responders`,
+                    params: {
+                        email: query.email,
+                        page: query.page || 1,
+                        size: query.size || 50
+                    },
+                    method: 'GET'
+                };
+            }
         }),
         getWorkspaceSubmission: builder.query<any, IGetWorkspaceSubmissionQuery>({
             query: (query) => ({
@@ -288,7 +301,7 @@ export const workspacesApi = createApi({
         }),
         deleteWorkspaceDomain: builder.mutation<any, any>({
             query: (workspace_id) => ({
-                url: `/workspaces/${workspace_id}/custom_domain`,
+                url: `/workspaces/${workspace_id}/custom-domain`,
                 method: 'DELETE'
             }),
             invalidatesTags: [WORKSPACE_TAGS]
@@ -311,6 +324,7 @@ export const {
     useLazyGetWorkspaceFormsQuery,
     useGetWorkspaceSubmissionsQuery,
     useGetWorkspaceAllSubmissionsQuery,
+    useGetWorkspaceRespondersQuery,
     useGetWorkspaceSubmissionQuery,
     useLazyGetWorkspaceSubmissionQuery,
     useSearchWorkspaceFormsMutation,
