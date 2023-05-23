@@ -5,7 +5,7 @@ from pydantic import EmailStr
 
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
-    ResponderGroupEmailsDocument,
+    ResponderGroupMemberDocument,
     ResponderGroupFormDocument,
 )
 
@@ -21,9 +21,11 @@ class ResponderGroupsRepository:
             return responder_group
         for email in emails:
             responder_group_emails.append(
-                ResponderGroupEmailsDocument(group_id=responder_group.id, email=email)
+                ResponderGroupMemberDocument(
+                    group_id=responder_group.id, identifier=email
+                )
             )
-            await ResponderGroupEmailsDocument.insert_many(responder_group_emails)
+            await ResponderGroupMemberDocument.insert_many(responder_group_emails)
         return responder_group
 
     async def get_group_in_workspace(
@@ -37,8 +39,8 @@ class ResponderGroupsRepository:
         self, group_id: PydanticObjectId, emails: List[EmailStr]
     ):
         emails = list(set(emails))
-        existing_email_documents = await ResponderGroupEmailsDocument.find(
-            {"group_id": group_id, "email": {"$in": emails}}
+        existing_email_documents = await ResponderGroupMemberDocument.find(
+            {"group_id": group_id, "identifier": {"$in": emails}}
         ).to_list()
         existing_emails = [
             ex_document.email for ex_document in existing_email_documents
@@ -47,15 +49,15 @@ class ResponderGroupsRepository:
         for email in emails:
             if email not in existing_emails:
                 new_emails.append(
-                    ResponderGroupEmailsDocument(group_id=group_id, email=email)
+                    ResponderGroupMemberDocument(group_id=group_id, identifier=email)
                 )
         if new_emails:
-            await ResponderGroupEmailsDocument.insert_many(new_emails)
+            await ResponderGroupMemberDocument.insert_many(new_emails)
 
     async def remove_emails_from_group(
         self, group_id: PydanticObjectId, emails: List[EmailStr]
     ):
-        await ResponderGroupEmailsDocument.find(
+        await ResponderGroupMemberDocument.find(
             {"group_id": group_id, "email": {"$in": emails}}
         ).delete()
 
@@ -88,7 +90,7 @@ class ResponderGroupsRepository:
 
     async def remove_responder_group(self, group_id: PydanticObjectId):
         await ResponderGroupDocument.find({"_id": group_id}).delete()
-        await ResponderGroupEmailsDocument.find({"group_id": group_id}).delete()
+        await ResponderGroupMemberDocument.find({"group_id": group_id}).delete()
 
     async def get_groups_in_workspace(self, workspace_id: PydanticObjectId):
         return await ResponderGroupDocument.find(

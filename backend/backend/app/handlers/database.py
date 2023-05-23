@@ -12,7 +12,7 @@ from backend.app.schemas.blacklisted_refresh_tokens import BlackListedRefreshTok
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
-    ResponderGroupEmailsDocument,
+    ResponderGroupMemberDocument,
     ResponderGroupFormDocument,
 )
 from backend.app.schemas.standard_form import FormDocument
@@ -56,9 +56,8 @@ async def init_db(db: str, client: AsyncIOMotorClient):
     """
     client.get_io_loop = asyncio.get_running_loop
     db = client[db]
-    await init_beanie(
-        database=db,
-        document_models=[
+    document_models.extend(
+        [
             # TODO Merge on extend below
             # Add mongo schemas here
             AllowedOriginsDocument,
@@ -72,9 +71,13 @@ async def init_db(db: str, client: AsyncIOMotorClient):
             FormResponseDeletionRequest,
             BlackListedRefreshTokens,
             ResponderGroupFormDocument,
-            ResponderGroupEmailsDocument,
+            ResponderGroupMemberDocument,
             ResponderGroupDocument,
-        ],
+        ]
+    )
+    await init_beanie(
+        database=db,
+        document_models=document_models,
     )
     logger.info("Database connected successfully.")
 

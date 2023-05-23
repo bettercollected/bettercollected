@@ -17,6 +17,9 @@ from backend.app.repositories.responder_groups_repository import (
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.repositories.workspace_responders_repository import (
+    WorkspaceRespondersRepository,
+)
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.services.auth_service import AuthService
@@ -30,6 +33,7 @@ from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_members_service import WorkspaceMembersService
+from backend.app.services.workspace_responders_service import WorkspaceRespondersService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
@@ -185,6 +189,14 @@ class AppContainer(containers.DeclarativeContainer):
         form_provider_service=form_provider_service,
         jwt_service=jwt_service,
         workspace_service=workspace_service,
+    )
+
+    workspace_responders_repo = providers.Singleton(WorkspaceRespondersRepository)
+    workspace_responders_service = providers.Singleton(
+        WorkspaceRespondersService,
+        workspace_responders_repo=workspace_responders_repo,
+        workspace_user_service=workspace_user_service,
+        form_response_service=form_response_service,
     )
 
 

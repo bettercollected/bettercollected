@@ -1,5 +1,6 @@
 import datetime as dt
 import enum
+from typing import Optional
 
 from beanie import PydanticObjectId
 
@@ -9,6 +10,7 @@ from common.configs.mongo_document import MongoDocument
 class ResponderGroupDocument(MongoDocument):
     name: str
     workspace_id: PydanticObjectId
+    allowed_regex: Optional[str]
 
     class Settings:
         name = "responder_group"
@@ -19,12 +21,17 @@ class ResponderGroupDocument(MongoDocument):
         }
 
 
-class ResponderGroupEmailsDocument(MongoDocument):
+class IdentifierType(str, enum.Enum):
+    EMAIL = "EMAIL"
+
+
+class ResponderGroupMemberDocument(MongoDocument):
     group_id: PydanticObjectId
-    email: str
+    identifier: str
+    identifierType: IdentifierType = IdentifierType.EMAIL
 
     class Settings:
-        name = "responder_group_email"
+        name = "responder_group_member"
         bson_encoders = {
             dt.datetime: lambda o: dt.datetime.isoformat(o),
             dt.date: lambda o: dt.date.isoformat(o),
