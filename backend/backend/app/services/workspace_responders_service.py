@@ -1,5 +1,6 @@
 from beanie import PydanticObjectId
 
+from backend.app.models.dtos.workspace_responder_dto import WorkspaceResponderPatchDto
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.workspace_responders_repository import (
@@ -54,3 +55,23 @@ class WorkspaceRespondersService:
             data_subjects=True,
             user=user,
         )
+
+    async def patch_workspace_responder_with_email(
+        self,
+        workspace_id: PydanticObjectId,
+        email: str,
+        patch_request: WorkspaceResponderPatchDto,
+        user: User,
+    ):
+        await self.workspace_user_service.check_is_admin_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+
+        workspace_responder = await self.workspace_responders_repo.get_responder_by_email_and_workspace_id(
+            workspace_id=workspace_id, email=email
+        )
+        if patch_request.metadata:
+            workspace_responder.metadata = patch_request.metadata
+        if patch_request.tags:
+            workspace_responder.tags = patch_request.tags
+        return await workspace_responder.save()

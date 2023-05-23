@@ -67,8 +67,37 @@ class FormResponseRepository(BaseRepository):
                     {
                         "$project": {
                             "email": "$_id",
+                            "_id": 0,
                             "responses": 1,
                             "deletion_requests": {"$size": "$deletion_requests"},
+                        }
+                    },
+                    {
+                        "$lookup": {
+                            "from": "workspace_responder",
+                            "localField": "email",
+                            "foreignField": "email",
+                            "as": "responder",
+                        }
+                    },
+                    {
+                        "$unwind": {
+                            "path": "$responder",
+                            "preserveNullAndEmptyArrays": True,
+                        }
+                    },
+                    {
+                        "$set": {
+                            "tags": "$responder.tags",
+                            "metadata": "$responder.metadata",
+                        }
+                    },
+                    {
+                        "$lookup": {
+                            "from": "workspace_tags",
+                            "localField": "tags",
+                            "foreignField": "_id",
+                            "as": "tags",
                         }
                     },
                     {"$sort": {"email": 1}},

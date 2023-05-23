@@ -2,11 +2,14 @@ from typing import Any
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, post, get, patch
-from fastapi import Depends
+from fastapi import Depends, Body
 from fastapi_pagination import Page
-from pydantic import EmailStr
 
 from backend.app.container import container
+from backend.app.models.dtos.workspace_responder_dto import (
+    WorkspaceResponderPatchDto,
+    WorkspaceResponderResponse,
+)
 from backend.app.models.dtos.workspace_tag_dto import WorkspaceTagRequest
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
@@ -27,7 +30,7 @@ class WorkspaceRespondersController(Routable):
         super().__init__(*args, **kwargs)
         self.workspace_responders_service = workspace_responders_service
 
-    @get("", response_model=Page[Any])
+    @get("", response_model=Page[WorkspaceResponderResponse])
     async def get_workspace_responders(
         self,
         workspace_id: PydanticObjectId,
@@ -35,10 +38,10 @@ class WorkspaceRespondersController(Routable):
         sort: SortRequest = Depends(None),
         user: User = Depends(get_logged_user),
     ):
-        return await self.workspace_responders_service.get_workspace_responders(
+        response = await self.workspace_responders_service.get_workspace_responders(
             workspace_id=workspace_id, filter_query=filter_query, sort=sort, user=user
         )
-        pass
+        return response
 
     @get("/tags")
     async def get_all_workspace_tags(
@@ -60,5 +63,16 @@ class WorkspaceRespondersController(Routable):
         )
 
     @patch("")
-    async def patch_workspace_responder_with_email(self, email: EmailStr):
-        pass
+    async def patch_workspace_responder_with_email(
+        self,
+        workspace_id: PydanticObjectId,
+        email: str,
+        patch_request: WorkspaceResponderPatchDto = Body(),
+        user: User = Depends(get_logged_user),
+    ):
+        await self.workspace_responders_service.patch_workspace_responder_with_email(
+            workspace_id=workspace_id,
+            email=email,
+            patch_request=patch_request,
+            user=user,
+        )
