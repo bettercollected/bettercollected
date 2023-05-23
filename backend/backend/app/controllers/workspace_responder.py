@@ -19,7 +19,7 @@ from backend.app.services.workspace_responders_service import WorkspaceResponder
 from common.models.user import User
 
 
-@router(prefix="/{workspace_id}/responders", tags=["Workspace Responders"])
+@router(prefix="/workspaces/{workspace_id}/responders", tags=["Workspace Responders"])
 class WorkspaceRespondersController(Routable):
     def __init__(
         self,
