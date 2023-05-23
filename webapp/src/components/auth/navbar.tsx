@@ -98,6 +98,7 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
         localStorage.setItem('language', language);
         setLanguage(language);
     };
+    console.log(showPlans);
 
     return (
         <Header className="!z-[1300]">
@@ -139,13 +140,11 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
                             ))}
                         </MenuDropdown>
                     </div>
-
                     {showPlans && (
                         <ProPlanHoc hideChildrenIfPro={true}>
                             <Button size="small">{t(buttons.upgrade)}</Button>
                         </ProPlanHoc>
                     )}
-
                     {showAuthAccount && <AuthAccountMenuDropdown hideMenu={hideMenu} />}
                 </div>
             </div>

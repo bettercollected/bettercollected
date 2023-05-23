@@ -22,5 +22,5 @@ export default function ProPlanHoc({ children, hideChildrenIfPro = false }: IPro
         }
     };
 
-    return <div onClick={(event) => handleClick(event)}>{(!isProPlan || !hideChildrenIfPro) && children}</div>;
+    return !isProPlan || !hideChildrenIfPro ? <div onClick={(event) => handleClick(event)}>{children}</div> : <></>;
 }

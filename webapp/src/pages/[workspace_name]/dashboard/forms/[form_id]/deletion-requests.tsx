@@ -5,7 +5,6 @@ import { useTranslation } from 'next-i18next';
 import Divider from '@Components/Common/DataDisplay/Divider';
 
 import FormResponsesTable from '@app/components/datatable/form/form-responses';
-import ResponsesTable from '@app/components/datatable/responses';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';
 import { formsConstant } from '@app/constants/locales/forms';
 

@@ -108,7 +108,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                         {updateDomain
                             ? workspace?.customDomain
                                 ? t(updateWorkspace.formLinkWithPreviousDomainError)
-                                : `${updateWorkspace.addCnameRecordMessage}${environments.IS_IN_PRODUCTION_MODE ? 'bettercollected.com' : 'sireto.dev'}'`
+                                : `${t(updateWorkspace.addCnameRecordMessage)}${environments.IS_IN_PRODUCTION_MODE ? 'bettercollected.com' : 'sireto.dev'}'`
                             : t(updateWorkspace.formLinkWithPreviousworkspaceHandleError)}
                     </div>
                 </div>
