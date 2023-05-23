@@ -1,6 +1,6 @@
 export const updateWorkspace = {
     handle: 'UPDATE_WORKSPACE_HANDLE',
-    customDomain: 'UPDATE_CUSTOM_DOMAIN',
+    customDomain: 'UPDATE_YOUR_CUSTOM_DOMAIN',
     setupCustomDomain: 'SETUP_CUSTOM_DOMAIN_FOR_WORKSPACE',
     formLinkWithPreviousDomainError: 'FORM_LINK_WITH_PREVIOUS_DOMAIN_WONT_WORK',
     addCnameRecordMessage: 'ADD_CNAME_RECORD_MESSAGE',

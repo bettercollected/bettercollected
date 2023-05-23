@@ -1,4 +1,4 @@
-export const buttons = {
+export const buttonConstant = {
     save: 'BUTTON.SAVE',
     saving: 'BUTTON.SAVING',
     login: 'BUTTON.LOGIN',
@@ -37,7 +37,9 @@ export const buttons = {
     resendCode: 'BUTTON.RESEND_CODE',
     saveImage: 'BUTTON.SAVE_IMAGE',
     back: 'BUTTON.BACK',
-    joinWorkspace: 'BUTTONS.JOIN_WORKSPACE',
-    decline: 'BUTTONS.DECLINE',
-    importNow: 'BUTTON.IMPORT_NOW'
+    joinWorkspace: 'BUTTON.JOIN_WORKSPACE',
+    decline: 'BUTTON.DECLINE',
+    importNow: 'BUTTON.IMPORT_NOW',
+    yes: 'BUTTON.YES',
+    no: 'BUTTON.NO'
 };

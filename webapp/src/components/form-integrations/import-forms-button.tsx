@@ -8,7 +8,7 @@ import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import { useModal } from '@app/components/modal-views/context';
 import Button, { ButtonProps } from '@app/components/ui/button';
 import environments from '@app/configs/environments';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 
 export default function ImportFormsButton({ size, className = '' }: ButtonProps) {
     const { openModal } = useModal();
@@ -47,7 +47,7 @@ export default function ImportFormsButton({ size, className = '' }: ButtonProps)
 
     const importFormButton = (
         <Button variant="solid" className={`w-full sm:w-auto ${className}`} disabled={!googleEnabled && !typeformEnabled} size={size} onClick={handleClick}>
-            {t(buttons.importForms)}
+            {t(buttonConstant.importForms)}
         </Button>
     );
 

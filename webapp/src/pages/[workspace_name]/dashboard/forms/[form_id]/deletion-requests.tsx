@@ -6,7 +6,7 @@ import Divider from '@Components/Common/DataDisplay/Divider';
 
 import FormResponsesTable from '@app/components/datatable/form/form-responses';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 
 export default function DeletionRequests(props: any) {
     const { t } = useTranslation();
@@ -14,7 +14,7 @@ export default function DeletionRequests(props: any) {
 
     return (
         <FormPageLayout {...props}>
-            <div className="heading4">{t(formsConstant.deletionRequests)}</div>
+            <div className="heading4">{t(formConstant.deletionRequests)}</div>
             <Divider className="my-4" />
             <FormResponsesTable props={{ ...props, requestForDeletion }} />
         </FormPageLayout>

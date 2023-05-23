@@ -8,8 +8,8 @@ import { toast } from 'react-toastify';
 import { useModal } from '@app/components/modal-views/context';
 import { FormSettingsCard } from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
-import { buttons } from '@app/constants/locales/buttons';
-import { formsConstant } from '@app/constants/locales/forms';
+import { buttonConstant } from '@app/constants/locales/buttons';
+import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -80,8 +80,8 @@ export default function FormSettingsTab() {
             <FormSettingsCard>
                 <div className=" flex items-center justify-between">
                     <div>
-                        <div className="body1">{t(formsConstant.hide)}</div>
-                        <div className="body3">{t(formsConstant.hideDescription)}</div>
+                        <div className="body1">{t(formConstant.hide)}</div>
+                        <div className="body3">{t(formConstant.hideDescription)}</div>
                     </div>
                     <Switch data-testid="private-switch" checked={!!form?.settings?.private} onClick={(e) => onPrivateChanged(e, form)} />
                 </div>
@@ -90,8 +90,8 @@ export default function FormSettingsTab() {
                 <FormSettingsCard>
                     <div className=" flex items-center justify-between">
                         <div>
-                            <div className="body1">{t(formsConstant.pinned)}</div>
-                            <div className="body3">{t(formsConstant.pinnedDescription)}</div>
+                            <div className="body1">{t(formConstant.pinned)}</div>
+                            <div className="body3">{t(formConstant.pinnedDescription)}</div>
                         </div>
                         <Switch data-testid="pinned-switch" checked={!!form?.settings?.pinned} onClick={(e) => onPinnedChange(e, form)} />
                     </div>
@@ -126,9 +126,9 @@ export default function FormSettingsTab() {
             <FormSettingsCard>
                 <div className="flex items-center justify-between">
                     <div className="">
-                        <div className="body1">{t(formsConstant.delete)}</div>
+                        <div className="body1">{t(formConstant.delete)}</div>
                         <div className="body3">
-                            <div>{t(formsConstant.deleteDescription)}</div>
+                            <div>{t(formConstant.deleteDescription)}</div>
                         </div>
                     </div>
                     <Button
@@ -140,7 +140,7 @@ export default function FormSettingsTab() {
                             openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
                         }}
                     >
-                        {t(buttons.delete)}
+                        {t(buttonConstant.delete)}
                     </Button>
                 </div>
             </FormSettingsCard>

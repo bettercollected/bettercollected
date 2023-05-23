@@ -7,7 +7,7 @@ import { Divider } from '@mui/material';
 import ResponsesTable from '@app/components/datatable/responses';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import globalConstants from '@app/constants/global';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceAllSubmissionsQuery } from '@app/store/workspaces/api';
@@ -24,7 +24,7 @@ export default function DeletionRequests({ workspace }: { workspace: WorkspaceDt
     });
     return (
         <DashboardLayout>
-            <div className="heading4">{t(formsConstant.deletionRequests)}</div>
+            <div className="heading4">{t(formConstant.deletionRequests)}</div>
             <ResponsesTable workspaceId={workspace.id} requestForDeletion={true} page={page} setPage={setPage} submissions={submissions} />
         </DashboardLayout>
     );

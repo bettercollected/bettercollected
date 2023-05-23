@@ -18,7 +18,7 @@ import LinkView from '@app/components/ui/link-view';
 import ShareView from '@app/components/ui/share-view';
 import environments from '@app/configs/environments';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { customize } from '@app/constants/locales/customize';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -91,7 +91,7 @@ export default function ManageWorkspaceLayout({ children }: any) {
                                 <LinkView url={isCustomDomain ? customDomainUrl : clientHostUrl} toastMessage={t(toastMessage.workspaceUrlCopied)} className="flex flex-col" buttonClassName="!text-brand-500 !border-blue-200 hover:!bg-brand-200 " />
                             </div>
                             <div className="my-12">
-                                <CustomizeLink title={t(customize.domain)} subtitle={t(customize.domainDescription)} buttonText={isProPlan ? t(buttons.customizeLink) : t(buttons.upgradeToPro)} onClick={handleClick} />
+                                <CustomizeLink title={t(customize.domain)} subtitle={t(customize.domainDescription)} buttonText={isProPlan ? t(buttonConstant.customizeLink) : t(buttonConstant.upgradeToPro)} onClick={handleClick} />
                             </div>
                         </div>
                     </Box>

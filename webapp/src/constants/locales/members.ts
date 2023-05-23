@@ -4,5 +4,5 @@ export const members = {
     join: 'MEMBERS.JOIN',
     invitations: 'MEMBERS.INVITATION',
     invitationDate: 'MEMBERS.INVITATION_DATE',
-    default: 'MEMBERS'
+    default: 'MEMBERS.DEFAULT'
 };

@@ -10,7 +10,7 @@ import BetterInput from '@app/components/Common/input';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -133,7 +133,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                 </div>
                 <div className="flex mt-8 w-full gap-4 justify-end">
                     <Button data-testid="save-button" type="submit" isLoading={isLoading || result?.isLoading} variant="solid" size="medium" onClick={handleSubmit}>
-                        {t(buttons.save)}
+                        {t(buttonConstant.save)}
                     </Button>
                 </div>
             </form>

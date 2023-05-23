@@ -7,7 +7,7 @@ import { Button, Typography } from '@mui/material';
 import cn from 'classnames';
 import { toast } from 'react-toastify';
 
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 
 type SizeNames = 'large' | 'medium' | 'small';
@@ -42,7 +42,7 @@ export default function LinkView({ url, toastMessage, className, buttonClassName
                     variant="outlined"
                     className={cn(' !leading-none  !p-2 capitalize', buttonClassName)}
                 >
-                    {t(buttons.copyLink)}
+                    {t(buttonConstant.copyLink)}
                 </Button>
             </div>
         </div>

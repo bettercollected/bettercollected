@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
 import { useLazyGetLogoutQuery, useLazyGetStatusQuery } from '@app/store/auth/api';
 import { initialAuthState, setAuth } from '@app/store/auth/slice';
@@ -40,10 +40,10 @@ export default function LogoutView(props: any) {
 
                     <div className="flex w-full gap-4 justify-end">
                         <Button data-testid="logout-button" className="flex-1 !body4" variant="solid" size="medium" color="danger" onClick={handleLogout}>
-                            {t(buttons.logout)}
+                            {t(buttonConstant.logout)}
                         </Button>
                         <Button variant="solid" color="gray" size="medium" className="flex-1 !body4 !bg-black-500" onClick={closeModal}>
-                            {t(buttons.cancel)}
+                            {t(buttonConstant.cancel)}
                         </Button>
                     </div>
                 </div>

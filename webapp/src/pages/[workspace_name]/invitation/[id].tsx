@@ -9,7 +9,7 @@ import AuthAccountProfileImage from '@app/components/auth/account-profile-image'
 import AuthNavbar from '@app/components/auth/navbar';
 import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
 import { invitationConstant } from '@app/constants/locales/invitations';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -90,29 +90,29 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
                     <div className="bg-white md:max-w-[502px] flex flex-col rounded p-10 items-center justify-center">
                         <AuthAccountProfileImage size={60} image={workspace?.profileImage} name={workspace?.workspaceName} />
                         <div className="text-2xl mt-6 mb-4 sh3 !font-normal !text-black-700 ">
-                            {t(invitationConstant.title[1])}
+                            {t(invitationConstant.title1)}
                             <span className="font-bold text-black-900">{' ' + workspace?.title || t(localesGlobal.untitled)}</span>
                         </div>
-                        <div className="body3 mb-10 !text-black-700">{t(invitationConstant.title[2])}</div>
+                        <div className="body3 mb-10 !text-black-700">{t(invitationConstant.title2)}</div>
                         <div className="flex flex-col space-y-4 items-center">
                             <div className="flex space-x-5">
                                 <Button disabled={isLoading} size="large" onClick={onAccept}>
-                                    {t(buttons.joinWorkspace)}
+                                    {t(buttonConstant.joinWorkspace)}
                                 </Button>
                                 <Button className="text-white bg-black-500 hover:!bg-black-600" disabled={isLoading} size="large" onClick={onDecline}>
-                                    {t(buttons.decline)}
+                                    {t(buttonConstant.decline)}
                                 </Button>
                             </div>
                         </div>
                         <div className="mt-5 body3 !text-black-700">{t(invitationConstant.expiryLink)}</div>
                     </div>
                     <div className="ml-10 mt-8">
-                        <div className="body1 mb-6">{t(invitationConstant.listTitle)}</div>
+                        <div className="body1 mb-6">{t(invitationConstant.list.title)}</div>
 
                         <ul className="list-disc body2 flex flex-col space-y-3 pl-10">
-                            <li>{t(invitationConstant.listItem[1])}</li>
-                            <li>{t(invitationConstant.listItem[2])}</li>
-                            <li>{t(invitationConstant.listItem[3])}</li>
+                            <li>{t(invitationConstant.list['item1'])}</li>
+                            <li>{t(invitationConstant.list['item2'])}</li>
+                            <li>{t(invitationConstant.list['item3'])}</li>
                         </ul>
                     </div>
                 </div>

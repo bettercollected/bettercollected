@@ -4,7 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Back from '@app/components/icons/back';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 
 export default function BackButton() {
     const router = useRouter();
@@ -16,7 +16,7 @@ export default function BackButton() {
     return (
         <div className="paragraph text-black-900 cursor-pointer flex items-center gap-1 py-4 hover:text-brand-500 hover:underline" onClick={handleBackClick}>
             <Back />
-            <span>{t(buttons.back)}</span>
+            <span>{t(buttonConstant.back)}</span>
         </div>
     );
 }

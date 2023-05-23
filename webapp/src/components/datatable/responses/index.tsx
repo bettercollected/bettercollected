@@ -13,7 +13,7 @@ import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-
 import EmptyResponse from '@app/components/ui/empty-response';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { useGetFormsSubmissionsQuery, useGetWorkspaceAllSubmissionsQuery, useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
@@ -35,8 +35,6 @@ const responseTableStyles = {
 const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, page, setPage }: any) => {
     const router = useRouter();
     const workspaceStats = useGetWorkspaceStatsQuery(workspaceId, { pollingInterval: 30000 });
-
-    console.log(submissions);
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
     };
@@ -61,7 +59,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
 
     const dataTableResponseColumns: any = [
         {
-            name: t(formsConstant.requestedBy),
+            name: t(formConstant.requestedBy),
             selector: (response: StandardFormResponseDto) => responseDataOwnerField(response),
             grow: 2,
             style: {
@@ -73,7 +71,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
             }
         },
         {
-            name: t(formsConstant.submissionDate),
+            name: t(formConstant.submissionDate),
             selector: (row: StandardFormResponseDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
@@ -89,7 +87,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
         const statusToAdd = [
             {
                 name: t(localesGlobal.status),
-                selector: (row: StandardFormResponseDto) => <RequestForDeletionBadge deletionStatus={row?.deletionStatus || t(formsConstant.status.pending)} />,
+                selector: (row: StandardFormResponseDto) => <RequestForDeletionBadge deletionStatus={row?.deletionStatus || t(formConstant.status.pending)} />,
                 style: {
                     color: 'rgba(0,0,0,.54)',
                     paddingLeft: '16px',
@@ -160,8 +158,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
                 </>
             ) : (
                 <EmptyResponse
-                    title={t(requestForDeletion ? formsConstant.empty.deletionRequest.title : formsConstant.empty.response.title)}
-                    description={t(requestForDeletion ? formsConstant.empty.deletionRequest.description : formsConstant.empty.response.description)}
+                    title={t(requestForDeletion ? formConstant.empty.deletionRequest.title : formConstant.empty.response.title)}
+                    description={t(requestForDeletion ? formConstant.empty.deletionRequest.description : formConstant.empty.response.description)}
                 />
             )}
         </>

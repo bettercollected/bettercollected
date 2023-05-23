@@ -1,7 +1,7 @@
 export const localesGlobal = {
     customDomain: 'CUSTOM_DOMAIN',
-    dashboard: 'DASHBOARD',
-    delete: 'DELETE',
+    dashboard: 'DASHBOARD.DEFAULT',
+    delete: 'DELETE.DEFAULT',
     description: 'DESCRIPTION',
     deleteMessage: 'DELETE.MESSAGE',
     earlyAccess: 'EARLY_ACCESS',

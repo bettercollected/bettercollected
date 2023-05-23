@@ -7,7 +7,7 @@ import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import { advanceSetting } from '@app/constants/locales/advance-setting';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -42,7 +42,7 @@ export default function UpdateCustomDomain() {
                     )}
                 </div>
                 <div>
-                    <Button onClick={handleClick}>{t(buttons.update)}</Button>
+                    <Button onClick={handleClick}>{t(buttonConstant.update)}</Button>
                 </div>
             </div>
         </SettingsCard>

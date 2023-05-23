@@ -16,7 +16,7 @@ import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import WorkspaceMenuDropdown from '@app/components/workspace/workspace-menu-dropdown';
 import dashboardConstants from '@app/constants/locales/dashboard';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
@@ -68,19 +68,19 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
         },
         {
             key: 'forms',
-            name: t(formsConstant.default),
+            name: t(formConstant.default),
             url: `${commonWorkspaceUrl}/forms`,
             icon: <FormIcon />
         },
         {
             key: 'responders',
-            name: t(formsConstant.responders),
+            name: t(formConstant.responders),
             url: `${commonWorkspaceUrl}/responders`,
             icon: <ResponderIcon />
         },
         {
             key: 'deletion_requests',
-            name: t(formsConstant.deletionRequests),
+            name: t(formConstant.deletionRequests),
             url: `${commonWorkspaceUrl}/deletion-requests`,
             icon: <DeleteIcon />
         }

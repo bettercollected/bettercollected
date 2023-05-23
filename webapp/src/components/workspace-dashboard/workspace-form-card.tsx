@@ -14,7 +14,7 @@ import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
 import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -88,7 +88,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                 <div className="relative flex justify-between items-center py-2 px-4 gap-4 w-full border-t-[1px] border-black-400">
                     <Button className={`p-2 capitalize hover:bg-brand-100 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_RESPONSES}`} variant="text" onClick={() => router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/responses`)}>
                         <span className="body4">
-                            {form?.responses} {!!form?.responses && form.responses > 1 ? t(formsConstant.responses) : t(formsConstant.response)}
+                            {form?.responses} {!!form?.responses && form.responses > 1 ? t(formConstant.responses) : t(formConstant.response)}
                         </span>
                     </Button>
                     <div className="flex space-x-4 items-center">
@@ -99,7 +99,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                                 event.stopPropagation();
                                 openModal('SHARE_VIEW', {
                                     url: getFormUrl(form, workspace),
-                                    title: t(formsConstant.shareThisForm)
+                                    title: t(formConstant.shareThisForm)
                                 });
                             }}
                         >

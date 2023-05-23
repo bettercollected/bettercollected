@@ -6,7 +6,7 @@ import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 import { PersistPartial } from 'redux-persist/es/persistReducer';
 
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { customize } from '@app/constants/locales/customize';
 import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -87,7 +87,7 @@ export default function CustomizeUrlView({ description, url }: ICustomizeUrlModa
             </div>
             <div className="mt-5 flex justify-end">
                 <Button onClick={handleUpdate} isLoading={isLoading}>
-                    {t(buttons.updateUrl)}
+                    {t(buttonConstant.updateUrl)}
                 </Button>
             </div>
         </div>

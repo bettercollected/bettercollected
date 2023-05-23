@@ -7,7 +7,7 @@ import { Box } from '@mui/material';
 
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
 import { selectForm } from '@app/store/forms/slice';
@@ -23,17 +23,17 @@ export default function FormDrawer({ drawerWidth, mobileOpen, handleDrawerToggle
     const navbarItems: Array<INavbarItem> = [
         {
             key: 'preview',
-            name: t(formsConstant.preview),
+            name: t(formConstant.preview),
             url: commonUrl
         },
         {
             key: 'responses',
-            name: t(formsConstant.responses) + ' (' + (form.responses || 0) + ')',
+            name: t(formConstant.responses) + ' (' + (form.responses || 0) + ')',
             url: `${commonUrl}/responses`
         },
         {
             key: 'deletion_requests',
-            name: t(formsConstant.deletionRequests) + ' (' + (form.deletionRequests || 0) + ')',
+            name: t(formConstant.deletionRequests) + ' (' + (form.deletionRequests || 0) + ')',
             url: `${commonUrl}/deletion-requests`
         },
         {

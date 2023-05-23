@@ -10,7 +10,7 @@ import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { WorkspaceResponderDto } from '@app/models/dtos/form';
 import { useGetWorkspaceAllSubmissionsQuery } from '@app/store/workspaces/api';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
@@ -35,7 +35,7 @@ export default function Responders({ workspace }: any) {
 
     const dataTableResponseColumns: any = [
         {
-            name: t(formsConstant.responder),
+            name: t(formConstant.responder),
             selector: (responder: WorkspaceResponderDto) => responder._id,
             grow: 2,
             style: {
@@ -47,7 +47,7 @@ export default function Responders({ workspace }: any) {
             }
         },
         {
-            name: t(formsConstant.responses),
+            name: t(formConstant.responses),
             selector: (responder: WorkspaceResponderDto) => responder.responses,
             style: {
                 color: 'rgba(0,0,0,.54)',
@@ -56,7 +56,7 @@ export default function Responders({ workspace }: any) {
             }
         },
         {
-            name: t(formsConstant.deletionRequests),
+            name: t(formConstant.deletionRequests),
             selector: (responder: WorkspaceResponderDto) => responder.deletion_requests,
             style: {
                 color: 'rgba(0,0,0,.54)',
@@ -86,7 +86,7 @@ export default function Responders({ workspace }: any) {
         <DashboardLayout>
             <div className="flex flex-col py-4">
                 <div className="h4">
-                    {t(formsConstant.responders)} {data && ' (' + data.total + ')'}
+                    {t(formConstant.responders)} {data && ' (' + data.total + ')'}
                 </div>
                 <div className="w-full md:w-[282px] mt-6">
                     <SearchInput handleSearch={handleSearch} />

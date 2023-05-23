@@ -13,7 +13,7 @@ import DataTableProviderFormCell from '@app/components/datatable/form/provider-f
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import ActiveLink from '@app/components/ui/links/active-link';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
@@ -89,7 +89,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
 
     const dataTableFormColumns = [
         {
-            name: t(formsConstant.formType),
+            name: t(formConstant.formType),
             selector: (form: StandardFormDto) => <DataTableProviderFormCell form={form} workspace={workspace} />,
             grow: 4,
             style: {
@@ -101,7 +101,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             }
         },
         {
-            name: t(formsConstant.responses),
+            name: t(formConstant.responses),
             selector: (row: StandardFormDto) => (
                 <ActiveLink className="hover:text-brand-500 hover:underline" href={`/${workspace.workspaceName}/dashboard/forms/${row.formId}/responses`}>
                     {row?.responses ?? 0}
@@ -117,7 +117,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             }
         },
         {
-            name: t(formsConstant.deletionRequests),
+            name: t(formConstant.deletionRequests),
             selector: (row: StandardFormDto) => (
                 <ActiveLink className="hover:text-brand-500 hover:underline paragraph" href={`/${workspace.workspaceName}/dashboard/forms/${row.formId}/deletion-requests`}>
                     {' '}
@@ -142,7 +142,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                   }
               ]),
         {
-            name: t(formsConstant.importedDate),
+            name: t(formConstant.importedDate),
             selector: (row: StandardFormDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
@@ -183,7 +183,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     return (
         <SidebarLayout>
             <div className="py-10 w-full h-full">
-                <h1 className="sh1">{t(formsConstant.default)}</h1>
+                <h1 className="sh1">{t(formConstant.default)}</h1>
                 <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
                     {/* <StyledTextField>
                         <TextField

@@ -6,7 +6,7 @@ import AvatarEditor from 'react-avatar-editor';
 
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
 
 interface ICropImageModalViewProps {
@@ -43,10 +43,10 @@ export default function CropImageModalView({ profileEditorRef, uploadImage, prof
                         setLoading(true);
                     }}
                 >
-                    {t(buttons.saveImage)}
+                    {t(buttonConstant.saveImage)}
                 </Button>
                 <Button variant="solid" color="info" disabled={isLoading} className="hover:!translate-y-0 !rounded !bg-black-500 hover:!bg-black-600 flex-1 !shadow-none" onClick={closeModal}>
-                    {t(buttons.cancel)}
+                    {t(buttonConstant.cancel)}
                 </Button>
             </div>
         </div>

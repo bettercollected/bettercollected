@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import BetterInput from '@app/components/Common/input';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -65,7 +65,7 @@ export default function WorkspaceInfo({ workspace }: any) {
                 </div>
                 <div>
                     <Button type="submit" disabled={isLoading || !workspaceInfo.title}>
-                        {t(buttons.save)}
+                        {t(buttonConstant.save)}
                     </Button>
                 </div>
             </form>

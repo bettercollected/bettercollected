@@ -11,7 +11,7 @@ import ResponsesTable from '@app/components/datatable/responses';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import BackButton from '@app/components/settings/back';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { IGetWorkspaceSubmissionQuery } from '@app/store/workspaces/types';
 
@@ -43,7 +43,7 @@ export default function Responses(props: any) {
 
     return (
         <FormPageLayout {...props}>
-            <div className="heading4">{t(formsConstant.responses)}</div>
+            <div className="heading4">{t(formConstant.responses)}</div>
             {!submissionId && (
                 <>
                     <Divider className="my-4" />

@@ -13,7 +13,7 @@ import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import Button from '@app/components/ui/button';
 import Hamburger from '@app/components/ui/hamburger';
 import Logo from '@app/components/ui/logo';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
@@ -98,7 +98,6 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
         localStorage.setItem('language', language);
         setLanguage(language);
     };
-    console.log(showPlans);
 
     return (
         <Header className="!z-[1300]">
@@ -142,7 +141,7 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
                     </div>
                     {showPlans && (
                         <ProPlanHoc hideChildrenIfPro={true}>
-                            <Button size="small">{t(buttons.upgrade)}</Button>
+                            <Button size="small">{t(buttonConstant.upgrade)}</Button>
                         </ProPlanHoc>
                     )}
                     {showAuthAccount && <AuthAccountMenuDropdown hideMenu={hideMenu} />}

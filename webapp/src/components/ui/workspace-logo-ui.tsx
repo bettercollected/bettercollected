@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
 
 import AuthAccountProfileImage from '../auth/account-profile-image';
@@ -24,7 +24,7 @@ export default function WorkSpaceLogoUi({ workspaceLogoRef, onChange, onClick, i
                 <p className="body3 mb-5 !text-black-700 md:text-start text-center">{t(localesGlobal.imageSizeRestriction)}</p>
                 <input data-testid="file-upload-profile" type="file" accept="image/*" className="hidden" ref={workspaceLogoRef} onChange={onChange} />
                 <Button size="small" variant="ghost" className="!text-brand-500 hover:!bg-brand-200 !bg-white !border-brand-300" onClick={onClick}>
-                    {t(buttons.upload)}
+                    {t(buttonConstant.upload)}
                 </Button>
             </div>
         </div>

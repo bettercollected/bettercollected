@@ -1,12 +1,17 @@
 import React, { useRef } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
+import { buttonConstant } from '@app/constants/locales/buttons';
+import { formConstant } from '@app/constants/locales/form';
 
 export default function RequestForDeletionView(props: any) {
     const { closeModal } = useModal();
     const { handleRequestForDeletion } = props;
+    const { t } = useTranslation();
 
     const ref = useRef<HTMLDivElement>(null);
 
@@ -22,13 +27,13 @@ export default function RequestForDeletionView(props: any) {
                 <svg aria-hidden="true" className="mx-auto mb-4 text-gray-400 w-14 h-14 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                <h3 className="mb-5 text-lg font-normal max-w-[352px] text-gray-500 dark:text-gray-400">Are you sure you want to request your response to be deleted?</h3>
+                <h3 className="mb-5 text-lg font-normal max-w-[352px] text-gray-500 dark:text-gray-400">{t(formConstant.deletionResponseWarningMessage)}</h3>
                 <div className="flex items-center justify-between">
                     <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
-                        Yes, I&apos;m sure
+                        {t(buttonConstant.yes)}
                     </Button>
                     <Button variant="solid" color="gray" size="medium" className="!bg-black-500 mr-2" onClick={closeModal}>
-                        No, Cancel
+                        {t(buttonConstant.no)}
                     </Button>
                 </div>
             </div>

@@ -9,7 +9,7 @@ import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
 import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -100,7 +100,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                             <Image src="/upload.png" height="46px" width={'72px'} alt={'upload'} />
                             <div className="lg:mt-2">
                                 <span className="cursor-pointer text-brand-500 pr-1" onClick={onClickFileUploadButton}>
-                                    {t(buttons.upload)}
+                                    {t(buttonConstant.upload)}
                                 </span>
                                 {t(localesGlobal.a)} {t(localesGlobal.image)}
                             </div>
@@ -131,16 +131,16 @@ function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileU
     return (
         <div className={`absolute bottom-2 right-2 hidden ${getUpdateOptionsClassName()}`}>
             <div className="flex justify-between">
-                {!isLoading && !image && <Button onClick={onClickFileUploadButton}>{t(buttons.update)}</Button>}
+                {!isLoading && !image && <Button onClick={onClickFileUploadButton}>{t(buttonConstant.update)}</Button>}
                 {!isLoading && image && (
                     <Button className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2" size="small" onClick={onCLickCancelButton}>
-                        {t(buttons.cancel)}
+                        {t(buttonConstant.cancel)}
                     </Button>
                 )}
                 {!!image && (
                     <>
                         <Button isLoading={isLoading} onClick={onClickFileSaveButton}>
-                            {isLoading ? t(buttons.saving) : t(buttons.save)}
+                            {isLoading ? t(buttonConstant.saving) : t(buttonConstant.save)}
                         </Button>
                     </>
                 )}
