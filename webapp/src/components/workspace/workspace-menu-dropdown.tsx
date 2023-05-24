@@ -9,7 +9,6 @@ import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdow
 import { IconButton, ListItem } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import { Check } from '@app/components/icons/check';
 import { Plus } from '@app/components/icons/plus';
 import Loader from '@app/components/ui/loader';
@@ -34,7 +33,6 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
     const { data, isLoading } = useGetAllMineWorkspacesQuery();
     const router = useRouter();
     const isProPlan = useAppSelector(selectIsProPlan);
-    const language = router?.locale === 'en' ? '' : router?.locale;
 
     const { t } = useTranslation();
     const handleChangeWorkspace = (space: WorkspaceDto) => {
@@ -46,12 +44,12 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
         if (!enableCreateWorkspaceButton() || !isProPlan) {
             return;
         }
-        router.push(`/${language}workspace/create`);
+        router.push(`/workspace/create`);
     };
 
     const redirectToUpgradeIfNotProPlan = () => {
         if (!isProPlan) {
-            router.push(`/${language}${workspace.workspaceName}/upgrade`);
+            router.push(`/${workspace.workspaceName}/upgrade`);
         }
     };
 

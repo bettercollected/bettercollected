@@ -12,10 +12,11 @@ interface ILogo {
     showProTag?: boolean;
     isClientDomain?: boolean;
     isCustomDomain?: boolean;
+    isFooter?: boolean;
     [props: string]: any;
 }
 
-const Logo = ({ className, isClientDomain = false, isCustomDomain = false, showProTag = true, ...props }: ILogo) => {
+const Logo = ({ className, isClientDomain = false, isCustomDomain = false, showProTag = true, isFooter = false, ...props }: ILogo) => {
     const workspace = useAppSelector(selectWorkspace);
     const authStatus: any = useAppSelector(selectAuth);
 
@@ -23,9 +24,9 @@ const Logo = ({ className, isClientDomain = false, isCustomDomain = false, showP
 
     const isProAndIsWorkspaceAdmin = user ? user?.id === workspace?.ownerId && user?.plan === 'PRO' : false;
 
-    const customDomainUrl = 'https://bettercollected.com';
-    const clientDomainUrl = `/${workspace?.workspaceName}`;
-    const adminDomainUrl = `/${workspace?.workspaceName}/dashboard`;
+    const customDomainUrl = isFooter ? 'https://bettercollected.com' : '/';
+    const clientDomainUrl = `${workspace?.workspaceName}`;
+    const adminDomainUrl = `${workspace?.workspaceName}/dashboard`;
 
     const url = isCustomDomain ? customDomainUrl : isClientDomain ? clientDomainUrl : adminDomainUrl;
 

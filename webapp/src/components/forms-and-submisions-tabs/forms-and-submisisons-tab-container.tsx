@@ -27,7 +27,6 @@ export default function FormsAndSubmissionsTabContainer({ showResponseBar, works
             path: 'forms'
         }
     ];
-    console.log(!showResponseBar && paramTabs.length === 1);
 
     if (!showResponseBar && paramTabs.length === 1) {
         paramTabs.push({

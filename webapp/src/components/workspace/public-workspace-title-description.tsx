@@ -60,7 +60,7 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
             <div className={`h-full w-full ${className}`}>
                 <div className="w-full flex flex-col gap-4">
                     <Tooltip title={fullWorkspaceName}>
-                        <h4 className="h4">{strippedWorkspaceTitle}</h4>
+                        <h4 className="h4 w-fit">{strippedWorkspaceTitle}</h4>
                     </Tooltip>
                     <MarkdownText scrollTitle={fullWorkspaceName} description={workspace.description} contentStripLength={280} markdownClassName="text-black-700 body3 !leading-none" textClassName="text-black-700 body3 !leading-none" />
                 </div>
