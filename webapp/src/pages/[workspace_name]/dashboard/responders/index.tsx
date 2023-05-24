@@ -8,6 +8,7 @@ import DataTable from 'react-data-table-component';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
+import EmptyResponse from '@app/components/ui/empty-response';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { formConstant } from '@app/constants/locales/form';
@@ -70,6 +71,20 @@ export default function Responders({ workspace }: any) {
             setQuery(removedQuery);
         }
     };
+    const response = () => {
+        if (data?.items && data?.items.length > 0)
+            return (
+                <>
+                    <DataTable className="p-0 mt-4" columns={dataTableResponseColumns} data={data?.items || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+                    {Array.isArray(data?.items) && (data?.total || 0) > globalConstants.pageSize && (
+                        <div className="mt-8 flex justify-center">
+                            <StyledPagination shape="rounded" count={data?.total || 0} page={query.page || 1} onChange={handlePageChange} />
+                        </div>
+                    )}
+                </>
+            );
+        return <EmptyResponse title={t(formConstant.empty.response.title)} description={t(formConstant.empty.response.description)} />;
+    };
 
     return (
         <DashboardLayout>
@@ -86,12 +101,8 @@ export default function Responders({ workspace }: any) {
                     <div className="w-full md:w-[282px] mt-6">
                         <SearchInput handleSearch={handleSearch} />
                     </div>
-                    <DataTable className="p-0 mt-4" columns={dataTableResponseColumns} data={data?.items || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
-                    {Array.isArray(data?.items) && (data?.total || 0) > globalConstants.pageSize && (
-                        <div className="mt-8 flex justify-center">
-                            <StyledPagination shape="rounded" count={data?.total || 0} page={query.page || 1} onChange={handlePageChange} />
-                        </div>
-                    )}
+
+                    {response()}
                 </div>
             )}
         </DashboardLayout>

@@ -42,8 +42,6 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
     };
     const { t } = useTranslation();
 
-    const [responses, setResponses] = useState<Array<any>>([]);
-
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
             <Typography className={cn('!text-black-900 body3 ', !requestForDeletion && 'hover:!text-brand-500 cursor-pointer hover:underline')} noWrap>
@@ -142,7 +140,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
                         pointerOnHover={false}
                         onRowClicked={onRowClicked}
                     />
-                    {Array.isArray(responses) && submissions?.data?.total > globalConstants.pageSize && (
+                    {Array.isArray(submissions?.data?.items) && submissions?.data?.total > globalConstants.pageSize && (
                         <div className="mt-8 flex justify-center">
                             <StyledPagination shape="rounded" count={submissions?.data?.total || 0} page={page} onChange={handlePageChange} />
                         </div>
@@ -156,13 +154,6 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
             />
         );
     };
-    if (submissions?.isLoading) {
-        return (
-            <div className=" w-full py-10 flex justify-center">
-                <Loader />
-            </div>
-        );
-    }
 
     return response();
 };

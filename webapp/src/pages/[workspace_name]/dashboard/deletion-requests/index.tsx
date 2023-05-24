@@ -7,6 +7,7 @@ import { Divider } from '@mui/material';
 
 import ResponsesTable from '@app/components/datatable/responses';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
+import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
@@ -35,14 +36,23 @@ export default function DeletionRequests({ workspace }: { workspace: WorkspaceDt
     const submissions = useGetWorkspaceAllSubmissionsQuery(query);
     return (
         <DashboardLayout>
-            <div className="heading4">{t(formConstant.deletionRequests)}</div>
-            <p className="body1 text-black-900 my-10">
-                {workspaceStats?.data?.deletion_requests.pending || 0}/{workspaceStats?.data?.deletion_requests.total} {t(localesGlobal.deletionRemaining)}
-            </p>
-            <div className="w-full md:w-[282px] mb-8">
-                <SearchInput handleSearch={handleSearch} />
-            </div>
-            <ResponsesTable workspaceId={workspace.id} requestForDeletion={true} page={page} setPage={setPage} submissions={submissions} />
+            {submissions?.isLoading && (
+                <div className=" w-full py-10 flex justify-center">
+                    <Loader />
+                </div>
+            )}
+            {!submissions?.isLoading && (
+                <>
+                    <div className="heading4">{t(formConstant.deletionRequests)}</div>
+                    <p className="body1 text-black-900 my-10">
+                        {workspaceStats?.data?.deletion_requests.pending || 0}/{workspaceStats?.data?.deletion_requests.total || 0} {t(localesGlobal.deletionRemaining)}
+                    </p>
+                    <div className="w-full md:w-[282px] mb-8">
+                        <SearchInput handleSearch={handleSearch} />
+                    </div>
+                    <ResponsesTable workspaceId={workspace.id} requestForDeletion={true} page={page} setPage={setPage} submissions={submissions} />
+                </>
+            )}
         </DashboardLayout>
     );
 }

@@ -12,9 +12,12 @@ import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options
 import DataTableProviderFormCell from '@app/components/datatable/form/provider-form-cell';
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
+import EmptyResponse from '@app/components/ui/empty-response';
 import ActiveLink from '@app/components/ui/links/active-link';
+import Loader from '@app/components/ui/loader';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
@@ -163,82 +166,30 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             }
         }
     ];
-    // const handleSearch = async (event: any) => {
-    //     const response: any = await searchWorkspaceForms({
-    //         workspace_id: workspace.id,
-    //         query: escapeRegExp(event.target.value)
-    //     });
-    //     if (event.target.value) {
-    //         setForms(response?.data);
-    //     } else {
-    //         setForms(workspaceForms?.data?.items);
-    //     }
-    // };
-    // const debouncedResults = useMemo(() => {
-    //     return debounce(handleSearch, 500);
-    // }, []);
-    // useEffect(() => {
-    //     debouncedResults.cancel();
-    // }, []);
+
+    const response = () => {
+        /* @ts-ignore */
+        if (forms && forms.length > 0) return <DataTable className="p-0 mt-2" columns={dataTableFormColumns} data={forms} customStyles={formTableStyles} highlightOnHover={false} pointerOnHover={false} onRowClicked={onRowCLicked} />;
+        return <EmptyResponse title={t(workspaceConstant.preview.emptyFormTitle)} description={''} />;
+    };
 
     return (
         <SidebarLayout>
-            <div className="py-10 w-full h-full">
-                <h1 className="sh1">{t(localesGlobal.forms)}</h1>
-                <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
-                    {/* <StyledTextField>
-                        <TextField
-                            sx={{ height: '46px', padding: 0 }}
-                            size="small"
-                            name="search-input"
-                            placeholder="Search"
-                            onChange={debouncedResults}
-                            className={'w-full'}
-                            InputProps={{
-                                sx: {
-                                    padding: '16px'
-                                },
-                                endAdornment: (
-                                    <InputAdornment sx={{ padding: 0 }} position="end">
-                                        <SearchIcon />
-                                    </InputAdornment>
-                                )
-                            }}
-                        />
-                    </StyledTextField> */}
-                    <ImportFormsButton size="small" />
-                    {/*<div className="grid grid-cols-2 items-center gap-2">*/}
-                    {/*    {selectList.map((item) => (*/}
-                    {/*        <FormControl key={item.id} variant="outlined" sx={{ height: '36px' }} hiddenLabel size="small">*/}
-                    {/*            <InputLabel id={item.id}>{item.label}</InputLabel>*/}
-                    {/*            <Select*/}
-                    {/*                labelId={item.id}*/}
-                    {/*                id={item.selectId}*/}
-                    {/*                MenuProps={{*/}
-                    {/*                    disableScrollLock: true*/}
-                    {/*                }}*/}
-                    {/*                sx={{ height: '36px' }}*/}
-                    {/*                color="primary"*/}
-                    {/*                IconComponent={ExpandMoreOutlined}*/}
-                    {/*                value={item.value}*/}
-                    {/*                label={item.label}*/}
-                    {/*                onChange={item.onChange}*/}
-                    {/*            >*/}
-                    {/*                {item.menuItems.map((menuItem) => (*/}
-                    {/*                    <MenuItem key={menuItem.value} value={menuItem.value}>*/}
-                    {/*                        {menuItem.label}*/}
-                    {/*                    </MenuItem>*/}
-                    {/*                ))}*/}
-                    {/*            </Select>*/}
-                    {/*        </FormControl>*/}
-                    {/*    ))}*/}
-                    {/*</div>*/}
+            {workspaceForms?.isLoading && (
+                <div className=" w-full py-10 flex justify-center">
+                    <Loader />
                 </div>
-                <Divider />
-
-                {/* @ts-ignore */}
-                <DataTable className="p-0 mt-2" columns={dataTableFormColumns} data={forms} customStyles={formTableStyles} highlightOnHover={false} pointerOnHover={false} onRowClicked={onRowCLicked} />
-            </div>
+            )}
+            {!workspaceForms?.isLoading && (
+                <div className="py-10 w-full h-full">
+                    <h1 className="sh1">{t(localesGlobal.forms)}</h1>
+                    <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
+                        <ImportFormsButton size="small" />
+                    </div>
+                    <Divider />
+                    {response()}
+                </div>
+            )}
         </SidebarLayout>
     );
 }
