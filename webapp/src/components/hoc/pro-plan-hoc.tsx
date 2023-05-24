@@ -18,6 +18,7 @@ export default function ProPlanHoc({ children, hideChildrenIfPro = false }: IPro
     const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
         if (!isProPlan) {
             event.stopPropagation();
+            event.preventDefault();
             router.push(`/${workspace.workspaceName}/upgrade`);
         }
     };

@@ -71,30 +71,29 @@ export default function Responders({ workspace }: any) {
         }
     };
 
-    if (isLoading) {
-        return (
-            <div className=" w-full py-10 flex justify-center">
-                <Loader />
-            </div>
-        );
-    }
-
     return (
         <DashboardLayout>
-            <div className="flex flex-col py-4">
-                <div className="h4">
-                    {t(formConstant.responders)} {data && ' (' + data.total + ')'}
+            {isLoading && (
+                <div className=" w-full py-10 flex justify-center">
+                    <Loader />
                 </div>
-                <div className="w-full md:w-[282px] mt-6">
-                    <SearchInput handleSearch={handleSearch} />
-                </div>
-                <DataTable className="p-0 mt-4" columns={dataTableResponseColumns} data={data?.items || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
-                {Array.isArray(data?.items) && (data?.total || 0) > globalConstants.pageSize && (
-                    <div className="mt-8 flex justify-center">
-                        <StyledPagination shape="rounded" count={data?.total || 0} page={query.page || 1} onChange={handlePageChange} />
+            )}
+            {!isLoading && (
+                <div className="flex flex-col py-4">
+                    <div className="h4">
+                        {t(formConstant.responders)} {data && ' (' + data.total + ')'}
                     </div>
-                )}
-            </div>
+                    <div className="w-full md:w-[282px] mt-6">
+                        <SearchInput handleSearch={handleSearch} />
+                    </div>
+                    <DataTable className="p-0 mt-4" columns={dataTableResponseColumns} data={data?.items || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+                    {Array.isArray(data?.items) && (data?.total || 0) > globalConstants.pageSize && (
+                        <div className="mt-8 flex justify-center">
+                            <StyledPagination shape="rounded" count={data?.total || 0} page={query.page || 1} onChange={handlePageChange} />
+                        </div>
+                    )}
+                </div>
+            )}
         </DashboardLayout>
     );
 }

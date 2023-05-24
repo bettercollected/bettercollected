@@ -30,11 +30,17 @@ interface IWorkspaceFormCardProps {
     className?: string;
 }
 
-export default function WorkspaceFormCard({ form, hasCustomDomain, index, workspace = undefined, isResponderPortal = false, className = '' }: IWorkspaceFormCardProps) {
+export default function WorkspaceFormCard({ form, hasCustomDomain, index, workspace, isResponderPortal = false, className = '' }: IWorkspaceFormCardProps) {
     const { openModal } = useModal();
     const router = useRouter();
 
     const { t } = useTranslation();
+
+    const handleResponseClick = (event: any) => {
+        event.preventDefault();
+        event.stopPropagation();
+        router.push(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}/responses`);
+    };
     return (
         <div className={`flex flex-col items-start justify-between h-full bg-white border-[2px] border-brand-100 hover:border-black-500 transition cursor-pointer rounded-lg shadow-formCard ${className}`}>
             {typeof index !== undefined && index === 0 && environments.ENABLE_JOYRIDE_TOURS && !isResponderPortal && (
@@ -86,7 +92,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
             </div>
             {!isResponderPortal && !!workspace && (
                 <div className="relative flex justify-between items-center py-2 px-4 gap-4 w-full border-t-[1px] border-black-400">
-                    <Button className={`p-2 capitalize hover:bg-brand-100 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_RESPONSES}`} variant="text" onClick={() => router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/responses`)}>
+                    <Button className={`p-2 capitalize hover:bg-brand-100 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_RESPONSES}`} variant="text" onClick={handleResponseClick}>
                         <span className="body4">
                             {form?.responses} {!!form?.responses && form.responses > 1 ? t(formConstant.responses) : t(formConstant.response)}
                         </span>

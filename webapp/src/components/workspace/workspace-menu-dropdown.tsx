@@ -43,10 +43,16 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
     const auth = useAppSelector(selectAuthStatus);
 
     const handleCreateWorkspace = () => {
-        if (!enableCreateWorkspaceButton()) {
+        if (!enableCreateWorkspaceButton() || !isProPlan) {
             return;
         }
         router.push(`/${language}workspace/create`);
+    };
+
+    const redirectToUpgradeIfNotProPlan = () => {
+        if (!isProPlan) {
+            router.push(`/${language}${workspace.workspaceName}/upgrade`);
+        }
     };
 
     const fullWorkspaceName = workspace?.title || 'Untitled';
@@ -119,10 +125,12 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
             {!isLoading && (
                 <div>
                     <Divider className="my-2" />
-                    <ProPlanHoc hideChildrenIfPro={false}>
+                    <div onClick={redirectToUpgradeIfNotProPlan}>
                         <ListItem disablePadding alignItems="center" className={``}>
                             <IconButton
-                                className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'} ${!enableCreateWorkspaceButton() ? '!text-black-500 cursor-not-allowed' : '!text-black-800'}`}
+                                className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'} ${
+                                    !enableCreateWorkspaceButton() && isProPlan ? '!text-black-500 cursor-not-allowed' : '!text-black-800'
+                                }`}
                                 onClick={handleCreateWorkspace}
                                 size="small"
                             >
@@ -134,7 +142,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                                 </span>
                             </IconButton>
                         </ListItem>
-                    </ProPlanHoc>
+                    </div>
                 </div>
             )}
         </MenuDropdown>
