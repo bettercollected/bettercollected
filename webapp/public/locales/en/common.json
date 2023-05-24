@@ -1,5 +1,5 @@
 {
-	"A": "a",
+	"AN": "an",
 	"ADD_CNAME_RECORD_MESSAGE": "Add CNAME record of your domain to point to 'custom.",
 	"ADD_WORKSPACE_LOGO": "Add a workspace logo",
 	"ADVANCE": "Advance",
@@ -67,9 +67,9 @@
 		"NO": "No",
 		"REQUEST_FOR_DELETION": "Request for deletion",
 		"REQUESTED_FOR_DELETION": "Requested for deletion",
-		"REMOVE_INVITATION":"Remove invitation",
-		"DELETE_MEMBER":"Delete member",
-		"SKIP":"Skip"
+		"REMOVE_INVITATION": "Remove invitation",
+		"DELETE_MEMBER": "Delete member",
+		"SKIP": "Skip"
 	},
 	"CONTACT_US": {
 		"DESCRIPTION": "Any questions or remarks? Just write us a message",
@@ -148,8 +148,8 @@
 		"SUBMITTED_FORMS": "Submitted forms",
 		"PREVIEW": "Form Preview",
 		"URL": "Form URL",
-		"IMPORTED_BY":"Imported By",
-		"IMPORTED_ON":"Imported On"
+		"IMPORTED_BY": "Imported By",
+		"IMPORTED_ON": "Imported On"
 	},
 	"FORMS": "Forms",
 	"FORMS_LINK": "Forms Links",
@@ -273,8 +273,10 @@
 		"SIGNIN_AGREEMENT_DESCRIPTION": "By signing in, you agree to our",
 		"WELCOME_MESSAGE": "Welcome back!"
 	},
-	"SLUG": "Slug",
-	"SLUG.VALIDATION_MESSAGE": "Slug is required",
+	"SLUG": {
+		"DEFAULT": "Slug",
+		"VALIDATION_MESSAGE": "Slug is required"
+	},
 	"STATUS": "Status",
 	"STEP": "Step",
 	"TERMS_OF_SERVICES": "Terms of Services",
@@ -323,7 +325,7 @@
 	"WORKSPACE": {
 		"DEFAULT": "workspace",
 		"BANNER": "Workspace Banner",
-		"BANNER.EMPTY_MESSAGE": "You can drag to adjust the image.",
+		"BANNER_EMPTY_MESSAGE": "You can drag to adjust the image.",
 		"DESCRIPTION": "Workspace Description",
 		"INVITATION_NOT_FOUND": "Invitation Not Found",
 		"LOGO.DESCRIPTION": "Make sure your image is less than 100mb",

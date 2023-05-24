@@ -1,5 +1,5 @@
 {
-    "A": "a",
+    "AN": "एक",
     "ADD_CNAME_RECORD_MESSAGE": "आफ्नो डोमेनको CNAME रेकर्ड थप्नुहोस् 'अनुकूलन' मा बिन्दु गर्न।",
     "ADD_WORKSPACE_LOGO": "कार्यस्थान लोगो थप्नुहोस्",
     "ADVANCE": "अग्रिम",
@@ -18,7 +18,7 @@
         "FORMS": "फारामहरू",
         "HOME": "घर",
         "MANAGE_WORKSPACE": "कार्यस्थान व्यवस्थापन गर्नुहोस्",
-        "ReSPONSES": "प्रतिक्रियाहरू",
+        "RESPONSES": "प्रतिक्रियाहरू",
         "SUBMISSIONS": "सबमिशनहरू"
     },
     "BUTTON": {
@@ -56,7 +56,7 @@
         "UPDATE": "अद्यावधिक",
         "UPDATE_URL": "URL अपडेट गर्नुहोस्",
         "UPDATE_WORKSPACE": "कार्यस्थान अद्यावधिक गर्नुहोस्",
-        "UPGRAD": "अपग्रेड",
+        "UPGRADE": "अपग्रेड",
         "UPGRADE_TO_PRO": "PRO मा अपग्रेड गर्नुहोस्",
         "UPLOAD": "अपलोड",
         "UPLOAD_UNLIMITED_FORMS": "असीमित फारमहरू अपलोड गर्नुहोस्",
@@ -161,7 +161,7 @@
         "SHARE": "शेयर गर्नुहोस्",
         "VISIBILITY": "दृश्यता"
     },
-    "HEY": "हे",
+    "HEY": "नमस्ते",
     "HIDDEN": "लुकेको",
     "IMAGE": "छवि",
     "IMAGE_SIZE_RESTRICTION": "तपाईँको छवि १०० एमबी भन्दा कम छ भनी सुनिश्चित गर्नुहोस्",
@@ -273,8 +273,10 @@
         "SIGNIN_AGREEMENT_DESCRIPTION": "साइन इन गरेर, तपाइँ हाम्रो कुरामा सहमत हुनुहुन्छ",
         "WELCOME_MESSAGE": "फेरि स्वागत छ!"
     },
-    "SLUG": "स्लग",
-    "SLUG.VALIDATION_MESSAGE": "स्लग आवश्यक छ",
+    "SLUG": {
+		"DEFAULT": "स्लग",
+		"VALIDATION_MESSAGE": "स्लग आवश्यक छ"
+	},
     "STATUS": "स्थिति",
     "STEP": "चरण",
     "TERMS_OF_SERVICES": "सेवाका सर्तहरू",
@@ -323,7 +325,7 @@
     "WORKSPACE": {
         "DEFAULT": "कार्यस्थान",
         "BANNER": "कार्यस्थल ब्यानर",
-        "BANNER.EMPTY_MESSAGE": "तपाईँले छवि समायोजन गर्न तान्न सक्नुहुन्छ।",
+        "BANNER_EMPTY_MESSAGE": "तपाईँले छवि समायोजन गर्न तान्न सक्नुहुन्छ।",
         "DESCRIPTION": "कार्यस्थान विवरण",
         "INVITATION_NOT_FOUND": "निमन्त्रणा भेटिएन",
         "LOGO.DESCRIPTION": "तपाईँको छवि १०० एमबी भन्दा कम छ भनी सुनिश्चित गर्नुहोस्",

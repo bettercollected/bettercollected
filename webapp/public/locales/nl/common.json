@@ -1,5 +1,5 @@
 {
-    "A": "een",
+    "AN": "een",
     "ADD_CNAME_RECORD_MESSAGE": "Voeg CNAME-record van uw domein toe om te verwijzen naar 'custom'.",
     "ADD_WORKSPACE_LOGO": "Voeg een werkruimtelogo toe",
     "ADVANCE": "Vooruitgang",
@@ -13,13 +13,13 @@
     "AND": "en",
     "BASIC_INFORMATION": "Basisinformatie",
     "BECOME_A_BETTER_COLLECTOR": "Word een betere gegevensverzamelaar",
-    "BROOD_CRUMBS_ITEM": {
+    "BREAD_CRUMBS_ITEM": {
         "DASHBOARD": "Dashboard",
         "FORMS": "Formulieren",
         "HOME": "huis",
         "MANAGE_WORKSPACE": "Werkruimte beheren",
         "RESPONSES": "Reacties",
-        "INDIENINGEN": "Inzendingen"
+        "SUBMISSIONS": "Inzendingen"
     },
     "BUTTON": {
         "BACK": "terug",
@@ -58,7 +58,7 @@
         "UPDATE_WORKSPACE": "Werkruimte bijwerken",
         "UPGRADE": "Opwaarderen",
         "UPGRADE_TO_PRO": "Upgraden naar PRO",
-        "UPLOADEN": "Uploaden",
+        "UPLOAD": "Uploaden",
         "UPLOAD_UNLIMITED_FORMS": "Onbeperkt formulieren uploaden",
         "VERIFY": "Verifiëren",
         "DECLINE": "Weigeren",
@@ -159,7 +159,7 @@
         "DELETE_FORM": "Formulier verwijderen",
         "PIN_FORM": "Pin formulier",
         "SHARE": "deel",
-        "ZICHTBAARHEID": "Zichtbaarheid"
+        "VISIBILITY": "Zichtbaarheid"
     },
     "HEY": "hoi",
     "HIDDEN": "Verborgen",
@@ -273,8 +273,10 @@
         "SIGNIN_AGREEMENT_DESCRIPTION": "Door in te loggen, gaat u akkoord met onze",
         "WELCOME_MESSAGE": "Welkom terug!"
     },
-    "SLUG": "Slak",
-    "SLUG.VALIDATION_MESSAGE": "Slak is vereist",
+    "SLUG": {
+		"DEFAULT": "Slak",
+		"VALIDATION_MESSAGE": "Slak is vereist"
+	},
     "STATUS": "Status",
     "STAP": "Stap",
     "TERMS_OF_SERVICES": "Servicevoorwaarden",
@@ -323,7 +325,7 @@
     "WORKSPACE": {
         "DEFAULT": "werkruimte",
         "BANNER": "Werkruimtebanner",
-        "BANNER.EMPTY_MESSAGE": "Je kunt slepen om de afbeelding aan te passen.",
+        "BANNER_EMPTY_MESSAGE": "Je kunt slepen om de afbeelding aan te passen.",
         "DESCRIPTION": "Beschrijving werkruimte",
         "INVITATION_NOT_FOUND": "Uitnodiging niet gevonden",
         "LOGO.DESCRIPTION": "Zorg ervoor dat uw afbeelding kleiner is dan 100mb",

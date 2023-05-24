@@ -7,6 +7,7 @@ import html2canvas from 'html2canvas';
 import { toast } from 'react-toastify';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
+import uploadImage from '@app/assets/images/upload.png';
 import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
 import { buttonConstant } from '@app/constants/locales/buttons';
@@ -97,12 +98,12 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                         <Image src={workspace?.bannerImage ?? ''} priority layout="fill" objectFit="cover" objectPosition="center" alt={workspace?.title} />
                     ) : isFormCreator ? (
                         <div className="flex body1 text-black-700 flex-col   items-center justify-center h-full">
-                            <Image src="/upload.png" height="46px" width={'72px'} alt={'upload'} />
+                            <Image src={uploadImage} height="46px" width={'72px'} alt={'upload'} />
                             <div className="lg:mt-2">
                                 <span className="cursor-pointer text-brand-500 pr-1" onClick={onClickFileUploadButton}>
                                     {t(buttonConstant.upload)}
                                 </span>
-                                {t(localesGlobal.a)} {t(localesGlobal.image)}
+                                {t(localesGlobal.an)} {t(localesGlobal.image)}
                             </div>
                             <div className="hidden lg:mt-[18px] lg:flex">{t(workspaceConstant.bannerEmptyMessage)}</div>
                         </div>

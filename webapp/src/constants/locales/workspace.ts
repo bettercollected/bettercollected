@@ -6,7 +6,7 @@ export const workspaceConstant = {
     profileImage: 'WORKSPACE.PROFILE_IMAGE',
     title: 'WORKSPACE.TITLE',
     description: 'WORKSPACE.DESCRIPTION',
-    bannerEmptyMessage: 'WORKSPACE.BANNER.EMPTY_MESSAGE',
+    bannerEmptyMessage: 'WORKSPACE.BANNER_EMPTY_MESSAGE',
     url: 'WORKSPACE.URL',
     manage: 'MANAGE_WORKSPACE',
     preview: {
