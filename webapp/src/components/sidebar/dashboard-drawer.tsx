@@ -16,9 +16,10 @@ import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import WorkspaceMenuDropdown from '@app/components/workspace/workspace-menu-dropdown';
 import dashboardConstants from '@app/constants/locales/dashboard';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { workspaceConstant } from '@app/constants/locales/workspace';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -54,7 +55,7 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
 };
 
 export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerToggle }: IDrawerProps) {
-    const workspace = useAppSelector(selectWorkspace);
+    const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
     const { t } = useTranslation();
     const isAdmin = useAppSelector(selectIsAdmin);
     const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
@@ -68,19 +69,19 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
         },
         {
             key: 'forms',
-            name: t(formsConstant.default),
+            name: t(localesGlobal.forms),
             url: `${commonWorkspaceUrl}/forms`,
             icon: <FormIcon />
         },
         {
             key: 'responders',
-            name: t(formsConstant.responders),
+            name: t(formConstant.responders),
             url: `${commonWorkspaceUrl}/responders`,
             icon: <ResponderIcon />
         },
         {
             key: 'deletion_requests',
-            name: t(formsConstant.deletionRequests),
+            name: t(formConstant.deletionRequests),
             url: `${commonWorkspaceUrl}/deletion-requests`,
             icon: <DeleteIcon />
         }

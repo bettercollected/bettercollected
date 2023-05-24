@@ -28,7 +28,7 @@ export default function WorkspaceFooter({ workspace, isCustomDomain, showProTag 
             {isCustomDomain && (
                 <div data-testid="logo">
                     <p className="body3 !not-italic !text-black-800">{t(localesGlobal.poweredBy)}</p>
-                    <Logo showProTag={showProTag} isCustomDomain={isCustomDomain} isClientDomain />
+                    <Logo showProTag={showProTag} isFooter isCustomDomain={isCustomDomain} isClientDomain />
                 </div>
             )}
         </div>

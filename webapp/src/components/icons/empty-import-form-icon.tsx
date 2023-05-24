@@ -2,9 +2,29 @@ import React from 'react';
 
 export function EmptyImportFormIcon(props: React.SVGAttributes<{}>) {
     return (
-        <svg width="101" height="89" viewBox="0 0 101 89" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-            <path d="M49.003 55.3103C49.7989 56.2086 51.2011 56.2086 51.997 55.3103L98.053 3.32628C99.1964 2.03576 98.2802 0 96.556 0H4.44396C2.71981 0 1.80361 2.03576 2.94697 3.32628L49.003 55.3103Z" fill="#0764EB" />
-            <path d="M49.003 87.3103C49.7989 88.2086 51.2011 88.2086 51.997 87.3103L98.053 35.3263C99.1964 34.0358 98.2802 32 96.556 32H4.44396C2.71981 32 1.80361 34.0358 2.94697 35.3263L49.003 87.3103Z" fill="#A8C6F0" />
+        <svg viewBox="0 0 71 71" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+            <path d="M3 38.6105C3 31.6654 8.74017 29.9765 11.6103 30.0002H30.0405L40.999 40.9587V59.1043C40.999 66.1633 34.8793 68.1652 31.8194 68.2838H12.1795C5.06361 68.2838 3.09488 62.1642 3 59.1043V38.6105Z" fill="#495057" />
+            <g filter="url(#filter0_d_1712_12236)">
+                <path d="M30.041 38.3256V30L40.9995 40.9585H32.9585C30.6245 40.9585 30.041 39.2032 30.041 38.3256Z" fill="#ADB5BD" />
+            </g>
+            <rect x="15.0967" y="43.8049" width="19.9246" height="2.56173" fill="#F8F9FA" />
+            <rect x="15.0967" y="51.063" width="19.9246" height="2.56173" fill="#F8F9FA" />
+            <rect x="15.0967" y="58.3215" width="19.9246" height="2.56173" fill="#F8F9FA" />
+            <circle cx="10.7563" cy="45.0148" r="1.9213" fill="#F8F9FA" />
+            <circle cx="10.7563" cy="52.2729" r="1.9213" fill="#F8F9FA" />
+            <circle cx="10.7563" cy="59.5309" r="1.9213" fill="#F8F9FA" />
+            <defs>
+                <filter id="filter0_d_1712_12236" x="0.0410156" y="0" width="70.959" height="70.9585" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                    <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                    <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+                    <feOffset />
+                    <feGaussianBlur stdDeviation="15" />
+                    <feComposite in2="hardAlpha" operator="out" />
+                    <feColorMatrix type="matrix" values="0 0 0 0 0.0135417 0 0 0 0 0.0135417 0 0 0 0 0.3125 0 0 0 0.08 0" />
+                    <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1712_12236" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1712_12236" result="shape" />
+                </filter>
+            </defs>
         </svg>
     );
 }

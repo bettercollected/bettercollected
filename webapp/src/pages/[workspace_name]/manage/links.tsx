@@ -8,7 +8,7 @@ import BetterInput from '@app/components/Common/input';
 import ManageWorkspaceLayout from '@app/components/layout/manage-workspace';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -70,7 +70,7 @@ export default function ManageLinks() {
                     </div>
                     <div>
                         <Button disabled={saveButtonDisabled()} size="small">
-                            {t(buttons.save)}
+                            {t(buttonConstant.save)}
                         </Button>
                     </div>
                 </form>

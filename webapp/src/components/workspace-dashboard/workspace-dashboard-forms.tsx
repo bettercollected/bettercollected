@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Joyride from '@Components/Joyride';
+import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import { EmptyImportFormIcon } from '@app/components/icons/empty-import-form-icon';
@@ -10,7 +11,7 @@ import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
 import environments from '@app/configs/environments';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { JOYRIDE_ID } from '@app/store/tours/types';
@@ -47,8 +48,8 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                             firstStepClicked={isOpen && view === 'IMPORT_PROVIDER_FORMS_VIEW' && firstStepClicked}
                             steps={[
                                 {
-                                    title: <span className="sh3">You are one step closer to importing the forms</span>,
-                                    content: <p className="body4">Import your forms from other providers into Better Collected. Click &quot;Import Forms&quot; button below to import your forms.</p>,
+                                    title: <JoyrideStepTitle text="You are one step closer to importing the forms" />,
+                                    content: <JoyrideStepContent>Import your forms from other providers into Better Collected. Click &quot;Import Forms&quot; button below to import your forms.</JoyrideStepContent>,
                                     target: ref.current,
                                     placementBeacon: 'bottom-start',
                                     hideFooter: true
@@ -56,9 +57,9 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                             ]}
                         />
                     )}
-                    <EmptyImportFormIcon className="mb-8 animate-move-up-small" />
-                    <p className="sh1 mb-4 !leading-none">{t(formsConstant.empty.title)}</p>
-                    <p className="body4 mb-8 !leading-none">{t(formsConstant.empty.description)}</p>
+                    <EmptyImportFormIcon className="mb-6 h-[71px] w-[71px] " />
+                    <p className="sh1 mb-[15px] !leading-none">{t(formConstant.empty.title)}</p>
+                    <p className="body4 mb-6 !leading-none">{t(formConstant.empty.description)}</p>
                     <div ref={ref} onClick={handleOnClick} className="animate-pulse hover:animate-none">
                         <ImportFormsButton size="medium" />
                     </div>

@@ -10,7 +10,7 @@ import Button from '@app/components/ui/button';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
 import { useGetPlansQuery } from '@app/store/plans/api';
 
@@ -47,7 +47,7 @@ export default function Index() {
 
                 {data && (
                     <ActiveLink className="mt-10" href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/checkout?price_id=${activePlan?.price_id}`}>
-                        <Button size="medium">{t(buttons.continue)}</Button>
+                        <Button size="medium">{t(buttonConstant.continue)}</Button>
                     </ActiveLink>
                 )}
 

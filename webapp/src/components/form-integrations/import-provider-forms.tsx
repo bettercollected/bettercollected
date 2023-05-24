@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Joyride from '@Components/Joyride';
+import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { Autocomplete, Box, TextField, createFilterOptions } from '@mui/material';
 import MuiButton from '@mui/material/Button';
 import { toast } from 'react-toastify';
@@ -16,8 +17,8 @@ import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
-import { buttons } from '@app/constants/locales/buttons';
-import { formsConstant } from '@app/constants/locales/forms';
+import { buttonConstant } from '@app/constants/locales/buttons';
+import { formConstant } from '@app/constants/locales/form';
 import { importFormConstant } from '@app/constants/locales/import-form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppSelector } from '@app/store/hooks';
@@ -63,7 +64,7 @@ export default function ImportProviderForms(props: any) {
 
     const requestAnIntegration = {
         href: 'https://forms.bettercollected.com/bettercollected/forms/request-integration',
-        name: t(buttons.requestAnIntegration)
+        name: t(buttonConstant.requestAnIntegration)
     };
 
     const cleanup = () => {
@@ -144,8 +145,8 @@ export default function ImportProviderForms(props: any) {
                     scrollOffset={0}
                     steps={[
                         {
-                            title: <span className="sh3">Select a provider</span>,
-                            content: <p className="body4">Select one of the listed form providers from where you want to import your forms onto Better Collected.</p>,
+                            title: <JoyrideStepTitle text="Select a provider" />,
+                            content: <JoyrideStepContent>Select one of the listed form providers from where you want to import your forms onto Better Collected.</JoyrideStepContent>,
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`,
                             hideFooter: true
                         }
@@ -153,7 +154,7 @@ export default function ImportProviderForms(props: any) {
                 />
             )} */}
 
-            <h4 className="sh1 text-center">{t(importFormConstant.choise)}</h4>
+            <h4 className="sh1 text-center">{t(importFormConstant.choice)}</h4>
             <div className={`grid grid-cols-2 w-full h-full gap-4 lg:gap-10 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`}>
                 {integrations.map((integration) => (
                     <MuiButton key={integration.provider} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={integration.onClick} className="sh1 h-[120px] w-full md:h-[200px] md:w-[200px] !text-brand-500 capitalize">
@@ -180,12 +181,12 @@ export default function ImportProviderForms(props: any) {
                     scrollOffset={0}
                     steps={[
                         {
-                            title: <span className="sh3">Select your form</span>,
+                            title: <JoyrideStepTitle text="Select your form" />,
                             content: (
-                                <p className="body4">
+                                <JoyrideStepContent>
                                     Select the form that you want to import. <br />
                                     <br /> If you do not see any forms in the list, then you may need to create some forms within the form provider account that you selected (Google Forms, Typeform).
-                                </p>
+                                </JoyrideStepContent>
                             ),
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_LIST_FORMS}`,
                             placementBeacon: 'top-end',
@@ -194,7 +195,7 @@ export default function ImportProviderForms(props: any) {
                     ]}
                 />
             )}
-            <h4 className="sh1 w-full text-start">{t(formsConstant.importedForms)}</h4>
+            <h4 className="sh1 w-full text-start">{t(formConstant.importedForms)}</h4>
             <div className="flex flex-col w-full h-full gap-10 items-end">
                 <Autocomplete
                     loading={!!minifiedFormsResult?.isFetching}
@@ -223,7 +224,7 @@ export default function ImportProviderForms(props: any) {
                 />
                 <div>
                     <Button isLoading={!!minifiedFormsResult?.isLoading} onClick={() => handleNext(provider)} disabled={!selectedForm} size="medium">
-                        {t(buttons.next)}
+                        {t(buttonConstant.next)}
                     </Button>
                 </div>
             </div>
@@ -240,13 +241,13 @@ export default function ImportProviderForms(props: any) {
                     scrollOffset={0}
                     steps={[
                         {
-                            title: <span className="sh3">Select the data owner field for your form response</span>,
+                            title: <JoyrideStepTitle text="Select the data owner field for your form response" />,
                             content: (
-                                <p className="body4">
+                                <JoyrideStepContent>
                                     Select your own field to be set as the data owner identifier. <br />
                                     <br /> When responders respond to this form, data owner simply means the field you selected will be used to identify your responders. Typically, this will be an email, a phone number, or any other identifier unique to
                                     your responders.
-                                </p>
+                                </JoyrideStepContent>
                             ),
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_DATA_OWNER}`,
                             placementBeacon: 'top-end',
@@ -285,7 +286,7 @@ export default function ImportProviderForms(props: any) {
                         renderInput={(params) => <TextField {...params} label={t(importFormConstant.responseOwnerTagLabel)} />}
                     />
                     <Button className="!font-medium" isLoading={!!importFormResult?.isLoading || !!singleFormFromProviderResult?.isLoading} onClick={handleImportForm} disabled={!selectedForm || !!singleFormFromProviderResult?.isLoading} size="medium">
-                        {t(buttons.importNow)}
+                        {t(buttonConstant.importNow)}
                     </Button>
                 </div>
             </div>

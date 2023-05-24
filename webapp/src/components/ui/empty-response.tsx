@@ -13,7 +13,7 @@ export default function EmptyResponse({ title, description }: IEmptyResponseProp
     return (
         <div className="mt-[108px] flex flex-col items-center">
             <Inbox className="h-[48px] w-[48px]" />
-            <p className="body1 text-black-900 mt-8">{t(title)}</p>
+            <p className="body1 text-black-900 mt-8 !leading-none">{t(title)}</p>
             <p className="body4  text-black-700 mt-4">{t(description)}</p>
         </div>
     );

@@ -8,7 +8,8 @@ import { MoreHoriz } from '@mui/icons-material';
 import { IconButton, ListItemIcon, Menu, MenuItem } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
-import { formsConstant } from '@app/constants/locales/forms';
+import { buttonConstant } from '@app/constants/locales/buttons';
+import { formConstant } from '@app/constants/locales/form';
 
 interface IMemberOptionProps {
     member?: any;
@@ -96,7 +97,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                     <ListItemIcon>
                         <Delete width={20} height={20} />
                     </ListItemIcon>
-                    <span>{t(formsConstant.delete)}</span>
+                    <span>{t(member ? buttonConstant.deleteMember : buttonConstant.removeInvitation)}</span>
                 </MenuItem>
             </Menu>
         </>

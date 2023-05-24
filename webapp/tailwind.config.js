@@ -61,7 +61,8 @@ module.exports = {
                     DEFAULT: '#EA400E'
                 },
                 orange: {
-                    100: '#EB8E07'
+                    500: '#EB8E07',
+                    DEFAULT: '#EB8E07'
                 }
             },
             spacing: {

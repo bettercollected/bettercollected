@@ -29,7 +29,7 @@ export default function UpgradePro({ props }: any) {
                 fill="#82A2CF"
             />
             <defs>
-                <filter id="filter0_i_721_7151" x="1.28125" y="28.752" width="127.916" height="104.165" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                <filter id="filter0_i_721_7151" x="1.28125" y="28.752" width="127.916" height="104.165" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
                     <feFlood floodOpacity="0" result="BackgroundImageFix" />
                     <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
                     <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
@@ -39,7 +39,7 @@ export default function UpgradePro({ props }: any) {
                     <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
                     <feBlend mode="normal" in2="shape" result="effect1_innerShadow_721_7151" />
                 </filter>
-                <filter id="filter1_b_721_7151" x="-7.71875" y="-8.24805" width="145.916" height="118.165" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                <filter id="filter1_b_721_7151" x="-7.71875" y="-8.24805" width="145.916" height="118.165" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
                     <feFlood floodOpacity="0" result="BackgroundImageFix" />
                     <feGaussianBlur in="BackgroundImageFix" stdDeviation="4.5" />
                     <feComposite in2="SourceAlpha" operator="in" result="effect1_backgroundBlur_721_7151" />

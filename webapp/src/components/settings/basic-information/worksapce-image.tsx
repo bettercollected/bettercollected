@@ -13,7 +13,7 @@ export default function WorkspaceImage() {
 
     return (
         <SettingsCard>
-            <div className="body1">{t(workspaceConstant.profile)}</div>
+            <div className="body1">{t(workspaceConstant.profileImage)}</div>
             <div className="md:w-[350px] w-full ">
                 <ProfileImageComponent workspace={workspace} isFormCreator={true} />
             </div>

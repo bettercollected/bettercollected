@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useRouter } from 'next/router';
 
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
@@ -17,8 +18,10 @@ export default function RefreshToken() {
     return <FullScreenLoader />;
 }
 
-export function getServerSideProps(_context: any) {
+export async function getServerSideProps({ locale, ..._context }: any) {
     return {
-        props: {}
+        props: {
+            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np']))
+        }
     };
 }

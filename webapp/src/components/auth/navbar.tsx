@@ -13,7 +13,7 @@ import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import Button from '@app/components/ui/button';
 import Hamburger from '@app/components/ui/hamburger';
 import Logo from '@app/components/ui/logo';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
@@ -69,9 +69,9 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
             case '2xs':
             case 'sm':
             case 'md':
-                return false;
-            default:
                 return true;
+            default:
+                return false;
         }
     };
 
@@ -103,49 +103,51 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
         <Header className="!z-[1300]">
             <div className="flex flex-row w-full h-full py-2 md:py-0 justify-between items-center">
                 <div className="flex gap-4">
-                    {!isMobileView() && showHamburgerIcon && <Hamburger isOpen={mobileOpen} className="!shadow-none mr-2 !bg-white hover:!bg-white !text-black-900 !flex !justify-start" onClick={handleDrawerToggle} />}
+                    {isMobileView() && showHamburgerIcon && <Hamburger isOpen={mobileOpen} className="!shadow-none mr-2 !bg-white hover:!bg-white !text-black-900 !flex !justify-start" onClick={handleDrawerToggle} />}
                     <Logo isCustomDomain={isCustomDomain} isClientDomain={isClientDomain} />
                 </div>
                 <div className="flex items-center justify-center gap-7">
-                    <div className="flex items-center">
-                        <MenuDropdown
-                            PaperProps={{
-                                elevation: 0,
-                                sx: {
-                                    width: 200,
-                                    overflow: 'hidden',
-                                    borderRadius: 2,
-                                    filter: 'drop-shadow(0px 0px 15px rgba(0, 0, 0, 0.15))',
-                                    mt: 0.5,
-                                    padding: 0
-                                }
-                            }}
-                            id="language-menu"
-                            menuTitle={''}
-                            menuContent={
-                                <>
-                                    <Globe className="h-6 w-6" />
-                                    {language.toUpperCase()}
-                                </>
-                            }
-                        >
-                            {dropdownOptions.map((dd: any) => (
-                                <MenuItem onClick={() => handleLanguage(dd.label)} className="py-4 justify-between hover:bg-black-200" key={dd.value}>
-                                    <div className={cn('flex gap-3 body3  items-center  ', language === dd.label && '!text-brand-600 ')}>
-                                        {React.createElement(dd.icon, { className: 'h-5 w-6' })} {dd?.value}
-                                    </div>
-                                    {language === dd.label && <Check className="h-5 w-5" color="#0C50B4" />}
-                                </MenuItem>
-                            ))}
-                        </MenuDropdown>
-                    </div>
-
-                    {showPlans && (
-                        <ProPlanHoc hideChildrenIfPro={true}>
-                            <Button size="small">{t(buttons.upgrade)}</Button>
-                        </ProPlanHoc>
+                    {!isMobileView() && (
+                        <>
+                            <div className="flex items-center">
+                                <MenuDropdown
+                                    PaperProps={{
+                                        elevation: 0,
+                                        sx: {
+                                            width: 200,
+                                            overflow: 'hidden',
+                                            borderRadius: 2,
+                                            filter: 'drop-shadow(0px 0px 15px rgba(0, 0, 0, 0.15))',
+                                            mt: 0.5,
+                                            padding: 0
+                                        }
+                                    }}
+                                    id="language-menu"
+                                    menuTitle={''}
+                                    menuContent={
+                                        <>
+                                            <Globe className="h-6 w-6" />
+                                            {language.toUpperCase()}
+                                        </>
+                                    }
+                                >
+                                    {dropdownOptions.map((dd: any) => (
+                                        <MenuItem onClick={() => handleLanguage(dd.label)} className="py-4 justify-between hover:bg-black-200" key={dd.value}>
+                                            <div className={cn('flex gap-3 body3  items-center  ', language === dd.label && '!text-brand-600 ')}>
+                                                {React.createElement(dd.icon, { className: 'h-5 w-6' })} {dd?.value}
+                                            </div>
+                                            {language === dd.label && <Check className="h-5 w-5" color="#0C50B4" />}
+                                        </MenuItem>
+                                    ))}
+                                </MenuDropdown>
+                            </div>
+                            {showPlans && (
+                                <ProPlanHoc hideChildrenIfPro={true}>
+                                    <Button size="small">{t(buttonConstant.upgrade)}</Button>
+                                </ProPlanHoc>
+                            )}
+                        </>
                     )}
-
                     {showAuthAccount && <AuthAccountMenuDropdown hideMenu={hideMenu} />}
                 </div>
             </div>

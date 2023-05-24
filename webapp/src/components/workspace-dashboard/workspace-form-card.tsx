@@ -7,6 +7,7 @@ import PrivateIcon from '@Components/Common/Icons/Private';
 import PublicIcon from '@Components/Common/Icons/Public';
 import Share from '@Components/Common/Icons/Share';
 import Joyride from '@Components/Joyride';
+import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { Button, Typography } from '@mui/material';
 
 import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
@@ -14,7 +15,7 @@ import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
 import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -30,11 +31,17 @@ interface IWorkspaceFormCardProps {
     className?: string;
 }
 
-export default function WorkspaceFormCard({ form, hasCustomDomain, index, workspace = undefined, isResponderPortal = false, className = '' }: IWorkspaceFormCardProps) {
+export default function WorkspaceFormCard({ form, hasCustomDomain, index, workspace, isResponderPortal = false, className = '' }: IWorkspaceFormCardProps) {
     const { openModal } = useModal();
     const router = useRouter();
 
     const { t } = useTranslation();
+
+    const handleResponseClick = (event: any) => {
+        event.preventDefault();
+        event.stopPropagation();
+        router.push(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}/responses`);
+    };
     return (
         <div className={`flex flex-col items-start justify-between h-full bg-white border-[2px] border-brand-100 hover:border-black-500 transition cursor-pointer rounded-lg shadow-formCard ${className}`}>
             {typeof index !== undefined && index === 0 && environments.ENABLE_JOYRIDE_TOURS && !isResponderPortal && (
@@ -43,20 +50,20 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                     placement="top"
                     steps={[
                         {
-                            title: <span className="sh3">View form responses</span>,
-                            content: <p className="body4">You can see total responses in each form here and navigate to the responses page.</p>,
+                            title: <JoyrideStepTitle text="View form responses" />,
+                            content: <JoyrideStepContent>You can see total responses in each form here and navigate to the responses page.</JoyrideStepContent>,
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_RESPONSES}`,
                             placementBeacon: 'bottom-start'
                         },
                         {
-                            title: <span className="sh3">Share your form</span>,
-                            content: <p className="body4">You can use this button to share your form to your desired audience.</p>,
+                            title: <JoyrideStepTitle text="Share your form" />,
+                            content: <JoyrideStepContent>You can use this button to share your form to your desired audience.</JoyrideStepContent>,
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_SHARE}`,
                             placementBeacon: 'bottom-start'
                         },
                         {
-                            title: <span className="sh3">Update form settings</span>,
-                            content: <p className="body4">You can use this button to view the available options and settings of the form, or navigate inside individual form page to view it&apos;s settings.</p>,
+                            title: <JoyrideStepTitle text="Update form settings" />,
+                            content: <JoyrideStepContent>You can use this button to view the available options and settings of the form, or navigate inside individual form page to view it&apos;s settings.</JoyrideStepContent>,
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS}`,
                             placementBeacon: 'bottom-start'
                         }
@@ -86,9 +93,9 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
             </div>
             {!isResponderPortal && !!workspace && (
                 <div className="relative flex justify-between items-center py-2 px-4 gap-4 w-full border-t-[1px] border-black-400">
-                    <Button className={`p-2 capitalize hover:bg-brand-100 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_RESPONSES}`} variant="text" onClick={() => router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/responses`)}>
+                    <Button className={`p-2 capitalize hover:bg-brand-100 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_RESPONSES}`} variant="text" onClick={handleResponseClick}>
                         <span className="body4">
-                            {form?.responses} {!!form?.responses && form.responses > 1 ? t(formsConstant.responses) : t(formsConstant.response)}
+                            {form?.responses} {!!form?.responses && form.responses > 1 ? t(formConstant.responses) : t(formConstant.response)}
                         </span>
                     </Button>
                     <div className="flex space-x-4 items-center">
@@ -99,7 +106,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                                 event.stopPropagation();
                                 openModal('SHARE_VIEW', {
                                     url: getFormUrl(form, workspace),
-                                    title: t(formsConstant.shareThisForm)
+                                    title: t(formConstant.shareThisForm)
                                 });
                             }}
                         >

@@ -1,8 +1,10 @@
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
 import environments from '@app/configs/environments';
 import Onboarding from '@app/pages/[workspace_name]/onboarding';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
-export async function getServerSideProps(_context: any) {
+export async function getServerSideProps({ locale, ..._context }: any) {
     const config = getServerSideAuthHeaderConfig(_context);
     try {
         const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
@@ -17,12 +19,16 @@ export async function getServerSideProps(_context: any) {
         }
     } catch (e) {
         return {
-            props: {}
+            props: {
+                ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np']))
+            }
         };
     }
 
     return {
-        props: {}
+        props: {
+            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np']))
+        }
     };
 }
 

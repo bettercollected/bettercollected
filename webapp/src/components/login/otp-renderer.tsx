@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { otpRenderer } from '@app/constants/locales/otp-renderer';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
@@ -63,12 +63,12 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
             <BetterInput data-testid="otp-input" className="mt-6" spellCheck={false} value={otp} type="text" placeholder={'Enter the OTP code'} onChange={handleChange} />
             <div className="w-full">
                 <Button data-testid="verify-button" isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} size="medium" className="w-full">
-                    {t(buttons.verify)}
+                    {t(buttonConstant.verify)}
                 </Button>
                 <div className={'text-md align flex mt-4 items-center justify-center text-black-900'}>
                     {counter !== 0 && (
                         <div className="text-gray-500 cursor-not-allowed border-none">
-                            {t(buttons.resendCode)} ({counter})
+                            {t(buttonConstant.resendCode)} ({counter})
                         </div>
                     )}
                     {counter === 0 && (
@@ -80,7 +80,7 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
                                 setCounter(60);
                             }}
                         >
-                            {t(buttons.resendCode)}
+                            {t(buttonConstant.resendCode)}
                         </div>
                     )}
                 </div>

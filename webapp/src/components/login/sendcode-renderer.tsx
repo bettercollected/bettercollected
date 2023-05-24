@@ -6,7 +6,7 @@ import ConnectWithProviderButton from '@app/components/login/login-with-google-b
 import FormInput from '@app/components/ui/FormInput';
 import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
 import { otpRenderer } from '@app/constants/locales/otp-renderer';
 import { useAppSelector } from '@app/store/hooks';
@@ -44,7 +44,7 @@ export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustom
             {/* <BetterInput type="email" className="mt-8" value={emailInput} placeholder={'Enter your email'} onChange={handleChangeOnInput} /> */}
             <div>
                 <Button data-testid="get-in-button" type="submit" disabled={!emailValid} isLoading={isLoading} variant="solid" className={`w-60 mx-auto !rounded-[1px] !h-[50px]`} onClick={handleClick}>
-                    {t(buttons.getIn)}
+                    {t(buttonConstant.getIn)}
                 </Button>
                 <div className="flex py-5 items-center justify-center">
                     <div className="border-t w-5 border-gray-200"></div>

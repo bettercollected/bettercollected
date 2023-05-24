@@ -12,7 +12,7 @@ import ActiveLink from '@app/components/ui/links/active-link';
 import WorkspaceDashboardStats from '@app/components/workspace-dashboard/workspace-dashboard-stats';
 import environments from '@app/configs/environments';
 import dashboardConstants from '@app/constants/locales/dashboard';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -55,12 +55,12 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
         {
             key: 'imported-forms',
             className: JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_FORMS,
-            title: t(formsConstant.importedForms),
+            title: t(formConstant.importedForms),
             tooltipTitle: `${workspaceStats?.forms ?? 0} ${t(toolTipConstant.formImported)}${isAdmin && !isProPlan ? ` ${t(toolTipConstant.outOfLimited)}` : ''}`,
             content: importedFormsContent,
             buttonProps: {
                 enabled: isAdmin && !isProPlan,
-                text: t(formsConstant.importUnlimited),
+                text: t(formConstant.importUnlimited),
                 onClick: () => {
                     router.push(`/${workspace.workspaceName}/upgrade`);
                 }
@@ -69,24 +69,24 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
         {
             key: 'collected-responses',
             className: JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_RESPONSES,
-            title: t(formsConstant.collectedResponses),
+            title: t(formConstant.collectedResponses),
             tooltipTitle: `${workspaceStats?.responses ?? 0} ${t(toolTipConstant.formResponses)}`,
             content: importedResponses,
             buttonProps: {
                 enabled: false,
-                text: t(formsConstant.importUnlimited),
+                text: t(formConstant.importUnlimited),
                 onClick: () => {}
             }
         },
         {
             key: 'deletion-requests',
             className: JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_DELETION_REQUESTS,
-            title: t(formsConstant.deletionRequests),
+            title: t(formConstant.deletionRequests),
             tooltipTitle: `${workspaceStats?.deletion_requests?.success ?? 0} ${t(toolTipConstant.responseDeletionOutOf)} ${workspaceStats?.deletion_requests?.total ?? 0} ${t(toolTipConstant.deletionRequest)}`,
             content: deletionRequests,
             buttonProps: {
                 enabled: false,
-                text: t(formsConstant.importUnlimited),
+                text: t(formConstant.importUnlimited),
                 onClick: () => {}
             }
         }
@@ -96,7 +96,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
         <>
             <div className="flex flex-col md:flex-row justify-center md:justify-start md:items-center mb-4">
                 <div className={`flex items-center ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_INFO}`}>
-                    <AuthAccountProfileImage size={48} image={workspace?.profileImage} name={workspace?.title || 'Untitled'} className="bg-blend-darken	" />
+                    <AuthAccountProfileImage size={48} image={workspace?.profileImage} name={workspace?.title || 'Untitled'} className="bg-orange-500" />
                     <Tooltip title={workspace?.title}>
                         <h1 className="sh1 ml-3 h-12 flex items-center joyride-workspace-title">{toEndDottedStr(workspace?.title?.trim() || 'Untitled', 30)}</h1>
                     </Tooltip>

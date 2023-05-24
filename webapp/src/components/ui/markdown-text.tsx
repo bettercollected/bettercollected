@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import { Dialog, DialogContent, DialogProps, DialogTitle, useMediaQuery, useTheme } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
@@ -9,13 +10,12 @@ import remarkGfm from 'remark-gfm';
 // Absolute imports
 import { Close } from '@app/components/icons/close';
 import { localesGlobal } from '@app/constants/locales/global';
-import { toEndDottedStr } from '@app/utils/stringUtils';
+import { ellipsesText, toEndDottedStr } from '@app/utils/stringUtils';
 
 type Props = {
     scrollTitle?: string;
     description: string;
     contentStripLength?: number;
-    displayShowMore?: boolean;
     markdownClassName?: string;
     textClassName?: string;
     onClick: any;
@@ -24,31 +24,17 @@ type Props = {
 MarkdownText.defaultProps = {
     scrollTitle: '',
     contentStripLength: 110,
-    displayShowMore: true,
     markdownClassName: '',
     textClassName: '',
     onClick: () => {}
 };
-export default function MarkdownText({ description, scrollTitle = '', onClick = () => {}, contentStripLength = 110, displayShowMore = true, markdownClassName = '', textClassName = '' }: Props) {
-    const [showDesc, setShowDesc] = useState('');
+export default function MarkdownText({ description, scrollTitle = '', onClick = () => {}, contentStripLength = 110, markdownClassName = '', textClassName = '' }: Props) {
     const [open, setOpen] = React.useState(false);
     const [scroll, setScroll] = React.useState<DialogProps['scroll']>('paper');
     const { t } = useTranslation();
     const theme = useTheme();
-
     const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
-
-    useEffect(() => {
-        const desc = description || t(localesGlobal.noDescription);
-        let descStripped = desc;
-        if (desc.length > contentStripLength && displayShowMore) {
-            descStripped = toEndDottedStr(desc, contentStripLength);
-        }
-        setShowDesc(descStripped);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [description]);
-
-    const source = showDesc.replace(/\\n/gi, '\n');
+    const source = ellipsesText(description || t(localesGlobal.noDescription), contentStripLength);
 
     const handleClickOpen = (scrollType: DialogProps['scroll']) => () => {
         setOpen(true);
@@ -78,7 +64,7 @@ export default function MarkdownText({ description, scrollTitle = '', onClick = 
                         <ReactMarkdown remarkPlugins={[remarkGfm]} className={`m-0 p-0 mark-down-text ${markdownClassName}`}>
                             {source}
                         </ReactMarkdown>
-                        {displayShowMore && description.length > contentStripLength && (
+                        {description.length > contentStripLength && (
                             <span onClick={handleClickOpen('paper')} className={`show-more-less-text hover:underline capitalize p-0 cursor-pointer !text-brand-500 hover:!text-brand-600 ${textClassName}`}>
                                 {t(localesGlobal.readMore)}
                             </span>

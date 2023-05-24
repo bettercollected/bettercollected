@@ -1,7 +1,7 @@
 export const localesGlobal = {
     customDomain: 'CUSTOM_DOMAIN',
-    dashboard: 'DASHBOARD',
-    delete: 'DELETE',
+    dashboard: 'DASHBOARD.DEFAULT',
+    delete: 'DELETE.DEFAULT',
     description: 'DESCRIPTION',
     deleteMessage: 'DELETE.MESSAGE',
     earlyAccess: 'EARLY_ACCESS',
@@ -18,7 +18,7 @@ export const localesGlobal = {
     poweredBy: 'POWERED_BY',
     privacyPolicy: 'PRIVACY_POLICY',
     settings: 'SETTINGS',
-    slug: 'SLUG',
+    slug: 'SLUG.DEFAULT',
     step: 'STEP',
     save: 'SAVE',
     termsOfServices: 'TERMS_OF_SERVICES',
@@ -26,7 +26,7 @@ export const localesGlobal = {
     imageSizeRestriction: 'IMAGE_SIZE_RESTRICTION',
     becomeABetterCollector: 'BECOME_A_BETTER_COLLECTOR',
     image: 'IMAGE',
-    a: 'A',
+    an: 'AN',
     updated: 'UPDATED',
     untitled: 'UNTITLED',
     status: 'STATUS',
@@ -47,5 +47,5 @@ export const localesGlobal = {
     linkToTermsOfServices: 'LINK_TO_TERMS_OF_SERVICES',
     shareYourWorkspace: 'SHARE_YOUR_WORKSPACE',
     deletionRemaining: 'DELETION_REMAINING',
-    form: 'FORM'
+    forms: 'FORMS'
 };

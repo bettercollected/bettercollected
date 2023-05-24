@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppSelector } from '@app/store/hooks';
@@ -42,10 +42,10 @@ export default function DeleteInvitationModal({ invitation }: any) {
             </div>
             <div className="flex w-full gap-4 justify-end">
                 <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
-                    {t(buttons.delete)}
+                    {t(buttonConstant.delete)}
                 </Button>
                 <Button variant="solid" color="gray" size="medium" className="!bg-black-500" onClick={() => closeModal()}>
-                    {t(buttons.cancel)}
+                    {t(buttonConstant.cancel)}
                 </Button>
             </div>
         </div>

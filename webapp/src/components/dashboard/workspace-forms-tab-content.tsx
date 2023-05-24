@@ -14,7 +14,7 @@ import TextField from '@mui/material/TextField';
 import FormCards from '@app/components/dashboard/form-cards';
 import { SearchIcon } from '@app/components/icons/search';
 import Loader from '@app/components/ui/loader';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -105,9 +105,9 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
             <div className={`w-full md:w-[282px]`}>
                 <SearchInput handleSearch={handleSearch} />
             </div>
-            {pinnedForms.length !== 0 && <FormCards title={t(formsConstant.pinnedforms)} isFormCreator={isFormCreator} workspace={workspace} formsArray={pinnedForms} />}
+            {pinnedForms.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} isFormCreator={isFormCreator} workspace={workspace} formsArray={pinnedForms} />}
             {showUnpinnedForms && pinnedForms.length !== 0 && <Divider />}
-            {unpinnedForms.length !== 0 && <FormCards title={pinnedForms.length !== 0 ? t(formsConstant.all) : ''} isFormCreator={isFormCreator} formsArray={unpinnedForms} workspace={workspace} />}
+            {unpinnedForms.length !== 0 && <FormCards title={pinnedForms.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={unpinnedForms} workspace={workspace} />}
         </div>
     );
 }

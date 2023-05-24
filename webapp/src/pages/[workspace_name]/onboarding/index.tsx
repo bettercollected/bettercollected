@@ -18,7 +18,7 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import WorkSpaceLogoUi from '@app/components/ui/workspace-logo-ui';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { placeHolder } from '@app/constants/locales/placeholder';
@@ -180,7 +180,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
             </p>
             <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">{t(onBoarding.description)}</p>
             <Button size="large" className="mt-10 mb-4" onClick={increaseStep}>
-                {workspace?.profileImage || workspace?.description || workspace?.title.toLowerCase() !== 'untitled' ? t(buttons.updateWorkspace) : t(buttons.createWorkspace)}
+                {workspace?.profileImage || workspace?.description || workspace?.title.toLowerCase() !== 'untitled' ? t(buttonConstant.updateWorkspace) : t(buttonConstant.createWorkspace)}
             </Button>
             <p className="body2 !text-black-600 italic">{t(onBoarding.timeMessage)}</p>
         </div>
@@ -244,7 +244,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                         }
                     }}
                 >
-                    {t(buttons.next)}
+                    {t(buttonConstant.next)}
                 </Button>
             </div>
         </div>
@@ -270,7 +270,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                         await onClickDone(true);
                     }}
                 >
-                    Skip
+                    {t(buttonConstant.skip)}
                 </div>
 
                 <Button
@@ -280,7 +280,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                     }}
                     isLoading={isLoading || data?.isLoading}
                 >
-                    {t(buttons.done)}
+                    {t(buttonConstant.done)}
                 </Button>
             </div>
         </div>

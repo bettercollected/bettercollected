@@ -28,3 +28,12 @@ export const capitalize = (val: { toString: () => string }): string => {
     const firstChar = val.toString()[0]?.toUpperCase();
     return `${firstChar}${val.toString().substring(1).toLowerCase()}`;
 };
+
+export const ellipsesText = (text: string, limit: number) => {
+    let descStripped = text;
+    if (text.length > limit) {
+        descStripped = toEndDottedStr(text, limit);
+    }
+
+    return descStripped.replace(/\\n/gi, '\n');
+};

@@ -21,5 +21,6 @@ export const toastMessage = {
     customDomainUpdated: 'TOAST.CUSTOM_DOMAIN_UPDATED',
     customDomainDeletionError: 'TOAST.CUSTOM_DOMAIN_DELETION_ERROR',
     updated: 'TOAST.UPDATED_SUCCESSFULLY',
-    invalidUrl: 'TOAST.INVALID_URL'
+    invalidUrl: 'TOAST.INVALID_URL',
+    formUrlCopied: 'TOAST.FORM_URL_COPIED'
 };

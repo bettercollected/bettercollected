@@ -15,7 +15,7 @@ import { useModal } from '@app/components/modal-views/context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import PublicWorkspaceTitleAndDescription from '@app/components/workspace/public-workspace-title-description';
 import environments from '@app/configs/environments';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import Layout from '@app/layouts/_layout';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
@@ -61,7 +61,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
     const workspaceOptions = (
         <div className="flex gap-6">
             <Button onClick={() => openModal('SHARE_VIEW', { url: getWorkspaceUrl(), title: t(workspaceConstant.share) })} variant="outlined" className="body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize">
-                {t(buttons.share)}
+                {t(buttonConstant.share)}
             </Button>
             <AuthAccountMenuDropdown isClientDomain={isCustomDomain ? false : true} menuContent={<EllipsisOption />} showExpandMore={false} className="!text-black-900 !py-0 !px-1" />
         </div>
@@ -77,7 +77,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
                 {isError && (
                     <div className="absolute right-5 lg:right-10 xl:right-20">
                         <Button size="small" variant="contained" className="rounded body4 px-4 py-[13px] !leading-none !normal-case !text-white !bg-brand-500 hover:!bg-brand-600 shadow-none hover:shadow-none" onClick={handleCheckMyData}>
-                            {t(buttons.checkMyData)}
+                            {t(buttonConstant.checkMyData)}
                         </Button>
                     </div>
                 )}

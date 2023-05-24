@@ -1,9 +1,12 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import UserDetails from '@Components/Common/DataDisplay/UserDetails';
 
 import { FormTabContent } from '@app/components/dashboard/form-tab-content';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';
+import { formConstant } from '@app/constants/locales/form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import Error from '@app/pages/_error';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
@@ -12,6 +15,7 @@ import { parseDateStrToDate, toMonthDateYearStr, utcToLocalDate } from '@app/uti
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;
+    const { t } = useTranslation();
 
     const isAdmin = useAppSelector(selectIsAdmin);
     const isProPlan = useAppSelector(selectIsProPlan);
@@ -28,11 +32,11 @@ export default function FormPage(props: any) {
                 ) : (
                     <div className="flex justify-between mb-5">
                         <div>
-                            <div className="body6 mb-5 !font-semibold">Imported by:</div>
+                            <div className="body6 mb-5 !font-semibold">{t(formConstant.importedBy)}:</div>
                             <UserDetails user={form.importerDetails} />
                         </div>
                         <div>
-                            <div className="body6 mb-5 !font-semibold">Imported On:</div>
+                            <div className="body6 mb-5 !font-semibold">{t(formConstant.importedOn)}:</div>
                             <div className="body4">{toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(form.createdAt)))}</div>
                         </div>
                     </div>

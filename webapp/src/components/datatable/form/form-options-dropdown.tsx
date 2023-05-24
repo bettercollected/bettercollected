@@ -14,7 +14,7 @@ import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
-import { formsConstant } from '@app/constants/locales/forms';
+import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
@@ -105,7 +105,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             <ListItemIcon>
                 <Pin width={20} height={20} />
             </ListItemIcon>
-            <span>{currentActiveForm?.form?.settings?.pinned ? t(formsConstant.unPinForm) : t(formsConstant.menu.pinForm)}</span>
+            <span>{currentActiveForm?.form?.settings?.pinned ? t(formConstant.unPinForm) : t(formConstant.menu.pinForm)}</span>
         </MenuItem>
     );
 
@@ -113,7 +113,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         <MenuItem
             sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
             className="body4 hover:bg-brand-100"
-            onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: t(formsConstant.shareThisForm) })}
+            onClick={() => openModal('SHARE_VIEW', { url: currentActiveForm?.shareUrl, title: t(formConstant.shareThisForm) })}
             disabled={!!currentActiveForm?.form?.settings?.private}
         >
             <ListItemIcon>
@@ -137,7 +137,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     <ListItemIcon>
                         <Eye width={20} height={20} />
                     </ListItemIcon>
-                    <span>{t(formsConstant.menu.visibility)}</span>
+                    <span>{t(formConstant.menu.visibility)}</span>
                 </MenuItem>
                 {showShare &&
                     (!!currentActiveForm?.form?.settings?.private ? (
@@ -151,7 +151,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     <ListItemIcon className="!text-red-500">
                         <Delete width={20} height={20} />
                     </ListItemIcon>
-                    <span>{t(formsConstant.menu.deleteForm)}</span>
+                    <span>{t(formConstant.menu.deleteForm)}</span>
                 </MenuItem>
             </MenuDropdown>
         </div>

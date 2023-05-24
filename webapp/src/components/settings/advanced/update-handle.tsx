@@ -6,7 +6,7 @@ import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import { advanceSetting } from '@app/constants/locales/advance-setting';
-import { buttons } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -28,7 +28,7 @@ export default function UpdateHandle() {
                     <span className="font-bold"> {workspace.workspaceName}.</span>
                 </div>
                 <div>
-                    <Button onClick={handleClick}>{t(buttons.update)}</Button>
+                    <Button onClick={handleClick}>{t(buttonConstant.update)}</Button>
                 </div>
             </div>
         </SettingsCard>
