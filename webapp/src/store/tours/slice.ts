@@ -1,22 +1,41 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { PayloadAction, createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
-import { JoyrideState } from '@app/models/dtos/joyride';
-import { RootState } from '@app/store/store';
+import { JoyrideStateWithoutSteps } from '@app/models/dtos/joyride';
 
-export const initialTourState: JoyrideState = {
-    id: '',
-    finished: false,
-    steps: []
+interface JoyrideSliceState {
+    joyrides: Record<string, JoyrideStateWithoutSteps>;
+    isAnyJoyrideRunning: boolean;
+}
+
+const initialState: JoyrideSliceState = {
+    joyrides: {},
+    isAnyJoyrideRunning: false
 };
 
-export const slice = createSlice({
+const joyrideSlice = createSlice({
     name: 'joyride',
-    initialState: {},
+    initialState,
     reducers: {
-        setJoyrideState: (state, action) => {
-            return { ...state, ...action.payload };
+        startJoyride: (state, action: PayloadAction<string>) => {
+            state.joyrides[action.payload].run = true;
+            state.isAnyJoyrideRunning = true;
+        },
+        finishJoyride: (state, action: PayloadAction<string>) => {
+            state.joyrides[action.payload].finished = true;
+            state.joyrides[action.payload].run = false;
+
+            const isAnyRunning = Object.values(state.joyrides).some((joyride) => joyride.run);
+            state.isAnyJoyrideRunning = isAnyRunning;
+        },
+        setJoyrideState: (state, action: PayloadAction<JoyrideStateWithoutSteps>) => {
+            const { id, ...joyrideState } = action.payload;
+            // @ts-ignore
+            state.joyrides[id] = joyrideState;
+
+            const isAnyRunning = Object.values(state.joyrides).some((joyride) => joyride.run);
+            state.isAnyJoyrideRunning = isAnyRunning;
         }
     }
 });
@@ -25,14 +44,13 @@ const joyrideStateReducer = persistReducer(
     {
         key: 'rtk:joyride',
         storage,
-        whitelist: ['value']
+        whitelist: [joyrideSlice.name]
     },
-    slice.reducer
+    joyrideSlice.reducer
 );
 
-const reducerObj = { reducerPath: slice.name, reducer: joyrideStateReducer };
+export const { startJoyride, finishJoyride, setJoyrideState } = joyrideSlice.actions;
 
-export const selectJoyrideState = (state: RootState) => state.joyride;
-export const { setJoyrideState } = slice.actions;
+const reducerObj = { reducerPath: joyrideSlice.name, reducer: joyrideStateReducer };
 
 export default reducerObj;
