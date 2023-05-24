@@ -50,13 +50,13 @@ export default function ManageWorkspaceLayout({ children }: any) {
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
     };
-    const handleClick = () => {
-        if (!isProPlan) {
-            router.push(`/${workspace.workspaceName}/upgrade`);
-        } else {
-            openModal('CUSTOMIZE_URL', { description: t(customize.domainDescription), domain: isCustomDomain ? customDomainUrl : clientHostUrl });
-        }
-    };
+    // const handleClick = () => {
+    //     if (!isProPlan) {
+    //         router.push(`/${workspace.workspaceName}/upgrade`);
+    //     } else {
+    //         openModal('CUSTOMIZE_URL', { description: t(customize.domainDescription), domain: isCustomDomain ? customDomainUrl : clientHostUrl });
+    //     }
+    // };
     return (
         <SidebarLayout DrawerComponent={SettingsDrawer}>
             <div className=" relative">
@@ -90,9 +90,9 @@ export default function ManageWorkspaceLayout({ children }: any) {
                                 <div className="body1 !leading-none mb-4">{t(workspaceConstant.url)}</div>
                                 <LinkView url={isCustomDomain ? customDomainUrl : clientHostUrl} toastMessage={t(toastMessage.workspaceUrlCopied)} className="flex flex-col" buttonClassName="!text-brand-500 !border-blue-200 hover:!bg-brand-200 " />
                             </div>
-                            <div className="my-12">
+                            {/* <div className="my-12">
                                 <CustomizeLink title={t(customize.domain)} subtitle={t(customize.domainDescription)} buttonText={isProPlan ? t(buttonConstant.customizeLink) : t(buttonConstant.upgradeToPro)} onClick={handleClick} />
-                            </div>
+                            </div> */}
                         </div>
                     </Box>
                 </>
