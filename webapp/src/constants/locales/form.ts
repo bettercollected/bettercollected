@@ -31,7 +31,7 @@ export const formConstant = {
         share: 'FORM_MENU.SHARE'
     },
     link: 'FORMS_LINK',
-    default: 'FORMS',
+    default: 'FORM.DEFAULT',
     pinnedforms: 'PINNED_FORMS',
     all: 'ALL_FORMS',
     unPinForm: 'FORM.UNPIN_FORM',

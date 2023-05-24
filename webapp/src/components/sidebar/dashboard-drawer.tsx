@@ -68,7 +68,7 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
         },
         {
             key: 'forms',
-            name: t(formConstant.default),
+            name: t(localesGlobal.forms),
             url: `${commonWorkspaceUrl}/forms`,
             icon: <FormIcon />
         },

@@ -8,6 +8,7 @@ import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import { formConstant } from '@app/constants/locales/form';
+import { localesGlobal } from '@app/constants/locales/global';
 
 interface ISubmissionTabContainer {
     workspaceId: string;
@@ -22,7 +23,7 @@ export default function FormsAndSubmissionsTabContainer({ showResponseBar, works
     const paramTabs = [
         {
             icon: <FormIcon />,
-            title: t(formConstant.default),
+            title: t(localesGlobal.forms),
             path: 'forms'
         }
     ];

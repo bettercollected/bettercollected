@@ -100,7 +100,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
     if (!formId) {
         const formToAdd = [
             {
-                name: t(localesGlobal.form),
+                name: t(formConstant.default),
                 selector: (response: StandardFormResponseDto) => responseFormTitle(response),
                 style: {
                     color: '#202124',
