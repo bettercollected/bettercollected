@@ -77,18 +77,18 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
         return (
             <div className=" py-10 flex items-center flex-col">
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-                <div className="rounded-lg bg-white mt-14  flex flex-col items-center w-full p-10 md:max-w-[502px]">{t(workspaceConstant.invitationNotFound)}</div>
+                <div className="rounded-lg bg-white mt-14  flex flex-col items-center w-full p-10 md:max-w-[620px]">{t(workspaceConstant.invitationNotFound)}</div>
             </div>
         );
     }
 
     return (
-        <div className=" py-10 px-5 w-full">
+        <div className=" py-10 px-4 w-full">
             <AuthNavbar showHamburgerIcon={false} showPlans={false} />
             <div className="rounded w-full mt-[68px] flex flex-col items-center ">
-                <div className="md:max-w-[502px] flex flex-col">
-                    <div className="bg-white md:max-w-[502px] flex flex-col rounded p-10 items-center justify-center">
-                        <AuthAccountProfileImage size={60} image={workspace?.profileImage} name={workspace?.workspaceName} />
+                <div className="md:max-w-[620px] flex flex-col">
+                    <div className="bg-white md:max-w-[620px] flex flex-col rounded p-10 items-center justify-center">
+                        <AuthAccountProfileImage size={60} image={workspace?.profileImage} name={workspace?.title} />
                         <div className="text-2xl mt-6 mb-4 sh3 !font-normal !text-black-700 ">
                             {t(invitationConstant.title1)}
                             <span className="font-bold text-black-900">{' ' + workspace?.title || t(localesGlobal.untitled)}</span>

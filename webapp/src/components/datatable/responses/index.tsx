@@ -4,6 +4,8 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import StyledPagination from '@Components/Common/Pagination';
+import SearchInput from '@Components/Common/Search/SearchInput';
+import { AssignmentReturn } from '@mui/icons-material';
 import { Typography } from '@mui/material';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
@@ -34,7 +36,7 @@ const responseTableStyles = {
 };
 const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, page, setPage }: any) => {
     const router = useRouter();
-    const workspaceStats = useGetWorkspaceStatsQuery(workspaceId, { pollingInterval: 30000 });
+
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
     };
@@ -127,20 +129,10 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
                 );
         }
     };
-
-    return (
-        <>
-            {submissions?.isLoading ? (
-                <div className=" w-full py-10 flex justify-center">
-                    <Loader />
-                </div>
-            ) : submissions?.data?.items && submissions?.data?.items.length > 0 ? (
+    const response: any = () => {
+        if (submissions?.data?.items && submissions?.data?.items.length > 0)
+            return (
                 <>
-                    {!formId && (
-                        <p className="body1 text-black-900 my-10">
-                            {workspaceStats?.data?.deletion_requests.pending || 0}/{workspaceStats?.data?.deletion_requests.total} {t(localesGlobal.deletionRemaining)}
-                        </p>
-                    )}
                     <DataTable
                         className="p-0 mt-2 h-full !overflow-visible"
                         columns={dataTableResponseColumns}
@@ -156,14 +148,23 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
                         </div>
                     )}
                 </>
-            ) : (
-                <EmptyResponse
-                    title={t(requestForDeletion ? formConstant.empty.deletionRequest.title : formConstant.empty.response.title)}
-                    description={t(requestForDeletion ? formConstant.empty.deletionRequest.description : formConstant.empty.response.description)}
-                />
-            )}
-        </>
-    );
+            );
+        return (
+            <EmptyResponse
+                title={t(requestForDeletion ? formConstant.empty.deletionRequest.title : formConstant.empty.response.title)}
+                description={t(requestForDeletion ? formConstant.empty.deletionRequest.description : formConstant.empty.response.description)}
+            />
+        );
+    };
+    if (submissions?.isLoading) {
+        return (
+            <div className=" w-full py-10 flex justify-center">
+                <Loader />
+            </div>
+        );
+    }
+
+    return response();
 };
 
 export default ResponsesTable;

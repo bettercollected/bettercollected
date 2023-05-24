@@ -2,29 +2,46 @@ import { useState, useTransition } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import SearchInput from '@Components/Common/Search/SearchInput';
 import { Divider } from '@mui/material';
 
 import ResponsesTable from '@app/components/datatable/responses';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import globalConstants from '@app/constants/global';
 import { formConstant } from '@app/constants/locales/form';
+import { localesGlobal } from '@app/constants/locales/global';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetWorkspaceAllSubmissionsQuery } from '@app/store/workspaces/api';
+import { useGetWorkspaceAllSubmissionsQuery, useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
+import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 
 export default function DeletionRequests({ workspace }: { workspace: WorkspaceDto }) {
     const { t } = useTranslation();
     const [page, setPage] = useState(1);
-
-    const submissions = useGetWorkspaceAllSubmissionsQuery({
+    const workspaceStats = useGetWorkspaceStatsQuery(workspace.id, { pollingInterval: 30000 });
+    const [query, setQuery] = useState<IGetAllSubmissionsQuery>({
         workspaceId: workspace.id,
         requestedForDeletionOly: true,
         page: page,
         size: globalConstants.pageSize
     });
+    const handleSearch = (event: any) => {
+        if (event.target.value) setQuery({ ...query, dataOwnerIdentifier: event.target.value });
+        else {
+            const { dataOwnerIdentifier, ...removedQuery } = query;
+            setQuery(removedQuery);
+        }
+    };
+    const submissions = useGetWorkspaceAllSubmissionsQuery(query);
     return (
         <DashboardLayout>
             <div className="heading4">{t(formConstant.deletionRequests)}</div>
+            <p className="body1 text-black-900 my-10">
+                {workspaceStats?.data?.deletion_requests.pending || 0}/{workspaceStats?.data?.deletion_requests.total} {t(localesGlobal.deletionRemaining)}
+            </p>
+            <div className="w-full md:w-[282px] mb-8">
+                <SearchInput handleSearch={handleSearch} />
+            </div>
             <ResponsesTable workspaceId={workspace.id} requestForDeletion={true} page={page} setPage={setPage} submissions={submissions} />
         </DashboardLayout>
     );
