@@ -9,6 +9,7 @@ import { toast } from 'react-toastify';
 import BetterInput from '@app/components/Common/input';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
+import Button from '@app/components/ui/button/button';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
@@ -20,8 +21,6 @@ import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceDomainMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
-
-import Button from '../ui/button/button';
 
 export default function UpdateWorkspaceSettings({ updateDomain = false }: { updateDomain: boolean }) {
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
@@ -41,7 +40,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
         if (updateDomain) {
             setError(!!updateText && !updateText.match('(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\\.[a-zA-Z]{2,3})'));
         } else {
-            setError(!updateText);
+            setError(!updateText.match(/^(?=.*$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$/));
         }
     }, [updateText]);
 

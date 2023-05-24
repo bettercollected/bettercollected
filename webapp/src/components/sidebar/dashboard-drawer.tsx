@@ -54,7 +54,7 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
 };
 
 export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerToggle }: IDrawerProps) {
-    const workspace = useAppSelector(selectWorkspace);
+    const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
     const { t } = useTranslation();
     const isAdmin = useAppSelector(selectIsAdmin);
     const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;

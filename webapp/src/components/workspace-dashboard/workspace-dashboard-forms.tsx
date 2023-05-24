@@ -57,9 +57,9 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                             ]}
                         />
                     )}
-                    <EmptyImportFormIcon className="mb-8 animate-move-up-small" />
-                    <p className="sh1 mb-4 !leading-none">{t(formConstant.empty.title)}</p>
-                    <p className="body4 mb-8 !leading-none">{t(formConstant.empty.description)}</p>
+                    <EmptyImportFormIcon className="mb-6 h-[71px] w-[71px] " />
+                    <p className="sh1 mb-[15px] !leading-none">{t(formConstant.empty.title)}</p>
+                    <p className="body4 mb-6 !leading-none">{t(formConstant.empty.description)}</p>
                     <div ref={ref} onClick={handleOnClick} className="animate-pulse hover:animate-none">
                         <ImportFormsButton size="medium" />
                     </div>

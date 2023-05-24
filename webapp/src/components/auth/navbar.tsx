@@ -98,7 +98,6 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
         localStorage.setItem('language', language);
         setLanguage(language);
     };
-    console.log(isMobileView());
 
     return (
         <Header className="!z-[1300]">

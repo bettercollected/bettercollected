@@ -13,6 +13,7 @@ import DataTable from 'react-data-table-component';
 import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-badge';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import EmptyResponse from '@app/components/ui/empty-response';
+import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { formConstant } from '@app/constants/locales/form';
@@ -41,11 +42,24 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
         setPage(page);
     };
     const { t } = useTranslation();
-
+    const onRowClicked = (response: StandardFormResponseDto) => {
+        if (!requestForDeletion) {
+            if (!requestForDeletion)
+                router.push(
+                    {
+                        pathname: router.pathname,
+                        query: { ...router.query, sub_id: response.responseId }
+                    },
+                    undefined,
+                    { scroll: true, shallow: true }
+                );
+        }
+    };
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
             <Typography className={cn('!text-black-900 body3 ', !requestForDeletion && 'hover:!text-brand-500 cursor-pointer hover:underline')} noWrap>
-                {response?.dataOwnerIdentifier ?? 'Anonymous'}
+                {!requestForDeletion && <div onClick={() => onRowClicked(response)}>{response?.dataOwnerIdentifier ?? 'Anonymous'}</div>}
+                {requestForDeletion && (response?.dataOwnerIdentifier ?? 'Anonymous')}
             </Typography>
         </div>
     );
@@ -114,19 +128,6 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
         dataTableResponseColumns.splice(1, 0, ...formToAdd);
     }
 
-    const onRowClicked = (response: StandardFormResponseDto) => {
-        if (!requestForDeletion) {
-            if (!requestForDeletion)
-                router.push(
-                    {
-                        pathname: router.pathname,
-                        query: { ...router.query, sub_id: response.responseId }
-                    },
-                    undefined,
-                    { scroll: true, shallow: true }
-                );
-        }
-    };
     const response: any = () => {
         if (submissions?.data?.items && submissions?.data?.items.length > 0)
             return (
