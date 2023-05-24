@@ -91,7 +91,8 @@
         "PREVIEW": "Voorbeeld"
     },
     "DASHBOARD_DRAWER": {
-        "COLLABORATOR": "Medewerker"
+        "COLLABORATOR": "Medewerker",
+        "OWNER": "Eigenaar"
     },
     "DELETE": {
         "DEFAULT": "Verwijderen",

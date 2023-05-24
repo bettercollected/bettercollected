@@ -91,7 +91,8 @@
 		"PREVIEW": "Preview"
 	},
 	"DASHBOARD_DRAWER": {
-		"COLLABORATOR": "Collaborator"
+		"COLLABORATOR": "Collaborator",
+		"OWNER": "Owner"
 	},
 	"DELETE": {
 		"DEFAULT": "Delete",

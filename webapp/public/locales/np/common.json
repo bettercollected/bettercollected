@@ -91,7 +91,8 @@
         "PREVIEW": "पूर्वावलोकन"
     },
     "DASHBOARD_DRAWER": {
-        "COLLABORATOR": "सहयोगी"
+        "COLLABORATOR": "सहयोगी",
+        "OWNER": "मालिक"
     },
     "DELETE": {
         "DEFAULT": "मेट्नुहोस्",

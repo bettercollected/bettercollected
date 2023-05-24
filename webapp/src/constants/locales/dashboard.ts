@@ -1,6 +1,7 @@
 const dashboardConstants = {
     drawer: {
-        collaborator: 'DASHBOARD_DRAWER.COLLABORATOR'
+        collaborator: 'DASHBOARD_DRAWER.COLLABORATOR',
+        owner: 'DASHBOARD_DRAWER.OWNER'
     },
     preview: 'DASHBOARD.PREVIEW'
 };
