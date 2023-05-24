@@ -62,7 +62,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
             filter_query=filter_query,
             sort=sort,
             request_for_deletion=request_for_deletion,
-            data_subjects=data_subjects,
             user=user,
         )
         return responses
