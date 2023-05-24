@@ -18,7 +18,7 @@ export const localesGlobal = {
     poweredBy: 'POWERED_BY',
     privacyPolicy: 'PRIVACY_POLICY',
     settings: 'SETTINGS',
-    slug: 'SLUG_DEFAULT',
+    slug: 'SLUG.DEFAULT',
     step: 'STEP',
     save: 'SAVE',
     termsOfServices: 'TERMS_OF_SERVICES',
