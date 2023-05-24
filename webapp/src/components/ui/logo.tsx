@@ -25,8 +25,8 @@ const Logo = ({ className, isClientDomain = false, isCustomDomain = false, showP
     const isProAndIsWorkspaceAdmin = user ? user?.id === workspace?.ownerId && user?.plan === 'PRO' : false;
 
     const customDomainUrl = isFooter ? 'https://bettercollected.com' : '/';
-    const clientDomainUrl = `${workspace?.workspaceName}`;
-    const adminDomainUrl = `${workspace?.workspaceName}/dashboard`;
+    const clientDomainUrl = `/${workspace?.workspaceName}`;
+    const adminDomainUrl = `/${workspace?.workspaceName}/dashboard`;
 
     const url = isCustomDomain ? customDomainUrl : isClientDomain ? clientDomainUrl : adminDomainUrl;
 
