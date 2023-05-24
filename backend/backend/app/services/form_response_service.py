@@ -40,8 +40,8 @@ class FormResponseService:
         filter_query: FormResponseFilterQuery,
         sort: SortRequest,
         request_for_deletion: bool,
-        data_subjects: bool,
         user: User,
+        data_subjects: bool = None,
     ):
         if not await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user

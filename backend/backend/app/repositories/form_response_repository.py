@@ -25,7 +25,6 @@ class FormResponseRepository(BaseRepository):
         extra_find_query: Dict[str, Any] = None,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
-        data_subjects: bool = None,
     ) -> Page[FormResponseDocument]:
         find_query = {"form_id": {"$in": form_ids}}
         if not request_for_deletion:
@@ -44,36 +43,6 @@ class FormResponseRepository(BaseRepository):
             {"$set": {"form_title": "$form.title"}},
             {"$unwind": "$form_title"},
         ]
-
-        if data_subjects:
-            aggregate_query.extend(
-                [
-                    {"$match": {"dataOwnerIdentifier": {"$exists": True, "$ne": None}}},
-                    {
-                        "$group": {
-                            "_id": "$dataOwnerIdentifier",
-                            "response_ids": {"$push": "$$CURRENT.response_id"},
-                            "responses": {"$sum": 1},
-                        }
-                    },
-                    {
-                        "$lookup": {
-                            "from": "responses_deletion_requests",
-                            "localField": "response_ids",
-                            "foreignField": "response_id",
-                            "as": "deletion_requests",
-                        }
-                    },
-                    {
-                        "$project": {
-                            "email": "$_id",
-                            "responses": 1,
-                            "deletion_requests": {"$size": "$deletion_requests"},
-                        }
-                    },
-                    {"$sort": {"email": 1}},
-                ]
-            )
 
         if request_for_deletion:
             aggregate_query.extend(
@@ -98,6 +67,82 @@ class FormResponseRepository(BaseRepository):
             )
 
         aggregate_query.extend(
+            create_filter_pipeline(filter_object=filter_query, sort=sort)
+        )
+
+        form_responses_query = FormResponseDocument.find(find_query).aggregate(
+            aggregate_query
+        )
+        form_responses = await fastapi_pagination.ext.beanie.paginate(
+            form_responses_query
+        )
+        return form_responses
+
+    async def get_workspace_responders(
+        self,
+        form_ids: List[str],
+        filter_query: FormResponseFilterQuery = None,
+        sort: SortRequest = None,
+    ):
+        find_query = {"form_id": {"$in": form_ids}}
+
+        aggregate_query = [
+            {"$match": {"dataOwnerIdentifier": {"$exists": True, "$ne": None}}},
+            {
+                "$group": {
+                    "_id": "$dataOwnerIdentifier",
+                    "response_ids": {"$push": "$$CURRENT.response_id"},
+                    "responses": {"$sum": 1},
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "responses_deletion_requests",
+                    "localField": "response_ids",
+                    "foreignField": "response_id",
+                    "as": "deletion_requests",
+                }
+            },
+            {
+                "$project": {
+                    "email": "$_id",
+                    "_id": 0,
+                    "responses": 1,
+                    "deletion_requests": {"$size": "$deletion_requests"},
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "workspace_responder",
+                    "localField": "email",
+                    "foreignField": "email",
+                    "as": "responder",
+                }
+            },
+            {
+                "$unwind": {
+                    "path": "$responder",
+                    "preserveNullAndEmptyArrays": True,
+                }
+            },
+            {
+                "$set": {
+                    "tags": "$responder.tags",
+                    "metadata": "$responder.metadata",
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "workspace_tags",
+                    "localField": "tags",
+                    "foreignField": "_id",
+                    "as": "tags",
+                }
+            },
+            {"$sort": {"email": 1}},
+        ]
+
+        aggregate_query.extend(
             create_filter_pipeline(
                 filter_object=filter_query, sort=sort, default_sort=False
             )
@@ -119,13 +164,18 @@ class FormResponseRepository(BaseRepository):
         sort: SortRequest = None,
         data_subjects: bool = None,
     ) -> Page[StandardFormResponse]:
-        form_responses = await self.get_form_responses(
-            form_ids,
-            request_for_deletion,
-            filter_query=filter_query,
-            sort=sort,
-            data_subjects=data_subjects,
-        )
+        if data_subjects:
+            form_responses = await self.get_workspace_responders(
+                form_ids=form_ids, filter_query=filter_query, sort=sort
+            )
+
+        else:
+            form_responses = await self.get_form_responses(
+                form_ids,
+                request_for_deletion,
+                filter_query=filter_query,
+                sort=sort,
+            )
         return form_responses
 
     async def get_user_submissions(

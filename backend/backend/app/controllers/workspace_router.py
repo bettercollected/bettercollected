@@ -106,7 +106,7 @@ class WorkspaceRouter(Routable):
             workspace_id, receiver_email
         )
 
-    @delete("/{workspace_id}/custom_domain")
+    @delete("/{workspace_id}/custom-domain")
     async def delete_custom_domain_of_workspace(
         self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
     ):
