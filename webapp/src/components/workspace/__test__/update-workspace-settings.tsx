@@ -2,7 +2,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
-import UpdateWorkspaceSettings from '@app/components/workspace/update-workspace-settings';
+import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
 import { renderWithProviders } from '@app/utils/__test_utils__/render-with-provider';
 
 jest.mock('@app/components/modal-views/context', () => ({

@@ -4,8 +4,10 @@ import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import CopyIcon from '@Components/Common/Icons/Copy';
+import Pro from '@Components/Common/Icons/Pro';
 import { toast } from 'react-toastify';
 
+import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
@@ -39,7 +41,7 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
     };
 
     return (
-        <SettingsCard className="!mt-5">
+        <SettingsCard className={`!mt-5 relative ${!isProPlan && updateDomain ? '!bg-brand-200' : ''}`}>
             <div className="sh3">{updateDomain ? t(workspaceConstant.customDomain) : t(workspaceConstant.handle)}</div>
             <div className="flex flex-col w-full justify-between">
                 <div className="w-full text-sm mb-10 text-black-700">{updateDomain ? t(updateWorkspace.domain.desc) : t(updateWorkspace.handles.desc)}</div>
@@ -53,8 +55,8 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                         <div className="body6 mb-6 font-semibold">{t(updateWorkspace.common.currentLink)}</div>
                         <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:items-center space-between">
                             <div className="flex items-center flex-1">
-                                <div className="px-2 body6 py-3 border border-black-400 rounded mr-2">
-                                    {updateDomain ? (
+                                <div className="px-2 body6 py-3 w-full border border-black-400 rounded mr-2">
+                                    {updateDomain && workspace.customDomain ? (
                                         <>
                                             <span className="text-black-700">{environments.HTTP_SCHEME}</span>
                                             <span className="text-black-900">{workspace.customDomain}</span>
@@ -71,7 +73,7 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                                 </div>
                                 <Tooltip title="Copy Link">
                                     <CopyIcon
-                                        className="cursor-pointer"
+                                        className="cursor-pointer mr-4"
                                         onClick={() => {
                                             copyToClipboard(urlText);
                                             toast('Copied', {
@@ -82,12 +84,30 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                                 </Tooltip>
                             </div>
                             <div>
-                                <Button onClick={handleClick}>{t(updateWorkspace.common.change)}</Button>
+                                <Button disabled={!isProPlan && updateDomain} onClick={handleClick}>
+                                    {t(updateWorkspace.common.change)}
+                                </Button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            {!isProPlan && updateDomain && (
+                <>
+                    <div className="flex items-center">
+                        <span className="mr-1 font-semibold">Upgrade to PRO</span> for this feature
+                        <ProPlanHoc hideChildrenIfPro={false}>
+                            <Button className="ml-4">Upgrade</Button>
+                        </ProPlanHoc>
+                    </div>
+                    <div className="absolute !top-2 !right-5">
+                        <div className="flex items-center rounded h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
+                            <Pro width={12} height={12} />
+                            <span className="leading-none">Pro</span>
+                        </div>
+                    </div>
+                </>
+            )}
         </SettingsCard>
     );
 }

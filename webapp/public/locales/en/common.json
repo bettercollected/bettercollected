@@ -69,7 +69,8 @@
     "REQUESTED_FOR_DELETION": "Requested for deletion",
     "REMOVE_INVITATION": "Remove invitation",
     "DELETE_MEMBER": "Delete member",
-    "SKIP": "Skip"
+    "SKIP": "Skip",
+    "UPDATE_NOW": "Update Now"
   },
   "CONTACT_US": {
     "DESCRIPTION": "Any questions or remarks? Just write us a message",
@@ -328,6 +329,23 @@
       "CONSEQUENCE": "What will happen?",
       "CURRENT_LINK": "Your current link",
       "CHANGE": "Change"
+    },
+    "SETTINGS": {
+      "COMMON": {
+        "POINT1": "Make it easier to remember",
+        "POINT2": "Make it relevant to your business or organization.",
+        "POINT3": "Keep it short and concise."
+      },
+      "HANDLE": {
+        "POINT4": "Avoid using spaces or special characters. Only “.” and “_” is accepted."
+      },
+      "DOMAIN": {
+        "REMOVE": "Remove current domain and",
+        "RESET": "reset to default.",
+        "CNAME": "Add CNAME record of your domain to point to ",
+        "CONFIRMATION_TITLE": "Are you sure you want to reset domain name to default?",
+        "CONFIRMATION_DESC": "Any links with old domain name will no longer work."
+      }
     },
     "HANDLE": {
       "DESC": "Customize your workspace handle name to make your workspace more personal.",

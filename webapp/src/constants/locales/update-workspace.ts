@@ -21,5 +21,22 @@ export const updateWorkspace = {
         desc: 'UPDATE_WORKSPACE.DOMAIN.DESC',
         point1: 'UPDATE_WORKSPACE.DOMAIN.POINT_1',
         point2: 'UPDATE_WORKSPACE.DOMAIN.POINT_2'
+    },
+    settings: {
+        common: {
+            point1: 'UPDATE_WORKSPACE.SETTINGS.COMMON.POINT1',
+            point2: 'UPDATE_WORKSPACE.SETTINGS.COMMON.POINT2',
+            point3: 'UPDATE_WORKSPACE.SETTINGS.COMMON.POINT3'
+        },
+        handle: {
+            point4: 'UPDATE_WORKSPACE.SETTINGS.HANDLE.POINT4'
+        },
+        domain: {
+            remove: 'UPDATE_WORKSPACE.SETTINGS.DOMAIN.REMOVE',
+            reset: 'UPDATE_WORKSPACE.SETTINGS.DOMAIN.RESET',
+            cname: 'UPDATE_WORKSPACE.SETTINGS.DOMAIN.CNAME',
+            confirmationTitle: 'UPDATE_WORKSPACE.SETTINGS.DOMAIN.CONFIRMATION_TITLE',
+            confirmationDesc: 'UPDATE_WORKSPACE.SETTINGS.DOMAIN.CONFIRMATION_DESC'
+        }
     }
 };

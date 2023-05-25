@@ -9,15 +9,16 @@ import { Close } from '@app/components/icons/close';
 import LogoutView from '@app/components/logout/logout-view';
 import { MODAL_VIEW, useModal } from '@app/components/modal-views/context';
 import CustomizeUrlModal from '@app/components/modal-views/modals/customize-url-modal';
+import DeleteCustomDomainModal from '@app/components/modal-views/modals/delete-custom-domain-modal';
 import DeleteInvitationModal from '@app/components/modal-views/modals/delete-invitation-modal';
 import DeleteMemberModal from '@app/components/modal-views/modals/delete-member-modal';
 import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
+import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
 import UpdateTermsOfServiceAndPrivacyPolicy from '@app/components/toc-privacy-policy';
 import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
-import UpdateWorkspaceSettings from '@app/components/workspace/update-workspace-settings';
 
 import CropImageModalView from './modals/crop-image-modal-view';
 
@@ -55,6 +56,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <CustomizeUrlModal {...modalProps} />;
         case 'CROP_IMAGE':
             return <CropImageModalView {...modalProps} />;
+        case 'DELETE_CUSTOM_DOMAIN':
+            return <DeleteCustomDomainModal />;
         default:
             return <></>;
     }

@@ -46,5 +46,6 @@ export const buttonConstant = {
     requestedForDeletion: 'BUTTON.REQUESTED_FOR_DELETION',
     removeInvitation: 'BUTTON.REMOVE_INVITATION',
     deleteMember: 'BUTTON.DELETE_MEMBER',
-    skip: 'BUTTON.SKIP'
+    skip: 'BUTTON.SKIP',
+    updateNow: 'BUTTON.UPDATE_NOW'
 };
