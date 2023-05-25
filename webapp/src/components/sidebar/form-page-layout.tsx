@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import Toolbar from '@Components/Common/Layout/Toolbar';
 import { Share } from '@mui/icons-material';
@@ -33,6 +34,7 @@ export default function FormPageLayout(props: any) {
     const workspace = useAppSelector((state) => state.workspace);
     const { openModal } = useModal();
     const dispatch = useAppDispatch();
+    const router = useRouter();
     useEffect(() => {
         dispatch(setForm(props.form));
         return () => {
@@ -55,15 +57,16 @@ export default function FormPageLayout(props: any) {
     const clientHostUrl = `${clientHost}/${customUrl}`;
     const customDomainUrl = `${customDomain}/${customUrl}`;
     const breakpoint = useBreakpoint();
+    const locale = router?.locale === 'en' ? '' : `${router?.locale}/`;
 
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
             title: t(breadcrumbsItems.dashboard),
-            url: `/${props?.workspace?.workspaceName}/dashboard`
+            url: `/${locale}${props?.workspace?.workspaceName}/dashboard`
         },
         {
             title: t(breadcrumbsItems.forms),
-            url: `/${props?.workspace?.workspaceName}/dashboard/forms`
+            url: `/${locale}${props?.workspace?.workspaceName}/dashboard/forms`
         },
         {
             title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.title, 30) : form?.title || '',

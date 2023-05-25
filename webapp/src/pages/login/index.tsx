@@ -19,12 +19,12 @@ import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/
 export async function getServerSideProps(_context: any) {
     const config = getServerSideAuthHeaderConfig(_context);
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
-    const language = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
+    const locale = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
     if (checkHasCustomDomain(_context)) {
         return {
             redirect: {
                 permanent: false,
-                destination: `/${language}`
+                destination: `/${locale}`
             }
         };
     }
@@ -46,14 +46,14 @@ export async function getServerSideProps(_context: any) {
                 return {
                     redirect: {
                         permanent: false,
-                        destination: `/${language}${redirectWorkspace?.workspaceName}/onboarding`
+                        destination: `/${locale}${redirectWorkspace?.workspaceName}/onboarding`
                     }
                 };
             }
             return {
                 redirect: {
                     permanent: false,
-                    destination: `/${language}${redirectWorkspace?.workspaceName}/dashboard`
+                    destination: `/${locale}${redirectWorkspace?.workspaceName}/dashboard`
                 }
             };
         }
