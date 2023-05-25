@@ -3,7 +3,6 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import EditIcon from '@Components/Common/Icons/Edit';
 import PlusIcon from '@Components/Common/Icons/Plus';
@@ -13,10 +12,8 @@ import { Button } from '@mui/material';
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
-import WorkspaceDashboardStats from '@app/components/workspace-dashboard/workspace-dashboard-stats';
 import environments from '@app/configs/environments';
 import dashboardConstants from '@app/constants/locales/dashboard';
-import { formConstant } from '@app/constants/locales/form';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { UserDto } from '@app/models/dtos/UserDto';
@@ -65,7 +62,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                     </div>
                     <div className="flex items-center gap-3 ml-0 mt-3 space-x-3 md:mt-0 md:ml-10 min-h-[28px]">
                         <ActiveLink className="hover:bg-brand-100 rounded p-2" href={`/${workspace.workspaceName}/manage`}>
-                            <PlusIcon />
+                            <EditIcon />
                         </ActiveLink>
 
                         <ActiveLink href={getWorkspaceUrl()} target="_blank" referrerPolicy="origin">
