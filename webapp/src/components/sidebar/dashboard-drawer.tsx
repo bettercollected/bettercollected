@@ -7,6 +7,7 @@ import DashboardIcon from '@Components/Common/Icons/Dashboard';
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import { FormIcon } from '@Components/Common/Icons/FormIcon';
 import MembersIcon from '@Components/Common/Icons/Members';
+import PublicIcon from '@Components/Common/Icons/Public';
 import ResponderIcon from '@Components/Common/Icons/Responder';
 import SettingsIcon from '@Components/Common/Icons/Settings';
 import Toolbar from '@Components/Common/Layout/Toolbar';
@@ -92,6 +93,12 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
             name: t(dashboardConstants.drawer.collaborator),
             url: `/${workspace?.workspaceName}/manage/members`,
             icon: <MembersIcon />
+        },
+        {
+            key: 'urls',
+            name: t(dashboardConstants.drawer.manageURLs),
+            url: `/${workspace?.workspaceName}/manage/urls`,
+            icon: <PublicIcon height={24} width={24} />
         },
         {
             key: 'manage-workspace',

@@ -92,7 +92,8 @@
     },
     "DASHBOARD_DRAWER": {
         "COLLABORATOR": "सहयोगी",
-        "OWNER": "मालिक"
+        "OWNER": "मालिक",
+        "MANAGE_URLS": "लिङ्कहरू प्रबन्ध"
     },
     "DELETE": {
         "DEFAULT": "मेट्नुहोस्",

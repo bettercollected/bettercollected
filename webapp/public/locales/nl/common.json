@@ -92,7 +92,9 @@
     },
     "DASHBOARD_DRAWER": {
         "COLLABORATOR": "Medewerker",
-        "OWNER": "Eigenaar"
+        "OWNER": "Eigenaar",
+        "MANAGE_URLS": "Koppelingen beheren"
+
     },
     "DELETE": {
         "DEFAULT": "Verwijderen",
