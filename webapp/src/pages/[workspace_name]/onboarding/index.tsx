@@ -47,11 +47,12 @@ interface onBoardingProps {
 
 export async function getServerSideProps(_context: GetServerSidePropsContext) {
     const authUserProps = (await getAuthUserPropsWithWorkspace(_context)).props;
+    const locale = authUserProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${authUserProps['_nextI18Next']['initialLocale']}/`;
     if (!authUserProps) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/'
+                destination: `/${locale}`
             }
         };
     }
@@ -59,7 +60,7 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
         return {
             redirect: {
                 permanent: false,
-                destination: `/${authUserProps.workspace.workspaceName}/dashboard`
+                destination: `/${locale}${authUserProps.workspace.workspaceName}/dashboard`
             }
         };
     }

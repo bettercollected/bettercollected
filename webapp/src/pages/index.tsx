@@ -19,9 +19,8 @@ export default Home;
 
 export async function getServerSideProps(_context: GetServerSidePropsContext) {
     const hasCustomDomain = checkHasCustomDomain(_context);
-
+    const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
     if (hasCustomDomain) {
-        const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
         if (!globalProps?.workspace?.id) {
             return {
                 notFound: true
@@ -32,6 +31,7 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
         };
     }
     const scheme = _context.req.headers?.referer?.includes('https://') ? 'https://' : 'http://';
+    const locale = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
 
     const hasClientDomain = checkHasClientDomain(getRequestHost(_context));
     if (hasClientDomain) {
@@ -46,7 +46,7 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
     return {
         redirect: {
             permanent: false,
-            destination: `/login`
+            destination: `/${locale}login`
         }
     };
 }

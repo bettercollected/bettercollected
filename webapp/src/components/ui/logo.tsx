@@ -24,7 +24,6 @@ const Logo = ({ className, isClientDomain = false, isCustomDomain = false, showP
     const router = useRouter();
     const user = !!authStatus ? authStatus : null;
     const locale = router?.locale === 'en' ? '' : `${router?.locale}/`;
-    console.log(locale);
     const isProAndIsWorkspaceAdmin = user ? user?.id === workspace?.ownerId && user?.plan === 'PRO' : false;
 
     const customDomainUrl = isFooter ? 'https://bettercollected.com' : '/';
