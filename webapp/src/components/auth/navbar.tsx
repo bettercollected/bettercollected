@@ -133,7 +133,7 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
                                 >
                                     {dropdownOptions.map((dd: any) => (
                                         <MenuItem onClick={() => handleLanguage(dd.label)} className="py-4 justify-between hover:bg-black-200" key={dd.value}>
-                                            <div className={cn('flex gap-3 body3  items-center  ', language === dd.label && '!text-brand-600 ')}>
+                                            <div className={cn('flex gap-3 body3  items-center', language === dd.label && '!text-brand-600 ')}>
                                                 {React.createElement(dd.icon, { className: 'h-5 w-6' })} {dd?.value}
                                             </div>
                                             {language === dd.label && <Check className="h-5 w-5" color="#0C50B4" />}
