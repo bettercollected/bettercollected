@@ -48,6 +48,7 @@ interface onBoardingProps {
 export async function getServerSideProps(_context: GetServerSidePropsContext) {
     const authUserProps = (await getAuthUserPropsWithWorkspace(_context)).props;
     const locale = authUserProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${authUserProps['_nextI18Next']['initialLocale']}/`;
+    console.log(authUserProps, 'test');
     if (!authUserProps) {
         return {
             redirect: {

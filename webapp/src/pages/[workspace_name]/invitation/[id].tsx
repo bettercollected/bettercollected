@@ -95,7 +95,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
                         </div>
                         <div className="body3 mb-10 !text-black-700">{t(invitationConstant.title2)}</div>
                         <div className="flex flex-col space-y-4 items-center">
-                            <div className="flex space-x-5">
+                            <div className="flex sm:flex-row flex-col gap-5 justify-between items-center">
                                 <Button disabled={isLoading} size="large" onClick={onAccept}>
                                     {t(buttonConstant.joinWorkspace)}
                                 </Button>
