@@ -65,7 +65,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                     </div>
                     <div className="flex items-center gap-3 ml-0 mt-3 space-x-3 md:mt-0 md:ml-10 min-h-[28px]">
                         <ActiveLink className="hover:bg-brand-100 rounded p-2" href={`/${workspace.workspaceName}/manage`}>
-                            <EditIcon />
+                            <PlusIcon />
                         </ActiveLink>
 
                         <ActiveLink href={getWorkspaceUrl()} target="_blank" referrerPolicy="origin">
