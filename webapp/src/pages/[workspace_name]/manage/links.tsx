@@ -45,7 +45,7 @@ export default function ManageLinks() {
         if (response?.data) {
             toast(t(toastMessage.updated).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         } else if (response.error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { type: 'error', toastId: ToastId.ERROR_TOAST });
+            toast(response.error.data || t(toastMessage.somethingWentWrong).toString(), { type: 'error', toastId: ToastId.ERROR_TOAST });
         }
     };
 

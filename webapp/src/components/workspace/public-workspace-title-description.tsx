@@ -29,7 +29,7 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
     const patchWorkspaceInformation = async (formData: any) => {
         const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
         if (response.error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
+            toast(response.error.data || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
         }
         if (response.data) {
             dispatch(setWorkspace(response.data));

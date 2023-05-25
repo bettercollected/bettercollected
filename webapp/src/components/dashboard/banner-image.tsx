@@ -54,7 +54,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                 formData.append('banner_image', file);
                 const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
                 if (response.error) {
-                    toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
+                    toast(response.error.data || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
                 }
                 if (response.data) {
                     toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
