@@ -93,6 +93,7 @@
   },
   "DASHBOARD_DRAWER": {
     "COLLABORATOR": "Collaborator",
+    "OWNER": "Owner",
     "MANAGE_URLS": "Manage Links"
   },
   "DELETE": {

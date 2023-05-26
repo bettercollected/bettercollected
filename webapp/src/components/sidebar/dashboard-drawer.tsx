@@ -27,6 +27,8 @@ import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
+import Globe from '../icons/flags/globe';
+
 DashboardDrawer.defaultProps = {
     drawerWidth: 289,
     mobileOpen: false
@@ -98,7 +100,7 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
             key: 'urls',
             name: t(dashboardConstants.drawer.manageURLs),
             url: `/${workspace?.workspaceName}/dashboard/urls`,
-            icon: <PublicIcon height={24} width={24} />
+            icon: <Globe />
         }
     ];
 
