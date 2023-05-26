@@ -91,20 +91,14 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
         {
             key: 'collaborators',
             name: t(dashboardConstants.drawer.collaborator),
-            url: `/${workspace?.workspaceName}/manage/members`,
+            url: `/${workspace?.workspaceName}/dashboard/members`,
             icon: <MembersIcon />
         },
         {
             key: 'urls',
             name: t(dashboardConstants.drawer.manageURLs),
-            url: `/${workspace?.workspaceName}/manage/urls`,
+            url: `/${workspace?.workspaceName}/dashboard/urls`,
             icon: <PublicIcon height={24} width={24} />
-        },
-        {
-            key: 'manage-workspace',
-            name: t(workspaceConstant.manage),
-            url: `/${workspace?.workspaceName}/manage`,
-            icon: <SettingsIcon />
         }
     ];
 

@@ -5,8 +5,11 @@ import { useTranslation } from 'next-i18next';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import CopyIcon from '@Components/Common/Icons/Copy';
 import Pro from '@Components/Common/Icons/Pro';
+import { Typography } from '@mui/material';
+import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
+import BetterInput from '@app/components/Common/input';
 import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
@@ -53,9 +56,12 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                 <div className="flex space-between items-end w-full">
                     <div className="flex-1">
                         <div className="body6 mb-6 font-semibold">{t(updateWorkspace.common.currentLink)}</div>
-                        <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:items-center space-between">
-                            <div className="flex items-center flex-1">
-                                <div className="px-2 body6 py-3 w-full border border-black-400 rounded mr-2">
+                        <div className="flex flex-col md:flex-row gap-4 space-y-4 md:space-y-0 md:items-center space-between">
+                            <div className="flex items-center gap-4 max-w-full flex-1">
+                                {/*<BetterInput*/}
+                                {/*    disabled*/}
+                                {/*    value={environments.HTTP_SCHEME + (updateDomain ? workspace.customDomain : (environments.CLIENT_DOMAIN + "/" + workspace.workspaceName))}/>*/}
+                                <Typography noWrap className="px-2 body6 py-3 w-full max-w-full gap-4 truncate border  border-black-400 rounded mr-2">
                                     {updateDomain && workspace.customDomain ? (
                                         <>
                                             <span className="text-black-700">{environments.HTTP_SCHEME}</span>
@@ -70,10 +76,10 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                                             /<span className="text-black-900">{workspace?.workspaceName}</span>
                                         </>
                                     )}
-                                </div>
+                                </Typography>
                                 <Tooltip title="Copy Link">
                                     <CopyIcon
-                                        className="cursor-pointer mr-4"
+                                        className="cursor-pointer"
                                         onClick={() => {
                                             copyToClipboard(urlText);
                                             toast('Copied', {
@@ -84,7 +90,7 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                                 </Tooltip>
                             </div>
                             <div>
-                                <Button disabled={!isProPlan && updateDomain} onClick={handleClick}>
+                                <Button size="medium" disabled={!isProPlan && updateDomain} onClick={handleClick}>
                                     {t(updateWorkspace.common.change)}
                                 </Button>
                             </div>
