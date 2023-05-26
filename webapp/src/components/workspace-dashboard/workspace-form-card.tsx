@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
@@ -36,6 +38,10 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
     const router = useRouter();
 
     const { t } = useTranslation();
+
+    useEffect(() => {
+        router.prefetch(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}/responses`);
+    }, [router]);
 
     const handleResponseClick = (event: any) => {
         event.preventDefault();
