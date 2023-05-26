@@ -14,6 +14,7 @@ import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
+import AuthAccountProfileImage from '../auth/account-profile-image';
 import { useModal } from '../modal-views/context';
 import WorkSpaceLogoUi from '../ui/workspace-logo-ui';
 
@@ -62,7 +63,10 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
         <div className={props?.className ?? ''}>
             {isFormCreator ? (
                 <>
-                    <WorkSpaceLogoUi workspaceLogoRef={profileInputRef} onChange={onUploadFileChange} onClick={() => profileInputRef.current?.click()} image={uploadImage} profileName={workspace.title}></WorkSpaceLogoUi>
+                    <div onClick={() => profileInputRef.current?.click()} className="w-min cursor-pointer">
+                        <AuthAccountProfileImage image={uploadImage} name={workspace.title} size={143} typography="h1" />
+                        <input data-testid="file-upload-profile" type="file" accept="image/*" ref={profileInputRef} className="hidden" onChange={onUploadFileChange} />
+                    </div>
                 </>
             ) : (
                 <div className={`relative bannerdiv aspect-square product-image bg-white ${!!workspace?.profileImage ? '' : 'border-[4px] border-brand-100 hover:border-brand-400'} z-10  w-24  sm:w-32  md:w-40  lg:w-[200px] overflow-hidden`}>

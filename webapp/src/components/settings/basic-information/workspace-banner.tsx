@@ -10,11 +10,8 @@ export default function WorkspaceBanner() {
     const workspace: WorkspaceDto = useAppSelector((state) => state.workspace);
     const { t } = useTranslation();
     return (
-        <SettingsCard className="!mt-5">
-            <div className="body1">{t(workspaceConstant.banner)}</div>
-            <div className="w-full">
-                <BannerImageComponent workspace={workspace} isFormCreator={true} />
-            </div>
-        </SettingsCard>
+        <div className="!my-9 md:w-[674px] w-full rounded-[8px]">
+            <BannerImageComponent workspace={workspace} isFormCreator={true} />
+        </div>
     );
 }

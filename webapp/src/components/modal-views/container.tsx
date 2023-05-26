@@ -22,6 +22,7 @@ import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
 import CropImageModalView from './modals/crop-image-modal-view';
+import EditWorkspaceModal from './modals/edit-workspace-modal';
 
 // dynamic imports
 const LoginView = dynamic(() => import('@app/components/login/login-view'));
@@ -61,6 +62,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <DeleteCustomDomainModal />;
         case 'UPGRADE_TO_PRO':
             return <UpgradeToProModal />;
+        case 'EDIT_WORKSPACE_MODAL':
+            return <EditWorkspaceModal />;
         default:
             return <></>;
     }
