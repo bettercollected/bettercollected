@@ -53,7 +53,7 @@ export default function UpgradeModalContainer() {
                 </div>
 
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
-                    <div data-testid="modal-view" className="relative h-screen inline-block items-center content-center !w-full  z-50 !bg-white text-left align-middle md:w-fit">
+                    <div data-testid="modal-view" className="relative min-h-screen inline-block items-center content-center !w-full  z-50 !bg-white text-left align-middle md:w-fit">
                         {view && renderModalContent(view, modalProps)}
                     </div>
                 </Transition.Child>
