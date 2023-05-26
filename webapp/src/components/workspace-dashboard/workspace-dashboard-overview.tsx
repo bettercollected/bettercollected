@@ -45,6 +45,7 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
     const { t } = useTranslation();
     const language = router?.locale === 'en' ? '' : `${router?.locale}/`;
     const { data } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
+    console.log(workspace);
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
@@ -65,11 +66,13 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
             </div>
             <div className="flex flex-row justify-between items-center flex-1">
                 <div className="flex items-center gap-3 ml-0 md:mt-0 min-h-12">
-                    <div className={`flex items-center justify-center h-12 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_EDIT}`}>
-                        <div className="hover:bg-brand-100 rounded p-2 cursor-pointer" onClick={() => openModal('EDIT_WORKSPACE_MODAL')}>
-                            <EditIcon />
+                    {isAdmin && (
+                        <div className={`flex items-center justify-center h-12 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_EDIT}`}>
+                            <div className="hover:bg-brand-100 rounded p-2 cursor-pointer" onClick={() => openModal('EDIT_WORKSPACE_MODAL')}>
+                                <EditIcon />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     <div className={`flex items-center justify-center h-12 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_PREVIEW}`}>
                         <ActiveLink href={getWorkspaceUrl()} target="_blank" referrerPolicy="origin">

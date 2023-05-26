@@ -56,7 +56,7 @@ export default function UpgradeToProModal({ featureText }: IUpgradeToProModal) {
     ];
 
     return (
-        <div className="relative h-full overflow-auto pt-20 ">
+        <div className="relative h-full overflow-auto pt-20 !bg-white ">
             <Close
                 className="absolute cursor-pointer text-black-600 top-10 right-10"
                 height={40}

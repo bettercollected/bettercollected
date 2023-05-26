@@ -16,6 +16,7 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 
 import AuthAccountProfileImage from '../auth/account-profile-image';
 import { useModal } from '../modal-views/context';
+import { useUpgradeModal } from '../modal-views/upgrade-modal-context';
 import WorkSpaceLogoUi from '../ui/workspace-logo-ui';
 
 export default function ProfileImageComponent(props: BannerImageComponentPropType) {
@@ -24,14 +25,14 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
     const [uploadImage, setUploadImage] = useState(workspace.profileImage);
     const profileInputRef = useRef<HTMLInputElement>(null);
     const profileEditorRef = useRef<AvatarEditor>(null);
-    const { openModal, closeModal } = useModal();
+    const { openModal, closeModal } = useUpgradeModal();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const dispatch = useAppDispatch();
 
     const onUploadFileChange = (e: any) => {
         if (e.target.files.length === 0) return;
         const image = e.target.files[0];
-        openModal('CROP_IMAGE', { profileEditorRef: profileEditorRef, uploadImage: image, profileInputRef: profileInputRef, onSave: updateProfileHandler });
+        openModal('CROP_IMAGE', { profileEditorRef: profileEditorRef, uploadImage: image, profileInputRef: profileInputRef, onSave: updateProfileHandler, modalIndex: 2, closeModal });
     };
 
     const updateProfileHandler = async () => {

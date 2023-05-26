@@ -104,7 +104,9 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                 profileEditorRef: profileEditorRef,
                 uploadImage: image,
                 profileInputRef: workspaceLogoRef,
-                onSave: handleUpdateProfile
+                onSave: handleUpdateProfile,
+                modalIndex: 1,
+                closeModal
             });
         }
     };

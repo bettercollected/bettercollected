@@ -26,8 +26,7 @@ export default function ProPlanHoc({ children, hideChildrenIfPro = false, featur
         event.preventDefault();
         if (!isProPlan) {
             // router.push(`/${workspace.workspaceName}/upgrade`);
-            // @ts-ignore
-            openModal({ featureText: t(upgradeConst.features[feature.toString()].slogan) });
+            openModal('UPGRADE_TO_PRO');
         }
     };
 

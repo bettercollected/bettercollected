@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
 import ProfileImageComponent from '@app/components/dashboard/profile-image';
+import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/buttons';
@@ -21,7 +22,7 @@ export default function WorkspaceInfo({ workspace }: any) {
     const dispatch = useAppDispatch();
     const { t } = useTranslation();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
-
+    const { closeModal } = useModal();
     const [workspaceInfo, setWorkspaceInfo] = useState({
         title: workspace.title || '',
         description: workspace.description || ''
@@ -38,6 +39,10 @@ export default function WorkspaceInfo({ workspace }: any) {
     const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const formData = new FormData();
+        if (workspaceInfo.title === workspace?.title && workspaceInfo.description === workspace?.description) {
+            closeModal();
+            return;
+        }
         Object.keys(workspaceInfo).forEach((key: any) => {
             //@ts-ignore
             if (workspace[key] !== workspaceInfo[key]) formData.append(key, workspaceInfo[key]);
@@ -50,6 +55,7 @@ export default function WorkspaceInfo({ workspace }: any) {
         if (response.data) {
             dispatch(setWorkspace(response.data));
             toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            closeModal();
         }
     };
 
@@ -69,7 +75,7 @@ export default function WorkspaceInfo({ workspace }: any) {
                 <BetterInput inputProps={{ maxLength: 280 }} className="w-full" size="medium" rows={5} multiline onChange={onChange} value={workspaceInfo.description} name="description" placeholder={t(placeHolder.description)} />
             </div>
             <div className="flex justify-end">
-                <Button type="submit" disabled={isLoading || !workspaceInfo.title}>
+                <Button type="submit" disabled={isLoading || !workspaceInfo.title} isLoading={isLoading}>
                     {t(buttonConstant.save)}
                 </Button>
             </div>

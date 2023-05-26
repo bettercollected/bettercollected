@@ -1,17 +1,20 @@
 import { atom, useAtom } from 'jotai';
 
-const modalAtom = atom({ isOpen: false, modalProps: null });
+export type UPGRADE_MODAL_VIEW = 'CROP_IMAGE' | 'UPGRADE_TO_PRO' | '';
+
+const modalAtom = atom({ isOpen: false, modalProps: null, view: '' });
 
 export function useUpgradeModal() {
     const [state, setState] = useAtom(modalAtom);
-    const openModal = (modalProps: any = null) =>
+    const openModal = (view: UPGRADE_MODAL_VIEW, modalProps: any = null) =>
         setState({
             ...state,
             isOpen: true,
-            modalProps
+            modalProps,
+            view: view
         });
     const closeModal = () => {
-        setState({ ...state, isOpen: false, modalProps: null });
+        setState({ ...state, view: '', isOpen: false, modalProps: null });
     };
 
     return {
