@@ -7,6 +7,7 @@ import DashboardIcon from '@Components/Common/Icons/Dashboard';
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import { FormIcon } from '@Components/Common/Icons/FormIcon';
 import MembersIcon from '@Components/Common/Icons/Members';
+import PublicIcon from '@Components/Common/Icons/Public';
 import ResponderIcon from '@Components/Common/Icons/Responder';
 import SettingsIcon from '@Components/Common/Icons/Settings';
 import Toolbar from '@Components/Common/Layout/Toolbar';
@@ -26,6 +27,8 @@ import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
+import Globe from '../icons/flags/globe';
+
 DashboardDrawer.defaultProps = {
     drawerWidth: 289,
     mobileOpen: false
@@ -42,11 +45,11 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                     </ListItem>
                 </List>
                 <Divider />
-                <NavigationList className={JOYRIDE_CLASS.WORKSPACE_NAVIGATION} sx={{ paddingY: '20px' }} navigationList={topNavList} />
+                <NavigationList className={JOYRIDE_CLASS.WORKSPACE_NAVIGATION} sx={{ paddingY: '8px' }} navigationList={topNavList} />
                 {isAdmin && (
                     <>
                         <Divider />
-                        <NavigationList className={JOYRIDE_CLASS.WORKSPACE_ADVANCE_NAVIGATION} navigationList={bottomNavList} />
+                        <NavigationList className={JOYRIDE_CLASS.WORKSPACE_ADVANCE_NAVIGATION} sx={{ paddingY: '8px' }} navigationList={bottomNavList} />
                     </>
                 )}
             </Box>
@@ -65,7 +68,7 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
             key: 'dashboard',
             name: t(localesGlobal.dashboard),
             url: commonWorkspaceUrl,
-            icon: <DashboardIcon height="24px" width="24px" />
+            icon: <DashboardIcon />
         },
         {
             key: 'forms',
@@ -90,14 +93,14 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
         {
             key: 'collaborators',
             name: t(dashboardConstants.drawer.collaborator),
-            url: `/${workspace?.workspaceName}/manage/members`,
+            url: `/${workspace?.workspaceName}/dashboard/members`,
             icon: <MembersIcon />
         },
         {
-            key: 'manage-workspace',
-            name: t(workspaceConstant.manage),
-            url: `/${workspace?.workspaceName}/manage`,
-            icon: <SettingsIcon />
+            key: 'urls',
+            name: t(dashboardConstants.drawer.manageURLs),
+            url: `/${workspace?.workspaceName}/dashboard/urls`,
+            icon: <Globe />
         }
     ];
 

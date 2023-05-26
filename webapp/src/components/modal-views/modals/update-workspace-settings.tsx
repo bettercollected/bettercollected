@@ -35,6 +35,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
     const dispatch = useAppDispatch();
 
     const router = useRouter();
+    const { openModal } = useModal();
 
     useEffect(() => {
         if (updateDomain) {
@@ -75,23 +76,16 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             }
             closeModal();
         } else if (response.error) {
-            toast.error(response.error.data?.message || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
+            toast.error(response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
         }
     };
 
-    const delete_custom_domain = async (e: any) => {
-        e.preventDefault();
-        const res: any = await deleteWorkspaceDomain(workspace.id);
-        if (res.data) {
-            dispatch(setWorkspace(res.data));
-            router.push(router.asPath);
-        } else {
-            toast.error(t(toastMessage.customDomainDeletionError).toString());
-        }
+    const handleResetClick = () => {
+        openModal('DELETE_CUSTOM_DOMAIN');
     };
 
     return (
-        <div className="w-full relative bg-white rounded-lg shadow-md p-10  max-w-[502px] sm:max-w-lg md:max-w-xl">
+        <div className="w-full !bg-brand-100 relative  rounded-lg shadow-md p-10  max-w-[502px] sm:max-w-lg md:max-w-xl">
             <Close
                 className="absolute cursor-pointer top-5 right-5"
                 onClick={() => {
@@ -103,38 +97,42 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
             </div>
             <form className="flex items-start flex-col">
                 <div className="text-start max-w-full">
-                    <div className="body-3 text-black-700 ">
-                        {updateDomain
-                            ? workspace?.customDomain
-                                ? t(updateWorkspace.formLinkWithPreviousDomainError)
-                                : `${t(updateWorkspace.addCnameRecordMessage)}${environments.IS_IN_PRODUCTION_MODE ? 'bettercollected.com' : 'sireto.dev'}'`
-                            : t(updateWorkspace.formLinkWithPreviousworkspaceHandleError)}
-                    </div>
+                    <ul className="list-disc ml-10">
+                        <li>{t(updateWorkspace.settings.common.point1)}</li>
+                        <li>{t(updateWorkspace.settings.common.point2)}</li>
+                        <li>{t(updateWorkspace.settings.common.point3)}</li>
+                        {!updateDomain && <li>{t(updateWorkspace.settings.handle.point4)}</li>}
+                    </ul>
                 </div>
+                <div className="mt-4">{updateDomain && t(updateWorkspace.settings.domain.cname) + 'custom.bettercollected.com'}</div>
                 <div className="body1 mt-6">{updateDomain ? t(localesGlobal.domain) : t(workspaceConstant.handle)}</div>
-                <div className="flex items-start mt-3 justify-start gap-4  w-full">
-                    <BetterInput
-                        inputProps={{ 'data-testid': 'update-field' }}
-                        error={error}
-                        helperText={error ? (updateDomain ? t(updateWorkspace.invalidDomain) : t(updateWorkspace.invalidWorkspaceHandle)) : ''}
-                        placeholder={updateDomain ? t(placeHolder.enterCustomDomain) : t(placeHolder.enterWorkspaceHandle)}
-                        value={updateText}
-                        onChange={(e) => {
-                            setUpdateText(e.target.value);
-                        }}
-                        className="font-bold w-full"
-                    />
-                    {workspace.customDomain && updateDomain && (
-                        <button data-testid="delete-button" type="button" onClick={delete_custom_domain}>
-                            <DeleteOutline className="text-red-500 mt-2 bg-red-100 h-[35px] w-[35px] rounded p-1.5" />
-                        </button>
-                    )}
-                </div>
-                <div className="flex mt-8 w-full gap-4 justify-end">
-                    <Button data-testid="save-button" type="submit" isLoading={isLoading || result?.isLoading} variant="solid" size="medium" onClick={handleSubmit}>
-                        {t(buttonConstant.save)}
+                <div className="mt-3 flex flex-col md:flex-row md:items-start w-full">
+                    <div className="flex items-start justify-start gap-4  w-full">
+                        <BetterInput
+                            inputProps={{ 'data-testid': 'update-field', className: 'bg-white !py-3' }}
+                            error={error}
+                            helperText={error ? (updateDomain ? t(updateWorkspace.invalidDomain) : t(updateWorkspace.invalidWorkspaceHandle)) : ''}
+                            placeholder={updateDomain ? t(placeHolder.enterCustomDomain) : t(placeHolder.enterWorkspaceHandle)}
+                            value={updateText}
+                            onChange={(e) => {
+                                setUpdateText(e.target.value);
+                            }}
+                            className="font-bold flex-1 w-full"
+                        />
+                    </div>
+                    <Button data-testid="save-button" type="submit" isLoading={isLoading || result?.isLoading} variant="solid" size="medium" onClick={handleSubmit} className="md:ml-4 flex-1 min-w-fit">
+                        {t(buttonConstant.updateNow)}
                     </Button>
                 </div>
+
+                {workspace.customDomain && updateDomain && (
+                    <div className="mt-4">
+                        {t(updateWorkspace.settings.domain.remove)}{' '}
+                        <span onClick={handleResetClick} className="ml-1 cursor-pointer text-brand-500 underline">
+                            {t(updateWorkspace.settings.domain.reset)}{' '}
+                        </span>
+                    </div>
+                )}
             </form>
         </div>
     );

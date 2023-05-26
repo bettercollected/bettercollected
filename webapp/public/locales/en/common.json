@@ -6,7 +6,7 @@
 	"ADVANCED_SETTING": {
 		"CUSTOM_DOMAIN_NOT_SET_DESCRIPTION": "You have not set up custom domain.",
 		"CUSTOM_DOMAIN_SET_DESCRIPTION": "Your Custom Domain is currently set to",
-		"WORKSAPCE_HANDLE_SET_DESCRIPTION": "Your workspace handle is currently set to "
+		"WORKSPACE_HANDLE_SET_DESCRIPTION": "Customize your workspace handle name to make your workspace more personal."
 	},
 	"ADVANCED_SETTINGS": "Advanced Settings",
 	"ALL_FORMS": "All forms",
@@ -69,7 +69,8 @@
 		"REQUESTED_FOR_DELETION": "Requested for deletion",
 		"REMOVE_INVITATION": "Remove invitation",
 		"DELETE_MEMBER": "Delete member",
-		"SKIP": "Skip"
+		"SKIP": "Skip",
+		"UPDATE_NOW": "Update Now"
 	},
 	"CONTACT_US": {
 		"DESCRIPTION": "Any questions or remarks? Just write us a message",
@@ -92,7 +93,8 @@
 	},
 	"DASHBOARD_DRAWER": {
 		"COLLABORATOR": "Collaborator",
-		"OWNER": "Owner"
+		"OWNER": "Owner",
+		"MANAGE_URLS": "Manage Links"
 	},
 	"DELETE": {
 		"DEFAULT": "Delete",
@@ -102,6 +104,12 @@
 	"DESCRIPTION": "Description",
 	"DOMAIN": "Domain",
 	"EARLY_ACCESS": "Get early access!",
+	"EDIT_WORKSPACE": {
+		"TITLE": "Edit Workspace",
+		"DESCRIPTION": "Create a group to send forms to entire groups, streamlining the process and saving time.",
+		"UPLOAD_BANNER_IMAGE": "Upload Banner Image",
+		"BANNER_ASPECT_RATIO": "5:1 aspect ratio recommended"
+	},
 	"EMAIL": "Email",
 	"EMAIL_ADDRESS": "Email Address",
 	"ENTER_EMAIL": "Enter Email",
@@ -322,8 +330,69 @@
 	"UPDATE_WORKSPACE_HANDLE": "Updated workspace handle",
 	"UPDATE_YOUR_CUSTOM_DOMAIN": "Update your Custom Domain",
 	"UPDATE_YOUR_PROFILE_IMAGE": "Update your Workspace Profile picture",
-	"WORKSAPCE_HANDLE": "Workspace Handle",
-	"WORKSPACE": {
+	"WORKSPACE_HANDLE": "Workspace Handle",
+	"UPDATE_WORKSPACE": {
+		"COMMON": {
+			"CONSEQUENCE": "What will happen?",
+			"CURRENT_LINK": "Your current link",
+			"CHANGE": "Change"
+		},
+		"SETTINGS": {
+			"COMMON": {
+				"POINT1": "Make it easier to remember",
+				"POINT2": "Make it relevant to your business or organization.",
+				"POINT3": "Keep it short and concise."
+			},
+			"HANDLE": {
+				"POINT4": "Avoid using spaces or special characters. Only “.” and “_” is accepted."
+			},
+			"DOMAIN": {
+				"REMOVE": "Remove current domain and",
+				"RESET": "reset to default.",
+				"CNAME": "Add CNAME record of your domain to point to ",
+				"CONFIRMATION_TITLE": "Are you sure you want to reset domain name to default?",
+				"CONFIRMATION_DESC": "Any links with old domain name will no longer work."
+			}
+		},
+		"HANDLE": {
+			"DESC": "Customize your workspace handle name to make your workspace more personal.",
+			"POINT_1": "Your new workspace handle name will be displayed in all of your workspace-related communications, such as workspace link, forms etc.",
+			"POINT_2": "Any links with old workspace handle name will no longer work."
+		},
+		"DOMAIN": {
+			"DESC": "Changing your domain name and improve your workspace branding and identity.",
+			"POINT_1": "Your new domain name will be displayed in all of your workspace-related communications, such as workspace link, forms etc.",
+			"POINT_2": "Any links with old domain name will no longer work."
+		}
+	},
+  "UPGRADE": {
+    "PRO_INCLUDES": "PRO Plan Includes",
+    "DEFAULT_SLOGAN": "Upgrade To PRO Plan For More Features",
+    "FEATURES": {
+      "WORKSPACE": {
+        "SLOGAN": "Organize Your Users With Multiple Workspace",
+        "TITLE": "Multiple Workspace",
+        "DESCRIPTION": "Pro accounts offer the ability to create multiple workspaces, while Free accounts only allow for one workspace. This means that Pro users can create separate workspaces for different projects, or teams."
+      },
+      "COLLABORATOR": {
+        "SLOGAN": "Start Collaborating With Your Team",
+        "TITLE": "Collaborate With Others",
+        "DESCRIPTION": "Pro accounts offer collaboration features, while Basic accounts do not. This means that Pro users can collaborate with others to import forms and manage forms. This can be a great way to get work done faster and more efficiently."
+      },
+      "CUSTOM_DOMAIN": {
+        "SLOGAN": "Personalize Your URLs With Custom Domain",
+        "TITLE": "Custom Domain Name",
+        "DESCRIPTION": "Pro accounts offer custom domain support, while Free accounts do not. This means that Pro users can use their own domain name for their Workspace, instead of using the “BetterCollected” domain. This can be a great way to make your business look more professional and to improve your brand recognition."
+      },
+      "UNLIMITED_FORMS": {
+        "SLOGAN": "Import Unlimited Forms with PRO Plan",
+        "TITLE": "Unlimited Form Import",
+        "DESCRIPTION": "Pro accounts offer unlimited form import, while Free accounts are limited to 100 form imports. This can be a great benefit for businesses that need to import large amounts of data from forms."
+      }
+    }
+  },
+
+  "WORKSPACE": {
 		"DEFAULT": "workspace",
 		"BANNER": "Workspace Banner",
 		"BANNER_EMPTY_MESSAGE": "You can drag to adjust the image.",

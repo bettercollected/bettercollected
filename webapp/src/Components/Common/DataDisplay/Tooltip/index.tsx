@@ -57,7 +57,7 @@ export default function Tooltip({
     disableHoverListener = false,
     disableInteractive = false,
     disableTouchListener = false,
-    enterDelay = 1000,
+    enterDelay = 100,
     enterNextDelay = 0,
     enterTouchDelay = 100,
     followCursor = false,

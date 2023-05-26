@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import Toolbar from '@Components/Common/Layout/Toolbar';
 import { Share } from '@mui/icons-material';
@@ -33,6 +34,7 @@ export default function FormPageLayout(props: any) {
     const workspace = useAppSelector((state) => state.workspace);
     const { openModal } = useModal();
     const dispatch = useAppDispatch();
+    const router = useRouter();
     useEffect(() => {
         dispatch(setForm(props.form));
         return () => {
@@ -55,15 +57,16 @@ export default function FormPageLayout(props: any) {
     const clientHostUrl = `${clientHost}/${customUrl}`;
     const customDomainUrl = `${customDomain}/${customUrl}`;
     const breakpoint = useBreakpoint();
+    const locale = router?.locale === 'en' ? '' : `${router?.locale}/`;
 
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
             title: t(breadcrumbsItems.dashboard),
-            url: `/${props?.workspace?.workspaceName}/dashboard`
+            url: `/${locale}${props?.workspace?.workspaceName}/dashboard`
         },
         {
             title: t(breadcrumbsItems.forms),
-            url: `/${props?.workspace?.workspaceName}/dashboard/forms`
+            url: `/${locale}${props?.workspace?.workspaceName}/dashboard/forms`
         },
         {
             title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form?.title, 30) : form?.title || '',
@@ -85,17 +88,17 @@ export default function FormPageLayout(props: any) {
     return (
         <SidebarLayout DrawerComponent={FormDrawer}>
             <div className=" w-full relative">
-                <div className="flex h-full z-10 justify-between">
+                <div className="flex h-full z-10 justify-between items-center">
                     <div className=" flex items-center h-full space-x-4">
                         <BreadcrumbsRenderer items={breadcrumbsItem} />
                     </div>
-                    <div onClick={handleDrawerToggle}>
+                    <div onClick={handleDrawerToggle} className="aspect-square h-10 w-10 hover:bg-brand-200 rounded-full flex items-center justify-center">
                         <IconButton>
                             <Share />
                         </IconButton>
                     </div>
                 </div>
-                <div className="absolute xl:left-[-40px] px-5 xl:px-10 pb-10 mt-14 top-0 w-full py-4 xl:max-w-289-calc-289">{props.children}</div>
+                <div className="absolute xl:left-[-40px] xl:px-10 pb-10 mt-14 top-0 w-full py-4 xl:max-w-289-calc-289">{props.children}</div>
                 <MuiDrawer
                     mobileOpen={mobileOpen}
                     anchor="right"
@@ -106,7 +109,7 @@ export default function FormPageLayout(props: any) {
                     <>
                         <Toolbar />
                         <Box sx={{ overflow: 'auto', height: '100%' }}>
-                            <div className=" px-5 h-full py-6 relative w-full">
+                            <div className="px-5 h-full py-6 relative w-full">
                                 <Close onClick={handleDrawerToggle} className="absolute blocks lg:hidden right-5 top-5 cursor-pointer" />
                                 <ShareView url={clientHostUrl} showCopy={false} showBorder={false} iconSize="small" title={t(localesGlobal.share)} />
 

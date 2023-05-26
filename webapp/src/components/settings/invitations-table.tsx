@@ -83,7 +83,7 @@ export default function InvitationsTable() {
 
     return (
         <>
-            <DataTable className="p-0 mt-2" columns={dataTableResponseColumns} data={invitations || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+            <DataTable className="p-0 mt-2 !overflow-auto" columns={dataTableResponseColumns} data={invitations || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
         </>
     );
 }

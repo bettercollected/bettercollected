@@ -114,7 +114,7 @@ export default function Submission(props: any) {
                     <LongArrowLeft width={15} height={15} />
                 </Button>
                 <Button
-                    className={`w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 rounded text-white ${deletionStatus ? '!bg-red-600 opacity-60' : 'bg-red-500'}  hover:!bg-red-700 hover:!-translate-y-0 focus:-translate-y-0`}
+                    className={`w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 top-3 rounded text-white ${deletionStatus ? '!bg-red-600 opacity-60' : 'bg-red-500'}  hover:!bg-red-700 hover:!-translate-y-0 focus:-translate-y-0`}
                     variant="solid"
                     onClick={handleRequestForDeletionModal}
                     disabled={!!form?.response?.deletionStatus}
@@ -126,7 +126,9 @@ export default function Submission(props: any) {
                 </Button>
             </div>
             {/* <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} /> */}
-            <FormRenderer form={form.form} response={form.response} />
+            <div className="py-10">
+                <FormRenderer form={form.form} response={form.response} />
+            </div>
         </div>
     );
 }

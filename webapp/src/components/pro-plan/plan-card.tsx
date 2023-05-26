@@ -5,6 +5,7 @@ import { useTranslation } from 'next-i18next';
 import _ from 'lodash';
 
 import Radio from '@mui/material/Radio';
+import { a } from 'msw/lib/glossary-de6278a9';
 
 import { localesGlobal } from '@app/constants/locales/global';
 import { Plan } from '@app/store/plans/types';
@@ -36,12 +37,12 @@ export default function PlanCard({ plan, activePlan, onClick }: IPlanCardProps) 
                     />
                 </div>
                 <div>
-                    <div className={`sh1 ${!active ? '!text-black-600' : ''}`}>{interval}</div>
-                    {plan.recurring_interval === 'year' && <div className="body1 !text-[#E79B0B] ">{t(localesGlobal.save)} 17%</div>}
+                    <div className={`sh1 ${!active ? '!text-black-500' : ''}`}>{interval}</div>
+                    {plan.recurring_interval === 'year' && <div className={`body1 ${!active ? '!text-black-500' : '!text-[#E79B0B]'}  `}>{t(localesGlobal.save)} 17%</div>}
                 </div>
             </div>
 
-            <div className={`h3 ${!active ? '!text-black-600' : ''}`}>
+            <div className={`h3 ${!active ? '!text-black-500' : ''}`}>
                 {currency}
                 {plan.price}
             </div>

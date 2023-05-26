@@ -69,7 +69,8 @@
         "REQUESTED_FOR_DELETION": "Verzoek om verwijdering",
         "REMOVE_INVITATION": "Uitnodiging verwijderen",
         "DELETE_MEMBER": "Lid verwijderen",
-        "SKIP":"Overslaan"
+        "SKIP": "Overslaan",
+        "UPDATE_NOW": "Update nu"
     },
     "CONTACT_US": {
         "DESCRIPTION": "Vragen of opmerkingen? Schrijf ons gewoon een bericht",
@@ -92,7 +93,8 @@
     },
     "DASHBOARD_DRAWER": {
         "COLLABORATOR": "Medewerker",
-        "OWNER": "Eigenaar"
+        "OWNER": "Eigenaar",
+        "MANAGE_URLS": "Koppelingen beheren"
     },
     "DELETE": {
         "DEFAULT": "Verwijderen",
@@ -102,6 +104,12 @@
     "DESCRIPTION": "Beschrijving",
     "DOMAIN": "Domein",
     "EARLY_ACCESS": "Krijg vroege toegang!",
+    "EDIT_WORKSPACE": {
+        "TITLE": "Werkruimte bewerken",
+        "DESCRIPTION": "Maak een groep om formulieren naar hele groepen te sturen, stroomlijn het proces en bespaar tijd.",
+        "UPLOAD_BANNER_IMAGE": "Bannerafbeelding uploaden",
+        "BANNER_ASPECT_RATIO": "5:1 beeldverhouding aanbevolen"
+    },
     "EMAIL": "E-mail",
     "EMAIL_ADDRESS": "E-mailadres",
     "ENTER_EMAIL": "Voer e-mailadres in",
@@ -275,9 +283,9 @@
         "WELCOME_MESSAGE": "Welkom terug!"
     },
     "SLUG": {
-		"DEFAULT": "Slak",
-		"VALIDATION_MESSAGE": "Slak is vereist"
-	},
+        "DEFAULT": "Slak",
+        "VALIDATION_MESSAGE": "Slak is vereist"
+    },
     "STATUS": "Status",
     "STAP": "Stap",
     "TERMS_OF_SERVICES": "Servicevoorwaarden",
@@ -322,7 +330,67 @@
     "UPDATE_WORKSPACE_HANDLE": "Bijgewerkte werkruimtehandle",
     "UPDATE_YOUR_CUSTOM_DOMAIN": "Update uw aangepaste domein",
     "UPDATE_YOUR_PROFILE_IMAGE": "Werk uw Workspace-profielfoto bij",
-    "WORKSAPCE_HANDLE": "Werkruimtehandvat",
+    "WORKSPACE_HANDLE": "Werkruimtehandvat",
+    "UPDATE_WORKSPACE": {
+        "COMMON": {
+            "CONSEQUENCE": "Wat zal er gebeuren?",
+            "CURRENT_LINK": "Uw huidige link",
+            "CHANGE": "Veranderen"
+        },
+        "SETTINGS": {
+            "COMMON": {
+                "POINT1": "Maak het gemakkelijker te onthouden",
+                "POINT2": "Maak het relevant voor uw bedrijf of organisatie.",
+                "POINT3": "Houd het kort en bondig."
+            },
+            "HANDLE": {
+                "POINT4": "Vermijd het gebruik van spaties of speciale tekens. Alleen '.' en '_' wordt geaccepteerd."
+            },
+            "DOMAIN": {
+                "REMOVE": "Verwijder huidig ​​domein en",
+                "RESET": "terugzetten naar standaard.",
+                "CNAME": "Voeg CNAME-record van uw domein toe om naar te verwijzen ",
+                "CONFIRMATION_TITLE": "Weet u zeker dat u de domeinnaam wilt resetten naar standaard?",
+                "CONFIRMATION_DESC": "Alle links met een oude domeinnaam werken niet meer."
+            }
+        },
+        "HANDLE": {
+            "DESC": "Pas de naam van uw werkruimte aan om uw werkruimte persoonlijker te maken.",
+            "POINT_1": "Uw nieuwe werkruimtehandlenaam zal worden weergegeven in al uw werkruimtegerelateerde communicatie, zoals werkruimtelink, formulieren enz.",
+            "POINT_2": "Alle koppelingen met een oude werkruimtehandlenaam werken niet meer."
+        },
+        "DOMAIN": {
+            "DESC": "Uw domeinnaam wijzigen en de branding en identiteit van uw werkruimte verbeteren.",
+            "POINT_1": "Uw nieuwe domeinnaam wordt weergegeven in al uw werkruimtegerelateerde communicatie, zoals werkruimtelink, formulieren enz.",
+            "POINT_2": "Alle links met een oude domeinnaam werken niet meer."
+        }
+    },
+    "UPGRADE": {
+        "PRO_INCLUDES": "PRO Plan omvat",
+        "DEFAULT_SLOGAN": "Upgrade naar PRO-abonnement voor meer functies",
+        "FEATURES": {
+            "WORKSPACE": {
+                "SLOGAN": "Organiseer uw gebruikers met meerdere werkruimtes",
+                "TITLE": "Meerdere Werkruimte",
+                "DESCRIPTION": "Pro-accounts bieden de mogelijkheid om meerdere werkruimten te creëren, terwijl gratis accounts slechts één werkruimte toestaan. Dit betekent dat Pro-gebruikers afzonderlijke werkruimten kunnen creëren voor verschillende projecten of teams."
+            },
+            "COLLABORATOR": {
+                "SLOGAN": "Begin met samenwerken met uw team",
+                "TITLE": "Samenwerken met anderen",
+                "DESCRIPTION": "Pro-accounts bieden samenwerkingsfuncties, Basic-accounts niet. Dit betekent dat Pro-gebruikers met anderen kunnen samenwerken om formulieren te importeren en formulieren te beheren. Dit kan een geweldige manier zijn om werk sneller en efficiënter gedaan te krijgen."
+            },
+            "CUSTOM_DOMAIN": {
+                "SLOGAN": "Personaliseer uw URL's met een aangepast domein",
+                "TITLE": "Aangepaste domeinnaam",
+                "DESCRIPTION": "Pro-accounts bieden aangepaste domeinondersteuning, gratis accounts niet. Dit betekent dat Pro-gebruikers hun eigen domeinnaam kunnen gebruiken voor hun Workspace, in plaats van het 'BetterCollected'-domein te gebruiken. Dit kan een geweldige manier zijn om uw bedrijf er professioneler uit laten zien en uw naamsbekendheid verbeteren."
+            },
+            "UNLIMITED_FORMS": {
+                "SLOGAN": "Importeer onbeperkte formulieren met PRO Plan",
+                "TITLE": "Onbeperkt formulier importeren",
+                "DESCRIPTION": "Pro-accounts bieden onbeperkte formulierimport, terwijl gratis accounts beperkt zijn tot 100 formulierimport. Dit kan een groot voordeel zijn voor bedrijven die grote hoeveelheden gegevens uit formulieren moeten importeren."
+            }
+        }
+    },
     "WORKSPACE": {
         "DEFAULT": "werkruimte",
         "BANNER": "Werkruimtebanner",

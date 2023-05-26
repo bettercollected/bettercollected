@@ -32,12 +32,12 @@ export default function ManageWorkspaceLayout({ children }: any) {
     const [mobileOpen, setMobileOpen] = useState(false);
     const { t } = useTranslation();
     const router = useRouter();
-    const { openModal } = useModal();
+    const locale = router?.locale === 'en' ? '' : `${router?.locale}/`;
     const isProPlan = useAppSelector(selectIsProPlan);
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
             title: t(breadcrumbsItems.dashboard),
-            url: `/${workspace?.workspaceName}/dashboard`
+            url: `/${locale}${workspace?.workspaceName}/dashboard`
         },
         {
             title: t(breadcrumbsItems.manageWorkspace),

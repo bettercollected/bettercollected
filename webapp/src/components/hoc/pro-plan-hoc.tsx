@@ -1,25 +1,32 @@
 import React, { ReactNode } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import { useModal } from '@app/components/modal-views/context';
+import { useUpgradeModal } from '@app/components/modal-views/upgrade-modal-context';
+import { Features } from '@app/constants/locales/feature';
+import { upgradeConst } from '@app/constants/locales/upgrade';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface IProPlanHoc {
     children: ReactNode;
-    hideChildrenIfPro: boolean;
+    hideChildrenIfPro?: boolean;
+    feature?: Features;
 }
 
-export default function ProPlanHoc({ children, hideChildrenIfPro = false }: IProPlanHoc) {
+export default function ProPlanHoc({ children, hideChildrenIfPro = false, feature = Features.default }: IProPlanHoc) {
     const isProPlan = useAppSelector(selectIsProPlan);
-    const router = useRouter();
-    const workspace = useAppSelector(selectWorkspace);
+    const { openModal } = useUpgradeModal();
+    const { t } = useTranslation();
     const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+        event.stopPropagation();
+        event.preventDefault();
         if (!isProPlan) {
-            event.stopPropagation();
-            event.preventDefault();
-            router.push(`/${workspace.workspaceName}/upgrade`);
+            // router.push(`/${workspace.workspaceName}/upgrade`);
+            openModal('UPGRADE_TO_PRO');
         }
     };
 

@@ -79,12 +79,12 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
 export async function getAuthUserPropsWithWorkspace(_context: any) {
     const hasAdminDomain = checkHasAdminDomain(getRequestHost(_context));
     const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
-    const language = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
+    const locale = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
     if (!hasAdminDomain) {
         return {
             redirect: {
                 permanent: false,
-                destination: `/${language}`
+                destination: `/${locale}`
             }
         };
     }
@@ -97,7 +97,7 @@ export async function getAuthUserPropsWithWorkspace(_context: any) {
         return {
             redirect: {
                 permanent: false,
-                destination: `/${language}`
+                destination: `/${locale}`
             }
         };
     return {
@@ -111,13 +111,13 @@ export async function getServerSidePropsForWorkspaceAdmin(_context: any) {
     const hasAdminDomain = checkHasAdminDomain(getRequestHost(_context));
 
     const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
-    const language = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
+    const locale = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
 
     if (!hasAdminDomain) {
         return {
             redirect: {
                 permanent: false,
-                destination: `/${language}`
+                destination: `/${locale}`
             }
         };
     }
@@ -131,7 +131,7 @@ export async function getServerSidePropsForWorkspaceAdmin(_context: any) {
         return {
             redirect: {
                 permanent: false,
-                destination: `/${language}`
+                destination: `/${locale}`
             }
         };
     return {

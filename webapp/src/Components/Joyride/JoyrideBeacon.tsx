@@ -12,9 +12,9 @@ export default class BeaconComponent extends React.Component {
 
     render(): React.ReactNode {
         return (
-            <span className="relative flex justify-center items-center h-5 w-5 cursor-pointer" {...this.props} onClick={(e: any) => this.onBeaconClick(e, this.props)}>
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-accent-600 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-brand-accent"></span>
+            <span className="flex justify-center items-center h-4 w-4 rounded-full cursor-pointer" {...this.props} onClick={(e: any) => this.onBeaconClick(e, this.props)}>
+                <span className="animate-ping absolute h-5 w-5 rounded-full bg-[#FFB44780]"></span>
+                <span className="relative rounded-full h-4 w-4 bg-orange-500"></span>
             </span>
         );
     }

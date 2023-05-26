@@ -58,14 +58,14 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
             <Typography className={cn('!text-black-900 body3 ', !requestForDeletion && 'hover:!text-brand-500 cursor-pointer hover:underline')} noWrap>
-                {!requestForDeletion && <div onClick={() => onRowClicked(response)}>{response?.dataOwnerIdentifier ?? 'Anonymous'}</div>}
+                {!requestForDeletion && <span onClick={() => onRowClicked(response)}>{response?.dataOwnerIdentifier ?? 'Anonymous'}</span>}
                 {requestForDeletion && (response?.dataOwnerIdentifier ?? 'Anonymous')}
             </Typography>
         </div>
     );
     const responseFormTitle = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
-            <Typography className="!text-black-900 body3 " noWrap>
+            <Typography className="!text-black-900 body3" noWrap>
                 {response?.formTitle ?? 'Untitled'}
             </Typography>
         </div>
@@ -133,7 +133,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
             return (
                 <>
                     <DataTable
-                        className="p-0 mt-2 h-full !overflow-visible"
+                        className="p-0 mt-2 h-full !overflow-auto"
                         columns={dataTableResponseColumns}
                         data={submissions?.data?.items || []}
                         customStyles={requestForDeletion ? dataTableCustomStyles : responseTableStyles}
@@ -143,7 +143,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
                     />
                     {Array.isArray(submissions?.data?.items) && submissions?.data?.total > globalConstants.pageSize && (
                         <div className="mt-8 flex justify-center">
-                            <StyledPagination shape="rounded" count={submissions?.data?.total || 0} page={page} onChange={handlePageChange} />
+                            <StyledPagination shape="rounded" count={submissions?.data?.pages || 0} page={page} onChange={handlePageChange} />
                         </div>
                     )}
                 </>

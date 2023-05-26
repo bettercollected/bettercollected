@@ -20,7 +20,7 @@ import { useModal } from '../modal-views/context';
 import { ICustomizeUrlModalProps } from '../modal-views/modals/customize-url-modal';
 import Button from './button/button';
 
-export default function CustomizeUrlView({ description, url }: ICustomizeUrlModalProps) {
+export default function CustomizeUrlUi({ description, url }: ICustomizeUrlModalProps) {
     const workspace = useAppSelector((state) => state.workspace);
     const form = useAppSelector((state: { form: StandardFormDto & PersistPartial }) => state.form);
     const { t } = useTranslation();

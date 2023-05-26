@@ -9,10 +9,13 @@ import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdow
 import { IconButton, ListItem } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import { Check } from '@app/components/icons/check';
 import { Plus } from '@app/components/icons/plus';
+import { useUpgradeModal } from '@app/components/modal-views/upgrade-modal-context';
 import Loader from '@app/components/ui/loader';
 import dashboardConstants from '@app/constants/locales/dashboard';
+import { Features } from '@app/constants/locales/feature';
 import { menuDropdown } from '@app/constants/locales/menu-dropdown';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuthStatus } from '@app/store/auth/selectors';
@@ -30,11 +33,13 @@ interface IWorkspaceMenuDropdownProps {
 WorkspaceMenuDropdown.defaultProps = {
     fullWidth: false
 };
+
 function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
     const workspace = useAppSelector(selectWorkspace);
     const { data, isLoading } = useGetAllMineWorkspacesQuery();
     const router = useRouter();
     const isProPlan = useAppSelector(selectIsProPlan);
+    const { openModal } = useUpgradeModal();
 
     const { t } = useTranslation();
     const handleChangeWorkspace = (space: WorkspaceDto) => {
@@ -51,12 +56,13 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
 
     const redirectToUpgradeIfNotProPlan = () => {
         if (!isProPlan) {
-            router.push(`/${workspace.workspaceName}/upgrade`);
+            openModal('UPGRADE_TO_PRO');
+            // router.push(`/${workspace.workspaceName}/upgrade`);
         }
     };
 
     const fullWorkspaceName = workspace?.title || 'Untitled';
-    const workspaceName = toEndDottedStr(fullWorkspaceName, 15);
+    const workspaceName = toEndDottedStr(fullWorkspaceName, 16);
     const showExpandMore = true;
 
     const enableCreateWorkspaceButton = () => {
@@ -81,6 +87,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
             fullWidth={fullWidth}
             className={`!rounded-none hover:!rounded-none ${showExpandMore ? 'pr-4' : ''}`}
             showExpandMore={showExpandMore}
+            width={320}
             menuContent={
                 <div className="flex items-center gap-2 py-2 px-3">
                     <AuthAccountProfileImage size={40} image={workspace?.profileImage} name={workspaceName} className="bg-orange-500" />
@@ -113,7 +120,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                                         />
                                         <div className="flex flex-col items-start w-full">
                                             <Tooltip title={space?.title || 'Untitled'}>
-                                                <p className="body3">{toEndDottedStr(space?.title || 'Untitled', 15)}</p>
+                                                <p className="body3">{toEndDottedStr(space?.title || 'Untitled', 20)}</p>
                                             </Tooltip>
                                             <p className="leading-none text-[12px] text-black-700">{getWorkspaceRole(space)}</p>
                                         </div>
@@ -146,22 +153,24 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                 <div>
                     <Divider className="my-2" />
                     <div onClick={redirectToUpgradeIfNotProPlan}>
-                        <ListItem disablePadding alignItems="center" className={``}>
-                            <IconButton
-                                className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'} ${
-                                    !enableCreateWorkspaceButton() && isProPlan ? '!text-black-500 cursor-not-allowed' : '!text-black-800'
-                                }`}
-                                onClick={handleCreateWorkspace}
-                                size="small"
-                            >
-                                <span className="flex justify-between w-full items-center gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <Plus className="text-black-500" />
-                                        <p className={`body3 !not-italic  `}>{t(menuDropdown.createWorkspace)}</p>
-                                    </div>
-                                </span>
-                            </IconButton>
-                        </ListItem>
+                        <ProPlanHoc feature={Features.workspace}>
+                            <ListItem disablePadding alignItems="center" className={``}>
+                                <IconButton
+                                    className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'} ${
+                                        !enableCreateWorkspaceButton() && isProPlan ? '!text-black-500 cursor-not-allowed' : '!text-black-800'
+                                    }`}
+                                    onClick={handleCreateWorkspace}
+                                    size="small"
+                                >
+                                    <span className="flex justify-between w-full items-center gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <Plus />
+                                            <p className={`body3 !not-italic  `}>{t(menuDropdown.createWorkspace)}</p>
+                                        </div>
+                                    </span>
+                                </IconButton>
+                            </ListItem>
+                        </ProPlanHoc>
                     </div>
                 </div>
             )}

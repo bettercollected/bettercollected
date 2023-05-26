@@ -16,16 +16,16 @@ export async function getServerSideProps(_context: any) {
     }
 
     const hasClientDomain = checkHasClientDomain(getRequestHost(_context));
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
+    const locale = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
     if (!hasClientDomain) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/'
+                destination: `/${locale}`
             }
         };
     }
-
-    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
 
     if (!globalProps.workspace.id) {
         return {

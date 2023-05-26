@@ -26,7 +26,7 @@ export default function FormPage(props: any) {
 
     return (
         <FormPageLayout {...props}>
-            <div className=" max-w-[700px] container mx-auto px-6 md:px-0">
+            <div className="w-full md:max-w-[700px] container mx-auto px-0">
                 {isAdmin && !isProPlan ? (
                     <></>
                 ) : (

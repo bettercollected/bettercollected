@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import { useModal } from '@app/components/modal-views/context';
+import { useUpgradeModal } from '@app/components/modal-views/upgrade-modal-context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import { advanceSetting } from '@app/constants/locales/advance-setting';
@@ -18,12 +19,14 @@ export default function UpdateCustomDomain() {
     const { openModal } = useModal();
     const router = useRouter();
     const isProPlan = useAppSelector(selectIsProPlan);
+    const upgradeModal = useUpgradeModal();
 
     const handleClick = () => {
         if (isProPlan) {
             openModal('UPDATE_WORKSPACE_DOMAIN');
         } else {
-            router.push(`/${workspace.workspaceName}/upgrade`);
+            // router.push(`/${workspace.workspaceName}/upgrade`);
+            upgradeModal.openModal('UPGRADE_TO_PRO');
         }
     };
 

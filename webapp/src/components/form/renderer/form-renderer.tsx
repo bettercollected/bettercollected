@@ -338,7 +338,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
     );
 
     return (
-        <div data-testid="form-renderer" className="relative max-w-[700px] container mx-auto px-6 md:px-0">
+        <div data-testid="form-renderer" className="relative max-w-[700px] container mx-auto md:px-0">
             <div className="flex flex-col gap-4">
                 <div className="p-6 bg-white rounded-lg flex flex-col gap-4">
                     <h1 className="font-semibold h4">{form?.title}</h1>

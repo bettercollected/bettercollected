@@ -11,6 +11,7 @@ import uploadImage from '@app/assets/images/upload.png';
 import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
 import { buttonConstant } from '@app/constants/locales/buttons';
+import editWorkspace from '@app/constants/locales/edit-workpsace';
 import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -54,7 +55,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                 formData.append('banner_image', file);
                 const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
                 if (response.error) {
-                    toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
+                    toast(response.error.data || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
                 }
                 if (response.data) {
                     toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
@@ -73,7 +74,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
     };
 
     return (
-        <div className={cn('relative  w-full bannerdiv', !!workspace?.bannerImage ? '' : 'border border-brand-300', isFormCreator ? 'aspect-editable-banner-mobile lg:aspect-editable-banner-desktop' : 'aspect-banner-mobile lg:aspect-banner-desktop')}>
+        <div className={cn('relative  w-full bannerdiv aspect-banner-mobile lg:aspect-banner-desktop', !!workspace?.bannerImage ? '' : 'border border-brand-300 ')}>
             {!!image ? (
                 <TransformWrapper centerOnInit ref={transformComponentRef}>
                     {({ resetTransform }) => {
@@ -99,13 +100,10 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                     ) : isFormCreator ? (
                         <div className="flex body1 text-black-700 flex-col   items-center justify-center h-full">
                             <Image src={uploadImage} height="46px" width={'72px'} alt={'upload'} />
-                            <div className="lg:mt-2">
-                                <span className="cursor-pointer text-brand-500 pr-1" onClick={onClickFileUploadButton}>
-                                    {t(buttonConstant.upload)}
-                                </span>
-                                {t(localesGlobal.an)} {t(localesGlobal.image)}
+                            <div className="lg:mt-2 cursor-pointer text-brand-500" onClick={onClickFileUploadButton}>
+                                {t(editWorkspace.uploadBannerImage)}
                             </div>
-                            <div className="hidden lg:mt-[18px] lg:flex">{t(workspaceConstant.bannerEmptyMessage)}</div>
+                            <div className="hidden lg:mt-[12px] lg:flex text-black-700">{t(editWorkspace.bannerAspectRatio)}</div>
                         </div>
                     ) : (
                         <div className="flex h-full justify-center items-center">{t(localesGlobal.noImage)}</div>
