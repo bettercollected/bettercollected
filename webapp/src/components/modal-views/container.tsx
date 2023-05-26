@@ -15,6 +15,7 @@ import DeleteMemberModal from '@app/components/modal-views/modals/delete-member-
 import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
 import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
+import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
 import UpdateTermsOfServiceAndPrivacyPolicy from '@app/components/toc-privacy-policy';
 import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
@@ -58,6 +59,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <CropImageModalView {...modalProps} />;
         case 'DELETE_CUSTOM_DOMAIN':
             return <DeleteCustomDomainModal />;
+        case 'UPGRADE_TO_PRO':
+            return <UpgradeToProModal />;
         default:
             return <></>;
     }

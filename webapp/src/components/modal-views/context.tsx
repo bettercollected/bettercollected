@@ -19,7 +19,8 @@ export type MODAL_VIEW =
     | 'DELETE_INVITATION'
     | 'CUSTOMIZE_URL'
     | 'CROP_IMAGE'
-    | 'DELETE_CUSTOM_DOMAIN';
+    | 'DELETE_CUSTOM_DOMAIN'
+    | 'UPGRADE_TO_PRO';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 

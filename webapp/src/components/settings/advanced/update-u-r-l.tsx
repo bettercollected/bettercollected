@@ -58,25 +58,28 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                         <div className="body6 mb-6 font-semibold">{t(updateWorkspace.common.currentLink)}</div>
                         <div className="flex flex-col md:flex-row gap-4 space-y-4 md:space-y-0 md:items-center space-between">
                             <div className="flex items-center gap-4 max-w-full flex-1">
-                                {/*<BetterInput*/}
-                                {/*    disabled*/}
-                                {/*    value={environments.HTTP_SCHEME + (updateDomain ? workspace.customDomain : (environments.CLIENT_DOMAIN + "/" + workspace.workspaceName))}/>*/}
-                                <Typography noWrap className="px-2 body6 py-3 w-full max-w-full gap-4 truncate border  border-black-400 rounded mr-2">
-                                    {updateDomain && workspace.customDomain ? (
-                                        <>
-                                            <span className="text-black-700">{environments.HTTP_SCHEME}</span>
-                                            <span className="text-black-900">{workspace.customDomain}</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span className="text-black-700">
-                                                {environments.HTTP_SCHEME}
-                                                {environments.CLIENT_DOMAIN}
-                                            </span>
-                                            /<span className="text-black-900">{workspace?.workspaceName}</span>
-                                        </>
-                                    )}
-                                </Typography>
+                                <BetterInput
+                                    inputProps={{ className: '!py-3' }}
+                                    className="!mb-0"
+                                    disabled
+                                    value={environments.HTTP_SCHEME + (updateDomain && isProPlan && workspace.customDomain ? workspace.customDomain : environments.CLIENT_DOMAIN + '/' + workspace.workspaceName)}
+                                />
+                                {/*<Typography noWrap className="px-2 body6 py-3 w-full max-w-full gap-4 truncate border  border-black-400 rounded mr-2">*/}
+                                {/*    {updateDomain && workspace.customDomain ? (*/}
+                                {/*        <>*/}
+                                {/*            <span className="text-black-700">{environments.HTTP_SCHEME}</span>*/}
+                                {/*            <span className="text-black-900">{workspace.customDomain}</span>*/}
+                                {/*        </>*/}
+                                {/*    ) : (*/}
+                                {/*        <>*/}
+                                {/*            <span className="text-black-700">*/}
+                                {/*                {environments.HTTP_SCHEME}*/}
+                                {/*                {environments.CLIENT_DOMAIN}*/}
+                                {/*            </span>*/}
+                                {/*            /<span className="text-black-900">{workspace?.workspaceName}</span>*/}
+                                {/*        </>*/}
+                                {/*    )}*/}
+                                {/*</Typography>*/}
                                 <Tooltip title="Copy Link">
                                     <CopyIcon
                                         className="cursor-pointer"
