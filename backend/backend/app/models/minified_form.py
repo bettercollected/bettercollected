@@ -1,10 +1,9 @@
 import datetime as dt
 from typing import Dict, Optional, List
 
-from backend.app.models.response_dtos import WorkspaceFormSettingsCamelModal
-
 from fastapi_camelcase import CamelModel
 
+from backend.app.models.response_dtos import WorkspaceFormSettingsCamelModal
 from common.models.standard_form import StandardFormField
 
 

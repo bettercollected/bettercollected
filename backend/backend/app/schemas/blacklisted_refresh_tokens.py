@@ -1,5 +1,6 @@
-from common.configs.mongo_document import MongoDocument
 import datetime as dt
+
+from common.configs.mongo_document import MongoDocument
 
 
 class BlackListedRefreshTokens(MongoDocument):

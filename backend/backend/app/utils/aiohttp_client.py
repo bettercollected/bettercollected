@@ -6,7 +6,6 @@ from typing import Optional
 
 import aiohttp
 
-
 SIZE_POOL_AIOHTTP = 100
 
 

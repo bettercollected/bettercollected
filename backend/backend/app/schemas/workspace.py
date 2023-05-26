@@ -1,6 +1,8 @@
 import datetime as dt
 from typing import Optional
+
 from beanie import Indexed
+
 from backend.app.models.workspace import Workspace
 from common.configs.mongo_document import MongoDocument
 

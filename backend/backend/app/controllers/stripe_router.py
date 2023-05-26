@@ -1,15 +1,12 @@
+from classy_fastapi import Routable, get, post
+from fastapi import Depends, Request, Response
+from gunicorn.config import User
 from starlette.responses import RedirectResponse
 
 from backend.app.container import container
 from backend.app.router import router
 from backend.app.services.stripe_service import StripeService
 from backend.app.services.user_service import get_logged_user
-
-from classy_fastapi import Routable, get, post
-
-from fastapi import Depends, Request, Response
-
-from gunicorn.config import User
 
 
 @router(prefix="/stripe", tags=["Stripe"])

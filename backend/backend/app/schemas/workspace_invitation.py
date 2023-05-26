@@ -3,12 +3,11 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from beanie import PydanticObjectId
+from pymongo import IndexModel
 
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from common.configs.mongo_document import MongoDocument
 from common.enums.workspace_invitation_status import InvitationStatus
-
-from pymongo import IndexModel
 
 _time_delta = timedelta()
 

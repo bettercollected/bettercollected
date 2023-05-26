@@ -3,13 +3,11 @@ import http.cookies
 import uuid
 from datetime import datetime, timedelta
 
-from backend.config import settings
-
-from common.models.user import User
-
 import jwt
-
 from starlette.responses import Response
+
+from backend.config import settings
+from common.models.user import User
 
 
 # TODO move this to auth server

@@ -2,10 +2,9 @@
 import logging
 import sys
 
-from common.utils.logger import InterceptHandler, format_record
-
 from loguru import logger
 
+from common.utils.logger import InterceptHandler, format_record
 
 __all__ = ("init_logging",)
 

@@ -46,3 +46,4 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     owner_id: Optional[str]
     dashboard_access: Optional[bool]
     disabled: Optional[bool]
+    default: Optional[bool]

@@ -1,17 +1,14 @@
 import logging
 
+import jwt
+from starlette.requests import Request
 from starlette.responses import Response
 
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.blacklisted_refresh_tokens import BlackListedRefreshTokens
 from backend.app.services.auth_cookie_service import set_access_token_to_response
 from backend.config import settings
-
 from common.models.user import User
-
-import jwt
-
-from starlette.requests import Request
 
 
 def get_logged_user(request: Request, response: Response) -> User:

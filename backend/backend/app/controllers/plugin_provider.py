@@ -1,17 +1,15 @@
 import logging
 from http import HTTPStatus
 
+from classy_fastapi import Routable, get, patch, post
+from fastapi import Depends
+
 from backend.app.container import container
 from backend.app.models.form_plugin_config import FormProviderConfigDto
 from backend.app.router import router
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.user_service import get_logged_admin, get_user_if_logged_in
-
-from classy_fastapi import Routable, get, patch, post
-
 from common.models.user import User
-
-from fastapi import Depends
 
 log = logging.getLogger(__name__)
 

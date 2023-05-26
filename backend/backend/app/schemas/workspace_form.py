@@ -1,10 +1,9 @@
 import datetime as dt
 from typing import Optional
 
-from backend.app.models.workspace import WorkspaceFormSettings
-
 from beanie import PydanticObjectId
 
+from backend.app.models.workspace import WorkspaceFormSettings
 from common.configs.mongo_document import MongoDocument
 
 

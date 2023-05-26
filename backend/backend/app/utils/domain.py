@@ -1,5 +1,3 @@
-import re
-
 import whois
 from loguru import logger
 

@@ -7,7 +7,6 @@ from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
 )
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
-
 from common.constants import MESSAGE_NOT_FOUND, MESSAGE_PROVIDER_IS_NOT_ENABLED
 from common.models.user import User
 
