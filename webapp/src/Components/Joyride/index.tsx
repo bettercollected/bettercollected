@@ -20,7 +20,6 @@ export interface IJoyrideProps {
     id: string;
     placement?: 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'left' | 'left-start' | 'left-end' | 'right' | 'right-start' | 'right-end' | 'auto' | 'center';
     scrollToFirstStep?: boolean;
-    saveToLocalStorage?: boolean;
     scrollOffset?: number;
     floaterProps?: any;
     styles?: Styles;
@@ -43,7 +42,6 @@ export default function Joyride({
     placement = 'bottom-end',
     floaterProps = { styles: { arrow: { length: 10, spread: 10 } } },
     continuous = true,
-    saveToLocalStorage = false,
     showProgress = true,
     spotlightClicks = true,
     showSkipButton = true,
@@ -86,7 +84,7 @@ export default function Joyride({
             borderRadius: 4
         },
         overlay: {
-            backgroundColor: 'rgba(0, 0, 0, 0.09)'
+            backgroundColor: 'rgba(0, 0, 0, 0.3)'
         },
         beacon: {
             zIndex: 2100
@@ -119,11 +117,8 @@ export default function Joyride({
     const getFilteredState = ({ steps, ...rest }: JoyrideState) => rest;
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            // setState({ ...reduxState, ...state, run: true });
-            setState({ ...state, run: true });
-            dispatch(setJoyrideState(getFilteredState(state)));
-        }
+        setState({ ...reduxState, ...state, run: true });
+        dispatch(setJoyrideState(getFilteredState(state)));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

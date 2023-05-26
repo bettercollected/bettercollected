@@ -1,6 +1,7 @@
 export const workspaceConstant = {
-    handle: 'WORKSAPCE_HANDLE',
+    handle: 'WORKSPACE_HANDLE',
     name: 'WORKSPACE_NAME',
+    customDomain: 'CUSTOM_DOMAIN',
     logoDescription: 'WORKSPACE_LOGO.DESCRIPTION',
     banner: 'WORKSPACE.BANNER',
     profileImage: 'WORKSPACE.PROFILE_IMAGE',

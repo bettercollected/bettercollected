@@ -7,6 +7,7 @@ import ManageWorkspaceLayout from '@app/components/layout/manage-workspace';
 import { useModal } from '@app/components/modal-views/context';
 import InvitationsTable from '@app/components/settings/invitations-table';
 import MembersTable from '@app/components/settings/members-table';
+import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/buttons';
 import { members } from '@app/constants/locales/members';
@@ -18,7 +19,7 @@ export default function ManageMembers({ workspace }: any) {
     const { openModal } = useModal();
     const { t } = useTranslation();
     return (
-        <ManageWorkspaceLayout>
+        <DashboardLayout>
             <div className="flex justify-between">
                 <div className="h4">{t(members.default)}</div>
                 <ProPlanHoc hideChildrenIfPro={false}>
@@ -41,7 +42,7 @@ export default function ManageMembers({ workspace }: any) {
                     <InvitationsTable />
                 </>
             )}
-        </ManageWorkspaceLayout>
+        </DashboardLayout>
     );
 }
 

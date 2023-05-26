@@ -1,342 +1,377 @@
 {
-	"AN": "an",
-	"ADD_CNAME_RECORD_MESSAGE": "Add CNAME record of your domain to point to 'custom.",
-	"ADD_WORKSPACE_LOGO": "Add a workspace logo",
-	"ADVANCE": "Advance",
-	"ADVANCED_SETTING": {
-		"CUSTOM_DOMAIN_NOT_SET_DESCRIPTION": "You have not set up custom domain.",
-		"CUSTOM_DOMAIN_SET_DESCRIPTION": "Your Custom Domain is currently set to",
-		"WORKSAPCE_HANDLE_SET_DESCRIPTION": "Your workspace handle is currently set to "
-	},
-	"ADVANCED_SETTINGS": "Advanced Settings",
-	"ALL_FORMS": "All forms",
-	"AND": "and",
-	"BASIC_INFORMATION": "Basic Information",
-	"BECOME_A_BETTER_COLLECTOR": "Become a better data collector",
-	"BREAD_CRUMBS_ITEM": {
-		"DASHBOARD": "Dashboard",
-		"FORMS": "Forms",
-		"HOME": "Home",
-		"MANAGE_WORKSPACE": "Manage Workspace",
-		"RESPONSES": "Responses",
-		"SUBMISSIONS": "Submissions"
-	},
-	"BUTTON": {
-		"BACK": "Back",
-		"CANCEL": "Cancel",
-		"CHECK_MY_DATA": "Check my data",
-		"CONTINUE": "Continue",
-		"CONTINUE_WITH_GOOGLE": "Continue with Google",
-		"COPY_LINK": "Copy link",
-		"CREATE_WORKSPACE": "Create A workspace",
-		"CUSTOMIZE_LINK": "Customize your link",
-		"DELETE": "Delete",
-		"DONE": "Done",
-		"GETIN": " Get In",
-		"GOOGLE_SIGNIN": "Sign in with Google",
-		"IMPORT_FORMS": "Import Forms",
-		"IMPORT_NOW": "Import Now",
-		"INVITE_COLLABORATOR": "Invite Collaborator",
-		"LOGIN": "Login",
-		"LOGOUT": "Logout",
-		"NEXT": "Next",
-		"PREVIOUS": "Previous",
-		"PRO": "PRO",
-		"REQUEST_AN_INTEGRATION": "Request an integration",
-		"RESEND": "Resend",
-		"RESEND_CODE": "Resend Code",
-		"SAVE": "Save",
-		"SAVE_IMAGE": "Save Image",
-		"SAVING": "Saving",
-		"SEND_CODE": "Send Code",
-		"SEND_INVITATION": "Send Invitation",
-		"SHARE": "Share",
-		"SUBMIT": "Submit",
-		"TYPEFORM_SIGNIN": "Sign in with Typeform",
-		"UPDATE": "Update",
-		"UPDATE_URL": "Update URL",
-		"UPDATE_WORKSPACE": "Update workspace",
-		"UPGRADE": "Upgrade",
-		"UPGRADE_TO_PRO": "Upgrade To PRO",
-		"UPLOAD": "Upload",
-		"UPLOAD_UNLIMITED_FORMS": "Upload unlimited forms",
-		"VERIFY": "Verify",
-		"DECLINE": "Decline",
-		"JOIN_WORKSPACE": "Join Workspace",
-		"YES": "Yes",
-		"NO": "No",
-		"REQUEST_FOR_DELETION": "Request for deletion",
-		"REQUESTED_FOR_DELETION": "Requested for deletion",
-		"REMOVE_INVITATION": "Remove invitation",
-		"DELETE_MEMBER": "Delete member",
-		"SKIP": "Skip"
-	},
-	"CONTACT_US": {
-		"DESCRIPTION": "Any questions or remarks? Just write us a message",
-		"DEFAULT": "Contact us"
-	},
-	"CUSTOMIZE_DOMAIN": {
-		"DEFAULT": "Customize domain",
-		"DESCRIPTION": "Customize your Workspace URL so that your audience can know that it’s you."
-	},
-	"CUSTOMIZE_LINK": {
-		"DEFAULT": "Customize Link",
-		"DESCRIPTION": "Customize your form URL so that your audience can know that it’s you.",
-		"TITLE": "Customize link for free"
-	},
-	"CUSTOMIZE_URL": "Customize URL",
-	"CUSTOM_DOMAIN": "Custom Domain",
-	"DASHBOARD": {
-		"DEFAULT": "Dashboard",
-		"PREVIEW": "Preview"
-	},
-	"DASHBOARD_DRAWER": {
-		"COLLABORATOR": "Collaborator",
-		"OWNER": "Owner"
-	},
-	"DELETE": {
-		"DEFAULT": "Delete",
-		"MESSAGE": "Once this action is completed, it can't be undone."
-	},
-	"DELETION_REMAINING": "deletion remaining",
-	"DESCRIPTION": "Description",
-	"DOMAIN": "Domain",
-	"EARLY_ACCESS": "Get early access!",
-	"EMAIL": "Email",
-	"EMAIL_ADDRESS": "Email Address",
-	"ENTER_EMAIL": "Enter Email",
-	"FORM": {
-		"DEFAULT": "Form",
-		"UNPIN_FORM": "Unpin form",
-		"COLLECTED_RESPONSES": "Collected responses",
-		"DELETE": "Delete form",
-		"DELETE_DESCRIPTION": "Deleting this form will also remove all the responses and deletion requests.",
-		"DELETION_REQUEST.DESCRIPTION": "You have not requested any deletion for your filled responses.",
-		"DELETION_REQUESTS": "Deletion Requests",
-		"DELETION_RESPONSE.DESCRIPTION": "You have not submitted any response on the forms provided in this workspace.",
-		"DELETION_RESPONSE_WARNING_MESSAGE": "Are you sure you want to request your response to be deleted?",
-		"EMPTY": {
-			"DESCRIPTION": "Import your Google Forms or Typeforms",
-			"TITLE": "Import your first form"
-		},
-		"EMPTY_DELETION_REQUEST": {
-			"DESCRIPTION": "You will be able to see deletion request once responders requests for deletion.",
-			"TITLE": "No deletion request yet"
-		},
-		"EMPTY_RESPONSE": {
-			"DESCRIPTION": "You will be able to see the form responders once responder responses ",
-			"TITLE": "No responder yet"
-		},
-		"EMPTY_DELETION_RESPONSE.TITLE": "No responses to show",
-		"FORM_TYPE": "Form type",
-		"HIDE": "Hide Form",
-		"HIDE_DESCRIPTION": "Do not show this form in workspace page.",
-		"IMPORTED_DATE": "Imported date",
-		"IMPORTED_FORMS": "Imported forms",
-		"IMPORT_UNLIMITED": "Import unlimited forms",
-		"PINNED": "Pinned",
-		"PINNED_DESCRIPTION": "Show this form in pinned section",
-		"RECENT_FORMS": "Recent forms",
-		"REQUESTED_BY": "Requested by",
-		"RESPONDER": "Responder",
-		"RESPONDERS": "Responders",
-		"RESPONSE": "Response",
-		"RESPONSES": "Responses",
-		"RESPONSE_ID": "Response ID",
-		"STATUS_DELETED": "Deleted",
-		"STATUS_PENDING": "Pending",
-		"SUBMISSION_DATE": "Submission Date",
-		"SUBMITTED_FORMS": "Submitted forms",
-		"PREVIEW": "Form Preview",
-		"URL": "Form URL",
-		"IMPORTED_BY": "Imported By",
-		"IMPORTED_ON": "Imported On"
-	},
-	"FORMS": "Forms",
-	"FORMS_LINK": "Forms Links",
-	"FORM_LINK_WITH_PREVIOUS_DOMAIN_WONT_WORK": "Form links with previous domain won't work after updating.",
-	"FORM_LINK_WITH_PREVIOUS_WORKSPACE_HANDLE_WONT_WORK": "Form links with previous workspace handle won't work after updating.",
-	"FORM_MENU": {
-		"DELETE_FORM": "Delete form",
-		"PIN_FORM": "Pin form",
-		"SHARE": "Share",
-		"VISIBILITY": "Visibility"
-	},
-	"HEY": "Hey",
-	"HIDDEN": "Hidden",
-	"IMAGE": "Image",
-	"IMAGE_SIZE_RESTRICTION": "Make sure your image is less than 100MB",
-	"IMPORT_FORM": {
-		"DEFAULT": "Import form",
-		"CHOICE": "Which form do you want to import ?",
-		"RESPONSE_OWNER_TAG_DESCRIPTION": "Select field from where response owner can be identified",
-		"RESPONSE_OWNER_TAG_LABEL": "Choose a data owner field for this form",
-		"RESPONSE_OWNER_TAG_TITLE": "Response-owner tag",
-		"TEXT_LABEL": "Choose your google form"
-	},
-	"INVALID_DOMAIN": "Invalid domain",
-	"INVALID_WORKSPACE_HANDLE": "Invalid Workspace Handle",
-	"INVITATION": {
-		"TITLE_1": "You have been invited to",
-		"TITLE_2": "Join workspace and start collaborating",
-		"LINK_EXPIRY": "This link will expire in 7 days.",
-		"LIST": {
-			"ITEM_1": "All forms and responses in workspace",
-			"ITEM_2": "Importing forms to workspace",
-			"ITEM_3": "Deleting form form workspace",
-			"TITLE": "You will have access to:"
-		}
-	},
-	"INVITE_COLLABORATOR": {
-		"DEFAULT": "Invite Collaborator",
-		"DESCRIPTION": "A collaborator can import and manage forms in workspace."
-	},
-	"LAST_SUBMITTED_AT": "Last submitted at",
-	"LINK_TO_PRIVACY_POLICY": "Link to Privacy Policy",
-	"LINK_TO_TERMS_OF_SERVICES": "Link to Terms of Service",
-	"LOGOUT_MESSAGE": "Are you sure you want to logout?",
-	"MANAGE": "Manage",
-	"MANAGE_WORKSPACE": "Manage Workspace",
-	"MEMBER": "Member",
-	"MEMBERS": {
-		"DEFAULT": "Members",
-		"INVITATION": "Invitations",
-		"INVITATION_DATE": "Invitation Date",
-		"JOIN": "Joined",
-		"ROLE": "Role"
-	},
-	"MENU_DROPDOWN.CREATE_WORKSPACE": "Create a new workspace",
-	"NEW_LINK": "New link",
-	"NO_DESCRIPTION": "No description available for this company.",
-	"NO_IMAGE": "No image available",
-	"OF": "of",
-	"ONBOARDING": {
-		"ADD_WORKSPACE": "Add your workspace",
-		"DESCRIPTION": "Please create your workspace so that your team know you are here.",
-		"TIME_MESSAGE": "It will only take few minutes",
-		"WELCOME_MESSAGE": "Welcome to BetterCollected."
-	},
-	"OR": "Or",
-	"OTP_RENDERER": {
-		"OTP_SEND_MESSAGE": "An OTP code will be sent to your email account",
-		"SUBTITLE": "OTP code has been sent to",
-		"TITLE": "Enter OTP code"
-	},
-	"PAYMENT": {
-		"MONTHLY": "Monthly",
-		"YEARLY": "Yearly"
-	},
-	"PINNED_FORMS": "Pinned forms",
-	"PLACEHOLDER": {
-		"ENTER_CUSTOM_DOMAIN": "Enter your custom domain",
-		"ENTER_WORKSPACE_HANDLE": "Enter workspace handle",
-		"DESCRIPTION": "Add your description",
-		"PRIVACY_POLICY_LINK": "Privacy Policy Link",
-		"TERMS_OF_SERVICES_LINK": "Terms Of Services Link",
-		"WORKSPACE_TITLE": "Eg. Sireto Technology"
-	},
-	"POWERED_BY": "Powered by:",
-	"PRICING_PLAN": {
-		"DESCRIPTION": "We are secure payment method",
-		"NO_RISK": "No risk. Cancel anytime",
-		"TITLE": "Upgrade to PRO"
-	},
-	"PRIVACY_POLICY": "Privacy Policy",
-	"PROFILE_MENU": {
-		"BILLING": "Billing",
-		"LOGOUT": "Logout",
-		"MY_DASHBOARD": "My Dashboard"
-	},
-	"PUBLIC": "Public",
-	"READ_MORE": "Read more",
-	"REMOVE": "Remove",
-	"REMOVE_INVITATION_FOR": "Remove invitation for",
-	"REMOVE_WARNING_MESSAGE": "Removing a member will also remove all forms imported by the user",
-	"SAVE": "Save",
-	"SEND_CODE": {
-		"DESCRIPTION": "OTP code will be sent to this email",
-		"TITLE": "Enter Your Email"
-	},
-	"SETTINGS": "Settings",
-	"SETUP_CUSTOM_DOMAIN_FOR_WORKSPACE": "Setup your custom domain for workspace",
-	"SHARE": "Share",
-	"SHARE_THIS_FORM": "Share this form",
-	"SHARE_WORKSPACE": "Share Workspace",
-	"SHARE_YOUR_WORKSPACE": "Share your workspace",
-	"SIGNIN_SCREEN": {
-		"COLLECT_FORMS": "Collect your forms",
-		"CONTINUE_WITH": "continue with:",
-		"DELETE_RESPONSES": "Delete responses",
-		"EASY_TO_MANAGE_FORMS": "Easy to manage forms",
-		"LOGIN_TITLE_SLOGAN": "Be a part of the greater community by signing in.",
-		"READY_TO_GET_STARTED": "Ready to get started?",
-		"REVIEW_FORMS": "Review forms",
-		"SIGNIN_AGREEMENT_DESCRIPTION": "By signing in, you agree to our",
-		"WELCOME_MESSAGE": "Welcome back!"
-	},
-	"SLUG": {
-		"DEFAULT": "Slug",
-		"VALIDATION_MESSAGE": "Slug is required"
-	},
-	"STATUS": "Status",
-	"STEP": "Step",
-	"TERMS_OF_SERVICES": "Terms of Services",
-	"TOAST": {
-		"COPIED": "Copied!",
-		"COULD_NOT_IMPORT_FORM": "Could not import the form.",
-		"CUSTOM_DOMAIN_DELETION_ERROR": "Error Deleting Custom Domain",
-		"CUSTOM_DOMAIN_UPDATED": "Updated custom Domain of workspace",
-		"ERROR_DELETING_CUSTOM_DOMAIN": " Error Deleting Custom Domain",
-		"ERROR_FETCHING_SUBMISSION_DATA": "Error fetching submission data",
-		"FAILED_INVITATION_DELETION": "Failed to delete invitation",
-		"FAILED_TO_REMOVE_USER": "Failed to remove user",
-		"FAILED_TO_SEND_EMAIL": "Failed to send email",
-		"FORMS_DELETED": "Form Deleted",
-		"FORMS_DELETE_FAIL": "Could not delete form",
-		"FORM_IMPORTED_SUCCESSFULLY": "Form imported successfully.",
-		"FORM_SETTING_UPDATE_ERROR": "Could not update this form setting",
-		"FORM_URL_COPIED": "Form URL Copied !",
-		"IMAGE_SIZE_RESTRICTION": "Image size is greater than 100MB",
-		"INVALID_URL": "Invalid URL",
-		"INVITATION_DELETED": "Invitation Deleted",
-		"INVITATION_SENT": "Invitation Sent",
-		"MEMBER_REMOVED_FROM_WORKSPACE": "Member removed from workspace",
-		"OTP_FIELD_NULL_ERROR": "OTP field cannot be empty!",
-		"SOMETHING_WENT_WRONG": "Something went wrong",
-		"UPDATED_SUCCESSFULLY": "Updated Successfully !!",
-		"WORKSPACE_SUCCESS": "Success",
-		"WORKSPACE_UPDATE": "Workspace Updated",
-		"WORKSPACE_URL_COPIED": "Workspace Url Copied"
-	},
-	"TOOLTIP": {
-		"DELETION_REQUEST": "deletion requests",
-		"FORM_IMPORTED": "forms imported",
-		"FORM_RESPONSES": "form responses",
-		"OUT_OF_LIMITED_FORM": "out of limited 100 forms",
-		"PREVIEW_WORKSPACE": "Preview your workspace",
-		"RESPONSES_DELETE_OUT_OF": "responses deleted out of",
-		"VISIBILITY": "Visibility of the form should be public to pin it into the workspace.",
-		"EMAIL_ALREADY_EXIST":"This email is already exist"
-	},
-	"UNTITLED": "Untitled",
-	"UPDATED": "Updated",
-	"UPDATE_WORKSPACE_HANDLE": "Updated workspace handle",
-	"UPDATE_YOUR_CUSTOM_DOMAIN": "Update your Custom Domain",
-	"UPDATE_YOUR_PROFILE_IMAGE": "Update your Workspace Profile picture",
-	"WORKSAPCE_HANDLE": "Workspace Handle",
-	"WORKSPACE": {
-		"DEFAULT": "workspace",
-		"BANNER": "Workspace Banner",
-		"BANNER_EMPTY_MESSAGE": "You can drag to adjust the image.",
-		"DESCRIPTION": "Workspace Description",
-		"INVITATION_NOT_FOUND": "Invitation Not Found",
-		"LOGO.DESCRIPTION": "Make sure your image is less than 100mb",
-		"NAME": "Workspace name",
-		"PREVIEW.EMPTY_FORM_DESCRIPTION": "There are no forms imported in this workspace.",
-		"PREVIEW.EMPTY_FORM_TITLE": "No forms to show",
-		"PROFILE_IMAGE": "Workspace Profile Image",
-		"TITLE": "Workspace Title",
-		"TITLE.VALIDATION_MESSAGE": "Workspace title is required",
-		"URL": "Worksapce URL"
-	}
+  "AN": "an",
+  "ADD_CNAME_RECORD_MESSAGE": "Add CNAME record of your domain to point to 'custom.",
+  "ADD_WORKSPACE_LOGO": "Add a workspace logo",
+  "ADVANCE": "Advance",
+  "ADVANCED_SETTING": {
+    "CUSTOM_DOMAIN_NOT_SET_DESCRIPTION": "You have not set up custom domain.",
+    "CUSTOM_DOMAIN_SET_DESCRIPTION": "Your Custom Domain is currently set to",
+    "WORKSPACE_HANDLE_SET_DESCRIPTION": "Customize your workspace handle name to make your workspace more personal."
+  },
+  "ADVANCED_SETTINGS": "Advanced Settings",
+  "ALL_FORMS": "All forms",
+  "AND": "and",
+  "BASIC_INFORMATION": "Basic Information",
+  "BECOME_A_BETTER_COLLECTOR": "Become a better data collector",
+  "BREAD_CRUMBS_ITEM": {
+    "DASHBOARD": "Dashboard",
+    "FORMS": "Forms",
+    "HOME": "Home",
+    "MANAGE_WORKSPACE": "Manage Workspace",
+    "RESPONSES": "Responses",
+    "SUBMISSIONS": "Submissions"
+  },
+  "BUTTON": {
+    "BACK": "Back",
+    "CANCEL": "Cancel",
+    "CHECK_MY_DATA": "Check my data",
+    "CONTINUE": "Continue",
+    "CONTINUE_WITH_GOOGLE": "Continue with Google",
+    "COPY_LINK": "Copy link",
+    "CREATE_WORKSPACE": "Create A workspace",
+    "CUSTOMIZE_LINK": "Customize your link",
+    "DELETE": "Delete",
+    "DONE": "Done",
+    "GETIN": " Get In",
+    "GOOGLE_SIGNIN": "Sign in with Google",
+    "IMPORT_FORMS": "Import Forms",
+    "IMPORT_NOW": "Import Now",
+    "INVITE_COLLABORATOR": "Invite Collaborator",
+    "LOGIN": "Login",
+    "LOGOUT": "Logout",
+    "NEXT": "Next",
+    "PREVIOUS": "Previous",
+    "PRO": "PRO",
+    "REQUEST_AN_INTEGRATION": "Request an integration",
+    "RESEND": "Resend",
+    "RESEND_CODE": "Resend Code",
+    "SAVE": "Save",
+    "SAVE_IMAGE": "Save Image",
+    "SAVING": "Saving",
+    "SEND_CODE": "Send Code",
+    "SEND_INVITATION": "Send Invitation",
+    "SHARE": "Share",
+    "SUBMIT": "Submit",
+    "TYPEFORM_SIGNIN": "Sign in with Typeform",
+    "UPDATE": "Update",
+    "UPDATE_URL": "Update URL",
+    "UPDATE_WORKSPACE": "Update workspace",
+    "UPGRADE": "Upgrade",
+    "UPGRADE_TO_PRO": "Upgrade To PRO",
+    "UPLOAD": "Upload",
+    "UPLOAD_UNLIMITED_FORMS": "Upload unlimited forms",
+    "VERIFY": "Verify",
+    "DECLINE": "Decline",
+    "JOIN_WORKSPACE": "Join Workspace",
+    "YES": "Yes",
+    "NO": "No",
+    "REQUEST_FOR_DELETION": "Request for deletion",
+    "REQUESTED_FOR_DELETION": "Requested for deletion",
+    "REMOVE_INVITATION": "Remove invitation",
+    "DELETE_MEMBER": "Delete member",
+    "SKIP": "Skip",
+    "UPDATE_NOW": "Update Now"
+  },
+  "CONTACT_US": {
+    "DESCRIPTION": "Any questions or remarks? Just write us a message",
+    "DEFAULT": "Contact us"
+  },
+  "CUSTOMIZE_DOMAIN": {
+    "DEFAULT": "Customize domain",
+    "DESCRIPTION": "Customize your Workspace URL so that your audience can know that it’s you."
+  },
+  "CUSTOMIZE_LINK": {
+    "DEFAULT": "Customize Link",
+    "DESCRIPTION": "Customize your form URL so that your audience can know that it’s you.",
+    "TITLE": "Customize link for free"
+  },
+  "CUSTOMIZE_URL": "Customize URL",
+  "CUSTOM_DOMAIN": "Custom Domain",
+  "DASHBOARD": {
+    "DEFAULT": "Dashboard",
+    "PREVIEW": "Preview"
+  },
+  "DASHBOARD_DRAWER": {
+    "COLLABORATOR": "Collaborator",
+    "OWNER": "Owner",
+    "MANAGE_URLS": "Manage Links"
+  },
+  "DELETE": {
+    "DEFAULT": "Delete",
+    "MESSAGE": "Once this action is completed, it can't be undone."
+  },
+  "DELETION_REMAINING": "deletion remaining",
+  "DESCRIPTION": "Description",
+  "DOMAIN": "Domain",
+  "EARLY_ACCESS": "Get early access!",
+  "EMAIL": "Email",
+  "EMAIL_ADDRESS": "Email Address",
+  "ENTER_EMAIL": "Enter Email",
+  "FORM": {
+    "DEFAULT": "Form",
+    "UNPIN_FORM": "Unpin form",
+    "COLLECTED_RESPONSES": "Collected responses",
+    "DELETE": "Delete form",
+    "DELETE_DESCRIPTION": "Deleting this form will also remove all the responses and deletion requests.",
+    "DELETION_REQUEST.DESCRIPTION": "You have not requested any deletion for your filled responses.",
+    "DELETION_REQUESTS": "Deletion Requests",
+    "DELETION_RESPONSE.DESCRIPTION": "You have not submitted any response on the forms provided in this workspace.",
+    "DELETION_RESPONSE_WARNING_MESSAGE": "Are you sure you want to request your response to be deleted?",
+    "EMPTY": {
+      "DESCRIPTION": "Import your Google Forms or Typeforms",
+      "TITLE": "Import your first form"
+    },
+    "EMPTY_DELETION_REQUEST": {
+      "DESCRIPTION": "You will be able to see deletion request once responders requests for deletion.",
+      "TITLE": "No deletion request yet"
+    },
+    "EMPTY_RESPONSE": {
+      "DESCRIPTION": "You will be able to see the form responders once responder responses ",
+      "TITLE": "No responder yet"
+    },
+    "EMPTY_DELETION_RESPONSE.TITLE": "No responses to show",
+    "FORM_TYPE": "Form type",
+    "HIDE": "Hide Form",
+    "HIDE_DESCRIPTION": "Do not show this form in workspace page.",
+    "IMPORTED_DATE": "Imported date",
+    "IMPORTED_FORMS": "Imported forms",
+    "IMPORT_UNLIMITED": "Import unlimited forms",
+    "PINNED": "Pinned",
+    "PINNED_DESCRIPTION": "Show this form in pinned section",
+    "RECENT_FORMS": "Recent forms",
+    "REQUESTED_BY": "Requested by",
+    "RESPONDER": "Responder",
+    "RESPONDERS": "Responders",
+    "RESPONSE": "Response",
+    "RESPONSES": "Responses",
+    "RESPONSE_ID": "Response ID",
+    "STATUS_DELETED": "Deleted",
+    "STATUS_PENDING": "Pending",
+    "SUBMISSION_DATE": "Submission Date",
+    "SUBMITTED_FORMS": "Submitted forms",
+    "PREVIEW": "Form Preview",
+    "URL": "Form URL",
+    "IMPORTED_BY": "Imported By",
+    "IMPORTED_ON": "Imported On"
+  },
+  "FORMS": "Forms",
+  "FORMS_LINK": "Forms Links",
+  "FORM_LINK_WITH_PREVIOUS_DOMAIN_WONT_WORK": "Form links with previous domain won't work after updating.",
+  "FORM_LINK_WITH_PREVIOUS_WORKSPACE_HANDLE_WONT_WORK": "Form links with previous workspace handle won't work after updating.",
+  "FORM_MENU": {
+    "DELETE_FORM": "Delete form",
+    "PIN_FORM": "Pin form",
+    "SHARE": "Share",
+    "VISIBILITY": "Visibility"
+  },
+  "HEY": "Hey",
+  "HIDDEN": "Hidden",
+  "IMAGE": "Image",
+  "IMAGE_SIZE_RESTRICTION": "Make sure your image is less than 100MB",
+  "IMPORT_FORM": {
+    "DEFAULT": "Import form",
+    "CHOICE": "Which form do you want to import ?",
+    "RESPONSE_OWNER_TAG_DESCRIPTION": "Select field from where response owner can be identified",
+    "RESPONSE_OWNER_TAG_LABEL": "Choose a data owner field for this form",
+    "RESPONSE_OWNER_TAG_TITLE": "Response-owner tag",
+    "TEXT_LABEL": "Choose your google form"
+  },
+  "INVALID_DOMAIN": "Invalid domain",
+  "INVALID_WORKSPACE_HANDLE": "Invalid Workspace Handle",
+  "INVITATION": {
+    "TITLE_1": "You have been invited to",
+    "TITLE_2": "Join workspace and start collaborating",
+    "LINK_EXPIRY": "This link will expire in 7 days.",
+    "LIST": {
+      "ITEM_1": "All forms and responses in workspace",
+      "ITEM_2": "Importing forms to workspace",
+      "ITEM_3": "Deleting form form workspace",
+      "TITLE": "You will have access to:"
+    }
+  },
+  "INVITE_COLLABORATOR": {
+    "DEFAULT": "Invite Collaborator",
+    "DESCRIPTION": "A collaborator can import and manage forms in workspace."
+  },
+  "LAST_SUBMITTED_AT": "Last submitted at",
+  "LINK_TO_PRIVACY_POLICY": "Link to Privacy Policy",
+  "LINK_TO_TERMS_OF_SERVICES": "Link to Terms of Service",
+  "LOGOUT_MESSAGE": "Are you sure you want to logout?",
+  "MANAGE": "Manage",
+  "MANAGE_WORKSPACE": "Manage Workspace",
+  "MEMBER": "Member",
+  "MEMBERS": {
+    "DEFAULT": "Members",
+    "INVITATION": "Invitations",
+    "INVITATION_DATE": "Invitation Date",
+    "JOIN": "Joined",
+    "ROLE": "Role"
+  },
+  "MENU_DROPDOWN.CREATE_WORKSPACE": "Create a new workspace",
+  "NEW_LINK": "New link",
+  "NO_DESCRIPTION": "No description available for this company.",
+  "NO_IMAGE": "No image available",
+  "OF": "of",
+  "ONBOARDING": {
+    "ADD_WORKSPACE": "Add your workspace",
+    "DESCRIPTION": "Please create your workspace so that your team know you are here.",
+    "TIME_MESSAGE": "It will only take few minutes",
+    "WELCOME_MESSAGE": "Welcome to BetterCollected."
+  },
+  "OR": "Or",
+  "OTP_RENDERER": {
+    "OTP_SEND_MESSAGE": "An OTP code will be sent to your email account",
+    "SUBTITLE": "OTP code has been sent to",
+    "TITLE": "Enter OTP code"
+  },
+  "PAYMENT": {
+    "MONTHLY": "Monthly",
+    "YEARLY": "Yearly"
+  },
+  "PINNED_FORMS": "Pinned forms",
+  "PLACEHOLDER": {
+    "ENTER_CUSTOM_DOMAIN": "Enter your custom domain",
+    "ENTER_WORKSPACE_HANDLE": "Enter workspace handle",
+    "DESCRIPTION": "Add your description",
+    "PRIVACY_POLICY_LINK": "Privacy Policy Link",
+    "TERMS_OF_SERVICES_LINK": "Terms Of Services Link",
+    "WORKSPACE_TITLE": "Eg. Sireto Technology"
+  },
+  "POWERED_BY": "Powered by:",
+  "PRICING_PLAN": {
+    "DESCRIPTION": "We are secure payment method",
+    "NO_RISK": "No risk. Cancel anytime",
+    "TITLE": "Upgrade to PRO"
+  },
+  "PRIVACY_POLICY": "Privacy Policy",
+  "PROFILE_MENU": {
+    "BILLING": "Billing",
+    "LOGOUT": "Logout",
+    "MY_DASHBOARD": "My Dashboard"
+  },
+  "PUBLIC": "Public",
+  "READ_MORE": "Read more",
+  "REMOVE": "Remove",
+  "REMOVE_INVITATION_FOR": "Remove invitation for",
+  "REMOVE_WARNING_MESSAGE": "Removing a member will also remove all forms imported by the user",
+  "SAVE": "Save",
+  "SEND_CODE": {
+    "DESCRIPTION": "OTP code will be sent to this email",
+    "TITLE": "Enter Your Email"
+  },
+  "SETTINGS": "Settings",
+  "SETUP_CUSTOM_DOMAIN_FOR_WORKSPACE": "Setup your custom domain for workspace",
+  "SHARE": "Share",
+  "SHARE_THIS_FORM": "Share this form",
+  "SHARE_WORKSPACE": "Share Workspace",
+  "SHARE_YOUR_WORKSPACE": "Share your workspace",
+  "SIGNIN_SCREEN": {
+    "COLLECT_FORMS": "Collect your forms",
+    "CONTINUE_WITH": "continue with:",
+    "DELETE_RESPONSES": "Delete responses",
+    "EASY_TO_MANAGE_FORMS": "Easy to manage forms",
+    "LOGIN_TITLE_SLOGAN": "Be a part of the greater community by signing in.",
+    "READY_TO_GET_STARTED": "Ready to get started?",
+    "REVIEW_FORMS": "Review forms",
+    "SIGNIN_AGREEMENT_DESCRIPTION": "By signing in, you agree to our",
+    "WELCOME_MESSAGE": "Welcome back!"
+  },
+  "SLUG": {
+    "DEFAULT": "Slug",
+    "VALIDATION_MESSAGE": "Slug is required"
+  },
+  "STATUS": "Status",
+  "STEP": "Step",
+  "TERMS_OF_SERVICES": "Terms of Services",
+  "TOAST": {
+    "COPIED": "Copied!",
+    "COULD_NOT_IMPORT_FORM": "Could not import the form.",
+    "CUSTOM_DOMAIN_DELETION_ERROR": "Error Deleting Custom Domain",
+    "CUSTOM_DOMAIN_UPDATED": "Updated custom Domain of workspace",
+    "ERROR_DELETING_CUSTOM_DOMAIN": " Error Deleting Custom Domain",
+    "ERROR_FETCHING_SUBMISSION_DATA": "Error fetching submission data",
+    "FAILED_INVITATION_DELETION": "Failed to delete invitation",
+    "FAILED_TO_REMOVE_USER": "Failed to remove user",
+    "FAILED_TO_SEND_EMAIL": "Failed to send email",
+    "FORMS_DELETED": "Form Deleted",
+    "FORMS_DELETE_FAIL": "Could not delete form",
+    "FORM_IMPORTED_SUCCESSFULLY": "Form imported successfully.",
+    "FORM_SETTING_UPDATE_ERROR": "Could not update this form setting",
+    "FORM_URL_COPIED": "Form URL Copied !",
+    "IMAGE_SIZE_RESTRICTION": "Image size is greater than 100MB",
+    "INVALID_URL": "Invalid URL",
+    "INVITATION_DELETED": "Invitation Deleted",
+    "INVITATION_SENT": "Invitation Sent",
+    "MEMBER_REMOVED_FROM_WORKSPACE": "Member removed from workspace",
+    "OTP_FIELD_NULL_ERROR": "OTP field cannot be empty!",
+    "SOMETHING_WENT_WRONG": "Something went wrong",
+    "UPDATED_SUCCESSFULLY": "Updated Successfully !!",
+    "WORKSPACE_SUCCESS": "Success",
+    "WORKSPACE_UPDATE": "Workspace Updated",
+    "WORKSPACE_URL_COPIED": "Workspace Url Copied"
+  },
+  "TOOLTIP": {
+    "DELETION_REQUEST": "deletion requests",
+    "FORM_IMPORTED": "forms imported",
+    "FORM_RESPONSES": "form responses",
+    "OUT_OF_LIMITED_FORM": "out of limited 100 forms",
+    "PREVIEW_WORKSPACE": "Preview your workspace",
+    "RESPONSES_DELETE_OUT_OF": "responses deleted out of",
+    "VISIBILITY": "Visibility of the form should be public to pin it into the workspace."
+  },
+  "UNTITLED": "Untitled",
+  "UPDATED": "Updated",
+  "UPDATE_WORKSPACE_HANDLE": "Updated workspace handle",
+  "UPDATE_YOUR_CUSTOM_DOMAIN": "Update your Custom Domain",
+  "UPDATE_YOUR_PROFILE_IMAGE": "Update your Workspace Profile picture",
+  "WORKSPACE_HANDLE": "Workspace Handle",
+  "UPDATE_WORKSPACE": {
+    "COMMON": {
+      "CONSEQUENCE": "What will happen?",
+      "CURRENT_LINK": "Your current link",
+      "CHANGE": "Change"
+    },
+    "SETTINGS": {
+      "COMMON": {
+        "POINT1": "Make it easier to remember",
+        "POINT2": "Make it relevant to your business or organization.",
+        "POINT3": "Keep it short and concise."
+      },
+      "HANDLE": {
+        "POINT4": "Avoid using spaces or special characters. Only “.” and “_” is accepted."
+      },
+      "DOMAIN": {
+        "REMOVE": "Remove current domain and",
+        "RESET": "reset to default.",
+        "CNAME": "Add CNAME record of your domain to point to ",
+        "CONFIRMATION_TITLE": "Are you sure you want to reset domain name to default?",
+        "CONFIRMATION_DESC": "Any links with old domain name will no longer work."
+      }
+    },
+    "HANDLE": {
+      "DESC": "Customize your workspace handle name to make your workspace more personal.",
+      "POINT_1": "Your new workspace handle name will be displayed in all of your workspace-related communications, such as workspace link, forms etc.",
+      "POINT_2": "Any links with old workspace handle name will no longer work."
+    },
+    "DOMAIN": {
+      "DESC": "Changing your domain name and improve your workspace branding and identity.",
+      "POINT_1": "Your new domain name will be displayed in all of your workspace-related communications, such as workspace link, forms etc.",
+      "POINT_2": "Any links with old domain name will no longer work."
+    }
+  },
+  "WORKSPACE": {
+    "DEFAULT": "workspace",
+    "BANNER": "Workspace Banner",
+    "BANNER_EMPTY_MESSAGE": "You can drag to adjust the image.",
+    "DESCRIPTION": "Workspace Description",
+    "INVITATION_NOT_FOUND": "Invitation Not Found",
+    "LOGO.DESCRIPTION": "Make sure your image is less than 100mb",
+    "NAME": "Workspace name",
+    "PREVIEW.EMPTY_FORM_DESCRIPTION": "There are no forms imported in this workspace.",
+    "PREVIEW.EMPTY_FORM_TITLE": "No forms to show",
+    "PROFILE_IMAGE": "Workspace Profile Image",
+    "TITLE": "Workspace Title",
+    "TITLE.VALIDATION_MESSAGE": "Workspace title is required",
+    "URL": "Worksapce URL"
+  }
 }

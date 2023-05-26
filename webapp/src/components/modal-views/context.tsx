@@ -18,7 +18,8 @@ export type MODAL_VIEW =
     | 'DELETE_MEMBER'
     | 'DELETE_INVITATION'
     | 'CUSTOMIZE_URL'
-    | 'CROP_IMAGE';
+    | 'CROP_IMAGE'
+    | 'DELETE_CUSTOM_DOMAIN';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 
