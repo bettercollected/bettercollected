@@ -5,8 +5,6 @@ import { useTranslation } from 'next-i18next';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import CopyIcon from '@Components/Common/Icons/Copy';
 import Pro from '@Components/Common/Icons/Pro';
-import { Typography } from '@mui/material';
-import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
@@ -15,6 +13,7 @@ import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
+import { Features } from '@app/constants/locales/feature';
 import { updateWorkspace } from '@app/constants/locales/update-workspace';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
@@ -105,7 +104,7 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                 <>
                     <div className="flex items-center">
                         <span className="mr-1 font-semibold">Upgrade to PRO</span> for this feature
-                        <ProPlanHoc hideChildrenIfPro={false}>
+                        <ProPlanHoc hideChildrenIfPro={false} feature={Features.customDomain}>
                             <Button className="ml-4">Upgrade</Button>
                         </ProPlanHoc>
                     </div>

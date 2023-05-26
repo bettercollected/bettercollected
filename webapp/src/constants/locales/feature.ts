@@ -1,7 +1,7 @@
-export const featureConst = {
-    default: '',
-    collaborator: '',
-    forms: '',
-    customDomain: '',
-    workspace: ''
-};
+export enum Features {
+    default = 'default',
+    collaborator = 'collaborator',
+    unlimitedForms = 'unlimitedForms',
+    customDomain = 'customDomain',
+    workspace = 'workspace'
+}

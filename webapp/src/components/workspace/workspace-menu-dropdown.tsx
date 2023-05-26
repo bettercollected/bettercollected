@@ -9,11 +9,13 @@ import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdow
 import { IconButton, ListItem } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import { Check } from '@app/components/icons/check';
 import { Plus } from '@app/components/icons/plus';
 import { useUpgradeModal } from '@app/components/modal-views/upgrade-modal-context';
 import Loader from '@app/components/ui/loader';
 import dashboardConstants from '@app/constants/locales/dashboard';
+import { Features } from '@app/constants/locales/feature';
 import { menuDropdown } from '@app/constants/locales/menu-dropdown';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuthStatus } from '@app/store/auth/selectors';
@@ -151,22 +153,24 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                 <div>
                     <Divider className="my-2" />
                     <div onClick={redirectToUpgradeIfNotProPlan}>
-                        <ListItem disablePadding alignItems="center" className={``}>
-                            <IconButton
-                                className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'} ${
-                                    !enableCreateWorkspaceButton() && isProPlan ? '!text-black-500 cursor-not-allowed' : '!text-black-800'
-                                }`}
-                                onClick={handleCreateWorkspace}
-                                size="small"
-                            >
-                                <span className="flex justify-between w-full items-center gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <Plus />
-                                        <p className={`body3 !not-italic  `}>{t(menuDropdown.createWorkspace)}</p>
-                                    </div>
-                                </span>
-                            </IconButton>
-                        </ListItem>
+                        <ProPlanHoc feature={Features.workspace}>
+                            <ListItem disablePadding alignItems="center" className={``}>
+                                <IconButton
+                                    className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'} ${
+                                        !enableCreateWorkspaceButton() && isProPlan ? '!text-black-500 cursor-not-allowed' : '!text-black-800'
+                                    }`}
+                                    onClick={handleCreateWorkspace}
+                                    size="small"
+                                >
+                                    <span className="flex justify-between w-full items-center gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <Plus />
+                                            <p className={`body3 !not-italic  `}>{t(menuDropdown.createWorkspace)}</p>
+                                        </div>
+                                    </span>
+                                </IconButton>
+                            </ListItem>
+                        </ProPlanHoc>
                     </div>
                 </div>
             )}

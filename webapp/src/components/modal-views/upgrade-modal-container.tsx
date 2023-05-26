@@ -28,9 +28,9 @@ export default function UpgradeModalContainer() {
     return (
         <Transition appear show={isOpen} as={Fragment}>
             <Dialog as="div" className="fixed inset-0 z-[2500] h-full w-full overflow-y-auto overflow-x-hidden  text-center" onClose={closeModal}>
-                <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-                    <Dialog.Overlay className="fixed inset-0 z-40 !bg-white cursor-pointer" />
-                </Transition.Child>
+                {/*<Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">*/}
+                {/*    <Dialog.Overlay className="fixed inset-0 z-40 !bg-white cursor-pointer" />*/}
+                {/*</Transition.Child>*/}
 
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
                 <div className="sr-only">

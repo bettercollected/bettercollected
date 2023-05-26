@@ -14,13 +14,14 @@ import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/buttons';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
+import { upgradeConst } from '@app/constants/locales/upgrade';
 import { useGetPlansQuery } from '@app/store/plans/api';
 
 export interface IUpgradeToProModal {
     featureText?: string;
 }
 
-export default function UpgradeToProModal({ featureText = 'Upgrade To PRO Plan For More Features' }: IUpgradeToProModal) {
+export default function UpgradeToProModal({ featureText }: IUpgradeToProModal) {
     const { closeModal } = useUpgradeModal();
 
     const { data, error, isLoading } = useGetPlansQuery();
@@ -33,25 +34,23 @@ export default function UpgradeToProModal({ featureText = 'Upgrade To PRO Plan F
 
     const features = [
         {
-            title: 'Unlimited Form Import',
-            description: 'Pro accounts offer unlimited form import, while Free accounts are limited to 100 form imports. This can be a great benefit for businesses that need to import large amounts of data from forms.',
+            title: t(upgradeConst.features.unlimitedForms.title),
+            description: t(upgradeConst.features.unlimitedForms.description),
             color: '#FFE9CA'
         },
         {
-            title: 'Custom Domain Name',
-            description:
-                'Pro accounts offer custom domain support, while Free accounts do not. This means that Pro users can use their own domain name for their Workspace, instead of using the “BetterCollected” domain. This can be a great way to make your business look more professional and to improve your brand recognition.',
+            title: t(upgradeConst.features.customDomain.title),
+            description: t(upgradeConst.features.unlimitedForms.description),
             color: '#D3E6FE'
         },
         {
-            title: 'Multiple Workspace',
-            description: 'Pro accounts offer the ability to create multiple workspaces, while Free accounts only allow for one workspace. This means that Pro users can create separate workspaces for different projects, or teams.',
+            title: t(upgradeConst.features.collaborator.title),
+            description: t(upgradeConst.features.unlimitedForms.description),
             color: '#E3E0FF'
         },
         {
-            title: 'Collaborate With Others',
-            description:
-                'Pro accounts offer collaboration features, while Basic accounts do not. This means that Pro users can collaborate with others to import forms and manage forms. This can be a great way to get work done faster and more efficiently.',
+            title: t(upgradeConst.features.workspace.title),
+            description: t(upgradeConst.features.unlimitedForms.description),
             color: '#D9FFD6'
         }
     ];
@@ -75,7 +74,7 @@ export default function UpgradeToProModal({ featureText = 'Upgrade To PRO Plan F
                     </div>
                 </div>
 
-                <div className="text-[36px] text-black-900 font-semibold text-center mb-4 max-w-[370px]">{featureText}</div>
+                <div className="text-[36px] text-black-900 font-semibold text-center mb-4 max-w-[370px]">{featureText || t(upgradeConst.defaultSlogan)}</div>
                 <div className="paragraph text-center mb-6 text-black-600">{t(pricingPlan.description)}</div>
                 {isLoading && <Loader variant="blink" />}
 
@@ -98,7 +97,7 @@ export default function UpgradeToProModal({ featureText = 'Upgrade To PRO Plan F
                     </ActiveLink>
                 )}
 
-                <div className="text-[24px] font-medium mt-20 mb-15">PRO Plan Includes</div>
+                <div className="text-[24px] font-medium mt-20 mb-15">{t(upgradeConst.proIncludes)}</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-6 mt-14">
                     {features.map((feature: any, idx: number) => {
                         return (

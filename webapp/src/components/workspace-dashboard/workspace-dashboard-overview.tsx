@@ -14,11 +14,12 @@ import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import dashboardConstants from '@app/constants/locales/dashboard';
+import { Features } from '@app/constants/locales/feature';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { UserDto } from '@app/models/dtos/UserDto';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { selectIsAdmin } from '@app/store/auth/slice';
+import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
@@ -39,6 +40,7 @@ interface IWorkspaceDashboardOverviewProps {
 const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDashboardOverviewProps) => {
     const { openModal } = useModal();
     const isAdmin = useAppSelector(selectIsAdmin);
+    const isProPlan = useAppSelector(selectIsProPlan);
     const router = useRouter();
     const { t } = useTranslation();
     const language = router?.locale === 'en' ? '' : `${router?.locale}/`;
@@ -94,11 +96,11 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                 </div>
                 {isAdmin && (
                     <div className={`space-x-[1px] hidden sm:flex min-h-12 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_COLLABORATORS}`}>
-                        <ProPlanHoc>
+                        <ProPlanHoc feature={Features.collaborator}>
                             <div
                                 className="rounded bg-black-300 items-center cursor-pointer justify-center flex h-10 w-10"
-                                onClick={() => {
-                                    openModal('INVITE_MEMBER');
+                                onClick={(event: any) => {
+                                    if (isProPlan) openModal('INVITE_MEMBER');
                                 }}
                             >
                                 <PlusIcon />
