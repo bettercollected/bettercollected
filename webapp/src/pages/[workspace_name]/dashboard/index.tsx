@@ -12,11 +12,15 @@ import WorkspaceDashboardOverview from '@app/components/workspace-dashboard/work
 import environments from '@app/configs/environments';
 import { formConstant } from '@app/constants/locales/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
 import { useGetWorkspaceFormsQuery, useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
-export default function CreatorDashboard({ workspace, hasCustomDomain, ...props }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
+export default function CreatorDashboard({ hasCustomDomain, ...props }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
     const { t } = useTranslation();
+
+    const workspace = useAppSelector(selectWorkspace);
 
     const workspaceQuery = {
         workspace_id: workspace.id

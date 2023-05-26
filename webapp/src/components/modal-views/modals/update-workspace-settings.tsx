@@ -106,10 +106,10 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                 </div>
                 <div className="mt-4">{updateDomain && t(updateWorkspace.settings.domain.cname) + 'custom.bettercollected.com'}</div>
                 <div className="body1 mt-6">{updateDomain ? t(localesGlobal.domain) : t(workspaceConstant.handle)}</div>
-                <div className="flex flex-col md:flex-row md:items-start w-full">
-                    <div className="flex items-start mt-3 justify-start gap-4  w-full">
+                <div className="mt-3 flex flex-col md:flex-row md:items-start w-full">
+                    <div className="flex items-start justify-start gap-4  w-full">
                         <BetterInput
-                            inputProps={{ 'data-testid': 'update-field', className: 'bg-white' }}
+                            inputProps={{ 'data-testid': 'update-field', className: 'bg-white !py-3' }}
                             error={error}
                             helperText={error ? (updateDomain ? t(updateWorkspace.invalidDomain) : t(updateWorkspace.invalidWorkspaceHandle)) : ''}
                             placeholder={updateDomain ? t(placeHolder.enterCustomDomain) : t(placeHolder.enterWorkspaceHandle)}
@@ -120,12 +120,12 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                             className="font-bold flex-1 w-full"
                         />
                     </div>
-                    <Button data-testid="save-button" type="submit" isLoading={isLoading || result?.isLoading} variant="solid" size="medium" onClick={handleSubmit} className="mt-4 md:ml-4 flex-1 min-w-fit">
+                    <Button data-testid="save-button" type="submit" isLoading={isLoading || result?.isLoading} variant="solid" size="medium" onClick={handleSubmit} className="md:ml-4 flex-1 min-w-fit">
                         {t(buttonConstant.updateNow)}
                     </Button>
                 </div>
 
-                {workspace.customDomain && (
+                {workspace.customDomain && updateDomain && (
                     <div className="mt-4">
                         {t(updateWorkspace.settings.domain.remove)}{' '}
                         <span onClick={handleResetClick} className="ml-1 cursor-pointer text-brand-500 underline">

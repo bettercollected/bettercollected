@@ -19,6 +19,8 @@ export default function DeleteCustomDomainModal() {
     const dispatch = useAppDispatch();
     const router = useRouter();
 
+    console.log(result);
+
     const { t } = useTranslation();
     const workspace = useAppSelector((state) => state.workspace);
 
@@ -46,7 +48,7 @@ export default function DeleteCustomDomainModal() {
             <div className="text-black-700 pb-10 ">{t(updateWorkspace.settings.domain.confirmationDesc)}</div>
 
             <div className="flex w-full gap-4 justify-end">
-                <Button data-testid="logout-button" className="flex-1" variant="solid" size="medium" color="danger" onClick={deleteCustomDomain}>
+                <Button data-testid="logout-button" className="flex-1" variant="solid" size="medium" color="danger" isLoading={!!result?.isLoading} onClick={deleteCustomDomain}>
                     {t(buttonConstant.yes)}
                 </Button>
                 <Button variant="solid" color="gray" size="medium" className="!bg-black-500 flex-1" onClick={() => closeModal()}>
