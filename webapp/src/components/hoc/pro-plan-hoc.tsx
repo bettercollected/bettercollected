@@ -21,7 +21,7 @@ export default function ProPlanHoc({ children, hideChildrenIfPro = false }: IPro
             event.stopPropagation();
             event.preventDefault();
             // router.push(`/${workspace.workspaceName}/upgrade`);
-            openModal('UPGRADE_TO_PRO');
+            openModal();
         }
     };
 

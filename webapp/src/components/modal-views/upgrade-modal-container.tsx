@@ -3,25 +3,19 @@ import { Fragment, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 import { Close } from '@app/components/icons/close';
-import { MODAL_VIEW, useModal } from '@app/components/modal-views/context';
 import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
 import { useUpgradeModal } from '@app/components/modal-views/upgrade-modal-context';
 import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
-function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
-    switch (view) {
-        case 'UPGRADE_TO_PRO':
-            return <UpgradeToProModal />;
-        default:
-            return <></>;
-    }
+function renderModalContent(modalProps: any) {
+    return <UpgradeToProModal {...modalProps} />;
 }
 
 export default function UpgradeModalContainer() {
     const router = useRouter();
-    const { view, isOpen, closeModal, modalProps } = useUpgradeModal();
+    const { isOpen, closeModal, modalProps } = useUpgradeModal();
 
     useEffect(() => {
         // close search modal when route change
@@ -38,13 +32,6 @@ export default function UpgradeModalContainer() {
                     <Dialog.Overlay className="fixed inset-0 z-40 !bg-white cursor-pointer" />
                 </Transition.Child>
 
-                {/* This element is to trick the browser into centering the modal contents. */}
-                {view && view !== 'SEARCH_VIEW' && (
-                    <span className="inline-block h-full align-middle" aria-hidden="true">
-                        &#8203;
-                    </span>
-                )}
-
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
                 <div className="sr-only">
                     <Button size="small" color="gray" shape="circle" onClick={closeModal} className="opacity-50 hover:opacity-80 ">
@@ -54,7 +41,7 @@ export default function UpgradeModalContainer() {
 
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
                     <div data-testid="modal-view" className="relative min-h-screen inline-block items-center content-center !w-full  z-50 !bg-white text-left align-middle md:w-fit">
-                        {view && renderModalContent(view, modalProps)}
+                        {renderModalContent(modalProps)}
                     </div>
                 </Transition.Child>
             </Dialog>

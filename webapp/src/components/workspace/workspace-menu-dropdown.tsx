@@ -11,6 +11,7 @@ import { IconButton, ListItem } from '@mui/material';
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { Check } from '@app/components/icons/check';
 import { Plus } from '@app/components/icons/plus';
+import { useUpgradeModal } from '@app/components/modal-views/upgrade-modal-context';
 import Loader from '@app/components/ui/loader';
 import dashboardConstants from '@app/constants/locales/dashboard';
 import { menuDropdown } from '@app/constants/locales/menu-dropdown';
@@ -30,11 +31,13 @@ interface IWorkspaceMenuDropdownProps {
 WorkspaceMenuDropdown.defaultProps = {
     fullWidth: false
 };
+
 function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
     const workspace = useAppSelector(selectWorkspace);
     const { data, isLoading } = useGetAllMineWorkspacesQuery();
     const router = useRouter();
     const isProPlan = useAppSelector(selectIsProPlan);
+    const { openModal } = useUpgradeModal();
 
     const { t } = useTranslation();
     const handleChangeWorkspace = (space: WorkspaceDto) => {
@@ -51,7 +54,8 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
 
     const redirectToUpgradeIfNotProPlan = () => {
         if (!isProPlan) {
-            router.push(`/${workspace.workspaceName}/upgrade`);
+            openModal();
+            // router.push(`/${workspace.workspaceName}/upgrade`);
         }
     };
 
