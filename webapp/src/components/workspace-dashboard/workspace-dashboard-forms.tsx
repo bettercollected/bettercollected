@@ -36,9 +36,9 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
     };
 
     return (
-        <div className="mb-10 w-full h-fit mt-5">
+        <div className="my-10 w-full h-fit">
             {forms?.length === 0 ? (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-white rounded-[4px] py-[84px]">
+                <div className="w-full h-full flex flex-col items-center justify-center rounded-lg py-[84px]">
                     {ref.current && environments.ENABLE_JOYRIDE_TOURS && (
                         <Joyride
                             id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_BUTTON}

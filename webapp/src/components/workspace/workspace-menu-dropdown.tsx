@@ -56,7 +56,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
     };
 
     const fullWorkspaceName = workspace?.title || 'Untitled';
-    const workspaceName = toEndDottedStr(fullWorkspaceName, 19);
+    const workspaceName = toEndDottedStr(fullWorkspaceName, 16);
     const showExpandMore = true;
 
     const enableCreateWorkspaceButton = () => {
@@ -81,6 +81,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
             fullWidth={fullWidth}
             className={`!rounded-none hover:!rounded-none ${showExpandMore ? 'pr-4' : ''}`}
             showExpandMore={showExpandMore}
+            width={320}
             menuContent={
                 <div className="flex items-center gap-2 py-2 px-3">
                     <AuthAccountProfileImage size={40} image={workspace?.profileImage} name={workspaceName} className="bg-orange-500" />
@@ -113,7 +114,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                                         />
                                         <div className="flex flex-col items-start w-full">
                                             <Tooltip title={space?.title || 'Untitled'}>
-                                                <p className="body3">{toEndDottedStr(space?.title || 'Untitled', 19)}</p>
+                                                <p className="body3">{toEndDottedStr(space?.title || 'Untitled', 20)}</p>
                                             </Tooltip>
                                             <p className="leading-none text-[12px] text-black-700">{getWorkspaceRole(space)}</p>
                                         </div>

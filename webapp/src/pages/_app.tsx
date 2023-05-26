@@ -120,7 +120,7 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                         }}
                     />
                     <CookieConsent />
-                    <NextNProgress color="#f04444" startPosition={0} stopDelayMs={400} height={5} options={{ easing: 'ease' }} />
+                    <NextNProgress color="#0764EB" startPosition={0} stopDelayMs={400} height={2} options={{ easing: 'ease' }} />
                     <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
                     <Provider store={store}>
                         <EnabledFormProviders>

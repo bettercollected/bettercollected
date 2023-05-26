@@ -8,7 +8,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface IProPlanHoc {
     children: ReactNode;
-    hideChildrenIfPro: boolean;
+    hideChildrenIfPro?: boolean;
 }
 
 export default function ProPlanHoc({ children, hideChildrenIfPro = false }: IProPlanHoc) {
