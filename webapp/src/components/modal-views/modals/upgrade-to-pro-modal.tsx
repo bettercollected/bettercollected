@@ -74,7 +74,7 @@ export default function UpgradeToProModal({ featureText }: IUpgradeToProModal) {
                     </div>
                 </div>
 
-                <div className="text-[36px] text-black-900 font-semibold text-center mb-4 max-w-[370px]">{featureText || t(upgradeConst.defaultSlogan)}</div>
+                <div className="text-[36px] text-black-900 font-semibold text-center mb-4 max-w-[370px]">{featureText || t(upgradeConst.features.default.slogan)}</div>
                 <div className="paragraph text-center mb-6 text-black-600">{t(pricingPlan.description)}</div>
                 {isLoading && <Loader variant="blink" />}
 
