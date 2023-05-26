@@ -2,16 +2,14 @@ import logging
 from http import HTTPStatus
 from typing import Any, Mapping
 
+from httpx import ConnectError
+from starlette.requests import Request
+
 from backend.app.constants import messages
 from backend.app.exceptions import HTTPException
-
 from common.constants import MESSAGE_NOT_FOUND
 from common.enums.http_methods import HTTPMethods
 from common.services.http_client import HttpClient
-
-from httpx import ConnectError
-
-from starlette.requests import Request
 
 
 class PluginProxyService:

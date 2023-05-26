@@ -1,9 +1,7 @@
 import datetime
 
 import boto3
-
 from botocore.exceptions import ClientError
-
 from fastapi import HTTPException
 
 

@@ -8,11 +8,10 @@ Resources:
 """
 from typing import Type
 
-from backend.app.controllers.plugin_proxy import PluginProxy
-from backend.config import settings
-
 from classy_fastapi import Routable
 
+from backend.app.controllers.plugin_proxy import PluginProxy
+from backend.config import settings
 from common.base.plugin import register_plugin_class
 from common.utils.router import CustomAPIRouter
 

@@ -1,5 +1,3 @@
-from typing import Any
-
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, post, get, patch
 from fastapi import Depends, Body

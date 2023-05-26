@@ -1,7 +1,6 @@
 import datetime as dt
 
 from backend.app.models.form_plugin_config import FormProviderConfigDto
-
 from common.configs.mongo_document import MongoDocument
 
 

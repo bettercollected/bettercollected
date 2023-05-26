@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, post, delete
