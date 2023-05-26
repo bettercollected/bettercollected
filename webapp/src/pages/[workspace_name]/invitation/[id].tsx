@@ -89,17 +89,17 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
                 <div className="md:max-w-[620px] flex flex-col">
                     <div className="bg-white md:max-w-[620px] flex flex-col rounded p-10 items-center justify-center">
                         <AuthAccountProfileImage size={60} image={workspace?.profileImage} name={workspace?.title} />
-                        <div className="text-2xl mt-6 mb-4 sh3 !font-normal !text-black-700 ">
+                        <div className="text-2xl text-center mt-6 mb-4 sh3 !font-normal !text-black-700 ">
                             {t(invitationConstant.title1)}
                             <span className="font-bold text-black-900">{' ' + workspace?.title || t(localesGlobal.untitled)}</span>
                         </div>
                         <div className="body3 mb-10 !text-black-700">{t(invitationConstant.title2)}</div>
                         <div className="flex flex-col space-y-4 items-center">
                             <div className="flex sm:flex-row flex-col gap-5 justify-between items-center">
-                                <Button disabled={isLoading} size="large" onClick={onAccept}>
+                                <Button disabled={isLoading} className="w-full sm:w-fit" size="large" onClick={onAccept}>
                                     {t(buttonConstant.joinWorkspace)}
                                 </Button>
-                                <Button className="text-white bg-black-500 hover:!bg-black-600" disabled={isLoading} size="large" onClick={onDecline}>
+                                <Button className="w-full sm:w-fit text-white bg-black-500 hover:!bg-black-600" disabled={isLoading} size="large" onClick={onDecline}>
                                     {t(buttonConstant.decline)}
                                 </Button>
                             </div>

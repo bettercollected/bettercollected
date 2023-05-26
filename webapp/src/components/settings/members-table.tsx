@@ -72,7 +72,7 @@ export default function MembersTable() {
 
     return (
         <>
-            <DataTable className="p-0 mt-2" columns={dataTableResponseColumns} data={data || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+            <DataTable className="p-0 mt-2 !overflow-auto" columns={dataTableResponseColumns} data={data || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
         </>
     );
 }

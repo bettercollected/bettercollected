@@ -75,7 +75,7 @@ export default function Responders({ workspace }: any) {
         if (data?.items && data?.items.length > 0)
             return (
                 <>
-                    <DataTable className="p-0 mt-4" columns={dataTableResponseColumns} data={data?.items || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+                    <DataTable className="p-0 mt-4 !overflow-auto" columns={dataTableResponseColumns} data={data?.items || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
                     {Array.isArray(data?.items) && (data?.total || 0) > globalConstants.pageSize && (
                         <div className="mt-8 flex justify-center">
                             <StyledPagination shape="rounded" count={data?.total || 0} page={query.page || 1} onChange={handlePageChange} />

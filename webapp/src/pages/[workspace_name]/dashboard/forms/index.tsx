@@ -169,7 +169,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
 
     const response = () => {
         /* @ts-ignore */
-        if (forms && forms.length > 0) return <DataTable className="p-0 mt-2" columns={dataTableFormColumns} data={forms} customStyles={formTableStyles} highlightOnHover={false} pointerOnHover={false} onRowClicked={onRowCLicked} />;
+        if (forms && forms.length > 0) return <DataTable className="p-0 mt-2 !overflow-auto" columns={dataTableFormColumns} data={forms} customStyles={formTableStyles} highlightOnHover={false} pointerOnHover={false} onRowClicked={onRowCLicked} />;
         return <EmptyResponse title={t(workspaceConstant.preview.emptyFormTitle)} description={''} />;
     };
 
