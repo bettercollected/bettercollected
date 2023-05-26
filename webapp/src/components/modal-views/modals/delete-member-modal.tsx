@@ -42,7 +42,7 @@ export default function DeleteMemberModal({ member }: any) {
                 {t(localesGlobal.remove)} {getFullNameFromUser(member)}?
             </div>
             <div className="body4 text-black-600 text-center mb-10">{t(localesGlobal.removeWarningMessage)}</div>
-            <div className="flex w-full gap-4 justify-end">
+            <div className="flex w-full gap-4 justify-between">
                 <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
                     {t(buttonConstant.delete)}
                 </Button>

@@ -306,7 +306,8 @@
         "UPDATED_SUCCESSFULLY": "Succesvol geüpdatet !!",
         "WORKSPACE_SUCCESS": "Succes",
         "WORKSPACE_UPDATE": "Werkruimte bijgewerkt",
-        "WORKSPACE_URL_COPIED": "Url van werkruimte gekopieerd"
+        "WORKSPACE_URL_COPIED": "Url van werkruimte gekopieerd",
+        "EMAIL_ALREADY_EXIST":"Deze e-mail bestaat al"
     },
     "TOOLTIP": {
         "DELETION_REQUEST": "verwijderingsverzoeken",

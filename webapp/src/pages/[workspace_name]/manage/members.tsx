@@ -13,7 +13,7 @@ import { members } from '@app/constants/locales/members';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
-export default function ManageMembers() {
+export default function ManageMembers({ workspace }: any) {
     const isProPlan = useAppSelector(selectIsProPlan);
     const { openModal } = useModal();
     const { t } = useTranslation();

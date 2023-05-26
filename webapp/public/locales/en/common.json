@@ -315,7 +315,8 @@
 		"OUT_OF_LIMITED_FORM": "out of limited 100 forms",
 		"PREVIEW_WORKSPACE": "Preview your workspace",
 		"RESPONSES_DELETE_OUT_OF": "responses deleted out of",
-		"VISIBILITY": "Visibility of the form should be public to pin it into the workspace."
+		"VISIBILITY": "Visibility of the form should be public to pin it into the workspace.",
+		"EMAIL_ALREADY_EXIST":"This email is already exist"
 	},
 	"UNTITLED": "Untitled",
 	"UPDATED": "Updated",

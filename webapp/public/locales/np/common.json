@@ -306,7 +306,8 @@
         "UPDATED_SUCCESSFULLY": "सफलतापूर्वक अद्यावधिक गरियो !!",
         "WORKSPACE_SUCCESS": "सफल",
         "WORKSPACE_UPDATE": "कार्यस्थान अद्यावधिक गरियो",
-        "WORKSPACE_URL_COPIED": "कार्यस्थान URL प्रतिलिपि गरियो"
+        "WORKSPACE_URL_COPIED": "कार्यस्थान URL प्रतिलिपि गरियो",
+        "EMAIL_ALREADY_EXIST":"यो इमेल पहिले नै अवस्थित छ"
     },
     "TOOLTIP": {
         "DELETION_REQUEST": "मेटाउने अनुरोधहरू",

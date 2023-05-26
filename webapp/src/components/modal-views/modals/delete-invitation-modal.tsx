@@ -40,7 +40,7 @@ export default function DeleteInvitationModal({ invitation }: any) {
             <div className="sh3 mb-5">
                 {t(localesGlobal.removeInvitationFor)} {invitation.email}?
             </div>
-            <div className="flex w-full gap-4 justify-end">
+            <div className="flex w-full gap-4 justify-between">
                 <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
                     {t(buttonConstant.delete)}
                 </Button>

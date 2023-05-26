@@ -44,7 +44,7 @@ export default function DeleteFormModal(props: any) {
                         </h4>
                         <p className="!text-black-600 mb-8 body4 leading-none">{t(localesGlobal.deleteMessage)}</p>
                     </div>
-                    <div className="flex w-full gap-4 justify-end">
+                    <div className="flex w-full gap-4 justify-between">
                         <Button className="flex-1 body4" data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
                             {t(buttonConstant.delete)}
                         </Button>
