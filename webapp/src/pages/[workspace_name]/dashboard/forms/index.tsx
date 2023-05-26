@@ -5,6 +5,8 @@ import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import UserDetails from '@Components/Common/DataDisplay/UserDetails';
+import StyledPagination from '@Components/Common/Pagination';
+import { A } from 'msw/lib/glossary-de6278a9';
 import DataTable from 'react-data-table-component';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
@@ -15,6 +17,7 @@ import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import EmptyResponse from '@app/components/ui/empty-response';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
+import globalConstants from '@app/constants/global';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -44,17 +47,25 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     const [filterValue, setFilterValue] = useState('show_all');
     const { t } = useTranslation();
 
-    const workspaceQuery = {
-        workspace_id: workspace.id
-    };
+    const [workspaceQuery, setWorkspaceQuery] = useState({
+        workspace_id: workspace.id,
+        page: 1,
+        size: globalConstants.pageSize
+    });
 
     const isAdmin = useAppSelector(selectIsAdmin);
     const isProPlan = useAppSelector(selectIsProPlan);
 
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
-    const [searchWorkspaceForms] = useSearchWorkspaceFormsMutation();
     const forms = workspaceForms?.data?.items || [];
     const router = useRouter();
+
+    const handlePageChange = (event: any, page: number) => {
+        setWorkspaceQuery({
+            ...workspaceQuery,
+            page: page
+        });
+    };
 
     const onRowCLicked = (form: StandardFormDto) => {
         router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}`);
@@ -168,8 +179,26 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     ];
 
     const response = () => {
-        /* @ts-ignore */
-        if (forms && forms.length > 0) return <DataTable className="p-0 mt-2 !overflow-auto" columns={dataTableFormColumns} data={forms} customStyles={formTableStyles} highlightOnHover={false} pointerOnHover={false} onRowClicked={onRowCLicked} />;
+        if (forms && forms.length > 0)
+            return (
+                <>
+                    <DataTable
+                        className="p-0 mt-2 !overflow-auto"
+                        // @ts-ignore
+                        columns={dataTableFormColumns}
+                        data={forms}
+                        customStyles={formTableStyles}
+                        highlightOnHover={false}
+                        pointerOnHover={false}
+                        onRowClicked={onRowCLicked}
+                    />
+                    {Array.isArray(forms) && workspaceForms?.data.total > globalConstants.pageSize && (
+                        <div className="mt-8 flex justify-center">
+                            <StyledPagination shape="rounded" count={workspaceForms?.data?.pages || 0} page={workspaceQuery.page || 1} onChange={handlePageChange} />
+                        </div>
+                    )}
+                </>
+            );
         return <EmptyResponse title={t(workspaceConstant.preview.emptyFormTitle)} description={''} />;
     };
 
