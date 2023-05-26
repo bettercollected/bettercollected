@@ -43,11 +43,11 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                     </ListItem>
                 </List>
                 <Divider />
-                <NavigationList className={JOYRIDE_CLASS.WORKSPACE_NAVIGATION} sx={{ paddingY: '20px' }} navigationList={topNavList} />
+                <NavigationList className={JOYRIDE_CLASS.WORKSPACE_NAVIGATION} sx={{ paddingY: '8px' }} navigationList={topNavList} />
                 {isAdmin && (
                     <>
                         <Divider />
-                        <NavigationList className={JOYRIDE_CLASS.WORKSPACE_ADVANCE_NAVIGATION} navigationList={bottomNavList} />
+                        <NavigationList className={JOYRIDE_CLASS.WORKSPACE_ADVANCE_NAVIGATION} sx={{ paddingY: '8px' }} navigationList={bottomNavList} />
                     </>
                 )}
             </Box>
@@ -66,7 +66,7 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
             key: 'dashboard',
             name: t(localesGlobal.dashboard),
             url: commonWorkspaceUrl,
-            icon: <DashboardIcon height="24px" width="24px" />
+            icon: <DashboardIcon />
         },
         {
             key: 'forms',

@@ -56,7 +56,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
     };
 
     const fullWorkspaceName = workspace?.title || 'Untitled';
-    const workspaceName = toEndDottedStr(fullWorkspaceName, 15);
+    const workspaceName = toEndDottedStr(fullWorkspaceName, 19);
     const showExpandMore = true;
 
     const enableCreateWorkspaceButton = () => {
@@ -113,7 +113,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                                         />
                                         <div className="flex flex-col items-start w-full">
                                             <Tooltip title={space?.title || 'Untitled'}>
-                                                <p className="body3">{toEndDottedStr(space?.title || 'Untitled', 15)}</p>
+                                                <p className="body3">{toEndDottedStr(space?.title || 'Untitled', 19)}</p>
                                             </Tooltip>
                                             <p className="leading-none text-[12px] text-black-700">{getWorkspaceRole(space)}</p>
                                         </div>
@@ -156,7 +156,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                             >
                                 <span className="flex justify-between w-full items-center gap-4">
                                     <div className="flex items-center gap-3">
-                                        <Plus className="text-black-500" />
+                                        <Plus />
                                         <p className={`body3 !not-italic  `}>{t(menuDropdown.createWorkspace)}</p>
                                     </div>
                                 </span>

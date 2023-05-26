@@ -37,14 +37,14 @@ export default function CreatorDashboard({ workspace, hasCustomDomain, ...props 
                             title: <JoyrideStepTitle text="Your workspace profile and title" />,
                             content: <JoyrideStepContent>This is your workspace profile image and title. You can later change this in &quot;Manage workspace&quot; settings page.</JoyrideStepContent>,
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_INFO}`,
-                            placementBeacon: 'bottom-start',
+                            placementBeacon: 'bottom-end',
                             disableBeacon: false
                         },
                         {
                             title: <JoyrideStepTitle text="Share your workspace" />,
                             content: <JoyrideStepContent>Share your workspace in different social media platforms, or copy the link via &quot;Share&quot; button.</JoyrideStepContent>,
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_SHARE}`,
-                            placementBeacon: 'bottom-start',
+                            placementBeacon: 'bottom-end',
                             disableBeacon: false
                         },
                         {
@@ -55,56 +55,7 @@ export default function CreatorDashboard({ workspace, hasCustomDomain, ...props 
                                 </JoyrideStepContent>
                             ),
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_PREVIEW}`,
-                            placementBeacon: 'bottom-start',
-                            disableBeacon: false
-                        },
-                        {
-                            title: <JoyrideStepTitle text="Total imported forms" />,
-                            content: <JoyrideStepContent>You can see your total imported forms here. If your account is on a &quot;free plan&quot; you&apos;ll be able to upgrade by clicking &quot;Import unlimited forms&quot; button.</JoyrideStepContent>,
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_FORMS}`,
-                            placementBeacon: 'bottom-start',
-                            disableBeacon: false
-                        },
-                        {
-                            title: <JoyrideStepTitle text="Total imported responses" />,
-                            content: <JoyrideStepContent>Here you&apos;ll be able to see all the responses count from every forms that you have imported.</JoyrideStepContent>,
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_RESPONSES}`,
-                            placementBeacon: 'bottom-start',
-                            disableBeacon: false
-                        },
-                        {
-                            title: <JoyrideStepTitle text="Total deletion requests" />,
-                            content: <JoyrideStepContent>Here you&apos;ll be able to see total number of deletion requests you receive from the responders.</JoyrideStepContent>,
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_DELETION_REQUESTS}`,
-                            placementBeacon: 'bottom-start',
-                            disableBeacon: false
-                        },
-                        {
-                            title: <JoyrideStepTitle text="Import forms" />,
-                            content: <JoyrideStepContent>You can import your forms from using &quot;Import Forms&quot; button.</JoyrideStepContent>,
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON}`,
-                            placementBeacon: 'bottom-start',
-                            disableBeacon: false
-                        },
-                        {
-                            title: <JoyrideStepTitle text="Your workspace" />,
-                            content: <JoyrideStepContent>This is your current active workspace. You can switch to other workspaces, or create your own new personal workspace from here.</JoyrideStepContent>,
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_SWITCHER}`,
-                            placementBeacon: 'top-end',
-                            disableBeacon: false
-                        },
-                        {
-                            title: <JoyrideStepTitle text="Workspace navigations" />,
-                            content: <JoyrideStepContent>Using these navigation links, you can navigate to your imported forms, responses, and deletion requests.</JoyrideStepContent>,
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_NAVIGATION}`,
-                            placementBeacon: 'top-end',
-                            disableBeacon: false
-                        },
-                        {
-                            title: <span className="sh3">Advance navigations</span>,
-                            content: <JoyrideStepContent>Using these navigation links, you can navigate to workspace settings, update your workspace, manage members, and many more.</JoyrideStepContent>,
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADVANCE_NAVIGATION}`,
-                            placementBeacon: 'top-end',
+                            placementBeacon: 'bottom-end',
                             disableBeacon: false
                         }
                     ]}
