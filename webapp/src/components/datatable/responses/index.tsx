@@ -143,7 +143,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
                     />
                     {Array.isArray(submissions?.data?.items) && submissions?.data?.total > globalConstants.pageSize && (
                         <div className="mt-8 flex justify-center">
-                            <StyledPagination shape="rounded" count={submissions?.data?.total || 0} page={page} onChange={handlePageChange} />
+                            <StyledPagination shape="rounded" count={submissions?.data?.pages || 0} page={page} onChange={handlePageChange} />
                         </div>
                     )}
                 </>
