@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
@@ -14,6 +14,12 @@ interface INavigationListProps {
 
 export default function NavigationList({ navigationList, className = '', sx = {} }: INavigationListProps) {
     const router = useRouter();
+
+    useEffect(() => {
+        navigationList.forEach((lst) => {
+            router.prefetch(lst.url);
+        });
+    }, [navigationList, router]);
 
     return (
         <List disablePadding sx={sx} className={className}>

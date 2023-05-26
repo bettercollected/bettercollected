@@ -11,6 +11,7 @@ import ServerSideWorkspaceDispatcher from '@Components/HOCs/ServerSideWorkspaceD
 import { CacheProvider, EmotionCache, css } from '@emotion/react';
 import { GlobalStyles } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
+import { AnimatePresence, LazyMotion, domAnimation, motion } from 'framer-motion';
 import ReactGA from 'react-ga4';
 import { Provider } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
@@ -47,7 +48,7 @@ type AppPropsWithLayout = AppProps & {
     pageProps: IWorkspacePageProps | any;
 };
 
-function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }: AppPropsWithLayout) {
+function MainApp({ Component, pageProps, router, emotionCache = clientSideEmotionCache }: AppPropsWithLayout) {
     const getLayout = Component.getLayout ?? ((page: any) => page);
 
     //TODO: configure NextSEO component for all pages
@@ -122,18 +123,33 @@ function MainApp({ Component, pageProps, emotionCache = clientSideEmotionCache }
                     <CookieConsent />
                     <NextNProgress color="#0764EB" startPosition={0} stopDelayMs={400} height={2} options={{ easing: 'ease' }} />
                     <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
-                    <Provider store={store}>
-                        <EnabledFormProviders>
-                            <ServerSideWorkspaceDispatcher workspace={pageProps?.workspace}>
-                                <AuthStatusDispatcher workspace={pageProps?.workspace}>
-                                    <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
-                                        {getLayout(<Component {...pageProps} />)}
-                                        <ModalContainer />
-                                    </PersistGate>
-                                </AuthStatusDispatcher>
-                            </ServerSideWorkspaceDispatcher>
-                        </EnabledFormProviders>
-                    </Provider>
+                    <LazyMotion features={domAnimation}>
+                        <AnimatePresence mode="wait" initial={true} onExitComplete={() => window.scrollTo(0, 0)}>
+                            <motion.div
+                                initial={{ x: 0, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                exit={{ x: 300, opacity: 0 }}
+                                transition={{
+                                    ease: 'linear',
+                                    duration: 1,
+                                    x: { duration: 1 }
+                                }}
+                            >
+                                <Provider store={store}>
+                                    <EnabledFormProviders>
+                                        <ServerSideWorkspaceDispatcher workspace={pageProps?.workspace}>
+                                            <AuthStatusDispatcher workspace={pageProps?.workspace}>
+                                                <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
+                                                    {getLayout(<Component {...pageProps} key={router.asPath} />)}
+                                                    <ModalContainer />
+                                                </PersistGate>
+                                            </AuthStatusDispatcher>
+                                        </ServerSideWorkspaceDispatcher>
+                                    </EnabledFormProviders>
+                                </Provider>
+                            </motion.div>
+                        </AnimatePresence>
+                    </LazyMotion>
                 </MuiThemeProvider>
             </CacheProvider>
         </ThemeProvider>
