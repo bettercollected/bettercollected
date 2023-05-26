@@ -365,6 +365,32 @@
             "POINT_2": "Alle links met een oude domeinnaam werken niet meer."
         }
     },
+    "UPGRADE": {
+        "PRO_INCLUDES": "PRO Plan omvat",
+        "DEFAULT_SLOGAN": "Upgrade naar PRO-abonnement voor meer functies",
+        "FEATURES": {
+            "WORKSPACE": {
+                "SLOGAN": "Organiseer uw gebruikers met meerdere werkruimtes",
+                "TITLE": "Meerdere Werkruimte",
+                "DESCRIPTION": "Pro-accounts bieden de mogelijkheid om meerdere werkruimten te creëren, terwijl gratis accounts slechts één werkruimte toestaan. Dit betekent dat Pro-gebruikers afzonderlijke werkruimten kunnen creëren voor verschillende projecten of teams."
+            },
+            "COLLABORATOR": {
+                "SLOGAN": "Begin met samenwerken met uw team",
+                "TITLE": "Samenwerken met anderen",
+                "DESCRIPTION": "Pro-accounts bieden samenwerkingsfuncties, Basic-accounts niet. Dit betekent dat Pro-gebruikers met anderen kunnen samenwerken om formulieren te importeren en formulieren te beheren. Dit kan een geweldige manier zijn om werk sneller en efficiënter gedaan te krijgen."
+            },
+            "CUSTOM_DOMAIN": {
+                "SLOGAN": "Personaliseer uw URL's met een aangepast domein",
+                "TITLE": "Aangepaste domeinnaam",
+                "DESCRIPTION": "Pro-accounts bieden aangepaste domeinondersteuning, gratis accounts niet. Dit betekent dat Pro-gebruikers hun eigen domeinnaam kunnen gebruiken voor hun Workspace, in plaats van het 'BetterCollected'-domein te gebruiken. Dit kan een geweldige manier zijn om uw bedrijf er professioneler uit laten zien en uw naamsbekendheid verbeteren."
+            },
+            "UNLIMITED_FORMS": {
+                "SLOGAN": "Importeer onbeperkte formulieren met PRO Plan",
+                "TITLE": "Onbeperkt formulier importeren",
+                "DESCRIPTION": "Pro-accounts bieden onbeperkte formulierimport, terwijl gratis accounts beperkt zijn tot 100 formulierimport. Dit kan een groot voordeel zijn voor bedrijven die grote hoeveelheden gegevens uit formulieren moeten importeren."
+            }
+        }
+    },
     "WORKSPACE": {
         "DEFAULT": "werkruimte",
         "BANNER": "Werkruimtebanner",
