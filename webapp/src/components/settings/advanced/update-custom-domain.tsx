@@ -26,7 +26,7 @@ export default function UpdateCustomDomain() {
             openModal('UPDATE_WORKSPACE_DOMAIN');
         } else {
             // router.push(`/${workspace.workspaceName}/upgrade`);
-            upgradeModal.openModal();
+            upgradeModal.openModal('UPGRADE_TO_PRO');
         }
     };
 
