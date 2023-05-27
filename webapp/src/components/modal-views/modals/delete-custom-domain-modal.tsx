@@ -37,7 +37,7 @@ export default function DeleteCustomDomainModal() {
     };
 
     return (
-        <div className="w-full !max-w-[388px] !bg-brand-100 relative bg-white rounded-lg shadow-md p-10  max-w-[502px] sm:max-w-lg md:max-w-xl">
+        <div className="w-full   relative bg-white rounded-lg shadow-md p-10  max-w-[502px] sm:max-w-lg md:max-w-xl">
             <Close
                 className="absolute cursor-pointer top-5 right-5"
                 onClick={() => {

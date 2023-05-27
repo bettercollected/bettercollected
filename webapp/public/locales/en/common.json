@@ -180,7 +180,8 @@
 		"RESPONSE_OWNER_TAG_DESCRIPTION": "Select field from where response owner can be identified",
 		"RESPONSE_OWNER_TAG_LABEL": "Choose a data owner field for this form",
 		"RESPONSE_OWNER_TAG_TITLE": "Response-owner tag",
-		"TEXT_LABEL": "Choose your google form"
+		"TEXT_LABEL": "Choose your google form",
+		"TITLE":"Select a form to import"
 	},
 	"INVALID_DOMAIN": "Invalid domain",
 	"INVALID_WORKSPACE_HANDLE": "Invalid Workspace Handle",
@@ -314,7 +315,8 @@
 		"UPDATED_SUCCESSFULLY": "Updated Successfully !!",
 		"WORKSPACE_SUCCESS": "Success",
 		"WORKSPACE_UPDATE": "Workspace Updated",
-		"WORKSPACE_URL_COPIED": "Workspace Url Copied"
+		"WORKSPACE_URL_COPIED": "Workspace Url Copied",
+		"EMAIL_ALREADY_EXIST":"This email address is already exist"
 	},
 	"TOOLTIP": {
 		"DELETION_REQUEST": "deletion requests",

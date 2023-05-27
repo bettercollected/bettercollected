@@ -180,7 +180,8 @@
         "RESPONSE_OWNER_TAG_DESCRIPTION": "Selecteer veld waaruit de eigenaar van het antwoord kan worden geïdentificeerd",
         "RESPONSE_OWNER_TAG_LABEL": "Kies een gegevenseigenaarveld voor dit formulier",
         "RESPONSE_OWNER_TAG_TITLE": "Reactie-eigenaar tag",
-        "TEXT_LABEL": "Kies uw Google-formulier"
+        "TEXT_LABEL": "Kies uw Google-formulier",
+        "TITLE":"Selecteer een formulier om te importeren"
     },
     "INVALID_DOMAIN": "Ongeldig domein",
     "INVALID_WORKSPACE_HANDLE": "Ongeldige werkruimtehandle",
@@ -314,7 +315,8 @@
         "UPDATED_SUCCESSFULLY": "Succesvol geüpdatet !!",
         "WORKSPACE_SUCCESS": "Succes",
         "WORKSPACE_UPDATE": "Werkruimte bijgewerkt",
-        "WORKSPACE_URL_COPIED": "Url van werkruimte gekopieerd"
+        "WORKSPACE_URL_COPIED": "Url van werkruimte gekopieerd",
+        "EMAIL_ALREADY_EXIST":"Dit e-mailadres bestaat al"
     },
     "TOOLTIP": {
         "DELETION_REQUEST": "verwijderingsverzoeken",

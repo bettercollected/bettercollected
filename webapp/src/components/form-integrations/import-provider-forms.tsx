@@ -195,7 +195,7 @@ export default function ImportProviderForms(props: any) {
                     ]}
                 />
             )}
-            <h4 className="sh1 w-full text-start">{t(formConstant.importedForms)}</h4>
+            <h4 className="sh1 w-full text-start">{t(importFormConstant.title)}</h4>
             <div className="flex flex-col w-full h-full gap-10 items-end">
                 <Autocomplete
                     loading={!!minifiedFormsResult?.isFetching}

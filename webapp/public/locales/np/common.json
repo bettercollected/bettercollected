@@ -180,7 +180,8 @@
         "RESPONSE_OWNER_TAG_DESCRIPTION": "प्रतिक्रिया मालिक पहिचान गर्न सकिने क्षेत्र चयन गर्नुहोस्",
         "RESPONSE_OWNER_TAG_LABEL": "यस फारमको लागि डाटा मालिक क्षेत्र छान्नुहोस्",
         "RESPONSE_OWNER_TAG_TITLE": "प्रतिक्रिया-मालिक ट्याग",
-        "TEXT_LABEL": "तपाईँको गुगल फारम छान्नुहोस्"
+        "TEXT_LABEL": "तपाईँको गुगल फारम छान्नुहोस्",
+        "TITLE":"आयात गर्न फारम चयन गर्नुहोस्"
     },
     "INVALID_DOMAIN": "अमान्य डोमेन",
     "INVALID_WORKSPACE_HANDLE": "अमान्य कार्यस्थान ह्यान्डल",
@@ -314,7 +315,8 @@
         "UPDATED_SUCCESSFULLY": "सफलतापूर्वक अद्यावधिक गरियो !!",
         "WORKSPACE_SUCCESS": "सफल",
         "WORKSPACE_UPDATE": "कार्यस्थान अद्यावधिक गरियो",
-        "WORKSPACE_URL_COPIED": "कार्यस्थान URL प्रतिलिपि गरियो"
+        "WORKSPACE_URL_COPIED": "कार्यस्थान URL प्रतिलिपि गरियो",
+        "EMAIL_ALREADY_EXIST":"यो इमेल ठेगाना पहिले नै अवस्थित छ"
     },
     "TOOLTIP": {
         "DELETION_REQUEST": "मेटाउने अनुरोधहरू",

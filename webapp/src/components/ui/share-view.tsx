@@ -43,7 +43,7 @@ export default function ShareView({ url, title, showCopy, iconSize = 'large' }: 
     return (
         <div>
             <p className={cn('-tracking-wide text-gray-900 ltr:text-left rtl:text-right dark:text-white  !leading-none', showCopy ? 'sh1' : 'body1')}>{title}</p>
-            <div className="flex flex-col gap-5 flex-wrap md:gap-10">
+            <div className="flex flex-col gap-5 md:gap-10">
                 <div className="product-share mt-6 flex flex-shrink-0 flex-wrap items-center ">
                     <TwitterShareButton url={url}>
                         <IconWrapper>
