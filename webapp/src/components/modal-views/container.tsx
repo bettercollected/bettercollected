@@ -21,6 +21,7 @@ import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
+import CreateGroupModal from './modals/create-group-modal';
 import CropImageModalView from './modals/crop-image-modal-view';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
 
@@ -64,6 +65,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <UpgradeToProModal />;
         case 'EDIT_WORKSPACE_MODAL':
             return <EditWorkspaceModal />;
+        case 'CREATE_GROUP':
+            return <CreateGroupModal />;
         default:
             return <></>;
     }

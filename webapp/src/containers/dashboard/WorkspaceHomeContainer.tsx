@@ -87,7 +87,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
                     {['xs', '2xs', 'sm'].indexOf(screenSize) === -1 && isSuccess && <div className="flex h-fit gap-4 flex-col sm:flex-row">{workspaceOptions}</div>}
                 </div>
             </div>
-            <div className="bg-white h-full">
+            <div className=" h-full">
                 <FormsAndSubmissionsTabContainer isFormCreator={false} workspace={workspace} workspaceId={workspace.id} showResponseBar={!!isError} />
                 <div className="px-5 lg:px-10 xl:px-20">
                     <Divider className="mt-10 mb-6" />

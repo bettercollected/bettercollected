@@ -21,6 +21,7 @@ export type MODAL_VIEW =
     | 'CROP_IMAGE'
     | 'DELETE_CUSTOM_DOMAIN'
     | 'UPGRADE_TO_PRO'
+    | 'CREATE_GROUP'
     | 'EDIT_WORKSPACE_MODAL';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
