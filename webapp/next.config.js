@@ -2,6 +2,10 @@
 
 const runtimeCaching = require('next-pwa/cache');
 
+const withPlugins = require('next-compose-plugins');
+
+const { withSentryConfig } = require('@sentry/nextjs');
+
 const { i18n } = require('./next-i18next.config');
 
 const getHostnameFromRegex = (url) => {
@@ -39,6 +43,22 @@ const nextConfig = {
     compiler: {
         emotion: true,
         removeConsole: false
+    },
+    // Optional build-time configuration options
+    sentry: {
+        // See the sections below for information on the following options:
+        //   'Configure Source Maps':
+        //     - disableServerWebpackPlugin
+        //     - disableClientWebpackPlugin
+        //     - hideSourceMaps
+        //     - widenClientFileUpload
+        //   'Configure Legacy Browser Support':
+        //     - transpileClientSDK
+        //   'Configure Serverside Auto-instrumentation':
+        //     - autoInstrumentServerFunctions
+        //     - excludeServerRoutes
+        //   'Configure Tunneling to avoid Ad-Blockers':
+        //     - tunnelRoute
     },
     images: {
         minimumCacheTTL: 600,
@@ -81,6 +101,14 @@ const nextConfig = {
         // api hosts
         API_ENDPOINT_HOST: process.env.API_ENDPOINT_HOST,
 
+        // Sentry
+        SENTRY_DSN: process.env.SENTRY_DSN,
+        SENTRY_URL: process.env.SENTRY_URL,
+        SENTRY_ORG: process.env.SENTRY_ORG,
+        SENTRY_PROJECT: process.env.SENTRY_PROJECT,
+        SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
+        SENTRY_RELEASE: process.env.SENTRY_RELEASE,
+
         // metatags
         METATAG_TITLE: process.env.METATAG_TITLE,
         METATAG_DESCRIPTION: process.env.METATAG_DESCRIPTION,
@@ -96,14 +124,35 @@ if (process.env.BASE_DEPLOY_PATH) {
     nextConfig['basePath'] = process.env.BASE_DEPLOY_PATH;
 }
 
-module.exports = withPWA({
-    ...nextConfig,
-    ...(process.env.NODE_ENV === 'production' && {
-        typescript: {
-            ignoreBuildErrors: false
-        },
-        eslint: {
-            ignoreDuringBuilds: false
-        }
-    })
-});
+const sentryWebpackPluginOptions = {
+    // Additional config options for the Sentry Webpack plugin. Keep in mind that
+    // the following options are set automatically, and overriding them is not
+    // recommended:
+    //   release, url, authToken, configFile, stripPrefix,
+    //   urlPrefix, include, ignore
+
+    silent: true, // Suppresses all logs
+    attachStacktrace: true,
+    release: process.env.SENTRY_RELEASE,
+    url: process.env.SENTRY_URL,
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT
+
+    // For all available options, see:
+    // https://github.com/getsentry/sentry-webpack-plugin#options.
+};
+
+module.exports = withSentryConfig(
+    withPWA({
+        ...nextConfig,
+        ...(process.env.NODE_ENV === 'production' && {
+            typescript: {
+                ignoreBuildErrors: false
+            },
+            eslint: {
+                ignoreDuringBuilds: false
+            }
+        })
+    }),
+    sentryWebpackPluginOptions
+);

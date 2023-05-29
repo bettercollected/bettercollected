@@ -45,7 +45,6 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
     const { t } = useTranslation();
     const language = router?.locale === 'en' ? '' : `${router?.locale}/`;
     const { data } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
-    console.log(workspace);
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
