@@ -23,9 +23,10 @@ export default function CreateGroupModal() {
         });
     };
     console.log(groupInfo);
-    const addEmail = (email: string) => {
+    const addEmail = (event: any) => {
+        event.preventDefault();
         let emails = groupInfo.emails;
-        emails.push(email);
+        emails.push(groupInfo.email);
 
         setGroupInfo({
             ...groupInfo,
@@ -33,6 +34,7 @@ export default function CreateGroupModal() {
             emails: emails
         });
     };
+
     return (
         <div className="p-7 bg-white relative rounded-[8px] md:max-w-[670px]">
             <Close
@@ -51,19 +53,12 @@ export default function CreateGroupModal() {
             <BetterInput className="!mb-0" id="description" placeholder="Add description" rows={3} multiline onChange={handleInput} />
             <p className="mt-10 leading-none mb-2 body1">Members(3)</p>
             <p className="text-black-700 leading-none body4">Only these members can see your form in your workspace. </p>
-            <div className="flex gap-2 mt-4 md:w-[350px]">
-                <BetterInput value={groupInfo.email} inputProps={{ className: '!py-3 ' }} id="email" placeholder="Enter member email" onChange={handleInput} />
-                <Button
-                    size="medium"
-                    disabled={!groupInfo.email}
-                    className={cn('bg-black-800 hover:!bg-black-900', !groupInfo.email && 'opacity-30')}
-                    onClick={() => {
-                        addEmail(groupInfo.email);
-                    }}
-                >
+            <form onSubmit={addEmail} className="flex gap-2 mt-4 md:w-[350px]">
+                <BetterInput value={groupInfo.email} type="email" inputProps={{ className: '!py-3 ' }} id="email" placeholder="Enter member email" onChange={handleInput} />
+                <Button size="medium" disabled={!groupInfo.email} className={cn('bg-black-800 hover:!bg-black-900', !groupInfo.email && 'opacity-30')}>
                     Add
                 </Button>
-            </div>
+            </form>
             {groupInfo.emails.length !== 0 && (
                 <div>
                     <p className="mt-6 leading-none mb-4 body5">Member email</p>
