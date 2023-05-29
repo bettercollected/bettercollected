@@ -181,7 +181,7 @@ class StandardFormResponse(BaseModel):
     form_id: Optional[str]
     provider: Optional[str]
     respondent_email: Optional[str] = None
-    answers: Optional[Dict[str, StandardFormResponseAnswer]]
+    answers: Optional[Dict[str, StandardFormResponseAnswer | Dict[str, Any]]] | bytes | str
     created_at: Optional[dt.datetime]
     updated_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
