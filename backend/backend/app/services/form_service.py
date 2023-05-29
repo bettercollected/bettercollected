@@ -70,10 +70,10 @@ class FormService:
         return await response.json()
 
     async def search_form_in_workspace(
-        self, workspace_id: PydanticObjectId, query: str
+        self, workspace_id: PydanticObjectId, query: str, user: User
     ):
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
-            workspace_id, True
+            workspace_id=workspace_id, is_not_admin=True, user=user
         )
         forms = await self._form_repo.search_form_in_workspace(
             workspace_id=workspace_id, form_ids=form_ids, query=query

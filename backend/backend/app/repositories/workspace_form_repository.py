@@ -100,7 +100,7 @@ class WorkspaceFormRepository:
                         },
                         {
                             "$lookup": {
-                                "from": "responder_group_email",
+                                "from": "responder_group_member",
                                 "localField": "groups.group_id",
                                 "foreignField": "group_id",
                                 "as": "emails",
@@ -110,13 +110,12 @@ class WorkspaceFormRepository:
                             "$match": {
                                 "$or": [
                                     {"settings.private": False},
-                                    {"emails.email": user.sub},
+                                    {"emails.identifier": user.sub},
                                 ]
                             }
                         },
                     ]
                 )
-                pass
             aggregation_pipeline.extend([{"$project": {"form_id": 1, "_id": 0}}])
             workspace_forms = (
                 await WorkspaceFormDocument.find(query)

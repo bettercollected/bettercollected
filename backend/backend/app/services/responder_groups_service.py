@@ -30,6 +30,10 @@ class ResponderGroupsService:
         response = await self.responder_groups_repo.get_emails_in_group(
             group_id=group_id
         )
+        if not response:
+            return HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Group not found."
+            )
         return ResponderGroupDto(**response)
 
     async def create_group(

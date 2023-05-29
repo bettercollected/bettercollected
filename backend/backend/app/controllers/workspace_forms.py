@@ -49,8 +49,11 @@ class WorkspaceFormsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         query: str,
+        user: User = Depends(get_user_if_logged_in),
     ):
-        forms = await self._form_service.search_form_in_workspace(workspace_id, query)
+        forms = await self._form_service.search_form_in_workspace(
+            workspace_id, query, user
+        )
         return forms
 
     @get("/{form_id}")

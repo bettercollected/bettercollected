@@ -58,7 +58,7 @@ class ResponderGroupsRepository:
         self, group_id: PydanticObjectId, emails: List[EmailStr]
     ):
         await ResponderGroupMemberDocument.find(
-            {"group_id": group_id, "email": {"$in": emails}}
+            {"group_id": group_id, "identifier": {"$in": emails}}
         ).delete()
 
     async def get_emails_in_group(self, group_id: PydanticObjectId):
@@ -68,7 +68,7 @@ class ResponderGroupsRepository:
                 [
                     {
                         "$lookup": {
-                            "from": "responder_group_email",
+                            "from": "responder_group_member",
                             "localField": "_id",
                             "foreignField": "group_id",
                             "as": "emails",
@@ -79,10 +79,10 @@ class ResponderGroupsRepository:
                             "_id": 1,
                             "name": 1,
                             "workspace_id": 1,
-                            "emails": {"email": 1},
+                            "emails": {"identifier": 1},
                         }
                     },
-                ]
+                ],
             )
             .to_list()
         )
@@ -91,6 +91,7 @@ class ResponderGroupsRepository:
     async def remove_responder_group(self, group_id: PydanticObjectId):
         await ResponderGroupDocument.find({"_id": group_id}).delete()
         await ResponderGroupMemberDocument.find({"group_id": group_id}).delete()
+        await ResponderGroupFormDocument.find({"group_id": group_id}).delete()
 
     async def get_groups_in_workspace(self, workspace_id: PydanticObjectId):
         return await ResponderGroupDocument.find(
