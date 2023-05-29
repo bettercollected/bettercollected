@@ -42,6 +42,7 @@ apscheduler = "^3.10.0"
 fastapi-pagination = { git = "https://github.com/uriyyo/fastapi-pagination.git", branch = "main"}
 python-whois = "^0.8.0"
 camel-converter = "^3.0.0"
+tink = "^1.7.0"
 sentry-sdk = {extras = ["pymongo"], version = "^1.24.0"}
 
 [tool.poetry.scripts]
