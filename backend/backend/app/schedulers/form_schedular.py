@@ -1,5 +1,6 @@
 from typing import Any, Dict
 
+from beanie import PydanticObjectId
 from loguru import logger
 
 from backend.app.services.form_import_service import FormImportService
@@ -19,7 +20,15 @@ class FormSchedular:
         self.form_import_service = form_import_service
         self.jwt_service = jwt_service
 
-    async def update_form(self, *, user, provider, form_id, response_data_owner):
+    async def update_form(
+        self,
+        *,
+        user,
+        provider,
+        form_id,
+        response_data_owner,
+        workspace_id: PydanticObjectId = None,
+    ):
         logger.info(f"Job started for form {form_id} by schedular.")
         cookies = {"Authorization": self.jwt_service.encode(user)}
         # TODO Make it do with proxy service after service and proxy router refactored
@@ -35,7 +44,7 @@ class FormSchedular:
         )
         standard_form = (
             await self.form_import_service.save_converted_form_and_responses(
-                response_data, response_data_owner
+                response_data, response_data_owner, workspace_id=workspace_id
             )
         )
         if standard_form:

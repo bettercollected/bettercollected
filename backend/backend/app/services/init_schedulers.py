@@ -55,6 +55,7 @@ async def update_all_scheduled_forms(scheduler: AsyncIOScheduler):
                     "provider": workspace_form.settings.provider,
                     "form_id": workspace_form.form_id,
                     "response_data_owner": workspace_form.settings.response_data_owner_field,
+                    "workspace_id": workspace_form.workspace_id,
                 },
                 minutes=settings.schedular_settings.INTERVAL_MINUTES,
             )

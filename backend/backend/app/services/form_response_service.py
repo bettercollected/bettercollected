@@ -1,7 +1,9 @@
+import json
 from http import HTTPStatus
-from typing import List
+from typing import List, Sequence
 
 from beanie import PydanticObjectId
+from fastapi_pagination import Page
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
@@ -19,6 +21,7 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from backend.app.services.crypto_service import crypto_service
 from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.user import User
 
@@ -52,13 +55,18 @@ class FormResponseService:
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id
         )
-        return await self._form_response_repo.list(
+        responses_page = await self._form_response_repo.list(
             form_ids,
             request_for_deletion,
             data_subjects=data_subjects,
             filter_query=filter_query,
             sort=sort,
         )
+        if not (data_subjects and request_for_deletion):
+            return self.decrypt_response_page(
+                workspace_id=workspace_id, responses_page=responses_page
+            )
+        return responses_page
 
     async def get_user_submissions(
         self,
@@ -69,11 +77,16 @@ class FormResponseService:
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id
         )
-        return await self._form_response_repo.get_user_submissions(
+        user_responses = await self._form_response_repo.get_user_submissions(
             form_ids=form_ids, user=user, request_for_deletion=request_for_deletion
         )
+        if not request_for_deletion:
+            return self.decrypt_response_page(
+                workspace_id=workspace_id, responses_page=user_responses
+            )
+        return user_responses
 
-    async def get_workspace_submissions(
+    async def get_workspace_form_submissions(
         self,
         workspace_id: PydanticObjectId,
         request_for_deletion: bool,
@@ -101,6 +114,11 @@ class FormResponseService:
         form_responses = await self._form_response_repo.list(
             [form_id], request_for_deletion, filter_query, sort
         )
+
+        if not request_for_deletion:
+            return self.decrypt_response_page(
+                workspace_id=workspace_id, responses_page=form_responses
+            )
         return form_responses
 
     async def get_workspace_submission(
@@ -134,7 +152,12 @@ class FormResponseService:
         form = StandardFormCamelModel(**form.dict())
 
         response.form_title = form.title
-        return {"form": form, "response": response}
+        return {
+            "form": form,
+            "response": self.decrypt_form_response(
+                workspace_id=workspace_id, response=response
+            ),
+        }
 
     async def request_for_response_deletion(
         self, workspace_id: PydanticObjectId, response_id: str, user: User
@@ -180,3 +203,36 @@ class FormResponseService:
 
     async def delete_deletion_requests(self, form_id):
         return await self._form_response_repo.delete_deletion_requests(form_id=form_id)
+
+    def decrypt_response_page(
+        self,
+        workspace_id: PydanticObjectId,
+        responses_page: Page[StandardFormResponseCamelModel],
+    ):
+        responses_page.items = self.decrypt_form_responses(
+            workspace_id=workspace_id, responses=responses_page.items
+        )
+        return responses_page
+
+    def decrypt_form_responses(
+        self,
+        workspace_id: PydanticObjectId,
+        responses: Sequence[StandardFormResponseCamelModel],
+    ):
+        for response in responses:
+            response = self.decrypt_form_response(
+                workspace_id=workspace_id, response=response
+            )
+        return responses
+
+    def decrypt_form_response(
+        self, workspace_id: PydanticObjectId, response: StandardFormResponseCamelModel
+    ):
+        response.answers = json.loads(
+            crypto_service.decrypt(
+                workspace_id=workspace_id,
+                form_id=response.form_id,
+                data=response.answers,
+            )
+        )
+        return response
