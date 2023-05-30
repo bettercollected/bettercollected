@@ -227,7 +227,7 @@ class CustomAPIRoute(APIRoute):
             request = RequestWithLogger(request.scope, request.receive)
             response = await original_route_handler(request)
 
-            logging.error(
+            logging.info(
                 f"Response body : {response.body if response.__dict__.get('body') else ''}"
             )
             return response
