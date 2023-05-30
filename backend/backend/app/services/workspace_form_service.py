@@ -76,7 +76,9 @@ class WorkspaceFormService:
         )
         standard_form = (
             await self.form_import_service.save_converted_form_and_responses(
-                response_data, form_import.response_data_owner
+                response_data,
+                form_import.response_data_owner,
+                workspace_id=workspace_id,
             )
         )
         if not standard_form:

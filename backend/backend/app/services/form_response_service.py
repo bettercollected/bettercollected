@@ -62,7 +62,7 @@ class FormResponseService:
             filter_query=filter_query,
             sort=sort,
         )
-        if not (data_subjects and request_for_deletion):
+        if not (data_subjects or request_for_deletion):
             return self.decrypt_response_page(
                 workspace_id=workspace_id, responses_page=responses_page
             )
