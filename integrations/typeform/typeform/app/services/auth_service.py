@@ -1,12 +1,10 @@
 import logging
 from typing import Any, Dict
 
-from common.models.user import Token, UserInfo
-
+import requests
 from fastapi import HTTPException
 
-import requests
-
+from common.models.user import Token, UserInfo
 from typeform.app.repositories.credentials_repository import CredentialRepository
 from typeform.config import settings
 
@@ -21,7 +19,7 @@ async def get_oauth_url(state: str) -> str:
     return oauth_url
 
 
-async def handle_oauth_callback(code: str) -> UserInfo:
+async def handle_oauth_callback(code: str, user_id) -> UserInfo:
     data = {
         "grant_type": "authorization_code",
         "code": code,
@@ -38,7 +36,12 @@ async def handle_oauth_callback(code: str) -> UserInfo:
     me_response = perform_typeform_request(token.access_token, "/me")
     email = me_response["email"]
     name = me_response.get("alias").split()
-    user_info = UserInfo(email=email, first_name=name[0], last_name=name[-1])
+    if not user_id:
+        # TODO Call Auth server to get user id of certain email (If user does not exist create a new user)
+        pass
+    user_info = UserInfo(
+        user_id=user_id, email=email, first_name=name[0], last_name=name[-1]
+    )
     await CredentialRepository.save_credentials(user_info, token)
     return user_info
 

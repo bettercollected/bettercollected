@@ -1,3 +1,6 @@
+from http import HTTPStatus
+
+from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.user import Credential, User
 
 import jwt
@@ -18,4 +21,6 @@ async def get_user_credential(request: Request) -> Credential:
     )
     user = User(**jwt_response)
     credential = await CredentialRepository.get_credential(user.sub)
+    if not credential:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
     return credential
