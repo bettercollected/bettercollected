@@ -5,6 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from googleform.config.database import MongoSettings
+from googleform.config.sentry_setting import SentrySettings
 from googleform.version import __version__
 
 from pydantic import BaseSettings
@@ -48,6 +49,8 @@ class Application(BaseSettings):
     USE_REDIS: bool = False
 
     API_ROOT_PATH: str = "/api/v1"
+    API_VERSION: str = "1.0.0"
+    API_ENVIRONMENT: str = "local"
     DOCS_URL: str = "/docs"
 
     AUTH_JWT_SECRET: str
@@ -68,6 +71,7 @@ class Application(BaseSettings):
     GOOGLE_AES_KEY = ""
 
     mongo_settings: MongoSettings = MongoSettings()
+    sentry_settings: SentrySettings = SentrySettings()
 
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
