@@ -2,7 +2,6 @@ import datetime
 from typing import Dict, List, Optional
 
 from beanie import PydanticObjectId
-
 from pydantic import BaseModel, EmailStr, Field
 
 from common.enums.plan import Plans
@@ -93,6 +92,7 @@ class Token(BaseModel):
 
 
 class UserInfo(BaseModel):
+    user_id: Optional[PydanticObjectId]
     email: str
     first_name: Optional[str]
     last_name: Optional[str]
