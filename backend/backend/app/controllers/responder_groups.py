@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, post, patch, get, delete
@@ -36,7 +36,7 @@ class ResponderGroupsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         name: str,
-        description: str,
+        description: Optional[str] = None,
         emails: List[EmailStr] = None,
         user: User = Depends(get_logged_user),
     ):

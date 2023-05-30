@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from beanie import PydanticObjectId
 from pydantic import EmailStr
@@ -15,10 +15,10 @@ class ResponderGroupsRepository:
         self,
         workspace_id: PydanticObjectId,
         name: str,
-        description: str,
+        description: Optional[str],
         emails: List[EmailStr],
     ):
-        if len(description) > 280:
+        if description and len(description) > 280:
             return {"message": "description should be less than 280 characters"}
         responder_group = ResponderGroupDocument(
             name=name, workspace_id=workspace_id, description=description

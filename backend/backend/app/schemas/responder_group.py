@@ -10,7 +10,7 @@ from common.configs.mongo_document import MongoDocument
 class ResponderGroupDocument(MongoDocument):
     name: str
     workspace_id: PydanticObjectId
-    description: str
+    description: Optional[str] = None
     allowed_regex: Optional[str]
 
     class Settings:

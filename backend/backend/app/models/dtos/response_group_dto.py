@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from beanie import PydanticObjectId
 from pydantic import BaseModel
@@ -7,7 +7,7 @@ from pydantic import BaseModel
 class ResponderGroupDto(BaseModel):
     id: str = None
     name: str
-    description: str
+    description: Optional[str] = None
     emails: List[Dict[str, str]]
 
     def __init__(self, _id: PydanticObjectId, id=None, *args, **kwargs):
