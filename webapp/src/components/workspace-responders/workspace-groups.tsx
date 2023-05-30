@@ -5,6 +5,7 @@ import Loader from '@app/components/ui/loader';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 
+import GroupCard from '../cards/group-card';
 import { useModal } from '../modal-views/context';
 import Button from '../ui/button/button';
 
@@ -36,6 +37,7 @@ export default function WorkspaceGropus() {
                 </Button>
             </div>
             <p className="mt-4 mb-8 body4 text-black-700">Send forms to entire groups, streamlining the process and saving time.</p>
+            <GroupCard responderGroup={data[0]} />
         </div>
     );
 
