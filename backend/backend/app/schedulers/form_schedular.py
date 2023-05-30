@@ -3,9 +3,12 @@ from typing import Any, Dict
 from beanie import PydanticObjectId
 from loguru import logger
 
+from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.utils import AiohttpClient
+from backend.config import settings
+from common.models.user import User
 from common.services.jwt_service import JwtService
 
 
@@ -23,30 +26,58 @@ class FormSchedular:
     async def update_form(
         self,
         *,
-        user,
-        provider,
         form_id,
-        response_data_owner,
         workspace_id: PydanticObjectId = None,
     ):
         logger.info(f"Job started for form {form_id} by schedular.")
-        cookies = {"Authorization": self.jwt_service.encode(user)}
-        # TODO Make it do with proxy service after service and proxy router refactored
-        raw_form = await self.perform_request(
-            provider=provider,
-            append_url=f"/{form_id}",
-            method="GET",
-            cookies=cookies,
+        workspace_form = await WorkspaceFormDocument.find_one(
+            {"form_id": form_id, "workspace_id": workspace_id}
         )
-        # if the latest status of form is not closed then perform saving
-        response_data = await self.perform_conversion_request(
-            provider=provider, raw_form=raw_form, cookies=cookies
-        )
-        standard_form = (
-            await self.form_import_service.save_converted_form_and_responses(
-                response_data, response_data_owner, workspace_id=workspace_id
+        users_response = await self.fetch_user_details([workspace_form.user_id])
+        standard_form = None
+        if users_response:
+            user_response = (
+                users_response.get("users_info")[0]
+                if len(users_response.get("users_info")) > 0
+                else None
             )
-        )
+            if not user_response:
+                logger.info(
+                    ("Schedular for form " + form_id + ": Could not fetch user details")
+                )
+                logger.error(
+                    f"Error while updating form with id {form_id} by schedular"
+                )
+                return
+
+            user = User(
+                **user_response,
+                id=user_response.get("_id"),
+                sub=user_response.get("email"),
+            )
+
+            cookies = {"Authorization": self.jwt_service.encode(user)}
+
+            # TODO Make it do with proxy service after service and proxy router refactored
+            raw_form = await self.perform_request(
+                provider=workspace_form.settings.provider,
+                append_url=f"/{form_id}",
+                method="GET",
+                cookies=cookies,
+            )
+            # if the latest status of form is not closed then perform saving
+            response_data = await self.perform_conversion_request(
+                provider=workspace_form.settings.provider,
+                raw_form=raw_form,
+                cookies=cookies,
+            )
+            standard_form = (
+                await self.form_import_service.save_converted_form_and_responses(
+                    response_data,
+                    workspace_form.settings.response_data_owner_field,
+                    workspace_id=workspace_id,
+                )
+            )
         if standard_form:
             logger.info(f"Form {form_id} is updated successfully by schedular.")
         else:
@@ -91,3 +122,10 @@ class FormSchedular:
         )
         data = await response.json()
         return data
+
+    async def fetch_user_details(self, user_ids):
+        response = await AiohttpClient.get_aiohttp_client().get(
+            f"{settings.auth_settings.BASE_URL}/users",
+            params={"user_ids": user_ids},
+        )
+        return await response.json()

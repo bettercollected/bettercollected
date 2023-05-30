@@ -108,12 +108,7 @@ class WorkspaceFormService:
             id=f"{provider}_{standard_form.form_id}",
             coalesce=True,
             replace_existing=True,
-            kwargs={
-                "user": user,
-                "provider": provider,
-                "form_id": standard_form.form_id,
-                "response_data_owner": form_import.response_data_owner,
-            },
+            kwargs={"form_id": standard_form.form_id, "workspace_id": workspace_id},
             minutes=settings.schedular_settings.INTERVAL_MINUTES,
         )
 
