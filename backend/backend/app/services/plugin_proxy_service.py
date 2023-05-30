@@ -1,6 +1,6 @@
 import logging
 from http import HTTPStatus
-from typing import Any, Mapping
+from typing import Any, Mapping, Dict
 
 from httpx import ConnectError
 from starlette.requests import Request
@@ -23,14 +23,18 @@ class PluginProxyService:
         *,
         method: HTTPMethods = None,
         data: Mapping[str, Any] = None,
+        extra_params: Dict[str, str] = None,
     ) -> Mapping[str, Any]:
         # Merge query params if params is not none
         try:
+            query_params = dict(request.query_params)
+            if extra_params:
+                query_params.update(extra_params)
             response = await self.http_client.request(
                 method=method if method else request.method,
                 url=url,
                 json=data,
-                params=request.query_params,
+                params=query_params,
                 headers=request.headers,
                 cookies=request.cookies,
                 timeout=60,

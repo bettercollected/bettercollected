@@ -66,7 +66,7 @@ class AuthService:
         return oauth_url
 
     async def handle_backend_auth_callback(
-        self, *, provider_name: str, state: str, request: Request
+        self, *, provider_name: str, state: str, request: Request, user: User = None
     ) -> Tuple[User, OAuthState]:
         provider_config = await self.form_provider_service.get_provider_if_enabled(
             provider_name
@@ -74,6 +74,7 @@ class AuthService:
         response_data = await self.plugin_proxy_service.pass_request(
             request,
             provider_config.auth_callback_url,
+            extra_params={"user_id": user.id},
         )
         user_info = UserInfo(**response_data)
 
