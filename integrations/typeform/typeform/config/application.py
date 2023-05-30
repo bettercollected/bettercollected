@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from pydantic import BaseSettings
 
 from typeform.config.database import MongoSettings
+from typeform.config.sentry_setting import SentrySettings
 from typeform.version import __version__
 
 default_dot_env_path = (
@@ -46,11 +47,14 @@ class Application(BaseSettings):
     VERSION: str = __version__
 
     API_ROOT_PATH: str = "/api/v1"
+    API_ENVIRONMENT: str = "local"
+    API_VERSION: str = "1.0.0"
     DOCS_URL: str = "/docs"
 
     AUTH_JWT_SECRET: str
 
     mongo_settings: MongoSettings = MongoSettings()
+    sentry_settings: SentrySettings = SentrySettings()
 
     TYPEFORM_SCOPE = ""
     TYPEFORM_CLIENT_ID = ""

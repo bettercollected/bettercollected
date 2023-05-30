@@ -1,11 +1,15 @@
 """Application implementation - ASGI."""
 import logging
 
+import sentry_sdk
 from fastapi import FastAPI
 
 from fastapi_utils.timing import add_timing_middleware
 
 from loguru import logger
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
+from sentry_sdk.integrations.httpx import HttpxIntegration
+from sentry_sdk.integrations.loguru import LoguruIntegration
 
 from typeform.app.container import container
 from typeform.app.exceptions import HTTPException, http_exception_handler
@@ -26,7 +30,6 @@ async def on_startup():
 
     """
     log.debug("Execute FastAPI startup event handler.")
-    pass
 
 
 async def on_shutdown():
@@ -39,7 +42,6 @@ async def on_shutdown():
     log.debug("Execute FastAPI shutdown event handler.")
     await container.http_client().aclose()
     # Gracefully close utilities.
-    pass
 
 
 def get_application():
@@ -51,6 +53,26 @@ def get_application():
     """
     init_logging()
     log.debug("Initialize FastAPI application node.")
+    sentry_settings = settings.sentry_settings
+
+    sentry_sdk.init(
+        dsn=sentry_settings.DSN,
+        max_breadcrumbs=50,
+        debug=sentry_settings.DEBUG,
+        release=settings.API_VERSION,
+        environment=settings.API_ENVIRONMENT,
+        attach_stacktrace=True,
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        # We recommend adjusting this value in production,
+        traces_sample_rate=1.0,
+        integrations=[
+            AsyncioIntegration(),
+            HttpxIntegration(),
+            LoguruIntegration(),
+        ],
+    )
+
     app = FastAPI(
         title=settings.PROJECT_NAME,
         debug=settings.DEBUG,
