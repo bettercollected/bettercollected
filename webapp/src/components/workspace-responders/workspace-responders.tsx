@@ -8,14 +8,13 @@ import DataTable from 'react-data-table-component';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import EmptyResponse from '@app/components/ui/empty-response';
+import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { formConstant } from '@app/constants/locales/form';
 import { WorkspaceResponderDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
-
-import Loader from '../ui/loader';
 
 export default function WorkspaceResponses({ workspace }: { workspace: WorkspaceDto }) {
     const [query, setQuery] = useState<IGetAllSubmissionsQuery>({

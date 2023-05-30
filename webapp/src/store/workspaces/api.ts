@@ -309,6 +309,29 @@ export const workspacesApi = createApi({
                 method: 'DELETE'
             }),
             invalidatesTags: [WORKSPACE_TAGS]
+        }),
+        createRespondersGroup: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `${request.workspace_id}/responder-groups`,
+                method: 'POST',
+                params: {
+                    name: request.groupInfo.name,
+                    description: request.groupInfo.description
+                },
+                body: request.groupInfo.emails
+            })
+        }),
+        getRespondersGroup: builder.query<any, any>({
+            query: (query) => ({
+                url: `${query.workspace_id}/responder-groups/${query.group_id}`,
+                method: 'GET'
+            })
+        }),
+        getAllRespondersGroup: builder.query<any, any>({
+            query: (workspace_id) => ({
+                url: `${workspace_id}/responder-groups`,
+                method: 'GET'
+            })
         })
     })
 });
@@ -341,5 +364,8 @@ export const {
     usePatchWorkspacePoliciesMutation,
     useGetAllMineWorkspacesQuery,
     useLazyGetAllMineWorkspacesQuery,
-    useRequestWorkspaceSubmissionDeletionMutation
+    useRequestWorkspaceSubmissionDeletionMutation,
+    useCreateRespondersGroupMutation,
+    useGetRespondersGroupQuery,
+    useGetAllRespondersGroupQuery
 } = workspacesApi;

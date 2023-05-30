@@ -1,28 +1,38 @@
 import React, { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import { Close } from '@mui/icons-material';
 import cn from 'classnames';
+import { useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { ToastId } from '@app/constants/toastId';
 import { GroupInfoDto } from '@app/models/dtos/createGroups';
+import { useAppSelector } from '@app/store/hooks';
+import { useCreateRespondersGroupMutation } from '@app/store/workspaces/api';
 
 export default function CreateGroupModal() {
     const { closeModal } = useModal();
+    const { t } = useTranslation();
+    const workspace = useAppSelector((state) => state.workspace);
     const [groupInfo, setGroupInfo] = useState<GroupInfoDto>({
         name: '',
         description: '',
         email: '',
         emails: []
     });
+    const [CreateResponderGroup, { isLoading }] = useCreateRespondersGroupMutation();
     const handleInput = (event: any) => {
         setGroupInfo({
             ...groupInfo,
             [event.target.id]: event.target.value
         });
     };
-    console.log(groupInfo);
     const addEmail = (event: any) => {
         event.preventDefault();
         let emails = groupInfo.emails;
@@ -33,6 +43,20 @@ export default function CreateGroupModal() {
             email: '',
             emails: emails
         });
+    };
+
+    const handleCreateGroup = async () => {
+        const response: any = await CreateResponderGroup({
+            groupInfo: groupInfo,
+            workspace_id: workspace.id
+        });
+        if (response.data) {
+            console.log(response.data);
+            toast('Success', { toastId: ToastId.SUCCESS_TOAST });
+            closeModal();
+        } else {
+            toast(response.error.message || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
+        }
     };
 
     return (
@@ -83,7 +107,7 @@ export default function CreateGroupModal() {
                 </div>
             )}
             <div className="flex justify-end mt-10">
-                <Button size="medium" disabled={!groupInfo.name || groupInfo.emails.length === 0}>
+                <Button size="medium" disabled={!groupInfo.name || groupInfo.emails.length === 0} isLoading={isLoading} onClick={handleCreateGroup}>
                     <span className="body1 !text-blue-100"> Create Group </span>
                 </Button>
             </div>
