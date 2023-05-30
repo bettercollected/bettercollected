@@ -92,7 +92,7 @@ class Token(BaseModel):
 
 
 class UserInfo(BaseModel):
-    user_id: Optional[PydanticObjectId]
+    user_id: Optional[str]
     email: str
     first_name: Optional[str]
     last_name: Optional[str]
