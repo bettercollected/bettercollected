@@ -136,23 +136,35 @@ const sentryWebpackPluginOptions = {
     release: process.env.SENTRY_RELEASE,
     url: process.env.SENTRY_URL,
     org: process.env.SENTRY_ORG,
-    project: process.env.SENTRY_PROJECT
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    sourcemaps: {
+        // Specify the directory containing build artifacts
+        assets: './**',
+        // Don't upload the source maps of dependencies
+        ignore: ['./node_modules/**']
+    },
+    debug: process.env.NEXT_PUBLIC_NODE_ENV !== 'production'
 
     // For all available options, see:
     // https://github.com/getsentry/sentry-webpack-plugin#options.
 };
 
-module.exports = withSentryConfig(
-    withPWA({
-        ...nextConfig,
-        ...(process.env.NODE_ENV === 'production' && {
-            typescript: {
-                ignoreBuildErrors: false
-            },
-            eslint: {
-                ignoreDuringBuilds: false
-            }
-        })
-    }),
-    sentryWebpackPluginOptions
-);
+const nextConfigWithPWA = withPWA({
+    ...nextConfig,
+    ...(process.env.NODE_ENV === 'production' && {
+        typescript: {
+            ignoreBuildErrors: false
+        },
+        eslint: {
+            ignoreDuringBuilds: false
+        }
+    })
+});
+
+const nextConfigWithSentryIfEnabled =
+    !!process.env.SENTRY_DSN && !!process.env.SENTRY_URL && !!process.env.SENTRY_ORG && !!process.env.SENTRY_PROJECT && !!process.env.SENTRY_RELEASE
+        ? withSentryConfig({ ...nextConfigWithPWA, devtool: 'source-map' }, sentryWebpackPluginOptions)
+        : nextConfigWithPWA;
+
+module.exports = nextConfigWithSentryIfEnabled;
