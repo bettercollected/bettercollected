@@ -1,9 +1,12 @@
 """Application implementation - ASGI."""
-
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 from fastapi_utils.timing import add_timing_middleware
 from loguru import logger
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
+from sentry_sdk.integrations.httpx import HttpxIntegration
+from sentry_sdk.integrations.loguru import LoguruIntegration
 
 from backend.app.container import container
 from backend.app.exceptions import (
@@ -66,6 +69,26 @@ def get_application(is_test_mode: bool = False):
     container.wire(packages=["backend.app"])
     logger.info("Initialize FastAPI application node.")
     api_settings = settings.api_settings
+    sentry_settings = settings.sentry_settings
+
+    sentry_sdk.init(
+        dsn=sentry_settings.DSN,
+        max_breadcrumbs=50,
+        debug=sentry_settings.DEBUG,
+        release=api_settings.VERSION,
+        environment=api_settings.ENVIRONMENT,
+        attach_stacktrace=True,
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        # We recommend adjusting this value in production,
+        traces_sample_rate=1.0,
+        integrations=[
+            AsyncioIntegration(),
+            HttpxIntegration(),
+            LoguruIntegration(),
+        ],
+    )
+
     app = FastAPI(
         title=api_settings.TITLE,
         debug=settings.DEBUG,
