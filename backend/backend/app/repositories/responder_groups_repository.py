@@ -3,6 +3,7 @@ from typing import List, Optional
 from beanie import PydanticObjectId
 from pydantic import EmailStr
 
+from backend.app.models.dtos.response_group_dto import ResponderGroupDto
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
     ResponderGroupMemberDocument,
@@ -102,9 +103,32 @@ class ResponderGroupsRepository:
         await ResponderGroupMemberDocument.find({"group_id": group_id}).delete()
 
     async def get_groups_in_workspace(self, workspace_id: PydanticObjectId):
-        return await ResponderGroupDocument.find(
-            {"workspace_id": workspace_id}
-        ).to_list()
+        return (
+            await ResponderGroupDocument.find({"workspace_id": workspace_id})
+            .aggregate(
+                [
+                    {
+                        "$lookup": {
+                            "from": "responder_group_member",
+                            "localField": "_id",
+                            "foreignField": "group_id",
+                            "as": "emails",
+                        }
+                    },
+                    {
+                        "$project": {
+                            "_id": 1,
+                            "name": 1,
+                            "workspace_id": 1,
+                            "emails": {"identifier": 1},
+                            "description": 1,
+                        }
+                    },
+                ],
+                projection_model=ResponderGroupDto,
+            )
+            .to_list()
+        )
 
     async def add_group_to_form(self, form_id: str, group_id: PydanticObjectId):
         existing_document = await ResponderGroupFormDocument.find_one(
