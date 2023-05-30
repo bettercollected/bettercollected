@@ -40,7 +40,7 @@ class StripeRoutes(Routable):
                         price.currency,
                         price.recurring.interval,
                     )
-            )
+                )
         return {"plans": response}
 
     @get("/session/create/checkout")

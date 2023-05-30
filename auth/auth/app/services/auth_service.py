@@ -27,10 +27,10 @@ from pydantic import EmailStr
 
 class AuthService:
     def __init__(
-            self,
-            auth_provider_factory: AuthProviderFactory,
-            user_repository: UserRepository,
-            http_client: HttpClient,
+        self,
+        auth_provider_factory: AuthProviderFactory,
+        user_repository: UserRepository,
+        http_client: HttpClient,
     ):
         self.auth_provider_factory = auth_provider_factory
         self.user_repository = user_repository
@@ -60,7 +60,7 @@ class AuthService:
             )
             user_document = await user_document.save()
         if not (user_document.first_name and user_document.last_name) and (
-                user_info.first_name or user_info.last_name
+            user_info.first_name or user_info.last_name
         ):
             user_document.first_name = (
                 user_info.first_name
@@ -78,7 +78,7 @@ class AuthService:
         )
 
     async def get_basic_auth_url(
-            self, provider: str, client_referer_url: str, creator: bool
+        self, provider: str, client_referer_url: str, creator: bool
     ):
         url = await self.auth_provider_factory.get_auth_provider(
             provider
@@ -97,7 +97,7 @@ class AuthService:
                     raise HTTPException(
                         status_code=400,
                         content="Error Verification code is expired. "
-                                + "Please request for new code.",
+                        + "Please request for new code.",
                     )
                 await UserRepository.clear_user_otp(user)
                 return User(
@@ -112,7 +112,7 @@ class AuthService:
             return None
 
     async def basic_auth_callback(
-            self, provider: str, code: str, state: str, *args, **kwargs
+        self, provider: str, code: str, state: str, *args, **kwargs
     ):
         request = kwargs.get("request")
         return await self.auth_provider_factory.get_auth_provider(
@@ -120,16 +120,25 @@ class AuthService:
         ).basic_auth_callback(code, state, request=request)
 
     def send_code_to_user_for_workspace_sync(
-            self, receiver_mail: EmailStr, workspace_title: str, workspace_profile_image: str
+        self,
+        receiver_mail: EmailStr,
+        workspace_title: str,
+        workspace_profile_image: str,
     ):
         asyncio_run(
             self.send_otp_to_mail(
-                receiver_mail=receiver_mail, workspace_title=workspace_title,
-                workspace_profile_image=workspace_profile_image
+                receiver_mail=receiver_mail,
+                workspace_title=workspace_title,
+                workspace_profile_image=workspace_profile_image,
             )
         )
 
-    async def send_otp_to_mail(self, receiver_mail: EmailStr, workspace_title: str, workspace_profile_image: str):
+    async def send_otp_to_mail(
+        self,
+        receiver_mail: EmailStr,
+        workspace_title: str,
+        workspace_profile_image: str,
+    ):
         otp = self.generate_otp()
         otp_expiry = self.get_expiry_epoch_after(timedelta(minutes=5))
 
@@ -143,8 +152,12 @@ class AuthService:
                 email=receiver_mail, otp_code=otp, otp_expiry=otp_expiry
             )
 
-        template_body = {"sender": workspace_title, "otp": otp, "workspace_profile_image": workspace_profile_image,
-                         "image_alternative": workspace_title[0]}
+        template_body = {
+            "sender": workspace_title,
+            "otp": otp,
+            "workspace_profile_image": workspace_profile_image,
+            "image_alternative": workspace_title[0],
+        }
         message = MessageSchema(
             subject=f"{workspace_title} identity verification code",
             recipients=[receiver_mail],
@@ -155,7 +168,9 @@ class AuthService:
         if workspace_profile_image:
             await mail_service.send_async_mail(message, "verification_code.html")
         else:
-            await mail_service.send_async_mail(message, "verification_code_without_image.html")
+            await mail_service.send_async_mail(
+                message, "verification_code_without_image.html"
+            )
 
     def generate_otp(self):
         alphabets = string.ascii_uppercase + string.digits
