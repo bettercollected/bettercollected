@@ -21,7 +21,7 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from backend.app.services.crypto_service import crypto_service
+from common.services.crypto_service import crypto_service
 from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.user import User
 

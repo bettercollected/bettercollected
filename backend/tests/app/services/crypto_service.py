@@ -1,6 +1,6 @@
 import pytest
 
-from backend.app.services.crypto_service import CryptoService
+from common.services.crypto_service import CryptoService
 
 
 @pytest.fixture

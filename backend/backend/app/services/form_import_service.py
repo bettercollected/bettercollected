@@ -8,7 +8,7 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDeletionRequest,
     FormResponseDocument,
 )
-from backend.app.services.crypto_service import crypto_service
+from common.services.crypto_service import crypto_service
 from backend.app.services.form_service import FormService
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponseAnswer
