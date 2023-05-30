@@ -36,11 +36,12 @@ class ResponderGroupsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         name: str,
+        description: str,
         emails: List[EmailStr] = None,
         user: User = Depends(get_logged_user),
     ):
         return await self.responder_groups_service.create_group(
-            workspace_id, name, emails, user
+            workspace_id, name, emails, user, description
         )
 
     @get("/{group_id}")

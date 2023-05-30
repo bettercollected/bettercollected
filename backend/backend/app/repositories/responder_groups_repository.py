@@ -12,9 +12,17 @@ from backend.app.schemas.responder_group import (
 
 class ResponderGroupsRepository:
     async def create_group(
-        self, workspace_id: PydanticObjectId, name: str, emails: List[EmailStr]
+        self,
+        workspace_id: PydanticObjectId,
+        name: str,
+        description: str,
+        emails: List[EmailStr],
     ):
-        responder_group = ResponderGroupDocument(name=name, workspace_id=workspace_id)
+        if len(description) > 280:
+            return {"message": "description should be less than 280 characters"}
+        responder_group = ResponderGroupDocument(
+            name=name, workspace_id=workspace_id, description=description
+        )
         responder_group = await responder_group.save()
         responder_group_emails = []
         if not emails:
@@ -58,7 +66,7 @@ class ResponderGroupsRepository:
         self, group_id: PydanticObjectId, emails: List[EmailStr]
     ):
         await ResponderGroupMemberDocument.find(
-            {"group_id": group_id, "identifier": {"$in": emails}}
+            {"group_id": group_id, "email": {"$in": emails}}
         ).delete()
 
     async def get_emails_in_group(self, group_id: PydanticObjectId):
@@ -68,7 +76,7 @@ class ResponderGroupsRepository:
                 [
                     {
                         "$lookup": {
-                            "from": "responder_group_member",
+                            "from": "responder_group_email",
                             "localField": "_id",
                             "foreignField": "group_id",
                             "as": "emails",
@@ -80,9 +88,10 @@ class ResponderGroupsRepository:
                             "name": 1,
                             "workspace_id": 1,
                             "emails": {"identifier": 1},
+                            "description": 1,
                         }
                     },
-                ],
+                ]
             )
             .to_list()
         )
@@ -91,7 +100,6 @@ class ResponderGroupsRepository:
     async def remove_responder_group(self, group_id: PydanticObjectId):
         await ResponderGroupDocument.find({"_id": group_id}).delete()
         await ResponderGroupMemberDocument.find({"group_id": group_id}).delete()
-        await ResponderGroupFormDocument.find({"group_id": group_id}).delete()
 
     async def get_groups_in_workspace(self, workspace_id: PydanticObjectId):
         return await ResponderGroupDocument.find(

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class ResponderGroupDto(BaseModel):
     id: str = None
     name: str
+    description: str
     emails: List[Dict[str, str]]
 
     def __init__(self, _id: PydanticObjectId, id=None, *args, **kwargs):
