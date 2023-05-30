@@ -33,7 +33,7 @@ class ResponderGroupsRepository:
                     group_id=responder_group.id, identifier=email
                 )
             )
-            await ResponderGroupMemberDocument.insert_many(responder_group_emails)
+        await ResponderGroupMemberDocument.insert_many(responder_group_emails)
         return responder_group
 
     async def get_group_in_workspace(
@@ -66,7 +66,7 @@ class ResponderGroupsRepository:
         self, group_id: PydanticObjectId, emails: List[EmailStr]
     ):
         await ResponderGroupMemberDocument.find(
-            {"group_id": group_id, "email": {"$in": emails}}
+            {"group_id": group_id, "identifier": {"$in": emails}}
         ).delete()
 
     async def get_emails_in_group(self, group_id: PydanticObjectId):
@@ -76,7 +76,7 @@ class ResponderGroupsRepository:
                 [
                     {
                         "$lookup": {
-                            "from": "responder_group_email",
+                            "from": "responder_group_member",
                             "localField": "_id",
                             "foreignField": "group_id",
                             "as": "emails",
