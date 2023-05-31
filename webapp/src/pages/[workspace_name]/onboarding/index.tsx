@@ -183,7 +183,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
             </p>
             <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">{t(onBoarding.description)}</p>
             <Button size="large" className="mt-10 mb-4" onClick={increaseStep}>
-                {workspace?.profileImage || workspace?.description || workspace?.title.toLowerCase() !== 'untitled' ? t(buttonConstant.updateWorkspace) : t(buttonConstant.createWorkspace)}
+                {t(buttonConstant.createWorkspace)}
             </Button>
             <p className="body2 !text-black-600 italic">{t(onBoarding.timeMessage)}</p>
         </div>

@@ -61,6 +61,7 @@ export default function MenuDropdown({
     const open = Boolean(anchorEl);
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+        event.stopPropagation();
         setAnchorEl(event.currentTarget);
         if (onClick) onClick(event);
     };

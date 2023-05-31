@@ -14,6 +14,7 @@ import { toast } from 'react-toastify';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteResponderGroupMutation } from '@app/store/workspaces/api';
 
@@ -24,6 +25,7 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
     const { t } = useTranslation();
     const [trigger] = useDeleteResponderGroupMutation();
     const workspace = useAppSelector((state) => state.workspace);
+    const isAdmin = useAppSelector(selectIsAdmin);
     const handleDeletegroup = async () => {
         const response: any = await trigger({
             workspaceId: workspace.id,
@@ -35,14 +37,45 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
             toast(response?.error || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
         }
     };
+    const handlePreviewGroup = () => {
+        return openModal('PREVIEW_GROUP', { responderGroup: responderGroup });
+    };
+    const handleUpdategroup = () => {
+        return openModal('CREATE_GROUP', { responderGroup: responderGroup });
+    };
+    const menuItems = [
+        {
+            icon: Preview,
+            text: 'Preview',
+            onClick: handlePreviewGroup
+        },
+        {
+            icon: AddMember,
+            text: 'Add Member',
+            onClick: handleUpdategroup
+        },
+        {
+            icon: EditIcon,
+            text: 'Edit',
+            onClick: handleUpdategroup
+        },
+        {
+            icon: DeleteIcon,
+            text: 'Delete',
+            onClick: handleDeletegroup
+        }
+    ];
     return (
         <div
-            onClick={() => openModal('PREVIEW_GROUP', { responderGroup: responderGroup })}
+            // onClick={(e) => {
+            //     e.preventDefault();
+            //     openModal('PREVIEW_GROUP', { responderGroup: responderGroup });
+            // }}
             className="flex cursor-pointer flex-col justify-between border-[2px] border-brand-100 hover:border-black-500 transition shadow-formCard bg-white items-start p-5 rounded-[8px] relative"
         >
             <MenuDropdown
                 showExpandMore={false}
-                className="absolute top-5 right-5 cursor-pointer"
+                className="absolute top-3 right-3 cursor-pointer"
                 width={180}
                 id="group-option"
                 menuTitle={''}
@@ -52,30 +85,14 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
                     </>
                 }
             >
-                <MenuItem onClick={() => openModal('PREVIEW_GROUP', { responderGroup: responderGroup })} className="py-3 hover:bg-black-200">
-                    <ListItemIcon>
-                        <Preview width={20} height={20} />
-                    </ListItemIcon>
-                    Preview
-                </MenuItem>
-                <MenuItem onClick={() => openModal('CREATE_GROUP', { responderGroup: responderGroup })} className="py-3 hover:bg-black-200">
-                    <ListItemIcon>
-                        <AddMember width={20} height={20} />
-                    </ListItemIcon>
-                    Add Member
-                </MenuItem>
-                <MenuItem onClick={() => openModal('CREATE_GROUP', { responderGroup: responderGroup })} className="py-3 hover:bg-black-200">
-                    <ListItemIcon>
-                        <EditIcon width={20} height={20} />
-                    </ListItemIcon>
-                    Edit Group
-                </MenuItem>
-                <MenuItem onClick={handleDeletegroup} className="py-3 hover:bg-black-200">
-                    <ListItemIcon className="!text-red-500">
-                        <DeleteIcon width={20} height={20} />
-                    </ListItemIcon>
-                    <span>Delete Group</span>
-                </MenuItem>
+                {menuItems.map((menuItem) => {
+                    return (
+                        <MenuItem key={menuItem.text} disabled={!isAdmin && menuItem.text !== 'Preview'} onClick={menuItem.onClick} className="py-3 hover:bg-black-200">
+                            <ListItemIcon>{React.createElement(menuItem.icon, { className: 'h-5 w-5' })}</ListItemIcon>
+                            <span className="body4">{menuItem.text}</span>
+                        </MenuItem>
+                    );
+                })}
             </MenuDropdown>
             <div>
                 <div className="flex gap-2 items-center">
@@ -84,18 +101,19 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
                     </div>
                     <Typography className="body1">{responderGroup.name}</Typography>
                 </div>
-                {responderGroup.description && <p className="body4 line-clamp-2 break-all text-black-800 mt-4">{responderGroup.description}</p>}
+                {responderGroup.description && <p className="body4 line-clamp-2 break-all !text-black-800 mt-4">{responderGroup.description}</p>}
             </div>
             <div>
-                <p className="mt-10">Members ({responderGroup.emails.length})</p>
-                <div className=" gap-1 line-clamp-2 mt-4 mb-10">
-                    {responderGroup.emails.map((email) => {
-                        return (
-                            <p key={email.identifier} className=" inline-block text-black-800">
-                                {email.identifier},
+                <p className="mt-10 body6">Members ({responderGroup.emails.length})</p>
+                <div className=" line-clamp-2 mt-4 mb-10">
+                    {responderGroup.emails.map((email, index) => (
+                        <>
+                            <p key={email.identifier} className="inline-block !text-black-800">
+                                {email.identifier}
                             </p>
-                        );
-                    })}
+                            {responderGroup.emails.length - 1 !== index && <span className="pr-2">,</span>}
+                        </>
+                    ))}
                 </div>
             </div>
             {/* <Button className="!px-3 !py-[9px] !bg-white border !border-black-400  hover:!bg-brand-200" size="medium">

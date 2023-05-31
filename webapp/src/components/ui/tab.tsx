@@ -16,7 +16,7 @@ export function TabItem({ children, className }: React.PropsWithChildren<{ class
                 cn(
                     'relative p-0',
                     {
-                        'border-b-[2px] border-black-900': selected
+                        'border-b-[2px] rounded-[1px]  border-black-900': selected
                     },
                     'hover:!text-brand-600 focus:outline-none !text-black-800 body6 pb-4  !leading-none',
                     className
