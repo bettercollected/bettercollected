@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from typing import Any, Dict
 
 from beanie import PydanticObjectId
@@ -65,19 +66,22 @@ class FormSchedular:
                 method="GET",
                 cookies=cookies,
             )
+
+            if not raw_form:
+                logger.error("Could not fetch form form provider")
             # if the latest status of form is not closed then perform saving
-            response_data = await self.perform_conversion_request(
-                provider=workspace_form.settings.provider,
-                raw_form=raw_form,
-                cookies=cookies,
-            )
-            standard_form = (
-                await self.form_import_service.save_converted_form_and_responses(
-                    response_data,
-                    workspace_form.settings.response_data_owner_field,
-                    workspace_id=workspace_id,
+            if raw_form:
+                response_data = await self.perform_conversion_request(
+                    provider=workspace_form.settings.provider,
+                    raw_form=raw_form,
+                    cookies=cookies,
                 )
-            )
+                if response_data:
+                    standard_form = await self.form_import_service.save_converted_form_and_responses(
+                        response_data,
+                        workspace_form.settings.response_data_owner_field,
+                        workspace_id=workspace_id,
+                    )
         if standard_form:
             logger.info(f"Form {form_id} is updated successfully by schedular.")
         else:
@@ -120,6 +124,9 @@ class FormSchedular:
             json=json,
             timeout=60,
         )
+        if response.status != HTTPStatus.OK:
+            logger.error(await response.json())
+            return None
         data = await response.json()
         return data
 
