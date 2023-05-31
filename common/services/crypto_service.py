@@ -38,7 +38,7 @@ class CryptoService:
     def decrypt(
         self, workspace_id: str, form_id: str, data: bytes, context: bytes = b""
     ):
-        if not data.startswith(self.ciphertext_prefix):
+        if isinstance(data, str) or not data.startswith(self.ciphertext_prefix):
             return data
         ciphertext = data[len(self.ciphertext_prefix):]
         full_context = self.compose_full_context(workspace_id, form_id, context)
