@@ -49,7 +49,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
         router.push(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}/responses`);
     };
     return (
-        <div className={`flex flex-col items-start justify-between h-full bg-white border-[2px] border-brand-100 hover:border-black-500 transition cursor-pointer rounded-lg shadow-formCard ${className}`}>
+        <div className={`flex flex-col items-start justify-between h-full bg-white border-[2px] border-transparent hover:border-black-500 transition cursor-pointer rounded-lg shadow-formCard ${className}`}>
             {typeof index !== undefined && index === 0 && environments.ENABLE_JOYRIDE_TOURS && !isResponderPortal && (
                 <Joyride
                     id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION}

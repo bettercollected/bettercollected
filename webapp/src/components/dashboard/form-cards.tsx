@@ -32,7 +32,7 @@ const FormCards = ({ title, formsArray, workspace, isFormCreator }: FormCardsPro
                                 query: { back: true }
                             }}
                         >
-                            <WorkspaceFormCard isResponderPortal className="!bg-brand-100" form={form} hasCustomDomain={isCustomDomain} workspace={workspace} />
+                            <WorkspaceFormCard isResponderPortal className="!bg-brand-100 !shadow-none" form={form} hasCustomDomain={isCustomDomain} workspace={workspace} />
                         </ActiveLink>
                     );
                 })}

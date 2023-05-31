@@ -74,7 +74,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
     };
 
     return (
-        <div className={cn('relative  w-full bannerdiv aspect-banner-mobile lg:aspect-banner-desktop', !!workspace?.bannerImage ? '' : 'border border-brand-300 ')}>
+        <div className={cn('relative w-full bannerdiv aspect-banner-mobile lg:aspect-banner-desktop')}>
             {!!image ? (
                 <TransformWrapper centerOnInit ref={transformComponentRef}>
                     {({ resetTransform }) => {
