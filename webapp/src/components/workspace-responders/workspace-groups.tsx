@@ -33,9 +33,9 @@ export default function WorkspaceGropus() {
         <div>
             <div className="flex justify-between">
                 <p className="body1">Groups {data && ' (' + data.length + ')'} </p>
-                <div onClick={() => openModal('CREATE_GROUP')} className="flex gap-2 p-2 group hover:bg-brand-500 hover:text-white rounded text-brand-500 items-center cursor-pointer">
+                <div onClick={() => openModal('CREATE_GROUP')} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
                     <Plus className="h-4 w-4" />
-                    <Typography className="!text-brand-500 group-hover:!text-white body6"> Create Group</Typography>
+                    <Typography className="!text-brand-500  body6"> Create Group</Typography>
                 </div>
             </div>
             <p className="mt-4 mb-8 body4 sm:max-w-[355px] text-black-700">Send forms to entire groups, streamlining the process and saving time.</p>

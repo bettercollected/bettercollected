@@ -26,6 +26,7 @@ import { Transition } from '@app/components/ui/transition';
 import CreateGroupModal from './modals/create-group-modal';
 import CropImageModalView from './modals/crop-image-modal-view';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
+import PreviewGroup from './modals/preview-group-modal';
 
 function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
     switch (view) {
@@ -65,6 +66,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <EditWorkspaceModal />;
         case 'CREATE_GROUP':
             return <CreateGroupModal {...modalProps} />;
+        case 'PREVIEW_GROUP':
+            return <PreviewGroup {...modalProps} />;
         default:
             return <></>;
     }

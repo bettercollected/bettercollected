@@ -61,7 +61,7 @@ export default function CreateGroupModal({ responderGroup }: { responderGroup: R
     };
 
     return (
-        <div className="p-7 bg-white relative rounded-[8px] md:max-w-[670px]">
+        <div className="p-7 bg-brand-100 relative rounded-[8px] md:max-w-[670px]">
             <Close
                 className="absolute top-5 right-5 cursor-pointer"
                 onClick={() => {
@@ -87,10 +87,10 @@ export default function CreateGroupModal({ responderGroup }: { responderGroup: R
             {groupInfo.emails.length !== 0 && (
                 <div>
                     <p className="mt-6 leading-none mb-4 body5">Member email</p>
-                    <div className="items-center  w-full   gap-4 flex flex-wrap ">
+                    <div className="items-center  w-full p-3 bg-white   gap-4 flex flex-wrap ">
                         {groupInfo.emails.map((email) => {
                             return (
-                                <div className="p-2 rounded flex items-center gap-2 bg-blue-200 body5 !text-brand-500" key={email}>
+                                <div className="p-2 rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500" key={email}>
                                     <span className="leading-none">{email}</span>
                                     <Close
                                         className="h-4 w-4 cursor-pointer"

@@ -11,17 +11,13 @@ import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdow
 import { ListItemIcon, MenuItem, Typography } from '@mui/material';
 import { toast } from 'react-toastify';
 
-import { buttonConstant } from '@app/constants/locales/buttons';
-import { formConstant } from '@app/constants/locales/form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteResponderGroupMutation } from '@app/store/workspaces/api';
 
-import { Telegram } from '../icons/brands/telegram';
 import { useModal } from '../modal-views/context';
-import Button from '../ui/button/button';
 
 export default function GroupCard({ responderGroup }: { responderGroup: ResponderGroupDto }) {
     const { openModal } = useModal();
@@ -40,7 +36,10 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
         }
     };
     return (
-        <div className="flex flex-col justify-between bg-white items-start p-5 rounded-[8px] relative">
+        <div
+            onClick={() => openModal('PREVIEW_GROUP', { responderGroup: responderGroup })}
+            className="flex cursor-pointer flex-col justify-between border-[2px] border-brand-100 hover:border-black-500 transition shadow-formCard bg-white items-start p-5 rounded-[8px] relative"
+        >
             <MenuDropdown
                 showExpandMore={false}
                 className="absolute top-5 right-5 cursor-pointer"
@@ -53,7 +52,7 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
                     </>
                 }
             >
-                <MenuItem onClick={() => openModal('CREATE_GROUP', { responderGroup: responderGroup })} className="py-3 hover:bg-black-200">
+                <MenuItem onClick={() => openModal('PREVIEW_GROUP', { responderGroup: responderGroup })} className="py-3 hover:bg-black-200">
                     <ListItemIcon>
                         <Preview width={20} height={20} />
                     </ListItemIcon>
@@ -99,12 +98,12 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
                     })}
                 </div>
             </div>
-            <Button className="!px-3 !py-[9px] !bg-white border !border-black-400  hover:!bg-brand-200" size="medium">
+            {/* <Button className="!px-3 !py-[9px] !bg-white border !border-black-400  hover:!bg-brand-200" size="medium">
                 <div className="flex items-center gap-[5px]">
                     <Telegram className="h-[20px] w-[20px] text-black-900" />
                     <Typography>Send Form</Typography>
                 </div>
-            </Button>
+            </Button> */}
         </div>
     );
 }
