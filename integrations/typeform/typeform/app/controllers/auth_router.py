@@ -18,7 +18,7 @@ class AuthRoutes(Routable):
 
     @get("/oauth/callback")
     async def _oauth_callback(
-        self, code: str, request: Request, user_id: PydanticObjectId = None
+        self, code: str, request: Request, user_id: str = None
     ) -> UserInfo:
         user_info = await auth_service.handle_oauth_callback(code, user_id)
         return user_info
