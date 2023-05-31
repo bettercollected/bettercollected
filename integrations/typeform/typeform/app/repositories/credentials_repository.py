@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from beanie import PydanticObjectId
 from common.models.user import Token, UserInfo
@@ -10,8 +10,9 @@ from typeform.app.schemas.credential import CredentialDocument
 # TODO : Refactor this
 class CredentialRepository:
     @staticmethod
-    async def get_credential(email: str):
-        credential = await CredentialDocument.find_one({"email": email})
+    async def get_credential(email: str, user_id: Optional[str] = None):
+        credential = await CredentialDocument.find_one(
+            {"$or": [{"email": email}, {"user_id": PydanticObjectId(user_id)}]})
         if credential:
             credential.access_token = CredentialRepository.decrypt_token(
                 credential.user_id, token=credential.access_token
