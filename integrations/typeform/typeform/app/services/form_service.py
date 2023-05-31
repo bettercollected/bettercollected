@@ -1,10 +1,14 @@
 import datetime
+from http import HTTPStatus
 from typing import Any, Dict, List
 
 import requests
+from fastapi import HTTPException
+
+from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.form_import import FormImportResponse
 from common.models.user import Credential, Token
-from fastapi import HTTPException
+from typeform.app.exceptions import HTTPException
 from typeform.app.services.transformer_service import TypeFormTransformerService
 from typeform.config import settings
 
@@ -18,6 +22,8 @@ def refresh_typeform_token(refresh_token) -> Token:
         "scope": settings.TYPEFORM_SCOPE.replace("+", " "),
     }
     typeform_response = requests.post(settings.TYPEFORM_TOKEN_URI, data=data)
+    if typeform_response.status_code > 299 or typeform_response.status_code < 200:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
     typeform_token = Token(**typeform_response.json())
     return typeform_token
 

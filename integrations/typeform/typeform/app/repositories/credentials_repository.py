@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from beanie import PydanticObjectId
+
 from common.models.user import Token, UserInfo
 from common.services.crypto_service import crypto_service
 from typeform.app.schemas.credential import CredentialDocument
@@ -12,13 +13,14 @@ class CredentialRepository:
     @staticmethod
     async def get_credential(email: str, user_id: Optional[str] = None):
         credential = await CredentialDocument.find_one(
-            {"$or": [{"email": email}, {"user_id": PydanticObjectId(user_id)}]})
+            {"$or": [{"email": email}, {"user_id": PydanticObjectId(user_id)}]}
+        )
         if credential:
             credential.access_token = CredentialRepository.decrypt_token(
                 credential.user_id, token=credential.access_token
             )
             credential.refresh_token = CredentialRepository.decrypt_token(
-                credential.user_id, token=credential.access_token
+                credential.user_id, token=credential.refresh_token
             )
         return credential
         # Get all credentials associated with email
@@ -46,12 +48,14 @@ class CredentialRepository:
         await credential.save()
 
     @staticmethod
-    def encrypt_token(user_id: PydanticObjectId, token: str):
+    def encrypt_token(user_id: str, token: str):
         return crypto_service.encrypt("personal", form_id=user_id, data=token)
 
     @staticmethod
-    def decrypt_token(user_id: PydanticObjectId, token: str):
-        return crypto_service.decrypt("personal", form_id=user_id, data=token)
+    def decrypt_token(user_id: str, token: str):
+        return str(
+            crypto_service.decrypt("personal", form_id=user_id, data=token), "utf-8"
+        )
 
     @staticmethod
     async def revoke_credentials(email: str):
