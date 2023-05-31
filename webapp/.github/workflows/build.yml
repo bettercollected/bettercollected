@@ -30,3 +30,11 @@ jobs:
         with:
           push: true
           tags: ${{ format('bettercollected/webapp:{0}', github.sha) }}
+          build-args: |
+            SENTRY_DSN=${{ secrets.SENTRY_DSN }}
+            SENTRY_RELEASE=${{ secrets.SENTRY_RELEASE }}
+            SENTRY_URL=${{ secrets.SENTRY_URL }}
+            SENTRY_ORG=${{ secrets.SENTRY_ORG }}
+            SENTRY_PROJECT=${{ secrets.SENTRY_PROJECT }}
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+            SENTRY_LOG_LEVEL=${{ secrets.SENTRY_LOG_LEVEL }}
