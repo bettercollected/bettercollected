@@ -6,20 +6,22 @@ import { Close } from '@mui/icons-material';
 import cn from 'classnames';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
+import { PersistPartial } from 'redux-persist/es/persistReducer';
 
 import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
-import { GroupInfoDto } from '@app/models/dtos/createGroups';
+import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateRespondersGroupMutation } from '@app/store/workspaces/api';
+import { WorkspaceState } from '@app/store/workspaces/slice';
 
-export default function CreateGroupModal() {
+export default function CreateGroupModal({ responderGroup }: { responderGroup: ResponderGroupDto }) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
-    const workspace = useAppSelector((state) => state.workspace);
+    const workspace = useAppSelector((state: { workspace: WorkspaceState & PersistPartial }) => state.workspace);
     const [groupInfo, setGroupInfo] = useState<GroupInfoDto>({
         name: '',
         description: '',
@@ -51,7 +53,6 @@ export default function CreateGroupModal() {
             workspace_id: workspace.id
         });
         if (response.data) {
-            console.log(response.data);
             toast('Success', { toastId: ToastId.SUCCESS_TOAST });
             closeModal();
         } else {
@@ -72,9 +73,9 @@ export default function CreateGroupModal() {
             <p className="body4 leading-none mb-2">
                 Group Name<span className="text-red-800">*</span>
             </p>
-            <BetterInput className="!mb-0" inputProps={{ className: '!py-3' }} id="name" placeholder="Enter group name" onChange={handleInput} />
+            <BetterInput value={groupInfo.name} className="!mb-0" inputProps={{ className: '!py-3' }} id="name" placeholder="Enter group name" onChange={handleInput} />
             <p className="body4 leading-none mt-6 mb-2">Description</p>
-            <BetterInput className="!mb-0" id="description" placeholder="Add description" rows={3} multiline onChange={handleInput} />
+            <BetterInput value={groupInfo.description} className="!mb-0" inputProps={{ maxLength: 250 }} id="description" placeholder="Add description" rows={3} multiline onChange={handleInput} />
             <p className="mt-10 leading-none mb-2 body1">Members(3)</p>
             <p className="text-black-700 leading-none body4">Only these members can see your form in your workspace. </p>
             <form onSubmit={addEmail} className="flex gap-2 mt-4 md:w-[350px]">
@@ -108,7 +109,7 @@ export default function CreateGroupModal() {
             )}
             <div className="flex justify-end mt-10">
                 <Button size="medium" disabled={!groupInfo.name || groupInfo.emails.length === 0} isLoading={isLoading} onClick={handleCreateGroup}>
-                    <span className="body1 !text-blue-100"> Create Group </span>
+                    <span className="body1 !text-blue-100">{responderGroup ? 'Update Group' : 'Create Group'} </span>
                 </Button>
             </div>
         </div>

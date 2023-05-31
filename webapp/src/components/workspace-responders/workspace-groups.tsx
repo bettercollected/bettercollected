@@ -1,19 +1,21 @@
 import React from 'react';
 
+import { Typography } from '@mui/material';
+
+import GroupCard from '@app/components/cards/group-card';
+import { Plus } from '@app/components/icons/plus';
 import UserMore from '@app/components/icons/user-more';
+import { useModal } from '@app/components/modal-views/context';
+import Button from '@app/components/ui/button/button';
 import Loader from '@app/components/ui/loader';
+import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
-
-import GroupCard from '../cards/group-card';
-import { useModal } from '../modal-views/context';
-import Button from '../ui/button/button';
 
 export default function WorkspaceGropus() {
     const { openModal } = useModal();
     const workspace = useAppSelector((state) => state.workspace);
     const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
-    console.log(data);
     const emptyGroup = () => (
         <div className="my-[119px] flex flex-col items-center">
             <UserMore />
@@ -27,17 +29,22 @@ export default function WorkspaceGropus() {
             </Button>
         </div>
     );
-
     const group = () => (
-        <div className="mt-[42px]">
+        <div>
             <div className="flex justify-between">
                 <p className="body1">Groups {data && ' (' + data.length + ')'} </p>
-                <Button size="medium" className="!bg-white">
-                    Create Group
-                </Button>
+                <div onClick={() => openModal('CREATE_GROUP')} className="flex gap-2 p-2 group hover:bg-brand-500 hover:text-white rounded text-brand-500 items-center cursor-pointer">
+                    <Plus className="h-4 w-4" />
+                    <Typography className="!text-brand-500 group-hover:!text-white body6"> Create Group</Typography>
+                </div>
             </div>
-            <p className="mt-4 mb-8 body4 text-black-700">Send forms to entire groups, streamlining the process and saving time.</p>
-            <GroupCard responderGroup={data[0]} />
+            <p className="mt-4 mb-8 body4 sm:max-w-[355px] text-black-700">Send forms to entire groups, streamlining the process and saving time.</p>
+            <div className="grid sm:grid-cols-2  grid-flow-row gap-6">
+                {data &&
+                    data?.map((group: ResponderGroupDto) => {
+                        return <GroupCard key={group.id} responderGroup={group} />;
+                    })}
+            </div>
         </div>
     );
 
@@ -47,6 +54,6 @@ export default function WorkspaceGropus() {
                 <Loader />
             </div>
         );
-    if (data && data.length > 0) return group();
+    if (data && data?.length > 0) return group();
     return emptyGroup();
 }

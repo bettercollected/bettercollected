@@ -19,8 +19,6 @@ export default function DeleteCustomDomainModal() {
     const dispatch = useAppDispatch();
     const router = useRouter();
 
-    console.log(result);
-
     const { t } = useTranslation();
     const workspace = useAppSelector((state) => state.workspace);
 

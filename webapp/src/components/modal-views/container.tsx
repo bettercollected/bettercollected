@@ -64,7 +64,7 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
         case 'EDIT_WORKSPACE_MODAL':
             return <EditWorkspaceModal />;
         case 'CREATE_GROUP':
-            return <CreateGroupModal />;
+            return <CreateGroupModal {...modalProps} />;
         default:
             return <></>;
     }

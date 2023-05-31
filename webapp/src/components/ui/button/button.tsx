@@ -23,7 +23,7 @@ const variants: Record<VariantNames, string[]> = {
     outline: ['text-brand-500 bg-white border-brand-300']
 };
 const colors: Record<ColorNames, string[]> = {
-    primary: ['text-white', 'bg-brand hover:!bg-brand-600 focus:ring-brand-500', 'border-brand'],
+    primary: ['text-white', 'bg-brand hover:bg-brand-600 focus:ring-brand-500', 'border-brand'],
     white: ['text-gray-900', 'bg-white focus:ring-white', 'border-white'],
     gray: ['text-gray-900', 'bg-gray-100 hover:bg-gray-200 focus:ring-gray-100', 'border-gray-100'],
     success: ['text-green-500', 'bg-green-500 hover:bg-green-200 focus:ring-green-500', 'border-green-500'],

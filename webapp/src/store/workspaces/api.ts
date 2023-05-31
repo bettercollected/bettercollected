@@ -11,7 +11,7 @@ export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 const WORKSPACE_TAGS = 'WORKSPACE_TAG';
 const SUBMISSION_TAG = 'SUBMISSION_TAG';
 const WORKSPACE_UPDATE_TAG = 'WORKSPACE_UPDATE_TAG';
-
+const GROUP_TAGS = 'GROUP_TAG';
 interface ImportFormQueryInterface {
     workspaceId: string;
     provider: string;
@@ -24,7 +24,7 @@ interface ImportFormQueryInterface {
 
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAGS],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -319,19 +319,30 @@ export const workspacesApi = createApi({
                     description: request.groupInfo.description
                 },
                 body: request.groupInfo.emails
-            })
+            }),
+            invalidatesTags: [GROUP_TAGS]
         }),
         getRespondersGroup: builder.query<any, any>({
             query: (query) => ({
                 url: `${query.workspace_id}/responder-groups/${query.group_id}`,
                 method: 'GET'
-            })
+            }),
+            providesTags: [GROUP_TAGS]
         }),
         getAllRespondersGroup: builder.query<any, any>({
             query: (workspace_id) => ({
                 url: `${workspace_id}/responder-groups`,
                 method: 'GET'
-            })
+            }),
+            providesTags: [GROUP_TAGS]
+        }),
+        deleteResponderGroup: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `${request.workspaceId}/responder-groups/${request.groupId}`,
+                method: 'DELETE',
+                credentials: 'include'
+            }),
+            invalidatesTags: [GROUP_TAGS]
         })
     })
 });
@@ -367,5 +378,6 @@ export const {
     useRequestWorkspaceSubmissionDeletionMutation,
     useCreateRespondersGroupMutation,
     useGetRespondersGroupQuery,
-    useGetAllRespondersGroupQuery
+    useGetAllRespondersGroupQuery,
+    useDeleteResponderGroupMutation
 } = workspacesApi;
