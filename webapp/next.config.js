@@ -131,6 +131,7 @@ const sentryWebpackPluginOptions = {
     //   release, url, authToken, configFile, stripPrefix,
     //   urlPrefix, include, ignore
 
+    dryRun: process.env.NODE_ENV !== 'production',
     silent: true, // Suppresses all logs
     attachStacktrace: true,
     release: process.env.SENTRY_RELEASE,
