@@ -38,22 +38,22 @@ jobs:
           push: true
           tags: ${{ format('bettercollected/backend:{0}', github.sha) }}
 
-    deploy:
-      needs: [ build, sonarcloud ]
-      runs-on: ubuntu-latest
-      steps:
-        - name: Executing remote ssh commands using ssh key and deploying
-          uses: appleboy/ssh-action@v0.1.10
-          with:
-            host: ${{ secrets.SIRETO_BASTION_HOST }}
-            username: ${{ secrets.SIRETO_BASTION_USERNAME }}
-            key: ${{ secrets.SIRETO_BASTION_SSH_KEY }}
-            port: ${{ secrets.SIRETO_BASTION_PORT }}
-            script: |
-              if [ ${{ github.ref }} == 'refs/heads/develop' ]; then
-                docker --host=${{ secrets.DEV_DEPLOYMENT_HOST }} service update --image=bettercollected/backend:${{ github.sha }} bettercollected-new_dev_backend
-              elif [[ ${{ github.ref }} == 'refs/heads/master' ]]; then
-                docker --host=${{ secrets.PROD_DEPLOYMENT_HOST }} service update --image=bettercollected/backend:${{ github.sha }} bettercollected_backend
-              else
-                echo "Deployment skipped for branch ${{ github.ref }}"
-              fi
+  deploy:
+    needs: [ build, sonarcloud ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Executing remote ssh commands using ssh key and deploying
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SIRETO_BASTION_HOST }}
+          username: ${{ secrets.SIRETO_BASTION_USERNAME }}
+          key: ${{ secrets.SIRETO_BASTION_SSH_KEY }}
+          port: ${{ secrets.SIRETO_BASTION_PORT }}
+          script: |
+            if [ ${{ github.ref }} == 'refs/heads/develop' ]; then
+              docker --host=${{ secrets.DEV_DEPLOYMENT_HOST }} service update --image=bettercollected/backend:${{ github.sha }} bettercollected-new_dev_backend
+            elif [[ ${{ github.ref }} == 'refs/heads/master' ]]; then
+              docker --host=${{ secrets.PROD_DEPLOYMENT_HOST }} service update --image=bettercollected/backend:${{ github.sha }} bettercollected_backend
+            else
+              echo "Deployment skipped for branch ${{ github.ref }}"
+            fi
