@@ -40,6 +40,7 @@ jobs:
             SENTRY_LOG_LEVEL=${{ secrets.SENTRY_LOG_LEVEL }}
 
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     steps:
       -
