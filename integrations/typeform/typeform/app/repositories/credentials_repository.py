@@ -53,9 +53,10 @@ class CredentialRepository:
 
     @staticmethod
     def decrypt_token(user_id: str, token: str):
-        return str(
-            crypto_service.decrypt("personal", form_id=user_id, data=token), "utf-8"
-        )
+        decrypted_token = crypto_service.decrypt("personal", form_id=user_id, data=token)
+        if isinstance(decrypted_token, bytes):
+            decrypted_token = str(decrypted_token, "utf-8")
+        return decrypted_token
 
     @staticmethod
     async def revoke_credentials(email: str):
