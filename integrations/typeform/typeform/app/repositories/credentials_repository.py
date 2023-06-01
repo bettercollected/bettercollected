@@ -17,13 +17,12 @@ class CredentialRepository:
         )
         if credential:
             credential.access_token = CredentialRepository.decrypt_token(
-                credential.user_id, token=credential.access_token
+                str(credential.user_id), token=credential.access_token
             )
             credential.refresh_token = CredentialRepository.decrypt_token(
-                credential.user_id, token=credential.refresh_token
+                str(credential.user_id), token=credential.refresh_token
             )
         return credential
-        # Get all credentials associated with email
 
     @staticmethod
     async def get_all_credentials(email: str) -> List[CredentialDocument]:
@@ -34,9 +33,10 @@ class CredentialRepository:
         credential = await CredentialRepository.get_credential(email=user_info.email)
         if not credential:
             credential = CredentialDocument(
-                email=user_info.email, user_id=user_info.user_id
+                email=user_info.email
             )
             credential.created_at = datetime.utcnow()
+        credential.user_id = user_info.user_id
         credential.access_token = CredentialRepository.encrypt_token(
             user_id=user_info.user_id, token=token.access_token
         )
