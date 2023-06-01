@@ -11,6 +11,7 @@ import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdow
 import { ListItemIcon, MenuItem, Typography } from '@mui/material';
 import { toast } from 'react-toastify';
 
+import { groupConstant } from '@app/constants/locales/group';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
@@ -46,22 +47,22 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
     const menuItems = [
         {
             icon: Preview,
-            text: 'Preview',
+            text: t(groupConstant.menu.preview),
             onClick: handlePreviewGroup
         },
         {
             icon: AddMember,
-            text: 'Add Member',
+            text: t(groupConstant.menu.addMember),
             onClick: handleUpdategroup
         },
         {
             icon: EditIcon,
-            text: 'Edit',
+            text: t(groupConstant.menu.edit),
             onClick: handleUpdategroup
         },
         {
             icon: DeleteIcon,
-            text: 'Delete',
+            text: t(groupConstant.menu.edit),
             onClick: handleDeletegroup
         }
     ];
@@ -104,7 +105,9 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
                 {responderGroup.description && <p className="body4 line-clamp-2 break-all !text-black-800 mt-4">{responderGroup.description}</p>}
             </div>
             <div>
-                <p className="mt-10 body6">Members ({responderGroup.emails.length})</p>
+                <p className="mt-10 body6">
+                    {t(groupConstant.members.default)} ({responderGroup.emails.length})
+                </p>
                 <div className=" line-clamp-2 mt-4 mb-10">
                     {responderGroup.emails.map((email, index) => (
                         <>

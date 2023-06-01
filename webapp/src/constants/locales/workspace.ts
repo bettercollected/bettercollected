@@ -1,4 +1,5 @@
 export const workspaceConstant = {
+    allResponders: 'WORKSPACE.ALL_RESPONDERS',
     handle: 'WORKSPACE_HANDLE',
     name: 'WORKSPACE_NAME',
     customDomain: 'CUSTOM_DOMAIN',

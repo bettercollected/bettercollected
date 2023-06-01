@@ -7,17 +7,19 @@ import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import WorkspaceGroups from '@app/components/workspace-responders/workspace-groups';
 import WorkspaceResponses from '@app/components/workspace-responders/workspace-responders';
 import { formConstant } from '@app/constants/locales/form';
+import { groupConstant } from '@app/constants/locales/group';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 
 export default function Responders({ workspace }: any) {
     const { t } = useTranslation();
 
     const paramTabs = [
         {
-            title: 'All Responders',
+            title: t(workspaceConstant.allResponders),
             path: 'All Responders'
         },
         {
-            title: 'Groups',
+            title: t(groupConstant.groups),
             path: 'Groups'
         }
     ];

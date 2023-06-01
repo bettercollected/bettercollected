@@ -11,6 +11,10 @@ import { PersistPartial } from 'redux-persist/es/persistReducer';
 import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
+import { buttonConstant } from '@app/constants/locales/buttons';
+import { localesGlobal } from '@app/constants/locales/global';
+import { groupConstant } from '@app/constants/locales/group';
+import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';
@@ -68,25 +72,28 @@ export default function CreateGroupModal({ responderGroup }: { responderGroup: R
                     closeModal();
                 }}
             />
-            <h4 className="h4 !leading-none">Create New Group</h4>
-            <p className="body4 leading-none mt-5 mb-10 text-black-700">Create a group to send forms to entire groups, streamlining the process and saving time.</p>
+            <h4 className="h4 !leading-none">{t(groupConstant.createNewGroup.default)}</h4>
+            <p className="body4 leading-none mt-5 mb-10 text-black-700">{t(groupConstant.createNewGroup.description)}</p>
             <p className="body4 leading-none mb-2">
-                Group Name<span className="text-red-800">*</span>
+                {t(groupConstant.name)}
+                <span className="text-red-800">*</span>
             </p>
-            <BetterInput value={groupInfo.name} className="!mb-0" inputProps={{ className: '!py-3' }} id="name" placeholder="Enter group name" onChange={handleInput} />
-            <p className="body4 leading-none mt-6 mb-2">Description</p>
-            <BetterInput value={groupInfo.description} className="!mb-0" inputProps={{ maxLength: 250 }} id="description" placeholder="Add description" rows={3} multiline onChange={handleInput} />
-            <p className="mt-10 leading-none mb-2 body1">Members(3)</p>
-            <p className="text-black-700 leading-none body4">Only these members can see your form in your workspace. </p>
+            <BetterInput value={groupInfo.name} className="!mb-0" inputProps={{ className: '!py-3' }} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
+            <p className="body4 leading-none mt-6 mb-2">{t(localesGlobal.description)}</p>
+            <BetterInput value={groupInfo.description} className="!mb-0" inputProps={{ maxLength: 250 }} id="description" placeholder={t(placeHolder.description)} rows={3} multiline onChange={handleInput} />
+            <p className="mt-10 leading-none mb-2 body1">
+                {t(groupConstant.members.default)}({groupInfo.emails.length})
+            </p>
+            <p className="text-black-700 leading-none body4">{t(groupConstant.members.description)} </p>
             <form onSubmit={addEmail} className="flex gap-2 mt-4 md:w-[350px]">
-                <BetterInput value={groupInfo.email} type="email" inputProps={{ className: '!py-3 ' }} id="email" placeholder="Enter member email" onChange={handleInput} />
+                <BetterInput value={groupInfo.email} type="email" inputProps={{ className: '!py-3 ' }} id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
                 <Button size="medium" disabled={!groupInfo.email} className={cn('bg-black-800 hover:!bg-black-900', !groupInfo.email && 'opacity-30')}>
-                    Add
+                    {t(buttonConstant.add)}
                 </Button>
             </form>
             {groupInfo.emails.length !== 0 && (
                 <div>
-                    <p className="mt-6 leading-none mb-4 body5">Member email</p>
+                    <p className="mt-6 leading-none mb-4 body5">{t(groupConstant.memberEmail)}</p>
                     <div className="items-center  w-full p-3 bg-white   gap-4 flex flex-wrap ">
                         {groupInfo.emails.map((email) => {
                             return (
@@ -109,7 +116,7 @@ export default function CreateGroupModal({ responderGroup }: { responderGroup: R
             )}
             <div className="flex justify-end mt-10">
                 <Button size="medium" disabled={!groupInfo.name || groupInfo.emails.length === 0} isLoading={isLoading} onClick={handleCreateGroup}>
-                    <span className="body1 !text-blue-100">{responderGroup ? 'Update Group' : 'Create Group'} </span>
+                    <span className="body1 !text-blue-100">{responderGroup ? 'Update Group' : t(groupConstant.createGroup)} </span>
                 </Button>
             </div>
         </div>

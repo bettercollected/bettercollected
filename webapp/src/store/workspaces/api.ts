@@ -343,6 +343,13 @@ export const workspacesApi = createApi({
                 credentials: 'include'
             }),
             invalidatesTags: [GROUP_TAGS]
+        }),
+        updateResponderGroupEmails: builder.query<any, any>({
+            query: (request) => ({
+                url: `${request.workspaceId}/responder-groups/${request.groupId}/emails`,
+                method: 'PATCH',
+                body: request.emails
+            })
         })
     })
 });
@@ -379,5 +386,6 @@ export const {
     useCreateRespondersGroupMutation,
     useGetRespondersGroupQuery,
     useGetAllRespondersGroupQuery,
-    useDeleteResponderGroupMutation
+    useDeleteResponderGroupMutation,
+    useUpdateResponderGroupEmailsQuery
 } = workspacesApi;

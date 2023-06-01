@@ -4,5 +4,8 @@ export const placeHolder = {
     workspaceTitle: 'PLACEHOLDER.WORKSPACE_TITLE',
     description: 'PLACEHOLDER.DESCRIPTION',
     enterCustomDomain: 'PLACEHOLDER.ENTER_CUSTOM_DOMAIN',
-    enterWorkspaceHandle: 'PLACEHOLDER.ENTER_WORKSPACE_HANDLE'
+    enterWorkspaceHandle: 'PLACEHOLDER.ENTER_WORKSPACE_HANDLE',
+    groupName: 'PLACEHOLDER.GROUP_NAME',
+    memberEmail: 'PLACEHOLDER.MEMBER_EMAIL',
+    search: 'PLACEHOLDER.SEARCH'
 };

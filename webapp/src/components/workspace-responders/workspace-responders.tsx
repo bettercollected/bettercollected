@@ -11,6 +11,8 @@ import EmptyResponse from '@app/components/ui/empty-response';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { formConstant } from '@app/constants/locales/form';
+import { groupConstant } from '@app/constants/locales/group';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import { WorkspaceResponderDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
@@ -96,7 +98,9 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
     }
     return (
         <div>
-            <p>All Responders {data && ' (' + data.total + ')'} </p>
+            <p>
+                {t(workspaceConstant.allResponders)} {data && ' (' + data.total + ')'}{' '}
+            </p>
             <div className="w-full md:w-[282px] mt-6">
                 <SearchInput handleSearch={handleSearch} />
             </div>

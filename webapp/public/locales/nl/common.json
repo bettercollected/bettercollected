@@ -22,6 +22,7 @@
         "SUBMISSIONS": "Inzendingen"
     },
     "BUTTON": {
+        "ADD": "Toevoegen",
         "BACK": "terug",
         "CANCEL": "Annuleren",
         "CHECK_MY_DATA": "Controleer mijn gegevens",
@@ -170,6 +171,32 @@
         "SHARE": "deel",
         "VISIBILITY": "Zichtbaarheid"
     },
+    "GROUP": {
+        "GROUPS": "Groepen",
+        "CREATE_A_GROUP_TO": "Maak een groep aan ",
+        "LIMIT_ACCESS_TO_FORM": "Beperk toegang tot formulier vanuit uw werkruimte",
+        "SEND_FORMS_TO_MULTIPLE_PEOPLE": "Stuur formulieren naar meerdere mensen tegelijk",
+        "CREATE_GROUP": "Groep aanmaken",
+        "MENU": {
+            "PREVIEW": "Voorbeeld",
+            "ADD_MEMBER": "Lid toevoegen",
+            "EDIT": "Bewerken",
+            "DELETE": "Verwijderen"
+        },
+        "CREATE_NEW_GROUP": {
+            "DEFAULT": "Nieuwe groep aanmaken",
+            "DESCRIPTION": "Maak een groep om formulieren naar hele groepen te sturen, stroomlijn het proces en bespaar tijd."
+        },
+        "NAME": "Groepsnaam",
+        "DESCRIPTION": "Stuur formulieren naar hele groepen, stroomlijn het proces en bespaar tijd.",
+        "MEMBERS": {
+            "DEFAULT": "Leden",
+            "DESCRIPTION": "Alleen deze leden kunnen uw formulier in uw werkruimte zien."
+        },
+        "CREATED_BY": "Gemaakt door",
+        "CREATED_ON": "Gemaakt op",
+        "MEMBER_EMAIL": "E-mailadres van lid"
+    },
     "HEY": "hoi",
     "HIDDEN": "Verborgen",
     "IMAGE": "Afbeelding",
@@ -181,7 +208,7 @@
         "RESPONSE_OWNER_TAG_LABEL": "Kies een gegevenseigenaarveld voor dit formulier",
         "RESPONSE_OWNER_TAG_TITLE": "Reactie-eigenaar tag",
         "TEXT_LABEL": "Kies uw Google-formulier",
-        "TITLE":"Selecteer een formulier om te importeren"
+        "TITLE": "Selecteer een formulier om te importeren"
     },
     "INVALID_DOMAIN": "Ongeldig domein",
     "INVALID_WORKSPACE_HANDLE": "Ongeldige werkruimtehandle",
@@ -242,7 +269,10 @@
         "DESCRIPTION": "Voeg uw beschrijving toe",
         "PRIVACY_POLICY_LINK": "Privacybeleid Link",
         "TERMS_OF_SERVICES_LINK": "Servicevoorwaardenlink",
-        "WORKSPACE_TITLE": "Bijv. Sireto-technologie"
+        "WORKSPACE_TITLE": "Bijv. Sireto-technologie",
+        "GROUP_NAME": "Voer groepsnaam in",
+        "MEMBER_EMAIL": "Voer het e-mailadres van het lid in",
+        "SEARCH": "zoek"
     },
     "POWERED_BY": "Mogelijk gemaakt door:",
     "PRICING_PLAN": {
@@ -316,7 +346,7 @@
         "WORKSPACE_SUCCESS": "Succes",
         "WORKSPACE_UPDATE": "Werkruimte bijgewerkt",
         "WORKSPACE_URL_COPIED": "Url van werkruimte gekopieerd",
-        "EMAIL_ALREADY_EXIST":"Dit e-mailadres bestaat al"
+        "EMAIL_ALREADY_EXIST": "Dit e-mailadres bestaat al"
     },
     "TOOLTIP": {
         "DELETION_REQUEST": "verwijderingsverzoeken",
@@ -394,6 +424,7 @@
         }
     },
     "WORKSPACE": {
+        "ALL_RESPONDERS": "Alle respondenten",
         "DEFAULT": "werkruimte",
         "BANNER": "Werkruimtebanner",
         "BANNER_EMPTY_MESSAGE": "Je kunt slepen om de afbeelding aan te passen.",
