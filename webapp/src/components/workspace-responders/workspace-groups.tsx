@@ -12,14 +12,11 @@ import Button from '@app/components/ui/button/button';
 import Loader from '@app/components/ui/loader';
 import { groupConstant } from '@app/constants/locales/group';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
-import { useAppSelector } from '@app/store/hooks';
-import { useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 
-export default function WorkspaceGropus() {
+export default function WorkspaceGropus({ responderGroups }: { responderGroups: Array<ResponderGroupDto> }) {
     const { openModal } = useModal();
     const { t } = useTranslation();
-    const workspace = useAppSelector((state) => state.workspace);
-    const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
+    const data = responderGroups;
     const emptyGroup = () => (
         <div className="my-[119px] flex flex-col items-center">
             <UserMore />
@@ -54,12 +51,6 @@ export default function WorkspaceGropus() {
         </div>
     );
 
-    if (isLoading)
-        return (
-            <div className=" w-full py-10 flex justify-center">
-                <Loader />
-            </div>
-        );
     if (data && data?.length > 0) return group();
     return emptyGroup();
 }

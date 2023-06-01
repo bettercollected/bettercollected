@@ -172,6 +172,7 @@
 		"VISIBILITY": "Visibility"
 	},
 	"GROUP": {
+		"DEFAULT": "Group",
 		"GROUPS": "Groups",
 		"CREATE_A_GROUP_TO": "Create a group to ",
 		"LIMIT_ACCESS_TO_FORM": "Limit access to form from your workspace",

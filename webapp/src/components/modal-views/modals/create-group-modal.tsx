@@ -22,7 +22,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useCreateRespondersGroupMutation } from '@app/store/workspaces/api';
 import { WorkspaceState } from '@app/store/workspaces/slice';
 
-export default function CreateGroupModal({ responderGroup }: { responderGroup: ResponderGroupDto }) {
+export default function CreateGroupModal({ responderGroup, email }: { responderGroup: ResponderGroupDto; email: string }) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
     const workspace = useAppSelector((state: { workspace: WorkspaceState & PersistPartial }) => state.workspace);
@@ -30,7 +30,7 @@ export default function CreateGroupModal({ responderGroup }: { responderGroup: R
         name: '',
         description: '',
         email: '',
-        emails: []
+        emails: email ? [email] : []
     });
     const [CreateResponderGroup, { isLoading }] = useCreateRespondersGroupMutation();
     const handleInput = (event: any) => {

@@ -14,7 +14,7 @@ export const groupConstant = {
         default: 'GROUP.CREATE_NEW_GROUP.DEFAULT',
         description: 'GROUP.CREATE_NEW_GROUP.DESCRIPTION'
     },
-
+    default: 'GROUP.DEFAULT',
     name: 'GROUP.NAME',
     description: 'GROUP.DESCRIPTION',
     members: {

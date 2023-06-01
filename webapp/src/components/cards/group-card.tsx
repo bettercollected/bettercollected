@@ -62,7 +62,7 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
         },
         {
             icon: DeleteIcon,
-            text: t(groupConstant.menu.edit),
+            text: t(groupConstant.menu.delete),
             onClick: handleDeletegroup
         }
     ];
@@ -111,7 +111,7 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
                 <div className=" line-clamp-2 mt-4 mb-10">
                     {responderGroup.emails.map((email, index) => (
                         <>
-                            <p key={email.identifier} className="inline-block !text-black-800">
+                            <p key={email.identifier} className="inline-block body4 !text-black-800">
                                 {email.identifier}
                             </p>
                             {responderGroup.emails.length - 1 !== index && <span className="pr-2">,</span>}
