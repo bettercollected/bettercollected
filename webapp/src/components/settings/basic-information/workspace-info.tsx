@@ -67,12 +67,12 @@ export default function WorkspaceInfo({ workspace }: any) {
                 <div className="gap-2 w-full">
                     <div className="body1 mb-4">{t(workspaceConstant.title)}</div>
 
-                    <BetterInput onChange={onChange} value={workspaceInfo.title} name="title" placeholder={t(placeHolder.workspaceTitle)} />
+                    <BetterInput onChange={onChange} value={workspaceInfo.title} className="bg-white" name="title" placeholder={t(placeHolder.workspaceTitle)} />
                 </div>
             </div>
             <div className="mt-6">
                 <div className="body1 mb-4">{t(workspaceConstant.description)}</div>
-                <BetterInput inputProps={{ maxLength: 280 }} className="w-full" size="medium" rows={5} multiline onChange={onChange} value={workspaceInfo.description} name="description" placeholder={t(placeHolder.description)} />
+                <BetterInput inputProps={{ maxLength: 280 }} className="w-full bg-white" size="medium" rows={5} multiline onChange={onChange} value={workspaceInfo.description} name="description" placeholder={t(placeHolder.description)} />
             </div>
             <div className="flex justify-end">
                 <Button type="submit" disabled={isLoading || !workspaceInfo.title} isLoading={isLoading}>

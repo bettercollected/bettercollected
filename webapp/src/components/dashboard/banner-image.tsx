@@ -98,12 +98,12 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                     {!!workspace.bannerImage ? (
                         <Image src={workspace?.bannerImage ?? ''} priority layout="fill" objectFit="cover" objectPosition="center" alt={workspace?.title} />
                     ) : isFormCreator ? (
-                        <div className="flex body1 text-black-700 flex-col   items-center justify-center h-full">
-                            <Image src={uploadImage} height="46px" width={'72px'} alt={'upload'} />
-                            <div className="lg:mt-2 cursor-pointer text-brand-500" onClick={onClickFileUploadButton}>
+                        <div className="flex body1 text-black-700 flex-col gap-3 items-center justify-center h-full">
+                            <Image src={uploadImage} height="29px" width="45px" alt={'upload'} />
+                            <div className="cursor-pointer body6 !leading-none !text-brand-500" onClick={onClickFileUploadButton}>
                                 {t(editWorkspace.uploadBannerImage)}
                             </div>
-                            <div className="hidden lg:mt-[12px] lg:flex text-black-700">{t(editWorkspace.bannerAspectRatio)}</div>
+                            <div className="hidden md:flex body5 !leading-none !text-black-700">{t(editWorkspace.bannerAspectRatio)}</div>
                         </div>
                     ) : (
                         <div className="flex h-full justify-center items-center">{t(localesGlobal.noImage)}</div>

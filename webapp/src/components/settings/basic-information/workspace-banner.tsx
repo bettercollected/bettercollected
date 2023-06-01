@@ -9,7 +9,7 @@ import { useAppSelector } from '@app/store/hooks';
 export default function WorkspaceBanner() {
     const workspace: WorkspaceDto = useAppSelector((state) => state.workspace);
     return (
-        <div className="!my-9 md:w-[674px] w-full rounded-[8px]">
+        <div className="!my-9 md:w-[674px] w-full rounded-[8px] bg-white">
             <BannerImageComponent workspace={workspace} isFormCreator={true} />
         </div>
     );
