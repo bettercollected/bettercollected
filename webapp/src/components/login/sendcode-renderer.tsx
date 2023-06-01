@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import FormProviderContext from '@app/Contexts/FormProviderContext';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
 import FormInput from '@app/components/ui/FormInput';
 import Button from '@app/components/ui/button';
@@ -9,7 +10,9 @@ import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/buttons';
 import { localesGlobal } from '@app/constants/locales/global';
 import { otpRenderer } from '@app/constants/locales/otp-renderer';
+import { IntegrationFormProviders } from '@app/models/dtos/provider';
 import { useAppSelector } from '@app/store/hooks';
+import { capitalize } from '@app/utils/stringUtils';
 
 export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustomDomain }: any) {
     const workspace = useAppSelector((state) => state.workspace);
@@ -51,7 +54,22 @@ export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustom
                     <span className="flex-shrink text-xs mx-4 text-gray-400">{t(localesGlobal.or)}</span>
                     <div className="border-t w-5 border-gray-200"></div>
                 </div>
-                <ConnectWithProviderButton url={`${environments.API_ENDPOINT_HOST}/auth/google/basic`} text="Sign in with Google" creator={false} />
+                <FormProviderContext.Consumer>
+                    {(formProviders: Array<IntegrationFormProviders>) => (
+                        <div className="flex flex-col gap-5">
+                            {formProviders.map((provider: IntegrationFormProviders) => (
+                                <ConnectWithProviderButton
+                                    key={provider.provider_name}
+                                    type={provider.provider_name === 'typeform' ? 'typeform' : 'dark'}
+                                    url={`${environments.API_ENDPOINT_HOST}/auth/${provider.provider_name}/basic`}
+                                    text={`Sign in with ${capitalize(provider.provider_name)}`}
+                                    creator={false}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </FormProviderContext.Consumer>
+                {/* <ConnectWithProviderButton url={`${environments.API_ENDPOINT_HOST}/auth/google/basic`} text="Sign in with Google" creator={false} /> */}
             </div>
         </form>
     );

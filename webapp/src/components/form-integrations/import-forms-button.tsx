@@ -1,27 +1,25 @@
-import React, { useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 
+import FormProviderContext from '@app/Contexts/FormProviderContext';
 import { useModal } from '@app/components/modal-views/context';
 import Button, { ButtonProps } from '@app/components/ui/button';
-import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/buttons';
 
 export default function ImportFormsButton({ size, className = '' }: ButtonProps) {
     const { openModal } = useModal();
     const router = useRouter();
     const { t } = useTranslation();
+    const formProviders = useContext(FormProviderContext);
 
-    const googleEnabled = environments.ENABLE_GOOGLE;
-    const typeformEnabled = environments.ENABLE_TYPEFORM;
-
-    const providers: Record<string, boolean> = {
-        google: !!googleEnabled,
-        typeform: !!typeformEnabled
-    };
+    const [providers, setProviders] = useState<Record<string, boolean>>({
+        google: false,
+        typeform: false
+    });
 
     const handleClick = () => {
         openModal('IMPORT_PROVIDER_FORMS_VIEW', { provider: null, providers });
@@ -45,13 +43,22 @@ export default function ImportFormsButton({ size, className = '' }: ButtonProps)
         }
     }, []);
 
+    useEffect(() => {
+        const providersRecord: Record<string, boolean> = {};
+        formProviders.forEach((provider) => {
+            // TODO: change this to provider.enabled in the value
+            providersRecord[provider.provider_name] = !!provider.provider_name;
+        });
+        setProviders({ ...providers, ...providersRecord });
+    }, [formProviders]);
+
     const importFormButton = (
-        <Button variant="solid" className={`w-full sm:w-auto ${className}`} disabled={!googleEnabled && !typeformEnabled} size={size} onClick={handleClick}>
+        <Button variant="solid" className={`w-full sm:w-auto ${className}`} disabled={!providers.google && !providers.typeform} size={size} onClick={handleClick}>
             {t(buttonConstant.importForms)}
         </Button>
     );
 
-    if (!googleEnabled && !typeformEnabled) {
+    if (!providers.google && !providers.typeform) {
         return <Tooltip title="Form Providers are disabled.">{importFormButton}</Tooltip>;
     }
 

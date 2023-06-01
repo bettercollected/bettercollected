@@ -102,14 +102,14 @@ export default function ImportProviderForms(props: any) {
         if (props?.providers) {
             const allProviders: Array<IIntegrations> = [];
             Object.keys(props?.providers).forEach((p) => {
-                if (p === 'google')
+                if (p === 'google' && props?.providers[p])
                     allProviders.push({
                         provider: 'google',
                         icon: <GoogleFormIcon className="h-[70px] w-[70px] md:h-[100px] md:w-[100px]" />,
                         name: 'Google Forms',
                         onClick: () => handleNext('google')
                     });
-                if (p === 'typeform')
+                if (p === 'typeform' && props?.providers[p])
                     allProviders.push({
                         provider: 'typeform',
                         icon: <TypeformIcon className="h-[70px] w-[70px] md:h-[100px] md:w-[100px]" />,

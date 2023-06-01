@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import ImportProviderForms from '@app/components/form-integrations/import-provider-forms';
 import DeleteFormModal from '@app/components/form/delete-form-modal';
 import { Close } from '@app/components/icons/close';
+import LoginView from '@app/components/login/login-view';
 import LogoutView from '@app/components/logout/logout-view';
 import { MODAL_VIEW, useModal } from '@app/components/modal-views/context';
 import CustomizeUrlModal from '@app/components/modal-views/modals/customize-url-modal';
@@ -16,6 +17,7 @@ import InviteMemberModal from '@app/components/modal-views/modals/invite-member-
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
 import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
 import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
+import RequestForDeletionView from '@app/components/submission-request-for-deletion';
 import UpdateTermsOfServiceAndPrivacyPolicy from '@app/components/toc-privacy-policy';
 import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
@@ -24,10 +26,6 @@ import { Transition } from '@app/components/ui/transition';
 import CreateGroupModal from './modals/create-group-modal';
 import CropImageModalView from './modals/crop-image-modal-view';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
-
-// dynamic imports
-const LoginView = dynamic(() => import('@app/components/login/login-view'));
-const RequestForDeletionView = dynamic(() => import('@app/components/submission-request-for-deletion'));
 
 function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
     switch (view) {

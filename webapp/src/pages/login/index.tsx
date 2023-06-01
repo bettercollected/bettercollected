@@ -5,6 +5,7 @@ import Image from 'next/image';
 
 import { Check } from '@mui/icons-material';
 
+import FormProviderContext from '@app/Contexts/FormProviderContext';
 import ImageLoginLaptopScreen from '@app/assets/images/login-laptop-screen.png';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
 import Logo from '@app/components/ui/logo';
@@ -13,8 +14,10 @@ import { localesGlobal } from '@app/constants/locales/global';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
+import { IntegrationFormProviders } from '@app/models/dtos/provider';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import { capitalize } from '@app/utils/stringUtils';
 
 export async function getServerSideProps(_context: any) {
     const config = getServerSideAuthHeaderConfig(_context);
@@ -101,8 +104,21 @@ export const Login = () => {
                     <p className="sh2 mb-12 !text-black-700">{constants.subHeading2}</p>
 
                     <div className="flex flex-col gap-[20px] mb-[60px]">
-                        {environments.ENABLE_GOOGLE && <ConnectWithProviderButton type="dark" url={`${environments.API_ENDPOINT_HOST}/auth/google/basic`} text="Sign in with Google" creator />}
-                        {environments.ENABLE_TYPEFORM && <ConnectWithProviderButton type="typeform" url={`${environments.API_ENDPOINT_HOST}/auth/typeform/basic`} text="Sign in with Typeform" creator />}
+                        <FormProviderContext.Consumer>
+                            {(formProviders: Array<IntegrationFormProviders>) => (
+                                <>
+                                    {formProviders.map((provider: IntegrationFormProviders) => (
+                                        <ConnectWithProviderButton
+                                            key={provider.provider_name}
+                                            type={provider.provider_name === 'typeform' ? 'typeform' : 'dark'}
+                                            url={`${environments.API_ENDPOINT_HOST}/auth/${provider.provider_name}/basic`}
+                                            text={`Sign in with ${capitalize(provider.provider_name)}`}
+                                            creator
+                                        />
+                                    ))}
+                                </>
+                            )}
+                        </FormProviderContext.Consumer>
                     </div>
 
                     <div className="body4">

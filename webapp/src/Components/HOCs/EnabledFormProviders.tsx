@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
+import FormProviderContext from '@app/Contexts/FormProviderContext';
+import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { useGetEnabledProvidersQuery } from '@app/store/providers/api';
 
 interface IEnabledFormProvidersProps {
@@ -7,9 +9,13 @@ interface IEnabledFormProvidersProps {
 }
 
 export default function EnabledFormProviders({ children }: IEnabledFormProvidersProps) {
-    useGetEnabledProvidersQuery(undefined, {
-        pollingInterval: 30000
+    const { data, isLoading, isError } = useGetEnabledProvidersQuery(undefined, {
+        pollingInterval: 120000
     });
 
-    return <>{children}</>;
+    const formProviders = useMemo(() => (isError ? [] : data ?? []), [isError, data]);
+
+    if (isLoading) return <FullScreenLoader />;
+
+    return <FormProviderContext.Provider value={formProviders}>{children}</FormProviderContext.Provider>;
 }
