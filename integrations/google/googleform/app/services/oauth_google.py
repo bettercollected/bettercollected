@@ -7,8 +7,8 @@ import google_auth_oauthlib.flow
 import requests
 from fastapi import HTTPException
 from google.auth.exceptions import RefreshError
-from googleapiclient.errors import HttpError
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from loguru import logger
 from oauthlib.oauth1 import InvalidClientError
 from oauthlib.oauth2 import InvalidGrantError
@@ -121,12 +121,14 @@ class OauthGoogleService:
                 detail=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
 
-    async def oauth2callback(self, request: Request):
+    async def oauth2callback(self, request: Request, user_id: str):
         """
         Process the OAuth 2.0 callback and fetch the access token.
 
         Args:
             request (Request): The request object of the OAuth 2.0 callback.
+            user_id (str): The user_id of user to get credential for
+
 
         Returns:
             user_info: Returns user info with email.
@@ -150,14 +152,18 @@ class OauthGoogleService:
             user = await self.get_google_user(credentials)
             email = user.get("email")
             if user.get("email") == state_json.get("email"):
-                db_credentials = await self.oauth_credential_repo.get(email)
+                db_credentials = await self.oauth_credential_repo.get(
+                    email, user_id=user_id
+                )
                 if db_credentials:
                     db_credentials.updated_at = datetime.now()
                     db_credentials.credentials = json.loads(json_credentials)
-                    await self.oauth_credential_repo.update(email, db_credentials)
+                    await self.oauth_credential_repo.update(
+                        email, db_credentials, user_id=user_id
+                    )
                 else:
                     await self.oauth_credential_repo.add(
-                        email, json.loads(json_credentials)
+                        email, json.loads(json_credentials), user_id=user_id
                     )
             user_info = UserInfo(email=email)
             return user_info

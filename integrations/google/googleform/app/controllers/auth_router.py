@@ -2,12 +2,10 @@
 import logging
 
 from classy_fastapi import Routable, get
+from starlette.requests import Request
 
 from common.models.user import UserInfo
-
 from googleform.app.containers import Container
-
-from starlette.requests import Request
 
 log = logging.getLogger(__name__)
 
@@ -23,6 +21,6 @@ class AuthRoutes(Routable):
         return {"oauth_url": authorization_url}
 
     @get("/oauth/callback")
-    async def _oauth_callback(self, request: Request) -> UserInfo:
-        user_info = await self.oauth_google_service.oauth2callback(request)
+    async def _oauth_callback(self, request: Request, user_id: str) -> UserInfo:
+        user_info = await self.oauth_google_service.oauth2callback(request, user_id)
         return user_info

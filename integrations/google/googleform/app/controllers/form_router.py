@@ -16,7 +16,6 @@ from googleform.app.services.user_service import get_user_credential
 class GoogleFormRouter(Routable):
     def __init__(self, *args, **kwargs):
         """This class defines the routes for interacting with the Google forms."""
-
         # Injecting dependencies
         super().__init__(*args, **kwargs)
         self.oauth_credential_service = Container.oauth_credential_service()
