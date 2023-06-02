@@ -48,9 +48,10 @@ class ResponderGroupsService:
         await self.check_user_can_access_group(
             workspace_id=workspace_id, group_id=group_id, user=user
         )
-        await self.responder_groups_repo.update_group(
+        response = await self.responder_groups_repo.update_group(
             group_id=group_id, emails=emails, name=name, description=description, workspace_id=workspace_id
         )
+        return response.dict()
 
     async def create_group(
             self,
