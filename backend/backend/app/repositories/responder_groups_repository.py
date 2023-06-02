@@ -37,6 +37,19 @@ class ResponderGroupsRepository:
         await ResponderGroupMemberDocument.insert_many(responder_group_emails)
         return responder_group
 
+    async def update_group(
+            self,
+            workspace_id: PydanticObjectId,
+            name: str,
+            description: Optional[str],
+            emails: List[EmailStr],
+            group_id: PydanticObjectId
+    ):
+        responder_group = await ResponderGroupDocument.find_one(
+            {"workspace_id": workspace_id, "_id": group_id}
+        )
+        return responder_group
+
     async def get_group_in_workspace(
             self, workspace_id: PydanticObjectId, group_id: PydanticObjectId
     ):
@@ -88,10 +101,11 @@ class ResponderGroupsRepository:
                             "_id": 1,
                             "name": 1,
                             "workspace_id": 1,
-                            "$set": {"emails": "$emails.identifier"},
+                            "emails": "$emails.identifier",
                             "description": 1,
                         }
                     },
+
                 ]
             )
             .to_list()
@@ -120,10 +134,12 @@ class ResponderGroupsRepository:
                             "_id": 1,
                             "name": 1,
                             "workspace_id": 1,
-                            "emails": {"identifier": 1},
+                            "emails": "$emails.identifier",
                             "description": 1,
+
                         }
                     },
+
                 ],
                 projection_model=ResponderGroupDto,
             )

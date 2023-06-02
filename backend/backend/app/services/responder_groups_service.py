@@ -16,15 +16,15 @@ from common.models.user import User
 
 class ResponderGroupsService:
     def __init__(
-        self,
-        responder_groups_repo: ResponderGroupsRepository,
-        workspace_user_service: WorkspaceUserService,
+            self,
+            responder_groups_repo: ResponderGroupsRepository,
+            workspace_user_service: WorkspaceUserService,
     ):
         self.responder_groups_repo = responder_groups_repo
         self.workspace_user_service = workspace_user_service
 
     async def get_users_in_group(
-        self, workspace_id: PydanticObjectId, group_id: PydanticObjectId, user: User
+            self, workspace_id: PydanticObjectId, group_id: PydanticObjectId, user: User
     ):
         await self.check_user_can_access_group(workspace_id, group_id, user)
         response = await self.responder_groups_repo.get_emails_in_group(
@@ -36,13 +36,29 @@ class ResponderGroupsService:
             )
         return ResponderGroupDto(**response)
 
+    async def update_responder_group(
+            self,
+            workspace_id: PydanticObjectId,
+            group_id: PydanticObjectId,
+            user: User,
+            name: str,
+            emails: List[EmailStr],
+            description: str
+    ):
+        await self.check_user_can_access_group(
+            workspace_id=workspace_id, group_id=group_id, user=user
+        )
+        await self.responder_groups_repo.update_group(
+            group_id=group_id, emails=emails, name=name, description=description, workspace_id=workspace_id
+        )
+
     async def create_group(
-        self,
-        workspace_id: PydanticObjectId,
-        name: str,
-        emails: List[EmailStr],
-        user: User,
-        description: str,
+            self,
+            workspace_id: PydanticObjectId,
+            name: str,
+            emails: List[EmailStr],
+            user: User,
+            description: str,
     ):
         await self.workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
@@ -52,11 +68,11 @@ class ResponderGroupsService:
         )
 
     async def add_emails_to_group(
-        self,
-        workspace_id: PydanticObjectId,
-        group_id: PydanticObjectId,
-        emails: List[EmailStr],
-        user: User,
+            self,
+            workspace_id: PydanticObjectId,
+            group_id: PydanticObjectId,
+            emails: List[EmailStr],
+            user: User,
     ):
         await self.check_user_can_access_group(
             workspace_id=workspace_id, group_id=group_id, user=user
@@ -66,11 +82,11 @@ class ResponderGroupsService:
         )
 
     async def remove_emails_from_group(
-        self,
-        workspace_id: PydanticObjectId,
-        group_id: PydanticObjectId,
-        emails: List[EmailStr],
-        user: User,
+            self,
+            workspace_id: PydanticObjectId,
+            group_id: PydanticObjectId,
+            emails: List[EmailStr],
+            user: User,
     ):
         await self.check_user_can_access_group(
             workspace_id=workspace_id, group_id=group_id, user=user
@@ -80,7 +96,7 @@ class ResponderGroupsService:
         )
 
     async def check_user_can_access_group(
-        self, workspace_id: PydanticObjectId, group_id: PydanticObjectId, user: User
+            self, workspace_id: PydanticObjectId, group_id: PydanticObjectId, user: User
     ):
         await self.workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
@@ -92,7 +108,7 @@ class ResponderGroupsService:
             return HTTPException(status_code=HTTPStatus.NOT_FOUND, content=not_found)
 
     async def remove_responder_group(
-        self, workspace_id: PydanticObjectId, group_id: PydanticObjectId, user: User
+            self, workspace_id: PydanticObjectId, group_id: PydanticObjectId, user: User
     ):
         await self.check_user_can_access_group(
             workspace_id=workspace_id, user=user, group_id=group_id
