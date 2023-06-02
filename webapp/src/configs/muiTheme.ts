@@ -23,6 +23,14 @@ export const lightTheme = createTheme({
                     zIndex: '3000 !important'
                 }
             }
+        },
+        MuiMobileStepper: {
+            styleOverrides: {
+                progress: {
+                    color: '#343A40',
+                    width: '100%'
+                }
+            }
         }
     },
     breakpoints: {
