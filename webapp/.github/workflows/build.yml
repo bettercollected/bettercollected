@@ -42,7 +42,9 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: ${{ format('bettercollected/webapp:{0}', github.sha) }}
+          tags: |
+            bettercollected/webapp:${{ github.sha }}
+            ${{ format('bettercollected/webapp:{0}', github.ref == 'refs/heads/master' && 'latest' || 'nightly') }}
           build-args: |
             SENTRY_DSN=${{ secrets.SENTRY_DSN }}
             SENTRY_RELEASE=${{ secrets.SENTRY_RELEASE }}
