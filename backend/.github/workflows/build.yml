@@ -36,7 +36,9 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: ${{ format('bettercollected/backend:{0}', github.sha) }}
+          tags: |
+            bettercollected/backend:${{ github.sha }}
+            ${{ format('bettercollected/backend:{0}', github.ref == 'refs/heads/master' && 'latest' || 'nightly') }}
 
   deploy:
     needs: [ build, sonarcloud ]
