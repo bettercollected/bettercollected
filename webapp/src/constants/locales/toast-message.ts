@@ -23,5 +23,9 @@ export const toastMessage = {
     updated: 'TOAST.UPDATED_SUCCESSFULLY',
     invalidUrl: 'TOAST.INVALID_URL',
     formUrlCopied: 'TOAST.FORM_URL_COPIED',
-    emailAlreadyExist: 'TOAST.EMAIL_ALREADY_EXIST'
+    emailAlreadyExist: 'TOAST.EMAIL_ALREADY_EXIST',
+    groupDeleted: 'TOAST.GROUP_DELETED',
+    addedOnGroup: 'TOAST.ADDED_ON_GROUP',
+    removeFromGroup: 'TOAST.REMOVE_FROM_GROUP',
+    alreadyInGroup: 'ALREADY_IN_GROUP'
 };

@@ -47,5 +47,6 @@ export const localesGlobal = {
     linkToTermsOfServices: 'LINK_TO_TERMS_OF_SERVICES',
     shareYourWorkspace: 'SHARE_YOUR_WORKSPACE',
     deletionRemaining: 'DELETION_REMAINING',
-    forms: 'FORMS'
+    forms: 'FORMS',
+    respondersAndGroups: 'RESPONDERS_AND_GROUPS'
 };

@@ -71,7 +71,8 @@
         "REMOVE_INVITATION": "Uitnodiging verwijderen",
         "DELETE_MEMBER": "Lid verwijderen",
         "SKIP": "Overslaan",
-        "UPDATE_NOW": "Update nu"
+        "UPDATE_NOW": "Update nu",
+        "SAVE_CHANGES": "Wijzigingen opslaan"
     },
     "CONTACT_US": {
         "DESCRIPTION": "Vragen of opmerkingen? Schrijf ons gewoon een bericht",
@@ -193,6 +194,7 @@
             "DEFAULT": "Leden",
             "DESCRIPTION": "Alleen deze leden kunnen uw formulier in uw werkruimte zien."
         },
+        "EDIT_GROUP": "Groep bewerken",
         "CREATED_BY": "Gemaakt door",
         "CREATED_ON": "Gemaakt op",
         "MEMBER_EMAIL": "E-mailadres van lid"
@@ -291,6 +293,7 @@
     "REMOVE": "Verwijderen",
     "REMOVE_INVITATION_FOR": "Uitnodiging verwijderen voor",
     "REMOVE_WARNING_MESSAGE": "Het verwijderen van een lid zal ook alle door de gebruiker geïmporteerde formulieren verwijderen",
+    "RESPONDERS_AND_GROUPS": "Responders en groepen",
     "SAVE": "Opslaan",
     "SEND_CODE": {
         "DESCRIPTION": "OTP-code wordt naar deze e-mail verzonden",
@@ -346,7 +349,11 @@
         "WORKSPACE_SUCCESS": "Succes",
         "WORKSPACE_UPDATE": "Werkruimte bijgewerkt",
         "WORKSPACE_URL_COPIED": "Url van werkruimte gekopieerd",
-        "EMAIL_ALREADY_EXIST": "Dit e-mailadres bestaat al"
+        "EMAIL_ALREADY_EXIST": "Dit e-mailadres bestaat al",
+        "GROUP_DELETED": "Groep succesvol verwijderd",
+        "ADDED_ON_GROUP": "Toegevoegd aan groep",
+        "REMOVE_FROM_GROUP": "Verwijderd uit groep",
+        "ALREADY_IN_GROUP": "Al in groep"
     },
     "TOOLTIP": {
         "DELETION_REQUEST": "verwijderingsverzoeken",

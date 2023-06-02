@@ -78,7 +78,7 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
         },
         {
             key: 'responders',
-            name: t(formConstant.responders),
+            name: t(localesGlobal.respondersAndGroups),
             url: `${commonWorkspaceUrl}/responders`,
             icon: <ResponderIcon />
         },

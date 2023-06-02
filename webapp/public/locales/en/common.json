@@ -71,7 +71,8 @@
 		"REMOVE_INVITATION": "Remove invitation",
 		"DELETE_MEMBER": "Delete member",
 		"SKIP": "Skip",
-		"UPDATE_NOW": "Update Now"
+		"UPDATE_NOW": "Update Now",
+		"SAVE_CHANGES": "Save Changes"
 	},
 	"CONTACT_US": {
 		"DESCRIPTION": "Any questions or remarks? Just write us a message",
@@ -184,6 +185,7 @@
 			"EDIT": "Edit",
 			"DELETE": "Delete"
 		},
+		"EDIT_GROUP": "Edit Group",
 		"CREATE_NEW_GROUP": {
 			"DEFAULT": "Create New Group",
 			"DESCRIPTION": "Create a group to send forms to entire groups, streamlining the process and saving time."
@@ -292,6 +294,7 @@
 	"REMOVE": "Remove",
 	"REMOVE_INVITATION_FOR": "Remove invitation for",
 	"REMOVE_WARNING_MESSAGE": "Removing a member will also remove all forms imported by the user",
+	"RESPONDERS_AND_GROUPS": "Responders and Groups",
 	"SAVE": "Save",
 	"SEND_CODE": {
 		"DESCRIPTION": "OTP code will be sent to this email",
@@ -347,7 +350,11 @@
 		"WORKSPACE_SUCCESS": "Success",
 		"WORKSPACE_UPDATE": "Workspace Updated",
 		"WORKSPACE_URL_COPIED": "Workspace Url Copied",
-		"EMAIL_ALREADY_EXIST": "This email address is already exist"
+		"EMAIL_ALREADY_EXIST": "This email address is already exist",
+		"GROUP_DELETED": "Group deleted Successfully",
+		"ADDED_ON_GROUP": "Added on group",
+		"REMOVE_FROM_GROUP": "Removed from group",
+		"ALREADY_IN_GROUP": "Already in group"
 	},
 	"TOOLTIP": {
 		"DELETION_REQUEST": "deletion requests",

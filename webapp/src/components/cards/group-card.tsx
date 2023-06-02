@@ -12,6 +12,7 @@ import { ListItemIcon, MenuItem, Typography } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import { groupConstant } from '@app/constants/locales/group';
+import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
@@ -33,7 +34,7 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
             groupId: responderGroup.id
         });
         if (response?.data) {
-            toast(response.data, { toastId: ToastId.SUCCESS_TOAST });
+            toast(t(toastMessage.groupDeleted).toString(), { toastId: ToastId.SUCCESS_TOAST });
         } else {
             toast(response?.error || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
         }
@@ -41,7 +42,7 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
     const handlePreviewGroup = () => {
         return openModal('PREVIEW_GROUP', { responderGroup: responderGroup });
     };
-    const handleUpdategroup = () => {
+    const handleUpdateGroup = () => {
         return openModal('CREATE_GROUP', { responderGroup: responderGroup });
     };
     const menuItems = [
@@ -51,14 +52,9 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
             onClick: handlePreviewGroup
         },
         {
-            icon: AddMember,
-            text: t(groupConstant.menu.addMember),
-            onClick: handleUpdategroup
-        },
-        {
             icon: EditIcon,
             text: t(groupConstant.menu.edit),
-            onClick: handleUpdategroup
+            onClick: handleUpdateGroup
         },
         {
             icon: DeleteIcon,
@@ -106,13 +102,13 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
             </div>
             <div>
                 <p className="mt-10 body6">
-                    {t(groupConstant.members.default)} ({responderGroup.emails.length})
+                    {responderGroup.emails.length > 1 ? t(members.default) : t(members.member)} ({responderGroup.emails.length})
                 </p>
                 <div className=" line-clamp-2 mt-4 mb-10">
                     {responderGroup.emails.map((email, index) => (
                         <>
-                            <p key={email.identifier} className="inline-block body4 !text-black-800">
-                                {email.identifier}
+                            <p key={email} className="inline-block body4 !text-black-800">
+                                {email}
                             </p>
                             {responderGroup.emails.length - 1 !== index && <span className="pr-2">,</span>}
                         </>

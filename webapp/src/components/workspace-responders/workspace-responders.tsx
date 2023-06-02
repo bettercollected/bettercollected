@@ -44,29 +44,32 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
     const handlePageChange = (e: any, page: number) => {
         setQuery({ ...query, page: page });
     };
-    const deleteResponderFromGroup = async (email: string, groupId: string) => {
-        const response: any = await deleteEmail({
+    const deleteResponderFromGroup = async (email: string, group: ResponderGroupDto) => {
+        await deleteEmail({
             workspaceId: workspace.id,
-            groupId: groupId,
+            groupId: group.id,
             emails: [email]
-        });
-        if (response?.data) {
-            toast('Group Unlink', { toastId: ToastId.SUCCESS_TOAST });
-        } else {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
-        }
+        }).then(
+            (data) => toast(t(toastMessage.removeFromGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' }),
+            (error) => {
+                toast(error?.message || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            }
+        );
     };
-    const addResponderOnGroup = async (email: string, groupId: string) => {
-        const response: any = await addEmail({
-            workspaceId: workspace.id,
-            groupId: groupId,
-            emails: [email]
-        });
-        if (response?.data) {
-            toast('Group Link', { toastId: ToastId.SUCCESS_TOAST });
-        }
-        if (response?.error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
+    const addResponderOnGroup = async (email: string, group: ResponderGroupDto) => {
+        if (group.emails.includes(email)) {
+            toast(t(toastMessage.alreadyInGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+        } else {
+            await addEmail({
+                workspaceId: workspace.id,
+                groupId: group.id,
+                emails: [email]
+            }).then(
+                (data) => toast(t(toastMessage.addedOnGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' }),
+                (error) => {
+                    toast(error?.message || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+                }
+            );
         }
     };
 
@@ -79,14 +82,14 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
     const showResponderGroups = (email: string) => (
         <div className="flex flex-col gap-1">
             {responderGroups.map((group) => {
-                if (group.emails.filter((emailIdentifier) => emailIdentifier.identifier === email).length !== 0) {
+                if (group.emails.includes(email)) {
                     return (
                         <div key={group.id} className="p-1 rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500">
                             <span className="body5 text-black-8000">{group.name}</span>
                             <Close
                                 className="h-2 w-2 cursor-pointer"
                                 onClick={() => {
-                                    deleteResponderFromGroup(email, group.id);
+                                    deleteResponderFromGroup(email, group);
                                 }}
                             />
                         </div>
@@ -98,7 +101,7 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
                 <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} onClick={() => {}} menuContent={addButton(() => {})}>
                     {responderGroups.map((group) => {
                         return (
-                            <MenuItem onClick={() => addResponderOnGroup(email, group.id)} key={group.id} className="py-3 hover:bg-black-200">
+                            <MenuItem onClick={() => addResponderOnGroup(email, group)} key={group.id} className="py-3 hover:bg-black-200">
                                 <span className="body4">{group.name}</span>
                             </MenuItem>
                         );

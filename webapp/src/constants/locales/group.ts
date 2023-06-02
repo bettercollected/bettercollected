@@ -23,5 +23,6 @@ export const groupConstant = {
     },
     createdBy: 'GROUP.CREATED_BY',
     createdOn: 'GROUP.CREATED_ON',
-    memberEmail: 'GROUP.MEMBER_EMAIL'
+    memberEmail: 'GROUP.MEMBER_EMAIL',
+    editGroup: 'GROUP.EDIT_GROUP'
 };

@@ -71,7 +71,8 @@
         "REMOVE_INVITATION": "निमन्त्रणा हटाउनुहोस्",
         "DELETE_MEMBER": "सदस्य मेट्नुहोस्",
         "SKIP": "छाड्नुहोस्",
-        "UPDATE_NOW": "अपडेट गर्नुहोस्"
+        "UPDATE_NOW": "अपडेट गर्नुहोस्",
+        "SAVE_CHANGES": "परिवर्तनहरू गर्नुहोस्"
     },
     "CONTACT_US": {
         "DESCRIPTION": "कुनै प्रश्न वा टिप्पणी? हामीलाई सन्देश लेख्नुहोस्",
@@ -195,7 +196,8 @@
         },
         "CREATED_BY": "द्वारा सिर्जना गरिएको",
         "CREATED_ON": "सृजना गरिएको",
-        "MEMBER_EMAIL": "सदस्य इमेल"
+        "MEMBER_EMAIL": "सदस्य इमेल",
+        "EDIT_GROUP": "समूह सम्पादन गर्नुहोस्"
     },
     "HEY": "नमस्ते",
     "HIDDEN": "लुकेको",
@@ -291,6 +293,7 @@
     "REMOVE": "हटाउनुहोस्",
     "REMOVE_INVITATION_FOR": "निमन्त्रणा हटाउनुहोस्",
     "REMOVE_WARNING_MESSAGE": "सदस्य हटाउनाले प्रयोगकर्ताद्वारा आयात गरिएका सबै फारमहरू पनि हट्नेछ",
+    "RESPONDERS_AND_GROUPS": "प्रतिक्रियाकर्ता र समूहहरू",
     "SAVE": "बचत गर्नुहोस्",
     "SEND_CODE": {
         "DESCRIPTION": "ओटीपी कोड यो इमेलमा पठाइनेछ",
@@ -346,7 +349,11 @@
         "WORKSPACE_SUCCESS": "सफल",
         "WORKSPACE_UPDATE": "कार्यस्थान अद्यावधिक गरियो",
         "WORKSPACE_URL_COPIED": "कार्यस्थान URL प्रतिलिपि गरियो",
-        "EMAIL_ALREADY_EXIST": "यो इमेल ठेगाना पहिले नै अवस्थित छ"
+        "EMAIL_ALREADY_EXIST": "यो इमेल ठेगाना पहिले नै अवस्थित छ",
+        "GROUP_DELETED": "समूह सफलतापूर्वक मेटाइयो",
+        "ADDED_ON_GROUP": "समूहमा थपियो",
+        "REMOVE_FROM_GROUP": "समूहबाट हटाइयो",
+        "ALREADY_IN_GROUP": "पहिले नै समूहमा"
     },
     "TOOLTIP": {
         "DELETION_REQUEST": "मेटाउने अनुरोधहरू",

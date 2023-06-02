@@ -5,12 +5,6 @@ export interface GroupInfoDto {
     emails: Array<string>;
 }
 
-export interface ResponderGroupDto {
+export interface ResponderGroupDto extends GroupInfoDto {
     id: string;
-    name: string;
-    description: string;
-    emails: Array<emailDto>;
-}
-export interface emailDto {
-    identifier: string;
 }

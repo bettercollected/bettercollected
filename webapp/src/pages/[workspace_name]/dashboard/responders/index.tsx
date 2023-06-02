@@ -2,6 +2,9 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import ResponderIcon from '@Components/Common/Icons/Responder';
+
+import UserMore from '@app/components/icons/user-more';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import Loader from '@app/components/ui/loader';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
@@ -17,10 +20,12 @@ export default function Responders({ workspace }: any) {
     const responderGroupsQuery = useGetAllRespondersGroupQuery(workspace.id);
     const paramTabs = [
         {
+            icon: <ResponderIcon className="w-10 h-10" />,
             title: t(workspaceConstant.allResponders),
             path: 'All Responders'
         },
         {
+            icon: <UserMore className="w-10 h-10" />,
             title: t(groupConstant.groups),
             path: 'Groups'
         }

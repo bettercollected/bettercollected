@@ -366,7 +366,7 @@ export const workspacesApi = createApi({
             query: (request) => ({
                 url: `workspaces/${request.workspaceId}/forms/${request.formId}/groups/add`,
                 method: 'PATCH',
-                parms: {
+                params: {
                     group_id: request.groupId
                 }
             })
@@ -374,11 +374,23 @@ export const workspacesApi = createApi({
         deleteGroupForm: builder.mutation<any, any>({
             query: (request) => ({
                 url: `workspaces/${request.workspaceId}/forms/${request.formId}/groups`,
-                parms: {
+                params: {
                     group_id: request.groupId
                 },
                 method: 'DELETE'
             })
+        }),
+        updateResponderGroup: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `${request.workspaceId}/responder-groups/${request.groupId}`,
+                params: {
+                    name: request.groupInfo.name,
+                    description: request.groupInfo.description
+                },
+                body: request.groupInfo.emails,
+                method: 'PATCH'
+            }),
+            invalidatesTags: [GROUP_TAGS]
         })
     })
 });
@@ -419,5 +431,6 @@ export const {
     useAddResponderOnGroupMutation,
     useAddFormOnGroupMutation,
     useDeleteResponderFromGroupMutation,
-    useDeleteGroupFormMutation
+    useDeleteGroupFormMutation,
+    useUpdateResponderGroupMutation
 } = workspacesApi;
