@@ -58,8 +58,8 @@ class ResponderGroupsRouter(Routable):
     @patch("/{group_id}", summary="Update Responder Group")
     async def update_user_group(
             self,
-            group_id: PydanticObjectId,
             workspace_id: PydanticObjectId,
+            group_id: PydanticObjectId,
             name: str,
             description: Optional[str] = None,
             emails: List[EmailStr] = None,

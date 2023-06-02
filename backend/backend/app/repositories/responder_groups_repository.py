@@ -48,7 +48,11 @@ class ResponderGroupsRepository:
         responder_group = await ResponderGroupDocument.find_one(
             {"workspace_id": workspace_id, "_id": group_id}
         )
-        return responder_group
+
+        if responder_group:
+            responder_group.name = name
+            responder_group.description = description
+        return await responder_group.save()
 
     async def get_group_in_workspace(
             self, workspace_id: PydanticObjectId, group_id: PydanticObjectId
