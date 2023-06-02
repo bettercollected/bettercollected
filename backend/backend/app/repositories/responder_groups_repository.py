@@ -52,19 +52,18 @@ class ResponderGroupsRepository:
             {"group_id": group_id}
         ).to_list()
         for existing_group_member in existing_group_members:
-            if existing_group_member.identifier != emails:
                 for email in existing_group_member:
                     await ResponderGroupMemberDocument.find(
                         {"group_id": group_id, "identifier": {"$in": email}}
                     ).delete()
-                responder_group_emails = []
-                for email in emails:
-                    responder_group_emails.append(
-                        ResponderGroupMemberDocument(
-                            group_id=responder_group.id, identifier=email
-                        )
-                    )
-                await ResponderGroupMemberDocument.insert_many(responder_group_emails)
+        responder_group_emails = []
+        for email in emails:
+            responder_group_emails.append(
+                ResponderGroupMemberDocument(
+                    group_id=responder_group.id, identifier=email
+                )
+            )
+        await ResponderGroupMemberDocument.insert_many(responder_group_emails)
 
         if responder_group:
             responder_group.name = name
