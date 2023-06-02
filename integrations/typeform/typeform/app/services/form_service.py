@@ -9,11 +9,12 @@ from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.form_import import FormImportResponse
 from common.models.user import Credential, Token
 from typeform.app.exceptions import HTTPException
+from typeform.app.repositories.credentials_repository import CredentialRepository
 from typeform.app.services.transformer_service import TypeFormTransformerService
 from typeform.config import settings
 
 
-def refresh_typeform_token(refresh_token) -> Token:
+async def refresh_typeform_token(refresh_token, email: str = None) -> Token:
     data = {
         "grant_type": "refresh_token",
         "refresh_token": refresh_token,
@@ -25,6 +26,7 @@ def refresh_typeform_token(refresh_token) -> Token:
     if typeform_response.status_code > 299 or typeform_response.status_code < 200:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
     typeform_token = Token(**typeform_response.json())
+    await CredentialRepository.update_credentials(email=email, token=typeform_token)
     return typeform_token
 
 
@@ -68,7 +70,7 @@ def get_all_data_without_pagination(
     return all_data
 
 
-def get_latest_token(credential: Credential):
+async def get_latest_token(credential: Credential):
     expiration_time = credential.updated_at + datetime.timedelta(
         seconds=credential.access_token_expires
     )
@@ -80,20 +82,20 @@ def get_latest_token(credential: Credential):
     # If the token is expired then refresh the token if the refresh
     # token itself is expired then it throws error
     if current_time > expiration_time:
-        token = refresh_typeform_token(credential.refresh_token)
+        token = await refresh_typeform_token(credential.refresh_token, credential.email)
 
     return token.access_token
 
 
 async def get_forms(credential: Credential):
-    access_token = get_latest_token(credential)
+    access_token = await get_latest_token(credential)
     page_size = 200
     all_forms = get_all_data_without_pagination(page_size, access_token, "/forms")
     return all_forms
 
 
 async def get_single_form(form_id: str, credential: Credential):
-    access_token = get_latest_token(credential)
+    access_token = await get_latest_token(credential)
     form = perform_typeform_request(access_token, f"/forms/{form_id}")
     return form
 
@@ -101,7 +103,7 @@ async def get_single_form(form_id: str, credential: Credential):
 async def convert_form(
     form_import: Dict[str, Any], convert_responses: bool, credential: Credential
 ):
-    access_token = get_latest_token(credential)
+    access_token = await get_latest_token(credential)
     transformer = TypeFormTransformerService()
     standard_form = transformer.transform_form(form_import)
     if convert_responses:
