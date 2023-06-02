@@ -29,8 +29,6 @@ COPY . $PYSETUP_PATH
 WORKDIR $PYSETUP_PATH
 RUN make install
 
-RUN pip install tink
-
 EXPOSE 8000/tcp
 
 CMD ["uvicorn", "googleform.app:get_application", "--host", "0.0.0.0", "--port", "8000"]

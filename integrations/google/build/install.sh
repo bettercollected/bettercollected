@@ -37,7 +37,11 @@ fi
 
 POETRY_INSTALL_OPTS="${POETRY_INSTALL_OPTS:="--no-interaction"}"
 echo "[install] Begin installing project."
+
+
 "$POETRY_BINARY" install $POETRY_INSTALL_OPTS
+
+pip install tink
 
 cat << 'EOF'
 Project successfully installed.
