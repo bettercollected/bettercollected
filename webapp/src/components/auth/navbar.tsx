@@ -15,6 +15,7 @@ import LocaleDropdownUi from '../ui/locale-dropdown-ui';
 
 interface IAuthNavbarProps {
     hideMenu?: boolean;
+    isFooter?: boolean;
     isCustomDomain?: boolean;
     isClientDomain?: boolean;
     showHamburgerIcon?: boolean;
@@ -28,6 +29,7 @@ interface IAuthNavbarProps {
 AuthNavbar.defaultProps = {
     hideMenu: false,
     showPlans: true,
+    isFooter: false,
     isCustomDomain: false,
     isClientDomain: false,
     showHamburgerIcon: true,
@@ -46,7 +48,7 @@ export function Header(props: any) {
     return <nav className={`fixed top-0 !z-30 border-b-[1px] border-black-400 flex w-full items-center justify-between px-5 lg:pr-10 transition-all duration-300 ltr:right-0 rtl:left-0 h-[68px] ${navClassNames} ${propClassNames}`}>{props.children}</nav>;
 }
 
-export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerToggle, isCustomDomain = false, isClientDomain = false, hideMenu = false, drawerView = 'DASHBOARD_SIDEBAR', showAuthAccount }: IAuthNavbarProps) {
+export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerToggle, isCustomDomain = false, isFooter = false, isClientDomain = false, hideMenu = false, drawerView = 'DASHBOARD_SIDEBAR', showAuthAccount }: IAuthNavbarProps) {
     const screenSize = useBreakpoint();
     const { t } = useTranslation();
     const isMobileView = () => {
@@ -66,7 +68,7 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
             <div className="flex flex-row w-full h-full py-2 md:py-0 justify-between items-center">
                 <div className="flex gap-4">
                     {isMobileView() && showHamburgerIcon && <Hamburger isOpen={mobileOpen} className="!shadow-none mr-2 !bg-white hover:!bg-white !text-black-900 !flex !justify-start" onClick={handleDrawerToggle} />}
-                    <Logo isCustomDomain={isCustomDomain} isClientDomain={isClientDomain} />
+                    <Logo isCustomDomain={isCustomDomain} isFooter={isFooter} isClientDomain={isClientDomain} />
                 </div>
                 <div className="flex items-center justify-center gap-7">
                     {!isMobileView() && (
