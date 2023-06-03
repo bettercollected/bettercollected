@@ -41,52 +41,52 @@ export default function CreateGroupModal({ responderGroup, email }: { responderG
             [event.target.id]: event.target.value
         });
     };
-    console.log(groupInfo);
     const addEmail = (event: any) => {
         event.preventDefault();
         let emails = groupInfo.emails;
-        if (!groupInfo.emails.includes(groupInfo.email)) {
-            emails = [...emails, groupInfo.email];
-            setGroupInfo({
-                ...groupInfo,
-                email: '',
-                emails: emails
-            });
-        } else {
+        if (groupInfo.emails.includes(groupInfo.email)) {
             toast(t(toastMessage.emailAlreadyExist).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'error' });
+            return;
         }
+        emails = [...emails, groupInfo.email];
+        setGroupInfo({
+            ...groupInfo,
+            email: '',
+            emails: emails
+        });
     };
     const handleUpdateGroup = async () => {
-        const response: any = await updateResponderGroup({
-            groupInfo: groupInfo,
-            workspaceId: workspace.id,
-            groupId: responderGroup.id
-        });
-        if (response?.data) {
+        try {
+            await updateResponderGroup({
+                groupInfo: groupInfo,
+                workspaceId: workspace.id,
+                groupId: responderGroup.id
+            }).unwrap();
             toast(t(toastMessage.updated).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
             closeModal();
-        } else {
-            toast(response?.error?.message || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+        } catch (error) {
+            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
     };
+
+    const handleCreateGroup = async () => {
+        try {
+            await createResponderGroup({
+                groupInfo: groupInfo,
+                workspace_id: workspace.id
+            }).unwrap();
+            toast(t(toastMessage.workspaceSuccess).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            closeModal();
+        } catch (error) {
+            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+        }
+    };
+
     const handleGroupButton = () => {
         if (responderGroup) {
             handleUpdateGroup();
         } else {
             handleCreateGroup();
-        }
-    };
-
-    const handleCreateGroup = async () => {
-        const response: any = await createResponderGroup({
-            groupInfo: groupInfo,
-            workspace_id: workspace.id
-        });
-        if (response?.data) {
-            toast(t(toastMessage.workspaceSuccess).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
-            closeModal();
-        } else {
-            toast(response?.error?.message || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
     };
 
@@ -120,7 +120,7 @@ export default function CreateGroupModal({ responderGroup, email }: { responderG
                 </Button>
             </form>
             {groupInfo.emails.length !== 0 && (
-                <div>
+                <>
                     <p className="mt-6 leading-none mb-4 body5">{t(groupConstant.memberEmail)}</p>
                     <div className="items-center  w-full p-3 bg-white   gap-4 flex flex-wrap ">
                         {groupInfo.emails.map((email) => {
@@ -140,7 +140,7 @@ export default function CreateGroupModal({ responderGroup, email }: { responderG
                             );
                         })}
                     </div>
-                </div>
+                </>
             )}
             <div className="flex justify-end mt-10">
                 <Button size="medium" disabled={!groupInfo.name || groupInfo.emails.length === 0} isLoading={responderGroup ? createGroupResponse.isLoading : updateGroupResponse.isLoading} onClick={handleGroupButton}>

@@ -35,7 +35,6 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
     });
 
     const { data, isLoading, isError } = useGetWorkspaceRespondersQuery(query);
-
     const [addEmail] = useAddResponderOnGroupMutation();
     const [deleteEmail] = useDeleteResponderFromGroupMutation();
     const { openModal } = useModal();
@@ -45,46 +44,55 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
         setQuery({ ...query, page: page });
     };
     const deleteResponderFromGroup = async (email: string, group: ResponderGroupDto) => {
-        await deleteEmail({
-            workspaceId: workspace.id,
-            groupId: group.id,
-            emails: [email]
-        }).then(
-            (data) => toast(t(toastMessage.removeFromGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' }),
-            (error) => {
-                toast(error?.message || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+        try {
+            if (group.emails.length === 1) {
+                toast(t(toastMessage.lastPersonOfGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+                return;
             }
-        );
+
+            await deleteEmail({
+                workspaceId: workspace.id,
+                groupId: group.id,
+                emails: [email]
+            }).unwrap();
+
+            toast(t(toastMessage.removeFromGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+        } catch (error) {
+            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+        }
     };
+
     const addResponderOnGroup = async (email: string, group: ResponderGroupDto) => {
-        if (group.emails.includes(email)) {
-            toast(t(toastMessage.alreadyInGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-        } else {
+        try {
+            if (group.emails.includes(email)) {
+                toast(t(toastMessage.alreadyInGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+                return;
+            }
+
             await addEmail({
                 workspaceId: workspace.id,
                 groupId: group.id,
                 emails: [email]
-            }).then(
-                (data) => toast(t(toastMessage.addedOnGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' }),
-                (error) => {
-                    toast(error?.message || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-                }
-            );
+            }).unwrap();
+
+            toast(t(toastMessage.addedOnGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+        } catch (error) {
+            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
     };
 
-    const addButton = (onClick: () => void) => (
+    const AddButton = (onClick: () => void) => (
         <div onClick={onClick} className="flex gap-1 items-center cursor-pointer text-black-600">
             <Plus className="h-4 w-4 " />
             <p className="body5 !text-black-600">Add</p>
         </div>
     );
-    const showResponderGroups = (email: string) => (
+    const ShowResponderGroups = (email: string) => (
         <div className="flex flex-col gap-1">
             {responderGroups.map((group) => {
-                if (group.emails.includes(email)) {
+                if (group.emails.includes(email))
                     return (
-                        <div key={group.id} className="p-1 rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500">
+                        <div key={group.id} className="p-1 w-fit rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500">
                             <span className="body5 text-black-8000">{group.name}</span>
                             <Close
                                 className="h-2 w-2 cursor-pointer"
@@ -94,18 +102,16 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
                             />
                         </div>
                     );
-                }
+                return null;
             })}
-            {responderGroups.length === 0 && addButton(() => openModal('CREATE_GROUP', { email: email }))}
+            {responderGroups.length === 0 && AddButton(() => openModal('CREATE_GROUP', { email: email }))}
             {responderGroups.length > 0 && (
-                <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} onClick={() => {}} menuContent={addButton(() => {})}>
-                    {responderGroups.map((group) => {
-                        return (
-                            <MenuItem onClick={() => addResponderOnGroup(email, group)} key={group.id} className="py-3 hover:bg-black-200">
-                                <span className="body4">{group.name}</span>
-                            </MenuItem>
-                        );
-                    })}
+                <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
+                    {responderGroups.map((group) => (
+                        <MenuItem onClick={() => addResponderOnGroup(email, group)} key={group.id} className="py-3 hover:bg-black-200">
+                            <span className="body4">{group.name}</span>
+                        </MenuItem>
+                    ))}
                 </MenuDropdown>
             )}
         </div>
@@ -144,7 +150,7 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
         },
         {
             name: t(groupConstant.default),
-            selector: (responder: WorkspaceResponderDto) => showResponderGroups(responder.email),
+            selector: (responder: WorkspaceResponderDto) => ShowResponderGroups(responder.email),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
@@ -161,7 +167,7 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
         }
     };
 
-    const response = () => {
+    const Response = () => {
         if (data?.items && data?.items.length > 0)
             return (
                 <>
@@ -184,14 +190,14 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
         );
     }
     return (
-        <div>
+        <>
             <p>
                 {t(workspaceConstant.allResponders)} {data && ' (' + data.total + ')'}{' '}
             </p>
             <div className="w-full md:w-[282px] mt-6">
                 <SearchInput handleSearch={handleSearch} />
             </div>
-            {response()}
-        </div>
+            {Response()}
+        </>
     );
 }

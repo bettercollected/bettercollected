@@ -173,6 +173,7 @@
         "VISIBILITY": "Zichtbaarheid"
     },
     "GROUP": {
+        "DEFAULT": "Groep",
         "GROUPS": "Groepen",
         "CREATE_A_GROUP_TO": "Maak een groep aan ",
         "LIMIT_ACCESS_TO_FORM": "Beperk toegang tot formulier vanuit uw werkruimte",
@@ -353,7 +354,8 @@
         "GROUP_DELETED": "Groep succesvol verwijderd",
         "ADDED_ON_GROUP": "Toegevoegd aan groep",
         "REMOVE_FROM_GROUP": "Verwijderd uit groep",
-        "ALREADY_IN_GROUP": "Al in groep"
+        "ALREADY_IN_GROUP": "Al in groep",
+        "LAST_PERSON_IN_GROUP": "Je kunt de laatste persoon van deze groep niet verwijderen"
     },
     "TOOLTIP": {
         "DELETION_REQUEST": "verwijderingsverzoeken",

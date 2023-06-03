@@ -29,14 +29,14 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
     const workspace = useAppSelector((state) => state.workspace);
     const isAdmin = useAppSelector(selectIsAdmin);
     const handleDeletegroup = async () => {
-        const response: any = await trigger({
-            workspaceId: workspace.id,
-            groupId: responderGroup.id
-        });
-        if (response?.data) {
-            toast(t(toastMessage.groupDeleted).toString(), { toastId: ToastId.SUCCESS_TOAST });
-        } else {
-            toast(response?.error || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
+        try {
+            await trigger({
+                workspaceId: workspace.id,
+                groupId: responderGroup.id
+            }).unwrap();
+            toast(t(toastMessage.groupDeleted).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+        } catch (error) {
+            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
     };
     const handlePreviewGroup = () => {
@@ -70,26 +70,13 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
             // }}
             className="flex cursor-pointer flex-col justify-between border-[2px] border-brand-100 hover:border-black-500 transition shadow-formCard bg-white items-start p-5 rounded-[8px] relative"
         >
-            <MenuDropdown
-                showExpandMore={false}
-                className="absolute top-3 right-3 cursor-pointer"
-                width={180}
-                id="group-option"
-                menuTitle={''}
-                menuContent={
-                    <>
-                        <EllipsisOption className="rotate-90 " />
-                    </>
-                }
-            >
-                {menuItems.map((menuItem) => {
-                    return (
-                        <MenuItem key={menuItem.text} disabled={!isAdmin && menuItem.text !== 'Preview'} onClick={menuItem.onClick} className="py-3 hover:bg-black-200">
-                            <ListItemIcon>{React.createElement(menuItem.icon, { className: 'h-5 w-5' })}</ListItemIcon>
-                            <span className="body4">{menuItem.text}</span>
-                        </MenuItem>
-                    );
-                })}
+            <MenuDropdown showExpandMore={false} className="absolute top-3 right-3 cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={<EllipsisOption className="rotate-90 " />}>
+                {menuItems.map((menuItem) => (
+                    <MenuItem key={menuItem.text} disabled={!isAdmin && menuItem.text !== 'Preview'} onClick={menuItem.onClick} className="py-3 hover:bg-black-200">
+                        <ListItemIcon>{React.createElement(menuItem.icon, { className: 'h-5 w-5' })}</ListItemIcon>
+                        <span className="body4">{menuItem.text}</span>
+                    </MenuItem>
+                ))}
             </MenuDropdown>
             <div>
                 <div className="flex gap-2 items-center">
@@ -106,12 +93,12 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
                 </p>
                 <div className=" line-clamp-2 mt-4 mb-10">
                     {responderGroup.emails.map((email, index) => (
-                        <>
+                        <React.Fragment key={email}>
                             <p key={email} className="inline-block body4 !text-black-800">
                                 {email}
                             </p>
                             {responderGroup.emails.length - 1 !== index && <span className="pr-2">,</span>}
-                        </>
+                        </React.Fragment>
                     ))}
                 </div>
             </div>

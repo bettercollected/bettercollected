@@ -9,7 +9,6 @@ import { Plus } from '@app/components/icons/plus';
 import UserMore from '@app/components/icons/user-more';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
-import Loader from '@app/components/ui/loader';
 import { groupConstant } from '@app/constants/locales/group';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 
@@ -17,7 +16,7 @@ export default function WorkspaceGropus({ responderGroups }: { responderGroups: 
     const { openModal } = useModal();
     const { t } = useTranslation();
     const data = responderGroups;
-    const emptyGroup = () => (
+    const EmptyGroup = () => (
         <div className="my-[119px] flex flex-col items-center">
             <UserMore />
             <p className="body1">{t(groupConstant.createAGroupTo)} :</p>
@@ -30,7 +29,7 @@ export default function WorkspaceGropus({ responderGroups }: { responderGroups: 
             </Button>
         </div>
     );
-    const group = () => (
+    const Group = () => (
         <div>
             <div className="flex justify-between">
                 <p className="body1">
@@ -51,6 +50,6 @@ export default function WorkspaceGropus({ responderGroups }: { responderGroups: 
         </div>
     );
 
-    if (data && data?.length > 0) return group();
-    return emptyGroup();
+    if (data && data?.length > 0) return Group();
+    return EmptyGroup();
 }
