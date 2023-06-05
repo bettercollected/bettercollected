@@ -2,6 +2,7 @@ from typing import List
 
 from beanie import PydanticObjectId
 from fastapi_mail import MessageSchema
+from pydantic import EmailStr
 
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.schemas.user import UserDocument
@@ -14,7 +15,10 @@ class UserService:
         self.user_repo = user_repo
 
     async def get_user_info_from_user_ids(self, user_ids: List[PydanticObjectId]):
-        return await UserDocument.find({"_id": {"$in": user_ids}}).to_list()
+        return await UserRepository.get_users_by_ids(user_ids=user_ids)
+
+    async def get_users_info_from_emails(self, emails: List[EmailStr]):
+        return await UserRepository.get_users_by_emails(emails=emails)
 
     async def send_mail_to_user_for_invitation(
         self,

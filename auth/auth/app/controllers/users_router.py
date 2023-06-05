@@ -1,11 +1,14 @@
+from http import HTTPStatus
 from typing import List
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get
 from fastapi import Query
+from pydantic import EmailStr
 from starlette.background import BackgroundTasks
 
 from auth.app.container import container
+from auth.app.exceptions import HTTPException
 from auth.app.router import router
 
 
@@ -17,11 +20,20 @@ class UserRouter(Routable):
 
     @get("")
     async def get_details_of_users_with_ids(
-        self, user_ids: List[PydanticObjectId] = Query(...)
+        self,
+        user_ids: List[PydanticObjectId] = Query(None),
+        emails: List[EmailStr] = Query(None),
     ):
-        users_info = await self.user_service.get_user_info_from_user_ids(
-            user_ids=user_ids
-        )
+        if not (bool(user_ids) ^ bool(emails)):
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, content="Only one query is allowed"
+            )
+        if user_ids:
+            users_info = await self.user_service.get_user_info_from_user_ids(
+                user_ids=user_ids
+            )
+            return {"users_info": users_info}
+        users_info = await self.user_service.get_users_info_from_emails(emails=emails)
         return {"users_info": users_info}
 
     @get("/invite/send/mail")

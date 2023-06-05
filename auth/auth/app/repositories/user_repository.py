@@ -1,9 +1,9 @@
-from typing import Optional
+from typing import Optional, List
 
 from beanie import PydanticObjectId
+from pydantic import EmailStr
 
 from auth.app.schemas.user import UserDocument
-
 from common.enums.roles import Roles
 
 
@@ -27,6 +27,14 @@ class UserRepository:
         return await UserDocument.find_one(
             UserDocument.stripe_customer_id == stripe_customer_id
         )
+
+    @staticmethod
+    async def get_users_by_emails(emails: List[EmailStr]):
+        return await UserDocument.find({"email": {"$in": emails}}).to_list()
+
+    @staticmethod
+    async def get_users_by_ids(user_ids: List[PydanticObjectId]):
+        return await UserDocument.find({"_id": {"$in": user_ids}}).to_list()
 
     @staticmethod
     async def save_user(
