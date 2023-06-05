@@ -2,7 +2,9 @@ import logging
 from typing import Any, Dict
 
 import requests
+from beanie import PydanticObjectId
 from fastapi import HTTPException
+from pydantic import EmailStr
 
 from common.models.user import Token, UserInfo
 from typeform.app.repositories.credentials_repository import CredentialRepository
@@ -62,3 +64,9 @@ def perform_typeform_request(
             status_code=400, detail="Error while performing typeform request."
         )
     return api_response.json()
+
+
+async def delete_oauth_credentials_for_user(email: EmailStr, user_id: PydanticObjectId):
+    return await CredentialRepository.delete_oauth_credentials_for_user(
+        email=email, user_id=user_id
+    )

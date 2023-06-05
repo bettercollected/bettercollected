@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from beanie import PydanticObjectId
 from fastapi import HTTPException
+from pydantic import EmailStr
 from pymongo.errors import (
     InvalidURI,
     NetworkTimeout,
@@ -103,3 +104,11 @@ class CredentialRepository:
         if exists:
             return await exists.delete()
         return None
+
+    @staticmethod
+    async def delete_oauth_credentials_for_user(
+        email: EmailStr, user_id: PydanticObjectId
+    ):
+        return await CredentialDocument.find(
+            {"$or": [{"email": email}, {"user_id": user_id}]}
+        ).delete()

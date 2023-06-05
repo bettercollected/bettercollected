@@ -2,9 +2,11 @@
 import logging
 
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, get
-from common.models.user import UserInfo
+from classy_fastapi import Routable, get, delete
+from pydantic import EmailStr
 from starlette.requests import Request
+
+from common.models.user import UserInfo
 from typeform.app.services import auth_service
 
 log = logging.getLogger(__name__)
@@ -22,3 +24,11 @@ class AuthRoutes(Routable):
     ) -> UserInfo:
         user_info = await auth_service.handle_oauth_callback(code, user_id)
         return user_info
+
+    @delete("/oauth/credentials")
+    async def _delete_oauth_credentials(
+        self, email: EmailStr = None, user_id: PydanticObjectId = None
+    ):
+        return await auth_service.delete_oauth_credentials_for_user(
+            email=email, user_id=user_id
+        )
