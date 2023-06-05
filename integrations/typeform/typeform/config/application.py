@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-
 from pydantic import BaseSettings
 
 from typeform.config.database import MongoSettings
@@ -50,6 +49,7 @@ class Application(BaseSettings):
     API_ENVIRONMENT: str = "local"
     API_VERSION: str = "1.0.0"
     DOCS_URL: str = "/docs"
+    AUTH_SERVER_URL: str = "http://auth:8080/api/v1"
 
     AUTH_JWT_SECRET: str
 

@@ -2,6 +2,9 @@ from typeform.app.asgi import get_application, on_shutdown, on_startup
 from typeform.app.exceptions import HTTPException, http_exception_handler
 from typeform.app.router import root_api_router
 from typeform.app.services.database_service import close_db, init_db
+from typeform.app.services.migration_service import (
+    migrate_credentials_to_include_user_id,
+)
 from typeform.config import settings
 
 

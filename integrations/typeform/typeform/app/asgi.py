@@ -3,9 +3,7 @@ import logging
 
 import sentry_sdk
 from fastapi import FastAPI
-
 from fastapi_utils.timing import add_timing_middleware
-
 from loguru import logger
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
@@ -17,6 +15,9 @@ from typeform.app.handlers import init_logging
 from typeform.app.middlewares import include_middlewares
 from typeform.app.router import root_api_router
 from typeform.app.services.database_service import close_db, init_db
+from typeform.app.services.migration_service import (
+    migrate_credentials_to_include_user_id,
+)
 from typeform.config import settings
 
 log = logging.getLogger(__name__)
@@ -79,7 +80,7 @@ def get_application():
         version=settings.VERSION,
         docs_url=settings.API_ROOT_PATH + "/docs",
         openapi_url=settings.API_ROOT_PATH + "/openapi.json",
-        on_startup=[on_startup, init_db],
+        on_startup=[on_startup, init_db, migrate_credentials_to_include_user_id],
         on_shutdown=[on_shutdown, close_db],
     )
     log.debug("Add application routes.")
