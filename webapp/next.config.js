@@ -44,6 +44,28 @@ const nextConfig = {
         emotion: true,
         removeConsole: false
     },
+
+    async headers() {
+        return [
+            {
+                source: '/(.*)',
+                headers: [
+                    {
+                        key: 'X-Frame-Options',
+                        value: 'DENY'
+                    },
+                    {
+                        key: 'X-Content-Type-Options',
+                        value: 'nosniff'
+                    },
+                    {
+                        key: 'Referrer-Policy',
+                        value: 'origin-when-cross-origin'
+                    }
+                ]
+            }
+        ];
+    },
     // Optional build-time configuration options
     sentry: {
         // See the sections below for information on the following options:
