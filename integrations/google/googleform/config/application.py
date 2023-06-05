@@ -54,6 +54,7 @@ class Application(BaseSettings):
     DOCS_URL: str = "/docs"
 
     AUTH_JWT_SECRET: str
+    AUTH_SERVER_URL: str = "http://auth:8000/api/v1"
 
     GOOGLE_CLIENT_TYPE = "web"
     GOOGLE_CLIENT_ID = ""

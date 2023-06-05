@@ -13,9 +13,11 @@ from googleform.app.exceptions import (
 )
 from googleform.app.router import root_api_router
 from googleform.app.services.database_service import close_db, init_db
+from googleform.app.services.migration_service import (
+    migrate_credentials_to_include_user_id,
+)
 from googleform.app.utils import AiohttpClient, RedisClient
 from googleform.config import settings
-
 
 log = logging.getLogger(__name__)
 
@@ -84,7 +86,7 @@ def get_application():
         version=settings.VERSION,
         docs_url=settings.API_ROOT_PATH + "/docs",
         openapi_url=settings.API_ROOT_PATH + "/openapi.json",
-        on_startup=[on_startup, init_db],
+        on_startup=[on_startup, init_db, migrate_credentials_to_include_user_id],
         on_shutdown=[on_shutdown, close_db],
     )
     log.debug("Add application routes.")
