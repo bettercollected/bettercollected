@@ -9,6 +9,7 @@ class ResponderGroupDto(BaseModel):
     name: str
     description: Optional[str] = None
     emails: List[str]
+    formIds:List[str]
 
     def __init__(self, _id: PydanticObjectId, id=None, *args, **kwargs):
         super().__init__(*args, **kwargs)

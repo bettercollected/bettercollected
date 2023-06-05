@@ -52,10 +52,10 @@ class ResponderGroupsRepository:
             {"group_id": group_id}
         ).to_list()
         for existing_group_member in existing_group_members:
-                for email in existing_group_member:
-                    await ResponderGroupMemberDocument.find(
-                        {"group_id": group_id, "identifier": {"$in": email}}
-                    ).delete()
+            for email in existing_group_member:
+                await ResponderGroupMemberDocument.find(
+                    {"group_id": group_id, "identifier": {"$in": email}}
+                ).delete()
         responder_group_emails = []
         for email in emails:
             responder_group_emails.append(
@@ -117,12 +117,22 @@ class ResponderGroupsRepository:
                         }
                     },
                     {
+                        "$lookup": {
+                            "from": "responder_group_form",
+                            "localField": "_id",
+                            "foreignField": "group_id",
+                            "as": "group",
+                        }
+                    },
+
+                    {
                         "$project": {
                             "_id": 1,
                             "name": 1,
                             "workspace_id": 1,
                             "emails": "$emails.identifier",
                             "description": 1,
+                            "formIds": "$group.form_id"
                         }
                     },
 
@@ -150,12 +160,21 @@ class ResponderGroupsRepository:
                         }
                     },
                     {
+                        "$lookup": {
+                            "from": "responder_group_form",
+                            "localField": "_id",
+                            "foreignField": "group_id",
+                            "as": "group",
+                        }
+                    },
+                    {
                         "$project": {
                             "_id": 1,
                             "name": 1,
                             "workspace_id": 1,
                             "emails": "$emails.identifier",
                             "description": 1,
+                            "formIds": "$group.form_id"
 
                         }
                     },
