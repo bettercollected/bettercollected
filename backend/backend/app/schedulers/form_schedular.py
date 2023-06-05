@@ -68,20 +68,30 @@ class FormSchedular:
             )
 
             if not raw_form:
-                logger.error("Could not fetch form form provider")
-            # if the latest status of form is not closed then perform saving
-            if raw_form:
-                response_data = await self.perform_conversion_request(
-                    provider=workspace_form.settings.provider,
-                    raw_form=raw_form,
-                    cookies=cookies,
+                logger.error(
+                    f"Could not fetch form form provider for form with id {form_id} by schedular"
                 )
-                if response_data:
-                    standard_form = await self.form_import_service.save_converted_form_and_responses(
-                        response_data,
-                        workspace_form.settings.response_data_owner_field,
-                        workspace_id=workspace_id,
-                    )
+                return
+                # if the latest status of form is not closed then perform saving
+
+            response_data = await self.perform_conversion_request(
+                provider=workspace_form.settings.provider,
+                raw_form=raw_form,
+                cookies=cookies,
+            )
+
+            if not response_data:
+                logger.error(
+                    f"Error while requesting conversion for form with id {form_id} by schedular"
+                )
+                return
+            standard_form = (
+                await self.form_import_service.save_converted_form_and_responses(
+                    response_data,
+                    workspace_form.settings.response_data_owner_field,
+                    workspace_id=workspace_id,
+                )
+            )
         if standard_form:
             logger.info(f"Form {form_id} is updated successfully by schedular.")
         else:
