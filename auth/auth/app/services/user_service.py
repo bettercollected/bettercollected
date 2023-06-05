@@ -56,3 +56,6 @@ class UserService:
             await mail_service.send_async_mail(
                 message, template_name="invitation_mail_without_image.html"
             )
+
+    async def delete_user(self, user_id: PydanticObjectId):
+        return await UserRepository.delete_user(user_id=user_id)

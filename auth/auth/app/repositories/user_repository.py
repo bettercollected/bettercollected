@@ -83,3 +83,7 @@ class UserRepository:
         user.otp_code = None
         user.otp_expiry = None
         await user.save()
+
+    @staticmethod
+    def delete_user(cls, user_id: PydanticObjectId):
+        return await UserDocument.find({"_id": user_id}).delete()

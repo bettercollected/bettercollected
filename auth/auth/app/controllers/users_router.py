@@ -2,7 +2,7 @@ from http import HTTPStatus
 from typing import List
 
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, get
+from classy_fastapi import Routable, get, delete
 from fastapi import Query
 from pydantic import EmailStr
 from starlette.background import BackgroundTasks
@@ -58,3 +58,7 @@ class UserRouter(Routable):
         )
 
         return "Mail sent successfully!!"
+
+    @delete("/{user_id}")
+    async def delete_user(self, user_id: PydanticObjectId):
+        return await self.user_service.delete_user(user_id=user_id)
