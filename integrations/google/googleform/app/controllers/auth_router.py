@@ -1,7 +1,8 @@
 """Auth controller implementation."""
 import logging
 
-from classy_fastapi import Routable, get
+from classy_fastapi import Routable, get, delete
+from pydantic import EmailStr
 from starlette.requests import Request
 
 from common.models.user import UserInfo
@@ -24,3 +25,11 @@ class AuthRoutes(Routable):
     async def _oauth_callback(self, request: Request, user_id: str) -> UserInfo:
         user_info = await self.oauth_google_service.oauth2callback(request, user_id)
         return user_info
+
+    @delete("/oauth/credentials")
+    async def _delete_oauth_credentials(
+        self, email: EmailStr = None, user_id: str = None
+    ):
+        return await self.oauth_google_service.delete_oauth_credentials_for_user(
+            email=email, user_id=user_id
+        )

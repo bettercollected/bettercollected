@@ -12,6 +12,7 @@ from googleapiclient.errors import HttpError
 from loguru import logger
 from oauthlib.oauth1 import InvalidClientError
 from oauthlib.oauth2 import InvalidGrantError
+from pydantic import EmailStr
 from starlette.requests import Request
 
 from common.configs.crypto import Crypto
@@ -158,9 +159,7 @@ class OauthGoogleService:
                 if db_credentials:
                     db_credentials.updated_at = datetime.now()
                     db_credentials.credentials = json.loads(json_credentials)
-                    await self.oauth_credential_repo.update(
-                        email, db_credentials, user_id=user_id
-                    )
+                    await self.oauth_credential_repo.update(email, db_credentials)
                 else:
                     await self.oauth_credential_repo.add(
                         email, json.loads(json_credentials), user_id=user_id
@@ -354,3 +353,8 @@ class OauthGoogleService:
             )
         except InvalidGrantError:
             raise HTTPException(401, "Invalid Grant error.")
+
+    async def delete_oauth_credentials_for_user(self, email: EmailStr, user_id: str):
+        return await self.oauth_credential_repo.delete_oauth_credential_for_user(
+            email=email, user_id=user_id
+        )

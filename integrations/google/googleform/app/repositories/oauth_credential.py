@@ -4,6 +4,7 @@ from http import HTTPStatus
 from typing import Any
 
 from fastapi import HTTPException
+from pydantic.networks import EmailStr
 from pymongo.errors import (
     InvalidOperation,
     InvalidURI,
@@ -153,3 +154,8 @@ class OauthCredentialRepository:
         )
         decrypted_token = str(decrypted_token, "utf-8")
         return GoogleCredentialResponse(**json.loads(decrypted_token))
+
+    async def delete_oauth_credential_for_user(self, email: EmailStr, user_id: str):
+        return await Oauth2CredentialDocument.find(
+            {"$or": [{"email": email}, {"user_id": user_id}]}
+        ).delete()
