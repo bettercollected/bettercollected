@@ -14,7 +14,7 @@ from backend.app.exceptions import (
     http_exception_handler,
 )
 from backend.app.handlers import init_logging
-from backend.app.handlers.database import close_db, init_db
+from backend.app.handlers.database import close_db, init_db, init_scheduler_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
 from backend.app.services.init_schedulers import init_schedulers
@@ -34,6 +34,7 @@ async def on_startup():
     AiohttpClient.get_aiohttp_client()
     # TODO merge with container
     client = container.database_client()
+    await init_scheduler_db(client)
     await init_db(settings.mongo_settings.DB, client)
     if settings.schedular_settings.ENABLED:
         await init_schedulers(container.schedular())

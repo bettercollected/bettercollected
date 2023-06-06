@@ -8,6 +8,7 @@ from pymongo.errors import InvalidOperation
 from backend.app.schemas.allowed_origin import (
     AllowedOriginsDocument,
 )
+from backend.app.schemas.apscheduler import APSchedulerDocument
 from backend.app.schemas.blacklisted_refresh_tokens import BlackListedRefreshTokens
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
 from backend.app.schemas.responder_group import (
@@ -37,6 +38,13 @@ document_models = []
 def entity(cls):
     document_models.append(cls)
     return cls
+
+
+async def init_scheduler_db(client: AsyncIOMotorClient):
+    client.get_io_loop = asyncio.get_running_loop
+    db = client["apscheduler"]
+    await init_beanie(database=db, document_models=[APSchedulerDocument])
+    pass
 
 
 async def init_db(db: str, client: AsyncIOMotorClient):
