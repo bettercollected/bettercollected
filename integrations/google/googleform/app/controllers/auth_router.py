@@ -30,6 +30,7 @@ class AuthRoutes(Routable):
     async def _delete_oauth_credentials(
         self, email: EmailStr = None, user_id: str = None
     ):
-        return await self.oauth_google_service.delete_oauth_credentials_for_user(
+        await self.oauth_google_service.delete_oauth_credentials_for_user(
             email=email, user_id=user_id
         )
+        return "Credentials Deleted Successfully"
