@@ -5,9 +5,10 @@ from typing import Tuple
 from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
-from backend.app.services import workspace_service
+from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.plugin_proxy_service import PluginProxyService
+from backend.app.services.workspace_service import WorkspaceService
 from backend.config import settings
 from common.configs.crypto import Crypto
 from common.enums.roles import Roles
@@ -25,11 +26,13 @@ class AuthService:
         plugin_proxy_service: PluginProxyService,
         form_provider_service: FormPluginProviderService,
         jwt_service: JwtService,
+        workspace_service: WorkspaceService,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
         self.form_provider_service = form_provider_service
         self.jwt_service = jwt_service
+        self.workspace_service = workspace_service
 
     async def get_user_status(self, user: User):
         response_data = await self.http_client.get(
@@ -84,7 +87,7 @@ class AuthService:
             settings.auth_settings.CALLBACK_URI, params={"jwt_token": jwt_token}
         )
         user = User(**response_data)
-        await workspace_service.create_workspace(user)
+        await workspaces_service.create_workspace(user)
         decrypted_data = json.loads(crypto.decrypt(state))
         state = OAuthState(**decrypted_data)
         if state.email is not None and user.sub != state.email:
@@ -108,5 +111,8 @@ class AuthService:
         )
         user = response_data.get("user")
         if user and Roles.FORM_CREATOR in user.get("roles"):
-            await workspace_service.create_workspace(User(**user))
+            await workspaces_service.create_workspace(User(**user))
         return user, response_data.get("client_referer_url", "")
+
+    async def delete_user(self, user: User):
+        await self.workspace_service.delete_workspaces_of_user_with_forms(user=user)

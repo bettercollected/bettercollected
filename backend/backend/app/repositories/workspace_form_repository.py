@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from beanie import PydanticObjectId
 from pymongo.errors import (
@@ -174,3 +174,12 @@ class WorkspaceFormRepository:
             {"workspace_id": workspace_id, "user_id": user_id}
         ).to_list()
         return [form.form_id for form in forms]
+
+    async def get_form_ids_in_workspaces(self, workspace_ids: List[PydanticObjectId]):
+        forms = await WorkspaceFormDocument.find(
+            {"workspace_id": {"$in": workspace_ids}}
+        ).to_list()
+        return [form.form_id for form in forms]
+
+    async def delete_forms(self, form_ids):
+        return await WorkspaceFormDocument.find({"form_id": {"$in": form_ids}}).delete()

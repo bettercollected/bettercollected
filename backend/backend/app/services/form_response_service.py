@@ -21,9 +21,9 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from common.services.crypto_service import crypto_service
 from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.user import User
+from common.services.crypto_service import crypto_service
 
 
 class FormResponseService:
@@ -203,6 +203,14 @@ class FormResponseService:
 
     async def delete_deletion_requests(self, form_id):
         return await self._form_response_repo.delete_deletion_requests(form_id=form_id)
+
+    async def delete_form_responses_of_form_ids(self, form_ids):
+        return await self._form_response_repo.delete_by_form_ids(form_ids=form_ids)
+
+    async def delete_deletion_requests_of_form_ids(self, form_ids):
+        return await self._form_response_repo.delete_deletion_requests_by_form_ids(
+            form_ids=form_ids
+        )
 
     def decrypt_response_page(
         self,

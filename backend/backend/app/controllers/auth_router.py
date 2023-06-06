@@ -2,7 +2,7 @@
 import logging
 from typing import Optional
 
-from classy_fastapi import Routable, get, post
+from classy_fastapi import Routable, get, post, delete
 from fastapi import Depends
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
@@ -113,3 +113,8 @@ class AuthRoutes(Routable):
         await add_refresh_token_to_blacklist(request=request)
         delete_token_cookie(response=response)
         return "Logged out successfully!!!"
+
+    @delete("/user")
+    async def delete_user(self, user: User = Depends(get_logged_user)):
+        await self.auth_service.delete_user(user=user)
+        return "User Deleted Successfully"

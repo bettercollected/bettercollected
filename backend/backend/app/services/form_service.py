@@ -1,5 +1,6 @@
 from datetime import datetime
 from http import HTTPStatus
+from typing import List
 
 from beanie import PydanticObjectId
 from fastapi_pagination import Page
@@ -181,3 +182,6 @@ class FormService:
 
     async def delete_form(self, form_id: str):
         return await self._form_repo.delete_form(form_id)
+
+    async def delete_forms(self, form_ids: List[str]):
+        return await self._form_repo.delete_forms(form_ids=form_ids)

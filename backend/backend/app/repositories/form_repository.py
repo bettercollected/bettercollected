@@ -164,3 +164,6 @@ class FormRepository:
         if not form:
             raise HTTPException(status_code=404, content="Form not found")
         return await form.delete()
+
+    async def delete_forms(self, form_ids: List[str]):
+        return await FormDocument.find({"form_id": {"$in": form_ids}}).delete()

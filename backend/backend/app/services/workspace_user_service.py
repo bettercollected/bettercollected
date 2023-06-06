@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import List
 
 from beanie import PydanticObjectId
 
@@ -93,3 +94,13 @@ class WorkspaceUserService:
         self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
     ):
         return await self.workspace_user_repository.delete(workspace_id, user_id)
+
+    async def delete_user_form_all_workspaces(self, user: User):
+        return await self.workspace_user_repository.delete_user_form_all_workspaces(
+            user
+        )
+
+    async def delete_user_of_workspaces(self, workspace_ids: List[PydanticObjectId]):
+        return await self.workspace_user_repository.delete_all_workspaces_users(
+            workspace_ids
+        )

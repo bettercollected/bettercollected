@@ -243,3 +243,11 @@ class FormResponseRepository(BaseRepository):
 
     async def delete_deletion_requests(self, form_id: str):
         return await FormResponseDeletionRequest.find({"form_id": form_id}).delete()
+
+    async def delete_by_form_ids(self, form_ids):
+        return await FormResponseDocument.find({"form_id": {"$in": form_ids}}).delete()
+
+    async def delete_deletion_requests_by_form_ids(self, form_ids):
+        return await FormResponseDeletionRequest.find(
+            {"form_id": {"$in": form_ids}}
+        ).delete()

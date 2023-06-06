@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from beanie import PydanticObjectId
@@ -164,6 +165,11 @@ class WorkspaceFormService:
             workspace_id
         )
 
+    async def get_form_ids_in_workspaces(self, workspace_ids: List[PydanticObjectId]):
+        return await self.workspace_form_repository.get_form_ids_in_workspaces(
+            workspace_ids=workspace_ids
+        )
+
     async def get_form_ids_imported_by_user(
         self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
     ):
@@ -198,3 +204,13 @@ class WorkspaceFormService:
         await self.responder_groups_service.remove_group_from_form(
             form_id=form_id, group_id=group_id
         )
+
+    async def delete_forms_with_ids(self, form_ids: List[str]):
+        await self.form_service.delete_forms(form_ids=form_ids)
+        await self.form_response_service.delete_form_responses_of_form_ids(
+            form_ids=form_ids
+        )
+        await self.form_response_service.delete_deletion_requests_of_form_ids(
+            form_ids=form_ids
+        )
+        return await self.workspace_form_repository.delete_forms(form_ids=form_ids)
