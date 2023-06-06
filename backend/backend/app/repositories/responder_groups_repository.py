@@ -43,7 +43,7 @@ class ResponderGroupsRepository:
             name: str,
             description: Optional[str],
             emails: List[EmailStr],
-            group_id: PydanticObjectId
+            group_id: PydanticObjectId,
     ):
         responder_group = await ResponderGroupDocument.find_one(
             {"workspace_id": workspace_id, "_id": group_id}
@@ -121,10 +121,9 @@ class ResponderGroupsRepository:
                             "from": "responder_group_form",
                             "localField": "_id",
                             "foreignField": "group_id",
-                            "as": "group",
+                            "as": "forms",
                         }
                     },
-
                     {
                         "$project": {
                             "_id": 1,
@@ -132,10 +131,9 @@ class ResponderGroupsRepository:
                             "workspace_id": 1,
                             "emails": "$emails.identifier",
                             "description": 1,
-                            "formIds": "$group.form_id"
+                            "forms": "$forms.form_id"
                         }
                     },
-
                 ]
             )
             .to_list()
@@ -164,7 +162,7 @@ class ResponderGroupsRepository:
                             "from": "responder_group_form",
                             "localField": "_id",
                             "foreignField": "group_id",
-                            "as": "group",
+                            "as": "forms",
                         }
                     },
                     {
@@ -174,11 +172,9 @@ class ResponderGroupsRepository:
                             "workspace_id": 1,
                             "emails": "$emails.identifier",
                             "description": 1,
-                            "formIds": "$group.form_id"
-
+                            "forms":  "$forms.form_id",
                         }
                     },
-
                 ],
                 projection_model=ResponderGroupDto,
             )
@@ -197,6 +193,6 @@ class ResponderGroupsRepository:
         return existing_document
 
     async def remove_group_from_form(self, form_id: str, group_id: PydanticObjectId):
-        return await ResponderGroupFormDocument.find_one(
+        await ResponderGroupFormDocument.find_one(
             {"form_id": form_id, "group_id": group_id}
         ).delete()

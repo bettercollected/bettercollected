@@ -195,6 +195,6 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        return await self.responder_groups_service.remove_group_from_form(
+        await self.responder_groups_service.remove_group_from_form(
             form_id=form_id, group_id=group_id
         )
