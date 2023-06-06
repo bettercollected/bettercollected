@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from typing import Any, Dict
 
+from aiohttp import ServerDisconnectedError
 from beanie import PydanticObjectId
 from loguru import logger
 
@@ -34,6 +35,10 @@ class FormSchedular:
         workspace_form = await WorkspaceFormDocument.find_one(
             {"form_id": form_id, "workspace_id": workspace_id}
         )
+        if not workspace_form:
+            logger.error(f"No form with id  {form_id} found")
+            logger.error(f"Error while updating form with id {form_id} by schedular")
+            return
         users_response = await self.fetch_user_details([workspace_form.user_id])
         standard_form = None
         if users_response:
@@ -126,19 +131,22 @@ class FormSchedular:
     ):
         provider_url = await self.form_provider_service.get_provider_url(provider)
         # TODO Perform request from containers http client
-        response = await AiohttpClient.get_aiohttp_client().request(
-            method=method,
-            url=f"{provider_url}/{provider}/forms{append_url}",
-            params=params,
-            cookies=cookies,
-            json=json,
-            timeout=60,
-        )
-        if response.status != HTTPStatus.OK:
-            logger.error(await response.json())
+        try:
+            response = await AiohttpClient.get_aiohttp_client().request(
+                method=method,
+                url=f"{provider_url}/{provider}/forms{append_url}",
+                params=params,
+                cookies=cookies,
+                json=json,
+                timeout=60,
+            )
+            if response.status != HTTPStatus.OK:
+                logger.error(await response.json())
+                return None
+            data = await response.json()
+            return data
+        except ServerDisconnectedError as e:
             return None
-        data = await response.json()
-        return data
 
     async def fetch_user_details(self, user_ids):
         response = await AiohttpClient.get_aiohttp_client().get(

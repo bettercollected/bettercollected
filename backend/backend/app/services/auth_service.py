@@ -128,11 +128,13 @@ class AuthService:
                 await self.form_provider_service.get_provider_url(
                     provider.provider_name
                 )
+                + f"/{provider.provider_name}"
                 + "/oauth/credentials",
-                params={"user_id": user.id},
+                params={"user_id": user.id, "email": user.sub},
+                timeout=20000,
             )
 
     async def delete_user_form_auth(self, user: User):
         await self.http_client.delete(
-            settings.auth_settings.BASE_URL + "/users/" + user.id
+            settings.auth_settings.BASE_URL + "/users/" + user.id, timeout=20000
         )
