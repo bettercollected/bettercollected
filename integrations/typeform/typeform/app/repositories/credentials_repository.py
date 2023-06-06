@@ -44,7 +44,7 @@ class CredentialRepository:
         if not credential:
             credential = CredentialDocument(email=user_info.email)
             credential.created_at = datetime.utcnow()
-        credential.user_id = user_info.user_id
+        credential.user_id = PydanticObjectId(user_info.user_id)
         credential.access_token = CredentialRepository.encrypt_token(
             user_id=user_info.user_id, token=token.access_token
         )

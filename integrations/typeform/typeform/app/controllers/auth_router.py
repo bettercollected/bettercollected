@@ -29,6 +29,7 @@ class AuthRoutes(Routable):
     async def _delete_oauth_credentials(
         self, email: EmailStr = None, user_id: PydanticObjectId = None
     ):
-        return await auth_service.delete_oauth_credentials_for_user(
+        result = await auth_service.delete_oauth_credentials_for_user(
             email=email, user_id=user_id
         )
+        return "Credentials Deleted Successfully"
