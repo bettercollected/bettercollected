@@ -175,9 +175,11 @@ class WorkspaceFormRepository:
         ).to_list()
         return [form.form_id for form in forms]
 
-    async def get_form_ids_in_workspaces(self, workspace_ids: List[PydanticObjectId]):
+    async def get_form_ids_in_workspaces_and_imported_by_user(
+        self, workspace_ids: List[PydanticObjectId], user: User
+    ):
         forms = await WorkspaceFormDocument.find(
-            {"workspace_id": {"$in": workspace_ids}}
+            {"$or": [{"workspace_id": {"$in": workspace_ids}}, {"user_id": user.id}]}
         ).to_list()
         return [form.form_id for form in forms]
 

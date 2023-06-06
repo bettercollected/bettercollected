@@ -165,9 +165,11 @@ class WorkspaceFormService:
             workspace_id
         )
 
-    async def get_form_ids_in_workspaces(self, workspace_ids: List[PydanticObjectId]):
-        return await self.workspace_form_repository.get_form_ids_in_workspaces(
-            workspace_ids=workspace_ids
+    async def get_form_ids_in_workspaces_and_imported_by_user(
+        self, workspace_ids: List[PydanticObjectId], user: User
+    ):
+        return await self.workspace_form_repository.get_form_ids_in_workspaces_and_imported_by_user(
+            workspace_ids=workspace_ids, user=user
         )
 
     async def get_form_ids_imported_by_user(
