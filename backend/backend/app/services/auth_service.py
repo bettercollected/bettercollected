@@ -117,6 +117,7 @@ class AuthService:
     async def delete_user(self, user: User):
         # TODO Move deleting user to scheduled job and return with removing cookie only when deleting
         #  the user in auth server is a success
+        await self.delete_user_form_auth(user=user)
         await self.delete_credentials_from_integrations(user=user)
         await self.workspace_service.delete_workspaces_of_user_with_forms(user=user)
 
@@ -130,3 +131,8 @@ class AuthService:
                 + "/oauth/credentials",
                 params={"user_id": user.id},
             )
+
+    async def delete_user_form_auth(self, user: User):
+        await self.http_client.delete(
+            settings.auth_settings.BASE_URL + "/users/" + user.id
+        )

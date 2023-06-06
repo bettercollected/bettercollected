@@ -115,6 +115,13 @@ class AuthRoutes(Routable):
         return "Logged out successfully!!!"
 
     @delete("/user")
-    async def delete_user(self, user: User = Depends(get_logged_user)):
+    async def delete_user(
+        self,
+        request: Request,
+        response: Response,
+        user: User = Depends(get_logged_user),
+    ):
+        await add_refresh_token_to_blacklist(request=request)
         await self.auth_service.delete_user(user=user)
+        delete_token_cookie(response=response)
         return "User Deleted Successfully"
