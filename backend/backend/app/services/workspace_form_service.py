@@ -206,6 +206,16 @@ class WorkspaceFormService:
         )
 
     async def delete_forms_with_ids(self, form_ids: List[str]):
+        workspace_forms = (
+            await self.workspace_form_repository.get_workspace_forms_form_ids(
+                form_ids=form_ids
+            )
+        )
+        for workspace_form in workspace_forms:
+            self.schedular.remove_job(
+                workspace_form.settings.provider + "_" + workspace_form.form_id
+            )
+
         await self.form_service.delete_forms(form_ids=form_ids)
         await self.form_response_service.delete_form_responses_of_form_ids(
             form_ids=form_ids

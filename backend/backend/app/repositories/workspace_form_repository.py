@@ -183,3 +183,8 @@ class WorkspaceFormRepository:
 
     async def delete_forms(self, form_ids):
         return await WorkspaceFormDocument.find({"form_id": {"$in": form_ids}}).delete()
+
+    async def get_workspace_forms_form_ids(self, form_ids: List[str]):
+        return await WorkspaceFormDocument.find(
+            {"form_id": {"$in": form_ids}}
+        ).to_list()
