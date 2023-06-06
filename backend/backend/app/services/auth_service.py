@@ -9,6 +9,7 @@ from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.workspace_service import WorkspaceService
+from backend.app.utils import AiohttpClient
 from backend.config import settings
 from common.configs.crypto import Crypto
 from common.enums.roles import Roles
@@ -116,15 +117,15 @@ class AuthService:
 
     async def delete_user(self, user: User):
         # TODO Move deleting user to scheduled job and return with removing cookie only when deleting
-        #  the user in auth server is a success
-        await self.delete_user_form_auth(user=user)
+        #  the user in auth server and credentials in integrations is a success
         await self.delete_credentials_from_integrations(user=user)
+        await self.delete_user_form_auth(user=user)
         await self.workspace_service.delete_workspaces_of_user_with_forms(user=user)
 
     async def delete_credentials_from_integrations(self, user: User):
         providers = await self.form_provider_service.get_providers(get_all=True)
         for provider in providers:
-            await self.http_client.delete(
+            await AiohttpClient.get_aiohttp_client().delete(
                 await self.form_provider_service.get_provider_url(
                     provider.provider_name
                 )
@@ -135,6 +136,6 @@ class AuthService:
             )
 
     async def delete_user_form_auth(self, user: User):
-        await self.http_client.delete(
+        await AiohttpClient.get_aiohttp_client().delete(
             settings.auth_settings.BASE_URL + "/users/" + user.id, timeout=20000
         )
