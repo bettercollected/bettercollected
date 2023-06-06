@@ -15,9 +15,9 @@ class FormPluginProviderService:
     def __init__(self, form_provider_repo: FormPluginProviderRepository):
         self._form_provider_repo = form_provider_repo
 
-    async def get_providers(self, user: User):
+    async def get_providers(self, user: User = None, get_all: bool = False):
         providers: List[FormProviderConfigDto] = await self._form_provider_repo.list()
-        if user and user.is_admin():
+        if (user and user.is_admin()) or get_all:
             return providers
         return [
             {"provider_name": provider.provider_name}
