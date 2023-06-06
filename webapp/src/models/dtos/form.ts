@@ -1,5 +1,7 @@
 import { UserDto } from '@app/models/dtos/UserDto';
 
+import { ResponderGroupDto } from './groups';
+
 export interface StandardFormQuestionDto {
     id?: string;
     questionId: string;
@@ -34,7 +36,7 @@ export interface StandardFormDto {
     dataOwnerIdentifier?: string;
     responses?: number;
     deletionRequests?: number;
-    groups: Array<string>;
+    groups?: Array<ResponderGroupDto>;
     settings?: {
         pinned: boolean;
         embedUrl?: string;

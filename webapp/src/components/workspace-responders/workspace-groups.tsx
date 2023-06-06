@@ -12,6 +12,7 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
 import { groupConstant } from '@app/constants/locales/group';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { useAppSelector } from '@app/store/hooks';
 
 export default function WorkspaceGropus({ responderGroups }: { responderGroups: Array<ResponderGroupDto> }) {
     const { openModal } = useModal();

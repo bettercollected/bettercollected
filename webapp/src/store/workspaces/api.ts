@@ -330,7 +330,7 @@ export const workspacesApi = createApi({
                 url: `${query.workspaceId}/responder-groups/${query.groupId}`,
                 method: 'GET'
             }),
-            providesTags: [GROUP_TAGS]
+            providesTags: [GROUP_TAGS, RESPONDER_TAG, FORM_TAG]
         }),
         getAllRespondersGroup: builder.query<any, any>({
             query: (workspace_id) => ({

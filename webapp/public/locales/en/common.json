@@ -72,7 +72,8 @@
 		"DELETE_MEMBER": "Delete member",
 		"SKIP": "Skip",
 		"UPDATE_NOW": "Update Now",
-		"SAVE_CHANGES": "Save Changes"
+		"SAVE_CHANGES": "Save Changes",
+		"ADD_GROUP": "Add group"
 	},
 	"CONTACT_US": {
 		"DESCRIPTION": "Any questions or remarks? Just write us a message",
@@ -160,7 +161,8 @@
 		"PREVIEW": "Form Preview",
 		"URL": "Form URL",
 		"IMPORTED_BY": "Imported By",
-		"IMPORTED_ON": "Imported On"
+		"IMPORTED_ON": "Imported On",
+		"ADD_GROUP": "Add group on form"
 	},
 	"FORMS": "Forms",
 	"FORMS_LINK": "Forms Links",

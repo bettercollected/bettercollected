@@ -5,15 +5,18 @@ import { useTranslation } from 'next-i18next';
 import Divider from '@Components/Common/DataDisplay/Divider';
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { MenuItem } from '@mui/material';
+import { CheckCircle, Groups } from '@mui/icons-material';
+import { FormGroup, MenuItem, Typography } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import GroupCard from '@app/components/cards/group-card';
 import EmptyGroup from '@app/components/dashboard/empty-group';
+import { Check } from '@app/components/icons/check';
 import UserMore from '@app/components/icons/user-more';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';
 import Button from '@app/components/ui/button';
 import Loader from '@app/components/ui/loader';
+import { buttonConstant } from '@app/constants/locales/buttons';
 import { formConstant } from '@app/constants/locales/form';
 import { groupConstant } from '@app/constants/locales/group';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -22,23 +25,25 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useAddFormOnGroupMutation, useDeleteGroupFormMutation, useGetAllRespondersGroupQuery, useGetRespondersGroupQuery, useGetSingleFormFromProviderQuery } from '@app/store/workspaces/api';
+import { useAddFormOnGroupMutation, useDeleteGroupFormMutation, useGetAllRespondersGroupQuery, useGetSingleFormFromProviderQuery } from '@app/store/workspaces/api';
+import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
 
 export default function FormGroups(props: any) {
     const { t } = useTranslation();
-    const form = useAppSelector((state) => state.form);
+    const form: StandardFormDto = useAppSelector((state) => state.form);
     const dispatch = useAppDispatch();
     const { data, isLoading } = useGetAllRespondersGroupQuery(props.workspaceId);
     const [addGroup] = useAddFormOnGroupMutation();
     const [removeGroup] = useDeleteGroupFormMutation();
-    const deleteFormFromGroup = async (groupId: string) => {
+    const deleteFormFromGroup = async (group: ResponderGroupDto) => {
         try {
             await removeGroup({
                 workspaceId: props.workspaceId,
-                groupId: groupId,
+                groupId: group.id,
                 formId: form.formId
             }).unwrap();
-            dispatch(setForm({ ...form, groups: form.groups.filter((group) => group !== groupId) }));
+
+            dispatch(setForm({ ...form, groups: form.groups?.filter((formGroup) => formGroup.id !== group.id) }));
 
             toast(t(toastMessage.removeFromGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
         } catch (error) {
@@ -46,20 +51,15 @@ export default function FormGroups(props: any) {
         }
     };
 
-    const addFormOnGroup = async (groups: Array<string>, groupId: string) => {
+    const addFormOnGroup = async (groups: any, group: ResponderGroupDto) => {
         try {
-            if (groups.includes(groupId)) {
-                toast(t(toastMessage.alreadyInGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-                return;
-            }
-
             await addGroup({
                 workspaceId: props.workspaceId,
-                groupId: groupId,
+                groupId: group.id,
                 formId: form.formId
             }).unwrap();
 
-            dispatch(setForm({ ...form, groups: [...groups, groupId] }));
+            dispatch(setForm({ ...form, groups: [...groups, group] }));
 
             toast(t(toastMessage.addedOnGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
         } catch (error) {
@@ -69,7 +69,7 @@ export default function FormGroups(props: any) {
     const NoGroupLink = () => (
         <div className="mt-[119px] flex flex-col items-center">
             <UserMore />
-            <p className="body1">Add form on group</p>
+            <p className="body1">{t(formConstant.addGroup)}</p>
             <ul className="list-disc body4 text-black-700 flex flex-col gap-4 mt-4">
                 <li>{t(groupConstant.limitAccessToFrom)}</li>
                 <li>{t(groupConstant.sendFormsToMultiplePeople)}</li>
@@ -79,17 +79,20 @@ export default function FormGroups(props: any) {
 
     const ShowFormGroups = () => (
         <div className="flex flex-col gap-4">
-            {form.groups.map((group) => (
-                <div key={group} className="flex items-center bg-white justify-between p-4">
-                    <p>{group}</p>
+            {form.groups?.map((group) => (
+                <div key={group.id} className="flex items-center bg-white justify-between p-4">
+                    <p>{group?.name}</p>
                     <DeleteIcon className="h-6 w-6 text-red-600  cursor-pointer" onClick={() => deleteFormFromGroup(group)} />
                 </div>
             ))}
             <div className="flex justify-center mt-4">
-                <MenuDropdown showExpandMore={false} className="cursor-pointer " width={180} id="group-option" menuTitle={''} menuContent={<div className="bg-brand-500 px-3 rounded text-white py-1">Add More Group</div>}>
+                <MenuDropdown showExpandMore={false} className="cursor-pointer " width={180} id="group-option" menuTitle={''} menuContent={<div className="bg-brand-500 px-3 rounded text-white py-1">{t(buttonConstant.addGroup)}</div>}>
                     {data.map((group: ResponderGroupDto) => (
-                        <MenuItem onClick={() => addFormOnGroup(form.groups, group.id)} key={group.id} className="py-3 hover:bg-black-200">
-                            <span className="body4">{group.name}</span>
+                        <MenuItem disabled={isFormAlreadyInGroup(form.groups, group.id)} onClick={() => addFormOnGroup(form?.groups, group)} key={group.id} className="py-3 flex justify-between hover:bg-black-200">
+                            <Typography className="body4" noWrap>
+                                {group.name}
+                            </Typography>
+                            {isFormAlreadyInGroup(form.groups, group.id) && <CheckCircle className="h-5 w-5 text-brand-500" />}
                         </MenuItem>
                     ))}
                 </MenuDropdown>

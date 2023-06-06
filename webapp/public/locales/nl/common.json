@@ -72,7 +72,8 @@
         "DELETE_MEMBER": "Lid verwijderen",
         "SKIP": "Overslaan",
         "UPDATE_NOW": "Update nu",
-        "SAVE_CHANGES": "Wijzigingen opslaan"
+        "SAVE_CHANGES": "Wijzigingen opslaan",
+        "ADD_GROUP": "Groep toevoegen"
     },
     "CONTACT_US": {
         "DESCRIPTION": "Vragen of opmerkingen? Schrijf ons gewoon een bericht",
@@ -160,7 +161,8 @@
         "PREVIEW": "Formuliervoorbeeld",
         "URL": "Formulier-URL",
         "IMPORTED_BY": "Geïmporteerd door",
-        "IMPORTED_ON": "Geïmporteerd op"
+        "IMPORTED_ON": "Geïmporteerd op",
+        "ADD_GROUP": "Groep toevoegen aan formulier"
     },
     "FORMS": "Formulieren",
     "FORMS_LINK": "Links naar formulieren",

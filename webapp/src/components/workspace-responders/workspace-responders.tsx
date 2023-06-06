@@ -5,7 +5,8 @@ import { useTranslation } from 'next-i18next';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import StyledPagination from '@Components/Common/Pagination';
 import SearchInput from '@Components/Common/Search/SearchInput';
-import { MenuItem } from '@mui/material';
+import { CheckCircle } from '@mui/icons-material';
+import { MenuItem, Typography } from '@mui/material';
 import DataTable from 'react-data-table-component';
 import { toast } from 'react-toastify';
 
@@ -26,6 +27,7 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAddResponderOnGroupMutation, useDeleteResponderFromGroupMutation, useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
+import { isEmailInGroup } from '@app/utils/groupUtils';
 
 export default function WorkspaceResponses({ workspace, responderGroups }: { workspace: WorkspaceDto; responderGroups: Array<ResponderGroupDto> }) {
     const [query, setQuery] = useState<IGetAllSubmissionsQuery>({
@@ -64,11 +66,6 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
 
     const addResponderOnGroup = async (email: string, group: ResponderGroupDto) => {
         try {
-            if (group.emails.includes(email)) {
-                toast(t(toastMessage.alreadyInGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-                return;
-            }
-
             await addEmail({
                 workspaceId: workspace.id,
                 groupId: group.id,
@@ -108,8 +105,11 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
             {responderGroups.length > 0 && (
                 <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
                     {responderGroups.map((group) => (
-                        <MenuItem onClick={() => addResponderOnGroup(email, group)} key={group.id} className="py-3 hover:bg-black-200">
-                            <span className="body4">{group.name}</span>
+                        <MenuItem disabled={!!isEmailInGroup(group, email)} onClick={() => addResponderOnGroup(email, group)} key={group.id} className="flex justify-between py-3 hover:bg-black-200">
+                            <Typography className="body4" noWrap>
+                                {group.name}
+                            </Typography>
+                            {!!isEmailInGroup(group, email) && <CheckCircle className="h-5 w-5 text-brand-500" />}
                         </MenuItem>
                     ))}
                 </MenuDropdown>

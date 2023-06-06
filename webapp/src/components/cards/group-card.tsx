@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import AddMember from '@Components/Common/Icons/Add-member';
 import DeleteIcon from '@Components/Common/Icons/Delete';
@@ -9,6 +10,7 @@ import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
 import Preview from '@Components/Common/Icons/Preview';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { ListItemIcon, MenuItem, Typography } from '@mui/material';
+import { group } from 'console';
 import { toast } from 'react-toastify';
 
 import { groupConstant } from '@app/constants/locales/group';
@@ -25,6 +27,7 @@ import { useModal } from '../modal-views/context';
 export default function GroupCard({ responderGroup }: { responderGroup: ResponderGroupDto }) {
     const { openModal } = useModal();
     const { t } = useTranslation();
+    const router = useRouter();
     const [trigger] = useDeleteResponderGroupMutation();
     const workspace = useAppSelector((state) => state.workspace);
     const isAdmin = useAppSelector(selectIsAdmin);
@@ -40,7 +43,8 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
         }
     };
     const handlePreviewGroup = () => {
-        return openModal('PREVIEW_GROUP', { responderGroup: responderGroup });
+        // return openModal('PREVIEW_GROUP', { responderGroup: responderGroup });
+        router.push(`/${workspace.workspaceName}/dashboard/responders/${responderGroup.id}`);
     };
     const handleUpdateGroup = () => {
         return openModal('CREATE_GROUP', { responderGroup: responderGroup });

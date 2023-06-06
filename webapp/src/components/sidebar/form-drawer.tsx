@@ -39,7 +39,7 @@ export default function FormDrawer({ drawerWidth, mobileOpen, handleDrawerToggle
         },
         {
             key: 'groups',
-            name: t(groupConstant.groups),
+            name: t(groupConstant.groups) + ' (' + (form.groups?.length || 0) + ')',
             url: `${commonUrl}/groups`
         },
         {

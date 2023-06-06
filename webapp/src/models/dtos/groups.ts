@@ -1,3 +1,5 @@
+import { StandardFormDto } from '@app/models/dtos/form';
+
 export interface GroupInfoDto {
     name: string;
     description: string;
@@ -7,9 +9,5 @@ export interface GroupInfoDto {
 
 export interface ResponderGroupDto extends GroupInfoDto {
     id: string;
-    forms: Array<FormInfoDto>;
-}
-
-export interface FormInfoDto {
-    form_id: string;
+    forms: Array<StandardFormDto>;
 }

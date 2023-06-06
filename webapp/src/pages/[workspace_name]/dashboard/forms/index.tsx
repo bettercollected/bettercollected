@@ -70,7 +70,6 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     const isProPlan = useAppSelector(selectIsProPlan);
 
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
-    const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
 
     const forms = workspaceForms?.data?.items || [];
     const router = useRouter();
@@ -116,43 +115,6 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             ]
         }
     ];
-
-    const AddButton = (onClick: () => void) => (
-        <div onClick={onClick} className="flex gap-1 items-center cursor-pointer text-black-600">
-            <Plus className="h-4 w-4 " />
-            <p className="body5 !text-black-600">Add</p>
-        </div>
-    );
-
-    // const ShowFormGroups = (formId: string) => (
-    //     <div className="flex flex-col gap-1">
-    //         {data?.map((group: ResponderGroupDto) => {
-    //             if (group?.forms?.filter((form) => form.form_id === formId).length > 0)
-    //                 return (
-    //                     <div key={group.id} className="p-1 w-fit rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500">
-    //                         <span className="body5 text-black-8000">{group.name}</span>
-    //                         <Close
-    //                             className="h-2 w-2 cursor-pointer"
-    //                             onClick={() => {
-    //                                 deleteFormFromGroup(formId, group);
-    //                             }}
-    //                         />
-    //                     </div>
-    //                 );
-    //             return null;
-    //         })}
-    //         {data?.length === 0 && AddButton(() => openModal('CREATE_GROUP'))}
-    //         {data?.length > 0 && (
-    //             <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
-    //                 {data.map((group: ResponderGroupDto) => (
-    //                     <MenuItem onClick={() => addFormOnGroup(formId, group)} key={group.id} className="py-3 hover:bg-black-200">
-    //                         <span className="body4">{group.name}</span>
-    //                     </MenuItem>
-    //                 ))}
-    //             </MenuDropdown>
-    //         )}
-    //     </div>
-    // );
 
     const dataTableFormColumns = [
         {
@@ -256,12 +218,12 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
 
     return (
         <SidebarLayout>
-            {workspaceForms?.isLoading && isLoading && (
+            {workspaceForms?.isLoading && (
                 <div className=" w-full py-10 flex justify-center">
                     <Loader />
                 </div>
             )}
-            {!workspaceForms?.isLoading && !isLoading && (
+            {!workspaceForms?.isLoading && (
                 <div className="py-10 w-full h-full">
                     <h1 className="sh1">{t(localesGlobal.forms)}</h1>
                     <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
