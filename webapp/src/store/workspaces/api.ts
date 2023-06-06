@@ -13,6 +13,7 @@ const SUBMISSION_TAG = 'SUBMISSION_TAG';
 const WORKSPACE_UPDATE_TAG = 'WORKSPACE_UPDATE_TAG';
 const GROUP_TAGS = 'GROUP_TAG';
 const RESPONDER_TAG = 'RESPONDER_TAG';
+const FORM_TAG = 'FORM_TAG';
 interface ImportFormQueryInterface {
     workspaceId: string;
     provider: string;
@@ -25,7 +26,7 @@ interface ImportFormQueryInterface {
 
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAGS, RESPONDER_TAG],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAGS, RESPONDER_TAG, FORM_TAG],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -326,7 +327,7 @@ export const workspacesApi = createApi({
         }),
         getRespondersGroup: builder.query<any, any>({
             query: (query) => ({
-                url: `${query.workspace_id}/responder-groups/${query.group_id}`,
+                url: `${query.workspaceId}/responder-groups/${query.groupId}`,
                 method: 'GET'
             }),
             providesTags: [GROUP_TAGS]
@@ -336,7 +337,7 @@ export const workspacesApi = createApi({
                 url: `${workspace_id}/responder-groups`,
                 method: 'GET'
             }),
-            providesTags: [GROUP_TAGS, RESPONDER_TAG]
+            providesTags: [GROUP_TAGS, RESPONDER_TAG, FORM_TAG]
         }),
         deleteResponderGroup: builder.mutation<any, any>({
             query: (request) => ({
@@ -369,7 +370,8 @@ export const workspacesApi = createApi({
                 params: {
                     group_id: request.groupId
                 }
-            })
+            }),
+            invalidatesTags: [FORM_TAG]
         }),
         deleteGroupForm: builder.mutation<any, any>({
             query: (request) => ({
@@ -378,7 +380,8 @@ export const workspacesApi = createApi({
                     group_id: request.groupId
                 },
                 method: 'DELETE'
-            })
+            }),
+            invalidatesTags: [FORM_TAG]
         }),
         updateResponderGroup: builder.mutation<any, any>({
             query: (request) => ({

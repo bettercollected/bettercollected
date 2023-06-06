@@ -5,6 +5,7 @@ import { useTranslation } from 'next-i18next';
 import { Typography } from '@mui/material';
 
 import GroupCard from '@app/components/cards/group-card';
+import EmptyGroup from '@app/components/dashboard/empty-group';
 import { Plus } from '@app/components/icons/plus';
 import UserMore from '@app/components/icons/user-more';
 import { useModal } from '@app/components/modal-views/context';
@@ -16,19 +17,6 @@ export default function WorkspaceGropus({ responderGroups }: { responderGroups: 
     const { openModal } = useModal();
     const { t } = useTranslation();
     const data = responderGroups;
-    const EmptyGroup = () => (
-        <div className="my-[119px] flex flex-col items-center">
-            <UserMore />
-            <p className="body1">{t(groupConstant.createAGroupTo)} :</p>
-            <ul className="list-disc body4 text-black-700 flex flex-col gap-4 mt-4">
-                <li>{t(groupConstant.limitAccessToFrom)}</li>
-                <li>{t(groupConstant.sendFormsToMultiplePeople)}</li>
-            </ul>
-            <Button className="mt-6" size="small" onClick={() => openModal('CREATE_GROUP')}>
-                {t(groupConstant.createNewGroup.default)}
-            </Button>
-        </div>
-    );
     const Group = () => (
         <div>
             <div className="flex justify-between">

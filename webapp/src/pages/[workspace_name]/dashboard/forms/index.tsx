@@ -5,14 +5,20 @@ import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import UserDetails from '@Components/Common/DataDisplay/UserDetails';
+import Plus from '@Components/Common/Icons/Plus';
+import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import StyledPagination from '@Components/Common/Pagination';
+import { MenuItem } from '@mui/material';
 import { A } from 'msw/lib/glossary-de6278a9';
 import DataTable from 'react-data-table-component';
+import { toast } from 'react-toastify';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
 import DataTableProviderFormCell from '@app/components/datatable/form/provider-form-cell';
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import EmptyResponse from '@app/components/ui/empty-response';
 import ActiveLink from '@app/components/ui/links/active-link';
@@ -20,12 +26,18 @@ import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
+import { groupConstant } from '@app/constants/locales/group';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';
+import { ToastId } from '@app/constants/toastId';
 import { StandardFormDto } from '@app/models/dtos/form';
+import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
+import { useGetAllRespondersGroupQuery, useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
+import { useAddFormOnGroupMutation } from '@app/store/workspaces/api';
+import { useDeleteGroupFormMutation } from '@app/store/workspaces/api';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
 const formTableStyles = {
@@ -46,6 +58,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     const [sortValue, setSortValue] = useState('newest_oldest');
     const [filterValue, setFilterValue] = useState('show_all');
     const { t } = useTranslation();
+    const { openModal } = useModal();
 
     const [workspaceQuery, setWorkspaceQuery] = useState({
         workspace_id: workspace.id,
@@ -57,6 +70,8 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     const isProPlan = useAppSelector(selectIsProPlan);
 
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
+    const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
+
     const forms = workspaceForms?.data?.items || [];
     const router = useRouter();
 
@@ -101,6 +116,43 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             ]
         }
     ];
+
+    const AddButton = (onClick: () => void) => (
+        <div onClick={onClick} className="flex gap-1 items-center cursor-pointer text-black-600">
+            <Plus className="h-4 w-4 " />
+            <p className="body5 !text-black-600">Add</p>
+        </div>
+    );
+
+    // const ShowFormGroups = (formId: string) => (
+    //     <div className="flex flex-col gap-1">
+    //         {data?.map((group: ResponderGroupDto) => {
+    //             if (group?.forms?.filter((form) => form.form_id === formId).length > 0)
+    //                 return (
+    //                     <div key={group.id} className="p-1 w-fit rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500">
+    //                         <span className="body5 text-black-8000">{group.name}</span>
+    //                         <Close
+    //                             className="h-2 w-2 cursor-pointer"
+    //                             onClick={() => {
+    //                                 deleteFormFromGroup(formId, group);
+    //                             }}
+    //                         />
+    //                     </div>
+    //                 );
+    //             return null;
+    //         })}
+    //         {data?.length === 0 && AddButton(() => openModal('CREATE_GROUP'))}
+    //         {data?.length > 0 && (
+    //             <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
+    //                 {data.map((group: ResponderGroupDto) => (
+    //                     <MenuItem onClick={() => addFormOnGroup(formId, group)} key={group.id} className="py-3 hover:bg-black-200">
+    //                         <span className="body4">{group.name}</span>
+    //                     </MenuItem>
+    //                 ))}
+    //             </MenuDropdown>
+    //         )}
+    //     </div>
+    // );
 
     const dataTableFormColumns = [
         {
@@ -158,7 +210,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
               ]),
         {
             name: t(formConstant.importedDate),
-            selector: (row: StandardFormDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))}` : ''),
+            selector: (row: StandardFormDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
@@ -178,7 +230,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
         }
     ];
 
-    const response = () => {
+    const Response = () => {
         if (forms && forms.length > 0)
             return (
                 <>
@@ -204,19 +256,19 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
 
     return (
         <SidebarLayout>
-            {workspaceForms?.isLoading && (
+            {workspaceForms?.isLoading && isLoading && (
                 <div className=" w-full py-10 flex justify-center">
                     <Loader />
                 </div>
             )}
-            {!workspaceForms?.isLoading && (
+            {!workspaceForms?.isLoading && !isLoading && (
                 <div className="py-10 w-full h-full">
                     <h1 className="sh1">{t(localesGlobal.forms)}</h1>
                     <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
                         <ImportFormsButton size="small" />
                     </div>
                     <Divider />
-                    {response()}
+                    {Response()}
                 </div>
             )}
         </SidebarLayout>

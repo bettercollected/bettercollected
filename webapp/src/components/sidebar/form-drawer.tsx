@@ -9,6 +9,7 @@ import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
+import { groupConstant } from '@app/constants/locales/group';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -35,6 +36,11 @@ export default function FormDrawer({ drawerWidth, mobileOpen, handleDrawerToggle
             key: 'deletion_requests',
             name: t(formConstant.deletionRequests) + ' (' + (form.deletionRequests || 0) + ')',
             url: `${commonUrl}/deletion-requests`
+        },
+        {
+            key: 'groups',
+            name: t(groupConstant.groups),
+            url: `${commonUrl}/groups`
         },
         {
             key: 'settings',

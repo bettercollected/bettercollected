@@ -7,4 +7,9 @@ export interface GroupInfoDto {
 
 export interface ResponderGroupDto extends GroupInfoDto {
     id: string;
+    forms: Array<FormInfoDto>;
+}
+
+export interface FormInfoDto {
+    form_id: string;
 }

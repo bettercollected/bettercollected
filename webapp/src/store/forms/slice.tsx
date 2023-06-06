@@ -25,7 +25,8 @@ export const initialFormState: StandardFormDto = {
         plan: Plans.FREE
     },
     fields: [],
-    modifiedTime: ''
+    modifiedTime: '',
+    groups: []
 };
 
 export const slice = createSlice({
