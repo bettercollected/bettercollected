@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import DeleteIcon from '@Components/Common/Icons/Delete';
+import SearchInput from '@Components/Common/Search/SearchInput';
 import { Typography } from '@mui/material';
 import { toast } from 'react-toastify';
 
@@ -23,6 +24,15 @@ export default function GroupMembers({ group, workspace }: { group: ResponderGro
     const { t } = useTranslation();
     const { removeMemberFromGroup } = useGroupMember();
     const { openModal } = useModal();
+    const [emails, setEmails] = useState(group.emails);
+    const handleSearch = (event: any) => {
+        const query = event.target.value;
+        var updatedList = [...group.emails];
+        updatedList = updatedList.filter((item) => {
+            return item.toLowerCase().indexOf(query.toLowerCase()) !== -1;
+        });
+        setEmails(updatedList);
+    };
     return (
         <div>
             <div className="flex  justify-between">
@@ -35,16 +45,23 @@ export default function GroupMembers({ group, workspace }: { group: ResponderGro
                 </div>
             </div>
             <p className="body4 leading-none mt-5 mb-10 md:max-w-[355px] !text-black-700 break-all">{t(groupConstant.description)}</p>
-            <div className="flex flex-col gap-2">
-                {group.emails.map((email) => {
-                    return (
-                        <div key={email} className="flex md:max-w-[610px] justify-between body4 bg-white px-4  rounded py-5 !text-black-800">
-                            <span>{email}</span>
-                            <DeleteIcon onClick={() => removeMemberFromGroup({ email, group, workspaceId: workspace.id })} className="h-7 w-7 p-1 cursor-pointer rounded hover:bg-black-200 text-red-500" />
-                        </div>
-                    );
-                })}
-            </div>
+            {group.emails.length > 0 && (
+                <div className=" flex flex-col md:max-w-[610px] gap-6">
+                    <div className="sm:w-[240px]">
+                        <SearchInput handleSearch={handleSearch} />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        {emails.map((email) => {
+                            return (
+                                <div key={email} className="flex  justify-between body4 bg-white px-4  rounded py-5 !text-black-800">
+                                    <span>{email}</span>
+                                    <DeleteIcon onClick={() => removeMemberFromGroup({ email, group, workspaceId: workspace.id })} className="h-7 w-7 p-1 cursor-pointer rounded hover:bg-black-200 text-red-500" />
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

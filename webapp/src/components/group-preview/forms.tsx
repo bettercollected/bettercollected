@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
+import SearchInput from '@Components/Common/Search/SearchInput';
 import { CheckCircle } from '@mui/icons-material';
 import { MenuItem, Typography } from '@mui/material';
 
@@ -27,6 +28,15 @@ export default function GroupForms({ group, workspaceForms }: { group: Responder
         event.preventDefault();
         event.stopPropagation();
         router.push(`/${workspace.workspaceName}/dashboard/forms`);
+    };
+    const [forms, setForms] = useState(group.forms);
+    const handleSearch = (event: any) => {
+        const query = event.target.value;
+        var updatedList = [...group.forms];
+        updatedList = updatedList.filter((item) => {
+            return item.title.toLowerCase().indexOf(query.toLowerCase()) !== -1;
+        });
+        setForms(updatedList);
     };
     return (
         <div>
@@ -63,15 +73,22 @@ export default function GroupForms({ group, workspaceForms }: { group: Responder
                 </MenuDropdown>
             </div>
             <p className="body4 leading-none mt-5 mb-10 md:max-w-[355px] !text-black-700 break-all">{t(groupConstant.description)}</p>
-            <div className="grid mt-6 grid-flow-row md:grid-cols-3 sm:grid-cols-2 grid-cols-1">
-                {group.forms.map((form, idx) => {
-                    return (
-                        <div onClick={handleCardClick} key={form.formId + idx}>
-                            <WorkspaceFormCard key={form.formId} form={form} hasCustomDomain={false} workspace={workspace} group={group} />
-                        </div>
-                    );
-                })}
-            </div>
+            {group.forms.length > 0 && (
+                <div className="gap-6 flex flex-col">
+                    <div className="sm:w-[240px]">
+                        <SearchInput handleSearch={handleSearch} />
+                    </div>
+                    <div className="grid mt-6 grid-flow-row md:grid-cols-3 sm:grid-cols-2 grid-cols-1">
+                        {forms.map((form, idx) => {
+                            return (
+                                <div onClick={handleCardClick} key={form.formId + idx}>
+                                    <WorkspaceFormCard key={form.formId} form={form} hasCustomDomain={false} workspace={workspace} group={group} />
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
