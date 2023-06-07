@@ -1,38 +1,39 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import SearchInput from '@Components/Common/Search/SearchInput';
 import { Typography } from '@mui/material';
-import { toast } from 'react-toastify';
 
 import { Plus } from '@app/components/icons/plus';
+import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { groupConstant } from '@app/constants/locales/group';
 import { members } from '@app/constants/locales/members';
-import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
 import { useGroupMember } from '@app/lib/hooks/use-group-members';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { useDeleteResponderFromGroupMutation } from '@app/store/workspaces/api';
-
-import { useModal } from '../modal-views/context';
 
 export default function GroupMembers({ group, workspace }: { group: ResponderGroupDto; workspace: WorkspaceDto }) {
     const { t } = useTranslation();
     const { removeMemberFromGroup } = useGroupMember();
     const { openModal } = useModal();
     const [emails, setEmails] = useState(group.emails);
+    const [searchQuery, setSearchQuery] = useState('');
     const handleSearch = (event: any) => {
-        const query = event.target.value;
-        var updatedList = [...group.emails];
-        updatedList = updatedList.filter((item) => {
-            return item.toLowerCase().indexOf(query.toLowerCase()) !== -1;
-        });
-        setEmails(updatedList);
+        const query = event.target.value.toLowerCase();
+        setSearchQuery(query);
     };
+    useEffect(() => {
+        const filteredEmails = group.emails.filter((email) => {
+            return email.toLowerCase().includes(searchQuery);
+        });
+        setEmails(filteredEmails);
+    }, [searchQuery, group]);
+    useEffect(() => {
+        setEmails(group.emails);
+    }, [group]);
     return (
         <div>
             <div className="flex  justify-between">

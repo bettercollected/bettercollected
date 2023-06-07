@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
@@ -30,14 +30,23 @@ export default function GroupForms({ group, workspaceForms }: { group: Responder
         router.push(`/${workspace.workspaceName}/dashboard/forms`);
     };
     const [forms, setForms] = useState(group.forms);
+    const [searchQuery, setSearchQuery] = useState('');
+    useEffect(() => {
+        setForms(group.forms);
+    }, [group]);
+
     const handleSearch = (event: any) => {
-        const query = event.target.value;
-        var updatedList = [...group.forms];
-        updatedList = updatedList.filter((item) => {
-            return item.title.toLowerCase().indexOf(query.toLowerCase()) !== -1;
-        });
-        setForms(updatedList);
+        const query = event.target.value.toLowerCase();
+        setSearchQuery(query);
     };
+
+    useEffect(() => {
+        const filteredForms = group.forms.filter((form) => {
+            return form.title.toLowerCase().includes(searchQuery);
+        });
+        setForms(filteredForms);
+    }, [searchQuery, group]);
+
     return (
         <div>
             <div className="flex  justify-between">
@@ -73,22 +82,22 @@ export default function GroupForms({ group, workspaceForms }: { group: Responder
                 </MenuDropdown>
             </div>
             <p className="body4 leading-none mt-5 mb-10 md:max-w-[355px] !text-black-700 break-all">{t(groupConstant.description)}</p>
-            {group.forms.length > 0 && (
-                <div className="gap-6 flex flex-col">
-                    <div className="sm:w-[240px]">
-                        <SearchInput handleSearch={handleSearch} />
-                    </div>
-                    <div className="grid mt-6 grid-flow-row md:grid-cols-3 sm:grid-cols-2 grid-cols-1">
-                        {forms.map((form, idx) => {
-                            return (
-                                <div onClick={handleCardClick} key={form.formId + idx}>
-                                    <WorkspaceFormCard key={form.formId} form={form} hasCustomDomain={false} workspace={workspace} group={group} />
-                                </div>
-                            );
-                        })}
-                    </div>
+            {/* {group.forms.length > 0 && ( */}
+            <div className="gap-6 flex flex-col">
+                <div className="sm:w-[240px]">
+                    <SearchInput handleSearch={handleSearch} />
                 </div>
-            )}
+                <div className="grid mt-6 grid-flow-row md:grid-cols-3 sm:grid-cols-2 grid-cols-1">
+                    {forms.map((form, idx) => {
+                        return (
+                            <div onClick={handleCardClick} key={form.formId + idx}>
+                                <WorkspaceFormCard key={form.formId} form={form} hasCustomDomain={false} workspace={workspace} group={group} />
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+            {/* )} */}
         </div>
     );
 }
