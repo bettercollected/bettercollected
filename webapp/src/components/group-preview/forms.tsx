@@ -87,7 +87,7 @@ export default function GroupForms({ group, workspaceForms }: { group: Responder
                 <div className="sm:w-[240px]">
                     <SearchInput handleSearch={handleSearch} />
                 </div>
-                <div className="grid mt-6 grid-flow-row md:grid-cols-3 sm:grid-cols-2 grid-cols-1">
+                <div className="grid mt-6 grid-flow-row md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
                     {forms.map((form, idx) => {
                         return (
                             <div onClick={handleCardClick} key={form.formId + idx}>
