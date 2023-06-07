@@ -39,7 +39,7 @@ export default function GroupMembers({ group, workspace }: { group: ResponderGro
                     return (
                         <div key={email} className="flex md:max-w-[610px] justify-between body4 bg-white px-4  rounded py-5 !text-black-800">
                             <span>{email}</span>
-                            <DeleteIcon onClick={() => removeMemberFromGroup({ email, group, workspaceId: workspace.id })} className="h-5 w-5 cursor-pointer text-red-500" />
+                            <DeleteIcon onClick={() => removeMemberFromGroup({ email, group, workspaceId: workspace.id })} className="h-7 w-7 p-1 cursor-pointer rounded hover:bg-black-200 text-red-500" />
                         </div>
                     );
                 })}

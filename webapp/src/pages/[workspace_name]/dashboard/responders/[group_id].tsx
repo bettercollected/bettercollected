@@ -52,7 +52,7 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
         },
         {
             title: t(groupConstant.groups),
-            disabled: true
+            url: `/${locale}${workspace?.workspaceName}/dashboard/responders?view=Groups`
         },
         {
             title: data?.name,

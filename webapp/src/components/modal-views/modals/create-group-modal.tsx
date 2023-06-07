@@ -23,18 +23,17 @@ import { useAppSelector } from '@app/store/hooks';
 import { useCreateRespondersGroupMutation, useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
 import { WorkspaceState } from '@app/store/workspaces/slice';
 
-export default function CreateGroupModal({ responderGroup, email }: { responderGroup: ResponderGroupDto; email: string }) {
+export default function CreateGroupModal({ email }: { email: string }) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
     const workspace = useAppSelector((state: { workspace: WorkspaceState & PersistPartial }) => state.workspace);
     const [groupInfo, setGroupInfo] = useState<GroupInfoDto>({
-        name: responderGroup?.name ?? '',
-        description: responderGroup?.description ?? '',
+        name: '',
+        description: '',
         email: '',
-        emails: email ? [email] : responderGroup?.emails ?? []
+        emails: email ? [email] : []
     });
-    const [createResponderGroup, createGroupResponse] = useCreateRespondersGroupMutation();
-    const [updateResponderGroup, updateGroupResponse] = useUpdateResponderGroupMutation();
+    const [createResponderGroup, { isLoading }] = useCreateRespondersGroupMutation();
     const handleInput = (event: any) => {
         setGroupInfo({
             ...groupInfo,
@@ -55,19 +54,6 @@ export default function CreateGroupModal({ responderGroup, email }: { responderG
             emails: emails
         });
     };
-    const handleUpdateGroup = async () => {
-        try {
-            await updateResponderGroup({
-                groupInfo: groupInfo,
-                workspaceId: workspace.id,
-                groupId: responderGroup.id
-            }).unwrap();
-            toast(t(toastMessage.updated).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
-            closeModal();
-        } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-        }
-    };
 
     const handleCreateGroup = async () => {
         try {
@@ -82,14 +68,6 @@ export default function CreateGroupModal({ responderGroup, email }: { responderG
         }
     };
 
-    const handleGroupButton = () => {
-        if (responderGroup) {
-            handleUpdateGroup();
-        } else {
-            handleCreateGroup();
-        }
-    };
-
     return (
         <div className="p-7 bg-brand-100 relative rounded-[8px] md:w-[670px]">
             <Close
@@ -98,8 +76,8 @@ export default function CreateGroupModal({ responderGroup, email }: { responderG
                     closeModal();
                 }}
             />
-            <h4 className="h4 !leading-none">{responderGroup ? t(groupConstant.editGroup) : t(groupConstant.createNewGroup.default)}</h4>
-            {!responderGroup && <p className="body4 leading-none mt-5  text-black-700">{t(groupConstant.createNewGroup.description)}</p>}
+            <h4 className="h4 !leading-none">{t(groupConstant.createNewGroup.default)}</h4>
+            <p className="body4 leading-none mt-5  text-black-700">{t(groupConstant.createNewGroup.description)}</p>
             <p className="body4 mt-10 leading-none mb-2">
                 {t(groupConstant.name)}
                 <span className="text-red-800">*</span>
@@ -143,8 +121,8 @@ export default function CreateGroupModal({ responderGroup, email }: { responderG
                 </>
             )}
             <div className="flex justify-end mt-10">
-                <Button size="medium" disabled={!groupInfo.name || groupInfo.emails.length === 0} isLoading={responderGroup ? createGroupResponse.isLoading : updateGroupResponse.isLoading} onClick={handleGroupButton}>
-                    <span className="body1 !text-blue-100">{responderGroup ? t(buttonConstant.saveChanges) : t(groupConstant.createGroup)} </span>
+                <Button size="medium" disabled={!groupInfo.name || groupInfo.emails.length === 0} isLoading={isLoading} onClick={handleCreateGroup}>
+                    <span className="body1 !text-blue-100">{t(groupConstant.createGroup)} </span>
                 </Button>
             </div>
         </div>

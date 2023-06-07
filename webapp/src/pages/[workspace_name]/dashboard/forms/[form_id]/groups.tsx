@@ -51,7 +51,7 @@ export default function FormGroups(props: any) {
             {form.groups?.map((group) => (
                 <div key={group.id} className="flex items-center bg-white justify-between p-4">
                     <p>{group?.name}</p>
-                    <DeleteIcon className="h-6 w-6 text-red-600  cursor-pointer" onClick={(event) => deleteFormFromGroup({ event, group, workspaceId: props.workspaceId, form })} />
+                    <DeleteIcon className="h-7 w-7 text-red-600  cursor-pointer rounded p-1 hover:bg-black-200 " onClick={(event) => deleteFormFromGroup({ event, group, workspaceId: props.workspaceId, form })} />
                 </div>
             ))}
             <div className="flex justify-center mt-4">
