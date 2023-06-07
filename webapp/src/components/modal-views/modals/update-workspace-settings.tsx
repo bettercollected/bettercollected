@@ -11,7 +11,7 @@ import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
 import environments from '@app/configs/environments';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesGlobal } from '@app/constants/locales/global';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';

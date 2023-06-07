@@ -18,7 +18,7 @@ import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import WorkSpaceLogoUi from '@app/components/ui/workspace-logo-ui';
 import environments from '@app/configs/environments';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesGlobal } from '@app/constants/locales/global';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { placeHolder } from '@app/constants/locales/placeholder';

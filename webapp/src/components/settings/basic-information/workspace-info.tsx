@@ -9,7 +9,7 @@ import ProfileImageComponent from '@app/components/dashboard/profile-image';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';

@@ -6,7 +6,7 @@ import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import Button from '@app/components/ui/button';
 import Hamburger from '@app/components/ui/hamburger';
 import Logo from '@app/components/ui/logo';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';

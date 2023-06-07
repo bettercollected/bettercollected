@@ -7,6 +7,7 @@ import { Typography } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import { Plus } from '@app/components/icons/plus';
+import { buttonConstant } from '@app/constants/locales/button';
 import { groupConstant } from '@app/constants/locales/group';
 import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -30,7 +31,7 @@ export default function GroupMembers({ group, workspace }: { group: ResponderGro
                 </p>
                 <div onClick={() => openModal('ADD_MEMBER', { group })} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
                     <Plus className="h-4 w-4" />
-                    <Typography className="!text-brand-500  body6"> Add Member</Typography>
+                    <Typography className="!text-brand-500  body6">{t(buttonConstant.addMember)}</Typography>
                 </div>
             </div>
             <p className="body4 leading-none mt-5 mb-10 md:max-w-[355px] !text-black-700 break-all">{t(groupConstant.description)}</p>

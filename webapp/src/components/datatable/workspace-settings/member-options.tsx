@@ -8,7 +8,7 @@ import { MoreHoriz } from '@mui/icons-material';
 import { IconButton, ListItemIcon, Menu, MenuItem } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { formConstant } from '@app/constants/locales/form';
 
 interface IMemberOptionProps {

@@ -8,7 +8,7 @@ import InvitationsTable from '@app/components/settings/invitations-table';
 import MembersTable from '@app/components/settings/members-table';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import Button from '@app/components/ui/button';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { Features } from '@app/constants/locales/feature';
 import { members } from '@app/constants/locales/members';
 import { selectIsProPlan } from '@app/store/auth/slice';

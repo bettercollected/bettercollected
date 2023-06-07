@@ -8,7 +8,7 @@ import { useUpgradeModal } from '@app/components/modal-views/upgrade-modal-conte
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import { advanceSetting } from '@app/constants/locales/advance-setting';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesGlobal } from '@app/constants/locales/global';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';

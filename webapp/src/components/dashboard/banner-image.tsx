@@ -10,7 +10,7 @@ import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 import uploadImage from '@app/assets/images/upload.png';
 import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import editWorkspace from '@app/constants/locales/edit-workpsace';
 import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';

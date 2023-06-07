@@ -22,7 +22,9 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
     const [trigger] = useDeleteResponderGroupMutation();
     const workspace = useAppSelector((state) => state.workspace);
 
-    const handleDeletegroup = async () => {
+    const handleDeletegroup = async (event: any) => {
+        event.preventDefault();
+        event.stopPropagation();
         try {
             await trigger({
                 workspaceId: workspace.id,
@@ -33,8 +35,8 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
             toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
     };
-    const handlePreviewGroup = (e: any) => {
-        e.preventDefault();
+    const handlePreviewGroup = (event: any) => {
+        event.preventDefault();
         router.push(`/${workspace.workspaceName}/dashboard/responders/${responderGroup.id}`);
     };
     return (
@@ -43,17 +45,17 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
             <div>
                 <div className="flex gap-2 items-center">
                     <div className="!h-6 !w-6 flex justify-center items-center bg-black-500 rounded">
-                        <Typography className="sh1 !text-white">{responderGroup.name[0].toUpperCase()}</Typography>
+                        <Typography className="sh1 !leading-none !text-white">{responderGroup.name[0].toUpperCase()}</Typography>
                     </div>
-                    <Typography className="body1">{responderGroup.name}</Typography>
+                    <Typography className="body1 !leading-none">{responderGroup.name}</Typography>
                 </div>
-                {responderGroup.description && <p className="body4 line-clamp-2 break-all !text-black-800 mt-4">{responderGroup.description}</p>}
+                {responderGroup.description && <p className="body4 line-clamp-2 break-all !text-black-800 mt-4 !leading-none">{responderGroup.description}</p>}
             </div>
 
-            <p className="my-10 body6">
+            <p className="my-10 body6 !leading-none">
                 {responderGroup.emails.length > 1 ? t(members.default) : t(members.member)} ({responderGroup.emails.length})
             </p>
-            <p className="body6">
+            <p className="body6 !leading-none">
                 {responderGroup.forms.length > 1 ? t(localesGlobal.forms) : t(formConstant.default)} ({responderGroup.forms.length})
             </p>
 

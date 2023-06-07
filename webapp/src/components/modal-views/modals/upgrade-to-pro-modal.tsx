@@ -12,7 +12,7 @@ import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
 import { upgradeConst } from '@app/constants/locales/upgrade';
 import { useGetPlansQuery } from '@app/store/plans/api';

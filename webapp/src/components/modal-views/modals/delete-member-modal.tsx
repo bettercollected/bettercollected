@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppSelector } from '@app/store/hooks';

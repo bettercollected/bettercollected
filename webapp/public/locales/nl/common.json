@@ -23,6 +23,8 @@
     },
     "BUTTON": {
         "ADD": "Toevoegen",
+        "ADD_MEMBER": "Lid toevoegen",
+        "ADD_FORM": "Voeg formulier toe",
         "BACK": "terug",
         "CANCEL": "Annuleren",
         "CHECK_MY_DATA": "Controleer mijn gegevens",
@@ -177,16 +179,15 @@
     "GROUP": {
         "DEFAULT": "Groep",
         "GROUPS": "Groepen",
+        "ADD_MEMBER": {
+            "DEFAULT": "Lid toevoegen",
+            "DESCRIPTION": "Groepsleden hebben toegang tot alle formulieren die aan de groep zijn toegevoegd"
+        },
+        "DETAILS": "Groepsgegevens",
         "CREATE_A_GROUP_TO": "Maak een groep aan ",
         "LIMIT_ACCESS_TO_FORM": "Beperk toegang tot formulier vanuit uw werkruimte",
         "SEND_FORMS_TO_MULTIPLE_PEOPLE": "Stuur formulieren naar meerdere mensen tegelijk",
         "CREATE_GROUP": "Groep aanmaken",
-        "MENU": {
-            "PREVIEW": "Voorbeeld",
-            "ADD_MEMBER": "Lid toevoegen",
-            "EDIT": "Bewerken",
-            "DELETE": "Verwijderen"
-        },
         "CREATE_NEW_GROUP": {
             "DEFAULT": "Nieuwe groep aanmaken",
             "DESCRIPTION": "Maak een groep om formulieren naar hele groepen te sturen, stroomlijn het proces en bespaar tijd."

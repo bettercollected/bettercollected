@@ -9,6 +9,7 @@ import { MenuItem, Typography } from '@mui/material';
 
 import { Plus } from '@app/components/icons/plus';
 import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesGlobal } from '@app/constants/locales/global';
 import { groupConstant } from '@app/constants/locales/group';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
@@ -42,7 +43,7 @@ export default function GroupForms({ group, workspaceForms }: { group: Responder
                     menuContent={
                         <div className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
                             <Plus className="h-4 w-4" />
-                            <Typography className="!text-brand-500  body6"> Add Form</Typography>
+                            <Typography className="!text-brand-500  body6"> {t(buttonConstant.addForm)}</Typography>
                         </div>
                     }
                 >

@@ -50,5 +50,7 @@ export const buttonConstant = {
     skip: 'BUTTON.SKIP',
     updateNow: 'BUTTON.UPDATE_NOW',
     saveChanges: 'BUTTON.SAVE_CHANGES',
-    addGroup: 'BUTTON.ADD_GROUP'
+    addGroup: 'BUTTON.ADD_GROUP',
+    addMember: 'BUTTON.ADD_MEMBER',
+    addForm: 'BUTTON.ADD_FORM'
 };

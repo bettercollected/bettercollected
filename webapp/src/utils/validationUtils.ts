@@ -2,7 +2,7 @@ import { useTranslation } from 'next-i18next';
 
 import _ from 'lodash';
 
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { formConstant } from '@app/constants/locales/form';
 
 /**

@@ -17,7 +17,7 @@ import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { formConstant } from '@app/constants/locales/form';
 import { importFormConstant } from '@app/constants/locales/import-form';
 import { toastMessage } from '@app/constants/locales/toast-message';

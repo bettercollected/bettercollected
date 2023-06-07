@@ -9,7 +9,7 @@ import AuthAccountProfileImage from '@app/components/auth/account-profile-image'
 import AuthNavbar from '@app/components/auth/navbar';
 import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesGlobal } from '@app/constants/locales/global';
 import { invitationConstant } from '@app/constants/locales/invitations';
 import { toastMessage } from '@app/constants/locales/toast-message';

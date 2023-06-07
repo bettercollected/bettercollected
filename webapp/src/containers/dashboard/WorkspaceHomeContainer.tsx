@@ -15,7 +15,7 @@ import { useModal } from '@app/components/modal-views/context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import PublicWorkspaceTitleAndDescription from '@app/components/workspace/public-workspace-title-description';
 import environments from '@app/configs/environments';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import Layout from '@app/layouts/_layout';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';

@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
 import Button from '@app/components/ui/button/button';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesGlobal } from '@app/constants/locales/global';
 import { groupConstant } from '@app/constants/locales/group';
 import { placeHolder } from '@app/constants/locales/placeholder';

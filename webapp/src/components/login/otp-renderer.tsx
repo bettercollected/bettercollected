@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { otpRenderer } from '@app/constants/locales/otp-renderer';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';

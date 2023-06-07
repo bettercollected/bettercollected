@@ -7,7 +7,7 @@ import ConnectWithProviderButton from '@app/components/login/login-with-google-b
 import FormInput from '@app/components/ui/FormInput';
 import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesGlobal } from '@app/constants/locales/global';
 import { otpRenderer } from '@app/constants/locales/otp-renderer';
 import { IntegrationFormProviders } from '@app/models/dtos/provider';

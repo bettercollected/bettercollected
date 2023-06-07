@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesGlobal } from '@app/constants/locales/global';
 
 import AuthAccountProfileImage from '../auth/account-profile-image';

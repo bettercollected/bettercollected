@@ -7,7 +7,7 @@ import { Button, Typography } from '@mui/material';
 import cn from 'classnames';
 import { toast } from 'react-toastify';
 
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 
 type SizeNames = 'large' | 'medium' | 'small';

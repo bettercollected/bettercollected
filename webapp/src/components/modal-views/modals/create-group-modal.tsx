@@ -11,7 +11,7 @@ import { PersistPartial } from 'redux-persist/es/persistReducer';
 import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesGlobal } from '@app/constants/locales/global';
 import { groupConstant } from '@app/constants/locales/group';
 import { members } from '@app/constants/locales/members';

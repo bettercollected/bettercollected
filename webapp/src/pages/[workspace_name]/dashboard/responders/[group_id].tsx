@@ -62,7 +62,7 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
     const paramTabs = [
         {
             icon: <Groups />,
-            title: 'Group Details',
+            title: t(groupConstant.details),
             path: 'Group Details'
         },
         {

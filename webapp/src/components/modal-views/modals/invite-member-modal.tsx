@@ -10,7 +10,7 @@ import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesGlobal } from '@app/constants/locales/global';
 import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';
 import { toastMessage } from '@app/constants/locales/toast-message';

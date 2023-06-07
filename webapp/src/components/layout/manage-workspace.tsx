@@ -18,7 +18,7 @@ import LinkView from '@app/components/ui/link-view';
 import ShareView from '@app/components/ui/share-view';
 import environments from '@app/configs/environments';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
-import { buttonConstant } from '@app/constants/locales/buttons';
+import { buttonConstant } from '@app/constants/locales/button';
 import { customize } from '@app/constants/locales/customize';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';
