@@ -88,7 +88,7 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
                 <div className="flex flex-col -mt-6 ">
                     <BreadcrumbsRenderer items={breadcrumbsItem} />
                     <div className="flex gap-2 items-center ">
-                        <ChevronForward className=" h-6 w-6 py-[2px] cursor-pointer px-[3px] rotate-180" />
+                        {/* <ChevronForward className=" h-6 w-6 py-[2px] cursor-pointer px-[3px] rotate-180" /> */}
                         <span className="h4">{t(groupConstant.groups)}</span>
                     </div>
                     <ParamTab className="mb-[38px] mt-[24px]  pb-0 border-b  border-black-500" tabMenu={paramTabs}>
