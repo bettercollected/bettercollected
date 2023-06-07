@@ -82,22 +82,22 @@ export default function GroupForms({ group, workspaceForms }: { group: Responder
                 </MenuDropdown>
             </div>
             <p className="body4 leading-none mt-5 mb-10 md:max-w-[355px] !text-black-700 break-all">{t(groupConstant.description)}</p>
-            {/* {group.forms.length > 0 && ( */}
-            <div className="gap-6 flex flex-col">
-                <div className="sm:w-[240px]">
-                    <SearchInput handleSearch={handleSearch} />
+            {group.forms.length > 0 && (
+                <div className="gap-6 flex flex-col">
+                    <div className="sm:w-[240px]">
+                        <SearchInput handleSearch={handleSearch} />
+                    </div>
+                    <div className="grid mt-6 grid-flow-row md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
+                        {forms.map((form, idx) => {
+                            return (
+                                <div onClick={handleCardClick} key={form.formId + idx}>
+                                    <WorkspaceFormCard key={form.formId} form={form} hasCustomDomain={false} workspace={workspace} group={group} />
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
-                <div className="grid mt-6 grid-flow-row md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
-                    {forms.map((form, idx) => {
-                        return (
-                            <div onClick={handleCardClick} key={form.formId + idx}>
-                                <WorkspaceFormCard key={form.formId} form={form} hasCustomDomain={false} workspace={workspace} group={group} />
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-            {/* )} */}
+            )}
         </div>
     );
 }

@@ -7,17 +7,17 @@ import { Typography } from '@mui/material';
 import GroupCard from '@app/components/cards/group-card';
 import EmptyGroup from '@app/components/dashboard/empty-group';
 import { Plus } from '@app/components/icons/plus';
-import UserMore from '@app/components/icons/user-more';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button/button';
+import Loader from '@app/components/ui/loader';
 import { groupConstant } from '@app/constants/locales/group';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
-import { useAppSelector } from '@app/store/hooks';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 
-export default function WorkspaceGropus({ responderGroups }: { responderGroups: Array<ResponderGroupDto> }) {
+export default function WorkspaceGropus({ workspace }: { workspace: WorkspaceDto }) {
     const { openModal } = useModal();
     const { t } = useTranslation();
-    const data = responderGroups;
+    const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
     const Group = () => (
         <div>
             <div className="flex justify-between">
@@ -38,7 +38,12 @@ export default function WorkspaceGropus({ responderGroups }: { responderGroups: 
             </div>
         </div>
     );
-
+    if (isLoading)
+        return (
+            <div className=" w-full py-10 flex justify-center">
+                <Loader />
+            </div>
+        );
     if (data && data?.length > 0) return Group();
-    return EmptyGroup();
+    return <EmptyGroup />;
 }

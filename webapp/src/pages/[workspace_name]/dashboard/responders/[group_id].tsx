@@ -84,7 +84,7 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
                     <Loader />
                 </div>
             )}
-            {!isLoading && (
+            {!isLoading && !workspaceForms.isLoading && data && workspaceForms.data && (
                 <div className="flex flex-col -mt-6 ">
                     <BreadcrumbsRenderer items={breadcrumbsItem} />
                     <div className="flex gap-2 items-center ">

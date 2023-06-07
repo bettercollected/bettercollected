@@ -23,11 +23,11 @@ import { useGroupMember } from '@app/lib/hooks/use-group-members';
 import { WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
+import { useGetAllRespondersGroupQuery, useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 import { isEmailInGroup } from '@app/utils/groupUtils';
 
-export default function WorkspaceResponses({ workspace, responderGroups }: { workspace: WorkspaceDto; responderGroups: Array<ResponderGroupDto> }) {
+export default function WorkspaceResponses({ workspace }: { workspace: WorkspaceDto }) {
     const [query, setQuery] = useState<IGetAllSubmissionsQuery>({
         workspaceId: workspace.id,
         page: 1,
@@ -35,6 +35,7 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
     });
     const { addMemberOnGroup, removeMemberFromGroup } = useGroupMember();
     const { data, isLoading, isError } = useGetWorkspaceRespondersQuery(query);
+    const responderGroupsQuery = useGetAllRespondersGroupQuery(workspace.id);
 
     const { openModal } = useModal();
     const { t } = useTranslation();
@@ -51,7 +52,7 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
     );
     const ShowResponderGroups = (email: string) => (
         <div className="flex flex-col gap-1">
-            {responderGroups.map((group) => {
+            {responderGroupsQuery.data?.map((group: ResponderGroupDto) => {
                 if (group.emails.includes(email))
                     return (
                         <div key={group.id} className="p-1 w-fit rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500">
@@ -66,10 +67,10 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
                     );
                 return null;
             })}
-            {responderGroups.length === 0 && AddButton(() => openModal('CREATE_GROUP', { email: email }))}
-            {responderGroups.length > 0 && (
+            {responderGroupsQuery.data?.length === 0 && AddButton(() => openModal('CREATE_GROUP', { email: email }))}
+            {responderGroupsQuery.data?.length > 0 && (
                 <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
-                    {responderGroups.map((group) => (
+                    {responderGroupsQuery.data?.map((group: ResponderGroupDto) => (
                         <MenuItem disabled={!!isEmailInGroup(group, email)} onClick={() => addMemberOnGroup({ email, group, workspaceId: workspace.id })} key={group.id} className="flex justify-between py-3 hover:bg-black-200">
                             <Typography className="body4" noWrap>
                                 {group.name}
@@ -147,7 +148,7 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
         return <EmptyResponse title={t(formConstant.empty.response.title)} description={t(formConstant.empty.response.description)} />;
     };
 
-    if (isLoading) {
+    if (isLoading && responderGroupsQuery.isLoading) {
         return (
             <div className=" w-full py-10 flex justify-center">
                 <Loader />

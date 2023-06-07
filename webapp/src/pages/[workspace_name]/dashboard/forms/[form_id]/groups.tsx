@@ -79,7 +79,7 @@ export default function FormGroups(props: any) {
                     <Divider className="my-4" />
                 </div>
             )}
-            {!isLoading && data?.length === 0 && EmptyGroup()}
+            {!isLoading && data?.length === 0 && <EmptyGroup />}
             {!isLoading && form.groups?.length === 0 && NoGroupLink()}
             {!isLoading && data?.length > 0 && ShowFormGroups()}
         </FormPageLayout>
