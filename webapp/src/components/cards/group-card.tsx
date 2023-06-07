@@ -9,10 +9,12 @@ import EditIcon from '@Components/Common/Icons/Edit';
 import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
 import Preview from '@Components/Common/Icons/Preview';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { ListItemIcon, MenuItem, Typography } from '@mui/material';
+import { Button, ListItemIcon, MenuItem, Typography } from '@mui/material';
 import { group } from 'console';
 import { toast } from 'react-toastify';
 
+import { formConstant } from '@app/constants/locales/form';
+import { localesGlobal } from '@app/constants/locales/global';
 import { groupConstant } from '@app/constants/locales/group';
 import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -91,24 +93,17 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
                 </div>
                 {responderGroup.description && <p className="body4 line-clamp-2 break-all !text-black-800 mt-4">{responderGroup.description}</p>}
             </div>
-            <div>
-                <p className="mt-10 body6">
-                    {responderGroup.emails.length > 1 ? t(members.default) : t(members.member)} ({responderGroup.emails.length})
-                </p>
-                <div className=" line-clamp-2 mt-4 mb-10">
-                    {responderGroup.emails.map((email, index) => (
-                        <React.Fragment key={email}>
-                            <p key={email} className="inline-block body4 !text-black-800">
-                                {email}
-                            </p>
-                            {responderGroup.emails.length - 1 !== index && <span className="pr-2">,</span>}
-                        </React.Fragment>
-                    ))}
-                </div>
-            </div>
+
+            <p className="my-10 body6">
+                {responderGroup.emails.length > 1 ? t(members.default) : t(members.member)} ({responderGroup.emails.length})
+            </p>
+            <p className="body6">
+                {responderGroup.forms.length > 1 ? t(localesGlobal.forms) : t(formConstant.default)} ({responderGroup.forms.length})
+            </p>
+
             {/* <Button className="!px-3 !py-[9px] !bg-white border !border-black-400  hover:!bg-brand-200" size="medium">
                 <div className="flex items-center gap-[5px]">
-                    <Telegram className="h-[20px] w-[20px] text-black-900" />
+                    <Send className="h-[20px] w-[20px] text-black-900" />
                     <Typography>Send Form</Typography>
                 </div>
             </Button> */}
