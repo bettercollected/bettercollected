@@ -13,6 +13,7 @@ import { Button, ListItemIcon, MenuItem, Typography } from '@mui/material';
 import { group } from 'console';
 import { toast } from 'react-toastify';
 
+import { useModal } from '@app/components/modal-views/context';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { groupConstant } from '@app/constants/locales/group';
@@ -22,9 +23,7 @@ import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useDeleteResponderGroupMutation } from '@app/store/workspaces/api';
-
-import { useModal } from '../modal-views/context';
+import { useDeleteResponderGroupMutation, useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 
 export default function GroupCard({ responderGroup }: { responderGroup: ResponderGroupDto }) {
     const { openModal } = useModal();
@@ -32,7 +31,7 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
     const router = useRouter();
     const [trigger] = useDeleteResponderGroupMutation();
     const workspace = useAppSelector((state) => state.workspace);
-    const isAdmin = useAppSelector(selectIsAdmin);
+
     const handleDeletegroup = async () => {
         try {
             await trigger({
@@ -44,7 +43,8 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
             toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
     };
-    const handlePreviewGroup = () => {
+    const handlePreviewGroup = (e: any) => {
+        e.preventDefault();
         // return openModal('PREVIEW_GROUP', { responderGroup: responderGroup });
         router.push(`/${workspace.workspaceName}/dashboard/responders/${responderGroup.id}`);
     };
@@ -69,21 +69,15 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
         }
     ];
     return (
-        <div
-            // onClick={(e) => {
-            //     e.preventDefault();
-            //     openModal('PREVIEW_GROUP', { responderGroup: responderGroup });
-            // }}
-            className="flex cursor-pointer flex-col justify-between border-[2px] border-brand-100 hover:border-black-500 transition shadow-formCard bg-white items-start p-5 rounded-[8px] relative"
-        >
-            <MenuDropdown showExpandMore={false} className="absolute top-3 right-3 cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={<EllipsisOption className="rotate-90 " />}>
+        <div onClick={handlePreviewGroup} className="flex cursor-pointer flex-col justify-between border-[2px] border-brand-100 hover:border-black-500 transition shadow-formCard bg-white items-start p-5 rounded-[8px] relative">
+            {/* <MenuDropdown showExpandMore={false} className="absolute top-3 right-3 cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={<EllipsisOption className="rotate-90 " />}>
                 {menuItems.map((menuItem) => (
                     <MenuItem key={menuItem.text} disabled={!isAdmin && menuItem.text !== 'Preview'} onClick={menuItem.onClick} className="py-3 hover:bg-black-200">
                         <ListItemIcon>{React.createElement(menuItem.icon, { className: 'h-5 w-5' })}</ListItemIcon>
                         <span className="body4">{menuItem.text}</span>
                     </MenuItem>
                 ))}
-            </MenuDropdown>
+            </MenuDropdown> */}
             <div>
                 <div className="flex gap-2 items-center">
                     <div className="!h-6 !w-6 flex justify-center items-center bg-black-500 rounded">

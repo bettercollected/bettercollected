@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import DeleteIcon from '@Components/Common/Icons/Delete';
 import PinnedIcon from '@Components/Common/Icons/Pinned';
 import PrivateIcon from '@Components/Common/Icons/Private';
 import PublicIcon from '@Components/Common/Icons/Public';
@@ -11,6 +12,7 @@ import Share from '@Components/Common/Icons/Share';
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { Button, Typography } from '@mui/material';
+import { toast } from 'react-toastify';
 
 import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
 import { TypeformIcon } from '@app/components/icons/brands/typeform';
@@ -19,9 +21,14 @@ import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { ToastId } from '@app/constants/toastId';
+import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
+import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
+import { useDeleteGroupFormMutation } from '@app/store/workspaces/api';
 import { getFormUrl } from '@app/utils/urlUtils';
 
 interface IWorkspaceFormCardProps {
@@ -31,14 +38,14 @@ interface IWorkspaceFormCardProps {
     workspace?: WorkspaceDto;
     isResponderPortal?: boolean;
     className?: string;
+    group?: ResponderGroupDto;
 }
 
-export default function WorkspaceFormCard({ form, hasCustomDomain, index, workspace, isResponderPortal = false, className = '' }: IWorkspaceFormCardProps) {
+export default function WorkspaceFormCard({ form, hasCustomDomain, index, workspace, isResponderPortal = false, className = '', group }: IWorkspaceFormCardProps) {
     const { openModal } = useModal();
     const router = useRouter();
-
     const { t } = useTranslation();
-
+    const { deleteFormFromGroup } = useGroupForm();
     useEffect(() => {
         router.prefetch(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}/responses`);
     }, [router]);
@@ -104,22 +111,25 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                             {form?.responses} {!!form?.responses && form.responses > 1 ? t(formConstant.responses) : t(formConstant.response)}
                         </span>
                     </Button>
-                    <div className="flex space-x-4 items-center">
-                        <div
-                            className={`hover:bg-brand-100 p-2.5 h-10 w-10 rounded ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_SHARE}`}
-                            onClick={(event: any) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                openModal('SHARE_VIEW', {
-                                    url: getFormUrl(form, workspace),
-                                    title: t(formConstant.shareThisForm)
-                                });
-                            }}
-                        >
-                            <Share />
+                    {!group && (
+                        <div className="flex space-x-4 items-center">
+                            <div
+                                className={`hover:bg-brand-100 p-2.5 h-10 w-10 rounded ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_SHARE}`}
+                                onClick={(event: any) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    openModal('SHARE_VIEW', {
+                                        url: getFormUrl(form, workspace),
+                                        title: t(formConstant.shareThisForm)
+                                    });
+                                }}
+                            >
+                                <Share />
+                            </div>
+                            <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                         </div>
-                        <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
-                    </div>
+                    )}
+                    {!!group && <DeleteIcon onClick={(event) => deleteFormFromGroup({ event, group, workspaceId: workspace.id, form })} className="h-5 w-5 text-red-500 cursor-pointer" />}
                 </div>
             )}
         </div>

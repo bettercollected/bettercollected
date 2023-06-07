@@ -21,6 +21,7 @@ import { formConstant } from '@app/constants/locales/form';
 import { groupConstant } from '@app/constants/locales/group';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
+import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { setForm } from '@app/store/forms/slice';
@@ -31,41 +32,9 @@ import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
 export default function FormGroups(props: any) {
     const { t } = useTranslation();
     const form: StandardFormDto = useAppSelector((state) => state.form);
-    const dispatch = useAppDispatch();
+    const { deleteFormFromGroup, addFormOnGroup } = useGroupForm();
     const { data, isLoading } = useGetAllRespondersGroupQuery(props.workspaceId);
-    const [addGroup] = useAddFormOnGroupMutation();
-    const [removeGroup] = useDeleteGroupFormMutation();
-    const deleteFormFromGroup = async (group: ResponderGroupDto) => {
-        try {
-            await removeGroup({
-                workspaceId: props.workspaceId,
-                groupId: group.id,
-                formId: form.formId
-            }).unwrap();
 
-            dispatch(setForm({ ...form, groups: form.groups?.filter((formGroup) => formGroup.id !== group.id) }));
-
-            toast(t(toastMessage.removeFromGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
-        } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-        }
-    };
-
-    const addFormOnGroup = async (groups: any, group: ResponderGroupDto) => {
-        try {
-            await addGroup({
-                workspaceId: props.workspaceId,
-                groupId: group.id,
-                formId: form.formId
-            }).unwrap();
-
-            dispatch(setForm({ ...form, groups: [...groups, group] }));
-
-            toast(t(toastMessage.addedOnGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
-        } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-        }
-    };
     const NoGroupLink = () => (
         <div className="mt-[119px] flex flex-col items-center">
             <UserMore />
@@ -82,13 +51,18 @@ export default function FormGroups(props: any) {
             {form.groups?.map((group) => (
                 <div key={group.id} className="flex items-center bg-white justify-between p-4">
                     <p>{group?.name}</p>
-                    <DeleteIcon className="h-6 w-6 text-red-600  cursor-pointer" onClick={() => deleteFormFromGroup(group)} />
+                    <DeleteIcon className="h-6 w-6 text-red-600  cursor-pointer" onClick={(event) => deleteFormFromGroup({ event, group, workspaceId: props.workspaceId, form })} />
                 </div>
             ))}
             <div className="flex justify-center mt-4">
                 <MenuDropdown showExpandMore={false} className="cursor-pointer " width={180} id="group-option" menuTitle={''} menuContent={<div className="bg-brand-500 px-3 rounded text-white py-1">{t(buttonConstant.addGroup)}</div>}>
                     {data.map((group: ResponderGroupDto) => (
-                        <MenuItem disabled={isFormAlreadyInGroup(form.groups, group.id)} onClick={() => addFormOnGroup(form?.groups, group)} key={group.id} className="py-3 flex justify-between hover:bg-black-200">
+                        <MenuItem
+                            disabled={isFormAlreadyInGroup(form.groups, group.id)}
+                            onClick={() => addFormOnGroup({ groups: form?.groups, group, workspaceId: props.workspaceId, form })}
+                            key={group.id}
+                            className="py-3 flex justify-between hover:bg-black-200"
+                        >
                             <Typography className="body4" noWrap>
                                 {group.name}
                             </Typography>

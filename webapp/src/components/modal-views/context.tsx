@@ -23,7 +23,8 @@ export type MODAL_VIEW =
     | 'UPGRADE_TO_PRO'
     | 'CREATE_GROUP'
     | 'EDIT_WORKSPACE_MODAL'
-    | 'PREVIEW_GROUP';
+    | 'PREVIEW_GROUP'
+    | 'ADD_MEMBER';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 

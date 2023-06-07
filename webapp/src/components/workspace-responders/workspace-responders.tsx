@@ -8,7 +8,6 @@ import SearchInput from '@Components/Common/Search/SearchInput';
 import { CheckCircle } from '@mui/icons-material';
 import { MenuItem, Typography } from '@mui/material';
 import DataTable from 'react-data-table-component';
-import { toast } from 'react-toastify';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import { Close } from '@app/components/icons/close';
@@ -19,13 +18,12 @@ import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { formConstant } from '@app/constants/locales/form';
 import { groupConstant } from '@app/constants/locales/group';
-import { toastMessage } from '@app/constants/locales/toast-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';
-import { ToastId } from '@app/constants/toastId';
+import { useGroupMember } from '@app/lib/hooks/use-group-members';
 import { WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { useAddResponderOnGroupMutation, useDeleteResponderFromGroupMutation, useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
+import { useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 import { isEmailInGroup } from '@app/utils/groupUtils';
 
@@ -35,47 +33,14 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
         page: 1,
         size: globalConstants.pageSize
     });
-
+    const { addMemberOnGroup, removeMemberFromGroup } = useGroupMember();
     const { data, isLoading, isError } = useGetWorkspaceRespondersQuery(query);
-    const [addEmail] = useAddResponderOnGroupMutation();
-    const [deleteEmail] = useDeleteResponderFromGroupMutation();
+
     const { openModal } = useModal();
     const { t } = useTranslation();
 
     const handlePageChange = (e: any, page: number) => {
         setQuery({ ...query, page: page });
-    };
-    const deleteResponderFromGroup = async (email: string, group: ResponderGroupDto) => {
-        try {
-            if (group.emails.length === 1) {
-                toast(t(toastMessage.lastPersonOfGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-                return;
-            }
-
-            await deleteEmail({
-                workspaceId: workspace.id,
-                groupId: group.id,
-                emails: [email]
-            }).unwrap();
-
-            toast(t(toastMessage.removeFromGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
-        } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-        }
-    };
-
-    const addResponderOnGroup = async (email: string, group: ResponderGroupDto) => {
-        try {
-            await addEmail({
-                workspaceId: workspace.id,
-                groupId: group.id,
-                emails: [email]
-            }).unwrap();
-
-            toast(t(toastMessage.addedOnGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
-        } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-        }
     };
 
     const AddButton = (onClick: () => void) => (
@@ -94,7 +59,7 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
                             <Close
                                 className="h-2 w-2 cursor-pointer"
                                 onClick={() => {
-                                    deleteResponderFromGroup(email, group);
+                                    removeMemberFromGroup({ email, group, workspaceId: workspace.id });
                                 }}
                             />
                         </div>
@@ -105,7 +70,7 @@ export default function WorkspaceResponses({ workspace, responderGroups }: { wor
             {responderGroups.length > 0 && (
                 <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
                     {responderGroups.map((group) => (
-                        <MenuItem disabled={!!isEmailInGroup(group, email)} onClick={() => addResponderOnGroup(email, group)} key={group.id} className="flex justify-between py-3 hover:bg-black-200">
+                        <MenuItem disabled={!!isEmailInGroup(group, email)} onClick={() => addMemberOnGroup({ email, group, workspaceId: workspace.id })} key={group.id} className="flex justify-between py-3 hover:bg-black-200">
                             <Typography className="body4" noWrap>
                                 {group.name}
                             </Typography>

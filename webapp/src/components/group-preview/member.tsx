@@ -11,38 +11,24 @@ import { groupConstant } from '@app/constants/locales/group';
 import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
+import { useGroupMember } from '@app/lib/hooks/use-group-members';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useDeleteResponderFromGroupMutation } from '@app/store/workspaces/api';
 
+import { useModal } from '../modal-views/context';
+
 export default function GroupMembers({ group, workspace }: { group: ResponderGroupDto; workspace: WorkspaceDto }) {
     const { t } = useTranslation();
-    const [deleteMember] = useDeleteResponderFromGroupMutation();
-    const deleteResponderFromGroup = async (email: string, group: ResponderGroupDto) => {
-        try {
-            if (group.emails.length === 1) {
-                toast(t(toastMessage.lastPersonOfGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-                return;
-            }
-
-            await deleteMember({
-                workspaceId: workspace.id,
-                groupId: group.id,
-                emails: [email]
-            }).unwrap();
-
-            toast(t(toastMessage.removeFromGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
-        } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-        }
-    };
+    const { removeMemberFromGroup } = useGroupMember();
+    const { openModal } = useModal();
     return (
         <div>
             <div className="flex  justify-between">
                 <p className="body1">
                     {t(members.default)} ({group.emails.length})
                 </p>
-                <div className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
+                <div onClick={() => openModal('ADD_MEMBER', { group })} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
                     <Plus className="h-4 w-4" />
                     <Typography className="!text-brand-500  body6"> Add Member</Typography>
                 </div>
@@ -53,7 +39,7 @@ export default function GroupMembers({ group, workspace }: { group: ResponderGro
                     return (
                         <div key={email} className="flex md:max-w-[610px] justify-between body4 bg-white px-4  rounded py-5 !text-black-800">
                             <span>{email}</span>
-                            <DeleteIcon onClick={() => deleteResponderFromGroup(email, group)} className="h-5 w-5 cursor-pointer text-red-500" />
+                            <DeleteIcon onClick={() => removeMemberFromGroup({ email, group, workspaceId: workspace.id })} className="h-5 w-5 cursor-pointer text-red-500" />
                         </div>
                     );
                 })}

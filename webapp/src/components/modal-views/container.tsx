@@ -23,6 +23,7 @@ import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
+import AddMemberModal from './modals/add-member-modal';
 import CreateGroupModal from './modals/create-group-modal';
 import CropImageModalView from './modals/crop-image-modal-view';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
@@ -68,6 +69,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <CreateGroupModal {...modalProps} />;
         case 'PREVIEW_GROUP':
             return <PreviewGroup {...modalProps} />;
+        case 'ADD_MEMBER':
+            return <AddMemberModal {...modalProps} />;
         default:
             return <></>;
     }

@@ -23,13 +23,11 @@ import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetRespondersGroupQuery } from '@app/store/workspaces/api';
-import { toEndDottedStr } from '@app/utils/stringUtils';
+import { useGetRespondersGroupQuery, useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 
 export async function getServerSideProps(_context: any) {
     const { group_id } = _context.query;
     const authProps = await getAuthUserPropsWithWorkspace(_context);
-    console.log(authProps);
     return {
         props: {
             ...authProps.props,
@@ -45,6 +43,7 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
         workspaceId: workspace.id,
         groupId: groupId
     });
+    const workspaceForms = useGetWorkspaceFormsQuery<any>({ workspace_id: workspace.id });
     const { t } = useTranslation();
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
@@ -80,12 +79,12 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
 
     return (
         <DashboardLayout>
-            {isLoading && (
+            {isLoading && workspaceForms.isLoading && (
                 <div className=" w-full py-10 flex justify-center">
                     <Loader />
                 </div>
             )}
-            {!isLoading && data && (
+            {!isLoading && !workspaceForms.isLoading && (
                 <div className="flex flex-col -mt-6 ">
                     <BreadcrumbsRenderer items={breadcrumbsItem} />
                     <div className="flex gap-2 items-center ">
@@ -100,7 +99,7 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
                             <GroupMembers group={data} workspace={workspace} />
                         </TabPanel>
                         <TabPanel className="focus:outline-none" key="Forms">
-                            <GroupForms group={data} />
+                            <GroupForms group={data} workspaceForms={workspaceForms.data?.items} />
                         </TabPanel>
                     </ParamTab>
                 </div>

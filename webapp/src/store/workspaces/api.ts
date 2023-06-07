@@ -11,7 +11,7 @@ export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 const WORKSPACE_TAGS = 'WORKSPACE_TAG';
 const SUBMISSION_TAG = 'SUBMISSION_TAG';
 const WORKSPACE_UPDATE_TAG = 'WORKSPACE_UPDATE_TAG';
-const GROUP_TAGS = 'GROUP_TAG';
+const GROUP_TAG = 'GROUP_TAG';
 const RESPONDER_TAG = 'RESPONDER_TAG';
 const FORM_TAG = 'FORM_TAG';
 interface ImportFormQueryInterface {
@@ -26,7 +26,7 @@ interface ImportFormQueryInterface {
 
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAGS, RESPONDER_TAG, FORM_TAG],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -149,7 +149,7 @@ export const workspacesApi = createApi({
                     size: body.size
                 }
             }),
-            providesTags: [WORKSPACE_TAGS]
+            providesTags: [WORKSPACE_TAGS, FORM_TAG]
         }),
         getWorkspaceForm: builder.query<StandardFormDto, IGetWorkspaceFormQuery>({
             query: (query) => ({
@@ -323,21 +323,21 @@ export const workspacesApi = createApi({
                 },
                 body: request.groupInfo.emails
             }),
-            invalidatesTags: [GROUP_TAGS]
+            invalidatesTags: [GROUP_TAG]
         }),
         getRespondersGroup: builder.query<any, any>({
             query: (query) => ({
                 url: `${query.workspaceId}/responder-groups/${query.groupId}`,
                 method: 'GET'
             }),
-            providesTags: [GROUP_TAGS, RESPONDER_TAG, FORM_TAG]
+            providesTags: [GROUP_TAG, RESPONDER_TAG, FORM_TAG]
         }),
         getAllRespondersGroup: builder.query<any, any>({
             query: (workspace_id) => ({
                 url: `${workspace_id}/responder-groups`,
                 method: 'GET'
             }),
-            providesTags: [GROUP_TAGS, RESPONDER_TAG, FORM_TAG]
+            providesTags: [GROUP_TAG, RESPONDER_TAG, FORM_TAG]
         }),
         deleteResponderGroup: builder.mutation<any, any>({
             query: (request) => ({
@@ -345,7 +345,7 @@ export const workspacesApi = createApi({
                 method: 'DELETE',
                 credentials: 'include'
             }),
-            invalidatesTags: [GROUP_TAGS]
+            invalidatesTags: [GROUP_TAG]
         }),
         AddResponderOnGroup: builder.mutation<any, any>({
             query: (request) => ({
@@ -371,7 +371,7 @@ export const workspacesApi = createApi({
                     group_id: request.groupId
                 }
             }),
-            invalidatesTags: [FORM_TAG]
+            invalidatesTags: [FORM_TAG, GROUP_TAG]
         }),
         deleteGroupForm: builder.mutation<any, any>({
             query: (request) => ({
@@ -381,7 +381,7 @@ export const workspacesApi = createApi({
                 },
                 method: 'DELETE'
             }),
-            invalidatesTags: [FORM_TAG]
+            invalidatesTags: [FORM_TAG, GROUP_TAG, RESPONDER_TAG]
         }),
         updateResponderGroup: builder.mutation<any, any>({
             query: (request) => ({
@@ -393,7 +393,7 @@ export const workspacesApi = createApi({
                 body: request.groupInfo.emails,
                 method: 'PATCH'
             }),
-            invalidatesTags: [GROUP_TAGS]
+            invalidatesTags: [GROUP_TAG]
         })
     })
 });

@@ -17,7 +17,7 @@ import { useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 
 export default function Responders({ workspace }: any) {
     const { t } = useTranslation();
-    const responderGroupsQuery = useGetAllRespondersGroupQuery(workspace.id);
+    const responderGroupsQuery: any = useGetAllRespondersGroupQuery(workspace.id);
     const paramTabs = [
         {
             icon: <ResponderIcon className="w-10 h-10" />,
