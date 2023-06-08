@@ -14,6 +14,7 @@ import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
 
@@ -25,6 +26,7 @@ export default function GroupDetails({ group }: { group: ResponderGroupDto }) {
         description: group.description,
         emails: group.emails
     });
+    const isAdmin = useAppSelector(selectIsAdmin);
     const workspace = useAppSelector((state) => state.workspace);
     const handleInput = (event: any) => {
         setGroupInfo({
@@ -55,12 +57,14 @@ export default function GroupDetails({ group }: { group: ResponderGroupDto }) {
                 {t(groupConstant.name)}
                 <span className="text-red-800">*</span>
             </p>
-            <BetterInput value={groupInfo.name} className="!mb-0 " inputProps={{ className: '!py-3' }} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
+            <BetterInput disabled={!isAdmin} value={groupInfo.name} className="!mb-0 " inputProps={{ className: '!py-3' }} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
             <p className="body4 leading-none mt-6 mb-2">{t(localesGlobal.description)}</p>
-            <BetterInput value={groupInfo.description} className="!mb-0 " inputProps={{ maxLength: 250 }} id="description" placeholder={t(placeHolder.description)} rows={3} multiline onChange={handleInput} />
-            <div className="flex justify-end mt-10">
-                <Button isLoading={updateGroupResponse.isLoading}>{t(buttonConstant.saveChanges)}</Button>
-            </div>
+            <BetterInput disabled={!isAdmin} value={groupInfo.description} className="!mb-0 " inputProps={{ maxLength: 250 }} id="description" placeholder={t(placeHolder.description)} rows={3} multiline onChange={handleInput} />
+            {isAdmin && (
+                <div className="flex justify-end mt-10">
+                    <Button isLoading={updateGroupResponse.isLoading}>{t(buttonConstant.saveChanges)}</Button>
+                </div>
+            )}
         </form>
     );
 }

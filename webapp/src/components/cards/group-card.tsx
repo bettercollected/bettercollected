@@ -14,6 +14,7 @@ import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteResponderGroupMutation, useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 
@@ -23,7 +24,7 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
     const { openModal, closeModal } = useModal();
     const [trigger] = useDeleteResponderGroupMutation();
     const workspace = useAppSelector((state) => state.workspace);
-
+    const isAdmin = useAppSelector(selectIsAdmin);
     const handleDeletegroup = async () => {
         try {
             await trigger({
@@ -42,14 +43,16 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
     };
     return (
         <div onClick={handlePreviewGroup} className="flex cursor-pointer flex-col justify-between border-[2px] border-brand-100 hover:border-black-500 transition shadow-formCard bg-white items-start p-5 rounded-[8px] relative">
-            <DeleteIcon
-                onClick={(event) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                    openModal('DELETE_CONFIRMATION', { title: responderGroup.name, handleDelete: handleDeletegroup });
-                }}
-                className="absolute text-red-600 top-3 right-3 cursor-pointer h-7 w-7 p-1 rounded hover:bg-black-200"
-            />
+            {isAdmin && (
+                <DeleteIcon
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        event.preventDefault();
+                        openModal('DELETE_CONFIRMATION', { title: responderGroup.name, handleDelete: handleDeletegroup });
+                    }}
+                    className="absolute text-red-600 top-3 right-3 cursor-pointer h-7 w-7 p-1 rounded hover:bg-black-200"
+                />
+            )}
             <div>
                 <div className="flex gap-2 items-center">
                     <div className="!h-6 !w-6 flex justify-center items-center bg-black-500 rounded">

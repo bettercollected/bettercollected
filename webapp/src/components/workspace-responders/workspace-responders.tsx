@@ -23,6 +23,8 @@ import { useGroupMember } from '@app/lib/hooks/use-group-members';
 import { WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { selectIsAdmin } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery, useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 import { isEmailInGroup } from '@app/utils/groupUtils';
@@ -36,7 +38,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
     const { addMemberOnGroup, removeMemberFromGroup } = useGroupMember();
     const { data, isLoading, isError } = useGetWorkspaceRespondersQuery(query);
     const responderGroupsQuery = useGetAllRespondersGroupQuery(workspace.id);
-
+    const isAdmin = useAppSelector(selectIsAdmin);
     const { openModal } = useModal();
     const { t } = useTranslation();
 
@@ -57,13 +59,13 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                     return (
                         <div key={group.id} className="p-1 w-fit rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500">
                             <span className="body5 text-black-8000">{group.name}</span>
-                            <Close className="h-2 w-2 cursor-pointer" onClick={() => openModal('DELETE_CONFIRMATION', { title: group.name, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) })} />
+                            {isAdmin && <Close className="h-2 w-2 cursor-pointer" onClick={() => openModal('DELETE_CONFIRMATION', { title: group.name, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) })} />}
                         </div>
                     );
                 return null;
             })}
-            {responderGroupsQuery.data?.length === 0 && AddButton(() => openModal('CREATE_GROUP', { email: email }))}
-            {responderGroupsQuery.data?.length > 0 && (
+            {responderGroupsQuery.data?.length === 0 && isAdmin && AddButton(() => openModal('CREATE_GROUP', { email: email }))}
+            {responderGroupsQuery.data?.length > 0 && isAdmin && (
                 <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
                     {responderGroupsQuery.data?.map((group: ResponderGroupDto) => (
                         <MenuItem disabled={!!isEmailInGroup(group, email)} onClick={() => addMemberOnGroup({ email, group, workspaceId: workspace.id })} key={group.id} className="flex justify-between py-3 hover:bg-black-200">

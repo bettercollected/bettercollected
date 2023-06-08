@@ -27,6 +27,8 @@ import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { selectIsAdmin } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
 import { useDeleteGroupFormMutation } from '@app/store/workspaces/api';
 import { getFormUrl } from '@app/utils/urlUtils';
@@ -46,6 +48,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
     const router = useRouter();
     const { t } = useTranslation();
     const { deleteFormFromGroup } = useGroupForm();
+    const isAdmin = useAppSelector(selectIsAdmin);
     useEffect(() => {
         router.prefetch(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}/responses`);
     }, [router]);
@@ -129,7 +132,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                             <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                         </div>
                     )}
-                    {!!group && (
+                    {!!group && isAdmin && (
                         <DeleteIcon
                             onClick={(event) => {
                                 event.stopPropagation();
