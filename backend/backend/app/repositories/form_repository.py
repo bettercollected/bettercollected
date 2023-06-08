@@ -11,10 +11,10 @@ from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 class FormRepository:
     @staticmethod
     def get_forms_in_workspace_query(
-            workspace_id: PydanticObjectId,
-            form_id_list: List[str],
-            is_admin: bool,
-            sort=None,
+        workspace_id: PydanticObjectId,
+        form_id_list: List[str],
+        is_admin: bool,
+        sort=None,
     ) -> AggregationQuery:
         aggregation_pipeline = [
             {
@@ -113,7 +113,6 @@ class FormRepository:
                             }
                         }
                     },
-
                 ]
             )
         forms = FormDocument.find({"form_id": {"$in": form_id_list}}).aggregate(
@@ -122,7 +121,7 @@ class FormRepository:
         return forms
 
     async def search_form_in_workspace(
-            self, workspace_id: PydanticObjectId, form_ids: List[str], query: str
+        self, workspace_id: PydanticObjectId, form_ids: List[str], query: str
     ):
         return (
             await FormDocument.find(

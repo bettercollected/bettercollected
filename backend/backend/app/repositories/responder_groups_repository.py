@@ -13,11 +13,11 @@ from backend.app.schemas.responder_group import (
 
 class ResponderGroupsRepository:
     async def create_group(
-            self,
-            workspace_id: PydanticObjectId,
-            name: str,
-            description: Optional[str],
-            emails: List[EmailStr],
+        self,
+        workspace_id: PydanticObjectId,
+        name: str,
+        description: Optional[str],
+        emails: List[EmailStr],
     ):
         if description and len(description) > 280:
             return {"message": "description should be less than 280 characters"}
@@ -38,12 +38,12 @@ class ResponderGroupsRepository:
         return responder_group
 
     async def update_group(
-            self,
-            workspace_id: PydanticObjectId,
-            name: str,
-            description: Optional[str],
-            emails: List[EmailStr],
-            group_id: PydanticObjectId,
+        self,
+        workspace_id: PydanticObjectId,
+        name: str,
+        description: Optional[str],
+        emails: List[EmailStr],
+        group_id: PydanticObjectId,
     ):
         responder_group = await ResponderGroupDocument.find_one(
             {"workspace_id": workspace_id, "_id": group_id}
@@ -71,14 +71,14 @@ class ResponderGroupsRepository:
         return await responder_group.save()
 
     async def get_group_in_workspace(
-            self, workspace_id: PydanticObjectId, group_id: PydanticObjectId
+        self, workspace_id: PydanticObjectId, group_id: PydanticObjectId
     ):
         return await ResponderGroupDocument.find_one(
             {"workspace_id": workspace_id, "_id": group_id}
         )
 
     async def add_emails_to_group(
-            self, group_id: PydanticObjectId, emails: List[EmailStr]
+        self, group_id: PydanticObjectId, emails: List[EmailStr]
     ):
         emails = list(set(emails))
         existing_email_documents = await ResponderGroupMemberDocument.find(
@@ -97,7 +97,7 @@ class ResponderGroupsRepository:
             await ResponderGroupMemberDocument.insert_many(new_emails)
 
     async def remove_emails_from_group(
-            self, group_id: PydanticObjectId, emails: List[EmailStr]
+        self, group_id: PydanticObjectId, emails: List[EmailStr]
     ):
         await ResponderGroupMemberDocument.find(
             {"group_id": group_id, "identifier": {"$in": emails}}
@@ -131,7 +131,7 @@ class ResponderGroupsRepository:
                             "workspace_id": 1,
                             "emails": "$emails.identifier",
                             "description": 1,
-                            "forms": "$forms.form_id"
+                            "forms": "$forms.form_id",
                         }
                     },
                 ]
@@ -172,7 +172,7 @@ class ResponderGroupsRepository:
                             "workspace_id": 1,
                             "emails": "$emails.identifier",
                             "description": 1,
-                            "forms":  "$forms.form_id",
+                            "forms": "$forms.form_id",
                         }
                     },
                 ],

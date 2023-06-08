@@ -28,26 +28,26 @@ from common.models.user import User
 
 class FormResponseService:
     def __init__(
-            self,
-            form_response_repo: FormResponseRepository,
-            workspace_form_repo: WorkspaceFormRepository,
-            workspace_user_repo: WorkspaceUserRepository,
+        self,
+        form_response_repo: FormResponseRepository,
+        workspace_form_repo: WorkspaceFormRepository,
+        workspace_user_repo: WorkspaceUserRepository,
     ):
         self._form_response_repo = form_response_repo
         self._workspace_form_repo = workspace_form_repo
         self._workspace_user_repo = workspace_user_repo
 
     async def get_all_workspace_responses(
-            self,
-            workspace_id: PydanticObjectId,
-            filter_query: FormResponseFilterQuery,
-            sort: SortRequest,
-            request_for_deletion: bool,
-            user: User,
-            data_subjects: bool = None,
+        self,
+        workspace_id: PydanticObjectId,
+        filter_query: FormResponseFilterQuery,
+        sort: SortRequest,
+        request_for_deletion: bool,
+        user: User,
+        data_subjects: bool = None,
     ):
         if not await self._workspace_user_repo.has_user_access_in_workspace(
-                workspace_id=workspace_id, user=user
+            workspace_id=workspace_id, user=user
         ):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_UNAUTHORIZED
@@ -69,10 +69,10 @@ class FormResponseService:
         return responses_page
 
     async def get_user_submissions(
-            self,
-            workspace_id: PydanticObjectId,
-            user: User,
-            request_for_deletion: bool = False,
+        self,
+        workspace_id: PydanticObjectId,
+        user: User,
+        request_for_deletion: bool = False,
     ):
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id
@@ -87,16 +87,16 @@ class FormResponseService:
         return user_responses
 
     async def get_workspace_form_submissions(
-            self,
-            workspace_id: PydanticObjectId,
-            request_for_deletion: bool,
-            form_id: str,
-            filter_query: FormResponseFilterQuery,
-            sort: SortRequest,
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        request_for_deletion: bool,
+        form_id: str,
+        filter_query: FormResponseFilterQuery,
+        sort: SortRequest,
+        user: User,
     ):
         if not await self._workspace_user_repo.has_user_access_in_workspace(
-                workspace_id, user
+            workspace_id, user
         ):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_UNAUTHORIZED
@@ -122,7 +122,7 @@ class FormResponseService:
         return form_responses
 
     async def get_workspace_submission(
-            self, workspace_id: PydanticObjectId, response_id: str, user: User
+        self, workspace_id: PydanticObjectId, response_id: str, user: User
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id, user
@@ -160,7 +160,7 @@ class FormResponseService:
         }
 
     async def request_for_response_deletion(
-            self, workspace_id: PydanticObjectId, response_id: str, user: User
+        self, workspace_id: PydanticObjectId, response_id: str, user: User
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id, user
@@ -205,9 +205,9 @@ class FormResponseService:
         return await self._form_response_repo.delete_deletion_requests(form_id=form_id)
 
     def decrypt_response_page(
-            self,
-            workspace_id: PydanticObjectId,
-            responses_page: Page[StandardFormResponseCamelModel],
+        self,
+        workspace_id: PydanticObjectId,
+        responses_page: Page[StandardFormResponseCamelModel],
     ):
         responses_page.items = self.decrypt_form_responses(
             workspace_id=workspace_id, responses=responses_page.items
@@ -215,9 +215,9 @@ class FormResponseService:
         return responses_page
 
     def decrypt_form_responses(
-            self,
-            workspace_id: PydanticObjectId,
-            responses: Sequence[StandardFormResponseCamelModel],
+        self,
+        workspace_id: PydanticObjectId,
+        responses: Sequence[StandardFormResponseCamelModel],
     ):
         for response in responses:
             response = self.decrypt_form_response(
@@ -226,7 +226,7 @@ class FormResponseService:
         return responses
 
     def decrypt_form_response(
-            self, workspace_id: PydanticObjectId, response: StandardFormResponseCamelModel
+        self, workspace_id: PydanticObjectId, response: StandardFormResponseCamelModel
     ):
         if isinstance(response.answers, dict):
             return response

@@ -144,7 +144,7 @@ class AppContainer(containers.DeclarativeContainer):
         ResponderGroupsService,
         responder_groups_repo=responder_groups_repository,
         workspace_user_service=workspace_user_service,
-        form_service=form_service
+        form_service=form_service,
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(
