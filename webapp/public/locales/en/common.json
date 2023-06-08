@@ -201,7 +201,9 @@
 		},
 		"CREATED_BY": "Created By",
 		"CREATED_ON": "Created On",
-		"MEMBER_EMAIL": "Member email"
+		"MEMBER_EMAIL": "Member email",
+		"NOT_IN_ANY_GROUP": "Not in any group",
+		"ASK_ADMIN_TO_CREATE_A_GROUP": "Ask admin to create a group"
 	},
 	"HEY": "Hey",
 	"HIDDEN": "Hidden",

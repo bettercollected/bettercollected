@@ -23,5 +23,7 @@ export const groupConstant = {
     addMember: {
         default: 'GROUP.ADD_MEMBER.DEFAULT',
         description: 'GROUP.ADD_MEMBER.DESCRIPTION'
-    }
+    },
+    notInAnyGroup: 'GROUP.NOT_IN_ANY_GROUP',
+    askAdminToCreateAGroup: 'GROUP.ASK_ADMIN_TO_CREATE_A_GROUP'
 };

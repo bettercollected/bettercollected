@@ -51,7 +51,7 @@ export default function FormGroups(props: any) {
                 width={180}
                 id="group-option"
                 menuTitle={''}
-                menuContent={<div className="bg-brand-500 px-3 rounded text-white py-1">{data?.length === 0 && form.groups?.length === 0 ? 'Ask admin to create a group' : t(buttonConstant.addGroup)}</div>}
+                menuContent={<div className="bg-brand-500 px-3 rounded text-white py-1">{data?.length === 0 && form.groups?.length === 0 ? t(groupConstant.askAdminToCreateAGroup) : t(buttonConstant.addGroup)}</div>}
             >
                 {data.map((group: ResponderGroupDto) => (
                     <MenuItem

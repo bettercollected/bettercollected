@@ -16,6 +16,7 @@ import { useModal } from '@app/components/modal-views/context';
 import EmptyResponse from '@app/components/ui/empty-response';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
+import { buttonConstant } from '@app/constants/locales/button';
 import { formConstant } from '@app/constants/locales/form';
 import { groupConstant } from '@app/constants/locales/group';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -49,7 +50,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
     const AddButton = (onClick: () => void) => (
         <div onClick={onClick} className="flex gap-1 items-center cursor-pointer text-black-600">
             <Plus className="h-4 w-4 " />
-            <p className="body5 !text-black-600">Add</p>
+            <p className="body5 !text-black-600">{t(buttonConstant.add)}</p>
         </div>
     );
     const ShowResponderGroups = (email: string) => (
@@ -65,6 +66,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                 return null;
             })}
             {responderGroupsQuery.data?.length === 0 && isAdmin && AddButton(() => openModal('CREATE_GROUP', { email: email }))}
+            {responderGroupsQuery.data?.filter((group: ResponderGroupDto) => group.emails.includes(email)).length === 0 && !isAdmin && <p className="body5 text-black-800">{t(groupConstant.notInAnyGroup)}</p>}
             {responderGroupsQuery.data?.length > 0 && isAdmin && (
                 <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
                     {responderGroupsQuery.data?.map((group: ResponderGroupDto) => (

@@ -201,7 +201,9 @@
         "EDIT_GROUP": "Groep bewerken",
         "CREATED_BY": "Gemaakt door",
         "CREATED_ON": "Gemaakt op",
-        "MEMBER_EMAIL": "E-mailadres van lid"
+        "MEMBER_EMAIL": "E-mailadres van lid",
+        "NOT_IN_ANY_GROUP": "Niet in een groep",
+        "ASK_ADMIN_TO_CREATE_A_GROUP": "Vraag beheerder om een ​​groep te maken"
     },
     "HEY": "hoi",
     "HIDDEN": "Verborgen",
