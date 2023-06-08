@@ -57,12 +57,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                     return (
                         <div key={group.id} className="p-1 w-fit rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500">
                             <span className="body5 text-black-8000">{group.name}</span>
-                            <Close
-                                className="h-2 w-2 cursor-pointer"
-                                onClick={() => {
-                                    removeMemberFromGroup({ email, group, workspaceId: workspace.id });
-                                }}
-                            />
+                            <Close className="h-2 w-2 cursor-pointer" onClick={() => openModal('DELETE_CONFIRMATION', { title: group.name, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) })} />
                         </div>
                     );
                 return null;

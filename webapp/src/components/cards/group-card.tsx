@@ -7,6 +7,7 @@ import DeleteIcon from '@Components/Common/Icons/Delete';
 import { Typography } from '@mui/material';
 import { toast } from 'react-toastify';
 
+import { useModal } from '@app/components/modal-views/context';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { members } from '@app/constants/locales/members';
@@ -19,18 +20,18 @@ import { useDeleteResponderGroupMutation, useGetWorkspaceFormsQuery } from '@app
 export default function GroupCard({ responderGroup }: { responderGroup: ResponderGroupDto }) {
     const { t } = useTranslation();
     const router = useRouter();
+    const { openModal, closeModal } = useModal();
     const [trigger] = useDeleteResponderGroupMutation();
     const workspace = useAppSelector((state) => state.workspace);
 
-    const handleDeletegroup = async (event: any) => {
-        event.preventDefault();
-        event.stopPropagation();
+    const handleDeletegroup = async () => {
         try {
             await trigger({
                 workspaceId: workspace.id,
                 groupId: responderGroup.id
             }).unwrap();
             toast(t(toastMessage.groupDeleted).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            closeModal();
         } catch (error) {
             toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
@@ -41,7 +42,14 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
     };
     return (
         <div onClick={handlePreviewGroup} className="flex cursor-pointer flex-col justify-between border-[2px] border-brand-100 hover:border-black-500 transition shadow-formCard bg-white items-start p-5 rounded-[8px] relative">
-            <DeleteIcon onClick={handleDeletegroup} className="absolute text-red-600 top-3 right-3 cursor-pointer h-7 w-7 p-1 rounded hover:bg-black-200" />
+            <DeleteIcon
+                onClick={(event) => {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    openModal('DELETE_CONFIRMATION', { title: responderGroup.name, handleDelete: handleDeletegroup });
+                }}
+                className="absolute text-red-600 top-3 right-3 cursor-pointer h-7 w-7 p-1 rounded hover:bg-black-200"
+            />
             <div>
                 <div className="flex gap-2 items-center">
                     <div className="!h-6 !w-6 flex justify-center items-center bg-black-500 rounded">

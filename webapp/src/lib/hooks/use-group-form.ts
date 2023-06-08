@@ -2,6 +2,7 @@ import { useTranslation } from 'next-i18next';
 
 import { toast } from 'react-toastify';
 
+import { useModal } from '@app/components/modal-views/context';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -14,7 +15,6 @@ interface IDeleteFormFromGroupProps {
     group: ResponderGroupDto;
     workspaceId: string;
     form: StandardFormDto;
-    event?: any;
 }
 interface IAddFormOnGroupProps extends IDeleteFormFromGroupProps {
     groups: any;
@@ -23,10 +23,9 @@ export function useGroupForm() {
     const [addForm] = useAddFormOnGroupMutation();
     const [removeForm] = useDeleteGroupFormMutation();
     const dispatch = useAppDispatch();
+    const { closeModal } = useModal();
     const { t } = useTranslation();
-    const deleteFormFromGroup = async ({ event, group, workspaceId, form }: IDeleteFormFromGroupProps) => {
-        event.stopPropagation();
-        event.preventDefault();
+    const deleteFormFromGroup = async ({ group, workspaceId, form }: IDeleteFormFromGroupProps) => {
         try {
             await removeForm({
                 workspaceId: workspaceId,
@@ -37,6 +36,7 @@ export function useGroupForm() {
             dispatch(setForm({ ...form, groups: form.groups?.filter((formGroup) => formGroup.id !== group.id) }));
 
             toast(t(toastMessage.removeFromGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            closeModal();
         } catch (error) {
             toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
@@ -53,6 +53,7 @@ export function useGroupForm() {
             dispatch(setForm({ ...form, groups: [...groups, group] }));
 
             toast(t(toastMessage.addedOnGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            closeModal();
         } catch (error) {
             toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }

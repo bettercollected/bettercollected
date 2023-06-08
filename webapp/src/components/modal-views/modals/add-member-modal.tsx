@@ -30,11 +30,7 @@ export default function AddMemberModal({ group }: { group: ResponderGroupDto }) 
                 <form
                     onSubmit={(e) => {
                         e.preventDefault();
-                        addMemberOnGroup({ email: member, group, workspaceId: workspace.id }).then((isAdded) => {
-                            if (isAdded) {
-                                closeModal();
-                            }
-                        });
+                        addMemberOnGroup({ email: member, group, workspaceId: workspace.id });
                     }}
                     className="flex pt-8  flex-col justify-start"
                 >

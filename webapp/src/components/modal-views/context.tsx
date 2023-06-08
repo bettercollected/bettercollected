@@ -24,7 +24,8 @@ export type MODAL_VIEW =
     | 'CREATE_GROUP'
     | 'EDIT_WORKSPACE_MODAL'
     | 'PREVIEW_GROUP'
-    | 'ADD_MEMBER';
+    | 'ADD_MEMBER'
+    | 'DELETE_CONFIRMATION';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 

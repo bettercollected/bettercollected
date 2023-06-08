@@ -10,6 +10,7 @@ import { FormGroup, MenuItem, Typography } from '@mui/material';
 
 import EmptyGroup from '@app/components/dashboard/empty-group';
 import UserMore from '@app/components/icons/user-more';
+import { useModal } from '@app/components/modal-views/context';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';
 import Loader from '@app/components/ui/loader';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -26,6 +27,7 @@ export default function FormGroups(props: any) {
     const { t } = useTranslation();
     const form: StandardFormDto = useAppSelector((state) => state.form);
     const { deleteFormFromGroup, addFormOnGroup } = useGroupForm();
+    const { openModal } = useModal();
     const { data, isLoading } = useGetAllRespondersGroupQuery(props.workspaceId);
 
     const NoGroupLink = () => (
@@ -43,8 +45,11 @@ export default function FormGroups(props: any) {
         <div className="flex flex-col gap-4">
             {form.groups?.map((group) => (
                 <div key={group.id} className="flex items-center bg-white justify-between p-4">
-                    <p>{group?.name}</p>
-                    <DeleteIcon className="h-7 w-7 text-red-600  cursor-pointer rounded p-1 hover:bg-black-200 " onClick={(event) => deleteFormFromGroup({ event, group, workspaceId: props.workspaceId, form })} />
+                    <p>{group.name}</p>
+                    <DeleteIcon
+                        className="h-7 w-7 text-red-600  cursor-pointer rounded p-1 hover:bg-black-200 "
+                        onClick={() => openModal('DELETE_CONFIRMATION', { title: group.name, handleDelete: () => deleteFormFromGroup({ group, workspaceId: props.workspaceId, form }) })}
+                    />
                 </div>
             ))}
             <div className="flex justify-center mt-4">

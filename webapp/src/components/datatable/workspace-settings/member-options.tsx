@@ -10,6 +10,7 @@ import { IconButton, ListItemIcon, Menu, MenuItem } from '@mui/material';
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { formConstant } from '@app/constants/locales/form';
+import { getFullNameFromUser } from '@app/utils/userUtils';
 
 interface IMemberOptionProps {
     member?: any;

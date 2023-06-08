@@ -129,7 +129,16 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                             <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                         </div>
                     )}
-                    {!!group && <DeleteIcon onClick={(event) => deleteFormFromGroup({ event, group, workspaceId: workspace.id, form })} className="h-7 w-7 text-red-500 cursor-pointer rounded hover:bg-black-200 p-1" />}
+                    {!!group && (
+                        <DeleteIcon
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                event.preventDefault();
+                                openModal('DELETE_CONFIRMATION', { title: form.title, handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form }) });
+                            }}
+                            className="h-7 w-7 text-red-500 cursor-pointer rounded hover:bg-black-200 p-1"
+                        />
+                    )}
                 </div>
             )}
         </div>
