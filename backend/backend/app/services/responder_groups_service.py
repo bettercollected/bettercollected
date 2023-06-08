@@ -29,7 +29,7 @@ class ResponderGroupsService:
     async def get_users_in_group(
         self, workspace_id: PydanticObjectId, group_id: PydanticObjectId, user: User
     ):
-        await self.check_user_can_access_group(workspace_id, group_id, user)
+        await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id, user)
         response = await self.responder_groups_repo.get_emails_in_group(
             group_id=group_id
         )
