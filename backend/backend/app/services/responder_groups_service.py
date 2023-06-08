@@ -130,7 +130,7 @@ class ResponderGroupsService:
         await self.responder_groups_repo.remove_responder_group(group_id=group_id)
 
     async def get_groups_in_workspace(self, workspace_id: PydanticObjectId, user: User):
-        await self.workspace_user_service.check_is_admin_in_workspace(
+        await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
         groups = await self.responder_groups_repo.get_groups_in_workspace(
