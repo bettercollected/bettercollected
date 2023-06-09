@@ -1,27 +1,36 @@
 import React, { useEffect } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import Image, { StaticImageData } from 'next/image';
 import { useRouter } from 'next/router';
 
 import GetStartedStepper from '@Components/GetStarted/Stepper';
+import cn from 'classnames';
 
 import GetStartedDataRights from '@app/assets/images/getstarted-datarights.png';
 import GetStartedFormBrand from '@app/assets/images/getstarted-formbrand.png';
 import GetStartedProvidersImage from '@app/assets/images/getstarted-providers.png';
+import UserFitImage from '@app/assets/images/happy.png';
+import UserNotFitImage from '@app/assets/images/sad.png';
 import Button from '@app/components/ui/button/button';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
+import { buttonConstant } from '@app/constants/locales/button';
+import { getStarted } from '@app/constants/locales/get-started';
 import Layout from '@app/layouts/_layout';
+import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export async function getServerSideProps(_context: any) {
+    const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
+    const locale = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
     if (checkHasCustomDomain(_context)) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/'
+                destination: `/${locale}`
             }
         };
     }
@@ -44,14 +53,14 @@ export async function getServerSideProps(_context: any) {
                 return {
                     redirect: {
                         permanent: false,
-                        destination: `/${redirectWorkspace?.workspaceName}/onboarding`
+                        destination: `/${locale}/${redirectWorkspace?.workspaceName}/onboarding`
                     }
                 };
             }
             return {
                 redirect: {
                     permanent: false,
-                    destination: `/${redirectWorkspace?.workspaceName}/dashboard`
+                    destination: `/${locale}${redirectWorkspace?.workspaceName}/dashboard`
                 }
             };
         }
@@ -59,7 +68,7 @@ export async function getServerSideProps(_context: any) {
         console.error(e);
     }
     return {
-        props: {}
+        props: { ...globalProps }
     };
 }
 
@@ -88,12 +97,13 @@ interface IGetStartedStep {
     additionalComponent?: React.ReactNode;
 }
 
-const GetStarted = () => {
+const GetStarted = (props: any) => {
     const router = useRouter();
     const [activeStep, setActiveStep] = React.useState(0);
     const [stepAnswers, setStepAnswers] = React.useState({});
     const [isFit, setIsFit] = React.useState(true);
-
+    const { t } = useTranslation();
+    const locale = props._nextI18Next.initialLocale === 'en' ? '' : `${props._nextI18Next.initialLocale}/`;
     useEffect(() => {
         if (activeStep >= steps.length)
             setIsFit(
@@ -115,78 +125,78 @@ const GetStarted = () => {
         else setActiveStep((prevActiveStep) => prevActiveStep - 1);
     };
 
-    const signUpLink = environments.IS_IN_PRODUCTION_MODE ? 'https://admin.bettercollected.com/login' : 'https://bettercollected-admin.sireto.dev/login';
+    const signUpLink = environments.IS_IN_PRODUCTION_MODE ? `https://admin.bettercollected.com/${locale}login` : `https://bettercollected-admin.sireto.dev/${locale}login`;
 
     const steps: Array<IGetStartedStep> = [
         {
             id: '0-fit-step',
-            title: 'Is bettercollected right fit for you?',
-            description: 'We care about your experience. Before proceeding, we assess if the app aligns with your needs. Your satisfaction is our priority.',
+            title: t(getStarted.zeroFitStep.title),
+            description: t(getStarted.zeroFitStep.description),
             image: null,
             nextButtonProps: {
                 nextBtn: {
-                    btnText: 'Start Exploring',
+                    btnText: t(getStarted.zeroFitStep.buttonText),
                     btnUrl: null
                 }
             },
             additionalProps: {
-                text: 'Already familiar with the app?',
+                text: t(getStarted.zeroFitStep.additionalProps.text),
                 link: signUpLink,
-                linkText: 'Sign Up Now!'
+                linkText: t(getStarted.zeroFitStep.additionalProps.linkedText)
             },
             additionalComponent: <Logo isCustomDomain isFooter />
         },
         {
             id: '1-form-builders',
-            title: 'Do you use online form builders?',
-            description: 'Do you use online form builders like Google Form and Typeform for collecting form responses for yourself or your company?',
+            title: t(getStarted.formBuilder.title),
+            description: t(getStarted.formBuilder.description),
             image: {
                 url: GetStartedProvidersImage,
                 alt: 'Providers'
             },
             nextButtonProps: {
                 nextBtn: {
-                    btnText: 'Yes',
+                    btnText: t(buttonConstant.yes),
                     btnUrl: null
                 },
                 noBtn: {
-                    btnText: 'No'
+                    btnText: t(buttonConstant.no)
                 }
             }
         },
         {
             id: '2-form-brand',
-            title: 'Do you wish you could brand the forms better?',
-            description: 'Wish you could have customer friendly form URLs and your own custom domain links that reflects your brand instead of default generated URLs.',
+            title: t(getStarted.formBrand.title),
+            description: t(getStarted.formBrand.description),
             image: {
                 url: GetStartedFormBrand,
                 alt: 'Form Branding'
             },
             nextButtonProps: {
                 nextBtn: {
-                    btnText: 'Yes',
+                    btnText: t(buttonConstant.yes),
                     btnUrl: null
                 },
                 noBtn: {
-                    btnText: 'No'
+                    btnText: t(buttonConstant.no)
                 }
             }
         },
         {
             id: '3-data-rights',
-            title: "Do you care about users' data rights?",
-            description: "Are you a privacy respecting individual or organization which respects users' data rights provided by regulations like GDPR and CCPA?",
+            title: t(getStarted.dataRights.title),
+            description: t(getStarted.dataRights.description),
             image: {
                 url: GetStartedDataRights,
                 alt: 'Data Rights'
             },
             nextButtonProps: {
                 nextBtn: {
-                    btnText: 'Yes',
+                    btnText: t(buttonConstant.yes),
                     btnUrl: null
                 },
                 noBtn: {
-                    btnText: 'No'
+                    btnText: t(buttonConstant.no)
                 }
             }
         }
@@ -200,7 +210,7 @@ const GetStarted = () => {
         );
 
         const noButton = !!step.nextButtonProps?.noBtn && (
-            <Button size="large" onClick={() => handleNext({ id: step.id, answer: 'no' })} className="!bg-white !text-brand hover:!text-white border-[1px] border-brand">
+            <Button size="large" onClick={() => handleNext({ id: step.id, answer: 'no' })} className="!bg-white !text-brand  border-[1px] border-brand">
                 {step.nextButtonProps.noBtn.btnText}
             </Button>
         );
@@ -208,17 +218,17 @@ const GetStarted = () => {
         const hasYesNoBoth = !!step.nextButtonProps?.nextBtn?.btnText && !!step.nextButtonProps?.noBtn?.btnText;
 
         return (
-            <div key={step.id} className="flex flex-col items-center justify-center gap-12">
+            <div key={step.id} className="flex  flex-col  items-center justify-center gap-12">
                 {step.additionalComponent}
-                <div key={step.id} className="flex flex-col bg-white rounded-lg py-7 px-6 w-full md:w-[525px]">
+                <div key={step.id} className={cn('flex relative  flex-col   bg-white rounded-lg py-7 px-[19px] w-full md:w-[525px]', !step.additionalProps && 'h-[520px]')}>
                     <h1 className="text-black-900 font-semibold text-2xl mb-8">{step.title}</h1>
-                    <p className="body4 !text-black-700 leading-none mb-[60px]">{step.description}</p>
+                    <p className={cn('body4 !text-black-700', step.id === '0-fit-step' ? 'mb-[60px]' : 'mb-10')}>{step.description}</p>
                     {!!step.image && (
                         <div className="relative h-40 mb-10 flex items-center justify-center">
                             <Image src={step.image.url} alt={step.image.alt} layout="fixed" />
                         </div>
                     )}
-                    <div className={`grid grid-cols-${hasYesNoBoth ? 2 : 1} gap-6 w-full`}>
+                    <div className={`grid grid-cols-${hasYesNoBoth ? 2 : 1} gap-6 w-full  ${!step.additionalProps && 'md:absolute bottom-6  md:w-[487px]'}`}>
                         {!!step.nextButtonProps?.noBtn && noButton}
                         {!!step.nextButtonProps?.nextBtn && (step.nextButtonProps?.nextBtn.btnUrl ? <ActiveLink href={step.nextButtonProps.nextBtn.btnUrl}>{nextButton}</ActiveLink> : nextButton)}
                     </div>
@@ -241,13 +251,16 @@ const GetStarted = () => {
         return (
             <div className="flex flex-col items-center justify-center gap-12 mt-10">
                 <div className="flex flex-col bg-white rounded-lg py-7 px-6 w-full md:w-[525px]">
-                    <h1 className="text-black-900 font-semibold text-2xl mb-8">You are in the right place</h1>
-                    <div className="min-h-[20vh]">
-                        <p className="body4 !text-black-700 leading-none mb-[60px]">Sign up now and start enjoying all the amazing features and benefits that the app has to offer.</p>
-                    </div>
+                    <h1 className="text-black-900 font-semibold text-2xl mb-8">{t(getStarted.userIsFit.title)}</h1>
 
+                    <p className="body4 !text-black-700 leading-none">{t(getStarted.userIsFit.description1)}</p>
+                    <p className="body4 !text-black-700 mt-[32px] leading-none">{t(getStarted.userIsFit.description2)}</p>
+
+                    <div className="relative h-40 my-10 flex items-center justify-center">
+                        <Image src={UserFitImage} alt="User Fit" layout="fixed" />
+                    </div>
                     <Button size="large" onClick={() => router.push(signUpLink)}>
-                        Sign Up
+                        {t(getStarted.userIsFit.buttonText)}
                     </Button>
                 </div>
             </div>
@@ -258,15 +271,17 @@ const GetStarted = () => {
         return (
             <div className="flex flex-col items-center justify-center gap-12 mt-10">
                 <div className="flex flex-col bg-white rounded-lg py-7 px-6 w-full md:w-[525px]">
-                    <h1 className="text-black-900 font-semibold text-2xl mb-8">This app may not be perfect fit for you.</h1>
-                    <div className="min-h-[20vh]">
-                        <p className="body4 !text-black-700 leading-none mb-[60px]">
-                            While this app may not be an exact fit, we encourage you to give it a try. It offers valuable features that could enhance your experience. Explore its potential and see if it meets your needs.
-                        </p>
+                    <h1 className="text-black-900 font-semibold text-2xl mb-8">{t(getStarted.userIsNotFit.title)}</h1>
+
+                    <p className="body4 !text-black-700 leading-none">{t(getStarted.userIsNotFit.description1)}</p>
+                    <p className="body4 !text-black-700 mt-[32px] leading-none">{t(getStarted.userIsNotFit.description2)}</p>
+
+                    <div className="relative h-40 my-10 flex items-center justify-center">
+                        <Image src={UserNotFitImage} alt="User not fit" layout="fixed" />
                     </div>
 
                     <Button size="large" onClick={() => router.push(signUpLink)}>
-                        Give it a try
+                        {t(getStarted.userIsNotFit.buttonText)}
                     </Button>
                 </div>
             </div>

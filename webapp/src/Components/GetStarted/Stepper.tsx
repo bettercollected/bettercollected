@@ -1,9 +1,13 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Chevron from '@Components/Common/Icons/Chevron';
 import Button from '@mui/material/Button';
 import MobileStepper from '@mui/material/MobileStepper';
 import { withStyles } from '@mui/styles';
+
+import { buttonConstant } from '@app/constants/locales/button';
 
 const CustomMobileStepper: any = withStyles({
     progress: {
@@ -21,6 +25,7 @@ interface IGetStartedStepperProps {
 }
 
 export default function GetStartedStepper({ steps, activeStep, handleBack }: IGetStartedStepperProps) {
+    const { t } = useTranslation();
     return (
         <CustomMobileStepper
             variant="progress"
@@ -33,7 +38,7 @@ export default function GetStartedStepper({ steps, activeStep, handleBack }: IGe
                     <div className="!rotate-90 transition-all duration-300">
                         <Chevron width={24} height={24} />
                     </div>
-                    Back
+                    {t(buttonConstant.back)}
                 </Button>
             }
         />

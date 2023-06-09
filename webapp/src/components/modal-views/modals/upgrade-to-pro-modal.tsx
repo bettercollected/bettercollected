@@ -40,17 +40,17 @@ export default function UpgradeToProModal({ featureText }: IUpgradeToProModal) {
         },
         {
             title: t(upgradeConst.features.customDomain.title),
-            description: t(upgradeConst.features.unlimitedForms.description),
+            description: t(upgradeConst.features.customDomain.description),
             color: '#D3E6FE'
         },
         {
             title: t(upgradeConst.features.collaborator.title),
-            description: t(upgradeConst.features.unlimitedForms.description),
+            description: t(upgradeConst.features.collaborator.description),
             color: '#E3E0FF'
         },
         {
             title: t(upgradeConst.features.workspace.title),
-            description: t(upgradeConst.features.unlimitedForms.description),
+            description: t(upgradeConst.features.workspace.description),
             color: '#D9FFD6'
         }
     ];

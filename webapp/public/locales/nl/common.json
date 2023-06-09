@@ -176,6 +176,41 @@
         "SHARE": "deel",
         "VISIBILITY": "Zichtbaarheid"
     },
+    "GET_STARTED": {
+        "0_FIT_STEP": {
+            "TITLE": "Is bettercollected geschikt voor u?",
+            "DESCRIPTION": "We willen uw tijd niet verspillen aan bettercollected als het niet goed bij u past. Deze korte handleiding helpt u en ons om erachter te komen.",
+            "BUTTON_TEXT": "Laten we het uitzoeken",
+            "ADDITIONAL_PROPS": {
+                "TEXT": "Al bekend met de app?",
+                "LINKED_TEXT": "Meld u nu aan!"
+            }
+        },
+        "FORM_BUILDERS": {
+            "TITLE": "Gebruikt u online formulierbouwers?",
+            "DESCRIPTION": "Gebruikt u online formulierbouwers zoals Google Form en Typeform voor het verzamelen van formulierreacties voor uzelf of uw bedrijf?"
+        },
+        "FORM_BRAND": {
+            "TITLE": "Heb je ooit gewenst dat je je formulieren beter kon brandmerken?",
+            "DESCRIPTION": "Ik wou dat u klantvriendelijke formulier-URL's en uw eigen aangepaste domeinlinks had die uw merk weerspiegelen in plaats van standaard gegenereerde URL's."
+        },
+        "DATA_RIGHTS": {
+            "TITLE": "Wil je door actie laten zien dat je geeft om de gegevensrechten van gebruikers? GDPR/CCPA etc.",
+            "DESCRIPTION": "Dataprivacyregelgeving zoals GDPR en CCPA geven formulierbeantwoorders rechten zoals recht op toegang en om verwijdering van gegevens aan te vragen"
+        },
+        "USER_IS_FIT": {
+            "TITLE": "Je bent op de goede plek",
+            "DESCRIPTION_1": "U gebruikt online formulieren om gegevens van uw gebruikers te verzamelen en geeft om branding en gebruikersgegevensrechten. Better Collected is precies voor u gebouwd.",
+            "DESCRIPTION_2": " We helpen u graag verder. Meld u nu aan om een ​​betere gegevensverzamelaar te worden.",
+            "BUTTON_TEXT": "Aanmelden"
+        },
+        "USER_IS_NOT_FIT": {
+            "TITLE": "Deze app past misschien niet perfect bij u.",
+            "DESCRIPTION_1": "Deze app is gemaakt voor mensen die online formulieren gebruiken om gegevens van uw gebruikers te verzamelen en zich bekommeren om branding en gebruikersgegevensrechten.",
+            "DESCRIPTION_2": "Op basis van je keuzes lijkt het erop dat we geen goede match zijn. Je bent echter nog steeds welkom om het uit te proberen. Misschien vind je het nog steeds leuk.",
+            "BUTTON_TEXT": "Probeer het eens"
+        }
+    },
     "GROUP": {
         "DEFAULT": "Groep",
         "GROUPS": "Groepen",

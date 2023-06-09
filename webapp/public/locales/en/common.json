@@ -176,6 +176,41 @@
 		"SHARE": "Share",
 		"VISIBILITY": "Visibility"
 	},
+	"GET_STARTED": {
+		"0_FIT_STEP": {
+			"TITLE": "Is bettercollected right fit for you?",
+			"DESCRIPTION": "We do not want to waste your time on bettercollected if it is not a great fit for you. This short guide will help you and us to figure out.",
+			"BUTTON_TEXT": "Let's find out",
+			"ADDITIONAL_PROPS": {
+				"TEXT": "Already familiar with the app?",
+				"LINKED_TEXT": "Sign Up Now!"
+			}
+		},
+		"FORM_BUILDERS": {
+			"TITLE": "Do you use online form builders?",
+			"DESCRIPTION": "Do you use online form builders like Google Form and Typeform for collecting form responses for yourself or your company?"
+		},
+		"FORM_BRAND": {
+			"TITLE": "Did you ever wish if you could brand your forms better?",
+			"DESCRIPTION": "Wish you could have customer friendly form URLs and your own custom domain links that reflects your brand instead of default generated URLs."
+		},
+		"DATA_RIGHTS": {
+			"TITLE": "Wish you could show by action you  care about users' data rights? GDPR/CCPA etc.",
+			"DESCRIPTION": "Data privacy regulations like GDPR and CCPA provide form responders with rights like right to access and to request data deletion"
+		},
+		"USER_IS_FIT": {
+			"TITLE": "You are in the right place",
+			"DESCRIPTION_1": "You use online forms to collect data from your users and care about branding and users data rights. Better Collected is built exactly for you.",
+			"DESCRIPTION_2": " We would be happy to onboard you. Sign up now to become a better data collector.",
+			"BUTTON_TEXT": "Sign Up"
+		},
+		"USER_IS_NOT_FIT": {
+			"TITLE": "This app may not be perfect fit for you.",
+			"DESCRIPTION_1": "This app is built for people who use online forms to collect data from your users and care about branding and users data rights.",
+			"DESCRIPTION_2": "Based on your choices, it seems we're not a great match. However, you're still welcome to try out. Maybe you'll still like it.",
+			"BUTTON_TEXT": " Give it a try"
+		}
+	},
 	"GROUP": {
 		"DEFAULT": "Group",
 		"GROUPS": "Groups",
