@@ -52,8 +52,8 @@ export default function GroupForms({ group, workspaceForms }: { group: Responder
 
     return (
         <div>
-            <div className="flex  justify-between">
-                <p className="body1">
+            <div className="flex items-center  justify-between">
+                <p className="body1 !leading-none">
                     {t(localesGlobal.forms)} ({group.forms?.length})
                 </p>
                 {isAdmin && (
@@ -86,7 +86,7 @@ export default function GroupForms({ group, workspaceForms }: { group: Responder
                     </MenuDropdown>
                 )}
             </div>
-            <p className="body4 leading-none mt-5 mb-10 md:max-w-[355px] !text-black-700 break-all">{t(groupConstant.description)}</p>
+            <p className="body4 leading-none mt-4 mb-10 md:max-w-[355px] !text-black-700 break-all">{t(groupConstant.description)}</p>
             {group.forms.length > 0 && (
                 <div className="gap-6 flex flex-col">
                     <div className="sm:w-[240px]">

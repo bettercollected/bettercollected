@@ -313,6 +313,7 @@
     "SHARE_YOUR_WORKSPACE": "Deel je werkruimte",
     "SIGNIN_SCREEN": {
         "COLLECT_FORMS": "Verzamel uw formulieren",
+        "SIGN_IN": "Aanmelden",
         "CONTINUE_WITH": "ga verder met:",
         "DELETE_RESPONSES": "Antwoorden verwijderen",
         "EASY_TO_MANAGE_FORMS": "Eenvoudig te beheren formulieren",
@@ -320,7 +321,16 @@
         "READY_TO_GET_STARTED": "Klaar om te beginnen?",
         "REVIEW_FORMS": "Formulieren beoordelen",
         "SIGNIN_AGREEMENT_DESCRIPTION": "Door in te loggen, gaat u akkoord met onze",
-        "WELCOME_MESSAGE": "Welkom terug!"
+        "WELCOME_MESSAGE": "Welkom terug!",
+        "FEATURES": {
+            "TITLE": "Creëer een persoonlijke merkwerkruimte waar",
+            "FEATURE_1": "U kunt al uw formulieren importeren.",
+            "FEATURE_2": "U kunt uw formulier-URL's aanpassen.",
+            "FEATURE_3": "U kunt uw collega's uitnodigen voor samenwerking.",
+            "FEATURE_4": "U kunt uw werkruimte openbaar delen met uw formulierbeantwoorders",
+            "FEATURE_5": "Uw formulierbeantwoorders kunnen gemakkelijk al uw openbare formulieren vinden",
+            "FEATURE_6": "Uw formulierresponders kunnen hun antwoord veilig bekijken"
+        }
     },
     "SLUG": {
         "DEFAULT": "Slak",

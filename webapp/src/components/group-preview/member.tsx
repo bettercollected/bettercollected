@@ -39,18 +39,18 @@ export default function GroupMembers({ group, workspace }: { group: ResponderGro
     }, [group]);
     return (
         <div>
-            <div className="flex  justify-between">
-                <p className="body1">
+            <div className="flex   items-center justify-between">
+                <p className="body1 !leading-none">
                     {t(members.default)} ({group.emails.length})
                 </p>
                 {isAdmin && (
                     <div onClick={() => openModal('ADD_MEMBER', { group })} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
                         <Plus className="h-4 w-4" />
-                        <Typography className="!text-brand-500  body6">{t(buttonConstant.addMember)}</Typography>
+                        <Typography className="!text-brand-500  body6 !leading-none">{t(buttonConstant.addMember)}</Typography>
                     </div>
                 )}
             </div>
-            <p className="body4 leading-none mt-5 mb-10 md:max-w-[355px] !text-black-700 break-all">{t(groupConstant.description)}</p>
+            <p className="body4 mt-4 mb-10 md:max-w-[355px] !text-black-700 break-all">{t(groupConstant.description)}</p>
             {group.emails.length > 0 && (
                 <div className=" flex flex-col md:max-w-[610px] gap-6">
                     <div className="sm:w-[240px]">

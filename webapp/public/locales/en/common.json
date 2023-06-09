@@ -313,6 +313,7 @@
 	"SHARE_YOUR_WORKSPACE": "Share your workspace",
 	"SIGNIN_SCREEN": {
 		"COLLECT_FORMS": "Collect your forms",
+		"SIGN_IN": "Sign in",
 		"CONTINUE_WITH": "continue with:",
 		"DELETE_RESPONSES": "Delete responses",
 		"EASY_TO_MANAGE_FORMS": "Easy to manage forms",
@@ -320,7 +321,16 @@
 		"READY_TO_GET_STARTED": "Ready to get started?",
 		"REVIEW_FORMS": "Review forms",
 		"SIGNIN_AGREEMENT_DESCRIPTION": "By signing in, you agree to our",
-		"WELCOME_MESSAGE": "Welcome back!"
+		"WELCOME_MESSAGE": "Welcome back!",
+		"FEATURES": {
+			"TITLE": "Create you a personal branded workspace where",
+			"FEATURE_1": "You can import all your forms.",
+			"FEATURE_2": "You can customize your form URLs.",
+			"FEATURE_3": "You can invite your colleagues for collaboration.",
+			"FEATURE_4": "You can share your workspace publicly with your form responders",
+			"FEATURE_5": "Your form responders can easily find all your public forms",
+			"FEATURE_6": "Your form responders can securely view their response"
+		}
 	},
 	"SLUG": {
 		"DEFAULT": "Slug",

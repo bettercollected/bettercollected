@@ -35,7 +35,7 @@ export default function WorkspaceGropus({ workspace }: { workspace: WorkspaceDto
                 )}
             </div>
             <p className="mt-4 mb-8 body4 sm:max-w-[355px] text-black-700">{t(groupConstant.description)}</p>
-            <div className="grid sm:grid-cols-2  grid-flow-row gap-6">
+            <div className="grid sm:grid-cols-2 2xl:grid-cols-3  grid-flow-row gap-6">
                 {data &&
                     data?.map((group: ResponderGroupDto) => {
                         return <GroupCard key={group.id} responderGroup={group} />;

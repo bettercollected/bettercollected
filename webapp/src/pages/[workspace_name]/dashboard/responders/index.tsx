@@ -33,7 +33,7 @@ export default function Responders({ workspace }: any) {
         <DashboardLayout>
             <div className="flex flex-col py-4">
                 <div className="h4">{t(formConstant.responders)}</div>
-                <ParamTab className="my-10  pb-0 border-b  border-black-500" tabMenu={paramTabs}>
+                <ParamTab className="my-[30px]  pb-0 border-b  border-black-500" tabMenu={paramTabs}>
                     <TabPanel className="focus:outline-none" key="All Responders">
                         <WorkspaceResponses workspace={workspace} />
                     </TabPanel>
