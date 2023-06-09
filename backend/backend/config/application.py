@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 
 from pydantic import BaseSettings
 
+from backend.config.sentry_setting import SentrySettings
+
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
     .parent.parent.absolute()
@@ -42,6 +44,7 @@ class Application(BaseSettings):
     schedular_settings: SchedularSettings = SchedularSettings()
     aws_settings: AWSSettings = AWSSettings()
     https_cert_api_settings: HttpsCertificateApiSettings = HttpsCertificateApiSettings()
+    sentry_settings: SentrySettings = SentrySettings()
 
     # All your additional application configuration should go either here or in
     # separate file in this submodule.

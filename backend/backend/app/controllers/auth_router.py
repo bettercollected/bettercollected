@@ -2,7 +2,7 @@
 import logging
 from typing import Optional
 
-from classy_fastapi import Routable, get, post
+from classy_fastapi import Routable, get, post, delete
 from fastapi import Depends
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
@@ -56,7 +56,6 @@ class AuthRoutes(Routable):
         self,
         provider_name: str,
         request: Request,
-        creator: Optional[str] = True,
         user=Depends(get_user_if_logged_in),
     ):
         client_referer_url = request.headers.get("referer")
@@ -72,11 +71,12 @@ class AuthRoutes(Routable):
         provider_name: str = None,
         state: str = None,
         code: str = None,
+        user=Depends(get_user_if_logged_in),
     ):
         if not state or not code:
             return {"message": "You cancelled the authorization request."}
         user, state_data = await self.auth_service.handle_backend_auth_callback(
-            provider_name=provider_name, state=state, request=request
+            provider_name=provider_name, state=state, request=request, user=user
         )
         response = RedirectResponse(
             state_data.client_referer_uri + "?modal=" + provider_name
@@ -113,3 +113,15 @@ class AuthRoutes(Routable):
         await add_refresh_token_to_blacklist(request=request)
         delete_token_cookie(response=response)
         return "Logged out successfully!!!"
+
+    @delete("/user")
+    async def delete_user(
+        self,
+        request: Request,
+        response: Response,
+        user: User = Depends(get_logged_user),
+    ):
+        await add_refresh_token_to_blacklist(request=request)
+        await self.auth_service.delete_user(user=user)
+        delete_token_cookie(response=response)
+        return "User Deleted Successfully"

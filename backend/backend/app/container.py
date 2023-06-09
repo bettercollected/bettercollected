@@ -90,14 +90,6 @@ class AppContainer(containers.DeclarativeContainer):
         PluginProxyService, http_client=http_client
     )
 
-    auth_service: AuthService = providers.Singleton(
-        AuthService,
-        http_client=http_client,
-        plugin_proxy_service=plugin_proxy_service,
-        form_provider_service=form_provider_service,
-        jwt_service=jwt_service,
-    )
-
     form_service: FormService = providers.Singleton(
         FormService,
         workspace_user_repo=workspace_user_repo,
@@ -144,6 +136,7 @@ class AppContainer(containers.DeclarativeContainer):
         ResponderGroupsService,
         responder_groups_repo=responder_groups_repository,
         workspace_user_service=workspace_user_service,
+        form_service=form_service,
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(
@@ -168,6 +161,15 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_service=workspace_user_service,
         workspace_form_service=workspace_form_service,
         form_response_service=form_response_service,
+    )
+
+    auth_service: AuthService = providers.Singleton(
+        AuthService,
+        http_client=http_client,
+        plugin_proxy_service=plugin_proxy_service,
+        form_provider_service=form_provider_service,
+        jwt_service=jwt_service,
+        workspace_service=workspace_service,
     )
 
     workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(

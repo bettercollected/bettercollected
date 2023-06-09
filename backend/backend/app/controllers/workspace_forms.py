@@ -49,8 +49,11 @@ class WorkspaceFormsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         query: str,
+        user: User = Depends(get_user_if_logged_in),
     ):
-        forms = await self._form_service.search_form_in_workspace(workspace_id, query)
+        forms = await self._form_service.search_form_in_workspace(
+            workspace_id, query, user
+        )
         return forms
 
     @get("/{form_id}")
@@ -76,7 +79,7 @@ class WorkspaceFormsRouter(Routable):
         )
         return WorkspaceFormPatchResponse(**data.dict())
 
-    @patch("/{form_id}/groups/add")
+    @patch("/{form_id}/groups/add", summary="Add form in group")
     async def patch_groups_for_form(
         self,
         workspace_id: PydanticObjectId,
@@ -88,7 +91,7 @@ class WorkspaceFormsRouter(Routable):
             workspace_id, form_id, group_id, user
         )
 
-    @delete("/{form_id}/groups")
+    @delete("/{form_id}/groups", summary="Delete form from group")
     async def delete_group_from_workspace(
         self,
         workspace_id: PydanticObjectId,
@@ -96,7 +99,7 @@ class WorkspaceFormsRouter(Routable):
         group_id: PydanticObjectId,
         user: User = Depends(get_logged_user),
     ):
-        await self.workspace_form_service.delete_group_from_form(
+        return await self.workspace_form_service.delete_group_from_form(
             workspace_id=workspace_id, form_id=form_id, group_id=group_id, user=user
         )
 

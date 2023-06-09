@@ -342,6 +342,19 @@ class WorkspaceService:
             )
         return workspace_document
 
+    async def delete_workspaces_of_user_with_forms(self, user: User):
+        workspaces = await self.get_mine_workspaces(user=user)
+        workspaces = filter(lambda workspace: workspace.owner_id == user.id, workspaces)
+        workspace_ids = [workspace.id for workspace in workspaces]
+        form_ids = await self.workspace_form_service.get_form_ids_in_workspaces_and_imported_by_user(
+            workspace_ids, user
+        )
+        await self.workspace_form_service.delete_forms_with_ids(form_ids=form_ids)
+        await self._workspace_user_service.delete_user_form_all_workspaces(user)
+        await self._workspace_user_service.delete_user_of_workspaces(
+            workspace_ids=workspace_ids
+        )
+
 
 async def create_workspace(user: User):
     workspace = await WorkspaceDocument.find_one({"owner_id": user.id, "default": True})

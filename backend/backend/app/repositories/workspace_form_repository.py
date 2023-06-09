@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from beanie import PydanticObjectId
 from pymongo.errors import (
@@ -96,11 +96,11 @@ class WorkspaceFormRepository:
                                 "localField": "form_id",
                                 "foreignField": "form_id",
                                 "as": "groups",
-                            }
+                            },
                         },
                         {
                             "$lookup": {
-                                "from": "responder_group_email",
+                                "from": "responder_group_member",
                                 "localField": "groups.group_id",
                                 "foreignField": "group_id",
                                 "as": "emails",
@@ -110,13 +110,12 @@ class WorkspaceFormRepository:
                             "$match": {
                                 "$or": [
                                     {"settings.private": False},
-                                    {"emails.email": user.sub},
+                                    {"emails.identifier": user.sub},
                                 ]
                             }
                         },
                     ]
                 )
-                pass
             aggregation_pipeline.extend([{"$project": {"form_id": 1, "_id": 0}}])
             workspace_forms = (
                 await WorkspaceFormDocument.find(query)
@@ -175,3 +174,19 @@ class WorkspaceFormRepository:
             {"workspace_id": workspace_id, "user_id": user_id}
         ).to_list()
         return [form.form_id for form in forms]
+
+    async def get_form_ids_in_workspaces_and_imported_by_user(
+        self, workspace_ids: List[PydanticObjectId], user: User
+    ):
+        forms = await WorkspaceFormDocument.find(
+            {"$or": [{"workspace_id": {"$in": workspace_ids}}, {"user_id": user.id}]}
+        ).to_list()
+        return [form.form_id for form in forms]
+
+    async def delete_forms(self, form_ids):
+        return await WorkspaceFormDocument.find({"form_id": {"$in": form_ids}}).delete()
+
+    async def get_workspace_forms_form_ids(self, form_ids: List[str]):
+        return await WorkspaceFormDocument.find(
+            {"form_id": {"$in": form_ids}}
+        ).to_list()

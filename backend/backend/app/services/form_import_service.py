@@ -1,13 +1,17 @@
+import json
 from typing import Any, Dict
+
+from beanie import PydanticObjectId
 
 from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
     FormResponseDeletionRequest,
     FormResponseDocument,
 )
+from common.services.crypto_service import crypto_service
 from backend.app.services.form_service import FormService
 from common.models.form_import import FormImportResponse
-from common.models.standard_form import StandardForm
+from common.models.standard_form import StandardForm, StandardFormResponseAnswer
 
 
 class FormImportService:
@@ -15,7 +19,10 @@ class FormImportService:
         self.form_service = form_service
 
     async def save_converted_form_and_responses(
-        self, response_data: Dict[str, Any], form_response_data_owner: str
+        self,
+        response_data: Dict[str, Any],
+        form_response_data_owner: str,
+        workspace_id: PydanticObjectId,
     ) -> StandardForm | None:
         form_data = FormImportResponse.parse_obj(response_data)
         if not (form_data.form or form_data.responses):
@@ -45,6 +52,16 @@ class FormImportService:
                     if data_owner_answer
                     else None
                 )
+            if workspace_id and type(
+                response_document.answers == StandardFormResponseAnswer
+            ):
+                for k, v in response_document.answers.items():
+                    response_document.answers[k] = v.dict()
+                response_document.answers = crypto_service.encrypt(
+                    workspace_id=workspace_id,
+                    form_id=response_document.form_id,
+                    data=json.dumps(response_document.answers),
+                )
             await response_document.save()
             updated_responses_id.append(response.response_id)
 
@@ -69,16 +86,7 @@ class FormImportService:
                         ]
                     },
                 }
-            ).update_many(
-                {
-                    "$unset": {
-                        "answers": 1,
-                        "created_at": 1,
-                        "updated_at": 1,
-                        "published_at": 1,
-                    }
-                }
-            )
+            ).delete()
 
             await FormResponseDeletionRequest.find(deletion_requests_query).update_many(
                 {

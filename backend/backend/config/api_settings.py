@@ -4,6 +4,7 @@ from pydantic import BaseSettings
 
 
 class ApiSettings(BaseSettings):
+    ENVIRONMENT: str = "local"
     TITLE: str = "[BetterCollected] Forms Integrator Backend API"
     DESCRIPTION: str = "Rest endpoints for better-collected forms integrator API"
     VERSION: str = __version__

@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from beanie import PydanticObjectId
@@ -76,7 +77,9 @@ class WorkspaceFormService:
         )
         standard_form = (
             await self.form_import_service.save_converted_form_and_responses(
-                response_data, form_import.response_data_owner
+                response_data,
+                form_import.response_data_owner,
+                workspace_id=workspace_id,
             )
         )
         if not standard_form:
@@ -108,12 +111,7 @@ class WorkspaceFormService:
             id=f"{provider}_{standard_form.form_id}",
             coalesce=True,
             replace_existing=True,
-            kwargs={
-                "user": user,
-                "provider": provider,
-                "form_id": standard_form.form_id,
-                "response_data_owner": form_import.response_data_owner,
-            },
+            kwargs={"form_id": standard_form.form_id, "workspace_id": workspace_id},
             minutes=settings.schedular_settings.INTERVAL_MINUTES,
         )
 
@@ -167,6 +165,13 @@ class WorkspaceFormService:
             workspace_id
         )
 
+    async def get_form_ids_in_workspaces_and_imported_by_user(
+        self, workspace_ids: List[PydanticObjectId], user: User
+    ):
+        return await self.workspace_form_repository.get_form_ids_in_workspaces_and_imported_by_user(
+            workspace_ids=workspace_ids, user=user
+        )
+
     async def get_form_ids_imported_by_user(
         self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
     ):
@@ -198,6 +203,26 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        return await self.responder_groups_service.remove_group_from_form(
+        await self.responder_groups_service.remove_group_from_form(
             form_id=form_id, group_id=group_id
         )
+
+    async def delete_forms_with_ids(self, form_ids: List[str]):
+        workspace_forms = (
+            await self.workspace_form_repository.get_workspace_forms_form_ids(
+                form_ids=form_ids
+            )
+        )
+        for workspace_form in workspace_forms:
+            self.schedular.remove_job(
+                workspace_form.settings.provider + "_" + workspace_form.form_id
+            )
+
+        await self.form_service.delete_forms(form_ids=form_ids)
+        await self.form_response_service.delete_form_responses_of_form_ids(
+            form_ids=form_ids
+        )
+        await self.form_response_service.delete_deletion_requests_of_form_ids(
+            form_ids=form_ids
+        )
+        return await self.workspace_form_repository.delete_forms(form_ids=form_ids)

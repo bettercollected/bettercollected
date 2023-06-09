@@ -1,8 +1,9 @@
-from typing import List
+from typing import List, Optional
 
 from beanie import PydanticObjectId
 from pydantic import EmailStr
 
+from backend.app.models.dtos.response_group_dto import ResponderGroupDto
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
     ResponderGroupMemberDocument,
@@ -12,9 +13,17 @@ from backend.app.schemas.responder_group import (
 
 class ResponderGroupsRepository:
     async def create_group(
-        self, workspace_id: PydanticObjectId, name: str, emails: List[EmailStr]
+        self,
+        workspace_id: PydanticObjectId,
+        name: str,
+        description: Optional[str],
+        emails: List[EmailStr],
     ):
-        responder_group = ResponderGroupDocument(name=name, workspace_id=workspace_id)
+        if description and len(description) > 280:
+            return {"message": "description should be less than 280 characters"}
+        responder_group = ResponderGroupDocument(
+            name=name, workspace_id=workspace_id, description=description
+        )
         responder_group = await responder_group.save()
         responder_group_emails = []
         if not emails:
@@ -25,8 +34,41 @@ class ResponderGroupsRepository:
                     group_id=responder_group.id, identifier=email
                 )
             )
-            await ResponderGroupMemberDocument.insert_many(responder_group_emails)
+        await ResponderGroupMemberDocument.insert_many(responder_group_emails)
         return responder_group
+
+    async def update_group(
+        self,
+        workspace_id: PydanticObjectId,
+        name: str,
+        description: Optional[str],
+        emails: List[EmailStr],
+        group_id: PydanticObjectId,
+    ):
+        responder_group = await ResponderGroupDocument.find_one(
+            {"workspace_id": workspace_id, "_id": group_id}
+        )
+        existing_group_members = await ResponderGroupMemberDocument.find(
+            {"group_id": group_id}
+        ).to_list()
+        for existing_group_member in existing_group_members:
+            for email in existing_group_member:
+                await ResponderGroupMemberDocument.find(
+                    {"group_id": group_id, "identifier": {"$in": email}}
+                ).delete()
+        responder_group_emails = []
+        for email in emails:
+            responder_group_emails.append(
+                ResponderGroupMemberDocument(
+                    group_id=responder_group.id, identifier=email
+                )
+            )
+        await ResponderGroupMemberDocument.insert_many(responder_group_emails)
+
+        if responder_group:
+            responder_group.name = name
+            responder_group.description = description
+        return await responder_group.save()
 
     async def get_group_in_workspace(
         self, workspace_id: PydanticObjectId, group_id: PydanticObjectId
@@ -58,7 +100,7 @@ class ResponderGroupsRepository:
         self, group_id: PydanticObjectId, emails: List[EmailStr]
     ):
         await ResponderGroupMemberDocument.find(
-            {"group_id": group_id, "email": {"$in": emails}}
+            {"group_id": group_id, "identifier": {"$in": emails}}
         ).delete()
 
     async def get_emails_in_group(self, group_id: PydanticObjectId):
@@ -68,10 +110,18 @@ class ResponderGroupsRepository:
                 [
                     {
                         "$lookup": {
-                            "from": "responder_group_email",
+                            "from": "responder_group_member",
                             "localField": "_id",
                             "foreignField": "group_id",
                             "as": "emails",
+                        }
+                    },
+                    {
+                        "$lookup": {
+                            "from": "responder_group_form",
+                            "localField": "_id",
+                            "foreignField": "group_id",
+                            "as": "forms",
                         }
                     },
                     {
@@ -79,7 +129,9 @@ class ResponderGroupsRepository:
                             "_id": 1,
                             "name": 1,
                             "workspace_id": 1,
-                            "emails": {"email": 1},
+                            "emails": "$emails.identifier",
+                            "description": 1,
+                            "forms": "$forms.form_id",
                         }
                     },
                 ]
@@ -93,9 +145,41 @@ class ResponderGroupsRepository:
         await ResponderGroupMemberDocument.find({"group_id": group_id}).delete()
 
     async def get_groups_in_workspace(self, workspace_id: PydanticObjectId):
-        return await ResponderGroupDocument.find(
-            {"workspace_id": workspace_id}
-        ).to_list()
+        return (
+            await ResponderGroupDocument.find({"workspace_id": workspace_id})
+            .aggregate(
+                [
+                    {
+                        "$lookup": {
+                            "from": "responder_group_member",
+                            "localField": "_id",
+                            "foreignField": "group_id",
+                            "as": "emails",
+                        }
+                    },
+                    {
+                        "$lookup": {
+                            "from": "responder_group_form",
+                            "localField": "_id",
+                            "foreignField": "group_id",
+                            "as": "forms",
+                        }
+                    },
+                    {
+                        "$project": {
+                            "_id": 1,
+                            "name": 1,
+                            "workspace_id": 1,
+                            "emails": "$emails.identifier",
+                            "description": 1,
+                            "forms": "$forms.form_id",
+                        }
+                    },
+                ],
+                projection_model=ResponderGroupDto,
+            )
+            .to_list()
+        )
 
     async def add_group_to_form(self, form_id: str, group_id: PydanticObjectId):
         existing_document = await ResponderGroupFormDocument.find_one(
@@ -109,6 +193,6 @@ class ResponderGroupsRepository:
         return existing_document
 
     async def remove_group_from_form(self, form_id: str, group_id: PydanticObjectId):
-        return await ResponderGroupFormDocument.find_one(
+        await ResponderGroupFormDocument.find_one(
             {"form_id": form_id, "group_id": group_id}
         ).delete()

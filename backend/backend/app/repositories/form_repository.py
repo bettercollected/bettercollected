@@ -33,6 +33,42 @@ class FormRepository:
                     "imported_by": "$workspace_form.user_id",
                 }
             },
+            {
+                "$lookup": {
+                    "from": "responder_group_form",
+                    "localField": "form_id",
+                    "foreignField": "form_id",
+                    "as": "form_groups",
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "responder_group",
+                    "localField": "form_groups.group_id",
+                    "foreignField": "_id",
+                    "as": "groups",
+                }
+            },
+            # {
+            #     "$set": {
+            #         "groups": "$groups.group_id"
+            #     }
+            # }
+            # {
+            #     "$lookup": {
+            #         "from": "responder_group",
+            #         "localField": "workspace_id",
+            #         "foreignField": str(workspace_id),
+            #         "as": "group",
+            #     }
+            # },
+            # {
+            #     "$set": {
+            #
+            #         "groups": {"name": "$group.name", "role": "$group_form.role"}
+            #
+            #     }
+            # },
         ]
 
         aggregation_pipeline.extend(create_filter_pipeline(sort=sort))
@@ -128,3 +164,6 @@ class FormRepository:
         if not form:
             raise HTTPException(status_code=404, content="Form not found")
         return await form.delete()
+
+    async def delete_forms(self, form_ids: List[str]):
+        return await FormDocument.find({"form_id": {"$in": form_ids}}).delete()

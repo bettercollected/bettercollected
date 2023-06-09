@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, post, patch, get, delete
@@ -36,11 +36,12 @@ class ResponderGroupsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         name: str,
+        description: Optional[str] = None,
         emails: List[EmailStr] = None,
         user: User = Depends(get_logged_user),
     ):
         return await self.responder_groups_service.create_group(
-            workspace_id, name, emails, user
+            workspace_id, name, emails, user, description
         )
 
     @get("/{group_id}")
@@ -52,6 +53,25 @@ class ResponderGroupsRouter(Routable):
     ):
         return await self.responder_groups_service.get_users_in_group(
             workspace_id=workspace_id, group_id=group_id, user=user
+        )
+
+    @patch("/{group_id}", summary="Update Responder Group")
+    async def update_user_group(
+        self,
+        workspace_id: PydanticObjectId,
+        group_id: PydanticObjectId,
+        name: str,
+        description: Optional[str] = None,
+        emails: List[EmailStr] = None,
+        user: User = Depends(get_logged_user),
+    ):
+        return await self.responder_groups_service.update_responder_group(
+            workspace_id=workspace_id,
+            name=name,
+            group_id=group_id,
+            description=description,
+            emails=emails,
+            user=user,
         )
 
     @patch("/{group_id}/emails")

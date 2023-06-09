@@ -43,7 +43,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
         request_for_deletion: bool = False,
         user: User = Depends(get_logged_user),
     ):
-        responses = await self._form_response_service.get_workspace_submissions(
+        responses = await self._form_response_service.get_workspace_form_submissions(
             workspace_id, request_for_deletion, form_id, filter_query, sort, user
         )
         return responses

@@ -39,9 +39,11 @@ boto3 = "^1.26.75"
 python-multipart = "^0.0.5"
 cryptography = "^39.0.1"
 apscheduler = "^3.10.0"
-fastapi-pagination = { git = "https://github.com/uriyyo/fastapi-pagination.git", branch = "main"}
+fastapi-pagination = "^0.12.3"
 python-whois = "^0.8.0"
 camel-converter = "^3.0.0"
+sentry-sdk = {extras = ["fastapi"], version = "^1.24.0"}
+tink = "^1.7.0"
 
 [tool.poetry.scripts]
 backend = 'backend.cli:cli'

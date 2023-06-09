@@ -5,6 +5,7 @@ from fastapi_pagination import Page
 
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
+from backend.app.models.response_dtos import StandardFormResponseCamelModel
 from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
     FormResponseDeletionRequest,
@@ -163,7 +164,7 @@ class FormResponseRepository(BaseRepository):
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
         data_subjects: bool = None,
-    ) -> Page[StandardFormResponse]:
+    ) -> Page[StandardFormResponseCamelModel]:
         if data_subjects:
             form_responses = await self.get_workspace_responders(
                 form_ids=form_ids, filter_query=filter_query, sort=sort
@@ -242,3 +243,11 @@ class FormResponseRepository(BaseRepository):
 
     async def delete_deletion_requests(self, form_id: str):
         return await FormResponseDeletionRequest.find({"form_id": form_id}).delete()
+
+    async def delete_by_form_ids(self, form_ids):
+        return await FormResponseDocument.find({"form_id": {"$in": form_ids}}).delete()
+
+    async def delete_deletion_requests_by_form_ids(self, form_ids):
+        return await FormResponseDeletionRequest.find(
+            {"form_id": {"$in": form_ids}}
+        ).delete()
