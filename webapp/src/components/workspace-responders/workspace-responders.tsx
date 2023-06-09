@@ -58,9 +58,13 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
             {responderGroupsQuery.data?.map((group: ResponderGroupDto) => {
                 if (group.emails.includes(email))
                     return (
-                        <div key={group.id} className="p-1 w-fit rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500">
+                        <div
+                            key={group.id}
+                            onClick={() => openModal('DELETE_CONFIRMATION', { title: group.name, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) })}
+                            className="p-1 cursor-pointer w-fit group rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500"
+                        >
                             <span className="body5 text-black-8000">{group.name}</span>
-                            {isAdmin && <Close className="h-2 w-2 cursor-pointer" onClick={() => openModal('DELETE_CONFIRMATION', { title: group.name, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) })} />}
+                            {isAdmin && <Close className="h-2 group-hover:block hidden w-2 " />}
                         </div>
                     );
                 return null;
