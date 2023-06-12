@@ -55,6 +55,7 @@ class Application(BaseSettings):
 
     AUTH_JWT_SECRET: str
     AUTH_SERVER_URL: str = "http://auth:8000/api/v1"
+    AUTH_AES_HEX_KEY = ""
 
     GOOGLE_CLIENT_TYPE = "web"
     GOOGLE_CLIENT_ID = ""
@@ -65,11 +66,10 @@ class Application(BaseSettings):
     GOOGLE_CLIENT_SECRET = ""
     GOOGLE_REDIRECT_URIS = ""
     GOOGLE_JAVASCRIPT_ORIGINS = ""
-    GOOGLE_SCOPES = ""
+    GOOGLE_SCOPES = "openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly"
     GOOGLE_API_SERVICE_NAME = "drive"
     GOOGLE_API_VERSION = "v2"
     GOOGLE_REVOKE_CREDENTIALS_URL = "https://oauth2.googleapis.com/revoke"
-    GOOGLE_AES_KEY = ""
 
     mongo_settings: MongoSettings = MongoSettings()
     sentry_settings: SentrySettings = SentrySettings()

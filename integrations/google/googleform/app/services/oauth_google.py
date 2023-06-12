@@ -29,7 +29,7 @@ from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.app.utils.google import dict_to_credential
 from googleform.config import settings
 
-_crypto = Crypto(settings.GOOGLE_AES_KEY)
+_crypto = Crypto(settings.AUTH_AES_HEX_KEY)
 
 
 class OauthGoogleService:
