@@ -178,13 +178,13 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         <MenuItem
             sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
             className="body4 hover:bg-brand-100"
-            onClick={() =>
+            onClick={() => {
                 openModal('CUSTOMIZE_URL', {
                     description: t(customize.link.description),
                     url: isCustomDomain ? customDomain : clientHost,
-                    formId: currentActiveForm?.form.formId
-                })
-            }
+                    form: currentActiveForm?.form
+                });
+            }}
         >
             <ListItemIcon>
                 <EditIcon width={20} height={20} />
@@ -194,7 +194,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     );
 
     return (
-        <div className={className} onClick={(e) => e.preventDefault()}>
+        <div className={className + ' !text-black-900'} onClick={(e) => e.preventDefault()}>
             <MenuDropdown width={210} onClick={(e: any) => handleClick(e, form)} id="form-menu" menuTitle="Form options" menuContent={<EllipsisOption />} showExpandMore={false}>
                 {menuItemOpen}
                 {!!currentActiveForm?.form?.settings?.private ? (

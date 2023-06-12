@@ -124,7 +124,13 @@ export default function FormPageLayout(props: any) {
                                         title={t(customize.link.title)}
                                         subtitle={t(customize.link.description)}
                                         buttonText={t(customize.link.default)}
-                                        onClick={() => openModal('CUSTOMIZE_URL', { description: t(customize.link.description), url: isCustomDomain ? customDomain : clientHost })}
+                                        onClick={() =>
+                                            openModal('CUSTOMIZE_URL', {
+                                                description: t(customize.link.description),
+                                                form: form,
+                                                url: isCustomDomain ? customDomain : clientHost
+                                            })
+                                        }
                                     />
                                 </div>
                             </div>
