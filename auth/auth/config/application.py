@@ -28,7 +28,7 @@ class Application(BaseSettings):
     DEBUG: bool = True
     API_TITLE: str = "auth"
     API_VERSION: str = __version__
-    API_ROOT_PATH: str = ""
+    API_ROOT_PATH: str = "/api/v1"
     API_ENVIRONMENT: str = "local"
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
@@ -41,7 +41,7 @@ class Application(BaseSettings):
 
     ORGANIZATION_NAME: str = "Better Collected"
     AUTH_JWT_SECRET: str
-    AUTH_AEX_HEX_KEY: str
+    AUTH_AES_HEX_KEY: str
     CLIENT_ADMIN_URL: str = "http://localhost:3000"
 
     class Config:

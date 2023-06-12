@@ -12,7 +12,7 @@ from common.models.user import User
 
 import requests
 
-crypto = Crypto(settings.AUTH_AEX_HEX_KEY)
+crypto = Crypto(settings.AUTH_AES_HEX_KEY)
 
 typeform_settings = settings.typeform_settings
 

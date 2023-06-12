@@ -85,5 +85,5 @@ class UserRepository:
         await user.save()
 
     @staticmethod
-    async def delete_user( user_id: PydanticObjectId):
+    async def delete_user(user_id: PydanticObjectId):
         return await UserDocument.find({"_id": user_id}).delete()

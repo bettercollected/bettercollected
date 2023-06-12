@@ -20,7 +20,7 @@ from oauthlib.oauth2 import InvalidGrantError
 
 from starlette.requests import Request
 
-crypto: Crypto = Crypto(settings.AUTH_AEX_HEX_KEY)
+crypto: Crypto = Crypto(settings.AUTH_AES_HEX_KEY)
 google_settings = settings.google_settings
 
 client_config = {
@@ -31,7 +31,7 @@ client_config = {
         "token_uri": google_settings.token_uri,
         "auth_provider_x509_cert_url": google_settings.auth_provider_x509_cert_url,
         "client_secret": google_settings.client_secret,
-        "redirect_uris": google_settings.redirect_uris.split(","),
+        "redirect_uris": google_settings.basic_auth_redirect.split(","),
         "javascript_origins": google_settings.javascript_origins.split(","),
     }
 }
