@@ -10,7 +10,7 @@ import { Typography } from '@mui/material';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 
-import RequestForDeletionBadge from '@app/components/badge/request-for-deletion-badge';
+import StatusBadge from '@app/components/badge/status-badge';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import EmptyResponse from '@app/components/ui/empty-response';
 import ActiveLink from '@app/components/ui/links/active-link';
@@ -101,7 +101,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
         const statusToAdd = [
             {
                 name: t(localesGlobal.status),
-                selector: (row: StandardFormResponseDto) => <RequestForDeletionBadge deletionStatus={row?.deletionStatus || t(formConstant.status.pending)} />,
+                selector: (row: StandardFormResponseDto) => <StatusBadge status={row?.deletionStatus || t(formConstant.status.pending)} />,
                 style: {
                     color: 'rgba(0,0,0,.54)',
                     paddingLeft: '16px',

@@ -47,15 +47,15 @@ export function isNetherUndefinedNorNull(data: unknown): boolean {
     return !isUndefined(data) && !isNull(data);
 }
 
-export const requestForDeletionProps = (deletionStatus: string, t: any) => {
-    let status = t(buttonConstant.done);
+export const statusProps = (status: string, t: any) => {
+    let currentStatus = t(buttonConstant.done);
     let cName = 'bg-success text-green-800 dark:bg-green-900 dark:text-green-300';
-    if (deletionStatus === 'pending') {
-        status = t(formConstant.status.pending);
+    if (status.toLowerCase() === 'pending') {
+        currentStatus = t(formConstant.status.pending);
         cName = 'bg-black-400 text-black-800 dark:bg-yellow-900 dark:text-yellow-300';
     }
     return {
-        status,
+        currentStatus,
         cName
     };
 };

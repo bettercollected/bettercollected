@@ -281,8 +281,16 @@
         "DEFAULT": "Leden",
         "INVITATION": "Uitnodigingen",
         "INVITATION_DATE": "Uitnodigingsdatum",
-        "JOIN": "Aangesloten",
-        "ROLE": "Rol"
+        "JOIN": "Toetredingsdatum",
+        "ROLE": "Rol",
+        "COLLABORATORS": {
+            "DEFAULT": "Medewerkers",
+            "DESCRIPTION": "Medewerkers kunnen formulieren importeren, formulieren verwijderen, reacties bekijken en reacties verwijderen."
+        },
+        "PENDING_REQUESTS": {
+            "DEFAULT": "In behandeling zijnde verzoeken",
+            "DESCRIPTION": "Verzoeken verlopen na 7 dagen na uitnodiging."
+        }
     },
     "MENU_DROPDOWN.CREATE_WORKSPACE": "Maak een nieuwe werkruimte aan",
     "NEW_LINK": "Nieuwe koppeling",

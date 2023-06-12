@@ -1,47 +1,52 @@
 import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
+import MembersIcon from '@Components/Common/Icons/Members';
 
 import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
+import Collaborators from '@app/components/member/collaborators';
+import Invitations from '@app/components/member/invitations';
 import { useModal } from '@app/components/modal-views/context';
 import InvitationsTable from '@app/components/settings/invitations-table';
 import MembersTable from '@app/components/settings/members-table';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
-import Button from '@app/components/ui/button';
-import { buttonConstant } from '@app/constants/locales/button';
-import { Features } from '@app/constants/locales/feature';
+import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
+import { localesGlobal } from '@app/constants/locales/global';
 import { members } from '@app/constants/locales/members';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
 export default function ManageMembers({ workspace }: any) {
     const isProPlan = useAppSelector(selectIsProPlan);
-    const { openModal } = useModal();
     const { t } = useTranslation();
+    const paramTabs = [
+        {
+            icon: <MembersIcon />,
+            title: t(members.collaborators.default),
+            path: 'Collaborators'
+        }
+    ];
+    if (isProPlan) {
+        paramTabs.push({
+            icon: <MembersIcon />,
+            title: t(members.pendingRequests.default),
+            path: 'Pending Requests'
+        });
+    }
     return (
         <DashboardLayout>
             <div className="flex justify-between">
                 <div className="h4">{t(members.default)}</div>
-                <ProPlanHoc hideChildrenIfPro={false} feature={Features.collaborator}>
-                    <Button
-                        onClick={() => {
-                            if (isProPlan) openModal('INVITE_MEMBER');
-                        }}
-                    >
-                        {t(buttonConstant.inviteCollaborator)}
-                    </Button>
-                </ProPlanHoc>
             </div>
-            <Divider className="mt-5" />
+            <ParamTab className="mb-[38px] mt-[24px]  pb-0 border-b  border-black-500" tabMenu={paramTabs}>
+                <TabPanel className="focus:outline-none" key="Collaborators">
+                    <Collaborators />
+                </TabPanel>
 
-            <MembersTable />
-            {isProPlan && (
-                <>
-                    <div className="h4 mt-10">{t(members.invitations)}</div>
-                    <Divider className="my-5" />
-                    <InvitationsTable />
-                </>
-            )}
+                <TabPanel className="focus:outline-none" key="Pending Requests">
+                    <Invitations />
+                </TabPanel>
+            </ParamTab>
         </DashboardLayout>
     );
 }

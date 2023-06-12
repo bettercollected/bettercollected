@@ -14,9 +14,9 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
-export default function MembersTable() {
+export default function MembersTable({ data }: any) {
     const workspace = useAppSelector((state) => state.workspace);
-    const { data, isLoading } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
+
     // const [members, setMembers] = useState<Array<any>>([]);
     const { t } = useTranslation();
 
@@ -38,9 +38,10 @@ export default function MembersTable() {
                 paddingRight: '16px'
             }
         },
+
         {
-            name: t(members.role),
-            selector: (member: any) => _.capitalize(member.roles[0]),
+            name: t(members.join),
+            selector: (member: any) => (!!member?.joined ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(member?.joined)))} - ${toHourMinStr(parseDateStrToDate(utcToLocalDate(member?.joined)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
@@ -49,8 +50,8 @@ export default function MembersTable() {
             }
         },
         {
-            name: t(members.join),
-            selector: (member: any) => (!!member?.joined ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(member?.joined)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(member?.joined)))}` : ''),
+            name: t(members.role),
+            selector: (member: any) => _.capitalize(member.roles[0]),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
