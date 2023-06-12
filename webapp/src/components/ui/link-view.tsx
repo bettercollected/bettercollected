@@ -12,6 +12,7 @@ import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 
 type SizeNames = 'large' | 'medium' | 'small';
 type VariantNames = 'ghost' | 'solid' | 'transparent' | 'outline';
+
 interface ILinkViewProps {
     url: string;
     toastMessage: string;
@@ -20,6 +21,7 @@ interface ILinkViewProps {
     // buttonSize?: SizeNames;
     // buttonVarient?: VariantNames;
 }
+
 export default function LinkView({ url, toastMessage, className, buttonClassName }: ILinkViewProps) {
     const [_, copyToClipboard] = useCopyToClipboard();
     const { t } = useTranslation();

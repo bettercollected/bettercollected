@@ -28,7 +28,9 @@ export const formConstant = {
         pinForm: 'FORM_MENU.PIN_FORM',
         visibility: 'FORM_MENU.VISIBILITY',
         deleteForm: 'FORM_MENU.DELETE_FORM',
-        share: 'FORM_MENU.SHARE'
+        share: 'FORM_MENU.SHARE',
+        makeFormPrivate: 'FORM_MENU.MAKE_FORM_PRIVATE',
+        makeFormPublic: 'FORM_MENU.MAKE_FORM_PUBLIC'
     },
     link: 'FORMS_LINK',
     default: 'FORM.DEFAULT',
