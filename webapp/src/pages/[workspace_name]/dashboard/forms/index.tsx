@@ -5,7 +5,11 @@ import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import UserDetails from '@Components/Common/DataDisplay/UserDetails';
+import FormVisibility from '@Components/Common/FormVisibility';
+import PinnedIcon from '@Components/Common/Icons/Pinned';
 import Plus from '@Components/Common/Icons/Plus';
+import PrivateIcon from '@Components/Common/Icons/Private';
+import PublicIcon from '@Components/Common/Icons/Public';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import StyledPagination from '@Components/Common/Pagination';
 import { MenuItem } from '@mui/material';
@@ -24,6 +28,7 @@ import EmptyResponse from '@app/components/ui/empty-response';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
+import { buttonConstant } from '@app/constants/locales/button';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { groupConstant } from '@app/constants/locales/group';
@@ -85,42 +90,20 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
         router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}`);
     };
 
-    const selectList = [
-        {
-            id: 'sort-select-label',
-            label: 'Sort',
-            selectId: 'sort-simple-select',
-            value: sortValue,
-            onChange: (e: any) => setSortValue(e?.target?.value),
-            menuItems: [
-                { value: 'newest_oldest', label: 'Newest - Oldest' },
-                { value: 'oldest_newest', label: 'Oldest - Newest' },
-                { value: 'number_of_responses', label: 'No. of responses' },
-                { value: 'deletion_requests', label: 'Deletion requests' },
-                { value: 'latest_updated', label: 'Latest updated' },
-                { value: 'alphabetical', label: 'Alphabetical' }
-            ]
-        },
-        {
-            id: 'filter-select-label',
-            label: 'Show all',
-            selectId: 'filter-simple-select',
-            value: filterValue,
-            onChange: (e: any) => setFilterValue(e?.target?.value),
-            menuItems: [
-                { value: 'show_all', label: 'Show all' },
-                { value: 'googleform', label: 'Google Forms' },
-                { value: 'typeform', label: 'Typeform' },
-                { value: 'deletion_requests', label: 'Deletion requests' }
-            ]
-        }
-    ];
-
     const dataTableFormColumns = [
+        {
+            name: '',
+            selector: (form: StandardFormDto) => <div>{form?.settings?.pinned && <PinnedIcon width={20} height={20} />}</div>,
+            grow: 1,
+            style: {
+                paddingLeft: '8px'
+            },
+            width: '28px'
+        },
         {
             name: t(formConstant.formType),
             selector: (form: StandardFormDto) => <DataTableProviderFormCell form={form} workspace={workspace} />,
-            grow: 4,
+            grow: 3,
             style: {
                 color: '#202124',
                 fontSize: '16px',
@@ -140,8 +123,8 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
 
             style: {
                 color: 'rgba(0,0,0,.54)',
-                paddingLeft: '16px',
-                paddingRight: '16px',
+                // paddingLeft: '16px',
+                // paddingRight: '16px',
                 fontSize: '18px'
             }
         },
@@ -156,10 +139,20 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             grow: 2,
             style: {
                 color: 'rgba(0,0,0,.54)',
-                paddingLeft: '16px',
-                paddingRight: '16px',
+                // paddingLeft: '16px',
+                // paddingRight: '16px',
                 fontSize: '18px'
             }
+        },
+        {
+            name: t(formConstant.menu.visibility),
+            selector: (form: StandardFormDto) => {
+                return <FormVisibility isPrivate={!!form?.settings?.private} size="medium" />;
+            },
+            style: {
+                paddingLeft: '8px'
+            },
+            grow: 2
         },
         ...(isAdmin && !isProPlan
             ? []
@@ -171,20 +164,11 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                   }
               ]),
         {
-            name: t(formConstant.importedDate),
-            selector: (row: StandardFormDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ` : ''),
-            style: {
-                color: 'rgba(0,0,0,.54)',
-                paddingLeft: '16px',
-                paddingRight: '16px',
-                fontSize: '16px'
-            }
-        },
-        {
             cell: (form: StandardFormDto) => <FormOptionsDropdownMenu redirectToDashboard={false} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} showShare />,
             allowOverflow: true,
             button: true,
             width: '60px',
+            grow: 1,
             style: {
                 paddingLeft: '16px',
                 paddingRight: '16px'
