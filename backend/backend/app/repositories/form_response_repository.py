@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Sequence
 
 import fastapi_pagination.ext.beanie
 from fastapi_pagination import Page
@@ -71,11 +71,18 @@ class FormResponseRepository(BaseRepository):
             create_filter_pipeline(filter_object=filter_query, sort=sort)
         )
 
+        def transformer(items: Sequence[Any]):
+            for item in items:
+                item["answers"] = None
+            return items
+
+        deletion_transformer = transformer if request_for_deletion else None
+
         form_responses_query = FormResponseDocument.find(find_query).aggregate(
-            aggregate_query
+            aggregate_query,
         )
         form_responses = await fastapi_pagination.ext.beanie.paginate(
-            form_responses_query
+            form_responses_query, transformer=deletion_transformer
         )
         return form_responses
 
