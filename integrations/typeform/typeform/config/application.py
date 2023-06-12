@@ -56,13 +56,13 @@ class Application(BaseSettings):
     mongo_settings: MongoSettings = MongoSettings()
     sentry_settings: SentrySettings = SentrySettings()
 
-    TYPEFORM_SCOPE = ""
+    TYPEFORM_SCOPE = "offline+accounts:read+forms:read+responses:read"
     TYPEFORM_CLIENT_ID = ""
     TYPEFORM_CLIENT_SECRET = ""
     TYPEFORM_REDIRECT_URI = ""
-    TYPEFORM_API_URI = ""
-    TYPEFORM_AUTH_URI = ""
-    TYPEFORM_TOKEN_URI = ""
+    TYPEFORM_API_URI = "https://api.typeform.com"
+    TYPEFORM_AUTH_URI = "https://api.typeform.com/oauth/authorize?state={state}&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}"
+    TYPEFORM_TOKEN_URI = "https://api.typeform.com/oauth/token"
 
     class Config:
         case_sensitive = True

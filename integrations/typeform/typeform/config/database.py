@@ -2,7 +2,7 @@ from pydantic import BaseSettings
 
 
 class MongoSettings(BaseSettings):
-    DB: str = "better_collected_api"
+    DB: str = "bettercollected_typeform"
     URI: str = "mongodb://localhost"
 
     class Config:
