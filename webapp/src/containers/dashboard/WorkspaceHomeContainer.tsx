@@ -68,7 +68,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
     );
 
     return (
-        <Layout isCustomDomain={isCustomDomain} isClientDomain showNavbar={!isCustomDomain} hideMenu={!isCustomDomain} className="!p-0 bg-white flex flex-col min-h-screen">
+        <>
             <div className="relative overflow-hidden w-full">
                 <BannerImageComponent workspace={workspace} isFormCreator={false} />
             </div>
@@ -94,6 +94,6 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
                 </div>
                 <WorkspaceFooter showProTag={showProTag} workspace={workspace} isCustomDomain={isCustomDomain} />
             </div>
-        </Layout>
+        </>
     );
 }

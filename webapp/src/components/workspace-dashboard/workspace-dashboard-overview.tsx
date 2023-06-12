@@ -11,6 +11,7 @@ import { Button } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import environments from '@app/configs/environments';
 import dashboardConstants from '@app/constants/locales/dashboard';
 import { Features } from '@app/constants/locales/feature';
@@ -38,6 +39,7 @@ interface IWorkspaceDashboardOverviewProps {
 
 const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDashboardOverviewProps) => {
     const { openModal } = useModal();
+    const fullScreenModal = useFullScreenModal();
     const isAdmin = useAppSelector(selectIsAdmin);
     const isProPlan = useAppSelector(selectIsProPlan);
     const router = useRouter();
@@ -75,7 +77,13 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                     <div className={`flex items-center justify-center h-12 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_PREVIEW}`}>
                         {/*<ActiveLink href={getWorkspaceUrl()} target="_blank" referrerPolicy="origin">*/}
                         <Tooltip title={t(toolTipConstant.previewWorkspace)}>
-                            <Button variant="outlined" className="body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize" onClick={() => {}}>
+                            <Button
+                                variant="outlined"
+                                className="body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize"
+                                onClick={() => {
+                                    fullScreenModal.openModal('WORKSPACE_PREVIEW');
+                                }}
+                            >
                                 {t(dashboardConstants.preview)}
                             </Button>
                         </Tooltip>

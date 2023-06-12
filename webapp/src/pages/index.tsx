@@ -2,6 +2,7 @@ import { GetServerSidePropsContext } from 'next';
 import dynamic from 'next/dynamic';
 
 import environments from '@app/configs/environments';
+import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { checkHasClientDomain, checkHasCustomDomain, getRequestHost } from '@app/utils/serverSidePropsUtils';
@@ -11,7 +12,13 @@ const WorkspaceHomeContainer = dynamic(() => import('@app/containers/dashboard/W
 interface IHome extends IServerSideProps {}
 
 const Home = ({ workspace }: IHome) => {
-    if (workspace) return <WorkspaceHomeContainer showProTag={false} isCustomDomain={true} />;
+    const isCustomDomain = true;
+    if (workspace)
+        return (
+            <Layout isCustomDomain={isCustomDomain} isClientDomain showNavbar={!isCustomDomain} hideMenu={!isCustomDomain} className="!p-0 bg-white flex flex-col min-h-screen">
+                <WorkspaceHomeContainer showProTag={false} isCustomDomain={true} />
+            </Layout>
+        );
     return <></>;
 };
 
