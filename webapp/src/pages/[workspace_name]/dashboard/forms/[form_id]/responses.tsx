@@ -7,7 +7,6 @@ import Divider from '@Components/Common/DataDisplay/Divider';
 import { toast } from 'react-toastify';
 
 import FormResponsesTable from '@app/components/datatable/form/form-responses';
-import ResponsesTable from '@app/components/datatable/responses';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import BackButton from '@app/components/settings/back';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';

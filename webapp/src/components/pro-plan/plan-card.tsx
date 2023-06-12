@@ -5,7 +5,6 @@ import { useTranslation } from 'next-i18next';
 import _ from 'lodash';
 
 import Radio from '@mui/material/Radio';
-import { a } from 'msw/lib/glossary-de6278a9';
 
 import { localesGlobal } from '@app/constants/locales/global';
 import { Plan } from '@app/store/plans/types';

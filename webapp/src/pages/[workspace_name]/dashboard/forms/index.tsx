@@ -7,43 +7,27 @@ import Divider from '@Components/Common/DataDisplay/Divider';
 import UserDetails from '@Components/Common/DataDisplay/UserDetails';
 import FormVisibility from '@Components/Common/FormVisibility';
 import PinnedIcon from '@Components/Common/Icons/Pinned';
-import Plus from '@Components/Common/Icons/Plus';
-import PrivateIcon from '@Components/Common/Icons/Private';
-import PublicIcon from '@Components/Common/Icons/Public';
-import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import StyledPagination from '@Components/Common/Pagination';
-import { MenuItem } from '@mui/material';
-import { A } from 'msw/lib/glossary-de6278a9';
 import DataTable from 'react-data-table-component';
-import { toast } from 'react-toastify';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
 import DataTableProviderFormCell from '@app/components/datatable/form/provider-form-cell';
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
-import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import EmptyResponse from '@app/components/ui/empty-response';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
-import { buttonConstant } from '@app/constants/locales/button';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
-import { groupConstant } from '@app/constants/locales/group';
-import { toastMessage } from '@app/constants/locales/toast-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';
-import { ToastId } from '@app/constants/toastId';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetAllRespondersGroupQuery, useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
-import { useAddFormOnGroupMutation } from '@app/store/workspaces/api';
-import { useDeleteGroupFormMutation } from '@app/store/workspaces/api';
-import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
+import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 
 const formTableStyles = {
     ...dataTableCustomStyles,

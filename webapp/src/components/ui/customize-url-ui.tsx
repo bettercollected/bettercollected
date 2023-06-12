@@ -4,14 +4,12 @@ import { useTranslation } from 'next-i18next';
 
 import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
-import { PersistPartial } from 'redux-persist/es/persistReducer';
 
 import { buttonConstant } from '@app/constants/locales/button';
 import { customize } from '@app/constants/locales/customize';
 import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { validationMessage } from '@app/constants/locales/validation-message';
-import { StandardFormDto } from '@app/models/dtos/form';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';

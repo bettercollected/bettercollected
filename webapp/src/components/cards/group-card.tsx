@@ -16,7 +16,7 @@ import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useDeleteResponderGroupMutation, useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
+import { useDeleteResponderGroupMutation } from '@app/store/workspaces/api';
 
 export default function GroupCard({ responderGroup }: { responderGroup: ResponderGroupDto }) {
     const { t } = useTranslation();

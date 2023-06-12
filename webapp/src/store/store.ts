@@ -1,13 +1,12 @@
 import { Reducer, combineReducers, configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { createLogger } from 'redux-logger';
-import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE, persistStore } from 'redux-persist';
+import { persistStore } from 'redux-persist';
 
 import environments from '@app/configs/environments';
 import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
 import { authApi } from '@app/store/auth/api';
 import authSlice from '@app/store/auth/slice';
-import { monitorReducerEnhancer } from '@app/store/enhancers';
 import formSlice from '@app/store/forms/slice';
 import { plansApi } from '@app/store/plans/api';
 import { providerApi } from '@app/store/providers/api';

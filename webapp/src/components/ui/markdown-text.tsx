@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import { Dialog, DialogContent, DialogProps, DialogTitle, useMediaQuery, useTheme } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
@@ -10,7 +9,7 @@ import remarkGfm from 'remark-gfm';
 // Absolute imports
 import { Close } from '@app/components/icons/close';
 import { localesGlobal } from '@app/constants/locales/global';
-import { ellipsesText, toEndDottedStr } from '@app/utils/stringUtils';
+import { ellipsesText } from '@app/utils/stringUtils';
 
 type Props = {
     scrollTitle?: string;

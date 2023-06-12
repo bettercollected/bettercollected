@@ -1,9 +1,8 @@
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import SearchInput from '@Components/Common/Search/SearchInput';
-import { Divider } from '@mui/material';
 
 import ResponsesTable from '@app/components/datatable/responses';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
@@ -12,7 +11,6 @@ import globalConstants from '@app/constants/global';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceAllSubmissionsQuery, useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 

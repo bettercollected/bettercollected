@@ -17,7 +17,6 @@ import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import WorkSpaceLogoUi from '@app/components/ui/workspace-logo-ui';
-import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesGlobal } from '@app/constants/locales/global';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
@@ -27,13 +26,12 @@ import { validationMessage } from '@app/constants/locales/validation-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { ToastId } from '@app/constants/toastId';
 import Layout from '@app/layouts/_layout';
-import { getAuthUserPropsWithWorkspace, getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
+import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateWorkspaceMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
-import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 interface FormDataDto {
     title: string;

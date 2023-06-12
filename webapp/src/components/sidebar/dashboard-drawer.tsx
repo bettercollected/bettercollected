@@ -7,9 +7,7 @@ import DashboardIcon from '@Components/Common/Icons/Dashboard';
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import { FormIcon } from '@Components/Common/Icons/FormIcon';
 import MembersIcon from '@Components/Common/Icons/Members';
-import PublicIcon from '@Components/Common/Icons/Public';
 import ResponderIcon from '@Components/Common/Icons/Responder';
-import SettingsIcon from '@Components/Common/Icons/Settings';
 import Toolbar from '@Components/Common/Layout/Toolbar';
 import { Box, List, ListItem } from '@mui/material';
 

@@ -1,18 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { debounce, escapeRegExp } from 'lodash';
+import { escapeRegExp } from 'lodash';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
 import SearchInput from '@Components/Common/Search/SearchInput';
 import styled from '@emotion/styled';
-import { InputAdornment } from '@mui/material';
-import TextField from '@mui/material/TextField';
 
 import FormCards from '@app/components/dashboard/form-cards';
-import { SearchIcon } from '@app/components/icons/search';
 import Loader from '@app/components/ui/loader';
 import { formConstant } from '@app/constants/locales/form';
 import { workspaceConstant } from '@app/constants/locales/workspace';

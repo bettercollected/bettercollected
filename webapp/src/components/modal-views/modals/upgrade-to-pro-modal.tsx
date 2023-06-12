@@ -5,7 +5,7 @@ import { useTranslation } from 'next-i18next';
 import Pro from '@Components/Common/Icons/Pro';
 
 import { Close } from '@app/components/icons/close';
-import { useUpgradeModal } from '@app/components/modal-views/upgrade-modal-context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import PlanCard from '@app/components/pro-plan/plan-card';
 import Button from '@app/components/ui/button';
 import ActiveLink from '@app/components/ui/links/active-link';
@@ -22,9 +22,9 @@ export interface IUpgradeToProModal {
 }
 
 export default function UpgradeToProModal({ featureText }: IUpgradeToProModal) {
-    const { closeModal } = useUpgradeModal();
+    const { closeModal } = useFullScreenModal();
 
-    const { data, error, isLoading } = useGetPlansQuery();
+    const { data, isLoading } = useGetPlansQuery();
     const { t } = useTranslation();
     const [activePlan, setActivePlan] = useState<any>();
 

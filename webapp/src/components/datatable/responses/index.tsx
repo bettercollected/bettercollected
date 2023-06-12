@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import StyledPagination from '@Components/Common/Pagination';
-import SearchInput from '@Components/Common/Search/SearchInput';
-import { AssignmentReturn } from '@mui/icons-material';
 import { Typography } from '@mui/material';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
@@ -13,13 +11,10 @@ import DataTable from 'react-data-table-component';
 import StatusBadge from '@app/components/badge/status-badge';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import EmptyResponse from '@app/components/ui/empty-response';
-import ActiveLink from '@app/components/ui/links/active-link';
-import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
-import { useGetFormsSubmissionsQuery, useGetWorkspaceAllSubmissionsQuery, useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
 const responseTableStyles = {

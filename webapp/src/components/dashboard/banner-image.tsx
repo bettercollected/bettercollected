@@ -14,7 +14,6 @@ import { buttonConstant } from '@app/constants/locales/button';
 import editWorkspace from '@app/constants/locales/edit-workpsace';
 import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { workspaceConstant } from '@app/constants/locales/workspace';
 import { ToastId } from '@app/constants/toastId';
 import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
 import { useAppDispatch } from '@app/store/hooks';

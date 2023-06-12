@@ -3,8 +3,9 @@ import { Fragment, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 import { Close } from '@app/components/icons/close';
+import { UPGRADE_MODAL_VIEW, useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
-import { UPGRADE_MODAL_VIEW, useUpgradeModal } from '@app/components/modal-views/upgrade-modal-context';
+import WorkspacePreviewModal from '@app/components/modal-views/modals/workspace-preview-modal';
 import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
@@ -17,14 +18,16 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW | string, modalProps: any) 
             return <CropImageModalView {...modalProps} />;
         case 'UPGRADE_TO_PRO':
             return <UpgradeToProModal />;
+        case 'WORKSPACE_PREVIEW':
+            return <WorkspacePreviewModal />;
         default:
             return <></>;
     }
 }
 
-export default function UpgradeModalContainer() {
+export default function FullScreenModalContainer() {
     const router = useRouter();
-    const { isOpen, closeModal, modalProps, view } = useUpgradeModal();
+    const { isOpen, closeModal, modalProps, view } = useFullScreenModal();
 
     useEffect(() => {
         // close search modal when route change

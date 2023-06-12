@@ -1,6 +1,5 @@
 import { Fragment, useEffect } from 'react';
 
-import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 
 import ImportProviderForms from '@app/components/form-integrations/import-provider-forms';

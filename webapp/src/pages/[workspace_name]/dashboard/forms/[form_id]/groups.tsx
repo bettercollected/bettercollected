@@ -5,8 +5,8 @@ import { useTranslation } from 'next-i18next';
 import Divider from '@Components/Common/DataDisplay/Divider';
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { CheckCircle, Groups } from '@mui/icons-material';
-import { FormGroup, MenuItem, Typography } from '@mui/material';
+import { CheckCircle } from '@mui/icons-material';
+import { MenuItem, Typography } from '@mui/material';
 import cn from 'classnames';
 
 import EmptyGroup from '@app/components/dashboard/empty-group';

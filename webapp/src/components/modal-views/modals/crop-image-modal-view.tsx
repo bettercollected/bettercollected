@@ -5,12 +5,9 @@ import { useTranslation } from 'next-i18next';
 import cn from 'classnames';
 import AvatarEditor from 'react-avatar-editor';
 
-import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesGlobal } from '@app/constants/locales/global';
-
-import { useUpgradeModal } from '../upgrade-modal-context';
 
 interface ICropImageModalViewProps {
     profileEditorRef: React.LegacyRef<AvatarEditor> | undefined;

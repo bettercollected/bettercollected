@@ -12,7 +12,7 @@ import AuthAccountProfileImage from '@app/components/auth/account-profile-image'
 import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import { Check } from '@app/components/icons/check';
 import { Plus } from '@app/components/icons/plus';
-import { useUpgradeModal } from '@app/components/modal-views/upgrade-modal-context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import Loader from '@app/components/ui/loader';
 import dashboardConstants from '@app/constants/locales/dashboard';
 import { Features } from '@app/constants/locales/feature';
@@ -39,7 +39,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
     const { data, isLoading } = useGetAllMineWorkspacesQuery();
     const router = useRouter();
     const isProPlan = useAppSelector(selectIsProPlan);
-    const { openModal } = useUpgradeModal();
+    const { openModal } = useFullScreenModal();
 
     const { t } = useTranslation();
     const handleChangeWorkspace = (space: WorkspaceDto) => {

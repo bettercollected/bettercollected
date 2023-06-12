@@ -11,7 +11,6 @@ import { Button } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { useModal } from '@app/components/modal-views/context';
-import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import dashboardConstants from '@app/constants/locales/dashboard';
 import { Features } from '@app/constants/locales/feature';
@@ -74,13 +73,13 @@ const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDas
                     )}
 
                     <div className={`flex items-center justify-center h-12 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_PREVIEW}`}>
-                        <ActiveLink href={getWorkspaceUrl()} target="_blank" referrerPolicy="origin">
-                            <Tooltip title={t(toolTipConstant.previewWorkspace)}>
-                                <Button variant="outlined" className="body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize">
-                                    {t(dashboardConstants.preview)}
-                                </Button>
-                            </Tooltip>
-                        </ActiveLink>
+                        {/*<ActiveLink href={getWorkspaceUrl()} target="_blank" referrerPolicy="origin">*/}
+                        <Tooltip title={t(toolTipConstant.previewWorkspace)}>
+                            <Button variant="outlined" className="body4 !leading-none !p-2 !text-brand-500 !border-blue-200 hover:!bg-brand-200 capitalize" onClick={() => {}}>
+                                {t(dashboardConstants.preview)}
+                            </Button>
+                        </Tooltip>
+                        {/*</ActiveLink>*/}
                     </div>
                     <div className={`flex items-center justify-center h-12 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_SHARE}`}>
                         <div

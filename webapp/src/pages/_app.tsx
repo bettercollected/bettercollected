@@ -23,7 +23,7 @@ import 'vanilla-cookieconsent/dist/cookieconsent.css';
 import '@app/assets/css/globals.css';
 import CookieConsent from '@app/components/cookie/cookie-consent';
 import ModalContainer from '@app/components/modal-views/container';
-import UpgradeModalContainer from '@app/components/modal-views/upgrade-modal-container';
+import FullScreenModalContainer from '@app/components/modal-views/full-screen-modal-container';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import NextNProgress from '@app/components/ui/nprogress';
 import createEmotionCache from '@app/configs/createEmotionCache';
@@ -130,7 +130,7 @@ function MainApp({ Component, pageProps, router, emotionCache = clientSideEmotio
                                     <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
                                         {getLayout(<Component {...pageProps} key={router.asPath} />)}
                                         <ModalContainer />
-                                        <UpgradeModalContainer />
+                                        <FullScreenModalContainer />
                                     </PersistGate>
                                 </AuthStatusDispatcher>
                             </ServerSideWorkspaceDispatcher>

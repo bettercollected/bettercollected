@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import CopyIcon from '@Components/Common/Icons/Copy';
@@ -32,7 +31,6 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
-import { getFormUrl } from '@app/utils/urlUtils';
 
 interface IFormOptionsDropdownMenuProps {
     workspace: WorkspaceDto;

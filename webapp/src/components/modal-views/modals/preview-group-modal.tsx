@@ -2,14 +2,11 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import UserDetails from '@Components/Common/DataDisplay/UserDetails';
 import { Close } from '@mui/icons-material';
 
 import { useModal } from '@app/components/modal-views/context';
-import { groupConstant } from '@app/constants/locales/group';
 import { members } from '@app/constants/locales/members';
-import { UserDto } from '@app/models/dtos/UserDto';
-import { Plans } from '@app/models/dtos/UserDto';
+import { Plans, UserDto } from '@app/models/dtos/UserDto';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 
 export default function PreviewGroup({ responderGroup }: { responderGroup: ResponderGroupDto }) {

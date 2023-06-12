@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import { Close } from '@mui/icons-material';
 import cn from 'classnames';
-import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { PersistPartial } from 'redux-persist/es/persistReducer';
 
@@ -18,9 +17,9 @@ import { members } from '@app/constants/locales/members';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
-import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';
+import { GroupInfoDto } from '@app/models/dtos/groups';
 import { useAppSelector } from '@app/store/hooks';
-import { useCreateRespondersGroupMutation, useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
+import { useCreateRespondersGroupMutation } from '@app/store/workspaces/api';
 import { WorkspaceState } from '@app/store/workspaces/slice';
 
 export default function CreateGroupModal({ email }: { email: string }) {

@@ -5,6 +5,7 @@ import { useTranslation } from 'next-i18next';
 import AvatarEditor from 'react-avatar-editor';
 import { toast } from 'react-toastify';
 
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import Image from '@app/components/ui/image';
 import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -15,9 +16,6 @@ import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
 import AuthAccountProfileImage from '../auth/account-profile-image';
-import { useModal } from '../modal-views/context';
-import { useUpgradeModal } from '../modal-views/upgrade-modal-context';
-import WorkSpaceLogoUi from '../ui/workspace-logo-ui';
 
 export default function ProfileImageComponent(props: BannerImageComponentPropType) {
     const { workspace, isFormCreator } = props;
@@ -25,7 +23,7 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
     const [uploadImage, setUploadImage] = useState(workspace.profileImage);
     const profileInputRef = useRef<HTMLInputElement>(null);
     const profileEditorRef = useRef<AvatarEditor>(null);
-    const { openModal, closeModal } = useUpgradeModal();
+    const { openModal, closeModal } = useFullScreenModal();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const dispatch = useAppDispatch();
 

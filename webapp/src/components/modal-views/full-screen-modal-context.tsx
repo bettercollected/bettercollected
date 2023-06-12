@@ -1,10 +1,10 @@
 import { atom, useAtom } from 'jotai';
 
-export type UPGRADE_MODAL_VIEW = 'CROP_IMAGE' | 'UPGRADE_TO_PRO' | '';
+export type UPGRADE_MODAL_VIEW = 'CROP_IMAGE' | 'UPGRADE_TO_PRO' | 'WORKSPACE_PREVIEW' | '';
 
 const modalAtom = atom({ isOpen: false, modalProps: null, view: '' });
 
-export function useUpgradeModal() {
+export function useFullScreenModal() {
     const [state, setState] = useAtom(modalAtom);
     const openModal = (view: UPGRADE_MODAL_VIEW, modalProps: any = null) =>
         setState({

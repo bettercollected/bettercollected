@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useRouter } from 'next/router';
 
 import { FormIcon } from '@Components/Common/Icons/FormIcon';
@@ -12,7 +11,6 @@ import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-rende
 import GroupForms from '@app/components/group-preview/forms';
 import GroupDetails from '@app/components/group-preview/group-details';
 import GroupMembers from '@app/components/group-preview/member';
-import { ChevronForward } from '@app/components/icons/chevron-forward';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import Loader from '@app/components/ui/loader';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
