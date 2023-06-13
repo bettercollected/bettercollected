@@ -110,7 +110,7 @@ export default function FormPage(props: any) {
                     <ChevronForward onClick={handleBackClick} className=" cursor-pointer rotate-180 h-6 w-6  p-[2px] " />
                     <p className="h4">{form.title}</p>
                 </div>
-                <ParamTab className="mb-[38px] pb-0 border-b  border-black-500" tabMenu={paramTabs}>
+                <ParamTab className="mb-[38px] pb-0" tabMenu={paramTabs}>
                     <TabPanel className="focus:outline-none" key="Preview">
                         <FormPreview />
                     </TabPanel>
