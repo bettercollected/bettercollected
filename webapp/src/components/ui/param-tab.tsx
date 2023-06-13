@@ -34,11 +34,13 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
 
     function handleTabChange(index: number) {
         if (isRouteChangeable) {
+            const query = router.query;
+            delete query.sub_id;
             router
                 .push(
                     {
                         pathname: router.pathname,
-                        query: { ...router.query, view: tabMenu[index].path }
+                        query: { ...query, view: tabMenu[index].path }
                     },
                     undefined,
                     { scroll: true, shallow: true }

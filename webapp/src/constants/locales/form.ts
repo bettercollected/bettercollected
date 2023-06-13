@@ -58,5 +58,7 @@ export const formConstant = {
     importUnlimited: 'FORM.IMPORT_UNLIMITED',
     importedBy: 'FORM.IMPORTED_BY',
     importedOn: 'FORM.IMPORTED_ON',
-    addGroup: 'FORM.ADD_GROUP'
+    addGroup: 'FORM.ADD_GROUP',
+    respondedOn: 'FORM.RESPONDED_ON',
+    requestedOn: 'FORM.REQUESTED_ON'
 };

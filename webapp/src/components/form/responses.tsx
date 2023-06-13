@@ -11,28 +11,33 @@ import FormRenderer from '@app/components/form/renderer/form-renderer';
 import BackButton from '@app/components/settings/back';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';
 import { formConstant } from '@app/constants/locales/form';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetWorkspaceSubmissionQuery } from '@app/store/workspaces/types';
 
-export default function Responses(props: any) {
-    const { formId } = props;
-
+export default function FormResponses() {
     const router = useRouter();
     let submissionId: string = (router?.query?.sub_id as string) ?? '';
     const [trigger, { isLoading, isError, error }] = useLazyGetWorkspaceSubmissionQuery();
     const { t } = useTranslation();
-    const [form, setForm] = useState<any>([]);
+    const form = useAppSelector(selectForm);
+    const workspace = useAppSelector(selectWorkspace);
+    const [submissionForm, setSubmissionForm] = useState<any>([]);
     const requestForDeletion = false;
 
     useEffect(() => {
         if (!!submissionId) {
             const submissionQuery: IGetWorkspaceSubmissionQuery = {
-                workspace_id: props.workspaceId,
+                workspace_id: workspace.id,
                 submission_id: submissionId
             };
             trigger(submissionQuery)
                 .then((d) => {
-                    setForm(d.data);
+                    setSubmissionForm(d.data);
                 })
                 .catch((e) => {
                     toast.error('Error fetching submission data.', { toastId: 'errorToast' });
@@ -41,22 +46,22 @@ export default function Responses(props: any) {
     }, [submissionId]);
 
     return (
-        <FormPageLayout {...props}>
-            <div className="heading4">{t(formConstant.responses)}</div>
+        <>
             {!submissionId && (
                 <>
-                    <Divider className="my-4" />
-                    <FormResponsesTable props={{ ...props, requestForDeletion }} />
+                    <p className="body1">
+                        {t(formConstant.responses)} ({form.responses})
+                    </p>
+
+                    <FormResponsesTable props={{ formId: form.formId, workspace, requestForDeletion }} />
                 </>
             )}
-            {!!form && !!submissionId && (
+            {!!submissionForm && !!submissionId && (
                 <>
                     <BackButton />
-                    <FormRenderer form={form.form} response={form.response} />
+                    <FormRenderer form={submissionForm.form} response={submissionForm.response} />
                 </>
             )}
-        </FormPageLayout>
+        </>
     );
 }
-
-export { getServerSidePropsForDashboardFormPage as getServerSideProps } from '@app/lib/serverSideProps';

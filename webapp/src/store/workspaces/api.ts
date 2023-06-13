@@ -164,7 +164,8 @@ export const workspacesApi = createApi({
                 params: {
                     request_for_deletion: query.requestedForDeletionOly,
                     page: query.page,
-                    size: query.size
+                    size: query.size,
+                    dataOwnerIdentifier: query.dataOwnerIdentifier
                 },
                 method: 'GET'
             }),

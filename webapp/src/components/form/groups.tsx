@@ -23,14 +23,16 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
 
-export default function FormGroups(props: any) {
+export default function FormGroups() {
     const { t } = useTranslation();
     const form: StandardFormDto = useAppSelector((state) => state.form);
+    const workspace = useAppSelector(selectWorkspace);
     const { deleteFormFromGroup, addFormOnGroup } = useGroupForm();
     const { openModal } = useModal();
-    const { data, isLoading } = useGetAllRespondersGroupQuery(props.workspaceId);
+    const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
     const isAdmin = useAppSelector(selectIsAdmin);
     const NoGroupLink = () => (
         <div className="mt-[119px] flex flex-col items-center">
@@ -54,12 +56,7 @@ export default function FormGroups(props: any) {
                 menuContent={<div className="bg-brand-500 px-3 rounded text-white py-1">{data?.length === 0 && form.groups?.length === 0 ? t(groupConstant.askAdminToCreateAGroup) : t(buttonConstant.addGroup)}</div>}
             >
                 {data.map((group: ResponderGroupDto) => (
-                    <MenuItem
-                        disabled={isFormAlreadyInGroup(form.groups, group.id)}
-                        onClick={() => addFormOnGroup({ groups: form?.groups, group, workspaceId: props.workspaceId, form })}
-                        key={group.id}
-                        className="py-3 flex justify-between hover:bg-black-200"
-                    >
+                    <MenuItem disabled={isFormAlreadyInGroup(form.groups, group.id)} onClick={() => addFormOnGroup({ groups: form?.groups, group, workspaceId: workspace.id, form })} key={group.id} className="py-3 flex justify-between hover:bg-black-200">
                         <Typography className="body4" noWrap>
                             {group.name}
                         </Typography>
@@ -72,37 +69,31 @@ export default function FormGroups(props: any) {
 
     const ShowFormGroups = () => (
         <div className="flex flex-col gap-4">
-            {form.groups?.map((group) => (
+            <p className="body1">
+                {t(groupConstant.groups)} ({form.groups?.length})
+            </p>
+            {form.groups?.map((group: ResponderGroupDto) => (
                 <div key={group.id} className="flex items-center bg-white justify-between p-4">
-                    <p>{group.name}</p>
+                    <p className="body6 !font-normal">{group.name}</p>
 
                     <DeleteIcon
                         className="h-7 w-7 text-red-600  cursor-pointer rounded p-1 hover:bg-black-200 "
-                        onClick={() => openModal('DELETE_CONFIRMATION', { title: group.name, handleDelete: () => deleteFormFromGroup({ group, workspaceId: props.workspaceId, form }) })}
+                        onClick={() => openModal('DELETE_CONFIRMATION', { title: group.name, handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form }) })}
                     />
                 </div>
             ))}
             {AddGroupButton()}
         </div>
     );
-    return (
-        <FormPageLayout {...props}>
-            {isLoading && (
-                <div className=" w-full py-10 flex justify-center">
-                    <Loader />
-                </div>
-            )}
-            {!isLoading && (
-                <div>
-                    <div className="heading4">{t(groupConstant.groups)}</div>
-                    <Divider className="my-4" />
-                </div>
-            )}
-            {!isLoading && data?.length === 0 && isAdmin && <EmptyGroup />}
-            {!isLoading && data?.length === 0 && !isAdmin && NoGroupLink()}
-            {!isLoading && data?.length > 0 && form.groups?.length === 0 && NoGroupLink()}
-            {!isLoading && data?.length > 0 && form.groups?.length !== 0 && ShowFormGroups()}
-        </FormPageLayout>
-    );
+    if (isLoading)
+        return (
+            <div className=" w-full py-10 flex justify-center">
+                <Loader />
+            </div>
+        );
+    else if (data?.length === 0 && isAdmin) return <EmptyGroup />;
+    else if (data?.length === 0 && !isAdmin) return NoGroupLink();
+    else if (data?.length > 0 && form.groups?.length === 0) return NoGroupLink();
+    else if (data?.length > 0 && form.groups?.length !== 0) return ShowFormGroups();
+    else return <></>;
 }
-export { getServerSidePropsForDashboardFormPage as getServerSideProps } from '@app/lib/serverSideProps';

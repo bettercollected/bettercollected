@@ -68,7 +68,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
 
     const dataTableResponseColumns: any = [
         {
-            name: t(formConstant.requestedBy),
+            name: !!requestForDeletion ? t(formConstant.requestedBy) : t(formConstant.responder),
             selector: (response: StandardFormResponseDto) => responseDataOwnerField(response),
             grow: 2,
             style: {
@@ -80,7 +80,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
             }
         },
         {
-            name: t(formConstant.submissionDate),
+            name: !!requestForDeletion ? t(formConstant.requestedOn) : t(formConstant.respondedOn),
             selector: (row: StandardFormResponseDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
@@ -123,7 +123,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
         dataTableResponseColumns.splice(1, 0, ...formToAdd);
     }
 
-    const response: any = () => {
+    const Response: any = () => {
         if (submissions?.data?.items && submissions?.data?.items.length > 0)
             return (
                 <>
@@ -151,7 +151,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
         );
     };
 
-    return response();
+    return Response();
 };
 
 export default ResponsesTable;
