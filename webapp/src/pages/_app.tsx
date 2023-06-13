@@ -122,7 +122,7 @@ function MainApp({ Component, pageProps, router, emotionCache = clientSideEmotio
                     />
                     <CookieConsent />
                     <NextNProgress color="#0764EB" startPosition={0} stopDelayMs={400} height={2} options={{ easing: 'ease' }} />
-                    <ToastContainer theme="colored" position="bottom-right" autoClose={6000} hideProgressBar newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
+                    <ToastContainer position="bottom-center" autoClose={5000} hideProgressBar newestOnTop closeOnClick rtl={false} pauseOnFocusLoss={false} draggable pauseOnHover={false} theme="dark" />{' '}
                     <Provider store={store}>
                         <EnabledFormProviders>
                             <ServerSideWorkspaceDispatcher workspace={pageProps?.workspace}>
