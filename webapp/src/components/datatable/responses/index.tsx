@@ -32,7 +32,7 @@ const responseTableStyles = {
 };
 const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, page, setPage }: any) => {
     const router = useRouter();
-
+    const googleFormHostUrl = 'https://docs.google.com/';
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
     };
@@ -66,6 +66,19 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
         </div>
     );
 
+    const Status = ({ status, responseId }: { status: string; responseId: string }) => (
+        <div className="flex gap-6">
+            <StatusBadge status={status} />
+            {status.toLowerCase() === 'pending' && (
+                <Typography noWrap>
+                    <span onClick={() => router.push(googleFormHostUrl + 'forms/d/' + formId + '/edit?pli=1#response=' + responseId)} className="cursor-pointer body4 !text-brand-500">
+                        Go to response
+                    </span>
+                </Typography>
+            )}
+        </div>
+    );
+
     const dataTableResponseColumns: any = [
         {
             name: !!requestForDeletion ? t(formConstant.requestedBy) : t(formConstant.responder),
@@ -96,7 +109,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
         const statusToAdd = [
             {
                 name: t(localesGlobal.status),
-                selector: (row: StandardFormResponseDto) => <StatusBadge status={row?.deletionStatus || t(formConstant.status.pending)} />,
+                selector: (row: StandardFormResponseDto) => Status({ status: row?.deletionStatus || t(formConstant.status.pending), responseId: row.responseId }),
+                grow: 2,
                 style: {
                     color: 'rgba(0,0,0,.54)',
                     paddingLeft: '16px',
