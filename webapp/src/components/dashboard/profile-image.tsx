@@ -30,7 +30,14 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
     const onUploadFileChange = (e: any) => {
         if (e.target.files.length === 0) return;
         const image = e.target.files[0];
-        openModal('CROP_IMAGE', { profileEditorRef: profileEditorRef, uploadImage: image, profileInputRef: profileInputRef, onSave: updateProfileHandler, modalIndex: 2, closeModal });
+        openModal('CROP_IMAGE', {
+            profileEditorRef: profileEditorRef,
+            uploadImage: image,
+            profileInputRef: profileInputRef,
+            onSave: updateProfileHandler,
+            modalIndex: 2,
+            closeModal
+        });
     };
 
     const updateProfileHandler = async () => {
@@ -60,31 +67,19 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
 
     return (
         <div className={props?.className ?? ''}>
-            {isFormCreator ? (
-                <>
-                    <div onClick={() => profileInputRef.current?.click()} className="w-min cursor-pointer">
-                        <AuthAccountProfileImage image={uploadImage} name={workspace.title} size={143} typography="h1" />
-                        <input data-testid="file-upload-profile" type="file" accept="image/*" ref={profileInputRef} className="hidden" onChange={onUploadFileChange} />
-                    </div>
-                </>
-            ) : (
-                <div className={`relative bannerdiv aspect-square product-image bg-white ${!!workspace?.profileImage ? '' : 'border-[4px] border-brand-100 hover:border-brand-400'} z-10  w-24  sm:w-32  md:w-40  lg:w-[200px] overflow-hidden`}>
-                    {!isFormCreator &&
-                        (!!workspace.profileImage ? (
-                            <Image src={workspace?.profileImage ?? ''} layout="fill" objectFit="contain" alt={workspace.title} />
-                        ) : (
-                            <div className="flex h-full justify-center text-center items-center">
-                                {isFormCreator ? (
-                                    <>
-                                        <Image src="/upload.png" height="46px" width={'72px'} alt={'upload'} />
-                                    </>
-                                ) : (
-                                    t(localesGlobal.noImage)
-                                )}
-                            </div>
-                        ))}
+            <>
+                <div
+                    onClick={() => {
+                        if (isFormCreator) {
+                            profileInputRef.current?.click();
+                        }
+                    }}
+                    className={`w-min ${isFormCreator ? 'cursor-pointer' : ''} `}
+                >
+                    <AuthAccountProfileImage image={uploadImage} name={workspace.title} size={143} typography="h1" />
+                    <input data-testid="file-upload-profile" type="file" accept="image/*" ref={profileInputRef} className="hidden" onChange={onUploadFileChange} />
                 </div>
-            )}
+            </>
         </div>
     );
 }

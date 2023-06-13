@@ -81,7 +81,7 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
         <Tab.Group selectedIndex={selectedTabIndex} onChange={(index: any) => handleTabChange(index)}>
             <div className={`flex flex-row justify-between py-[26px] ${className}`}>
                 <Tab.List className="relative w-full text-sm gap-8">
-                    <div className="flex gap-6 w-full justify-between md:justify-start md:gap-8 xl:gap-10">
+                    <div className="flex gap-6 w-full border-b-[1px] top-[-2px] border-black-500 justify-between md:justify-start md:gap-8 xl:gap-10">
                         {tabMenu.map((item) => (
                             <TabItem key={item.path} className="p-0">
                                 <div className="flex items-center">

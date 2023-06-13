@@ -49,7 +49,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
 
     const isCustomDomain = window?.location.host !== environments.CLIENT_DOMAIN;
 
-    const submissionCard = ({ submission }: any) => <WorkspaceFormResponseDeletionCard key={submission.responseId} response={submission} className="!bg-brand-100" isResponderPortal />;
+    const submissionCard = ({ submission }: any) => <WorkspaceFormResponseDeletionCard key={submission.responseId} response={submission} className="!bg-white" isResponderPortal />;
 
     return (
         <div className="py-6 px-5 lg:px-10 xl:px-20">

@@ -16,7 +16,7 @@ export default function WorkspacePreviewModal() {
                 }
             }}
         >
-            <div className="bg-white relative overflow-hidden pointer-events-none h-full rounded-lg scale-90">
+            <div className="bg-white relative overflow-hidden pointer-events-none h-full rounded-lg ">
                 <div
                     className="absolute top-5 right-5 cursor-pointer z-20 !pointer-events-auto"
                     onClick={() => {
