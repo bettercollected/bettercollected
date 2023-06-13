@@ -8,7 +8,6 @@ import { Typography } from '@mui/material';
 import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import { useModal } from '@app/components/modal-views/context';
 import { Features } from '@app/constants/locales/feature';
-import { localesGlobal } from '@app/constants/locales/global';
 import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';
 import { members } from '@app/constants/locales/members';
 import { selectIsProPlan } from '@app/store/auth/slice';

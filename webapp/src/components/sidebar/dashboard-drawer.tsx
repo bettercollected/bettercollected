@@ -18,7 +18,6 @@ import dashboardConstants from '@app/constants/locales/dashboard';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
 import { members } from '@app/constants/locales/members';
-import { workspaceConstant } from '@app/constants/locales/workspace';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
 import { selectIsAdmin } from '@app/store/auth/slice';

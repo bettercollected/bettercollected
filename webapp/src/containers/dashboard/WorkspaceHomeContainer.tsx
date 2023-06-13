@@ -17,7 +17,6 @@ import PublicWorkspaceTitleAndDescription from '@app/components/workspace/public
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { workspaceConstant } from '@app/constants/locales/workspace';
-import Layout from '@app/layouts/_layout';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetStatusQuery } from '@app/store/auth/api';

@@ -1,17 +1,11 @@
 import { useTranslation } from 'next-i18next';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
 import MembersIcon from '@Components/Common/Icons/Members';
 
-import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import Collaborators from '@app/components/member/collaborators';
 import Invitations from '@app/components/member/invitations';
-import { useModal } from '@app/components/modal-views/context';
-import InvitationsTable from '@app/components/settings/invitations-table';
-import MembersTable from '@app/components/settings/members-table';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
-import { localesGlobal } from '@app/constants/locales/global';
 import { members } from '@app/constants/locales/members';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -38,7 +32,7 @@ export default function ManageMembers({ workspace }: any) {
             <div className="flex justify-between">
                 <div className="h4">{t(members.default)}</div>
             </div>
-            <ParamTab className="mb-[38px] mt-[24px]  pb-0 border-b  border-black-500" tabMenu={paramTabs}>
+            <ParamTab className="mb-[38px] mt-[24px] pb-0 " tabMenu={paramTabs}>
                 <TabPanel className="focus:outline-none" key="Collaborators">
                     <Collaborators />
                 </TabPanel>

@@ -16,7 +16,7 @@ export const toHourMinStr = (date: Date) =>
 export const toMonthDateYearStr = (date: Date) =>
     date.toLocaleDateString('en-GB', {
         day: 'numeric',
-        month: 'short',
+        month: 'long',
         year: 'numeric'
     });
 

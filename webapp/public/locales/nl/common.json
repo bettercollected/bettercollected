@@ -270,7 +270,7 @@
         "DEFAULT": "Medewerker uitnodigen",
         "DESCRIPTION": "Een medewerker kan formulieren in de werkruimte importeren en beheren."
     },
-    "LAST_SUBMITTED_AT": "Laatst ingediend om",
+    "LAST_SUBMITTED_AT": "Ingezonden bij:",
     "LINK_TO_PRIVACY_POLICY": "Link naar privacybeleid",
     "LINK_TO_TERMS_OF_SERVICES": "Link naar Servicevoorwaarden",
     "LOGOUT_MESSAGE": "Weet u zeker dat u wilt uitloggen?",

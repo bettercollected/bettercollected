@@ -6,8 +6,6 @@ import AvatarEditor from 'react-avatar-editor';
 import { toast } from 'react-toastify';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import Image from '@app/components/ui/image';
-import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';

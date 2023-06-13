@@ -2,8 +2,6 @@ import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import _ from 'lodash';
-
 import { Typography } from '@mui/material';
 import DataTable from 'react-data-table-component';
 import { toast } from 'react-toastify';
