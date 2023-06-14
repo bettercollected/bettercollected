@@ -20,14 +20,14 @@ export async function getServerSideProps({ locale, ..._context }: any) {
     } catch (e) {
         return {
             props: {
-                ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np']))
+                ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl']))
             }
         };
     }
 
     return {
         props: {
-            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np']))
+            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl']))
         }
     };
 }

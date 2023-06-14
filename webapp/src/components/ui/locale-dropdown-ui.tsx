@@ -26,11 +26,6 @@ export default function LocaleDropdownUi() {
             label: 'nl',
             value: 'DUTCH',
             icon: Netherland
-        },
-        {
-            label: 'np',
-            value: 'NEPALI',
-            icon: Nepal
         }
     ];
 

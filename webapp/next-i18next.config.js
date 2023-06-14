@@ -2,7 +2,7 @@ module.exports = {
     debug: false,
     i18n: {
         defaultLocale: 'en',
-        locales: ['en', 'nl', 'np']
+        locales: ['en', 'nl']
     },
     fallbackLng: {
         default: ['en']

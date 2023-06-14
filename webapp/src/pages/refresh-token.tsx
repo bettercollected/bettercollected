@@ -21,7 +21,7 @@ export default function RefreshToken() {
 export async function getServerSideProps({ locale, ..._context }: any) {
     return {
         props: {
-            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl', 'np']))
+            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl']))
         }
     };
 }
