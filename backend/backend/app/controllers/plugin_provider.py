@@ -1,10 +1,12 @@
 import logging
 from http import HTTPStatus
+from typing import List
 
 from classy_fastapi import Routable, get, patch, post
 from fastapi import Depends
 
 from backend.app.container import container
+from backend.app.models.dtos.form_provider_response_dto import FormProviderResponseDto
 from backend.app.models.form_plugin_config import FormProviderConfigDto
 from backend.app.router import router
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
@@ -22,7 +24,7 @@ class PluginProviderRouter(Routable):
             container.form_provider_service()
         )
 
-    @get("", status_code=HTTPStatus.OK)
+    @get("", status_code=HTTPStatus.OK, response_model=List[FormProviderResponseDto])
     async def _get_providers(self, user: User = Depends(get_user_if_logged_in)):
         return await self._provider_service.get_providers(user)
 
