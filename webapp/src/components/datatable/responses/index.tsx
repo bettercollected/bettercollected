@@ -13,8 +13,8 @@ import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-
 import EmptyResponse from '@app/components/ui/empty-response';
 import AnchorLink from '@app/components/ui/links/anchor-link';
 import globalConstants from '@app/constants/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
-import { localesGlobal } from '@app/constants/locales/global';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
@@ -73,7 +73,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
             {status.toLowerCase() === 'pending' && (
                 <Typography noWrap>
                     <AnchorLink target="_blank" href={googleFormHostUrl + 'forms/d/' + formId + '/edit?pli=1#response=' + responseId} className="cursor-pointer body4 !text-brand-500">
-                        Go to response
+                        {t(localesCommon.goToResponse)}
                     </AnchorLink>
                 </Typography>
             )}
@@ -109,7 +109,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
     if (!!requestForDeletion) {
         const statusToAdd = [
             {
-                name: t(localesGlobal.status),
+                name: t(localesCommon.status),
                 selector: (row: StandardFormResponseDto) => Status({ status: row?.deletionStatus || t(formConstant.status.pending), responseId: row.responseId }),
                 grow: 2,
                 style: {

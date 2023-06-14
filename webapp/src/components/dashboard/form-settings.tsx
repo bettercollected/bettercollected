@@ -14,9 +14,9 @@ import { useModal } from '@app/components/modal-views/context';
 import { FormSettingsCard } from '@app/components/settings/card';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
 import { customize } from '@app/constants/locales/customize';
 import { formConstant } from '@app/constants/locales/form';
-import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { updateWorkspace } from '@app/constants/locales/update-workspace';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -34,8 +34,6 @@ export default function FormSettingsTab() {
     const [patchFormSettings] = usePatchFormSettingsMutation();
     const workspace = useAppSelector((state) => state.workspace);
     const dispatch = useAppDispatch();
-    const isProPlan = useAppSelector(selectIsProPlan);
-    const [_, copyToClipboard] = useCopyToClipboard();
     const { openModal } = useModal();
     const isCustomDomain = !!workspace.customDomain;
     const customUrl = form?.settings?.customUrl || '';
@@ -53,7 +51,7 @@ export default function FormSettingsTab() {
         if (response.data) {
             const settings = response.data.settings;
             dispatch(setFormSettings(settings));
-            toast(t(localesGlobal.updated).toString(), { type: 'success' });
+            toast(t(localesCommon.updated).toString(), { type: 'success' });
         } else {
             toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
             return response.error;
@@ -82,12 +80,12 @@ export default function FormSettingsTab() {
     return (
         <div>
             <FormSettingsCard>
-                <p className="sh3">Default Link</p>
+                <p className="sh3">{t(formConstant.settings.defaultLink.title)}</p>
                 <p className="body4 !text-black-700 mt-4 !mb-6">{t(customize.link.description)}</p>
                 <FormLinkUpdateView link={clientHostUrl} />
             </FormSettingsCard>
             <FormSettingsCard>
-                <p className="sh3">Customize Form Link</p>
+                <p className="sh3">{t(formConstant.settings.customizeFormLink.title)}</p>
                 <p className="body4 !text-black-700 mt-4 mb-10">{t(customize.link.description)}</p>
                 <p className="w-full body6 mb-4 !font-semibold text-black-900">{t(updateWorkspace.common.consequence)}</p>
                 <ul className="list-disc body4 ml-10 !mb-6">
@@ -98,7 +96,7 @@ export default function FormSettingsTab() {
             </FormSettingsCard>
 
             <FormSettingsCard>
-                <p className="sh3">Form Visibility</p>
+                <p className="sh3">{t(formConstant.settings.visibility.title)}</p>
                 <RadioGroup className="flex flex-col gap-6" defaultValue={form?.settings?.private ? 'Private' : 'Public'}>
                     <div className="flex flex-col">
                         <FormControlLabel
@@ -108,11 +106,11 @@ export default function FormSettingsTab() {
                             label={
                                 <div className="flex body6 !text-black-800 items-center gap-[6px]">
                                     <Globe className="h-[18px] w-[18px]" />
-                                    Public
+                                    {t(formConstant.settings.visibility.public)}
                                 </div>
                             }
                         />
-                        <span className="ml-8 body4 !text-black-700">Forms will only be hidden from your workspace.</span>
+                        <span className="ml-8 body4 !text-black-700">{t(formConstant.settings.visibility.description)}</span>
                     </div>
                     <div className="flex flex-col">
                         <FormControlLabel
@@ -122,11 +120,11 @@ export default function FormSettingsTab() {
                             label={
                                 <div className="flex body6 !text-black-800 items-center gap-[6px]">
                                     <LockIcon className="h-[18px] w-[18px]" />
-                                    Private
+                                    {t(formConstant.settings.visibility.private)}
                                 </div>
                             }
                         />
-                        <span className="ml-8 body4 !text-black-700">Forms will only be hidden from your workspace.</span>
+                        <span className="ml-8 body4 !text-black-700">{t(formConstant.settings.visibility.description)}</span>
                     </div>
                 </RadioGroup>
             </FormSettingsCard>
@@ -151,7 +149,7 @@ export default function FormSettingsTab() {
                         openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
                     }}
                 >
-                    Delete Form
+                    {t(buttonConstant.deleteForm)}
                 </Button>
             </div>
         </div>

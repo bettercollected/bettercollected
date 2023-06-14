@@ -11,7 +11,7 @@ import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { selectIsProPlan } from '@app/store/auth/slice';
@@ -73,7 +73,7 @@ export default function InviteMemberModal() {
                 <div className="sh1 !leading-none">{t(inviteCollaborator.default)}</div>
                 <div className="body4 pt-6 !leading-none ">{t(inviteCollaborator.description)}</div>
                 <form onSubmit={handleSendInvitation} className="flex pt-8  flex-col justify-start">
-                    <div className="body1 mb-3 !leading-none">{t(localesGlobal.enterEmail)}</div>
+                    <div className="body1 mb-3 !leading-none">{t(localesCommon.enterEmail)}</div>
                     <BetterInput
                         disabled={isLoading}
                         data-testid="otp-input"
@@ -81,7 +81,7 @@ export default function InviteMemberModal() {
                         value={invitationMail}
                         type="email"
                         className="!mb-0"
-                        placeholder={t(localesGlobal.enterEmail)}
+                        placeholder={t(localesCommon.enterEmail)}
                         onChange={(event) => {
                             setInvitationMail(event.target.value);
                         }}

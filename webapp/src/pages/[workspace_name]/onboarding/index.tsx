@@ -18,7 +18,7 @@ import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import WorkSpaceLogoUi from '@app/components/ui/workspace-logo-ui';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -177,7 +177,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         <div className="flex flex-col mt-[24px] justify-center items-center">
             <AuthAccountProfileImage image={user?.profile_image} name={profileName} size={143} />
             <p className="pt-6 text-center text-black-900 h4">
-                {t(localesGlobal.hey)} {user?.first_name}! <br /> {t(onBoarding.welcomeMessage)}
+                {t(localesCommon.hey)} {user?.first_name}! <br /> {t(onBoarding.welcomeMessage)}
             </p>
             <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">{t(onBoarding.description)}</p>
             <Button size="large" className="mt-10 mb-4" onClick={increaseStep}>
@@ -192,7 +192,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                 {stepCount === 1 && createWorkspace ? <></> : <ChevronLeft className="h-6 w-6" />}
             </div>
             <p className="body4 text-black-700">
-                {t(localesGlobal.step)} {stepCount} {t(localesGlobal.of)} 2
+                {t(localesCommon.step)} {stepCount} {t(localesCommon.of)} 2
             </p>
         </div>
     );
@@ -220,7 +220,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                     onChange={handleOnchange}
                 />
                 {formData.title === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">{t(validationMessage.workspaceTitle)}</p>}
-                <p className={cn('mb-3 body1 text-black-900', formData.title === '' && isError ? 'mt-[24px]' : 'mt-[42px]')}>{t(localesGlobal.description)}</p>
+                <p className={cn('mb-3 body1 text-black-900', formData.title === '' && isError ? 'mt-[24px]' : 'mt-[42px]')}>{t(localesCommon.description)}</p>
                 <BetterInput
                     inputProps={{ maxLength: 280 }}
                     className="!border-solid !border-gray-300 !text-gray-900 !body3 !rounded !w-full"

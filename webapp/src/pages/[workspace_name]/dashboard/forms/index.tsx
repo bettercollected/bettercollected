@@ -20,8 +20,8 @@ import EmptyResponse from '@app/components/ui/empty-response';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
-import { localesGlobal } from '@app/constants/locales/global';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -193,7 +193,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
             )}
             {!workspaceForms?.isLoading && (
                 <div className="py-10 w-full h-full">
-                    <h1 className="sh1">{t(localesGlobal.forms)}</h1>
+                    <h1 className="sh1">{t(localesCommon.forms)}</h1>
                     <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
                         <ImportFormsButton size="small" />
                     </div>

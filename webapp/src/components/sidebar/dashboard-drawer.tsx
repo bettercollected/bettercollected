@@ -14,9 +14,9 @@ import { Box, List, ListItem } from '@mui/material';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import WorkspaceMenuDropdown from '@app/components/workspace/workspace-menu-dropdown';
+import { localesCommon } from '@app/constants/locales/common';
 import dashboardConstants from '@app/constants/locales/dashboard';
 import { formConstant } from '@app/constants/locales/form';
-import { localesGlobal } from '@app/constants/locales/global';
 import { members } from '@app/constants/locales/members';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
@@ -64,19 +64,19 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
     const topNavList: Array<INavbarItem> = [
         {
             key: 'dashboard',
-            name: t(localesGlobal.dashboard),
+            name: t(localesCommon.dashboard),
             url: commonWorkspaceUrl,
             icon: <DashboardIcon />
         },
         {
             key: 'forms',
-            name: t(localesGlobal.forms),
+            name: t(localesCommon.forms),
             url: `${commonWorkspaceUrl}/forms`,
             icon: <FormIcon />
         },
         {
             key: 'responders',
-            name: t(localesGlobal.respondersAndGroups),
+            name: t(localesCommon.respondersAndGroups),
             url: `${commonWorkspaceUrl}/responders`,
             icon: <ResponderIcon />
         },

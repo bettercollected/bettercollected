@@ -6,7 +6,7 @@ import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
@@ -38,7 +38,7 @@ export default function DeleteInvitationModal({ invitation }: any) {
                 }}
             />
             <div className="sh3 mb-5">
-                {t(localesGlobal.removeInvitationFor)} {invitation.email}?
+                {t(localesCommon.removeInvitationFor)} {invitation.email}?
             </div>
             <div className="flex w-full gap-4 justify-between">
                 <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>

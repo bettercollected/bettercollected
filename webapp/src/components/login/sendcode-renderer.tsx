@@ -8,7 +8,7 @@ import FormInput from '@app/components/ui/FormInput';
 import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { otpRenderer } from '@app/constants/locales/otp-renderer';
 import { IntegrationFormProviders } from '@app/models/dtos/provider';
 import { useAppSelector } from '@app/store/hooks';
@@ -40,10 +40,10 @@ export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustom
     return (
         <form onSubmit={handleClick} className="relative flex flex-col items-center gap-8 justify-between p-10">
             <div>
-                <h2 className="sh1 text-center">{t(localesGlobal.enterEmail)}</h2>
+                <h2 className="sh1 text-center">{t(localesCommon.enterEmail)}</h2>
                 <p className="!text-black-600 mt-2 body4 text-center leading-none">{t(otpRenderer.sendMessage)}</p>
             </div>
-            <FormInput inputFieldType="email" value={emailInput} placeholder={t(localesGlobal.enterEmail)} onChange={handleChangeOnInput} handleValidation={handleValidation} />
+            <FormInput inputFieldType="email" value={emailInput} placeholder={t(localesCommon.enterEmail)} onChange={handleChangeOnInput} handleValidation={handleValidation} />
             {/* <BetterInput type="email" className="mt-8" value={emailInput} placeholder={'Enter your email'} onChange={handleChangeOnInput} /> */}
             <div>
                 <Button data-testid="get-in-button" type="submit" disabled={!emailValid} isLoading={isLoading} variant="solid" className={`w-60 mx-auto !rounded-[1px] !h-[50px]`} onClick={handleClick}>
@@ -51,7 +51,7 @@ export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustom
                 </Button>
                 <div className="flex py-5 items-center justify-center">
                     <div className="border-t w-5 border-gray-200"></div>
-                    <span className="flex-shrink text-xs mx-4 text-gray-400">{t(localesGlobal.or)}</span>
+                    <span className="flex-shrink text-xs mx-4 text-gray-400">{t(localesCommon.or)}</span>
                     <div className="border-t w-5 border-gray-200"></div>
                 </div>
                 <FormProviderContext.Consumer>

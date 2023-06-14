@@ -11,7 +11,7 @@ import { MenuItem, Typography } from '@mui/material';
 import { Plus } from '@app/components/icons/plus';
 import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -54,7 +54,7 @@ export default function GroupForms({ group, workspaceForms }: { group: Responder
         <div>
             <div className="flex items-center  justify-between">
                 <p className="body1 !leading-none">
-                    {t(localesGlobal.forms)} ({group.forms?.length})
+                    {t(localesCommon.forms)} ({group.forms?.length})
                 </p>
                 {isAdmin && (
                     <MenuDropdown

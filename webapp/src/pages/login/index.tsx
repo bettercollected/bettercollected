@@ -10,7 +10,7 @@ import ImageWorkspacePreview from '@app/assets/images/workspace-preview.png';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
 import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
@@ -125,11 +125,11 @@ export const Login = () => {
                     <div className="body4">
                         {t(signInScreen.signinAgreementDescription)}
                         <a href="https://bettercollected.com/terms-of-service" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
-                            {t(localesGlobal.termsOfServices)}
+                            {t(localesCommon.termsOfServices)}
                         </a>
-                        {t(localesGlobal.and)}
+                        {t(localesCommon.and)}
                         <a href="https://bettercollected.com/privacy-policy" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
-                            {t(localesGlobal.privacyPolicy)}
+                            {t(localesCommon.privacyPolicy)}
                         </a>
                         .
                     </div>

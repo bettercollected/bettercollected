@@ -9,7 +9,7 @@ import { toast } from 'react-toastify';
 import StatusBadge from '@app/components/badge/status-badge';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import MemberOptions from '@app/components/datatable/workspace-settings/member-options';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppSelector } from '@app/store/hooks';
@@ -81,7 +81,7 @@ export default function InvitationsTable({ data }: any) {
         },
 
         {
-            name: t(localesGlobal.status),
+            name: t(localesCommon.status),
             selector: (invitation: any) => Status({ status: invitation.invitation_status, email: invitation.email }),
             style: {
                 color: 'rgba(0,0,0,.54)',

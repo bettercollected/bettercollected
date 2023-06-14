@@ -5,7 +5,7 @@ import { useTranslation } from 'next-i18next';
 import PrivateIcon from '@Components/Common/Icons/Private';
 import PublicIcon from '@Components/Common/Icons/Public';
 
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 
 interface IFormVisibilityProps {
     isPrivate: boolean;
@@ -26,7 +26,7 @@ export default function FormVisibility({ isPrivate, size }: IFormVisibilityProps
     return (
         <div className="flex items-center">
             <Icon height={dimensions} width={dimensions} />
-            <p className={`leading-none ${size === 'small' ? 'text-[12px]' : 'text-[14px]'}  text-black-900 ml-2`}>{isPrivate ? t(localesGlobal.hidden) : t(localesGlobal.public)}</p>
+            <p className={`leading-none ${size === 'small' ? 'text-[12px]' : 'text-[14px]'}  text-black-900 ml-2`}>{isPrivate ? t(localesCommon.hidden) : t(localesCommon.public)}</p>
         </div>
     );
 }

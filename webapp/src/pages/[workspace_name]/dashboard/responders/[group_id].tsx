@@ -14,7 +14,7 @@ import GroupMembers from '@app/components/group-preview/member';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import Loader from '@app/components/ui/loader';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { members } from '@app/constants/locales/members';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
@@ -45,7 +45,7 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
     const { t } = useTranslation();
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
-            title: t(localesGlobal.respondersAndGroups),
+            title: t(localesCommon.respondersAndGroups),
             url: `/${locale}${workspace?.workspaceName}/dashboard/responders`
         },
         {
@@ -70,7 +70,7 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
         },
         {
             icon: <FormIcon />,
-            title: t(localesGlobal.forms) + ' (' + data?.forms?.length + ')',
+            title: t(localesCommon.forms) + ' (' + data?.forms?.length + ')',
             path: 'Forms'
         }
     ];

@@ -10,7 +10,7 @@ import AuthNavbar from '@app/components/auth/navbar';
 import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { invitationConstant } from '@app/constants/locales/invitations';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -91,7 +91,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
                         <AuthAccountProfileImage size={60} image={workspace?.profileImage} name={workspace?.title} />
                         <div className="text-2xl text-center mt-6 mb-4 sh3 !font-normal !text-black-700 ">
                             {t(invitationConstant.title1)}
-                            <span className="font-bold text-black-900">{' ' + workspace?.title || t(localesGlobal.untitled)}</span>
+                            <span className="font-bold text-black-900">{' ' + workspace?.title || t(localesCommon.untitled)}</span>
                         </div>
                         <div className="body3 mb-10 !text-black-700">{t(invitationConstant.title2)}</div>
                         <div className="flex flex-col space-y-4 items-center">

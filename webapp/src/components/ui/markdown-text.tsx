@@ -8,7 +8,7 @@ import remarkGfm from 'remark-gfm';
 
 // Absolute imports
 import { Close } from '@app/components/icons/close';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { ellipsesText } from '@app/utils/stringUtils';
 
 type Props = {
@@ -33,7 +33,7 @@ export default function MarkdownText({ description, scrollTitle = '', onClick = 
     const { t } = useTranslation();
     const theme = useTheme();
     const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
-    const source = ellipsesText(description || t(localesGlobal.noDescription), contentStripLength);
+    const source = ellipsesText(description || t(localesCommon.noDescription), contentStripLength);
 
     const handleClickOpen = (scrollType: DialogProps['scroll']) => () => {
         setOpen(true);
@@ -65,7 +65,7 @@ export default function MarkdownText({ description, scrollTitle = '', onClick = 
                         </ReactMarkdown>
                         {description.length > contentStripLength && (
                             <span onClick={handleClickOpen('paper')} className={`show-more-less-text hover:underline capitalize p-0 cursor-pointer !text-brand-500 hover:!text-brand-600 ${textClassName}`}>
-                                {t(localesGlobal.readMore)}
+                                {t(localesCommon.readMore)}
                             </span>
                         )}
                     </div>

@@ -8,8 +8,8 @@ import { Typography } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
+import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
-import { localesGlobal } from '@app/constants/locales/global';
 import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
@@ -67,7 +67,7 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
                 {responderGroup.emails.length > 1 ? t(members.default) : t(members.member)} ({responderGroup.emails.length})
             </p>
             <p className="body6 !leading-none">
-                {responderGroup.forms.length > 1 ? t(localesGlobal.forms) : t(formConstant.default)} ({responderGroup.forms.length})
+                {responderGroup.forms.length > 1 ? t(localesCommon.forms) : t(formConstant.default)} ({responderGroup.forms.length})
             </p>
 
             {/* <Button className="!px-3 !py-[9px] !bg-white border !border-black-400  hover:!bg-brand-200" size="medium">

@@ -75,7 +75,8 @@
 		"SKIP": "Skip",
 		"UPDATE_NOW": "Update Now",
 		"SAVE_CHANGES": "Save Changes",
-		"ADD_GROUP": "Add group"
+		"ADD_GROUP": "Add group",
+		"DELETE_FORM": "Delete Form"
 	},
 	"CONTACT_US": {
 		"DESCRIPTION": "Any questions or remarks? Just write us a message",
@@ -118,6 +119,7 @@
 	"EMAIL": "Email",
 	"EMAIL_ADDRESS": "Email Address",
 	"ENTER_EMAIL": "Enter Email",
+	"GO_TO_RESPONSE": "Go To Response",
 	"FORM": {
 		"DEFAULT": "Form",
 		"UNPIN_FORM": "Unpin form",
@@ -166,7 +168,26 @@
 		"URL": "Form URL",
 		"IMPORTED_BY": "Imported By",
 		"IMPORTED_ON": "Imported On",
-		"ADD_GROUP": "Add group on form"
+		"ADD_GROUP": "Add group on form",
+		"SETTINGS": {
+			"DESCRIPTION": "Collaborators can import forms, delete forms, see responses and delete response.",
+			"DEFAULT_LINK": {
+				"TITLE": "Default Link"
+			},
+			"CUSTOMIZE_FORM_LINK": {
+				"TITLE": "Customize Form Link"
+			},
+			"PIN_FORM": {
+				"TITLE": "Pin Form",
+				"DESCRIPTION": "Show this form in pinned section"
+			},
+			"VISIBILITY": {
+				"TITLE": "Form Visibility",
+				"DESCRIPTION": "Forms will only be hidden from your workspace.",
+				"PUBLIC": "Public",
+				"PRIVATE": "Private"
+			}
+		}
 	},
 	"FORMS": "Forms",
 	"FORMS_LINK": "Forms Links",

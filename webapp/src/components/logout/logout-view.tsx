@@ -5,7 +5,7 @@ import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { useLazyGetLogoutQuery, useLazyGetStatusQuery } from '@app/store/auth/api';
 import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch } from '@app/store/hooks';
@@ -36,7 +36,7 @@ export default function LogoutView(props: any) {
             <div className="rounded-[4px] relative m-auto max-w-[500px] items-start justify-between bg-white">
                 <div className="relative flex flex-col items-center gap-8 justify-between p-10">
                     {/* <Logout className="text-6xl text-red-500" /> */}
-                    <h4 className="sh1">{t(localesGlobal.logoutMessage)}</h4>
+                    <h4 className="sh1">{t(localesCommon.logoutMessage)}</h4>
 
                     <div className="flex w-full gap-4 justify-end">
                         <Button data-testid="logout-button" className="flex-1 !body4" variant="solid" size="medium" color="danger" onClick={handleLogout}>

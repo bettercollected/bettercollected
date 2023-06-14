@@ -10,7 +10,7 @@ import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { updateWorkspace } from '@app/constants/locales/update-workspace';
@@ -103,7 +103,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                     </ul>
                 </div>
                 <div className="mt-4">{updateDomain && t(updateWorkspace.settings.domain.cname) + 'custom.bettercollected.com'}</div>
-                <div className="body1 mt-6">{updateDomain ? t(localesGlobal.domain) : t(workspaceConstant.handle)}</div>
+                <div className="body1 mt-6">{updateDomain ? t(localesCommon.domain) : t(workspaceConstant.handle)}</div>
                 <div className="mt-3 flex flex-col md:flex-row md:items-start w-full">
                     <div className="flex items-start justify-start gap-4  w-full">
                         <BetterInput

@@ -1,4 +1,4 @@
-export const localesGlobal = {
+export const localesCommon = {
     customDomain: 'CUSTOM_DOMAIN',
     dashboard: 'DASHBOARD.DEFAULT',
     delete: 'DELETE.DEFAULT',
@@ -15,6 +15,7 @@ export const localesGlobal = {
     and: 'AND',
     noImage: 'NO_IMAGE',
     newLink: 'NEW_LINK',
+    goToResponse: 'GO_TO_RESPONSE',
     poweredBy: 'POWERED_BY',
     privacyPolicy: 'PRIVACY_POLICY',
     settings: 'SETTINGS',

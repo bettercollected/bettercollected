@@ -9,7 +9,7 @@ import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import { advanceSetting } from '@app/constants/locales/advance-setting';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -32,7 +32,7 @@ export default function UpdateCustomDomain() {
 
     return (
         <SettingsCard>
-            <div className="body1">{t(localesGlobal.customDomain)}</div>
+            <div className="body1">{t(localesCommon.customDomain)}</div>
             <div className="flex w-full justify-between">
                 <div className="w-full text-sm text-gray-600">
                     {workspace.customDomain ? (

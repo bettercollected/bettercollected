@@ -7,7 +7,7 @@ import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteFormMutation } from '@app/store/workspaces/api';
@@ -40,9 +40,9 @@ export default function DeleteFormModal(props: any) {
                 <div className="relative flex flex-col items-start justify-start p-10">
                     <div>
                         <h4 className="sh1 mb-6">
-                            {t(localesGlobal.delete)} &quot;{props?.form?.title}&quot;?
+                            {t(localesCommon.delete)} &quot;{props?.form?.title}&quot;?
                         </h4>
-                        <p className="!text-black-600 mb-8 body4 leading-none">{t(localesGlobal.deleteMessage)}</p>
+                        <p className="!text-black-600 mb-8 body4 leading-none">{t(localesCommon.deleteMessage)}</p>
                     </div>
                     <div className="flex w-full gap-4 justify-between">
                         <Button className="flex-1 body4" data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>

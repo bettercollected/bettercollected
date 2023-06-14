@@ -11,7 +11,7 @@ import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button/button';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { members } from '@app/constants/locales/members';
 import { placeHolder } from '@app/constants/locales/placeholder';
@@ -82,7 +82,7 @@ export default function CreateGroupModal({ email }: { email: string }) {
                 <span className="text-red-800">*</span>
             </p>
             <BetterInput value={groupInfo.name} className="!mb-0" inputProps={{ className: '!py-3' }} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
-            <p className="body4 leading-none mt-6 mb-2">{t(localesGlobal.description)}</p>
+            <p className="body4 leading-none mt-6 mb-2">{t(localesCommon.description)}</p>
             <BetterInput value={groupInfo.description} className="!mb-0" inputProps={{ maxLength: 250 }} id="description" placeholder={t(placeHolder.description)} rows={3} multiline onChange={handleInput} />
             <p className="mt-10 leading-none mb-2 body1">
                 {groupInfo.emails.length > 1 ? t(members.default) : t(members.member)} ({groupInfo.emails.length})

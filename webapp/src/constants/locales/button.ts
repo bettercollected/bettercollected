@@ -14,6 +14,7 @@ export const buttonConstant = {
     upload: 'BUTTON.UPLOAD',
     submit: 'BUTTON.SUBMIT',
     share: 'BUTTON.SHARE',
+    deleteForm: 'BUTTON.DELETE_FORM',
     pro: 'BUTTON.PRO',
     getIn: 'BUTTON.GETIN',
     upgrade: 'BUTTON.UPGRADE',

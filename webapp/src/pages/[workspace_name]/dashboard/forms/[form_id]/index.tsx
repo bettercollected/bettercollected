@@ -25,8 +25,8 @@ import FormPageLayout from '@app/components/sidebar/form-page-layout';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
+import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
-import { localesGlobal } from '@app/constants/locales/global';
 import { groupConstant } from '@app/constants/locales/group';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -93,7 +93,7 @@ export default function FormPage(props: any) {
         },
         {
             icon: <SettingsIcon className="h-5 w-5" />,
-            title: t(localesGlobal.settings),
+            title: t(localesCommon.settings),
             path: 'Settings'
         }
     ];

@@ -11,8 +11,8 @@ import uploadImage from '@app/assets/images/upload.png';
 import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
 import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
 import editWorkspace from '@app/constants/locales/edit-workpsace';
-import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
@@ -105,7 +105,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                             <div className="hidden md:flex body5 !leading-none !text-black-700">{t(editWorkspace.bannerAspectRatio)}</div>
                         </div>
                     ) : (
-                        <div className="flex h-full justify-center items-center">{t(localesGlobal.noImage)}</div>
+                        <div className="flex h-full justify-center items-center">{t(localesCommon.noImage)}</div>
                     )}
                     <input ref={imageInputRef} data-testid="file-upload" type="file" accept="image/*" className="hidden" onChange={onUploadFileChange} />
                 </>

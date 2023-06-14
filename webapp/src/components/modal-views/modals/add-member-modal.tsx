@@ -8,7 +8,7 @@ import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { useGroupMember } from '@app/lib/hooks/use-group-members';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
@@ -34,7 +34,7 @@ export default function AddMemberModal({ group }: { group: ResponderGroupDto }) 
                     }}
                     className="flex pt-8  flex-col justify-start"
                 >
-                    <div className="body1 mb-3 !leading-none">{t(localesGlobal.enterEmail)}</div>
+                    <div className="body1 mb-3 !leading-none">{t(localesCommon.enterEmail)}</div>
                     <BetterInput
                         disabled={addMemberResponse.isLoading}
                         data-testid="otp-input"
@@ -42,7 +42,7 @@ export default function AddMemberModal({ group }: { group: ResponderGroupDto }) 
                         value={member}
                         type="email"
                         className="!mb-0"
-                        placeholder={t(localesGlobal.enterEmail)}
+                        placeholder={t(localesCommon.enterEmail)}
                         onChange={(event) => {
                             setmember(event.target.value);
                         }}

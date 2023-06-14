@@ -7,7 +7,7 @@ import AvatarEditor from 'react-avatar-editor';
 
 import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
+import { localesCommon } from '@app/constants/locales/common';
 
 interface ICropImageModalViewProps {
     profileEditorRef: React.LegacyRef<AvatarEditor> | undefined;
@@ -25,7 +25,7 @@ export default function CropImageModalView({ profileEditorRef, uploadImage, clos
     return (
         <div className={cn(' flex justify-center items-center', modalIndex === 2 && 'h-screen w-screen')}>
             <div className="p-4 bg-white flex flex-col items-center rounded-[8px] max-w-[420px] max-h-[500px] ">
-                <h1 className="font-bold text-lg mb-2">{t(localesGlobal.updateYourProfileImage)}</h1>
+                <h1 className="font-bold text-lg mb-2">{t(localesCommon.updateYourProfileImage)}</h1>
                 <AvatarEditor crossOrigin="anonymous" ref={profileEditorRef} image={uploadImage} width={250} height={250} border={50} borderRadius={16} color={[0, 0, 0, 0.6]} scale={scale} rotate={0} />
                 <div className="flex mb-2 gap-1 text-3xl text-gray-600 justify-center items-center">
                     <span>-</span>

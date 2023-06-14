@@ -18,8 +18,8 @@ import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
 import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
+import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
-import { localesGlobal } from '@app/constants/locales/global';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
@@ -84,16 +84,16 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
             )}
             <div className="rounded relative w-full px-4 py-6 flex min-h-28 flex-col gap-4 items-start justify-between overflow-hidden">
                 <div className="rounded h-[34px] w-[34px]">{form?.settings?.provider === 'typeform' ? <TypeformIcon width={34} height={34} /> : <GoogleFormIcon width={34} height={34} className="-ml-1" />}</div>
-                <Tooltip title={form?.title || t(localesGlobal.untitled)}>
+                <Tooltip title={form?.title || t(localesCommon.untitled)}>
                     <Typography className="body3 !leading-none w-[inherit]" noWrap>
-                        {form?.title || t(localesGlobal.untitled)}
+                        {form?.title || t(localesCommon.untitled)}
                     </Typography>
                 </Tooltip>
                 {!isResponderPortal && (
-                    <Tooltip title={form?.settings?.private ? 'Hidden from your public workspace' : t(localesGlobal.public)}>
+                    <Tooltip title={form?.settings?.private ? 'Hidden from your public workspace' : t(localesCommon.public)}>
                         <div className="flex items-center">
                             {form?.settings?.private ? <PrivateIcon /> : <PublicIcon />}
-                            <p className={`leading-none text-[12px] text-black-900 ml-2`}>{form?.settings?.private ? t(localesGlobal.hidden) : t(localesGlobal.public)}</p>
+                            <p className={`leading-none text-[12px] text-black-900 ml-2`}>{form?.settings?.private ? t(localesCommon.hidden) : t(localesCommon.public)}</p>
                         </div>
                     </Tooltip>
                 )}

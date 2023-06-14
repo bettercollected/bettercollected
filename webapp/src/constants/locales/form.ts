@@ -60,5 +60,24 @@ export const formConstant = {
     importedOn: 'FORM.IMPORTED_ON',
     addGroup: 'FORM.ADD_GROUP',
     respondedOn: 'FORM.RESPONDED_ON',
-    requestedOn: 'FORM.REQUESTED_ON'
+    requestedOn: 'FORM.REQUESTED_ON',
+    settings: {
+        description: 'FORM.SETTINGS.DESCRIPTION',
+        defaultLink: {
+            title: 'FORM.SETTINGS.DEFAULT_LINK.TITLE'
+        },
+        customizeFormLink: {
+            title: 'FORM.SETTINGS.CUSTOMIZE_FORM_LINK.TITLE'
+        },
+        pinForm: {
+            title: 'FORM.SETTINGS.PIN_FORM.TITLE',
+            description: 'FORM.SETTINGS.PIN_FORM.DESCRIPTION'
+        },
+        visibility: {
+            title: 'FORM.SETTINGS.VISIBILITY.TITLE',
+            description: 'FORM.SETTINGS.VISIBILITY.DESCRIPTION',
+            public: 'FORM.SETTINGS.VISIBILITY.PUBLIC',
+            private: 'FORM.SETTINGS.VISIBILITY.PRIVATE'
+        }
+    }
 };

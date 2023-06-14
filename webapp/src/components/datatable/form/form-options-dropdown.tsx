@@ -20,9 +20,9 @@ import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
 import { customize } from '@app/constants/locales/customize';
 import { formConstant } from '@app/constants/locales/form';
-import { localesGlobal } from '@app/constants/locales/global';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
@@ -139,7 +139,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             <ListItemIcon>
                 <Share width={20} height={20} />
             </ListItemIcon>
-            <span>{t(localesGlobal.share)}</span>
+            <span>{t(localesCommon.share)}</span>
         </MenuItem>
     );
 
