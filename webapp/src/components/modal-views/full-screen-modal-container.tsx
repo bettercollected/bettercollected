@@ -17,7 +17,7 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW | string, modalProps: any) 
         case 'CROP_IMAGE':
             return <CropImageModalView {...modalProps} />;
         case 'UPGRADE_TO_PRO':
-            return <UpgradeToProModal />;
+            return <UpgradeToProModal {...modalProps} />;
         case 'WORKSPACE_PREVIEW':
             return <WorkspacePreviewModal />;
         default:

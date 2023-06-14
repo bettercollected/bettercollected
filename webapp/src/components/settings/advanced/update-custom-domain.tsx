@@ -9,6 +9,8 @@ import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import { advanceSetting } from '@app/constants/locales/advance-setting';
 import { buttonConstant } from '@app/constants/locales/button';
+import { localesGlobal } from '@app/constants/locales/global';
+import { upgradeConst } from '@app/constants/locales/upgrade';
 import { localesCommon } from '@app/constants/locales/common';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -25,8 +27,7 @@ export default function UpdateCustomDomain() {
         if (isProPlan) {
             openModal('UPDATE_WORKSPACE_DOMAIN');
         } else {
-            // router.push(`/${workspace.workspaceName}/upgrade`);
-            upgradeModal.openModal('UPGRADE_TO_PRO');
+            upgradeModal.openModal('UPGRADE_TO_PRO', { featureText: t(upgradeConst.features.customDomain.slogan) });
         }
     };
 
