@@ -308,7 +308,12 @@ class WorkspaceService:
                 await self.http_client.post(
                     f"{settings.https_cert_api_settings.host}/domains",
                     headers={"api_key": settings.https_cert_api_settings.key},
-                    params={"domain": new_domain},
+                    params={
+                        "domain": new_domain,
+                        "upstream": settings.https_cert_api_settings.upstream
+                        if settings.https_cert_api_settings.upstream
+                        else None,
+                    },
                 )
         except Exception as e:
             logger.error("Error form https server: ", e)
