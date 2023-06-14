@@ -7,6 +7,7 @@ from beanie import PydanticObjectId
 from fastapi_pagination.ext.beanie import paginate
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.enum.invitation_response import InvitationResponse
 from backend.app.models.invitation_request import InvitationRequest
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
@@ -38,8 +39,14 @@ class WorkspaceInvitationRepo:
 
     async def get_workspace_invitations(self, workspace_id: PydanticObjectId):
         invitations_query = WorkspaceUserInvitesDocument.find(
-            {"workspace_id": workspace_id}
+            {
+                "workspace_id": workspace_id,
+                "invitation_status": {
+                    "$in": [InvitationStatus.PENDING, InvitationStatus.EXPIRED]
+                },
+            }
         )
+
         return await paginate(invitations_query)
 
     async def get_workspace_invitation_by_token(
