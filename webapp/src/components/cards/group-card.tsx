@@ -18,6 +18,8 @@ import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteResponderGroupMutation } from '@app/store/workspaces/api';
 
+import DeleteDropDown from '../ui/delete-dropdown';
+
 export default function GroupCard({ responderGroup }: { responderGroup: ResponderGroupDto }) {
     const { t } = useTranslation();
     const router = useRouter();
@@ -44,13 +46,14 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
     return (
         <div onClick={handlePreviewGroup} className="flex cursor-pointer flex-col justify-between border-[2px] border-brand-100 hover:border-black-500 transition shadow-formCard bg-white items-start p-5 rounded-[8px] relative">
             {isAdmin && (
-                <DeleteIcon
+                <DeleteDropDown
                     onClick={(event) => {
                         event.stopPropagation();
                         event.preventDefault();
                         openModal('DELETE_CONFIRMATION', { title: responderGroup.name, handleDelete: handleDeletegroup });
                     }}
-                    className="absolute text-red-600 top-3 right-3 cursor-pointer h-7 w-7 p-1 rounded hover:bg-black-200"
+                    className="absolute top-3 right-3"
+                    label={t(localesCommon.delete)}
                 />
             )}
             <div>

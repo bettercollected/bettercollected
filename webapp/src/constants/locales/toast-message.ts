@@ -28,5 +28,6 @@ export const toastMessage = {
     addedOnGroup: 'TOAST.ADDED_ON_GROUP',
     removeFromGroup: 'TOAST.REMOVE_FROM_GROUP',
     alreadyInGroup: 'TOAST.ALREADY_IN_GROUP',
-    lastPersonOfGroup: 'TOAST.LAST_PERSON_IN_GROUP'
+    lastPersonOfGroup: 'TOAST.LAST_PERSON_IN_GROUP',
+    removed: 'TOAST.REMOVED'
 };

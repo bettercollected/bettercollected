@@ -15,6 +15,7 @@ import { useModal } from '@app/components/modal-views/context';
 import FormPageLayout from '@app/components/sidebar/form-page-layout';
 import Loader from '@app/components/ui/loader';
 import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { groupConstant } from '@app/constants/locales/group';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
@@ -25,6 +26,8 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
+
+import DeleteDropDown from '../ui/delete-dropdown';
 
 export default function FormGroups() {
     const { t } = useTranslation();
@@ -73,13 +76,9 @@ export default function FormGroups() {
                 {t(groupConstant.groups)} ({form.groups?.length})
             </p>
             {form.groups?.map((group: ResponderGroupDto) => (
-                <div key={group.id} className="flex items-center bg-white justify-between p-4">
+                <div key={group.id} className="flex items-center bg-white justify-between p-4 rounded">
                     <p className="body6 !font-normal">{group.name}</p>
-
-                    <DeleteIcon
-                        className="h-7 w-7 text-red-600  cursor-pointer rounded p-1 hover:bg-black-200 "
-                        onClick={() => openModal('DELETE_CONFIRMATION', { title: group.name, handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form }) })}
-                    />
+                    <DeleteDropDown onClick={() => openModal('DELETE_CONFIRMATION', { title: group.name, handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form }) })} />
                 </div>
             ))}
             {AddGroupButton()}

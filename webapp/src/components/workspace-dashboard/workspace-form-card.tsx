@@ -29,6 +29,8 @@ import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
 import { getFormUrl } from '@app/utils/urlUtils';
 
+import DeleteDropDown from '../ui/delete-dropdown';
+
 interface IWorkspaceFormCardProps {
     form: StandardFormDto;
     hasCustomDomain: boolean;
@@ -129,13 +131,12 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                         </div>
                     )}
                     {!!group && isAdmin && (
-                        <DeleteIcon
+                        <DeleteDropDown
                             onClick={(event) => {
                                 event.stopPropagation();
                                 event.preventDefault();
                                 openModal('DELETE_CONFIRMATION', { title: form.title, handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form }) });
                             }}
-                            className="h-7 w-7 text-red-500 cursor-pointer rounded hover:bg-black-200 p-1"
                         />
                     )}
                 </div>
