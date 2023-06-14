@@ -3,25 +3,19 @@ import React, { useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import UserDetails from '@Components/Common/DataDisplay/UserDetails';
 import Preview from '@Components/Common/Icons/Preview';
-import ResponderIcon from '@Components/Common/Icons/Responder';
 import SettingsIcon from '@Components/Common/Icons/Settings';
-import { Delete, Group, Settings } from '@mui/icons-material';
+import { Group } from '@mui/icons-material';
 
-import { FormTabContent } from '@app/components/dashboard/form-tab-content';
 import FormDeletionRequests from '@app/components/form/deletion-requests';
 import FormGroups from '@app/components/form/groups';
 import FormPreview from '@app/components/form/preview';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormResponses from '@app/components/form/responses';
 import FormSettings from '@app/components/form/settings';
-import GroupDetails from '@app/components/group-preview/group-details';
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
-import DashboardLayout from '@app/components/sidebar/dashboard-layout';
-import FormPageLayout from '@app/components/sidebar/form-page-layout';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
@@ -35,8 +29,6 @@ import Error from '@app/pages/_error';
 import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch } from '@app/store/hooks';
 import { toEndDottedStr } from '@app/utils/stringUtils';
-
-import DeletionRequests from '../../deletion-requests';
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;

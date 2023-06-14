@@ -6,7 +6,6 @@ import Delete from '@Components/Common/Icons/Delete';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { MoreHoriz } from '@mui/icons-material';
 import { MenuItem } from '@mui/material';
-import classNames from 'classnames';
 
 import { localesCommon } from '@app/constants/locales/common';
 

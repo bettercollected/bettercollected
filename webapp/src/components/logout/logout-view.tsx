@@ -23,7 +23,7 @@ export default function LogoutView(props: any) {
     const language = router?.locale === 'en' ? '' : `${router.locale}/`;
     const handleLogout = async () => {
         await trigger().then(async () => {
-            await authTrigger('status');
+            await authTrigger();
             if (!!workspace && !!workspace?.workspaceName && !!props?.isclientdomain && props.isclientdomain === 'true') router.push(`/${workspace.workspaceName}`);
             else router.push(`/${language}login`);
             dispatch(setAuth(initialAuthState));

@@ -1,14 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import LockIcon from '@Components/Common/Icons/lock';
-import { Lock } from '@mui/icons-material';
 import { Button, FormControlLabel, Radio, RadioGroup } from '@mui/material';
-import FormControlContext from '@mui/material/FormControl/FormControlContext';
 import Switch from '@mui/material/Switch';
 import { toast } from 'react-toastify';
-import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
 import { useModal } from '@app/components/modal-views/context';
 import { FormSettingsCard } from '@app/components/settings/card';
@@ -20,7 +17,6 @@ import { formConstant } from '@app/constants/locales/form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { updateWorkspace } from '@app/constants/locales/update-workspace';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { selectIsProPlan } from '@app/store/auth/slice';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';

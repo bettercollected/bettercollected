@@ -3,7 +3,6 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import DeleteIcon from '@Components/Common/Icons/Delete';
 import { Typography } from '@mui/material';
 import { toast } from 'react-toastify';
 

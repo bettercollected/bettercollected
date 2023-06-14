@@ -9,7 +9,7 @@ import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
-import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
+import { parseDateStrToDate, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
 interface IWorkspaceFormResponseDeletionCardProps {
     response: StandardFormResponseDto;

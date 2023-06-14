@@ -28,7 +28,7 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
     const dropdownEl = useRef<HTMLDivElement>(null);
     const [selectedTabIndex, setSelectedTabIndex] = useState(0);
     const [visibleMobileMenu, setVisibleMobileMenu] = useState(false);
-    const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select('status'), []);
+    const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select(), []);
     const selectGetStatus = useAppSelector(statusQuerySelect);
     const breakpoints = useBreakpoint();
 

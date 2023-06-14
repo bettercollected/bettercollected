@@ -8,7 +8,6 @@ import cn from 'classnames';
 
 import { Check } from '@app/components/icons/check';
 import Globe from '@app/components/icons/flags/globe';
-import Nepal from '@app/components/icons/flags/nepal';
 import Netherland from '@app/components/icons/flags/netherland';
 import USA from '@app/components/icons/flags/usa';
 

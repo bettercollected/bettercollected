@@ -17,7 +17,6 @@ import ShareModalView from '@app/components/modal-views/modals/share-modal-view'
 import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
 import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
 import RequestForDeletionView from '@app/components/submission-request-for-deletion';
-import UpdateTermsOfServiceAndPrivacyPolicy from '@app/components/toc-privacy-policy';
 import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
@@ -33,8 +32,6 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
     switch (view) {
         case 'LOGIN_VIEW':
             return <LoginView {...modalProps} />; // Done
-        case 'UPDATE_TERMS_OF_SERVICE_AND_PRIVACY_POLICY':
-            return <UpdateTermsOfServiceAndPrivacyPolicy />;
         case 'REQUEST_FOR_DELETION_VIEW':
             return <RequestForDeletionView {...modalProps} />;
         case 'IMPORT_PROVIDER_FORMS_VIEW':

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import DeleteIcon from '@Components/Common/Icons/Delete';
 import SearchInput from '@Components/Common/Search/SearchInput';
 import { Typography } from '@mui/material';
 

@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-
-import Divider from '@Components/Common/DataDisplay/Divider';
 
 import FormResponsesTable from '@app/components/datatable/form/form-responses';
 import { formConstant } from '@app/constants/locales/form';

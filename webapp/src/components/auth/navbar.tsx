@@ -1,7 +1,6 @@
 import { useTranslation } from 'next-i18next';
 
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
-import { DRAWER_VIEW } from '@app/components/drawer-views/context';
 import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import Button from '@app/components/ui/button';
 import Hamburger from '@app/components/ui/hamburger';
@@ -23,7 +22,6 @@ interface IAuthNavbarProps {
     mobileOpen?: boolean;
     showAuthAccount?: boolean;
     handleDrawerToggle?: () => void;
-    drawerView?: DRAWER_VIEW;
 }
 
 AuthNavbar.defaultProps = {
@@ -48,7 +46,7 @@ export function Header(props: any) {
     return <nav className={`fixed top-0 !z-30 border-b-[1px] border-black-400 flex w-full items-center justify-between px-5 lg:pr-10 transition-all duration-300 ltr:right-0 rtl:left-0 h-[68px] ${navClassNames} ${propClassNames}`}>{props.children}</nav>;
 }
 
-export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerToggle, isCustomDomain = false, isFooter = false, isClientDomain = false, hideMenu = false, drawerView = 'DASHBOARD_SIDEBAR', showAuthAccount }: IAuthNavbarProps) {
+export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerToggle, isCustomDomain = false, isFooter = false, isClientDomain = false, hideMenu = false, showAuthAccount }: IAuthNavbarProps) {
     const screenSize = useBreakpoint();
     const { t } = useTranslation();
     const isMobileView = () => {

@@ -4,7 +4,6 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import DeleteIcon from '@Components/Common/Icons/Delete';
 import PinnedIcon from '@Components/Common/Icons/Pinned';
 import PrivateIcon from '@Components/Common/Icons/Private';
 import PublicIcon from '@Components/Common/Icons/Public';

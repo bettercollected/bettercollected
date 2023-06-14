@@ -2,8 +2,6 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
-import DeleteIcon from '@Components/Common/Icons/Delete';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { CheckCircle } from '@mui/icons-material';
 import { MenuItem, Typography } from '@mui/material';
@@ -12,10 +10,8 @@ import cn from 'classnames';
 import EmptyGroup from '@app/components/dashboard/empty-group';
 import UserMore from '@app/components/icons/user-more';
 import { useModal } from '@app/components/modal-views/context';
-import FormPageLayout from '@app/components/sidebar/form-page-layout';
 import Loader from '@app/components/ui/loader';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { groupConstant } from '@app/constants/locales/group';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
