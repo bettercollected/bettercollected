@@ -43,7 +43,7 @@ export default function DeletionRequests({ workspace }: { workspace: WorkspaceDt
                 <>
                     <div className="heading4">{t(formConstant.deletionRequests)}</div>
                     <p className="body1 text-black-900 my-10">
-                        {workspaceStats?.data?.deletion_requests.pending || 0}/{workspaceStats?.data?.deletion_requests.total || 0} {t(localesCommon.deletionRemaining)}
+                        {workspaceStats?.data?.deletionRequests.pending || 0}/{workspaceStats?.data?.deletionRequests.total || 0} {t(localesCommon.deletionRemaining)}
                     </p>
                     <div className="w-full md:w-[282px] mb-8">
                         <SearchInput handleSearch={handleSearch} />

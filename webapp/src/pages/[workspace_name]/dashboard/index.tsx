@@ -27,7 +27,6 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
     };
 
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
-    const workspaceStats = useGetWorkspaceStatsQuery(workspace?.id, { pollingInterval: 30000 });
 
     return (
         <DashboardLayout>
@@ -65,7 +64,7 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                     ]}
                 />
             )}
-            <WorkspaceDashboardOverview workspace={workspace} workspaceStats={workspaceStats?.data} />
+            <WorkspaceDashboardOverview workspace={workspace} />
             <div className="min-h-9 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <p className="sh1">{t(formConstant.recentForms)}</p>
                 <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />

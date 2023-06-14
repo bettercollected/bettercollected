@@ -19,6 +19,7 @@ import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { UserDto } from '@app/models/dtos/UserDto';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceStatsDto } from '@app/models/dtos/workspaceStatsDto';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
@@ -30,14 +31,9 @@ import ProPlanHoc from '../hoc/pro-plan-hoc';
 
 interface IWorkspaceDashboardOverviewProps {
     workspace: WorkspaceDto;
-    workspaceStats: {
-        forms: number;
-        responses: number;
-        deletion_requests: { success: number; pending: number; total: number };
-    };
 }
 
-const WorkspaceDashboardOverview = ({ workspace, workspaceStats }: IWorkspaceDashboardOverviewProps) => {
+const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewProps) => {
     const { openModal } = useModal();
     const fullScreenModal = useFullScreenModal();
     const isAdmin = useAppSelector(selectIsAdmin);
