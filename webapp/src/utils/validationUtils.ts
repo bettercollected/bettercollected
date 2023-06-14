@@ -51,6 +51,9 @@ export const statusProps = (status: string, t: any) => {
     if (status.toLowerCase() === 'pending') {
         currentStatus = t(formConstant.status.pending);
         cName = 'bg-black-400 text-black-800 dark:bg-yellow-900 dark:text-yellow-300';
+    } else if (status.toLowerCase() === 'expired') {
+        currentStatus = t(formConstant.status);
+        cName = 'bg-red-100 text-red-500';
     }
     return {
         currentStatus,
