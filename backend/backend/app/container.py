@@ -54,7 +54,6 @@ class AppContainer(containers.DeclarativeContainer):
     workspace_user_repo: WorkspaceUserRepository = providers.Singleton(
         WorkspaceUserRepository
     )
-
     workspace_repo: WorkspaceRepository = providers.Singleton(WorkspaceRepository)
 
     form_repo: FormRepository = providers.Singleton(FormRepository)

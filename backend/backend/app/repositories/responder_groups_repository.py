@@ -196,3 +196,6 @@ class ResponderGroupsRepository:
         await ResponderGroupFormDocument.find_one(
             {"form_id": form_id, "group_id": group_id}
         ).delete()
+
+    async def delete_workspace_form_groups(self, form_id: str):
+        await ResponderGroupFormDocument.find({"form_id": form_id}).delete()

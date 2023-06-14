@@ -7,6 +7,9 @@ from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.workspace import WorkspaceFormSettings
+from backend.app.repositories.responder_groups_repository import (
+    ResponderGroupsRepository,
+)
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.services.form_import_service import FormImportService
@@ -158,6 +161,9 @@ class WorkspaceFormService:
         await self.form_service.delete_form(form_id=form_id)
         await self.form_response_service.delete_form_responses(form_id=form_id)
         await self.form_response_service.delete_deletion_requests(form_id=form_id)
+        await self.responder_groups_service.responder_groups_repo.delete_workspace_form_groups(
+            form_id=form_id
+        )
         return "Form deleted form workspace."
 
     async def get_form_ids_in_workspace(self, workspace_id: PydanticObjectId):
