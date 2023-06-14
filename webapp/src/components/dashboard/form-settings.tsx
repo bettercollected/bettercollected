@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import LockIcon from '@Components/Common/Icons/lock';
+import { Lock } from '@mui/icons-material';
+import { Button, FormControlLabel, Radio, RadioGroup } from '@mui/material';
+import FormControlContext from '@mui/material/FormControl/FormControlContext';
 import Switch from '@mui/material/Switch';
 import { toast } from 'react-toastify';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
 import { useModal } from '@app/components/modal-views/context';
 import { FormSettingsCard } from '@app/components/settings/card';
-import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { customize } from '@app/constants/locales/customize';
@@ -22,6 +25,7 @@ import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
+import Globe from '../icons/flags/globe';
 import FormLinkUpdateView from '../ui/form-link-update-view';
 
 export default function FormSettingsTab() {
@@ -65,9 +69,9 @@ export default function FormSettingsTab() {
             });
     };
 
-    const onPrivateChanged = (event: any, f?: StandardFormDto) => {
+    const onPrivateChanged = ({ isPrivate = false, f }: { isPrivate?: boolean; f?: StandardFormDto }) => {
         if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
-        const patchBody = { private: !f?.settings?.private, pinned: false };
+        const patchBody = { private: isPrivate, pinned: false };
         patchSettings(patchBody, f)
             .then((res) => {})
             .catch((e: any) => {
@@ -92,14 +96,39 @@ export default function FormSettingsTab() {
                 </ul>
                 <FormLinkUpdateView link={isCustomDomain ? customDomainUrl : clientHostUrl} isLinkChangable />
             </FormSettingsCard>
+
             <FormSettingsCard>
-                <div className=" flex items-center justify-between">
-                    <div>
-                        <div className="body1">{t(formConstant.hide)}</div>
-                        <div className="body3">{t(formConstant.hideDescription)}</div>
+                <p className="sh3">Form Visibility</p>
+                <RadioGroup className="flex flex-col gap-6" defaultValue={form?.settings?.private ? 'Private' : 'Public'}>
+                    <div className="flex flex-col">
+                        <FormControlLabel
+                            onChange={() => onPrivateChanged({ f: form })}
+                            value="Public"
+                            control={<Radio />}
+                            label={
+                                <div className="flex body6 !text-black-800 items-center gap-[6px]">
+                                    <Globe className="h-[18px] w-[18px]" />
+                                    Public
+                                </div>
+                            }
+                        />
+                        <span className="ml-8 body4 !text-black-700">Forms will only be hidden from your workspace.</span>
                     </div>
-                    <Switch data-testid="private-switch" checked={!!form?.settings?.private} onClick={(e) => onPrivateChanged(e, form)} />
-                </div>
+                    <div className="flex flex-col">
+                        <FormControlLabel
+                            onChange={() => onPrivateChanged({ isPrivate: true, f: form })}
+                            value="Private"
+                            control={<Radio />}
+                            label={
+                                <div className="flex body6 !text-black-800 items-center gap-[6px]">
+                                    <LockIcon className="h-[18px] w-[18px]" />
+                                    Private
+                                </div>
+                            }
+                        />
+                        <span className="ml-8 body4 !text-black-700">Forms will only be hidden from your workspace.</span>
+                    </div>
+                </RadioGroup>
             </FormSettingsCard>
             {!form?.settings?.private && (
                 <FormSettingsCard>
@@ -113,27 +142,18 @@ export default function FormSettingsTab() {
                 </FormSettingsCard>
             )}
 
-            <FormSettingsCard>
-                <div className="flex flex-col sm:flex-row items-end justify-between gap-5">
-                    <div className="">
-                        <div className="body1">{t(formConstant.delete)}</div>
-                        <div className="body3">
-                            <div>{t(formConstant.deleteDescription)}</div>
-                        </div>
-                    </div>
-                    <Button
-                        data-testid="logout-button"
-                        variant="solid"
-                        size="medium"
-                        color="danger"
-                        onClick={() => {
-                            openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
-                        }}
-                    >
-                        {t(buttonConstant.delete)}
-                    </Button>
-                </div>
-            </FormSettingsCard>
+            <div className="my-6">
+                <Button
+                    style={{ textTransform: 'none' }}
+                    className="  bg-red-100 px-4 py-3 body6 rounded hover:bg-red-50 hover:drop-shadow-sm leading-none !text-red-500"
+                    size="medium"
+                    onClick={() => {
+                        openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
+                    }}
+                >
+                    Delete Form
+                </Button>
+            </div>
         </div>
     );
 }

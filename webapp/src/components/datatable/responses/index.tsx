@@ -11,6 +11,7 @@ import DataTable from 'react-data-table-component';
 import StatusBadge from '@app/components/badge/status-badge';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import EmptyResponse from '@app/components/ui/empty-response';
+import AnchorLink from '@app/components/ui/links/anchor-link';
 import globalConstants from '@app/constants/global';
 import { formConstant } from '@app/constants/locales/form';
 import { localesGlobal } from '@app/constants/locales/global';
@@ -71,9 +72,9 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
             <StatusBadge status={status} />
             {status.toLowerCase() === 'pending' && (
                 <Typography noWrap>
-                    <span onClick={() => router.push(googleFormHostUrl + 'forms/d/' + formId + '/edit?pli=1#response=' + responseId)} className="cursor-pointer body4 !text-brand-500">
+                    <AnchorLink target="_blank" href={googleFormHostUrl + 'forms/d/' + formId + '/edit?pli=1#response=' + responseId} className="cursor-pointer body4 !text-brand-500">
                         Go to response
-                    </span>
+                    </AnchorLink>
                 </Typography>
             )}
         </div>
