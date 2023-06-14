@@ -90,8 +90,18 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
             width={320}
             menuContent={
                 <div className="flex items-center gap-2 py-2 px-3">
-                    <AuthAccountProfileImage size={40} image={workspace?.profileImage} name={workspaceName} className="bg-orange-500" />
-                    <p className="body1">{workspaceName}</p>
+                    <AuthAccountProfileImage
+                        size={40}
+                        image={workspace?.profileImage}
+                        name={workspace?.title || 'Untitled'}
+                        // style={{ background: `${color} !important` }}
+                    />
+                    <div className="flex flex-col items-start w-full">
+                        <Tooltip title={workspace?.title || 'Untitled'}>
+                            <p className="body3">{toEndDottedStr(workspace?.title || 'Untitled', 20)}</p>
+                        </Tooltip>
+                        <p className="leading-none text-[12px] text-black-700">{getWorkspaceRole(workspace)}</p>
+                    </div>
                 </div>
             }
         >
