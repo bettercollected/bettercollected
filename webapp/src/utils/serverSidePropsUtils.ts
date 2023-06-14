@@ -31,7 +31,7 @@ export async function checkIfUserIsAuthorizedToViewPage(_context: any, workspace
 
     try {
         const userStatus = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, config);
-        const user = (await userStatus?.json().catch((e: any) => e))?.user ?? null;
+        const user = (await userStatus?.json().catch((e: any) => e)) ?? null;
         if (!user?.roles?.includes('FORM_CREATOR') || !workspace.dashboardAccess) {
             return false;
         }
@@ -79,7 +79,7 @@ export async function checkIfUserIsAuthorizedToViewWorkspaceSettingsPage(_contex
 
     try {
         const userStatus = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, config);
-        const user = (await userStatus?.json().catch((e: any) => e))?.user ?? null;
+        const user = (await userStatus?.json().catch((e: any) => e)) ?? null;
         if (!user?.roles?.includes('FORM_CREATOR') || !workspace.dashboardAccess || workspace.ownerId !== user.id) {
             return false;
         }

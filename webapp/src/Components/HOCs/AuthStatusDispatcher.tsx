@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
+import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetStatusQuery } from '@app/store/auth/api';
-import { IUserStats, initialAuthState, setAuth } from '@app/store/auth/slice';
+import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch } from '@app/store/hooks';
 import { isAdminDomain } from '@app/utils/domainUtils';
 
@@ -19,13 +20,13 @@ export default function AuthStatusDispatcher({ workspace, children, isCustomDoma
     const dispatch = useAppDispatch();
     const [is401, setIs401] = useState(false);
 
-    const { data, isLoading } = useGetStatusQuery('status', {
+    const { data, isLoading } = useGetStatusQuery(undefined, {
         pollingInterval: 10000,
         selectFromResult: ({ data, isLoading, isError }) => {
             if (isError) setIs401(true);
-            if (data?.user) {
-                const isAdmin = workspace?.ownerId === data?.user?.id;
-                return { data: { ...data?.user, isAdmin, isLoading }, isLoading };
+            if (data) {
+                const isAdmin = workspace?.ownerId === data?.id;
+                return { data: { ...data, isAdmin, isLoading }, isLoading };
             }
             return { data, isLoading };
         },
@@ -34,7 +35,7 @@ export default function AuthStatusDispatcher({ workspace, children, isCustomDoma
 
     useEffect(() => {
         if (data) {
-            const user: IUserStats = { ...data, isLoading: false };
+            const user: UserStatus = { ...data, isLoading: false };
             dispatch(setAuth(user));
         }
         if (is401) {

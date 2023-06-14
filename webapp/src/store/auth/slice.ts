@@ -2,28 +2,12 @@ import { createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
+import { Plan, UserStatus } from '@app/models/dtos/UserStatus';
 import { RootState } from '@app/store/store';
 
-enum Plans {
-    FREE = 'FREE',
-    PRO = 'PRO'
-}
-
-export interface IUserStats {
-    email: string;
-    first_name?: string;
-    last_name?: string;
-    profile_image?: string;
-    plan: Plans;
-    roles: Array<string>;
-    id: string;
-    isAdmin: boolean;
-    isLoading: boolean;
-}
-
-export const initialAuthState: IUserStats = {
+export const initialAuthState: UserStatus = {
     email: '',
-    plan: Plans.FREE,
+    plan: Plan.FREE,
     roles: [],
     id: '',
     isAdmin: false,

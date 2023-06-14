@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/dist/query/react';
 
 import environments from '@app/configs/environments';
+import { UserStatus } from '@app/models/dtos/UserStatus';
 
 import { AUTH_OTP_TAGS, AUTH_REFRESH_TAG, AUTH_TAG_TYPES, VerifyOtp } from './types';
 
@@ -19,9 +20,9 @@ export const authApi = createApi({
         }
     }),
     endpoints: (builder) => ({
-        getStatus: builder.query<any, string>({
-            query: (status) => ({
-                url: `/auth/${status}`,
+        getStatus: builder.query<UserStatus, void>({
+            query: () => ({
+                url: `/auth/status`,
                 method: 'GET'
             }),
             providesTags: [AUTH_REFRESH_TAG]

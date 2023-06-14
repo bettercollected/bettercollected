@@ -18,6 +18,7 @@ import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { profileMenu } from '@app/constants/locales/profile-menu';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import { UserStatus } from '@app/models/dtos/UserStatus';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -44,7 +45,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
     const { t } = useTranslation();
     const authStatus = useAppSelector(selectAuth);
 
-    const user: any = authStatus ?? null;
+    const user: UserStatus = authStatus ?? null;
 
     const screenSize = useBreakpoint();
     const { openModal } = useModal();
@@ -56,11 +57,11 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
     if (user?.isLoading) return <div className="w-9 sm:w-32 h-9 rounded-[4px] animate-pulse bg-black-300" />;
     if ((!user?.isLoading && !user?.id) || hideMenu) return null;
 
-    const profileName = user?.first_name || user?.last_name ? _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name) : null;
+    const profileName = user?.firstName || user?.lastName ? _.capitalize(user?.firstName) + ' ' + _.capitalize(user?.lastName) : null;
 
     const newMenuContent = menuContent ?? (
         <>
-            <AuthAccountProfileImage size={['xs', '2xs'].indexOf(screenSize) === -1 ? 36 : 28} image={user?.profile_image} name={profileName ?? ''} />
+            <AuthAccountProfileImage size={['xs', '2xs'].indexOf(screenSize) === -1 ? 36 : 28} image={user?.profileImage} name={profileName ?? ''} />
             {['xs', '2xs', 'sm'].indexOf(screenSize) === -1 && (profileName?.trim() || user?.email || '')}
         </>
     );
@@ -69,7 +70,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
         <MenuDropdown className={className} id="account-menu" menuTitle="Account Settings" fullWidth={fullWidth} menuContent={newMenuContent} showExpandMore={showExpandMore ?? ['xs', '2xs', 'sm'].indexOf(screenSize) === -1}>
             <ListItem className="py-3 px-5 flex items-center hover:bg-brand-100" alignItems="flex-start">
                 <ListItemIcon sx={{ margin: 0 }}>
-                    <AuthAccountProfileImage size={40} image={user?.profile_image} name={profileName ?? ''} />
+                    <AuthAccountProfileImage size={40} image={user?.profileImage} name={profileName ?? ''} />
                 </ListItemIcon>
                 <ListItemText
                     sx={{ margin: 0 }}
@@ -89,7 +90,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                         <span>{t(profileMenu.myDashboard)}</span>
                     </MenuItem>
                 </ActiveLink>
-                {user.stripe_customer_id && (
+                {user.stripeCustomerId && (
                     <ActiveLink href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer">
                         <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
                             <ListItemIcon className="text-black-900">
