@@ -31,7 +31,9 @@ export default function CustomizeUrlUi({ description, url, form }: ICustomizeUrl
         setSlug(e.target.value);
     };
 
-    const handleUpdate = async () => {
+    const handleUpdate = async (event: any) => {
+        event.preventDefault();
+
         const body = {
             customUrl: slug
         };
@@ -55,7 +57,7 @@ export default function CustomizeUrlUi({ description, url, form }: ICustomizeUrl
         }
     };
     return (
-        <div className="w-full">
+        <form onSubmit={handleUpdate} className="w-full">
             <p className="sh1 ">{t(customize.url)}</p>
             <p className="pt-6  pb-8 !text-black-600">{description}</p>
             <p className=" mb-3 body1  !leading-none">
@@ -83,10 +85,8 @@ export default function CustomizeUrlUi({ description, url, form }: ICustomizeUrl
                 </p>
             </div>
             <div className="mt-5 flex justify-end">
-                <Button onClick={handleUpdate} isLoading={isLoading}>
-                    {t(buttonConstant.updateUrl)}
-                </Button>
+                <Button isLoading={isLoading}>{t(buttonConstant.updateUrl)}</Button>
             </div>
-        </div>
+        </form>
     );
 }
