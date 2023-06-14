@@ -13,7 +13,9 @@ import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
+import { buttonConstant } from '@app/constants/locales/button';
 import { Features } from '@app/constants/locales/feature';
+import { pricingPlan } from '@app/constants/locales/pricingplan';
 import { updateWorkspace } from '@app/constants/locales/update-workspace';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
@@ -63,22 +65,6 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                                     disabled
                                     value={environments.HTTP_SCHEME + (updateDomain && isProPlan && workspace.customDomain ? workspace.customDomain : environments.CLIENT_DOMAIN + '/' + workspace.workspaceName)}
                                 />
-                                {/*<Typography noWrap className="px-2 body6 py-3 w-full max-w-full gap-4 truncate border  border-black-400 rounded mr-2">*/}
-                                {/*    {updateDomain && workspace.customDomain ? (*/}
-                                {/*        <>*/}
-                                {/*            <span className="text-black-700">{environments.HTTP_SCHEME}</span>*/}
-                                {/*            <span className="text-black-900">{workspace.customDomain}</span>*/}
-                                {/*        </>*/}
-                                {/*    ) : (*/}
-                                {/*        <>*/}
-                                {/*            <span className="text-black-700">*/}
-                                {/*                {environments.HTTP_SCHEME}*/}
-                                {/*                {environments.CLIENT_DOMAIN}*/}
-                                {/*            </span>*/}
-                                {/*            /<span className="text-black-900">{workspace?.workspaceName}</span>*/}
-                                {/*        </>*/}
-                                {/*    )}*/}
-                                {/*</Typography>*/}
                                 <Tooltip title="Copy Link">
                                     <CopyIcon
                                         className="cursor-pointer"
@@ -103,9 +89,10 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
             {!isProPlan && updateDomain && (
                 <>
                     <div className="flex items-center">
-                        <span className="mr-1 font-semibold">Upgrade to PRO</span> for this feature
+                        <span className="mr-1 font-semibold">{t(pricingPlan.title)}</span>
+                        {t(pricingPlan.forThisFeature)}
                         <ProPlanHoc hideChildrenIfPro={false} feature={Features.customDomain}>
-                            <Button className="ml-4">Upgrade</Button>
+                            <Button className="ml-4">{t(buttonConstant.upgrade)}</Button>
                         </ProPlanHoc>
                     </div>
                     <div className="absolute !top-2 !right-5">

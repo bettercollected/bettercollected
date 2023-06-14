@@ -1,533 +1,535 @@
 {
-    "AN": "een",
-    "ADD_CNAME_RECORD_MESSAGE": "Voeg CNAME-record van uw domein toe om te verwijzen naar 'custom'.",
-    "ADD_WORKSPACE_LOGO": "Voeg een werkruimtelogo toe",
-    "ADVANCE": "Vooruitgang",
-    "ADVANCED_SETTING": {
-        "CUSTOM_DOMAIN_NOT_SET_DESCRIPTION": "U heeft geen aangepast domein ingesteld.",
-        "CUSTOM_DOMAIN_SET_DESCRIPTION": "Uw aangepaste domein is momenteel ingesteld op",
-        "WORKSAPCE_HANDLE_SET_DESCRIPTION": "Uw werkruimtehandvat is momenteel ingesteld op "
-    },
-    "ADVANCED_SETTINGS": "Geavanceerde instellingen",
-    "ALL_FORMS": "Alle formulieren",
-    "AND": "en",
-    "BASIC_INFORMATION": "Basisinformatie",
-    "BECOME_A_BETTER_COLLECTOR": "Word een betere gegevensverzamelaar",
-    "BREAD_CRUMBS_ITEM": {
-        "DASHBOARD": "Dashboard",
-        "FORMS": "Formulieren",
-        "HOME": "huis",
-        "MANAGE_WORKSPACE": "Werkruimte beheren",
-        "RESPONSES": "Reacties",
-        "SUBMISSIONS": "Inzendingen"
-    },
-    "BUTTON": {
-        "ADD": "Toevoegen",
-        "ADD_MEMBER": "Lid toevoegen",
-        "ADD_FORM": "Voeg formulier toe",
-        "BACK": "terug",
-        "CANCEL": "Annuleren",
-        "CHECK_MY_DATA": "Controleer mijn gegevens",
-        "CONTINUE": "Doorgaan",
-        "CONTINUE_WITH_GOOGLE": "Doorgaan met Google",
-        "COPY_LINK": "Link kopiëren",
-        "CREATE_WORKSPACE": "Maak een werkruimte",
-        "CUSTOMIZE_LINK": "Uw link aanpassen",
-        "DELETE": "Verwijderen",
-        "DONE": "Klaar",
-        "GETIN": "Kom binnen",
-        "GOOGLE_SIGNIN": "Meld u aan met Google",
-        "IMPORT_FORMS": "Formulieren importeren",
-        "IMPORT_NOW": "Nu importeren",
-        "INVITE_COLLABORATOR": "Nodig medewerker uit",
-        "LOGIN": "log in",
-        "LOGOUT": "Uitloggen",
-        "NEXT": "Volgende",
-        "PREVIOUS": "Vorige",
-        "PRO": "PRO",
-        "REQUEST_AN_INTEGRATION": "Vraag een integratie aan",
-        "RESEND": "Opnieuw verzenden",
-        "RESEND_CODE": "Code opnieuw verzenden",
-        "SAVE": "Opslaan",
-        "SAVE_IMAGE": "Afbeelding opslaan",
-        "SAVING": "Opslaan",
-        "SEND_CODE": "Code verzenden",
-        "SEND_INVITATION": "Uitnodiging verzenden",
-        "SHARE": "deel",
-        "SUBMIT": "Verzenden",
-        "TYPEFORM_SIGNIN": "Aanmelden met Typeform",
-        "UPDATE": "Bijwerken",
-        "UPDATE_URL": "URL bijwerken",
-        "UPDATE_WORKSPACE": "Werkruimte bijwerken",
-        "UPGRADE": "Opwaarderen",
-        "UPGRADE_TO_PRO": "Upgraden naar PRO",
-        "UPLOAD": "Uploaden",
-        "UPLOAD_UNLIMITED_FORMS": "Onbeperkt formulieren uploaden",
-        "VERIFY": "Verifiëren",
-        "DECLINE": "Weigeren",
-        "JOIN_WORKSPACE": "Deelnemen aan werkruimte",
-        "YES": "Ja",
-        "NO": "nee",
-        "REQUEST_FOR_DELETION": "Verzoek om verwijdering",
-        "REQUESTED_FOR_DELETION": "Verzoek om verwijdering",
-        "REMOVE_INVITATION": "Uitnodiging verwijderen",
-        "DELETE_MEMBER": "Lid verwijderen",
-        "SKIP": "Overslaan",
-        "UPDATE_NOW": "Update nu",
-        "SAVE_CHANGES": "Wijzigingen opslaan",
-        "ADD_GROUP": "Groep toevoegen",
-        "DELETE_FORM": "Formulier verwijderen"
-    },
-    "CONTACT_US": {
-        "DESCRIPTION": "Vragen of opmerkingen? Schrijf ons gewoon een bericht",
-        "DEFAULT": "Contacteer ons"
-    },
-    "CUSTOMIZE_DOMAIN": {
-        "DEFAULT": "Domein aanpassen",
-        "DESCRIPTION": "Pas uw werkruimte-URL aan zodat uw publiek weet dat u het bent."
-    },
-    "CUSTOMIZE_LINK": {
-        "DEFAULT": "Koppeling aanpassen",
-        "DESCRIPTION": "Pas uw formulier-URL aan zodat uw publiek weet dat u het bent.",
-        "TITLE": "Koppeling gratis aanpassen"
-    },
-    "CUSTOMIZE_URL": "URL aanpassen",
-    "CUSTOM_DOMAIN": "Aangepast domein",
-    "DASHBOARD": {
-        "DEFAULT": "Dashboard",
-        "PREVIEW": "Voorbeeld"
-    },
-    "DASHBOARD_DRAWER": {
-        "COLLABORATOR": "Medewerker",
-        "OWNER": "Eigenaar",
-        "MANAGE_URLS": "Koppelingen beheren"
-    },
-    "DELETE": {
-        "DEFAULT": "Verwijderen",
-        "MESSAGE": "Als deze actie eenmaal is voltooid, kan deze niet meer ongedaan worden gemaakt."
-    },
-    "DELETION_REMAINING": "verwijdering resterend",
-    "DESCRIPTION": "Beschrijving",
-    "DOMAIN": "Domein",
-    "EARLY_ACCESS": "Krijg vroege toegang!",
-    "EDIT_WORKSPACE": {
-        "TITLE": "Werkruimte bewerken",
-        "DESCRIPTION": "Maak een groep om formulieren naar hele groepen te sturen, stroomlijn het proces en bespaar tijd.",
-        "UPLOAD_BANNER_IMAGE": "Bannerafbeelding uploaden",
-        "BANNER_ASPECT_RATIO": "5:1 beeldverhouding aanbevolen"
-    },
-    "EMAIL": "E-mail",
-    "EMAIL_ADDRESS": "E-mailadres",
-    "ENTER_EMAIL": "Voer e-mailadres in",
-    "GO_TO_RESPONSE": "Ga naar antwoord",
-    "FORM": {
-        "DEFAULT": "Formulier",
-        "UNPIN_FORM": "Formulier losmaken",
-        "COLLECTED_RESPONSES": "Verzamelde reacties",
-        "DELETE": "Formulier verwijderen",
-        "DELETE_DESCRIPTION": "Als u dit formulier verwijdert, worden ook alle reacties en verwijderingsverzoeken verwijderd.",
-        "DELETION_REQUEST.DESCRIPTION": "U heeft geen verwijdering aangevraagd voor uw ingevulde antwoorden.",
-        "DELETION_REQUESTS": "Verwijderverzoeken",
-        "DELETION_RESPONSE.DESCRIPTION": "U heeft geen reactie ingediend op de formulieren in deze werkruimte.",
-        "DELETION_RESPONSE_WARNING_MESSAGE": "Weet u zeker dat u wilt verzoeken om verwijdering van uw reactie?",
-        "EMPTY": {
-            "DESCRIPTION": "Importeer uw Google Forms of Typeforms",
-            "TITLE": "Importeer uw eerste formulier"
-        },
-        "EMPTY_DELETION_REQUEST": {
-            "DESCRIPTION": "U kunt het verwijderingsverzoek zien zodra de respondent om verwijdering verzoekt.",
-            "TITLE": "Nog geen verwijderingsverzoek"
-        },
-        "EMPTY_RESPONSE": {
-            "DESCRIPTION": "U kunt de formulierresponders zien zodra de responder reageert ",
-            "TITLE": "Nog geen antwoord"
-        },
-        "EMPTY_DELETION_RESPONSE.TITLE": "Geen reacties om te tonen",
-        "FORM_TYPE": "Formuliertype",
-        "HIDE": "Formulier verbergen",
-        "HIDE_DESCRIPTION": "Toon dit formulier niet op de werkruimtepagina.",
-        "IMPORTED_DATE": "Geïmporteerde datum",
-        "IMPORTED_FORMS": "Geïmporteerde formulieren",
-        "IMPORT_UNLIMITED": "Importeer onbeperkte formulieren",
-        "PINNED": "Vastgezet",
-        "PINNED_DESCRIPTION": "Toon dit formulier in vastgezette sectie",
-        "RECENT_FORMS": "Recente formulieren",
-        "REQUESTED_BY": "Aangevraagd door",
-        "RESPONDER": "Beantwoorder",
-        "RESPONDED_ON": "Reageerde op",
-        "REQUESTED_ON": "Aangevraagd op",
-        "RESPONDERS": "Antwoorden",
-        "RESPONSE": "Reactie",
-        "RESPONSES": "Reacties",
-        "RESPONSE_ID": "Reactie-ID",
-        "STATUS_DELETED": "Verwijderd",
-        "STATUS_PENDING": "In behandeling",
-        "SUBMISSION_DATE": "Indieningsdatum",
-        "SUBMITTED_FORMS": "Ingediende formulieren",
-        "PREVIEW": "Voorbeeld",
-        "URL": "Formulier-URL",
-        "IMPORTED_BY": "Geïmporteerd door",
-        "IMPORTED_ON": "Geïmporteerd op",
-        "ADD_GROUP": "Groep toevoegen aan formulier",
-        "SETTINGS": {
-            "DESCRIPTION": "Medewerkers kunnen formulieren importeren, formulieren verwijderen, reacties bekijken en reacties verwijderen.",
-            "DEFAULT_LINK": {
-                "TITLE": "Standaardkoppeling"
-            },
-            "CUSTOMIZE_FORM_LINK": {
-                "TITLE": "Formulierlink aanpassen"
-            },
-            "PIN_FORM": {
-                "TITLE": "Pinformulier",
-                "DESCRIPTION": "Toon dit formulier in vastgezette sectie"
-            },
-            "VISIBILITY": {
-                "TITLE": "Formulierzichtbaarheid",
-                "DESCRIPTION": "Formulieren worden alleen verborgen in uw werkruimte.",
-                "PUBLIC": "Openbaar",
-                "PRIVATE": "Privé"
-            }
-        }
-    },
+  "AN": "een",
+  "ADD_CNAME_RECORD_MESSAGE": "Voeg CNAME-record van uw domein toe om te verwijzen naar 'custom'.",
+  "ADD_WORKSPACE_LOGO": "Voeg een werkruimtelogo toe",
+  "ADVANCE": "Vooruitgang",
+  "ADVANCED_SETTING": {
+    "CUSTOM_DOMAIN_NOT_SET_DESCRIPTION": "U heeft geen aangepast domein ingesteld.",
+    "CUSTOM_DOMAIN_SET_DESCRIPTION": "Uw aangepaste domein is momenteel ingesteld op",
+    "WORKSAPCE_HANDLE_SET_DESCRIPTION": "Uw werkruimtehandvat is momenteel ingesteld op "
+  },
+  "ADVANCED_SETTINGS": "Geavanceerde instellingen",
+  "ALL_FORMS": "Alle formulieren",
+  "AND": "en",
+  "BASIC_INFORMATION": "Basisinformatie",
+  "BECOME_A_BETTER_COLLECTOR": "Word een betere gegevensverzamelaar",
+  "BREAD_CRUMBS_ITEM": {
+    "DASHBOARD": "Dashboard",
     "FORMS": "Formulieren",
-    "FORMS_LINK": "Links naar formulieren",
-    "FORM_LINK_WITH_PREVIOUS_DOMAIN_WONT_WORK": "Formulierlinks met vorig domein werken niet meer na updaten.",
-    "FORM_LINK_WITH_PREVIOUS_WORKSPACE_HANDLE_WONT_WORK": "Formulierkoppelingen met vorige werkruimtehandvat werken niet na updaten.",
-    "FORM_MENU": {
-        "DELETE_FORM": "Formulier verwijderen",
-        "PIN_FORM": "Pin formulier",
-        "SHARE": "deel",
-        "VISIBILITY": "Zichtbaarheid"
-    },
-    "GET_STARTED": {
-        "0_FIT_STEP": {
-            "TITLE": "Is bettercollected geschikt voor u?",
-            "DESCRIPTION": "We willen uw tijd niet verspillen aan bettercollected als het niet goed bij u past. Deze korte handleiding helpt u en ons om erachter te komen.",
-            "BUTTON_TEXT": "Laten we het uitzoeken",
-            "ADDITIONAL_PROPS": {
-                "TEXT": "Al bekend met de app?",
-                "LINKED_TEXT": "Meld u nu aan!"
-            }
-        },
-        "FORM_BUILDERS": {
-            "TITLE": "Gebruikt u online formulierbouwers?",
-            "DESCRIPTION": "Gebruikt u online formulierbouwers zoals Google Form en Typeform voor het verzamelen van formulierreacties voor uzelf of uw bedrijf?"
-        },
-        "FORM_BRAND": {
-            "TITLE": "Heb je ooit gewenst dat je je formulieren beter kon brandmerken?",
-            "DESCRIPTION": "Ik wou dat u klantvriendelijke formulier-URL's en uw eigen aangepaste domeinlinks had die uw merk weerspiegelen in plaats van standaard gegenereerde URL's."
-        },
-        "DATA_RIGHTS": {
-            "TITLE": "Wil je door actie laten zien dat je geeft om de gegevensrechten van gebruikers? GDPR/CCPA etc.",
-            "DESCRIPTION": "Dataprivacyregelgeving zoals GDPR en CCPA geven formulierbeantwoorders rechten zoals recht op toegang en om verwijdering van gegevens aan te vragen"
-        },
-        "USER_IS_FIT": {
-            "TITLE": "Je bent op de goede plek",
-            "DESCRIPTION_1": "U gebruikt online formulieren om gegevens van uw gebruikers te verzamelen en geeft om branding en gebruikersgegevensrechten. Better Collected is precies voor u gebouwd.",
-            "DESCRIPTION_2": " We helpen u graag verder. Meld u nu aan om een ​​betere gegevensverzamelaar te worden.",
-            "BUTTON_TEXT": "Aanmelden"
-        },
-        "USER_IS_NOT_FIT": {
-            "TITLE": "Deze app past misschien niet perfect bij u.",
-            "DESCRIPTION_1": "Deze app is gemaakt voor mensen die online formulieren gebruiken om gegevens van uw gebruikers te verzamelen en zich bekommeren om branding en gebruikersgegevensrechten.",
-            "DESCRIPTION_2": "Op basis van je keuzes lijkt het erop dat we geen goede match zijn. Je bent echter nog steeds welkom om het uit te proberen. Misschien vind je het nog steeds leuk.",
-            "BUTTON_TEXT": "Probeer het eens"
-        }
-    },
-    "GROUP": {
-        "DEFAULT": "Groep",
-        "GROUPS": "Groepen",
-        "ADD_MEMBER": {
-            "DEFAULT": "Lid toevoegen",
-            "DESCRIPTION": "Groepsleden hebben toegang tot alle formulieren die aan de groep zijn toegevoegd"
-        },
-        "DETAILS": "Groepsgegevens",
-        "CREATE_A_GROUP_TO": "Maak een groep aan ",
-        "LIMIT_ACCESS_TO_FORM": "Beperk toegang tot formulier vanuit uw werkruimte",
-        "SEND_FORMS_TO_MULTIPLE_PEOPLE": "Stuur formulieren naar meerdere mensen tegelijk",
-        "CREATE_GROUP": "Groep aanmaken",
-        "CREATE_NEW_GROUP": {
-            "DEFAULT": "Nieuwe groep aanmaken",
-            "DESCRIPTION": "Maak een groep om formulieren naar hele groepen te sturen, stroomlijn het proces en bespaar tijd."
-        },
-        "NAME": "Groepsnaam",
-        "DESCRIPTION": "Stuur formulieren naar hele groepen, stroomlijn het proces en bespaar tijd.",
-        "MEMBERS": {
-            "DEFAULT": "Leden",
-            "DESCRIPTION": "Alleen deze leden kunnen uw formulier in uw werkruimte zien."
-        },
-        "EDIT_GROUP": "Groep bewerken",
-        "CREATED_BY": "Gemaakt door",
-        "CREATED_ON": "Gemaakt op",
-        "MEMBER_EMAIL": "E-mailadres van lid",
-        "NOT_IN_ANY_GROUP": "Niet in een groep",
-        "ASK_ADMIN_TO_CREATE_A_GROUP": "Vraag beheerder om een ​​groep te maken"
-    },
-    "HEY": "hoi",
-    "HIDDEN": "Verborgen",
-    "IMAGE": "Afbeelding",
-    "IMAGE_SIZE_RESTRICTION": "Zorg ervoor dat uw afbeelding kleiner is dan 100 MB",
-    "IMPORT_FORM": {
-        "DEFAULT": "Formulier importeren",
-        "CHOICE": "Welk formulier wilt u importeren?",
-        "RESPONSE_OWNER_TAG_DESCRIPTION": "Selecteer veld waaruit de eigenaar van het antwoord kan worden geïdentificeerd",
-        "RESPONSE_OWNER_TAG_LABEL": "Kies een gegevenseigenaarveld voor dit formulier",
-        "RESPONSE_OWNER_TAG_TITLE": "Reactie-eigenaar tag",
-        "TEXT_LABEL": "Kies uw Google-formulier",
-        "TITLE": "Selecteer een formulier om te importeren"
-    },
-    "INVALID_DOMAIN": "Ongeldig domein",
-    "INVALID_WORKSPACE_HANDLE": "Ongeldige werkruimtehandle",
-    "INVITATION": {
-        "TITLE_1": "Je bent uitgenodigd voor",
-        "TITLE_2": "Word lid van de werkruimte en begin samen te werken",
-        "LINK_EXPIRY": "Deze link verloopt over 7 dagen.",
-        "LIST": {
-            "ITEM_1": "Alle formulieren en antwoorden in werkruimte",
-            "ITEM_2": "Formulieren importeren naar werkruimte",
-            "ITEM_3": "Formulier formulier werkruimte verwijderen",
-            "TITLE": "U krijgt toegang tot:"
-        }
-    },
-    "INVITE_COLLABORATOR": {
-        "DEFAULT": "Medewerker uitnodigen",
-        "DESCRIPTION": "Een medewerker kan formulieren in de werkruimte importeren en beheren."
-    },
-    "LAST_SUBMITTED_AT": "Ingezonden bij:",
-    "LINK_TO_PRIVACY_POLICY": "Link naar privacybeleid",
-    "LINK_TO_TERMS_OF_SERVICES": "Link naar Servicevoorwaarden",
-    "LOGOUT_MESSAGE": "Weet u zeker dat u wilt uitloggen?",
-    "MANAGE": "Beheren",
+    "HOME": "huis",
     "MANAGE_WORKSPACE": "Werkruimte beheren",
-    "MEMBER": "Lid",
-    "MEMBERS": {
-        "DEFAULT": "Leden",
-        "INVITATION": "Uitnodigingen",
-        "INVITATION_DATE": "Uitnodigingsdatum",
-        "JOIN": "Toetredingsdatum",
-        "ROLE": "Rol",
-        "COLLABORATORS": {
-            "DEFAULT": "Medewerkers",
-            "DESCRIPTION": "Medewerkers kunnen formulieren importeren, formulieren verwijderen, reacties bekijken en reacties verwijderen."
-        },
-        "PENDING_REQUESTS": {
-            "DEFAULT": "In behandeling zijnde verzoeken",
-            "DESCRIPTION": "Verzoeken verlopen na 7 dagen na uitnodiging."
-        }
-    },
-    "MENU_DROPDOWN.CREATE_WORKSPACE": "Maak een nieuwe werkruimte aan",
-    "NEW_LINK": "Nieuwe koppeling",
-    "NO_DESCRIPTION": "Geen beschrijving beschikbaar voor dit bedrijf.",
-    "NO_IMAGE": "Geen afbeelding beschikbaar",
-    "OF": "Van",
-    "ONBOARDING": {
-        "ADD_WORKSPACE": "Voeg je werkruimte toe",
-        "DESCRIPTION": "Maak uw werkruimte aan zodat uw team weet dat u er bent.",
-        "TIME_MESSAGE": "Het duurt maar een paar minuten",
-        "WELCOME_MESSAGE": "Welkom bij BetterCollected."
-    },
-    "OR": "of",
-    "OTP_RENDERER": {
-        "OTP_SEND_MESSAGE": "Er wordt een OTP-code naar uw e-mailaccount verzonden",
-        "SUBTITLE": "OTP-code is verzonden naar",
-        "TITLE": "Voer OTP-code in"
-    },
-    "PAYMENT": {
-        "MONTHLY": "Maandelijks",
-        "YEARLY": "JAARLIJKS"
-    },
-    "PINNED_FORMS": "Vastgemaakte formulieren",
-    "PLACEHOLDER": {
-        "ENTER_CUSTOM_DOMAIN": "Voer uw aangepaste domein in",
-        "ENTER_WORKSPACE_HANDLE": "Voer de werkruimtehandle in",
-        "DESCRIPTION": "Voeg uw beschrijving toe",
-        "PRIVACY_POLICY_LINK": "Privacybeleid Link",
-        "TERMS_OF_SERVICES_LINK": "Servicevoorwaardenlink",
-        "WORKSPACE_TITLE": "Bijv. Sireto-technologie",
-        "GROUP_NAME": "Voer groepsnaam in",
-        "MEMBER_EMAIL": "Voer het e-mailadres van het lid in",
-        "SEARCH": "zoek"
-    },
-    "POWERED_BY": "Mogelijk gemaakt door:",
-    "PRICING_PLAN": {
-        "DESCRIPTION": "Wij zijn een veilige betaalmethode",
-        "NO_RISK": "Geen risico. Op elk moment annuleren",
-        "TITLE": "Upgraden naar PRO"
-    },
-    "PRIVACY_POLICY": "Privacybeleid",
-    "PROFILE_MENU": {
-        "BILLING": "Facturatie",
-        "LOGOUT": "Uitloggen",
-        "MY_DASHBOARD": "Mijn dashboard"
-    },
-    "PUBLIC": "Openbaar",
-    "READ_MORE": "Lees meer",
-    "REMOVE": "Verwijderen",
-    "REMOVE_INVITATION_FOR": "Uitnodiging verwijderen voor",
-    "REMOVE_WARNING_MESSAGE": "Het verwijderen van een lid zal ook alle door de gebruiker geïmporteerde formulieren verwijderen",
-    "RESPONDERS_AND_GROUPS": "Responders en groepen",
+    "RESPONSES": "Reacties",
+    "SUBMISSIONS": "Inzendingen"
+  },
+  "BUTTON": {
+    "ADD": "Toevoegen",
+    "ADD_MEMBER": "Lid toevoegen",
+    "ADD_FORM": "Voeg formulier toe",
+    "BACK": "terug",
+    "CANCEL": "Annuleren",
+    "CHECK_MY_DATA": "Controleer mijn gegevens",
+    "CONTINUE": "Doorgaan",
+    "CONTINUE_WITH_GOOGLE": "Doorgaan met Google",
+    "COPY_LINK": "Link kopiëren",
+    "CREATE_WORKSPACE": "Maak een werkruimte",
+    "CUSTOMIZE_LINK": "Uw link aanpassen",
+    "DELETE": "Verwijderen",
+    "DONE": "Klaar",
+    "GETIN": "Kom binnen",
+    "GOOGLE_SIGNIN": "Meld u aan met Google",
+    "IMPORT_FORMS": "Formulieren importeren",
+    "IMPORT_NOW": "Nu importeren",
+    "INVITE_COLLABORATOR": "Nodig medewerker uit",
+    "LOGIN": "log in",
+    "LOGOUT": "Uitloggen",
+    "NEXT": "Volgende",
+    "PREVIOUS": "Vorige",
+    "PRO": "PRO",
+    "REQUEST_AN_INTEGRATION": "Vraag een integratie aan",
+    "RESEND": "Opnieuw verzenden",
+    "RESEND_CODE": "Code opnieuw verzenden",
     "SAVE": "Opslaan",
-    "SEND_CODE": {
-        "DESCRIPTION": "OTP-code wordt naar deze e-mail verzonden",
-        "TITLE": "Voer uw e-mailadres in"
-    },
-    "SETTINGS": "Instellingen",
-    "SETUP_CUSTOM_DOMAIN_FOR_WORKSPACE": "Stel uw aangepaste domein voor werkruimte in",
+    "SAVE_IMAGE": "Afbeelding opslaan",
+    "SAVING": "Opslaan",
+    "SEND_CODE": "Code verzenden",
+    "SEND_INVITATION": "Uitnodiging verzenden",
     "SHARE": "deel",
-    "SHARE_THIS_FORM": "Deel dit formulier",
-    "SHARE_WORKSPACE": "Werkruimte delen",
-    "SHARE_YOUR_WORKSPACE": "Deel je werkruimte",
-    "SIGNIN_SCREEN": {
-        "COLLECT_FORMS": "Verzamel uw formulieren",
-        "SIGN_IN": "Aanmelden",
-        "CONTINUE_WITH": "ga verder met:",
-        "DELETE_RESPONSES": "Antwoorden verwijderen",
-        "EASY_TO_MANAGE_FORMS": "Eenvoudig te beheren formulieren",
-        "LOGIN_TITLE_SLOGAN": "Maak deel uit van de grotere gemeenschap door in te loggen.",
-        "READY_TO_GET_STARTED": "Klaar om te beginnen?",
-        "REVIEW_FORMS": "Formulieren beoordelen",
-        "SIGNIN_AGREEMENT_DESCRIPTION": "Door in te loggen, gaat u akkoord met onze",
-        "WELCOME_MESSAGE": "Welkom terug!",
-        "FEATURES": {
-            "TITLE": "Creëer een persoonlijke merkwerkruimte waar",
-            "FEATURE_1": "U kunt al uw formulieren importeren.",
-            "FEATURE_2": "U kunt uw formulier-URL's aanpassen.",
-            "FEATURE_3": "U kunt uw collega's uitnodigen voor samenwerking.",
-            "FEATURE_4": "U kunt uw werkruimte openbaar delen met uw formulierbeantwoorders",
-            "FEATURE_5": "Uw formulierbeantwoorders kunnen gemakkelijk al uw openbare formulieren vinden",
-            "FEATURE_6": "Uw formulierresponders kunnen hun antwoord veilig bekijken"
-        }
+    "SUBMIT": "Verzenden",
+    "TYPEFORM_SIGNIN": "Aanmelden met Typeform",
+    "UPDATE": "Bijwerken",
+    "UPDATE_URL": "URL bijwerken",
+    "UPDATE_WORKSPACE": "Werkruimte bijwerken",
+    "UPGRADE": "Opwaarderen",
+    "UPGRADE_TO_PRO": "Upgraden naar PRO",
+    "UPLOAD": "Uploaden",
+    "UPLOAD_UNLIMITED_FORMS": "Onbeperkt formulieren uploaden",
+    "VERIFY": "Verifiëren",
+    "DECLINE": "Weigeren",
+    "JOIN_WORKSPACE": "Deelnemen aan werkruimte",
+    "YES": "Ja",
+    "NO": "nee",
+    "REQUEST_FOR_DELETION": "Verzoek om verwijdering",
+    "REQUESTED_FOR_DELETION": "Verzoek om verwijdering",
+    "REMOVE_INVITATION": "Uitnodiging verwijderen",
+    "DELETE_MEMBER": "Lid verwijderen",
+    "SKIP": "Overslaan",
+    "UPDATE_NOW": "Update nu",
+    "SAVE_CHANGES": "Wijzigingen opslaan",
+    "ADD_GROUP": "Groep toevoegen",
+    "DELETE_FORM": "Formulier verwijderen"
+  },
+  "CONTACT_US": {
+    "DESCRIPTION": "Vragen of opmerkingen? Schrijf ons gewoon een bericht",
+    "DEFAULT": "Contacteer ons"
+  },
+  "CUSTOMIZE_DOMAIN": {
+    "DEFAULT": "Domein aanpassen",
+    "DESCRIPTION": "Pas uw werkruimte-URL aan zodat uw publiek weet dat u het bent."
+  },
+  "CUSTOMIZE_LINK": {
+    "DEFAULT": "Koppeling aanpassen",
+    "DESCRIPTION": "Pas uw formulier-URL aan zodat uw publiek weet dat u het bent.",
+    "TITLE": "Koppeling gratis aanpassen"
+  },
+  "CUSTOMIZE_URL": "URL aanpassen",
+  "CUSTOM_DOMAIN": "Aangepast domein",
+  "DASHBOARD": {
+    "DEFAULT": "Dashboard",
+    "PREVIEW": "Voorbeeld"
+  },
+  "DASHBOARD_DRAWER": {
+    "COLLABORATOR": "Medewerker",
+    "OWNER": "Eigenaar",
+    "MANAGE_URLS": "Koppelingen beheren"
+  },
+  "DELETE": {
+    "DEFAULT": "Verwijderen",
+    "MESSAGE": "Als deze actie eenmaal is voltooid, kan deze niet meer ongedaan worden gemaakt."
+  },
+  "DELETION_REMAINING": "verwijdering resterend",
+  "DESCRIPTION": "Beschrijving",
+  "DOMAIN": "Domein",
+  "EARLY_ACCESS": "Krijg vroege toegang!",
+  "EDIT_WORKSPACE": {
+    "TITLE": "Werkruimte bewerken",
+    "DESCRIPTION": "Maak een groep om formulieren naar hele groepen te sturen, stroomlijn het proces en bespaar tijd.",
+    "UPLOAD_BANNER_IMAGE": "Bannerafbeelding uploaden",
+    "BANNER_ASPECT_RATIO": "5:1 beeldverhouding aanbevolen"
+  },
+  "EMAIL": "E-mail",
+  "EMAIL_ADDRESS": "E-mailadres",
+  "ENTER_EMAIL": "Voer e-mailadres in",
+  "GO_TO_RESPONSE": "Ga naar antwoord",
+  "FORM": {
+    "DEFAULT": "Formulier",
+    "UNPIN_FORM": "Formulier losmaken",
+    "COLLECTED_RESPONSES": "Verzamelde reacties",
+    "DELETE": "Formulier verwijderen",
+    "DELETE_DESCRIPTION": "Als u dit formulier verwijdert, worden ook alle reacties en verwijderingsverzoeken verwijderd.",
+    "DELETION_REQUEST.DESCRIPTION": "U heeft geen verwijdering aangevraagd voor uw ingevulde antwoorden.",
+    "DELETION_REQUESTS": "Verwijderverzoeken",
+    "DELETION_RESPONSE.DESCRIPTION": "U heeft geen reactie ingediend op de formulieren in deze werkruimte.",
+    "DELETION_RESPONSE_WARNING_MESSAGE": "Weet u zeker dat u wilt verzoeken om verwijdering van uw reactie?",
+    "EMPTY": {
+      "DESCRIPTION": "Importeer uw Google Forms of Typeforms",
+      "TITLE": "Importeer uw eerste formulier"
     },
-    "SLUG": {
-        "DEFAULT": "Slak",
-        "VALIDATION_MESSAGE": "Slak is vereist"
+    "EMPTY_DELETION_REQUEST": {
+      "DESCRIPTION": "U kunt het verwijderingsverzoek zien zodra de respondent om verwijdering verzoekt.",
+      "TITLE": "Nog geen verwijderingsverzoek"
     },
-    "STATUS": "Status",
-    "STAP": "Stap",
-    "TERMS_OF_SERVICES": "Servicevoorwaarden",
-    "TOAST": {
-        "COPIED": "Gekopieerd!",
-        "COULD_NOT_IMPORT_FORM": "Kan het formulier niet importeren.",
-        "CUSTOM_DOMAIN_DELETION_ERROR": "Fout bij verwijderen van aangepast domein",
-        "CUSTOM_DOMAIN_UPDATED": "Bijgewerkt aangepast domein van werkruimte",
-        "ERROR_DELETING_CUSTOM_DOMAIN": "Fout bij verwijderen van aangepast domein",
-        "ERROR_FETCHING_SUBMISSION_DATA": "Fout bij het ophalen van inzendingsgegevens",
-        "FAILED_INVITATION_DELETION": "Kan uitnodiging niet verwijderen",
-        "FAILED_TO_REMOVE_USER": "Kon gebruiker niet verwijderen",
-        "FAILED_TO_SEND_EMAIL": "Versturen van e-mail mislukt",
-        "FORMS_DELETED": "Formulier verwijderd",
-        "FORMS_DELETE_FAIL": "Kon formulier niet verwijderen",
-        "FORM_IMPORTED_SUCCESSFULLY": "Formulier succesvol geïmporteerd.",
-        "FORM_SETTING_UPDATE_ERROR": "Kan deze formulierinstelling niet bijwerken",
-        "FORM_URL_COPIED": "Formulier-URL gekopieerd!",
-        "IMAGE_SIZE_RESTRICTION": "Afbeeldingsgrootte is groter dan 100 MB",
-        "INVALID_URL": "Ongeldige URL",
-        "INVITATION_DELETED": "Uitnodiging verwijderd",
-        "INVITATION_SENT": "Uitnodiging verzonden",
-        "MEMBER_REMOVED_FROM_WORKSPACE": "Lid verwijderd uit werkruimte",
-        "OTP_FIELD_NULL_ERROR": "OTP-veld mag niet leeg zijn!",
-        "SOMETHING_WENT_WRONG": "Er ging iets mis",
-        "UPDATED_SUCCESSFULLY": "Succesvol geüpdatet !!",
-        "WORKSPACE_SUCCESS": "Succes",
-        "WORKSPACE_UPDATE": "Werkruimte bijgewerkt",
-        "WORKSPACE_URL_COPIED": "Url van werkruimte gekopieerd",
-        "EMAIL_ALREADY_EXIST": "Dit e-mailadres bestaat al",
-        "GROUP_DELETED": "Groep succesvol verwijderd",
-        "ADDED_ON_GROUP": "Toegevoegd aan groep",
-        "REMOVE_FROM_GROUP": "Verwijderd uit groep",
-        "ALREADY_IN_GROUP": "Al in groep",
-        "LAST_PERSON_IN_GROUP": "Je kunt de laatste persoon van deze groep niet verwijderen",
-        "REMOVED": "Verwijderd"
+    "EMPTY_RESPONSE": {
+      "DESCRIPTION": "U kunt de formulierresponders zien zodra de responder reageert ",
+      "TITLE": "Nog geen antwoord"
     },
-    "TOOLTIP": {
-        "DELETION_REQUEST": "verwijderingsverzoeken",
-        "FORM_IMPORTED": "formulieren geïmporteerd",
-        "FORM_RESPONSES": "antwoorden invullen",
-        "OUT_OF_LIMITED_FORM": "van de beperkte 100 formulieren",
-        "PREVIEW_WORKSPACE": "Bekijk een voorbeeld van uw werkruimte",
-        "RESPONSES_DELETE_OUT_OF": "reacties verwijderd uit",
-        "VISIBILITY": "Zichtbaarheid van het formulier moet openbaar zijn om het in de werkruimte vast te zetten."
-    },
-    "UNTITLED": "Zonder titel",
-    "UPDATED": "Bijgewerkt",
-    "UPDATE_WORKSPACE_HANDLE": "Bijgewerkte werkruimtehandle",
-    "UPDATE_YOUR_CUSTOM_DOMAIN": "Update uw aangepaste domein",
-    "UPDATE_YOUR_PROFILE_IMAGE": "Werk uw Workspace-profielfoto bij",
-    "WORKSPACE_HANDLE": "Werkruimtehandvat",
-    "UPDATE_WORKSPACE": {
-        "COMMON": {
-            "CONSEQUENCE": "Wat zal er gebeuren?",
-            "CURRENT_LINK": "Uw huidige link",
-            "CHANGE": "Veranderen"
-        },
-        "SETTINGS": {
-            "COMMON": {
-                "POINT1": "Maak het gemakkelijker te onthouden",
-                "POINT2": "Maak het relevant voor uw bedrijf of organisatie.",
-                "POINT3": "Houd het kort en bondig."
-            },
-            "HANDLE": {
-                "POINT4": "Vermijd het gebruik van spaties of speciale tekens. Alleen '.' en '_' wordt geaccepteerd."
-            },
-            "DOMAIN": {
-                "REMOVE": "Verwijder huidig ​​domein en",
-                "RESET": "terugzetten naar standaard.",
-                "CNAME": "Voeg CNAME-record van uw domein toe om naar te verwijzen ",
-                "CONFIRMATION_TITLE": "Weet u zeker dat u de domeinnaam wilt resetten naar standaard?",
-                "CONFIRMATION_DESC": "Alle links met een oude domeinnaam werken niet meer."
-            }
-        },
-        "HANDLE": {
-            "DESC": "Pas de naam van uw werkruimte aan om uw werkruimte persoonlijker te maken.",
-            "POINT_1": "Uw nieuwe werkruimtehandlenaam zal worden weergegeven in al uw werkruimtegerelateerde communicatie, zoals werkruimtelink, formulieren enz.",
-            "POINT_2": "Alle koppelingen met een oude werkruimtehandlenaam werken niet meer."
-        },
-        "DOMAIN": {
-            "DESC": "Uw domeinnaam wijzigen en de branding en identiteit van uw werkruimte verbeteren.",
-            "POINT_1": "Uw nieuwe domeinnaam wordt weergegeven in al uw werkruimtegerelateerde communicatie, zoals werkruimtelink, formulieren enz.",
-            "POINT_2": "Alle links met een oude domeinnaam werken niet meer."
-        }
-    },
-    "UPGRADE": {
-        "PRO_INCLUDES": "PRO Plan omvat",
-        "DEFAULT_SLOGAN": "Upgrade naar PRO-abonnement voor meer functies",
-        "FEATURES": {
-            "WORKSPACE": {
-                "SLOGAN": "Organiseer uw gebruikers met meerdere werkruimtes",
-                "TITLE": "Meerdere Werkruimte",
-                "DESCRIPTION": "Pro-accounts bieden de mogelijkheid om meerdere werkruimten te creëren, terwijl gratis accounts slechts één werkruimte toestaan. Dit betekent dat Pro-gebruikers afzonderlijke werkruimten kunnen creëren voor verschillende projecten of teams."
-            },
-            "COLLABORATOR": {
-                "SLOGAN": "Begin met samenwerken met uw team",
-                "TITLE": "Samenwerken met anderen",
-                "DESCRIPTION": "Pro-accounts bieden samenwerkingsfuncties, Basic-accounts niet. Dit betekent dat Pro-gebruikers met anderen kunnen samenwerken om formulieren te importeren en formulieren te beheren. Dit kan een geweldige manier zijn om werk sneller en efficiënter gedaan te krijgen."
-            },
-            "CUSTOM_DOMAIN": {
-                "SLOGAN": "Personaliseer uw URL's met een aangepast domein",
-                "TITLE": "Aangepaste domeinnaam",
-                "DESCRIPTION": "Pro-accounts bieden aangepaste domeinondersteuning, gratis accounts niet. Dit betekent dat Pro-gebruikers hun eigen domeinnaam kunnen gebruiken voor hun Workspace, in plaats van het 'BetterCollected'-domein te gebruiken. Dit kan een geweldige manier zijn om uw bedrijf er professioneler uit laten zien en uw naamsbekendheid verbeteren."
-            },
-            "UNLIMITED_FORMS": {
-                "SLOGAN": "Importeer onbeperkte formulieren met PRO Plan",
-                "TITLE": "Onbeperkt formulier importeren",
-                "DESCRIPTION": "Pro-accounts bieden onbeperkte formulierimport, terwijl gratis accounts beperkt zijn tot 100 formulierimport. Dit kan een groot voordeel zijn voor bedrijven die grote hoeveelheden gegevens uit formulieren moeten importeren."
-            }
-        }
-    },
-    "WORKSPACE": {
-        "ALL_RESPONDERS": "Alle respondenten",
-        "DEFAULT": "werkruimte",
-        "BANNER": "Werkruimtebanner",
-        "BANNER_EMPTY_MESSAGE": "Je kunt slepen om de afbeelding aan te passen.",
-        "DESCRIPTION": "Beschrijving werkruimte",
-        "INVITATION_NOT_FOUND": "Uitnodiging niet gevonden",
-        "LOGO.DESCRIPTION": "Zorg ervoor dat uw afbeelding kleiner is dan 100mb",
-        "NAME": "Werkruimte naam",
-        "PREVIEW.EMPTY_FORM_DESCRIPTION": "Er zijn geen formulieren geïmporteerd in deze werkruimte.",
-        "PREVIEW.EMPTY_FORM_TITLE": "Geen formulieren om te tonen",
-        "PROFILE_IMAGE": "Werkruimte profielafbeelding",
-        "TITLE": "Werkruimtetitel",
-        "TITLE.VALIDATION_MESSAGE": "Werkruimtetitel is vereist",
-        "URL": "Workspace-URL"
+    "EMPTY_DELETION_RESPONSE.TITLE": "Geen reacties om te tonen",
+    "FORM_TYPE": "Formuliertype",
+    "HIDE": "Formulier verbergen",
+    "HIDE_DESCRIPTION": "Toon dit formulier niet op de werkruimtepagina.",
+    "IMPORTED_DATE": "Geïmporteerde datum",
+    "IMPORTED_FORMS": "Geïmporteerde formulieren",
+    "IMPORT_UNLIMITED": "Importeer onbeperkte formulieren",
+    "PINNED": "Vastgezet",
+    "PINNED_DESCRIPTION": "Toon dit formulier in vastgezette sectie",
+    "RECENT_FORMS": "Recente formulieren",
+    "REQUESTED_BY": "Aangevraagd door",
+    "RESPONDER": "Beantwoorder",
+    "RESPONDED_ON": "Reageerde op",
+    "REQUESTED_ON": "Aangevraagd op",
+    "RESPONDERS": "Antwoorden",
+    "RESPONSE": "Reactie",
+    "RESPONSES": "Reacties",
+    "RESPONSE_ID": "Reactie-ID",
+    "STATUS_DELETED": "Verwijderd",
+    "STATUS_PENDING": "In behandeling",
+    "SUBMISSION_DATE": "Indieningsdatum",
+    "SUBMITTED_FORMS": "Ingediende formulieren",
+    "PREVIEW": "Voorbeeld",
+    "URL": "Formulier-URL",
+    "IMPORTED_BY": "Geïmporteerd door",
+    "IMPORTED_ON": "Geïmporteerd op",
+    "ADD_GROUP": "Groep toevoegen aan formulier",
+    "SETTINGS": {
+      "DESCRIPTION": "Medewerkers kunnen formulieren importeren, formulieren verwijderen, reacties bekijken en reacties verwijderen.",
+      "DEFAULT_LINK": {
+        "TITLE": "Standaardkoppeling"
+      },
+      "CUSTOMIZE_FORM_LINK": {
+        "TITLE": "Formulierlink aanpassen"
+      },
+      "PIN_FORM": {
+        "TITLE": "Pinformulier",
+        "DESCRIPTION": "Toon dit formulier in vastgezette sectie"
+      },
+      "VISIBILITY": {
+        "TITLE": "Formulierzichtbaarheid",
+        "DESCRIPTION": "Formulieren worden alleen verborgen in uw werkruimte.",
+        "PUBLIC": "Openbaar",
+        "PRIVATE": "Privé"
+      }
     }
+  },
+  "FORMS": "Formulieren",
+  "FORMS_LINK": "Links naar formulieren",
+  "FORM_LINK_WITH_PREVIOUS_DOMAIN_WONT_WORK": "Formulierlinks met vorig domein werken niet meer na updaten.",
+  "FORM_LINK_WITH_PREVIOUS_WORKSPACE_HANDLE_WONT_WORK": "Formulierkoppelingen met vorige werkruimtehandvat werken niet na updaten.",
+  "FORM_MENU": {
+    "DELETE_FORM": "Formulier verwijderen",
+    "PIN_FORM": "Pin formulier",
+    "SHARE": "deel",
+    "VISIBILITY": "Zichtbaarheid"
+  },
+  "GET_STARTED": {
+    "0_FIT_STEP": {
+      "TITLE": "Is bettercollected geschikt voor u?",
+      "DESCRIPTION": "We willen uw tijd niet verspillen aan bettercollected als het niet goed bij u past. Deze korte handleiding helpt u en ons om erachter te komen.",
+      "BUTTON_TEXT": "Laten we het uitzoeken",
+      "ADDITIONAL_PROPS": {
+        "TEXT": "Al bekend met de app?",
+        "LINKED_TEXT": "Meld u nu aan!"
+      }
+    },
+    "FORM_BUILDERS": {
+      "TITLE": "Gebruikt u online formulierbouwers?",
+      "DESCRIPTION": "Gebruikt u online formulierbouwers zoals Google Form en Typeform voor het verzamelen van formulierreacties voor uzelf of uw bedrijf?"
+    },
+    "FORM_BRAND": {
+      "TITLE": "Heb je ooit gewenst dat je je formulieren beter kon brandmerken?",
+      "DESCRIPTION": "Ik wou dat u klantvriendelijke formulier-URL's en uw eigen aangepaste domeinlinks had die uw merk weerspiegelen in plaats van standaard gegenereerde URL's."
+    },
+    "DATA_RIGHTS": {
+      "TITLE": "Wil je door actie laten zien dat je geeft om de gegevensrechten van gebruikers? GDPR/CCPA etc.",
+      "DESCRIPTION": "Dataprivacyregelgeving zoals GDPR en CCPA geven formulierbeantwoorders rechten zoals recht op toegang en om verwijdering van gegevens aan te vragen"
+    },
+    "USER_IS_FIT": {
+      "TITLE": "Je bent op de goede plek",
+      "DESCRIPTION_1": "U gebruikt online formulieren om gegevens van uw gebruikers te verzamelen en geeft om branding en gebruikersgegevensrechten. Better Collected is precies voor u gebouwd.",
+      "DESCRIPTION_2": " We helpen u graag verder. Meld u nu aan om een ​​betere gegevensverzamelaar te worden.",
+      "BUTTON_TEXT": "Aanmelden"
+    },
+    "USER_IS_NOT_FIT": {
+      "TITLE": "Deze app past misschien niet perfect bij u.",
+      "DESCRIPTION_1": "Deze app is gemaakt voor mensen die online formulieren gebruiken om gegevens van uw gebruikers te verzamelen en zich bekommeren om branding en gebruikersgegevensrechten.",
+      "DESCRIPTION_2": "Op basis van je keuzes lijkt het erop dat we geen goede match zijn. Je bent echter nog steeds welkom om het uit te proberen. Misschien vind je het nog steeds leuk.",
+      "BUTTON_TEXT": "Probeer het eens"
+    }
+  },
+  "GROUP": {
+    "DEFAULT": "Groep",
+    "GROUPS": "Groepen",
+    "ADD_MEMBER": {
+      "DEFAULT": "Lid toevoegen",
+      "DESCRIPTION": "Groepsleden hebben toegang tot alle formulieren die aan de groep zijn toegevoegd"
+    },
+    "DETAILS": "Groepsgegevens",
+    "CREATE_A_GROUP_TO": "Maak een groep aan ",
+    "LIMIT_ACCESS_TO_FORM": "Beperk toegang tot formulier vanuit uw werkruimte",
+    "SEND_FORMS_TO_MULTIPLE_PEOPLE": "Stuur formulieren naar meerdere mensen tegelijk",
+    "CREATE_GROUP": "Groep aanmaken",
+    "CREATE_NEW_GROUP": {
+      "DEFAULT": "Nieuwe groep aanmaken",
+      "DESCRIPTION": "Maak een groep om formulieren naar hele groepen te sturen, stroomlijn het proces en bespaar tijd."
+    },
+    "NAME": "Groepsnaam",
+    "DESCRIPTION": "Stuur formulieren naar hele groepen, stroomlijn het proces en bespaar tijd.",
+    "MEMBERS": {
+      "DEFAULT": "Leden",
+      "DESCRIPTION": "Alleen deze leden kunnen uw formulier in uw werkruimte zien."
+    },
+    "EDIT_GROUP": "Groep bewerken",
+    "CREATED_BY": "Gemaakt door",
+    "CREATED_ON": "Gemaakt op",
+    "MEMBER_EMAIL": "E-mailadres van lid",
+    "NOT_IN_ANY_GROUP": "Niet in een groep",
+    "ASK_ADMIN_TO_CREATE_A_GROUP": "Vraag beheerder om een ​​groep te maken"
+  },
+  "HEY": "hoi",
+  "HIDDEN": "Verborgen",
+  "IMAGE": "Afbeelding",
+  "IMAGE_SIZE_RESTRICTION": "Zorg ervoor dat uw afbeelding kleiner is dan 100 MB",
+  "IMPORT_FORM": {
+    "DEFAULT": "Formulier importeren",
+    "CHOICE": "Welk formulier wilt u importeren?",
+    "RESPONSE_OWNER_TAG_DESCRIPTION": "Selecteer veld waaruit de eigenaar van het antwoord kan worden geïdentificeerd",
+    "RESPONSE_OWNER_TAG_LABEL": "Kies een gegevenseigenaarveld voor dit formulier",
+    "RESPONSE_OWNER_TAG_TITLE": "Reactie-eigenaar tag",
+    "TEXT_LABEL": "Kies uw Google-formulier",
+    "TITLE": "Selecteer een formulier om te importeren"
+  },
+  "INVALID_DOMAIN": "Ongeldig domein",
+  "INVALID_WORKSPACE_HANDLE": "Ongeldige werkruimtehandle",
+  "INVITATION": {
+    "TITLE_1": "Je bent uitgenodigd voor",
+    "TITLE_2": "Word lid van de werkruimte en begin samen te werken",
+    "LINK_EXPIRY": "Deze link verloopt over 7 dagen.",
+    "LIST": {
+      "ITEM_1": "Alle formulieren en antwoorden in werkruimte",
+      "ITEM_2": "Formulieren importeren naar werkruimte",
+      "ITEM_3": "Formulier formulier werkruimte verwijderen",
+      "TITLE": "U krijgt toegang tot:"
+    }
+  },
+  "INVITE_COLLABORATOR": {
+    "DEFAULT": "Medewerker uitnodigen",
+    "DESCRIPTION": "Een medewerker kan formulieren in de werkruimte importeren en beheren."
+  },
+  "LAST_SUBMITTED_AT": "Ingezonden bij:",
+  "LINK_TO_PRIVACY_POLICY": "Link naar privacybeleid",
+  "LINK_TO_TERMS_OF_SERVICES": "Link naar Servicevoorwaarden",
+  "LOGOUT_MESSAGE": "Weet u zeker dat u wilt uitloggen?",
+  "MANAGE": "Beheren",
+  "MANAGE_WORKSPACE": "Werkruimte beheren",
+  "MEMBER": "Lid",
+  "MEMBERS": {
+    "DEFAULT": "Leden",
+    "INVITATION": "Uitnodigingen",
+    "INVITATION_DATE": "Uitnodigingsdatum",
+    "JOIN": "Toetredingsdatum",
+    "ROLE": "Rol",
+    "COLLABORATORS": {
+      "DEFAULT": "Medewerkers",
+      "DESCRIPTION": "Medewerkers kunnen formulieren importeren, formulieren verwijderen, reacties bekijken en reacties verwijderen."
+    },
+    "PENDING_REQUESTS": {
+      "DEFAULT": "In behandeling zijnde verzoeken",
+      "DESCRIPTION": "Verzoeken verlopen na 7 dagen na uitnodiging."
+    }
+  },
+  "MENU_DROPDOWN.CREATE_WORKSPACE": "Maak een nieuwe werkruimte aan",
+  "NEW_LINK": "Nieuwe koppeling",
+  "NO_DESCRIPTION": "Geen beschrijving beschikbaar voor dit bedrijf.",
+  "NO_IMAGE": "Geen afbeelding beschikbaar",
+  "OF": "Van",
+  "ONBOARDING": {
+    "ADD_WORKSPACE": "Voeg je werkruimte toe",
+    "DESCRIPTION": "Maak uw werkruimte aan zodat uw team weet dat u er bent.",
+    "TIME_MESSAGE": "Het duurt maar een paar minuten",
+    "WELCOME_MESSAGE": "Welkom bij BetterCollected."
+  },
+  "OR": "of",
+  "OTP_RENDERER": {
+    "OTP_SEND_MESSAGE": "Er wordt een OTP-code naar uw e-mailaccount verzonden",
+    "SUBTITLE": "OTP-code is verzonden naar",
+    "TITLE": "Voer OTP-code in"
+  },
+  "PAYMENT": {
+    "MONTHLY": "Maandelijks",
+    "YEARLY": "JAARLIJKS"
+  },
+  "PINNED_FORMS": "Vastgemaakte formulieren",
+  "PLACEHOLDER": {
+    "ENTER_CUSTOM_DOMAIN": "Voer uw aangepaste domein in",
+    "ENTER_WORKSPACE_HANDLE": "Voer de werkruimtehandle in",
+    "DESCRIPTION": "Voeg uw beschrijving toe",
+    "PRIVACY_POLICY_LINK": "Privacybeleid Link",
+    "TERMS_OF_SERVICES_LINK": "Servicevoorwaardenlink",
+    "WORKSPACE_TITLE": "Bijv. Sireto-technologie",
+    "GROUP_NAME": "Voer groepsnaam in",
+    "MEMBER_EMAIL": "Voer het e-mailadres van het lid in",
+    "SEARCH": "zoek"
+  },
+  "POWERED_BY": "Mogelijk gemaakt door:",
+  "PRICING_PLAN": {
+    "DESCRIPTION": "Wij zijn een veilige betaalmethode",
+    "NO_RISK": "Geen risico. Op elk moment annuleren",
+    "TITLE": "Upgraden naar PRO",
+    "FOR_UNLIMITED_IMPORT": "voor onbeperkt importeren van formulieren en nog veel meer functies.",
+    "FOR_THIS_FEATURE": " voor deze functie"
+  },
+  "PRIVACY_POLICY": "Privacybeleid",
+  "PROFILE_MENU": {
+    "BILLING": "Facturatie",
+    "LOGOUT": "Uitloggen",
+    "MY_DASHBOARD": "Mijn dashboard"
+  },
+  "PUBLIC": "Openbaar",
+  "READ_MORE": "Lees meer",
+  "REMOVE": "Verwijderen",
+  "REMOVE_INVITATION_FOR": "Uitnodiging verwijderen voor",
+  "REMOVE_WARNING_MESSAGE": "Het verwijderen van een lid zal ook alle door de gebruiker geïmporteerde formulieren verwijderen",
+  "RESPONDERS_AND_GROUPS": "Responders en groepen",
+  "SAVE": "Opslaan",
+  "SEND_CODE": {
+    "DESCRIPTION": "OTP-code wordt naar deze e-mail verzonden",
+    "TITLE": "Voer uw e-mailadres in"
+  },
+  "SETTINGS": "Instellingen",
+  "SETUP_CUSTOM_DOMAIN_FOR_WORKSPACE": "Stel uw aangepaste domein voor werkruimte in",
+  "SHARE": "deel",
+  "SHARE_THIS_FORM": "Deel dit formulier",
+  "SHARE_WORKSPACE": "Werkruimte delen",
+  "SHARE_YOUR_WORKSPACE": "Deel je werkruimte",
+  "SIGNIN_SCREEN": {
+    "COLLECT_FORMS": "Verzamel uw formulieren",
+    "SIGN_IN": "Aanmelden",
+    "CONTINUE_WITH": "ga verder met:",
+    "DELETE_RESPONSES": "Antwoorden verwijderen",
+    "EASY_TO_MANAGE_FORMS": "Eenvoudig te beheren formulieren",
+    "LOGIN_TITLE_SLOGAN": "Maak deel uit van de grotere gemeenschap door in te loggen.",
+    "READY_TO_GET_STARTED": "Klaar om te beginnen?",
+    "REVIEW_FORMS": "Formulieren beoordelen",
+    "SIGNIN_AGREEMENT_DESCRIPTION": "Door in te loggen, gaat u akkoord met onze",
+    "WELCOME_MESSAGE": "Welkom terug!",
+    "FEATURES": {
+      "TITLE": "Creëer een persoonlijke merkwerkruimte waar",
+      "FEATURE_1": "U kunt al uw formulieren importeren.",
+      "FEATURE_2": "U kunt uw formulier-URL's aanpassen.",
+      "FEATURE_3": "U kunt uw collega's uitnodigen voor samenwerking.",
+      "FEATURE_4": "U kunt uw werkruimte openbaar delen met uw formulierbeantwoorders",
+      "FEATURE_5": "Uw formulierbeantwoorders kunnen gemakkelijk al uw openbare formulieren vinden",
+      "FEATURE_6": "Uw formulierresponders kunnen hun antwoord veilig bekijken"
+    }
+  },
+  "SLUG": {
+    "DEFAULT": "Slak",
+    "VALIDATION_MESSAGE": "Slak is vereist"
+  },
+  "STATUS": "Status",
+  "STAP": "Stap",
+  "TERMS_OF_SERVICES": "Servicevoorwaarden",
+  "TOAST": {
+    "COPIED": "Gekopieerd!",
+    "COULD_NOT_IMPORT_FORM": "Kan het formulier niet importeren.",
+    "CUSTOM_DOMAIN_DELETION_ERROR": "Fout bij verwijderen van aangepast domein",
+    "CUSTOM_DOMAIN_UPDATED": "Bijgewerkt aangepast domein van werkruimte",
+    "ERROR_DELETING_CUSTOM_DOMAIN": "Fout bij verwijderen van aangepast domein",
+    "ERROR_FETCHING_SUBMISSION_DATA": "Fout bij het ophalen van inzendingsgegevens",
+    "FAILED_INVITATION_DELETION": "Kan uitnodiging niet verwijderen",
+    "FAILED_TO_REMOVE_USER": "Kon gebruiker niet verwijderen",
+    "FAILED_TO_SEND_EMAIL": "Versturen van e-mail mislukt",
+    "FORMS_DELETED": "Formulier verwijderd",
+    "FORMS_DELETE_FAIL": "Kon formulier niet verwijderen",
+    "FORM_IMPORTED_SUCCESSFULLY": "Formulier succesvol geïmporteerd.",
+    "FORM_SETTING_UPDATE_ERROR": "Kan deze formulierinstelling niet bijwerken",
+    "FORM_URL_COPIED": "Formulier-URL gekopieerd!",
+    "IMAGE_SIZE_RESTRICTION": "Afbeeldingsgrootte is groter dan 100 MB",
+    "INVALID_URL": "Ongeldige URL",
+    "INVITATION_DELETED": "Uitnodiging verwijderd",
+    "INVITATION_SENT": "Uitnodiging verzonden",
+    "MEMBER_REMOVED_FROM_WORKSPACE": "Lid verwijderd uit werkruimte",
+    "OTP_FIELD_NULL_ERROR": "OTP-veld mag niet leeg zijn!",
+    "SOMETHING_WENT_WRONG": "Er ging iets mis",
+    "UPDATED_SUCCESSFULLY": "Succesvol geüpdatet !!",
+    "WORKSPACE_SUCCESS": "Succes",
+    "WORKSPACE_UPDATE": "Werkruimte bijgewerkt",
+    "WORKSPACE_URL_COPIED": "Url van werkruimte gekopieerd",
+    "EMAIL_ALREADY_EXIST": "Dit e-mailadres bestaat al",
+    "GROUP_DELETED": "Groep succesvol verwijderd",
+    "ADDED_ON_GROUP": "Toegevoegd aan groep",
+    "REMOVE_FROM_GROUP": "Verwijderd uit groep",
+    "ALREADY_IN_GROUP": "Al in groep",
+    "LAST_PERSON_IN_GROUP": "Je kunt de laatste persoon van deze groep niet verwijderen",
+    "REMOVED": "Verwijderd"
+  },
+  "TOOLTIP": {
+    "DELETION_REQUEST": "verwijderingsverzoeken",
+    "FORM_IMPORTED": "formulieren geïmporteerd",
+    "FORM_RESPONSES": "antwoorden invullen",
+    "OUT_OF_LIMITED_FORM": "van de beperkte 100 formulieren",
+    "PREVIEW_WORKSPACE": "Bekijk een voorbeeld van uw werkruimte",
+    "RESPONSES_DELETE_OUT_OF": "reacties verwijderd uit",
+    "VISIBILITY": "Zichtbaarheid van het formulier moet openbaar zijn om het in de werkruimte vast te zetten."
+  },
+  "UNTITLED": "Zonder titel",
+  "UPDATED": "Bijgewerkt",
+  "UPDATE_WORKSPACE_HANDLE": "Bijgewerkte werkruimtehandle",
+  "UPDATE_YOUR_CUSTOM_DOMAIN": "Update uw aangepaste domein",
+  "UPDATE_YOUR_PROFILE_IMAGE": "Werk uw Workspace-profielfoto bij",
+  "WORKSPACE_HANDLE": "Werkruimtehandvat",
+  "UPDATE_WORKSPACE": {
+    "COMMON": {
+      "CONSEQUENCE": "Wat zal er gebeuren?",
+      "CURRENT_LINK": "Uw huidige link",
+      "CHANGE": "Veranderen"
+    },
+    "SETTINGS": {
+      "COMMON": {
+        "POINT1": "Maak het gemakkelijker te onthouden",
+        "POINT2": "Maak het relevant voor uw bedrijf of organisatie.",
+        "POINT3": "Houd het kort en bondig."
+      },
+      "HANDLE": {
+        "POINT4": "Vermijd het gebruik van spaties of speciale tekens. Alleen '.' en '_' wordt geaccepteerd."
+      },
+      "DOMAIN": {
+        "REMOVE": "Verwijder huidig ​​domein en",
+        "RESET": "terugzetten naar standaard.",
+        "CNAME": "Voeg CNAME-record van uw domein toe om naar te verwijzen ",
+        "CONFIRMATION_TITLE": "Weet u zeker dat u de domeinnaam wilt resetten naar standaard?",
+        "CONFIRMATION_DESC": "Alle links met een oude domeinnaam werken niet meer."
+      }
+    },
+    "HANDLE": {
+      "DESC": "Pas de naam van uw werkruimte aan om uw werkruimte persoonlijker te maken.",
+      "POINT_1": "Uw nieuwe werkruimtehandlenaam zal worden weergegeven in al uw werkruimtegerelateerde communicatie, zoals werkruimtelink, formulieren enz.",
+      "POINT_2": "Alle koppelingen met een oude werkruimtehandlenaam werken niet meer."
+    },
+    "DOMAIN": {
+      "DESC": "Uw domeinnaam wijzigen en de branding en identiteit van uw werkruimte verbeteren.",
+      "POINT_1": "Uw nieuwe domeinnaam wordt weergegeven in al uw werkruimtegerelateerde communicatie, zoals werkruimtelink, formulieren enz.",
+      "POINT_2": "Alle links met een oude domeinnaam werken niet meer."
+    }
+  },
+  "UPGRADE": {
+    "PRO_INCLUDES": "PRO Plan omvat",
+    "DEFAULT_SLOGAN": "Upgrade naar PRO-abonnement voor meer functies",
+    "FEATURES": {
+      "WORKSPACE": {
+        "SLOGAN": "Organiseer uw gebruikers met meerdere werkruimtes",
+        "TITLE": "Meerdere Werkruimte",
+        "DESCRIPTION": "Pro-accounts bieden de mogelijkheid om meerdere werkruimten te creëren, terwijl gratis accounts slechts één werkruimte toestaan. Dit betekent dat Pro-gebruikers afzonderlijke werkruimten kunnen creëren voor verschillende projecten of teams."
+      },
+      "COLLABORATOR": {
+        "SLOGAN": "Begin met samenwerken met uw team",
+        "TITLE": "Samenwerken met anderen",
+        "DESCRIPTION": "Pro-accounts bieden samenwerkingsfuncties, Basic-accounts niet. Dit betekent dat Pro-gebruikers met anderen kunnen samenwerken om formulieren te importeren en formulieren te beheren. Dit kan een geweldige manier zijn om werk sneller en efficiënter gedaan te krijgen."
+      },
+      "CUSTOM_DOMAIN": {
+        "SLOGAN": "Personaliseer uw URL's met een aangepast domein",
+        "TITLE": "Aangepaste domeinnaam",
+        "DESCRIPTION": "Pro-accounts bieden aangepaste domeinondersteuning, gratis accounts niet. Dit betekent dat Pro-gebruikers hun eigen domeinnaam kunnen gebruiken voor hun Workspace, in plaats van het 'BetterCollected'-domein te gebruiken. Dit kan een geweldige manier zijn om uw bedrijf er professioneler uit laten zien en uw naamsbekendheid verbeteren."
+      },
+      "UNLIMITED_FORMS": {
+        "SLOGAN": "Importeer onbeperkte formulieren met PRO Plan",
+        "TITLE": "Onbeperkt formulier importeren",
+        "DESCRIPTION": "Pro-accounts bieden onbeperkte formulierimport, terwijl gratis accounts beperkt zijn tot 100 formulierimport. Dit kan een groot voordeel zijn voor bedrijven die grote hoeveelheden gegevens uit formulieren moeten importeren."
+      }
+    }
+  },
+  "WORKSPACE": {
+    "ALL_RESPONDERS": "Alle respondenten",
+    "DEFAULT": "werkruimte",
+    "BANNER": "Werkruimtebanner",
+    "BANNER_EMPTY_MESSAGE": "Je kunt slepen om de afbeelding aan te passen.",
+    "DESCRIPTION": "Beschrijving werkruimte",
+    "INVITATION_NOT_FOUND": "Uitnodiging niet gevonden",
+    "LOGO.DESCRIPTION": "Zorg ervoor dat uw afbeelding kleiner is dan 100mb",
+    "NAME": "Werkruimte naam",
+    "PREVIEW.EMPTY_FORM_DESCRIPTION": "Er zijn geen formulieren geïmporteerd in deze werkruimte.",
+    "PREVIEW.EMPTY_FORM_TITLE": "Geen formulieren om te tonen",
+    "PROFILE_IMAGE": "Werkruimte profielafbeelding",
+    "TITLE": "Werkruimtetitel",
+    "TITLE.VALIDATION_MESSAGE": "Werkruimtetitel is vereist",
+    "URL": "Workspace-URL"
+  }
 }

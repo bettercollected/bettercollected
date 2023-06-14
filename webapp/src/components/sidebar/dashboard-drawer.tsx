@@ -19,6 +19,8 @@ import { localesCommon } from '@app/constants/locales/common';
 import dashboardConstants from '@app/constants/locales/dashboard';
 import { formConstant } from '@app/constants/locales/form';
 import { members } from '@app/constants/locales/members';
+import { pricingPlan } from '@app/constants/locales/pricingplan';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { upgradeConst } from '@app/constants/locales/upgrade';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { IDrawerProps, INavbarItem } from '@app/models/props/navbar';
@@ -73,12 +75,12 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                                         openModal('UPGRADE_TO_PRO', { featureText: t(upgradeConst.features.unlimitedForms.slogan) });
                                     }}
                                 >
-                                    Upgrade To PRO
+                                    {t(pricingPlan.title)}
                                 </div>
-                                <div className="body4">for unlimited form import and many more features.</div>
+                                <div className="body4">{t(pricingPlan.forUnlimitedForms)}</div>
                                 <LinearProgress className="my-5 py-[2px]" variant="determinate" value={data?.forms || 0} color="inherit" />
                                 <div className="body4">
-                                    {data?.forms || 0}/100 {' forms imported'}
+                                    {data?.forms || 0}/100 {' ' + t(toolTipConstant.formImported)}
                                 </div>
                             </div>
                         </div>
