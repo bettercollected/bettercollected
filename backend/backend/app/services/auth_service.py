@@ -40,7 +40,7 @@ class AuthService:
             settings.auth_settings.BASE_URL + "/auth/status",
             params={"user_id": user.id},
         )
-        return {"user": response_data}
+        return response_data
 
     async def validate_otp(self, login_details: UserLoginWithOTP):
         response_data = await self.http_client.get(

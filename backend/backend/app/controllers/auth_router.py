@@ -8,6 +8,7 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 
 from backend.app.container import container
+from backend.app.models.dtos.user_status_dto import UserStatusDto
 from backend.app.router import router
 from backend.app.services.auth_cookie_service import (
     delete_token_cookie,
@@ -31,7 +32,7 @@ class AuthRoutes(Routable):
         super().__init__(*args, **kwargs)
         self.auth_service = auth_service
 
-    @get("/status")
+    @get("/status", response_model=UserStatusDto)
     async def status(self, user: User = Depends(get_logged_user)):
         return await self.auth_service.get_user_status(user)
 
