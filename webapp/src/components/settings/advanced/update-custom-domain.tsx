@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
@@ -9,9 +8,8 @@ import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import { advanceSetting } from '@app/constants/locales/advance-setting';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesGlobal } from '@app/constants/locales/global';
-import { upgradeConst } from '@app/constants/locales/upgrade';
 import { localesCommon } from '@app/constants/locales/common';
+import { upgradeConst } from '@app/constants/locales/upgrade';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -19,7 +17,6 @@ export default function UpdateCustomDomain() {
     const { t } = useTranslation();
     const workspace = useAppSelector((state) => state.workspace);
     const { openModal } = useModal();
-    const router = useRouter();
     const isProPlan = useAppSelector(selectIsProPlan);
     const upgradeModal = useFullScreenModal();
 
