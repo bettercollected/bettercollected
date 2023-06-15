@@ -48,13 +48,13 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
     const { deleteFormFromGroup } = useGroupForm();
     const isAdmin = useAppSelector(selectIsAdmin);
     useEffect(() => {
-        router.prefetch(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}/responses`);
+        router.prefetch(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}?view=Responses`);
     }, [router]);
 
     const handleResponseClick = (event: any) => {
         event.preventDefault();
         event.stopPropagation();
-        router.push(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}/responses`);
+        router.push(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}?view=Responses`);
     };
     return (
         <div className={`flex flex-col items-start justify-between h-full bg-white border-[2px] border-transparent hover:border-black-500 transition cursor-pointer rounded-lg shadow-formCard ${className}`}>

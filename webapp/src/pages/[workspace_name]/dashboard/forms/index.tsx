@@ -99,7 +99,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
         {
             name: t(formConstant.responses),
             selector: (row: StandardFormDto) => (
-                <ActiveLink className="hover:text-brand-500 hover:underline" href={`/${workspace.workspaceName}/dashboard/forms/${row.formId}/responses`}>
+                <ActiveLink className="hover:text-brand-500 hover:underline" href={`/${workspace.workspaceName}/dashboard/forms/${row.formId}?view=Responses`}>
                     {row?.responses ?? 0}
                 </ActiveLink>
             ),
@@ -115,7 +115,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
         {
             name: t(formConstant.deletionRequests),
             selector: (row: StandardFormDto) => (
-                <ActiveLink className="hover:text-brand-500 hover:underline paragraph" href={`/${workspace.workspaceName}/dashboard/forms/${row.formId}/deletion-requests`}>
+                <ActiveLink className="hover:text-brand-500 hover:underline paragraph" href={`/${workspace.workspaceName}/dashboard/forms/${row.formId}?view=Deletion+Request`}>
                     {' '}
                     {row?.deletionRequests ?? 0}
                 </ActiveLink>
