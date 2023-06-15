@@ -29,5 +29,9 @@ export const toastMessage = {
     removeFromGroup: 'TOAST.REMOVE_FROM_GROUP',
     alreadyInGroup: 'TOAST.ALREADY_IN_GROUP',
     lastPersonOfGroup: 'TOAST.LAST_PERSON_IN_GROUP',
-    removed: 'TOAST.REMOVED'
+    removed: 'TOAST.REMOVED',
+    accountDeletion: {
+        success: 'TOAST.ACCOUNT_DELETION.SUCCESS',
+        failed: 'TOAST.ACCOUNT_DELETION.FAILED'
+    }
 };

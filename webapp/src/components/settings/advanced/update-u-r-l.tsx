@@ -16,6 +16,7 @@ import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { Features } from '@app/constants/locales/feature';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { updateWorkspace } from '@app/constants/locales/update-workspace';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
@@ -65,7 +66,7 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                                     disabled
                                     value={environments.HTTP_SCHEME + (updateDomain && isProPlan && workspace.customDomain ? workspace.customDomain : environments.CLIENT_DOMAIN + '/' + workspace.workspaceName)}
                                 />
-                                <Tooltip title="Copy Link">
+                                <Tooltip title={t(toolTipConstant.copyLink)}>
                                     <CopyIcon
                                         className="cursor-pointer"
                                         onClick={() => {

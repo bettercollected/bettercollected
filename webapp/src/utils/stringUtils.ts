@@ -37,3 +37,8 @@ export const ellipsesText = (text: string, limit: number) => {
 
     return descStripped.replace(/\\n/gi, '\n');
 };
+
+export const trimTooltipTitle = (title?: string, limit: number = 20) => {
+    if (title && title.length > limit) return title;
+    return '';
+};

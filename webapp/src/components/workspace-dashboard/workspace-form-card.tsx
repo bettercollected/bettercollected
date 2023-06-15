@@ -19,6 +19,7 @@ import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
@@ -85,13 +86,13 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
             )}
             <div className="rounded relative w-full px-4 py-6 flex min-h-28 flex-col gap-4 items-start justify-between overflow-hidden">
                 <div className="rounded h-[34px] w-[34px]">{form?.settings?.provider === 'typeform' ? <TypeformIcon width={34} height={34} /> : <GoogleFormIcon width={34} height={34} className="-ml-1" />}</div>
-                <Tooltip title={form?.title || t(localesCommon.untitled)}>
+                <Tooltip title="">
                     <Typography className="body3 !leading-none w-[inherit]" noWrap>
                         {form?.title || t(localesCommon.untitled)}
                     </Typography>
                 </Tooltip>
                 {!isResponderPortal && (
-                    <Tooltip title={form?.settings?.private ? 'Hidden from your public workspace' : t(localesCommon.public)}>
+                    <Tooltip title={form?.settings?.private ? t(toolTipConstant.hideForm) : ''}>
                         <div className="flex items-center">
                             {form?.settings?.private ? <PrivateIcon /> : <PublicIcon />}
                             <p className={`leading-none text-[12px] text-black-900 ml-2`}>{form?.settings?.private ? t(localesCommon.hidden) : t(localesCommon.public)}</p>
@@ -99,8 +100,10 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                     </Tooltip>
                 )}
                 {!isResponderPortal && form?.settings?.pinned && (
-                    <Tooltip onClick={(e: any) => e.preventDefault()} className="absolute top-2 right-2 bg-white " title="Pinned to your public workspace view">
-                        <PinnedIcon />
+                    <Tooltip className="absolute top-2 right-2 bg-white " title={t(toolTipConstant.pinned)}>
+                        <div onClick={(e: any) => e.preventDefault()}>
+                            <PinnedIcon />
+                        </div>
                     </Tooltip>
                 )}
             </div>

@@ -21,7 +21,7 @@ export default function DataTableProviderFormCell({ workspace, form }: IDataTabl
 
     return (
         <ActiveLink href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`} className="w-fit">
-            <Tooltip title={form?.title || t(localesCommon.untitled)}>
+            <Tooltip title="">
                 <Typography className="flex justify-start items-center gap-3 !body3 !not-italic" noWrap>
                     <span className="w-10 h-10">
                         <Icon width={40} height={40} />

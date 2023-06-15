@@ -24,7 +24,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, isResponde
         <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px] border-brand-100 ${!!response?.deletionStatus ? '' : 'hover:border-brand-500'} transition cursor-pointer rounded ${className}`}>
             <div className="rounded relative w-full px-4 py-6 flex min-h-28 flex-col gap-4 items-start justify-between">
                 <div className="rounded h-[34px] w-[34px]">{response?.provider === 'typeform' ? <TypeformIcon width={34} height={34} /> : <GoogleFormIcon width={34} height={34} className="-ml-1" />}</div>
-                <Tooltip title={response?.formTitle || t(localesCommon.untitled)}>
+                <Tooltip>
                     <Typography className="body3 !leading-none w-[inherit]" noWrap>
                         {response?.formTitle || t(localesCommon.untitled)}
                     </Typography>

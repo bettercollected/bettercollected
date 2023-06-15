@@ -6,7 +6,7 @@ import { useRouter } from 'next/router';
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { IconButton, ListItem } from '@mui/material';
+import { IconButton, ListItem, Typography } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
@@ -24,7 +24,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { generateRandomBgColor } from '@app/utils/backgroundColors';
-import { toEndDottedStr } from '@app/utils/stringUtils';
+import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';
 
 interface IWorkspaceMenuDropdownProps {
     fullWidth?: boolean;
@@ -83,7 +83,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
     return (
         <MenuDropdown
             id="workspace-menu"
-            menuTitle={fullWorkspaceName}
+            menuTitle={trimTooltipTitle(fullWorkspaceName)}
             fullWidth={fullWidth}
             className={`!rounded-none hover:!rounded-none ${showExpandMore ? 'pr-4' : ''}`}
             showExpandMore={showExpandMore}
@@ -97,9 +97,8 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                         // style={{ background: `${color} !important` }}
                     />
                     <div className="flex flex-col items-start w-full">
-                        <Tooltip title={workspace?.title || 'Untitled'}>
-                            <p className="body3">{toEndDottedStr(workspace?.title || 'Untitled', 20)}</p>
-                        </Tooltip>
+                        <Typography className="body3 truncate">{toEndDottedStr(workspace?.title || 'Untitled', 20)}</Typography>
+
                         <p className="leading-none text-[12px] text-black-700">{getWorkspaceRole(workspace)}</p>
                     </div>
                 </div>
@@ -129,7 +128,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                                             // style={{ background: `${color} !important` }}
                                         />
                                         <div className="flex flex-col items-start w-full">
-                                            <Tooltip title={space?.title || 'Untitled'}>
+                                            <Tooltip title={trimTooltipTitle(space?.title)}>
                                                 <p className="body3">{toEndDottedStr(space?.title || 'Untitled', 20)}</p>
                                             </Tooltip>
                                             <p className="leading-none text-[12px] text-black-700">{getWorkspaceRole(space)}</p>
@@ -148,7 +147,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                             <div className="flex items-center gap-3">
                                 <AuthAccountProfileImage size={40} image={workspace?.profileImage} name={workspaceName} />
                                 <div className="flex flex-col items-start w-full">
-                                    <Tooltip title={fullWorkspaceName}>
+                                    <Tooltip title={trimTooltipTitle(fullWorkspaceName)}>
                                         <p className="body3">{workspaceName}</p>
                                     </Tooltip>
                                     <p className="leading-none text-[12px] text-black-700">{getWorkspaceRole(workspace)}</p>

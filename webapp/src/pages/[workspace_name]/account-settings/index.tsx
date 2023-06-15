@@ -14,6 +14,7 @@ import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { profileMenu } from '@app/constants/locales/profile-menu';
+import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { useDeleteAccountMutation, useLazyGetStatusQuery } from '@app/store/auth/api';
@@ -25,8 +26,6 @@ export default function AccountSettings(props: any) {
     const authStatus: UserStatus = useAppSelector(selectAuth);
     const { openModal, closeModal } = useModal();
     const [deleteAccount] = useDeleteAccountMutation();
-    const [authTrigger] = useLazyGetStatusQuery();
-    const dispatch = useAppDispatch();
     const router = useRouter();
     const locale = router?.locale === 'en' ? '' : `${router.locale}/`;
     const handleDeleteAccount = async () => {
@@ -34,9 +33,9 @@ export default function AccountSettings(props: any) {
             await deleteAccount().unwrap();
             closeModal();
             router.push(`/${locale}login`);
-            toast('Account deletion success', { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            toast(t(toastMessage.accountDeletion.success).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
         } catch (e) {
-            toast('Failed to delete Account', { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast(t(toastMessage.accountDeletion.failed).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
     };
     return (

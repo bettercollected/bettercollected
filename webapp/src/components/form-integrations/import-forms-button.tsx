@@ -9,6 +9,7 @@ import FormProviderContext from '@app/Contexts/FormProviderContext';
 import { useModal } from '@app/components/modal-views/context';
 import Button, { ButtonProps } from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
 
 export default function ImportFormsButton({ size, className = '' }: ButtonProps) {
     const { openModal } = useModal();
@@ -59,7 +60,7 @@ export default function ImportFormsButton({ size, className = '' }: ButtonProps)
     );
 
     if (!providers.google && !providers.typeform) {
-        return <Tooltip title="Form Providers are disabled.">{importFormButton}</Tooltip>;
+        return <Tooltip title={t(toolTipConstant.formProviderHidden)}>{importFormButton}</Tooltip>;
     }
 
     return importFormButton;

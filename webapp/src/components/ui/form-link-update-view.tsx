@@ -10,6 +10,7 @@ import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 import environments from '@app/configs/environments';
 import { customize } from '@app/constants/locales/customize';
 import { toastMessage } from '@app/constants/locales/toast-message';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { updateWorkspace } from '@app/constants/locales/update-workspace';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -49,7 +50,7 @@ export default function FormLinkUpdateView({ link, isLinkChangable = false }: IC
                     <div className="flex items-center gap-4 max-w-full flex-1">
                         <BetterInput inputProps={{ className: '!py-3' }} className="!mb-0" disabled value={link} />
 
-                        <Tooltip title="Copy Link">
+                        <Tooltip title={t(toolTipConstant.copyLink)}>
                             <CopyIcon
                                 className="cursor-pointer"
                                 onClick={() => {

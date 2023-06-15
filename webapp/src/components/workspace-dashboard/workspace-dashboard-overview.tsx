@@ -13,6 +13,7 @@ import AuthAccountProfileImage from '@app/components/auth/account-profile-image'
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import environments from '@app/configs/environments';
+import { buttonConstant } from '@app/constants/locales/button';
 import dashboardConstants from '@app/constants/locales/dashboard';
 import { Features } from '@app/constants/locales/feature';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
@@ -25,7 +26,7 @@ import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
-import { toEndDottedStr } from '@app/utils/stringUtils';
+import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';
 import { getFullNameFromUser } from '@app/utils/userUtils';
 
 import ProPlanHoc from '../hoc/pro-plan-hoc';
@@ -56,7 +57,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
             <div className="flex flex-col md:flex-row w-fit">
                 <div className={`flex items-center ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_INFO}`}>
                     <AuthAccountProfileImage size={48} image={workspace?.profileImage} name={workspace?.title || 'Untitled'} className="bg-blend-darken	" />
-                    <Tooltip title={workspace?.title}>
+                    <Tooltip title={trimTooltipTitle(workspace?.title, 30)}>
                         <h1 className="sh1 ml-3 h-12 flex items-center joyride-workspace-title">{toEndDottedStr(workspace?.title?.trim() || 'Untitled', 30)}</h1>
                     </Tooltip>
                 </div>
@@ -65,9 +66,11 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                 <div className="flex items-center gap-3 ml-0 md:mt-0 min-h-12">
                     {isAdmin && (
                         <div className={`flex items-center justify-center h-12 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_EDIT}`}>
-                            <div className="hover:bg-brand-100 rounded p-2 cursor-pointer" onClick={() => openModal('EDIT_WORKSPACE_MODAL')}>
-                                <EditIcon />
-                            </div>
+                            <Tooltip title={t(toolTipConstant.editWorkspace)}>
+                                <div className="hover:bg-brand-100 rounded p-2 cursor-pointer" onClick={() => openModal('EDIT_WORKSPACE_MODAL')}>
+                                    <EditIcon />
+                                </div>
+                            </Tooltip>
                         </div>
                     )}
 
@@ -87,30 +90,34 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                         {/*</ActiveLink>*/}
                     </div>
                     <div className={`flex items-center justify-center h-12 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_SHARE}`}>
-                        <div
-                            onClick={() =>
-                                openModal('SHARE_VIEW', {
-                                    url: getWorkspaceUrl(),
-                                    title: t(workspaceConstant.share)
-                                })
-                            }
-                            className="body4 rounded hover:bg-brand-100 p-2 !leading-none hover:cursor-pointer capitalize"
-                        >
-                            <Share />
-                        </div>
+                        <Tooltip title={t(toolTipConstant.shareWorkspace)}>
+                            <div
+                                onClick={() =>
+                                    openModal('SHARE_VIEW', {
+                                        url: getWorkspaceUrl(),
+                                        title: t(workspaceConstant.share)
+                                    })
+                                }
+                                className="body4 rounded hover:bg-brand-100 p-2 !leading-none hover:cursor-pointer capitalize"
+                            >
+                                <Share />
+                            </div>
+                        </Tooltip>
                     </div>
                 </div>
                 {isAdmin && (
                     <div className={`space-x-[1px] hidden sm:flex min-h-12 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_COLLABORATORS}`}>
                         <ProPlanHoc feature={Features.collaborator}>
-                            <div
-                                className="rounded bg-black-300 items-center cursor-pointer justify-center flex h-10 w-10"
-                                onClick={(event: any) => {
-                                    if (isProPlan) openModal('INVITE_MEMBER');
-                                }}
-                            >
-                                <PlusIcon />
-                            </div>
+                            <Tooltip title={t(buttonConstant.inviteCollaborator)}>
+                                <div
+                                    className="rounded bg-black-300 items-center cursor-pointer justify-center flex h-10 w-10"
+                                    onClick={(event: any) => {
+                                        if (isProPlan) openModal('INVITE_MEMBER');
+                                    }}
+                                >
+                                    <PlusIcon />
+                                </div>
+                            </Tooltip>
                         </ProPlanHoc>
                         {data?.map((user: WorkspaceMembersDto) => (
                             <div key={user.email}>
