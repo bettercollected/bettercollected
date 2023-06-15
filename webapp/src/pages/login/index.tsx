@@ -125,11 +125,11 @@ export const Login = () => {
                     <div className="body4">
                         {t(signInScreen.signinAgreementDescription)}
                         <a href="https://bettercollected.com/terms-of-service" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
-                            {t(localesCommon.termsOfServices)}
+                            {t(localesCommon.termsOfServices.title)}
                         </a>
                         {t(localesCommon.and)}
                         <a href="https://bettercollected.com/privacy-policy" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
-                            {t(localesCommon.privacyPolicy)}
+                            {t(localesCommon.privacyPolicy.title)}
                         </a>
                         .
                     </div>

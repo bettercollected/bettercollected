@@ -17,6 +17,7 @@ import EmptyResponse from '@app/components/ui/empty-response';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { groupConstant } from '@app/constants/locales/group';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -60,7 +61,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                     return (
                         <div
                             key={group.id}
-                            onClick={() => openModal('DELETE_CONFIRMATION', { title: group.name, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) })}
+                            onClick={() => openModal('DELETE_CONFIRMATION', { title: t(localesCommon.remove) + ' ' + group.name, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) })}
                             className="p-1 cursor-pointer w-fit group rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500"
                         >
                             <span className="body5 text-black-8000">{group.name}</span>

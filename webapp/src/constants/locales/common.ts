@@ -17,12 +17,18 @@ export const localesCommon = {
     newLink: 'NEW_LINK',
     goToResponse: 'GO_TO_RESPONSE',
     poweredBy: 'POWERED_BY',
-    privacyPolicy: 'PRIVACY_POLICY',
+    privacyPolicy: {
+        title: 'PRIVACY_POLICY.TITLE',
+        description: 'PRIVACY_POLICY.DESCRIPTION'
+    },
     settings: 'SETTINGS',
     slug: 'SLUG.DEFAULT',
     step: 'STEP',
     save: 'SAVE',
-    termsOfServices: 'TERMS_OF_SERVICES',
+    termsOfServices: {
+        title: 'TERMS_OF_SERVICES.TITLE',
+        description: 'TERMS_OF_SERVICES.DESCRIPTION'
+    },
     share: 'SHARE',
     imageSizeRestriction: 'IMAGE_SIZE_RESTRICTION',
     becomeABetterCollector: 'BECOME_A_BETTER_COLLECTOR',

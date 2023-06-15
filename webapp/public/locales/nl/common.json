@@ -34,6 +34,7 @@
     "CREATE_WORKSPACE": "Maak een werkruimte",
     "CUSTOMIZE_LINK": "Uw link aanpassen",
     "DELETE": "Verwijderen",
+    "DELETE_ACCOUNT": " Account verwijderen",
     "DONE": "Klaar",
     "GETIN": "Kom binnen",
     "GOOGLE_SIGNIN": "Meld u aan met Google",
@@ -356,7 +357,10 @@
     "FOR_UNLIMITED_IMPORT": "voor onbeperkt importeren van formulieren en nog veel meer functies.",
     "FOR_THIS_FEATURE": " voor deze functie"
   },
-  "PRIVACY_POLICY": "Privacybeleid",
+  "PRIVACY_POLICY": {
+    "TITLE": "Privacybeleid",
+    "DESCRIPTION": "Ons privacybeleid schetst hoe we uw persoonlijke informatie behandelen, verzamelen en beschermen wanneer u onze diensten gebruikt."
+  },
   "PROFILE_MENU": {
     "BILLING": "Facturatie",
     "LOGOUT": "Uitloggen",
@@ -406,7 +410,10 @@
   },
   "STATUS": "Status",
   "STAP": "Stap",
-  "TERMS_OF_SERVICES": "Servicevoorwaarden",
+  "TERMS_OF_SERVICES": {
+    "TITLE": "Servicevoorwaarden",
+    "DESCRIPTION": "Onze Servicevoorwaarden bepalen de regels en richtlijnen voor het gebruik van onze services."
+  },
   "TOAST": {
     "COPIED": "Gekopieerd!",
     "COULD_NOT_IMPORT_FORM": "Kan het formulier niet importeren.",

@@ -134,7 +134,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                             onClick={(event) => {
                                 event.stopPropagation();
                                 event.preventDefault();
-                                openModal('DELETE_CONFIRMATION', { title: form.title, handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form }) });
+                                openModal('DELETE_CONFIRMATION', { title: t(localesCommon.remove) + ' ' + form.title, handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form }) });
                             }}
                         />
                     )}

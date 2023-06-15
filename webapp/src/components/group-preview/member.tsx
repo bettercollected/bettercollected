@@ -9,6 +9,7 @@ import { Plus } from '@app/components/icons/plus';
 import { useModal } from '@app/components/modal-views/context';
 import DeleteDropDown from '@app/components/ui/delete-dropdown';
 import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { members } from '@app/constants/locales/members';
 import { useGroupMember } from '@app/lib/hooks/use-group-members';
@@ -61,7 +62,7 @@ export default function GroupMembers({ group, workspace }: { group: ResponderGro
                             return (
                                 <div key={email} className="flex  justify-between body4 bg-white px-4  rounded py-5 !text-black-800">
                                     <span>{email}</span>
-                                    {isAdmin && <DeleteDropDown onClick={() => openModal('DELETE_CONFIRMATION', { title: email, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) })} />}
+                                    {isAdmin && <DeleteDropDown onClick={() => openModal('DELETE_CONFIRMATION', { title: t(localesCommon.remove) + ' ' + email, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) })} />}
                                 </div>
                             );
                         })}

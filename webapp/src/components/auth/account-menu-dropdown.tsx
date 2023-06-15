@@ -8,6 +8,7 @@ import Divider from '@Components/Common/DataDisplay/Divider';
 import Billing from '@Components/Common/Icons/Billing';
 import DashboardIcon from '@Components/Common/Icons/Dashboard';
 import Logout from '@Components/Common/Icons/Logout';
+import SettingsIcon from '@Components/Common/Icons/Settings';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import WorkspaceAdminSelector from '@Components/HOCs/WorkspaceAdminSelector';
 import { ListItem, ListItemIcon, ListItemText, MenuItem } from '@mui/material';
@@ -82,12 +83,12 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
             </ListItem>
             <WorkspaceAdminSelector>
                 <Divider className="my-2" />
-                <ActiveLink href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/dashboard`} referrerPolicy="no-referrer">
+                <ActiveLink href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/account-settings`} referrerPolicy="no-referrer">
                     <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
                         <ListItemIcon className="text-black-900">
-                            <DashboardIcon width={20} height={20} />
+                            <SettingsIcon width={20} height={20} />
                         </ListItemIcon>
-                        <span>{t(profileMenu.myDashboard)}</span>
+                        <span>{t(profileMenu.accountSettings)}</span>
                     </MenuItem>
                 </ActiveLink>
                 {user.stripeCustomerId && (
@@ -102,7 +103,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                 )}
             </WorkspaceAdminSelector>
 
-            <Divider className="my-2" />
+            {/* <Divider className="my-2" /> */}
             <MenuItem onClick={handleLogout} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-red-100 !text-red-500">
                 <ListItemIcon>
                     <Logout width={20} height={20} />

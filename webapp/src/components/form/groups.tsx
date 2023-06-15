@@ -12,6 +12,7 @@ import UserMore from '@app/components/icons/user-more';
 import { useModal } from '@app/components/modal-views/context';
 import Loader from '@app/components/ui/loader';
 import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { groupConstant } from '@app/constants/locales/group';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
@@ -74,7 +75,7 @@ export default function FormGroups() {
             {form.groups?.map((group: ResponderGroupDto) => (
                 <div key={group.id} className="flex items-center bg-white justify-between p-4 rounded">
                     <p className="body6 !font-normal">{group.name}</p>
-                    <DeleteDropDown onClick={() => openModal('DELETE_CONFIRMATION', { title: group.name, handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form }) })} />
+                    <DeleteDropDown onClick={() => openModal('DELETE_CONFIRMATION', { title: t(localesCommon.remove) + ' ' + group.name, handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form }) })} />
                 </div>
             ))}
             {AddGroupButton()}

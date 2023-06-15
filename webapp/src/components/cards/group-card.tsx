@@ -49,7 +49,7 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
                     onClick={(event) => {
                         event.stopPropagation();
                         event.preventDefault();
-                        openModal('DELETE_CONFIRMATION', { title: responderGroup.name, handleDelete: handleDeletegroup });
+                        openModal('DELETE_CONFIRMATION', { title: t(localesCommon.delete) + ' ' + responderGroup.name, handleDelete: handleDeletegroup });
                     }}
                     className="absolute top-3 right-3"
                     label={t(localesCommon.delete)}

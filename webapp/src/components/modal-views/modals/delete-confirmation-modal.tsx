@@ -20,9 +20,7 @@ export default function DeleteConfirmationModal({ title, handleDelete }: IDelete
             <div className="rounded-[4px] relative m-auto max-w-[500px] items-start justify-between bg-white">
                 <div className="relative flex flex-col items-start justify-start p-10">
                     <div>
-                        <h4 className="sh1 mb-6">
-                            {t(localesCommon.remove)} &quot;{title}&quot;?
-                        </h4>
+                        <h4 className="sh1 mb-6">{title} ?</h4>
                         <p className="!text-black-600 mb-8 body4 leading-none">{t(localesCommon.deleteMessage)}</p>
                     </div>
                     <div className="flex w-full gap-4 justify-between">

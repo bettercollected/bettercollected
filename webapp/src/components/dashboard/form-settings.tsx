@@ -139,7 +139,7 @@ export default function FormSettingsTab() {
             <div className="my-6">
                 <Button
                     style={{ textTransform: 'none' }}
-                    className="  bg-red-100 px-4 py-3 body6 rounded hover:bg-red-50 hover:drop-shadow-sm leading-none !text-red-500"
+                    className="  bg-red-100 px-4 py-3 body6 rounded hover:bg-red-200 hover:drop-shadow-sm leading-none !text-red-500"
                     size="medium"
                     onClick={() => {
                         openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });

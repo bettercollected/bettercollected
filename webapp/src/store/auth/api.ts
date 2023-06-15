@@ -55,8 +55,14 @@ export const authApi = createApi({
                 url: `/auth/logout`,
                 method: 'GET'
             })
+        }),
+        deleteAccount: builder.mutation<any, void>({
+            query: () => ({
+                url: '/auth/user',
+                method: 'DELETE'
+            })
         })
     })
 });
 
-export const { useGetStatusQuery, useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation, useLazyGetLogoutQuery, useRefreshTokenMutation } = authApi;
+export const { useGetStatusQuery, useDeleteAccountMutation, useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation, useLazyGetLogoutQuery, useRefreshTokenMutation } = authApi;
