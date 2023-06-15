@@ -122,18 +122,19 @@ export default function Submission(props: any) {
                 <Button variant="solid" onClick={goToSubmissions}>
                     <LongArrowLeft width={15} height={15} />
                 </Button>
-
-                <Button
-                    className={`w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3  rounded text-white ${deletionStatus ? '!bg-red-600 opacity-30' : 'bg-red-500'}  hover:!bg-red-700 hover:!-translate-y-0 focus:-translate-y-0`}
-                    variant="solid"
-                    onClick={handleRequestForDeletionModal}
-                    disabled={!!form?.response?.deletionStatus}
-                >
-                    <span className="flex gap-2 items-center">
-                        <TrashIcon width={15} height={15} />
-                        {/* {form?.response?.deletionStatus ? t(buttonConstant.requestedForDeletion) : t(buttonConstant.requestForDeletion)} */}
-                    </span>
-                </Button>
+                <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
+                    <Button
+                        className={`w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3  rounded text-white ${deletionStatus ? '!bg-red-600 opacity-30' : 'bg-red-500'}  hover:!bg-red-700 hover:!-translate-y-0 focus:-translate-y-0`}
+                        variant="solid"
+                        onClick={handleRequestForDeletionModal}
+                        disabled={!!form?.response?.deletionStatus}
+                    >
+                        <span className="flex gap-2 items-center">
+                            <TrashIcon width={15} height={15} />
+                            {/* {form?.response?.deletionStatus ? t(buttonConstant.requestedForDeletion) : t(buttonConstant.requestForDeletion)} */}
+                        </span>
+                    </Button>
+                </Tooltip>
             </div>
             {/* <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} /> */}
             <div className="py-10 md:w-[700px] sm:w-[600px] w-full">

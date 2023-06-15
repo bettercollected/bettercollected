@@ -17,12 +17,6 @@ export default function RequestForDeletionView(props: any) {
 
     const ref = useRef<HTMLDivElement>(null);
 
-    // const handleDelete = () => {
-    //     if (handleRequestForDeletion) {
-    //         handleRequestForDeletion(closeModal);
-    //     }
-    // };
-
     return (
         <div ref={ref} className="relative m-auto w-full items-start justify-between rounded-lg bg-white">
             <div className="relative max-w-[465px] text-center flex flex-col items-center justify-between p-10">
