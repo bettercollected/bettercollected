@@ -3,6 +3,9 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import { toast } from 'react-toastify';
+
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { HomeIcon } from '@app/components/icons/home';
 import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
@@ -12,6 +15,11 @@ import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
+import { localesCommon } from '@app/constants/locales/common';
+import { formConstant } from '@app/constants/locales/form';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
+import { ToastId } from '@app/constants/toastId';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -30,7 +38,7 @@ export default function Submission(props: any) {
 
     const router = useRouter();
     const breakpoint = useBreakpoint();
-    const { openModal } = useModal();
+    const { openModal, closeModal } = useModal();
 
     const [requestWorkspaceSubmissionDeletion] = useRequestWorkspaceSubmissionDeletionMutation();
 
@@ -43,17 +51,19 @@ export default function Submission(props: any) {
 
     if (isLoading || isError || !data) return <FullScreenLoader />;
 
-    const handleRequestForDeletion = async (callback: Function) => {
+    const handleRequestForDeletion = async () => {
         if (workspace && workspace.id && submissionId) {
-            const query = {
-                workspace_id: workspace.id,
-                submission_id: submissionId
-            };
-            const submission = await requestWorkspaceSubmissionDeletion(query);
-        }
-
-        if (callback && typeof callback !== undefined) {
-            callback();
+            try {
+                const query = {
+                    workspace_id: workspace.id,
+                    submission_id: submissionId
+                };
+                await requestWorkspaceSubmissionDeletion(query).unwrap();
+                toast(t(toastMessage.workspaceSuccess).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+                closeModal();
+            } catch (e) {
+                toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            }
         }
     };
 
@@ -107,13 +117,14 @@ export default function Submission(props: any) {
     const deletionStatus = !!form?.response?.deletionStatus;
 
     return (
-        <div className="relative container mx-auto px-6 md:px-0 pb-6">
-            <div className="flex justify-between">
-                <Button variant="solid" className="top-3" onClick={goToSubmissions}>
+        <div className="container mx-auto mt-5 flex flex-col  items-center px-6  pb-6">
+            <div className="flex w-full justify-between">
+                <Button variant="solid" onClick={goToSubmissions}>
                     <LongArrowLeft width={15} height={15} />
                 </Button>
+
                 <Button
-                    className={`w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3 top-3 rounded text-white ${deletionStatus ? '!bg-red-600 opacity-60' : 'bg-red-500'}  hover:!bg-red-700 hover:!-translate-y-0 focus:-translate-y-0`}
+                    className={`w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3  rounded text-white ${deletionStatus ? '!bg-red-600 opacity-30' : 'bg-red-500'}  hover:!bg-red-700 hover:!-translate-y-0 focus:-translate-y-0`}
                     variant="solid"
                     onClick={handleRequestForDeletionModal}
                     disabled={!!form?.response?.deletionStatus}
@@ -125,7 +136,7 @@ export default function Submission(props: any) {
                 </Button>
             </div>
             {/* <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} /> */}
-            <div className="py-10">
+            <div className="py-10 md:w-[700px] sm:w-[600px] w-full">
                 <FormRenderer form={form.form} response={form.response} />
             </div>
         </div>

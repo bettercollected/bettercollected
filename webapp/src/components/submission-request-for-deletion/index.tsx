@@ -17,11 +17,11 @@ export default function RequestForDeletionView(props: any) {
 
     const ref = useRef<HTMLDivElement>(null);
 
-    const handleDelete = () => {
-        if (handleRequestForDeletion) {
-            handleRequestForDeletion(closeModal);
-        }
-    };
+    // const handleDelete = () => {
+    //     if (handleRequestForDeletion) {
+    //         handleRequestForDeletion(closeModal);
+    //     }
+    // };
 
     return (
         <div ref={ref} className="relative m-auto w-full items-start justify-between rounded-lg bg-white">
@@ -29,7 +29,7 @@ export default function RequestForDeletionView(props: any) {
                 <InfoCircle className="mx-auto mb-6 text-gray-400 w-14 h-14 dark:text-gray-200" />
                 <h3 className="mb-8 text-lg font-normal max-w-[352px] text-gray-500 dark:text-gray-400">{t(formConstant.deletionResponseWarningMessage)}</h3>
                 <div className="flex items-center justify-between w-full">
-                    <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
+                    <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleRequestForDeletion}>
                         {t(buttonConstant.yes)}
                     </Button>
                     <Button variant="solid" color="gray" size="medium" className="!bg-black-500 mr-2" onClick={closeModal}>

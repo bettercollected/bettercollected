@@ -276,7 +276,10 @@
     "RESPONSE_OWNER_TAG_DESCRIPTION": "Select field from where response owner can be identified",
     "RESPONSE_OWNER_TAG_LABEL": "Choose a data owner field for this form",
     "RESPONSE_OWNER_TAG_TITLE": "Response-owner tag",
-    "TEXT_LABEL": "Choose your google form",
+    "TEXT_LABEL": {
+      "GOOGLE_FORM": "Choose your google form",
+      "TYPEFORM": "Choose your Typeform"
+    },
     "TITLE": "Select a form to import"
   },
   "INVALID_DOMAIN": "Invalid domain",
@@ -450,8 +453,10 @@
     "FORM_RESPONSES": "form responses",
     "OUT_OF_LIMITED_FORM": "out of limited 100 forms",
     "PREVIEW_WORKSPACE": "Preview your workspace",
-    "RESPONSES_DELETE_OUT_OF": "responses deleted out of",
-    "VISIBILITY": "Visibility of the form should be public to pin it into the workspace."
+    "RESPONSES_DELETE_OUT_OF": "responsRequestes deleted out of",
+    "VISIBILITY": "Visibility of the form should be public to pin it into the workspace.",
+    "REQUEST_FOR_DELETION": "Request for deletion",
+    "ALREADY_REQUESTED_FOR_DELETION": "Already requested for deletion"
   },
   "UNTITLED": "Untitled",
   "UPDATED": "Updated",

@@ -5,5 +5,7 @@ export const toolTipConstant = {
     deletionRequest: 'TOOLTIP.DELETION_REQUEST',
     responseDeletionOutOf: 'TOOLTIP.RESPONSES_DELETE_OUT_OF',
     formResponses: 'TOOLTIP.FORM_RESPONSES',
-    previewWorkspace: 'TOOLTIP.PREVIEW_WORKSPACE'
+    previewWorkspace: 'TOOLTIP.PREVIEW_WORKSPACE',
+    requestForDeletion: 'TOOLTIP.REQUESTED_FOR_DELETION',
+    alreadyRequestedForDeletion: 'TOOLTIP.ALREADY_REQUESTED_FOR_DELETION'
 };

@@ -20,6 +20,7 @@ import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { importFormConstant } from '@app/constants/locales/import-form';
 import { toastMessage } from '@app/constants/locales/toast-message';
+import { Provider } from '@app/models/enums/provider';
 import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
 import { useImportFormMutation, useLazyGetMinifiedFormsQuery, useLazyGetSingleFormFromProviderQuery } from '@app/store/workspaces/api';
@@ -219,7 +220,7 @@ export default function ImportProviderForms(props: any) {
                             </Box>
                         );
                     }}
-                    renderInput={(params) => <TextField {...params} label={t(importFormConstant.textLabel)} />}
+                    renderInput={(params) => <TextField {...params} label={provider === Provider.google ? t(importFormConstant.textLabel.googleForm) : t(importFormConstant.textLabel.typeform)} />}
                 />
                 <div>
                     <Button isLoading={!!minifiedFormsResult?.isLoading} onClick={() => handleNext(provider)} disabled={!selectedForm} size="medium">

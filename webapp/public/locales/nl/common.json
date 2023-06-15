@@ -448,7 +448,9 @@
     "OUT_OF_LIMITED_FORM": "van de beperkte 100 formulieren",
     "PREVIEW_WORKSPACE": "Bekijk een voorbeeld van uw werkruimte",
     "RESPONSES_DELETE_OUT_OF": "reacties verwijderd uit",
-    "VISIBILITY": "Zichtbaarheid van het formulier moet openbaar zijn om het in de werkruimte vast te zetten."
+    "VISIBILITY": "Zichtbaarheid van het formulier moet openbaar zijn om het in de werkruimte vast te zetten.",
+    "REQUEST_FOR_DELETION": "Verzoek om verwijdering",
+    "ALREADY_REQUESTED_FOR_DELETION": "Reeds verzocht om verwijdering"
   },
   "UNTITLED": "Zonder titel",
   "UPDATED": "Bijgewerkt",
