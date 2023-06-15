@@ -15,16 +15,20 @@ import { invitationConstant } from '@app/constants/locales/invitations';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
+import { UserStatus } from '@app/models/dtos/UserStatus';
+import { WorkspaceInvitationDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import Login from '@app/pages/login';
 import { useRespondToWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
-export default function Id({ workspace, user, invitation }: { workspace: WorkspaceDto; user: any; invitation: any }) {
+export default function Id({ workspace, user, invitation }: { workspace: WorkspaceDto; user: UserStatus; invitation: WorkspaceInvitationDto }) {
     const [trigger, { isLoading }] = useRespondToWorkspaceInvitationMutation();
     const { t } = useTranslation();
     const [rejected, setRejected] = useState(false);
     const router = useRouter();
+
+    console.log(invitation);
     const onAccept = async () => {
         await handleResponse('ACCEPTED');
     };
@@ -35,7 +39,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
     const handleResponse = async (status: string) => {
         const request = {
             workspaceId: workspace.id,
-            invitationToken: invitation.invitation_token,
+            invitationToken: invitation.invitationToken,
             responseStatus: status
         };
         const response: any = await trigger(request);

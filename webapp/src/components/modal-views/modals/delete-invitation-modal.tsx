@@ -8,18 +8,23 @@ import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { toastMessage } from '@app/constants/locales/toast-message';
+import { WorkspaceInvitationDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-export default function DeleteInvitationModal({ invitation }: any) {
+interface IDeleteInvitationModalProps {
+    invitation: WorkspaceInvitationDto;
+}
+
+export default function DeleteInvitationModal({ invitation }: IDeleteInvitationModalProps) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
     const [trigger] = useDeleteWorkspaceInvitationMutation();
 
     const handleDelete = async () => {
-        const response: any = await trigger({ workspaceId: workspace.id, invitationToken: invitation.invitation_token });
+        const response: any = await trigger({ workspaceId: workspace.id, invitationToken: invitation.invitationToken });
         if (response.data) {
             toast(t(toastMessage.invitationDeleted).toString(), { type: 'success' });
         }

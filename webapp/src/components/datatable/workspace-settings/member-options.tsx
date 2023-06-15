@@ -9,10 +9,11 @@ import { IconButton, ListItemIcon, Menu, MenuItem } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
+import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
 
 interface IMemberOptionProps {
-    member?: any;
-    invitation?: any;
+    member?: WorkspaceMembersDto;
+    invitation?: WorkspaceInvitationDto;
 }
 
 export default function MemberOptions({ member, invitation }: IMemberOptionProps) {

@@ -12,11 +12,17 @@ import MemberOptions from '@app/components/datatable/workspace-settings/member-o
 import { localesCommon } from '@app/constants/locales/common';
 import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
+import { WorkspaceInvitationDto } from '@app/models/dtos/WorkspaceMembersDto';
+import { Page } from '@app/models/dtos/page';
 import { useAppSelector } from '@app/store/hooks';
 import { useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
-export default function InvitationsTable({ data }: any) {
+interface IInvitationTableProps {
+    data: Page<WorkspaceInvitationDto>;
+}
+
+export default function InvitationsTable({ data }: IInvitationTableProps) {
     const { t } = useTranslation();
     const [trigger] = useInviteToWorkspaceMutation();
     const [invitations, setInvitations] = useState<Array<any>>([]);
@@ -58,7 +64,7 @@ export default function InvitationsTable({ data }: any) {
     const dataTableResponseColumns: any = [
         {
             name: t(members.member),
-            selector: (invitation: any) => invitation.email,
+            selector: (invitation: WorkspaceInvitationDto) => invitation.email,
             grow: 2,
             style: {
                 color: '#202124',
@@ -71,7 +77,7 @@ export default function InvitationsTable({ data }: any) {
         },
         {
             name: t(members.invitationDate),
-            selector: (invitation: any) => (!!invitation?.created_at ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(invitation?.created_at)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(invitation?.created_at)))}` : ''),
+            selector: (invitation: WorkspaceInvitationDto) => (!!invitation?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(invitation?.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(invitation?.createdAt)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
@@ -82,7 +88,7 @@ export default function InvitationsTable({ data }: any) {
 
         {
             name: t(localesCommon.status),
-            selector: (invitation: any) => Status({ status: invitation.invitation_status, email: invitation.email }),
+            selector: (invitation: WorkspaceInvitationDto) => Status({ status: invitation.invitationStatus, email: invitation.email }),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
@@ -92,7 +98,7 @@ export default function InvitationsTable({ data }: any) {
         },
 
         {
-            cell: (invitation: any) => (invitation.invitation_status === 'PENDING' ? <MemberOptions invitation={invitation} /> : ''),
+            cell: (invitation: WorkspaceInvitationDto) => (invitation.invitationStatus === 'PENDING' ? <MemberOptions invitation={invitation} /> : ''),
             allowOverflow: true,
             button: true,
             width: '60px',
