@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, post, delete
@@ -6,6 +6,7 @@ from fastapi import Depends
 from fastapi_pagination import Page
 
 from backend.app.container import container
+from backend.app.models.dtos.workspace_member_dto import WorkspaceMemberDto
 from backend.app.models.enum.invitation_response import InvitationResponse
 from backend.app.models.invitation_request import InvitationRequest
 from backend.app.router import router
@@ -28,7 +29,7 @@ class WorkspaceMembersRouter(Routable):
         super().__init__(*args, **kwargs)
         self.workspace_members_service = workspace_members_service
 
-    @get("")
+    @get("", response_model=List[WorkspaceMemberDto])
     async def get_workspace_members(
         self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
     ):

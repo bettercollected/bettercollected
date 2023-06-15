@@ -1,10 +1,12 @@
 from datetime import datetime
 from typing import List, Optional
 
+from fastapi_camelcase import CamelModel
+
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 
 
-class WorkspaceMemberDto:
+class WorkspaceMemberDto(CamelModel):
     id: Optional[str]
     first_name: Optional[str]
     last_name: Optional[str]

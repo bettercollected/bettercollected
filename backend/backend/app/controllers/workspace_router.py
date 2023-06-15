@@ -8,7 +8,7 @@ from pydantic import EmailStr
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.WorkspaceStatsDto import WorkspaceStatsDto
+from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
     WorkspaceResponseDto,

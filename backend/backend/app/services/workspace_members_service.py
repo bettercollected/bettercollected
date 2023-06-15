@@ -7,7 +7,7 @@ from beanie import PydanticObjectId
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.invitation_response import InvitationResponse
 from backend.app.models.invitation_request import InvitationRequest
-from backend.app.models.workspace_member_dto import WorkspaceMemberDto
+from backend.app.models.dtos.workspace_member_dto import WorkspaceMemberDto
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
@@ -46,7 +46,7 @@ class WorkspaceMembersService:
         response_user_list = []
         for workspace_user, user_info in zip(workspace_users, users_info):
             user = WorkspaceMemberDto()
-            user.id = workspace_user.user_id
+            user.id = str(workspace_user.user_id)
             user.first_name = user_info.get("first_name")
             user.last_name = user_info.get("last_name")
             user.email = user_info.get("email")
