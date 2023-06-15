@@ -9,6 +9,7 @@ import { IconButton, ListItemIcon, Menu, MenuItem } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
 
 interface IMemberOptionProps {
@@ -31,7 +32,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
 
     return (
         <>
-            <Tooltip title="Options">
+            <Tooltip title={t(toolTipConstant.Options)}>
                 <IconButton
                     className="rounded-[4px] text-black-900 hover:rounded-[4px] hover:bg-black-200"
                     onClick={(e) => handleClick(e, member)}

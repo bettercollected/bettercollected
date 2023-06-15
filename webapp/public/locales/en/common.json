@@ -468,7 +468,15 @@
     "RESPONSES_DELETE_OUT_OF": "responsRequestes deleted out of",
     "VISIBILITY": "Visibility of the form should be public to pin it into the workspace.",
     "REQUEST_FOR_DELETION": "Request for deletion",
-    "ALREADY_REQUESTED_FOR_DELETION": "Already requested for deletion"
+    "ALREADY_REQUESTED_FOR_DELETION": "Already requested for deletion",
+    "EDIT_WORKSPACE": "Edit your workspace",
+    "SHARE_WORKSPACE": "Share your workspace",
+    "FORM_PROVIDER_HIDDEN": "Form Providers are disabled.",
+    "COPY_LINK": "Copy Link",
+    "HIDE_FORM": "Hidden from your public workspace",
+    "PINNED": "Pinned to your public workspace view",
+    "OPTIONS": "Options",
+    "FORM_OPTIONS": "Form options"
   },
   "UNTITLED": "Untitled",
   "UPDATED": "Updated",

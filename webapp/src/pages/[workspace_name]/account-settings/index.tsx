@@ -20,6 +20,7 @@ import { UserStatus } from '@app/models/dtos/UserStatus';
 import { useDeleteAccountMutation, useLazyGetStatusQuery } from '@app/store/auth/api';
 import { initialAuthState, selectAuth, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { getFullNameFromUser } from '@app/utils/userUtils';
 
 export default function AccountSettings(props: any) {
     const { t } = useTranslation();
@@ -45,9 +46,7 @@ export default function AccountSettings(props: any) {
                 <div className="mt-[30px] flex gap-4 mb-10">
                     <AuthAccountProfileImage size={80} image={authStatus.profileImage} name={authStatus.firstName ?? 'Anonymous'} />
                     <div className="flex flex-col gap-2 justify-center">
-                        <p className="h4 !leading-none">
-                            {authStatus.firstName} {authStatus.lastName}
-                        </p>
+                        <p className="h4 !leading-none">{getFullNameFromUser(authStatus)}</p>
                         <p className="body4 text-black-700 !leading-none">{authStatus.email}</p>
                     </div>
                 </div>

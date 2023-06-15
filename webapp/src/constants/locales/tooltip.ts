@@ -8,10 +8,12 @@ export const toolTipConstant = {
     previewWorkspace: 'TOOLTIP.PREVIEW_WORKSPACE',
     requestForDeletion: 'TOOLTIP.REQUEST_FOR_DELETION',
     alreadyRequestedForDeletion: 'TOOLTIP.ALREADY_REQUESTED_FOR_DELETION',
-    editWorkspace: 'Edit your workspace',
-    shareWorkspace: 'Share your workspace',
-    formProviderHidden: 'Form Providers are disabled.',
-    copyLink: 'Copy Link',
-    hideForm: 'Hidden from your public workspace',
-    pinned: 'Pinned to your public workspace view'
+    editWorkspace: 'TOOLTIP.EDIT_WORKSPACE',
+    shareWorkspace: 'TOOLTIP.SHARE_WORKSPACE',
+    formProviderHidden: 'TOOLTIP.FORM_PROVIDER_HIDDEN',
+    copyLink: 'TOOLTIP.COPY_LICK',
+    hideForm: 'TOOLTIP.HIDE_FORM',
+    pinned: 'TOOLTIP.PINNED',
+    Options: 'TOOLTIP.OPTIONS',
+    formOptions: 'TOOLTIP.FORM_OPTIONS'
 };

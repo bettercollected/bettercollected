@@ -364,7 +364,8 @@
   "PROFILE_MENU": {
     "BILLING": "Facturatie",
     "LOGOUT": "Uitloggen",
-    "MY_DASHBOARD": "Mijn dashboard"
+    "MY_DASHBOARD": "Mijn dashboard",
+    "ACCOUNT_SETTINGS": "Accountinstellingen"
   },
   "PUBLIC": "Openbaar",
   "READ_MORE": "Lees meer",
@@ -457,7 +458,15 @@
     "RESPONSES_DELETE_OUT_OF": "reacties verwijderd uit",
     "VISIBILITY": "Zichtbaarheid van het formulier moet openbaar zijn om het in de werkruimte vast te zetten.",
     "REQUEST_FOR_DELETION": "Verzoek om verwijdering",
-    "ALREADY_REQUESTED_FOR_DELETION": "Reeds verzocht om verwijdering"
+    "ALREADY_REQUESTED_FOR_DELETION": "Reeds verzocht om verwijdering",
+    "EDIT_WORKSPACE": "Bewerk je werkruimte",
+    "SHARE_WORKSPACE": "Deel uw werkruimte",
+    "FORM_PROVIDER_HIDDEN": "Formulieraanbieders zijn uitgeschakeld.",
+    "COPY_LINK": "Link kopiëren",
+    "HIDE_FORM": "Verborgen in je openbare werkruimte",
+    "PINNED": "Vastgemaakt aan uw openbare werkruimteweergave",
+    "OPTIONS": "Opties",
+    "FORM_OPTIONS": "Formulieropties"
   },
   "UNTITLED": "Zonder titel",
   "UPDATED": "Bijgewerkt",

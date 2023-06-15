@@ -193,7 +193,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
 
     return (
         <div className={className + ' !text-black-900'} onClick={(e) => e.preventDefault()}>
-            <MenuDropdown width={210} onClick={(e: any) => handleClick(e, form)} id="form-menu" menuTitle="Form options" menuContent={<EllipsisOption />} showExpandMore={false}>
+            <MenuDropdown width={210} onClick={(e: any) => handleClick(e, form)} id="form-menu" menuTitle={t(toolTipConstant.formOptions)} menuContent={<EllipsisOption />} showExpandMore={false}>
                 {menuItemOpen}
                 {!!currentActiveForm?.form?.settings?.private ? (
                     <Tooltip title={t(toolTipConstant.visibility)}>

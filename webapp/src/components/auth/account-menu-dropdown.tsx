@@ -17,6 +17,7 @@ import AuthAccountProfileImage from '@app/components/auth/account-profile-image'
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
+import { localesCommon } from '@app/constants/locales/common';
 import { profileMenu } from '@app/constants/locales/profile-menu';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { UserStatus } from '@app/models/dtos/UserStatus';
@@ -68,7 +69,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
     );
 
     return (
-        <MenuDropdown className={className} id="account-menu" menuTitle="Account Settings" fullWidth={fullWidth} menuContent={newMenuContent} showExpandMore={showExpandMore ?? ['xs', '2xs', 'sm'].indexOf(screenSize) === -1}>
+        <MenuDropdown className={className} id="account-menu" menuTitle={t(profileMenu.accountSettings)} fullWidth={fullWidth} menuContent={newMenuContent} showExpandMore={showExpandMore ?? ['xs', '2xs', 'sm'].indexOf(screenSize) === -1}>
             <ListItem className="py-3 px-5 flex items-center hover:bg-brand-100" alignItems="flex-start">
                 <ListItemIcon sx={{ margin: 0 }}>
                     <AuthAccountProfileImage size={40} image={user?.profileImage} name={profileName ?? ''} />
