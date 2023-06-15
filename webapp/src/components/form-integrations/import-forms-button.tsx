@@ -47,7 +47,7 @@ export default function ImportFormsButton({ size, className = '' }: ButtonProps)
         const providersRecord: Record<string, boolean> = {};
         formProviders.forEach((provider) => {
             // TODO: change this to provider.enabled in the value
-            providersRecord[provider.provider_name] = !!provider.provider_name;
+            providersRecord[provider.providerName] = !!provider.providerName;
         });
         setProviders({ ...providers, ...providersRecord });
     }, [formProviders]);
