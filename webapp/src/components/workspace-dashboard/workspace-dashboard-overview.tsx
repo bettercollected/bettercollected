@@ -19,6 +19,7 @@ import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { UserDto } from '@app/models/dtos/UserDto';
 import { UserStatus } from '@app/models/dtos/UserStatus';
+import { WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -111,9 +112,9 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                                 <PlusIcon />
                             </div>
                         </ProPlanHoc>
-                        {data?.map((user: UserStatus) => (
+                        {data?.map((user: WorkspaceMembersDto) => (
                             <div key={user.email}>
-                                <AuthAccountProfileImage image={user.profile_image} name={getFullNameFromUser(user)} size={40} />
+                                <AuthAccountProfileImage image={user.profileImage} name={getFullNameFromUser(user)} size={40} />
                             </div>
                         ))}
                     </div>

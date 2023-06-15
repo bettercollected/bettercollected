@@ -15,7 +15,6 @@ export default function UserDetails({ user }: IUserDetailsProps) {
             <AuthAccountProfileImage image={user.profileImage} name={getFullNameFromUser(user)} size={40} />
             <div className="flex flex-col">
                 <div className="body3">{getFullNameFromUser(user)}</div>
-
                 <div className="body5 !text-black-600">{user.email}</div>
             </div>
         </div>
