@@ -17,13 +17,16 @@ export default function Invitations() {
             </div>
         );
     }
-    return (
-        <>
-            <p className="body1 ">
-                {t(members.pendingRequests.default)} ({data?.items.length})
-            </p>
-            <p className="body4 mt-4 mb-6 text-black-700">{t(members.pendingRequests.description)}</p>
-            <InvitationsTable data={data} />
-        </>
-    );
+    if (data)
+        return (
+            <>
+                <p className="body1 ">
+                    {t(members.pendingRequests.default)} ({data.items.length})
+                </p>
+                <p className="body4 mt-4 mb-6 text-black-700">{t(members.pendingRequests.description)}</p>
+
+                <InvitationsTable data={data} />
+            </>
+        );
+    return <></>;
 }

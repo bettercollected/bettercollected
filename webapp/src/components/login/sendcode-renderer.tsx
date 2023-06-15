@@ -59,10 +59,10 @@ export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustom
                         <div className="flex flex-col gap-5">
                             {formProviders.map((provider: IntegrationFormProviders) => (
                                 <ConnectWithProviderButton
-                                    key={provider.provider_name}
-                                    type={provider.provider_name === 'typeform' ? 'typeform' : 'dark'}
-                                    url={`${environments.API_ENDPOINT_HOST}/auth/${provider.provider_name}/basic`}
-                                    text={`Sign in with ${capitalize(provider.provider_name)}`}
+                                    key={provider.providerName}
+                                    type={provider.providerName === 'typeform' ? 'typeform' : 'dark'}
+                                    url={`${environments.API_ENDPOINT_HOST}/auth/${provider.providerName}/basic`}
+                                    text={`Sign in with ${capitalize(provider.providerName)}`}
                                     creator={false}
                                 />
                             ))}
