@@ -1,10 +1,10 @@
 import datetime as dt
-from typing import Dict, Optional, List, Any
+from typing import Optional, List
 
-from beanie import PydanticObjectId
 from fastapi_camelcase import CamelModel
 
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
+from backend.app.models.dtos.workspace_member_dto import FormImporterDetails
 from backend.app.models.response_dtos import WorkspaceFormSettingsCamelModal
 from common.models.standard_form import StandardFormField
 
@@ -21,5 +21,5 @@ class MinifiedForm(CamelModel):
     deletion_requests: Optional[int]
     groups: Optional[List[ResponderGroupDto]]
     imported_by: Optional[str]
-    importer_details: Optional[Dict]
+    importer_details: Optional[FormImporterDetails]
     fields: Optional[List[StandardFormField]]
