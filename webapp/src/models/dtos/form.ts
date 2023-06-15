@@ -1,4 +1,5 @@
 import { UserDto } from '@app/models/dtos/UserDto';
+import { UserStatus } from '@app/models/dtos/UserStatus';
 
 import { ResponderGroupDto } from './groups';
 
@@ -46,7 +47,7 @@ export interface StandardFormDto {
         provider: string;
         roles?: Array<string>;
     };
-    importerDetails: UserDto;
+    importerDetails: UserStatus;
     fields: Array<StandardFormQuestionDto>;
     createdTime?: string | Date;
     modifiedTime?: string | Date;

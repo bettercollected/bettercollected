@@ -162,6 +162,7 @@
     "RESPONSE_ID": "Response ID",
     "STATUS_DELETED": "Deleted",
     "STATUS_PENDING": "Pending",
+    "STATUS_EXPIRED": "Expired",
     "SUBMISSION_DATE": "Submission Date",
     "SUBMITTED_FORMS": "Submitted forms",
     "PREVIEW": "Preview",

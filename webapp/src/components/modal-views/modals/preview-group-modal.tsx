@@ -12,13 +12,6 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 export default function PreviewGroup({ responderGroup }: { responderGroup: ResponderGroupDto }) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
-    const user: UserDto = {
-        first_name: 'Kneerose',
-        last_name: 'Duwal',
-        email: 'duwalkneerose@gmail.com',
-        roles: ['admin'],
-        plan: Plans.FREE
-    };
     return (
         <div className="p-7 bg-brand-100 relative rounded-[8px] md:w-[670px]">
             <Close

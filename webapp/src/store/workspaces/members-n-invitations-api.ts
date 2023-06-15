@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
+import { WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
 
 export const WORKSPACE_INVITATIONS_PATH = 'membersNInvitationsApi';
 
@@ -31,7 +32,7 @@ export const membersNInvitationsApi = createApi({
                 }
             })
         }),
-        getWorkspaceMembers: builder.query<Array<any>, any>({
+        getWorkspaceMembers: builder.query<Array<WorkspaceMembersDto>, any>({
             query: (request) => ({
                 url: `/${request.workspaceId}/members`,
                 method: 'GET'

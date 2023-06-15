@@ -16,7 +16,8 @@ export const formConstant = {
     submissionDate: 'FORM.SUBMISSION_DATE',
     status: {
         pending: 'FORM.STATUS_PENDING',
-        deleted: 'FORM.STATUS_DELETED'
+        deleted: 'FORM.STATUS_DELETED',
+        expired: 'FORM.STATUS_EXPIRED'
     },
     delete: 'FORM.DELETE',
     deleteDescription: 'FORM.DELETE_DESCRIPTION',

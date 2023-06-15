@@ -1,5 +1,7 @@
 import _ from 'lodash';
 
-export function getFullNameFromUser(user: any) {
-    return _.capitalize(user.first_name) + ' ' + _.capitalize(user.last_name);
+import { UserStatus } from '@app/models/dtos/UserStatus';
+
+export function getFullNameFromUser(user: UserStatus) {
+    return _.capitalize(user.firstName) + ' ' + _.capitalize(user.lastName);
 }
