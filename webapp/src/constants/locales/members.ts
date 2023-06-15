@@ -11,6 +11,7 @@ export const members = {
     },
     pendingRequests: {
         default: 'MEMBERS.PENDING_REQUESTS.DEFAULT',
-        description: 'MEMBERS.PENDING_REQUESTS.DESCRIPTION'
+        description: 'MEMBERS.PENDING_REQUESTS.DESCRIPTION',
+        empty: 'MEMBERS.PENDING_REQUESTS.EMPTY'
     }
 };

@@ -10,6 +10,7 @@ export const localesCommon = {
     emailAddress: 'EMAIL_ADDRESS',
     hey: 'HEY',
     logoutMessage: 'LOGOUT_MESSAGE',
+
     of: 'OF',
     or: 'OR',
     and: 'AND',

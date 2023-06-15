@@ -319,7 +319,8 @@
     },
     "PENDING_REQUESTS": {
       "DEFAULT": "Pending Requests",
-      "DESCRIPTION": "Requests will expires after 7 days of invitation."
+      "DESCRIPTION": "Requests will expires after 7 days of invitation.",
+      "EMPTY": "No pending requests at the moment."
     }
   },
   "MENU_DROPDOWN.CREATE_WORKSPACE": "Create a new workspace",
@@ -476,7 +477,8 @@
     "HIDE_FORM": "Hidden from your public workspace",
     "PINNED": "Pinned to your public workspace view",
     "OPTIONS": "Options",
-    "FORM_OPTIONS": "Form options"
+    "FORM_OPTIONS": "Form options",
+    "SHARE_FORM": "Share form"
   },
   "UNTITLED": "Untitled",
   "UPDATED": "Updated",

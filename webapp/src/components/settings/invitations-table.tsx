@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import InfoCircle from '@Components/Common/Icons/InfoCircle';
 import { Typography } from '@mui/material';
 import DataTable from 'react-data-table-component';
 import { toast } from 'react-toastify';
@@ -32,6 +33,12 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
         if (data && data.items && Array.isArray(data.items)) setInvitations(data.items);
     }, [data]);
 
+    const EmptyPendingRequest = () => (
+        <div className="my-16 flex flex-col gap-6 items-center">
+            <InfoCircle className="h-8 w-8" />
+            <p className="body2"> {t(members.pendingRequests.empty)}</p>
+        </div>
+    );
     const handleInvitation = async ({ email }: { email: string }) => {
         try {
             await trigger({
@@ -109,10 +116,11 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
             }
         }
     ];
-
-    return (
-        <>
-            <DataTable className="p-0 mt-2 !overflow-auto" columns={dataTableResponseColumns} data={invitations || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
-        </>
-    );
+    if (invitations && invitations.length > 0)
+        return (
+            <>
+                <DataTable className="p-0 mt-2 !overflow-auto" columns={dataTableResponseColumns} data={invitations || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+            </>
+        );
+    return EmptyPendingRequest();
 }

@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import UserDetails from '@Components/Common/DataDisplay/UserDetails';
 import FormVisibility from '@Components/Common/FormVisibility';
 import PinnedIcon from '@Components/Common/Icons/Pinned';
@@ -22,6 +23,7 @@ import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -77,7 +79,17 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     const dataTableFormColumns = [
         {
             name: '',
-            selector: (form: StandardFormDto) => <div>{form?.settings?.pinned && <PinnedIcon width={20} height={20} />}</div>,
+            selector: (form: StandardFormDto) => (
+                <div>
+                    {form?.settings?.pinned && (
+                        <Tooltip title={t(toolTipConstant.pinned)}>
+                            <div>
+                                <PinnedIcon width={20} height={20} />
+                            </div>
+                        </Tooltip>
+                    )}
+                </div>
+            ),
             grow: 1,
             style: {
                 paddingLeft: '8px'

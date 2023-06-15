@@ -15,5 +15,6 @@ export const toolTipConstant = {
     hideForm: 'TOOLTIP.HIDE_FORM',
     pinned: 'TOOLTIP.PINNED',
     Options: 'TOOLTIP.OPTIONS',
-    formOptions: 'TOOLTIP.FORM_OPTIONS'
+    formOptions: 'TOOLTIP.FORM_OPTIONS',
+    shareForm: 'TOOLTIP.SHARE_FORM'
 };

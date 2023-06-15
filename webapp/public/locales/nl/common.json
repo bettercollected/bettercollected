@@ -313,7 +313,8 @@
     },
     "PENDING_REQUESTS": {
       "DEFAULT": "In behandeling zijnde verzoeken",
-      "DESCRIPTION": "Verzoeken verlopen na 7 dagen na uitnodiging."
+      "DESCRIPTION": "Verzoeken verlopen na 7 dagen na uitnodiging.",
+      "EMPTY": "Er zijn momenteel geen verzoeken in behandeling."
     }
   },
   "MENU_DROPDOWN.CREATE_WORKSPACE": "Maak een nieuwe werkruimte aan",
@@ -466,7 +467,8 @@
     "HIDE_FORM": "Verborgen in je openbare werkruimte",
     "PINNED": "Vastgemaakt aan uw openbare werkruimteweergave",
     "OPTIONS": "Opties",
-    "FORM_OPTIONS": "Formulieropties"
+    "FORM_OPTIONS": "Formulieropties",
+    "SHARE_FORM": "Formulier delen"
   },
   "UNTITLED": "Zonder titel",
   "UPDATED": "Bijgewerkt",

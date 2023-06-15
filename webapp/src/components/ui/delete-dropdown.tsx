@@ -8,6 +8,7 @@ import { MoreHoriz } from '@mui/icons-material';
 import { MenuItem } from '@mui/material';
 
 import { localesCommon } from '@app/constants/locales/common';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
 
 export default function DeleteDropDown({ onClick, className, label }: { onClick: (event?: any) => void; className?: string; label?: string }) {
     const { t } = useTranslation();
@@ -32,7 +33,7 @@ export default function DeleteDropDown({ onClick, className, label }: { onClick:
                 }
             }}
             id="language-menu"
-            menuTitle={''}
+            menuTitle={t(toolTipConstant.Options)}
             menuContent={<MoreHoriz />}
         >
             <MenuItem className="body4  flex gap-4" onClick={onClick}>

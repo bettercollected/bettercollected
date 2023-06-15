@@ -12,7 +12,7 @@ export default function StatusBadge({ status, className = '' }: { status: string
 
     return (
         <span className={`text-[9px] flex items-center gap-1 !h-[22px] body4  p-[6px] rounded-[50px] ${cName} ${className}`}>
-            <div className="rounded-full !bg-black-800 !h-[6px] !w-[6px]" />
+            <div className={`rounded-full !bg-black-800 !h-[6px] !w-[6px] ${cName}`} />
             {_.startCase(currentStatus || '')}
         </span>
     );

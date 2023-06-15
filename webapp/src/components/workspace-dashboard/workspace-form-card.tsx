@@ -116,19 +116,21 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                     </Button>
                     {!group && (
                         <div className="flex space-x-4 items-center">
-                            <div
-                                className={`hover:bg-brand-100 p-2.5 h-10 w-10 rounded ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_SHARE}`}
-                                onClick={(event: any) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    openModal('SHARE_VIEW', {
-                                        url: getFormUrl(form, workspace),
-                                        title: t(formConstant.shareThisForm)
-                                    });
-                                }}
-                            >
-                                <Share />
-                            </div>
+                            <Tooltip title={t(toolTipConstant.shareForm)}>
+                                <div
+                                    className={`hover:bg-brand-100 p-2.5 h-10 w-10 rounded ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_SHARE}`}
+                                    onClick={(event: any) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        openModal('SHARE_VIEW', {
+                                            url: getFormUrl(form, workspace),
+                                            title: t(formConstant.shareThisForm)
+                                        });
+                                    }}
+                                >
+                                    <Share />
+                                </div>
+                            </Tooltip>
                             <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                         </div>
                     )}
