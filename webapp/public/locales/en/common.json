@@ -173,11 +173,18 @@
     "ADD_GROUP": "Add group on form",
     "SETTINGS": {
       "DESCRIPTION": "Collaborators can import forms, delete forms, see responses and delete response.",
-      "DEFAULT_LINK": {
-        "TITLE": "Default Link"
+      "FORM_LINK": {
+        "TITLE": "Form Link",
+        "DESCRIPTION": "Create personalized form links that align with their branding or specific requirements."
       },
       "CUSTOMIZE_FORM_LINK": {
-        "TITLE": "Customize Form Link"
+        "TITLE": "Custom Domain Form Link",
+        "DESCRIPTION": "Custom domain form links add a level of professionalism and brand consistency to your forms.",
+        "LIST": {
+          "TITLE": "What will happen?",
+          "POINT_1": " In customized form link, the domain name associated with the link will also be visible.",
+          "POINT_2": "Once the domain name expires, this link won’t work."
+        }
       },
       "PIN_FORM": {
         "TITLE": "Pin Form",

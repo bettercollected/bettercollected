@@ -172,21 +172,18 @@
     "ADD_GROUP": "Groep toevoegen aan formulier",
     "SETTINGS": {
       "DESCRIPTION": "Medewerkers kunnen formulieren importeren, formulieren verwijderen, reacties bekijken en reacties verwijderen.",
-      "DEFAULT_LINK": {
-        "TITLE": "Standaardkoppeling"
+      "FORM_LINK": {
+        "TITLE": "Formulierlink",
+        "DESCRIPTION": "Maak gepersonaliseerde formulierkoppelingen die passen bij hun branding of specifieke vereisten."
       },
       "CUSTOMIZE_FORM_LINK": {
-        "TITLE": "Formulierlink aanpassen"
-      },
-      "PIN_FORM": {
-        "TITLE": "Pinformulier",
-        "DESCRIPTION": "Toon dit formulier in vastgezette sectie"
-      },
-      "VISIBILITY": {
-        "TITLE": "Formulierzichtbaarheid",
-        "DESCRIPTION": "Formulieren worden alleen verborgen in uw werkruimte.",
-        "PUBLIC": "Openbaar",
-        "PRIVATE": "Privé"
+        "TITLE": "Link naar aangepast domeinformulier",
+        "DESCRIPTION": "Aangepaste domeinformulierkoppelingen voegen een niveau van professionaliteit en merkconsistentie toe aan uw formulieren.",
+        "LIST": {
+          "TITLE": "Wat zal er gebeuren?",
+          "POINT_1": "In aangepaste formulierkoppeling zal de domeinnaam die aan de koppeling is gekoppeld ook zichtbaar zijn.",
+          "POINT_2": "Zodra de domeinnaam verloopt, werkt deze link niet meer."
+        }
       }
     }
   },

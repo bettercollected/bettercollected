@@ -12,6 +12,7 @@ import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
+import UpgradeToPro from '@app/components/ui/upgrade-to-pro';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { Features } from '@app/constants/locales/feature';
@@ -68,7 +69,7 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                                 />
                                 <Tooltip title={t(toolTipConstant.copyLink)}>
                                     <CopyIcon
-                                        className="cursor-pointer"
+                                        className={isProPlan || type === 'HANDLE' ? 'cursor-pointer' : 'cursor-not-allowed pointer-events-none'}
                                         onClick={() => {
                                             copyToClipboard(urlText);
                                             toast('Copied', {
@@ -87,23 +88,7 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                     </div>
                 </div>
             </div>
-            {!isProPlan && updateDomain && (
-                <>
-                    <div className="flex items-center">
-                        <span className="mr-1 font-semibold">{t(pricingPlan.title)}</span>
-                        {t(pricingPlan.forThisFeature)}
-                        <ProPlanHoc hideChildrenIfPro={false} feature={Features.customDomain}>
-                            <Button className="ml-4">{t(buttonConstant.upgrade)}</Button>
-                        </ProPlanHoc>
-                    </div>
-                    <div className="absolute !top-2 !right-5">
-                        <div className="flex items-center rounded h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
-                            <Pro width={12} height={12} />
-                            <span className="leading-none">Pro</span>
-                        </div>
-                    </div>
-                </>
-            )}
+            {!isProPlan && updateDomain && <UpgradeToPro />}
         </SettingsCard>
     );
 }

@@ -64,11 +64,18 @@ export const formConstant = {
     requestedOn: 'FORM.REQUESTED_ON',
     settings: {
         description: 'FORM.SETTINGS.DESCRIPTION',
-        defaultLink: {
-            title: 'FORM.SETTINGS.DEFAULT_LINK.TITLE'
+        formLink: {
+            title: 'FORM.SETTINGS.FORM_LINK.TITLE',
+            description: 'FORM.SETTINGS.FORM_LINK.DESCRIPTION'
         },
         customizeFormLink: {
-            title: 'FORM.SETTINGS.CUSTOMIZE_FORM_LINK.TITLE'
+            title: 'FORM.SETTINGS.CUSTOMIZE_FORM_LINK.TITLE',
+            description: 'FORM.SETTINGS.CUSTOMIZE_FORM_LINK.DESCRIPTION',
+            List: {
+                title: 'FORM.SETTINGS.CUSTOMIZE_FORM_LINK.LIST.TITLE',
+                point1: 'FORM.SETTINGS.CUSTOMIZE_FORM_LINK.LIST.POINT_1',
+                point2: 'FORM.SETTINGS.CUSTOMIZE_FORM_LINK.LIST.POINT_2'
+            }
         },
         pinForm: {
             title: 'FORM.SETTINGS.PIN_FORM.TITLE',

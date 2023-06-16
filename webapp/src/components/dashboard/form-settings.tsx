@@ -2,9 +2,11 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import Pro from '@Components/Common/Icons/Pro';
 import LockIcon from '@Components/Common/Icons/lock';
 import { Button, FormControlLabel, Radio, RadioGroup } from '@mui/material';
 import Switch from '@mui/material/Switch';
+import cn from 'classnames';
 import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
@@ -17,12 +19,14 @@ import { formConstant } from '@app/constants/locales/form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { updateWorkspace } from '@app/constants/locales/update-workspace';
 import { StandardFormDto } from '@app/models/dtos/form';
+import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
 import Globe from '../icons/flags/globe';
 import FormLinkUpdateView from '../ui/form-link-update-view';
+import UpgradeToPro from '../ui/upgrade-to-pro';
 
 export default function FormSettingsTab() {
     const { t } = useTranslation();
@@ -72,23 +76,26 @@ export default function FormSettingsTab() {
                 toast(e.data, { type: 'error', toastId: 'errorToast' });
             });
     };
+    const isProPlan = useAppSelector(selectIsProPlan);
+    const isAdmin = useAppSelector(selectIsAdmin);
 
     return (
         <div>
             <FormSettingsCard>
-                <p className="sh3">{t(formConstant.settings.defaultLink.title)}</p>
-                <p className="body4 !text-black-700 mt-4 !mb-6">{t(customize.link.description)}</p>
-                <FormLinkUpdateView link={clientHostUrl} />
+                <p className="sh3">{t(formConstant.settings.formLink.title)}</p>
+                <p className="body4 !text-black-700 mt-4 !mb-6">{t(formConstant.settings.formLink.description)}</p>
+                <FormLinkUpdateView link={clientHostUrl} isLinkChangable />
             </FormSettingsCard>
-            <FormSettingsCard>
+            <FormSettingsCard className={cn('relative !py-6', !isProPlan && isAdmin && '!bg-brand-200')}>
                 <p className="sh3">{t(formConstant.settings.customizeFormLink.title)}</p>
-                <p className="body4 !text-black-700 mt-4 mb-10">{t(customize.link.description)}</p>
-                <p className="w-full body6 mb-4 !font-semibold text-black-900">{t(updateWorkspace.common.consequence)}</p>
+                <p className="body4 !text-black-700 mt-4 mb-10">{t(formConstant.settings.customizeFormLink.description)}</p>
+                <p className="w-full body6 mb-4 !font-semibold text-black-900">{t(formConstant.settings.customizeFormLink.List.title)}</p>
                 <ul className="list-disc body4 ml-10 !mb-6">
-                    <li className="mb-4">{t(updateWorkspace.handles.point1)}</li>
-                    <li>{t(updateWorkspace.handles.point2)}</li>
+                    <li className="mb-4">{t(formConstant.settings.customizeFormLink.List.point1)}</li>
+                    <li>{t(formConstant.settings.customizeFormLink.List.point2)}</li>
                 </ul>
-                <FormLinkUpdateView link={isCustomDomain ? customDomainUrl : clientHostUrl} isLinkChangable />
+                <FormLinkUpdateView link={isCustomDomain ? customDomainUrl : clientHostUrl} isDisable={!isProPlan && isAdmin} />
+                {!isProPlan && isAdmin && <UpgradeToPro />}
             </FormSettingsCard>
 
             <FormSettingsCard>
