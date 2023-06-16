@@ -84,7 +84,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
     const [formData, setFormData] = useState<FormDataDto>({
         title: workspace?.title.toLowerCase() !== 'untitled' ? workspace?.title || '' : '',
         description: workspace?.description ?? '',
-        workspaceLogo: workspace?.profileImage ?? ''
+        workspaceLogo: workspace?.profileImage ?? null
     });
     const increaseStep = () => {
         setStepCount(stepCount + 1);

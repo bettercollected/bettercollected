@@ -1,30 +1,45 @@
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
-import { Button } from '@mui/material';
 import cn from 'classnames';
+import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
 import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
+import Button from '@app/components/ui/button';
+import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { accountDeletion } from '@app/constants/locales/account-deletion';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { ToastId } from '@app/constants/toastId';
+import { useDeleteAccountMutation } from '@app/store/auth/api';
 
-import { useModal } from '../context';
-
-export default function UserDeletionModal({ handleDelete }: { handleDelete: () => void }) {
+export default function UserDeletionModal() {
     const { closeModal } = useModal();
     const [confirm, setConfirm] = useState('');
     const { t } = useTranslation();
-    const handleUserDelete = () => {
-        if (confirm === 'CONFIRM') {
-            handleDelete();
+    const [deleteAccount, { isLoading, isSuccess }] = useDeleteAccountMutation();
+    const router = useRouter();
+    const locale = router?.locale === 'en' ? '' : `${router.locale}/`;
+
+    const handleDeleteAccount = async () => {
+        try {
+            if (confirm === 'CONFIRM') {
+                await deleteAccount().unwrap();
+                router.push(`/${locale}login`);
+                toast(t(toastMessage.accountDeletion.success).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            }
+        } catch (e) {
+            toast(t(toastMessage.accountDeletion.failed).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
     };
 
     return (
-        <form onSubmit={handleUserDelete} className="p-6 pb-3 rounded relative w-full bg-white md:w-[682px]">
+        <form onSubmit={handleDeleteAccount} className="p-6 pb-3 rounded relative w-full bg-white md:w-[682px]">
             <Close
                 className="absolute cursor-pointer text-black-600 top-5 right-5"
                 height={16}
@@ -54,7 +69,7 @@ export default function UserDeletionModal({ handleDelete }: { handleDelete: () =
                         setConfirm(e.target.value);
                     }}
                 />
-                <Button disabled={confirm !== 'CONFIRM'} className={cn('body4 !text-brand-100 py-4 px-6 !leading-none !h-[42px] bg-red-500 hover:bg-red-600', confirm !== 'CONFIRM' && 'opacity-30 cursor-not-allowed')}>
+                <Button disabled={confirm !== 'CONFIRM'} isLoading={isLoading || isSuccess} className={cn('body4 !text-brand-100 py-4 px-6 !leading-none !h-[42px] bg-red-500 hover:!bg-red-600', confirm !== 'CONFIRM' && 'opacity-30 cursor-not-allowed')}>
                     {t(buttonConstant.deleteNow)}
                 </Button>
             </div>
