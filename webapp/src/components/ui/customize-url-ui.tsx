@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -14,22 +14,24 @@ import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
+import BetterInput from '../Common/input';
 import { useModal } from '../modal-views/context';
 import { ICustomizeUrlModalProps } from '../modal-views/modals/customize-url-modal';
 import Button from './button/button';
 
-export default function CustomizeUrlUi({ description, url, form }: ICustomizeUrlModalProps) {
+export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
     const workspace = useAppSelector((state) => state.workspace);
     const { t } = useTranslation();
     const customUrl = form?.settings?.customUrl || '';
     const [slug, setSlug] = useState(customUrl);
-    const [isError, setError] = useState(false);
+    const [isError, setIsError] = useState(false);
     const { closeModal } = useModal();
     const dispatch = useAppDispatch();
     const [patchFormSettings, { isLoading }] = usePatchFormSettingsMutation();
     const handleOnchange = (e: any) => {
         setSlug(e.target.value);
     };
+    const slugRegex = /^(?=.*$)(?![_][-])(?!.*[_][-]{2})[a-zA-Z0-9_-]+(?<![_][-])$/;
 
     const handleUpdate = async (event: any) => {
         event.preventDefault();
@@ -37,8 +39,8 @@ export default function CustomizeUrlUi({ description, url, form }: ICustomizeUrl
         const body = {
             customUrl: slug
         };
-        if (slug === '') {
-            setError(true);
+        if (!slug.match(slugRegex)) {
+            setIsError(true);
         } else {
             const response: any = await patchFormSettings({
                 workspaceId: workspace.id,
@@ -58,13 +60,17 @@ export default function CustomizeUrlUi({ description, url, form }: ICustomizeUrl
     };
     return (
         <form onSubmit={handleUpdate} className="w-full">
-            <p className="sh1 ">{t(customize.url)}</p>
-            <p className="pt-6  pb-8 !text-black-600">{description}</p>
+            <p className="sh1">{t(customize.form.title)}</p>
+            <ul className="list-disc  body4 ml-5 mt-4 !text-black-700 !mb-6">
+                <li>{t(customize.form.point1)}</li>
+                <li className="my-3">{t(customize.form.point2)}</li>
+                <li>{t(customize.form.point3)}</li>
+            </ul>
             <p className=" mb-3 body1  !leading-none">
                 {t(localesCommon.slug)}
                 <span className="text-red-500">*</span>
             </p>
-            <TextField
+            <BetterInput
                 InputProps={{
                     sx: {
                         height: '46px',
@@ -72,20 +78,20 @@ export default function CustomizeUrlUi({ description, url, form }: ICustomizeUrl
                     }
                 }}
                 id="title"
-                error={slug === '' && isError}
+                error={!slug.match(slugRegex)}
                 className="w-full"
                 value={slug}
                 onChange={handleOnchange}
             />
-            {slug === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">{t(validationMessage.slug)}</p>}
-            <div className="px-10 py-6 gap-6 bg-blue-100 mt-8 md:w-[454px] w-full md:-ml-10 break-all">
+            {!slug.match(slugRegex) && isError && <p className="body4 !text-red-500 h-[10px]">{t(validationMessage.slug)}</p>}
+            <div className="px-10 py-6 gap-6 bg-blue-100 mt-8 md:w-[535px] w-full md:-ml-10 break-all">
                 <p className="body1">{t(localesCommon.newLink)}</p>
                 <p className="body3 ">
                     <span className="text-black-600"> {url}</span>/<span className="text-black-800 font-medium">{slug}</span>
                 </p>
             </div>
             <div className="mt-5 flex justify-end">
-                <Button isLoading={isLoading}>{t(buttonConstant.updateUrl)}</Button>
+                <Button isLoading={isLoading}>{t(buttonConstant.updateNow)}</Button>
             </div>
         </form>
     );

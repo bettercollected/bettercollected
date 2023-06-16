@@ -87,10 +87,11 @@
     "DEFAULT": "Customize domain",
     "DESCRIPTION": "Customize your Workspace URL so that your audience can know that it’s you."
   },
-  "CUSTOMIZE_LINK": {
-    "DEFAULT": "Customize Link",
-    "DESCRIPTION": "Customize your form URL so that your audience can know that it’s you.",
-    "TITLE": "Customize link for free"
+  "CUSTOMIZE_FORM": {
+    "TITLE": "Customize form",
+    "POINT_1": "Make it relevant to your business or organization.",
+    "POINT_2": "Avoid using spaces or special characters. Only “-” and “_” is accepted.",
+    "POINT_3": "Keep it short and concise."
   },
   "CUSTOMIZE_URL": "Customize URL",
   "CUSTOM_DOMAIN": "Custom Domain",
@@ -421,7 +422,7 @@
   },
   "SLUG": {
     "DEFAULT": "Slug",
-    "VALIDATION_MESSAGE": "Slug is required"
+    "VALIDATION_MESSAGE": "Enter valid slug"
   },
   "STATUS": "Status",
   "STEP": "Step",

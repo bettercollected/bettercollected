@@ -38,7 +38,6 @@ export default function FormLinkUpdateView({ link, isLinkChangable = false, isDi
 
     const handleFormLinkChnage = () =>
         openModal('CUSTOMIZE_URL', {
-            description: t(customize.link.description),
             form: form,
             url: clientHost
         });

@@ -87,10 +87,11 @@
     "DEFAULT": "Domein aanpassen",
     "DESCRIPTION": "Pas uw werkruimte-URL aan zodat uw publiek weet dat u het bent."
   },
-  "CUSTOMIZE_LINK": {
-    "DEFAULT": "Koppeling aanpassen",
-    "DESCRIPTION": "Pas uw formulier-URL aan zodat uw publiek weet dat u het bent.",
-    "TITLE": "Koppeling gratis aanpassen"
+  "CUSTOMIZE_FORM": {
+    "TITLE": "Formulier aanpassen",
+    "POINT_1": "Maak het relevant voor uw bedrijf of organisatie.",
+    "POINT_2": "Vermijd het gebruik van spaties of speciale tekens. Alleen '-' en '_' worden geaccepteerd.",
+    "POINT_3": "Houd het kort en bondig."
   },
   "CUSTOMIZE_URL": "URL aanpassen",
   "CUSTOM_DOMAIN": "Aangepast domein",
@@ -405,7 +406,7 @@
   },
   "SLUG": {
     "DEFAULT": "Slak",
-    "VALIDATION_MESSAGE": "Slak is vereist"
+    "VALIDATION_MESSAGE": "Voer een geldige slug in"
   },
   "STATUS": "Status",
   "STAP": "Stap",

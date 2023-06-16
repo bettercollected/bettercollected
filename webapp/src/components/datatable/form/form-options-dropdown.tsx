@@ -178,7 +178,6 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             className="body4 hover:bg-brand-100"
             onClick={() => {
                 openModal('CUSTOMIZE_URL', {
-                    description: t(customize.link.description),
                     url: isCustomDomain ? customDomain : clientHost,
                     form: currentActiveForm?.form
                 });
