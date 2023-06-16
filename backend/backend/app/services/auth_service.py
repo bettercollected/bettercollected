@@ -147,7 +147,7 @@ class AuthService:
     async def add_workflow_to_delete_user(
         self, access_token: str, refresh_token: str, user: User
     ):
-        await self.temporal_service.start_user_deletion_workflow(
+        return await self.temporal_service.start_user_deletion_workflow(
             UserTokens(access_token=access_token, refresh_token=refresh_token),
             user_id=user.id,
         )
