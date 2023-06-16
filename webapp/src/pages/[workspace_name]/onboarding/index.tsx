@@ -27,11 +27,13 @@ import { workspaceConstant } from '@app/constants/locales/workspace';
 import { ToastId } from '@app/constants/toastId';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
+import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateWorkspaceMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
+import { getFullNameFromUser } from '@app/utils/userUtils';
 
 interface FormDataDto {
     title: string;
@@ -72,12 +74,12 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
     const router = useRouter();
     const authStatus = useAppSelector(selectAuth);
     const { openModal, closeModal } = useModal();
-    const user: any = !!authStatus ? authStatus : null;
+    const user: UserStatus = !!authStatus ? authStatus : null;
     let workspaceLogoRef = useRef<HTMLInputElement>(null);
     const profileEditorRef = useRef<AvatarEditor>(null);
     const dispatch = useAppDispatch();
     const [isError, setError] = useState(false);
-    const profileName = _.capitalize(user?.first_name) + ' ' + _.capitalize(user?.last_name);
+    const profileName = getFullNameFromUser(user);
     const [stepCount, setStepCount] = useState(createWorkspace ? 1 : 0);
     const [patchExistingWorkspace, { isLoading, isSuccess }] = usePatchExistingWorkspaceMutation();
     const [createWorkspaceRequest, data] = useCreateWorkspaceMutation();
@@ -175,9 +177,9 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
 
     const StepZeroContent = (
         <div className="flex flex-col mt-[24px] justify-center items-center">
-            <AuthAccountProfileImage image={user?.profile_image} name={profileName} size={143} />
+            <AuthAccountProfileImage image={user?.profileImage} name={profileName} size={143} />
             <p className="pt-6 text-center text-black-900 h4">
-                {t(localesCommon.hey)} {user?.first_name}! <br /> {t(onBoarding.welcomeMessage)}
+                {t(localesCommon.hey)} {user?.firstName}! <br /> {t(onBoarding.welcomeMessage)}
             </p>
             <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">{t(onBoarding.description)}</p>
             <Button size="large" className="mt-10 mb-4" onClick={increaseStep}>
