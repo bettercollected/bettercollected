@@ -124,7 +124,6 @@ class AuthRoutes(Routable):
     async def delete_user(
         self,
         request: Request,
-        response: Response,
         user: User = Depends(get_logged_user),
     ):
         if request.headers.get("api_key") != settings.temporal_settings.api_key:
@@ -133,11 +132,10 @@ class AuthRoutes(Routable):
                 content="You are not allowed to perform this action.",
             )
         await self.auth_service.delete_user(user=user)
-        delete_token_cookie(response=response)
         await add_refresh_token_to_blacklist(request=request)
         return "User Deleted Successfully"
 
-    @post("/user/workflow")
+    @post("/user/delete/workflow")
     async def add_workflow_to_delete_user(
         self,
         access_token=Depends(get_access_token),
