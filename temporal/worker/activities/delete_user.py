@@ -1,10 +1,10 @@
-import requests
 from temporalio import activity, workflow
 
 from models.user_tokens import UserTokens
 from settings.application import settings
 
-workflow.unsafe.imports_passed_through()
+with workflow.unsafe.imports_passed_through():
+    import requests
 
 
 @activity.defn(name="delete_user")

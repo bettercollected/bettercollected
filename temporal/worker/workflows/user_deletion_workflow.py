@@ -10,5 +10,5 @@ from models.user_tokens import UserTokens
 class DeleteUserWorkflow:
     @workflow.run
     async def run(self, user_token: UserTokens) -> str:
-        await workflow.execute_activity(delete_user, user_token, schedule_to_close_timeout=timedelta(minutes=5))
+        await workflow.execute_activity(delete_user, user_token, start_to_close_timeout=timedelta(minutes=5))
         return "Done"
