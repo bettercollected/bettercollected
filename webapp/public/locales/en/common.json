@@ -77,7 +77,8 @@
     "UPDATE_NOW": "Update Now",
     "SAVE_CHANGES": "Save Changes",
     "ADD_GROUP": "Add group",
-    "DELETE_FORM": "Delete Form"
+    "DELETE_FORM": "Delete Form",
+    "DELETE_NOW": "Delete Now"
   },
   "CONTACT_US": {
     "DESCRIPTION": "Any questions or remarks? Just write us a message",
@@ -527,6 +528,15 @@
       "POINT_1": "Your new domain name will be displayed in all of your workspace-related communications, such as workspace link, forms etc.",
       "POINT_2": "Any links with old domain name will no longer work."
     }
+  },
+  "CONFIRM": "CONFIRM",
+  "ACCOUNT_DELETION_CONFIRMATION": {
+    "TITLE": "Are you sure you want to delete Account?",
+    "POINT_1": "All your workspace will be deleted.",
+    "POINT_2": "All imported forms will be deleted.",
+    "POINT_3": "All created groups will be deleted.",
+    "POINT_4": "Your workspace link or your custom form link will not work anymore.",
+    "INPUT_TEXT_LABEL": "Type <span class='font-medium'>CONFIRM</span> and click on Delete Now to complete action"
   },
   "UPGRADE": {
     "PRO_INCLUDES": "PRO Plan Includes",

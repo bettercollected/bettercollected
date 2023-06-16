@@ -36,6 +36,7 @@ export const buttonConstant = {
     update: 'BUTTON.UPDATE',
     cancel: 'BUTTON.CANCEL',
     delete: 'BUTTON.DELETE',
+    deleteNow: 'BUTTON.DELETE_NOW',
     updateUrl: 'BUTTON.UPDATE_URL',
     resendCode: 'BUTTON.RESEND_CODE',
     saveImage: 'BUTTON.SAVE_IMAGE',

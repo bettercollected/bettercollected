@@ -77,7 +77,8 @@
     "UPDATE_NOW": "Update nu",
     "SAVE_CHANGES": "Wijzigingen opslaan",
     "ADD_GROUP": "Groep toevoegen",
-    "DELETE_FORM": "Formulier verwijderen"
+    "DELETE_FORM": "Formulier verwijderen",
+    "DELETE_NOW": "Nu verwijderen"
   },
   "CONTACT_US": {
     "DESCRIPTION": "Vragen of opmerkingen? Schrijf ons gewoon een bericht",
@@ -92,6 +93,15 @@
     "POINT_1": "Maak het relevant voor uw bedrijf of organisatie.",
     "POINT_2": "Vermijd het gebruik van spaties of speciale tekens. Alleen '-' en '_' worden geaccepteerd.",
     "POINT_3": "Houd het kort en bondig."
+  },
+  "CONFIRM": "BEVESTIGEN",
+  "ACCOUNT_DELETION_CONFIRMATION": {
+    "TITLE": "Weet u zeker dat u uw account wilt verwijderen?",
+    "POINT_1": "Al je werkruimte wordt verwijderd.",
+    "POINT_2": "Alle geïmporteerde formulieren worden verwijderd.",
+    "POINT_3": "Alle gemaakte groepen worden verwijderd.",
+    "POINT_4": "Uw werkruimtelink of uw aangepaste formulierlink zal niet meer werken.",
+    "INPUT_TEXT_LABEL": "Typ <span class='font-medium'>BEVESTIG</span> en klik op Nu verwijderen om de actie te voltooien"
   },
   "CUSTOMIZE_URL": "URL aanpassen",
   "CUSTOM_DOMAIN": "Aangepast domein",

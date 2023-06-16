@@ -27,6 +27,7 @@ import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
 import PreviewGroup from './modals/preview-group-modal';
+import UserDeletionModal from './modals/user-deletion-modal';
 
 function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
     switch (view) {
@@ -70,6 +71,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <AddMemberModal {...modalProps} />;
         case 'DELETE_CONFIRMATION':
             return <DeleteConfirmationModal {...modalProps} />;
+        case 'USER_DELETION':
+            return <UserDeletionModal {...modalProps} />;
         default:
             return <></>;
     }

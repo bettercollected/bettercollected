@@ -59,7 +59,7 @@ export default function AccountSettings(props: any) {
                             className="bg-red-100 px-4 !leading-none py-3 body6 rounded hover:bg-red-200 hover:drop-shadow-sm  !text-red-500"
                             size="medium"
                             onClick={() => {
-                                openModal('DELETE_CONFIRMATION', { title: t(buttonConstant.deleteAccount), handleDelete: () => handleDeleteAccount() });
+                                openModal('USER_DELETION', { handleDelete: () => handleDeleteAccount() });
                             }}
                         >
                             {t(buttonConstant.deleteAccount)}
