@@ -221,10 +221,8 @@ class WorkspaceService:
         await self.update_https_server_for_certificate(
             old_domain=workspace_document.custom_domain
         )
-        workspace_document.custom_domain = None
-        saved_workspace = await self._workspace_repo.update(
-            workspace_id, workspace_document
-        )
+        workspace_document.custom_domain = ""
+        saved_workspace = await workspace_document.save()
         return WorkspaceResponseDto(**saved_workspace.dict())
 
     async def get_mine_workspaces(self, user: User):

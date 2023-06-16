@@ -19,6 +19,8 @@ from backend.app.services.user_service import (
     get_logged_user,
     get_user_if_logged_in,
     add_refresh_token_to_blacklist,
+    get_access_token,
+    get_refresh_token,
 )
 from common.models.user import User, UserLoginWithOTP
 
@@ -122,7 +124,18 @@ class AuthRoutes(Routable):
         response: Response,
         user: User = Depends(get_logged_user),
     ):
-        await add_refresh_token_to_blacklist(request=request)
         await self.auth_service.delete_user(user=user)
         delete_token_cookie(response=response)
+        await add_refresh_token_to_blacklist(request=request)
         return "User Deleted Successfully"
+
+    @post("/user/workflow")
+    async def add_workflow_to_delete_user(
+        self,
+        access_token=Depends(get_access_token),
+        refresh_token=Depends(get_refresh_token),
+        user: User = Depends(get_logged_user),
+    ):
+        await self.auth_service.add_workflow_to_delete_user(
+            access_token=access_token, refresh_token=refresh_token, user=user
+        )

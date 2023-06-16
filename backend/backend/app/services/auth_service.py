@@ -5,9 +5,11 @@ from typing import Tuple
 from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.plugin_proxy_service import PluginProxyService
+from backend.app.services.temporal_service import TemporalService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
@@ -28,12 +30,14 @@ class AuthService:
         form_provider_service: FormPluginProviderService,
         jwt_service: JwtService,
         workspace_service: WorkspaceService,
+        temporal_service: TemporalService,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
         self.form_provider_service = form_provider_service
         self.jwt_service = jwt_service
         self.workspace_service = workspace_service
+        self.temporal_service = temporal_service
 
     async def get_user_status(self, user: User):
         response_data = await self.http_client.get(
@@ -138,4 +142,12 @@ class AuthService:
     async def delete_user_form_auth(self, user: User):
         await AiohttpClient.get_aiohttp_client().delete(
             settings.auth_settings.BASE_URL + "/users/" + user.id, timeout=20000
+        )
+
+    async def add_workflow_to_delete_user(
+        self, access_token: str, refresh_token: str, user: User
+    ):
+        await self.temporal_service.start_user_deletion_workflow(
+            UserTokens(access_token=access_token, refresh_token=refresh_token),
+            user_id=user.id,
         )

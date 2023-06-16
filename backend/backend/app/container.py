@@ -31,6 +31,7 @@ from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
+from backend.app.services.temporal_service import TemporalService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_members_service import WorkspaceMembersService
 from backend.app.services.workspace_responders_service import WorkspaceRespondersService
@@ -71,6 +72,10 @@ class AppContainer(containers.DeclarativeContainer):
     responder_groups_repository = providers.Singleton(ResponderGroupsRepository)
 
     # Services
+    temporal_service = providers.Singleton(
+        TemporalService, settings.temporal_settings.server_uri
+    )
+
     aws_service: AWSS3Service = providers.Singleton(
         AWSS3Service,
         settings.aws_settings.ACCESS_KEY_ID,
@@ -169,6 +174,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_provider_service=form_provider_service,
         jwt_service=jwt_service,
         workspace_service=workspace_service,
+        temporal_service=temporal_service,
     )
 
     workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(
