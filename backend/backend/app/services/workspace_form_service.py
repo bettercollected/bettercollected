@@ -224,11 +224,11 @@ class WorkspaceFormService:
                 workspace_form.settings.provider + "_" + workspace_form.form_id
             )
 
-        await self.form_service.delete_forms(form_ids=form_ids)
         await self.form_response_service.delete_form_responses_of_form_ids(
             form_ids=form_ids
         )
         await self.form_response_service.delete_deletion_requests_of_form_ids(
             form_ids=form_ids
         )
+        await self.form_service.delete_forms(form_ids=form_ids)
         return await self.workspace_form_repository.delete_forms(form_ids=form_ids)

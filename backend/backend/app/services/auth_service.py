@@ -120,16 +120,14 @@ class AuthService:
         return user, response_data.get("client_referer_url", "")
 
     async def delete_user(self, user: User):
-        # TODO Move deleting user to scheduled job and return with removing cookie only when deleting
-        #  the user in auth server and credentials in integrations is a success
         await self.delete_credentials_from_integrations(user=user)
-        await self.delete_user_form_auth(user=user)
         await self.workspace_service.delete_workspaces_of_user_with_forms(user=user)
+        await self.delete_user_form_auth(user=user)
 
     async def delete_credentials_from_integrations(self, user: User):
         providers = await self.form_provider_service.get_providers(get_all=True)
         for provider in providers:
-            await AiohttpClient.get_aiohttp_client().delete(
+            response = await AiohttpClient.get_aiohttp_client().delete(
                 await self.form_provider_service.get_provider_url(
                     provider.provider_name
                 )
@@ -138,6 +136,11 @@ class AuthService:
                 params={"user_id": user.id, "email": user.sub},
                 timeout=20000,
             )
+            if response.status != HTTPStatus.OK:
+                raise HTTPException(
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    content=f"Could not delete credentials from {provider.provider_name} integration.",
+                )
 
     async def delete_user_form_auth(self, user: User):
         await AiohttpClient.get_aiohttp_client().delete(
