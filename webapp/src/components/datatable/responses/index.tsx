@@ -15,7 +15,8 @@ import AnchorLink from '@app/components/ui/links/anchor-link';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
-import { StandardFormResponseDto } from '@app/models/dtos/form';
+import { StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
+import { Page } from '@app/models/dtos/page';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
 const responseTableStyles = {
@@ -31,7 +32,14 @@ const responseTableStyles = {
         }
     }
 };
-const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, page, setPage }: any) => {
+interface IResponsetableProps {
+    requestForDeletion: boolean;
+    submissions: Page<StandardFormResponseDto>;
+    formId?: string;
+    page: number;
+    setPage: (page: number) => void;
+}
+const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage }: IResponsetableProps) => {
     const router = useRouter();
     const googleFormHostUrl = 'https://docs.google.com/';
     const handlePageChange = (e: any, page: number) => {
@@ -67,12 +75,12 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
         </div>
     );
 
-    const Status = ({ status, responseId }: { status: string; responseId: string }) => (
+    const Status = ({ status, response }: { status: string; response: StandardFormResponseDto }) => (
         <div className="flex gap-6">
             <StatusBadge status={status} />
             {status.toLowerCase() === 'pending' && (
                 <Typography noWrap>
-                    <AnchorLink target="_blank" href={googleFormHostUrl + 'forms/d/' + formId + '/edit?pli=1#response=' + responseId} className="cursor-pointer body4 !text-brand-500">
+                    <AnchorLink target="_blank" href={googleFormHostUrl + 'forms/d/' + response.formId + '/edit?pli=1#response=' + response.responseId} className="cursor-pointer body4 !text-brand-500">
                         {t(localesCommon.goToResponse)}
                     </AnchorLink>
                 </Typography>
@@ -110,7 +118,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
         const statusToAdd = [
             {
                 name: t(localesCommon.status),
-                selector: (row: StandardFormResponseDto) => Status({ status: row?.deletionStatus || t(formConstant.status.pending), responseId: row.responseId }),
+                selector: (row: StandardFormResponseDto) => Status({ status: row?.deletionStatus || t(formConstant.status.pending), response: row }),
                 grow: 2,
                 style: {
                     color: 'rgba(0,0,0,.54)',
@@ -139,21 +147,21 @@ const ResponsesTable = ({ requestForDeletion, submissions, workspaceId, formId, 
     }
 
     const Response: any = () => {
-        if (submissions?.data?.items && submissions?.data?.items.length > 0)
+        if (submissions.items && submissions.items.length > 0)
             return (
                 <>
                     <DataTable
                         className="p-0 mt-2 h-full !overflow-auto"
                         columns={dataTableResponseColumns}
-                        data={submissions?.data?.items || []}
+                        data={submissions.items || []}
                         customStyles={requestForDeletion ? dataTableCustomStyles : responseTableStyles}
                         highlightOnHover={false}
                         pointerOnHover={false}
                         onRowClicked={onRowClicked}
                     />
-                    {Array.isArray(submissions?.data?.items) && submissions?.data?.total > globalConstants.pageSize && (
+                    {Array.isArray(submissions?.items) && submissions?.total > globalConstants.pageSize && (
                         <div className="mt-8 flex justify-center">
-                            <StyledPagination shape="rounded" count={submissions?.data?.pages || 0} page={page} onChange={handlePageChange} />
+                            <StyledPagination shape="rounded" count={submissions?.pages || 0} page={page} onChange={handlePageChange} />
                         </div>
                     )}
                 </>

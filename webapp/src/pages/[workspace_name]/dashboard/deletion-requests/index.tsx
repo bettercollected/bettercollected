@@ -31,15 +31,15 @@ export default function DeletionRequests({ workspace }: { workspace: WorkspaceDt
             setQuery(removedQuery);
         }
     };
-    const submissions = useGetWorkspaceAllSubmissionsQuery(query);
+    const { data, isLoading } = useGetWorkspaceAllSubmissionsQuery(query);
     return (
         <DashboardLayout>
-            {submissions?.isLoading && (
+            {isLoading && (
                 <div className=" w-full py-10 flex justify-center">
                     <Loader />
                 </div>
             )}
-            {!submissions?.isLoading && (
+            {data && (
                 <>
                     <div className="heading4">{t(formConstant.deletionRequests)}</div>
                     <p className="body1 text-black-900 my-10">
@@ -48,7 +48,7 @@ export default function DeletionRequests({ workspace }: { workspace: WorkspaceDt
                     <div className="w-full md:w-[282px] mb-8">
                         <SearchInput handleSearch={handleSearch} />
                     </div>
-                    <ResponsesTable workspaceId={workspace.id} requestForDeletion={true} page={page} setPage={setPage} submissions={submissions} />
+                    <ResponsesTable requestForDeletion={true} page={page} setPage={setPage} submissions={data} />
                 </>
             )}
         </DashboardLayout>

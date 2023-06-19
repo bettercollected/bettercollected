@@ -185,7 +185,7 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
-        getWorkspaceAllSubmissions: builder.query<Page<StandardFormResponseDto | WorkspaceResponderDto>, IGetAllSubmissionsQuery>({
+        getWorkspaceAllSubmissions: builder.query<Page<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
             query: (query: IGetAllSubmissionsQuery) => {
                 return {
                     url: `/workspaces/${query.workspaceId}/all-submissions`,
@@ -202,7 +202,7 @@ export const workspacesApi = createApi({
             },
             providesTags: [WORKSPACE_TAGS]
         }),
-        getWorkspaceResponders: builder.query<Page<StandardFormResponseDto | WorkspaceResponderDto>, IGetAllSubmissionsQuery>({
+        getWorkspaceResponders: builder.query<Page<WorkspaceResponderDto>, IGetAllSubmissionsQuery>({
             query: (query: IGetAllSubmissionsQuery) => {
                 return {
                     url: `/workspaces/${query.workspaceId}/responders`,

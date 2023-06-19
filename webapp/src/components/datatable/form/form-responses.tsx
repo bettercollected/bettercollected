@@ -18,7 +18,7 @@ export default function FormResponsesTable({ props }: any) {
         page: page,
         size: globalConstants.pageSize
     });
-    const submissions = useGetFormsSubmissionsQuery(query);
+    const { data, isLoading } = useGetFormsSubmissionsQuery(query);
 
     const handleSearch = (event: any) => {
         if (event.target.value) setQuery({ ...query, dataOwnerIdentifier: event.target.value });
@@ -30,18 +30,20 @@ export default function FormResponsesTable({ props }: any) {
         console.log(query);
     };
 
-    if (submissions?.isLoading)
+    if (isLoading)
         return (
             <div className=" w-full py-10 flex justify-center">
                 <Loader />
             </div>
         );
-    return (
-        <>
-            <div className="w-full md:w-[282px] my-6">
-                <SearchInput handleSearch={handleSearch} />
-            </div>
-            <ResponsesTable formId={formId} workspaceId={workspace?.id} requestForDeletion={requestForDeletion} page={page} setPage={setPage} submissions={submissions} />
-        </>
-    );
+    if (data)
+        return (
+            <>
+                <div className="w-full md:w-[282px] my-6">
+                    <SearchInput handleSearch={handleSearch} />
+                </div>
+                <ResponsesTable formId={formId} requestForDeletion={requestForDeletion} page={page} setPage={setPage} submissions={data} />
+            </>
+        );
+    return <></>;
 }
