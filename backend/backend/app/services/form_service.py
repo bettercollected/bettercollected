@@ -96,9 +96,9 @@ class FormService:
 
         for form in forms:
             for user_info in user_details["users_info"]:
-                if form["imported_by"] == user["_id"]:
-                    form.importer_details = FormImporterDetails(
-                        **user_info, id=form.imported_by
+                if form["imported_by"] == user.id:
+                    form["importer_details"] = FormImporterDetails(
+                        **user_info, id=form["imported_by"]
                     )
                     break
         return [MinifiedForm(**form) for form in forms]
