@@ -58,7 +58,7 @@ export default function Submission(props: any) {
                     workspace_id: workspace.id,
                     submission_id: submissionId
                 };
-                await requestWorkspaceSubmissionDeletion(query).unwrap();
+                await requestWorkspaceSubmissionDeletion(query);
                 toast(t(toastMessage.workspaceSuccess).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
                 closeModal();
             } catch (e) {

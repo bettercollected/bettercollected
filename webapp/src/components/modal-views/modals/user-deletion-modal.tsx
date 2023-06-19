@@ -29,7 +29,7 @@ export default function UserDeletionModal() {
     const handleDeleteAccount = async () => {
         try {
             if (confirm === 'CONFIRM') {
-                await deleteAccount().unwrap();
+                await deleteAccount();
                 router.push(`/${locale}login`);
                 toast(t(toastMessage.accountDeletion.success).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
             }
@@ -75,7 +75,11 @@ export default function UserDeletionModal() {
                     onPaste={handleCopyPaste}
                     onCopy={handleCopyPaste}
                 />
-                <Button disabled={confirm !== 'CONFIRM'} isLoading={isLoading || isSuccess} className={cn('body4 !text-brand-100 py-4 px-6 !leading-none !h-[42px] bg-red-500 hover:!bg-red-600', confirm !== 'CONFIRM' && 'opacity-30 cursor-not-allowed')}>
+                <Button
+                    disabled={confirm !== 'CONFIRM'}
+                    isLoading={isLoading || isSuccess}
+                    className={cn('body4 !text-brand-100 py-4 px-6 !leading-none !h-[42px] bg-red-500 ', confirm !== 'CONFIRM' ? 'opacity-30 cursor-not-allowed' : 'hover:!bg-red-600')}
+                >
                     {t(buttonConstant.deleteNow)}
                 </Button>
             </div>

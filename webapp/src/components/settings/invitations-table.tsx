@@ -47,7 +47,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
                     role: 'COLLABORATOR',
                     email: email
                 }
-            }).unwrap();
+            });
             toast(t(toastMessage.invitationSent).toString(), { type: 'success' });
         } catch (error) {
             toast(t(toastMessage.failedToSentEmail).toString(), { type: 'error' });

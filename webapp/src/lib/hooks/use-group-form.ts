@@ -48,7 +48,7 @@ export function useGroupForm() {
                 workspaceId: workspaceId,
                 groupId: group.id,
                 formId: form.formId
-            }).unwrap();
+            });
 
             dispatch(setForm({ ...form, groups: [...groups, group] }));
 

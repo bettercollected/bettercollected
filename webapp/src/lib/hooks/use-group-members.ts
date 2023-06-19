@@ -30,7 +30,7 @@ export function useGroupMember() {
                 workspaceId: workspaceId,
                 groupId: group.id,
                 emails: [email]
-            }).unwrap();
+            });
 
             toast(t(toastMessage.removeFromGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
             closeModal();

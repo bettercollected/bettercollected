@@ -17,6 +17,7 @@ import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
 import { Page } from '@app/models/dtos/page';
+import { Provider } from '@app/models/enums/provider';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
 const responseTableStyles = {
@@ -42,6 +43,7 @@ interface IResponsetableProps {
 const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage }: IResponsetableProps) => {
     const router = useRouter();
     const googleFormHostUrl = 'https://docs.google.com/';
+    const typeFormHostUrl = 'https://admin.typeform.com/';
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
     };
@@ -80,7 +82,11 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
             <StatusBadge status={status} />
             {status.toLowerCase() === 'pending' && (
                 <Typography noWrap>
-                    <AnchorLink target="_blank" href={googleFormHostUrl + 'forms/d/' + response.formId + '/edit?pli=1#response=' + response.responseId} className="cursor-pointer body4 !text-brand-500">
+                    <AnchorLink
+                        target="_blank"
+                        href={response.provider === Provider.google ? `${googleFormHostUrl}forms/d/${response.formId}/edit?pli=1#response=${response.responseId}` : `${typeFormHostUrl}form/${response.formId}/results#responses`}
+                        className="cursor-pointer body4 !text-brand-500"
+                    >
                         {t(localesCommon.goToResponse)}
                     </AnchorLink>
                 </Typography>

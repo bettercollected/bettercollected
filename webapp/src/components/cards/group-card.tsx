@@ -31,7 +31,7 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
             await trigger({
                 workspaceId: workspace.id,
                 groupId: responderGroup.id
-            }).unwrap();
+            });
             toast(t(toastMessage.groupDeleted).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
             closeModal();
         } catch (error) {
