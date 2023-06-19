@@ -70,7 +70,8 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
             workspace_id: workspaceId,
             query: escapeRegExp(event.target.value)
         });
-        if (event.target.value) {
+        console.log(event.target.value);
+        if (event.target.value && response.data) {
             setUnpinnedForms(response?.data);
         } else {
             setUnpinnedForms(data?.items.filter((form: any) => !form.settings.pinned) || []);

@@ -12,7 +12,7 @@ import { SearchIcon } from '@app/components/icons/search';
 import { placeHolder } from '@app/constants/locales/placeholder';
 
 interface ISearchInputProps {
-    handleSearch: (event: any, value?: any) => void;
+    handleSearch: (event: any) => void;
 }
 
 export default function SearchInput({ handleSearch }: ISearchInputProps) {
