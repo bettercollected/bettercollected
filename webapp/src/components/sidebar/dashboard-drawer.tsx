@@ -120,7 +120,7 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
             key: 'deletion_requests',
             name: t(formConstant.deletionRequests),
             url: `${commonWorkspaceUrl}/deletion-requests`,
-            icon: <DeleteIcon />
+            icon: <DeleteIcon className="stroke-2" />
         }
     ];
     const bottomNavList: Array<INavbarItem> = [

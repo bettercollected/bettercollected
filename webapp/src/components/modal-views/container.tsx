@@ -21,6 +21,7 @@ import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
+import AddFormOnGroup from './modals/add-form-group-modal';
 import AddMemberModal from './modals/add-member-modal';
 import CreateGroupModal from './modals/create-group-modal';
 import CropImageModalView from './modals/crop-image-modal-view';
@@ -73,6 +74,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <DeleteConfirmationModal {...modalProps} />;
         case 'USER_DELETION':
             return <UserDeletionModal {...modalProps} />;
+        case 'ADD_FORM_GROUP':
+            return <AddFormOnGroup {...modalProps} />;
         default:
             return <></>;
     }

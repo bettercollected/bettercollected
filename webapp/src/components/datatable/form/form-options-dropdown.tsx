@@ -5,7 +5,7 @@ import { useTranslation } from 'next-i18next';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import AddMember from '@Components/Common/Icons/Add-member';
 import CopyIcon from '@Components/Common/Icons/Copy';
-import Delete from '@Components/Common/Icons/Delete';
+import DeleteIcon from '@Components/Common/Icons/Delete';
 import EditIcon from '@Components/Common/Icons/Edit';
 import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
 import Eye from '@Components/Common/Icons/Eye';
@@ -22,7 +22,6 @@ import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
-import { customize } from '@app/constants/locales/customize';
 import { formConstant } from '@app/constants/locales/form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
@@ -31,7 +30,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch } from '@app/store/hooks';
-import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
+import { useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
 interface IFormOptionsDropdownMenuProps {
     workspace: WorkspaceDto;
@@ -50,6 +49,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         form: StandardFormDto;
         shareUrl: string;
     } | null>(null);
+    const { data } = useGetAllRespondersGroupQuery(workspace.id);
 
     const [_, copyToClipboard] = useCopyToClipboard();
 
@@ -185,27 +185,32 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             }}
         >
             <ListItemIcon>
-                <EditIcon width={20} height={20} className="text-black-900" />
+                <EditIcon width={20} height={20} className="text-black-900 stroke-[1.5]" />
             </ListItemIcon>
             {t(buttonConstant.customizeLink)}
         </MenuItem>
     );
     const menuItemAddToGroup = (
-        <MenuItem
-            sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
-            className="body4 hover:bg-brand-100"
-            onClick={() => {
-                openModal('CUSTOMIZE_URL', {
-                    url: isCustomDomain ? customDomain : clientHost,
-                    form: currentActiveForm?.form
-                });
-            }}
-        >
-            <ListItemIcon>
-                <AddMember width={20} height={20} />
-            </ListItemIcon>
-            {t(buttonConstant.addToGroup)}
-        </MenuItem>
+        <Tooltip title={data?.length === 0 ? 'No group found' : ''}>
+            <span>
+                <MenuItem
+                    sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
+                    disabled={data?.length === 0}
+                    className="body4 hover:bg-brand-100"
+                    onClick={() => {
+                        openModal('ADD_FORM_GROUP', {
+                            responderGroup: data,
+                            form: currentActiveForm?.form
+                        });
+                    }}
+                >
+                    <ListItemIcon>
+                        <AddMember width={20} height={20} />
+                    </ListItemIcon>
+                    {t(buttonConstant.addToGroup)}
+                </MenuItem>
+            </span>
+        </Tooltip>
     );
 
     return (
@@ -214,7 +219,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 {menuItemOpen}
                 {!!currentActiveForm?.form?.settings?.private ? (
                     <Tooltip title={t(toolTipConstant.visibility)}>
-                        <div>{menuItemPinSettings}</div>
+                        <span>{menuItemPinSettings}</span>
                     </Tooltip>
                 ) : (
                     menuItemPinSettings
@@ -228,7 +233,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 </MenuItem>
                 <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4">
                     <ListItemIcon>
-                        <Delete width={20} height={20} className="text-black-900" />
+                        <DeleteIcon width={20} height={20} className="text-black-900 stroke-[1.5]" />
                     </ListItemIcon>
                     <span>{t(formConstant.menu.deleteForm)}</span>
                 </MenuItem>

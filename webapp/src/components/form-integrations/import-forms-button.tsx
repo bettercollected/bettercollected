@@ -54,9 +54,11 @@ export default function ImportFormsButton({ size, className = '' }: ButtonProps)
     }, [formProviders]);
 
     const importFormButton = (
-        <Button variant="solid" className={`w-full sm:w-auto ${className}`} disabled={!providers.google && !providers.typeform} size={size} onClick={handleClick}>
-            {t(buttonConstant.importForms)}
-        </Button>
+        <span>
+            <Button variant="solid" className={`w-full sm:w-auto ${className}`} disabled={!providers.google && !providers.typeform} size={size} onClick={handleClick}>
+                {t(buttonConstant.importForms)}
+            </Button>
+        </span>
     );
 
     if (!providers.google && !providers.typeform) {

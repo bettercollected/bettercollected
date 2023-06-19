@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
 import { StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
+import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspaceStatsDto';
@@ -335,7 +336,7 @@ export const workspacesApi = createApi({
             }),
             providesTags: [GROUP_TAG, RESPONDER_TAG, FORM_TAG]
         }),
-        getAllRespondersGroup: builder.query<any, any>({
+        getAllRespondersGroup: builder.query<Array<ResponderGroupDto>, any>({
             query: (workspace_id) => ({
                 url: `${workspace_id}/responder-groups`,
                 method: 'GET'

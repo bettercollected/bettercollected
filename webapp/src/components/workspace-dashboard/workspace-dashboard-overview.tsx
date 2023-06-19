@@ -68,7 +68,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                         <div className={`flex items-center justify-center h-12 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_EDIT}`}>
                             <Tooltip title={t(toolTipConstant.editWorkspace)}>
                                 <div className="hover:bg-brand-100 rounded p-2 cursor-pointer" onClick={() => openModal('EDIT_WORKSPACE_MODAL')}>
-                                    <EditIcon />
+                                    <EditIcon className="stroke-2" />
                                 </div>
                             </Tooltip>
                         </div>

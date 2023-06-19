@@ -12,7 +12,7 @@ import { useAppDispatch } from '@app/store/hooks';
 import { useAddFormOnGroupMutation, useDeleteGroupFormMutation } from '@app/store/workspaces/api';
 
 interface IDeleteFormFromGroupProps {
-    group: ResponderGroupDto;
+    group: ResponderGroupDto | null;
     workspaceId: string;
     form: StandardFormDto;
 }
@@ -29,11 +29,11 @@ export function useGroupForm() {
         try {
             await removeForm({
                 workspaceId: workspaceId,
-                groupId: group.id,
+                groupId: group?.id,
                 formId: form.formId
             }).unwrap();
 
-            dispatch(setForm({ ...form, groups: form.groups?.filter((formGroup) => formGroup.id !== group.id) }));
+            dispatch(setForm({ ...form, groups: form.groups?.filter((formGroup) => formGroup.id !== group?.id) }));
 
             toast(t(toastMessage.removed).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
             closeModal();
@@ -46,7 +46,7 @@ export function useGroupForm() {
         try {
             await addForm({
                 workspaceId: workspaceId,
-                groupId: group.id,
+                groupId: group?.id,
                 formId: form.formId
             });
 
