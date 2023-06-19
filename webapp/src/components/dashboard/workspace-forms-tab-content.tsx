@@ -61,7 +61,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
     const { isLoading, data, isError } = useGetWorkspaceFormsQuery(query, { pollingInterval: 30000 });
     const [searchWorkspaceForms] = useSearchWorkspaceFormsMutation();
     const [pinnedForms, setPinnedForms] = useState<any>([]);
-    const [unpinnedForms, setUnpinnedForms] = useState<any>([]);
+    const [allForms, setAllForms] = useState<any>([]);
     const [showUnpinnedForms, setShowUnpinnedForms] = useState(false);
     const { t } = useTranslation();
 
@@ -72,9 +72,9 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
         });
         console.log(event.target.value);
         if (event.target.value && response.data) {
-            setUnpinnedForms(response?.data);
+            setAllForms(response?.data);
         } else {
-            setUnpinnedForms(data?.items.filter((form: any) => !form.settings.pinned) || []);
+            setAllForms(data?.items || []);
         }
     };
 
@@ -83,7 +83,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
             const pinnedForms = data.items.filter((form) => form.settings?.pinned);
             const unpinnedForms = data.items.filter((form) => !form.settings?.pinned);
             setPinnedForms(pinnedForms);
-            setUnpinnedForms(unpinnedForms);
+            setAllForms(data.items);
             setShowUnpinnedForms(unpinnedForms.length > 0);
         }
     }, [data]);
@@ -105,7 +105,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
             <div className={`w-full md:w-[282px]`}>
                 <SearchInput handleSearch={handleSearch} />
             </div>
-            {unpinnedForms.length !== 0 && <FormCards title={pinnedForms.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={unpinnedForms} workspace={workspace} />}
+            {allForms.length !== 0 && <FormCards title={pinnedForms.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} />}
         </div>
     );
 }
