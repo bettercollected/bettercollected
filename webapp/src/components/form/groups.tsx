@@ -10,6 +10,7 @@ import cn from 'classnames';
 import EmptyGroup from '@app/components/dashboard/empty-group';
 import UserMore from '@app/components/icons/user-more';
 import { useModal } from '@app/components/modal-views/context';
+import DeleteDropDown from '@app/components/ui/delete-dropdown';
 import Loader from '@app/components/ui/loader';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -24,8 +25,6 @@ import { useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
 
-import DeleteDropDown from '../ui/delete-dropdown';
-
 export default function FormGroups() {
     const { t } = useTranslation();
     const form: StandardFormDto = useAppSelector((state) => state.form);
@@ -37,7 +36,7 @@ export default function FormGroups() {
     const NoGroupLink = () => (
         <div className="mt-[119px] flex flex-col items-center">
             <UserMore />
-            <p className="body1">{form.groups?.length === 0 && data?.length === 0 ? t(groupConstant.createAGroupTo) : t(formConstant.addGroup)}</p>
+            <p className="body1">{form.groups?.length === 0 && data?.length === 0 ? t(groupConstant.createAGroupTo) : t(formConstant.addgroup.title)}</p>
             <ul className="list-disc body4 text-black-700 flex flex-col gap-4 mt-4">
                 <li>{t(groupConstant.limitAccessToFrom)}</li>
                 <li>{t(groupConstant.sendFormsToMultiplePeople)}</li>
@@ -55,7 +54,7 @@ export default function FormGroups() {
                 menuTitle={''}
                 menuContent={<div className="bg-brand-500 px-3 rounded text-white py-1">{data?.length === 0 && form.groups?.length === 0 ? t(groupConstant.askAdminToCreateAGroup) : t(buttonConstant.addGroup)}</div>}
             >
-                {data.map((group: ResponderGroupDto) => (
+                {data?.map((group: ResponderGroupDto) => (
                     <MenuItem disabled={isFormAlreadyInGroup(form.groups, group.id)} onClick={() => addFormOnGroup({ groups: form?.groups, group, workspaceId: workspace.id, form })} key={group.id} className="py-3 flex justify-between hover:bg-black-200">
                         <Typography className="body4" noWrap>
                             {group.name}
@@ -87,9 +86,9 @@ export default function FormGroups() {
                 <Loader />
             </div>
         );
-    else if (data?.length === 0 && isAdmin) return <EmptyGroup />;
-    else if (data?.length === 0 && !isAdmin) return NoGroupLink();
-    else if (data?.length > 0 && form.groups?.length === 0) return NoGroupLink();
-    else if (data?.length > 0 && form.groups?.length !== 0) return ShowFormGroups();
+    else if (data && data?.length === 0 && isAdmin) return <EmptyGroup />;
+    else if (data && data?.length === 0 && !isAdmin) return NoGroupLink();
+    else if (data && data.length > 0 && form.groups?.length === 0) return NoGroupLink();
+    else if (data && data?.length > 0 && form.groups?.length !== 0) return ShowFormGroups();
     else return <></>;
 }

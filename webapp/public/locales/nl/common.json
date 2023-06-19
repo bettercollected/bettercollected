@@ -79,7 +79,8 @@
     "ADD_GROUP": "Groep toevoegen",
     "DELETE_FORM": "Formulier verwijderen",
     "DELETE_NOW": "Nu verwijderen",
-    "ADD_TO_GROUP": "Toevoegen aan groep"
+    "ADD_TO_GROUP": "Toevoegen aan groep",
+    "OPEN": "openen"
   },
   "CONTACT_US": {
     "DESCRIPTION": "Vragen of opmerkingen? Schrijf ons gewoon een bericht",
@@ -181,7 +182,6 @@
     "URL": "Formulier-URL",
     "IMPORTED_BY": "Geïmporteerd door",
     "IMPORTED_ON": "Geïmporteerd op",
-    "ADD_GROUP": "Groep toevoegen aan formulier",
     "SETTINGS": {
       "DESCRIPTION": "Medewerkers kunnen formulieren importeren, formulieren verwijderen, reacties bekijken en reacties verwijderen.",
       "FORM_LINK": {
@@ -197,6 +197,11 @@
           "POINT_2": "Zodra de domeinnaam verloopt, werkt deze link niet meer."
         }
       }
+    },
+    "ADD_GROUP": {
+      "TITLE": "Voeg {{form}} toe aan groep",
+      "DESCRIPTION": "Selecteer groepen om het formulier alleen voor hen zichtbaar te maken.",
+      "LABEL": "Groep selecteren"
     }
   },
   "FORMS": "Formulieren",
@@ -477,7 +482,8 @@
     "PINNED": "Vastgemaakt aan uw openbare werkruimteweergave",
     "OPTIONS": "Opties",
     "FORM_OPTIONS": "Formulieropties",
-    "SHARE_FORM": "Formulier delen"
+    "SHARE_FORM": "Formulier delen",
+    "FORM_IS_ALREADY_ON_GROUP": "{{form}} is al lid van {{group}}"
   },
   "UNTITLED": "Zonder titel",
   "UPDATED": "Bijgewerkt",

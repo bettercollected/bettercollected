@@ -150,7 +150,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 <ListItemIcon>
                     <Eye width={20} height={20} className="text-black-900" />
                 </ListItemIcon>
-                Open
+                {t(buttonConstant.open)}
             </MenuItem>
         </ActiveLink>
     );
@@ -162,7 +162,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             onClick={() => {
                 if (currentActiveForm?.shareUrl) {
                     copyToClipboard(currentActiveForm?.shareUrl);
-                    toast('Form URL Copied', { type: 'success' });
+                    toast(t(toastMessage.formUrlCopied).toString(), { type: 'success' });
                 }
             }}
         >
@@ -199,7 +199,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     className="body4 hover:bg-brand-100"
                     onClick={() => {
                         openModal('ADD_FORM_GROUP', {
-                            responderGroup: data,
+                            responderGroups: data,
                             form: currentActiveForm?.form
                         });
                     }}

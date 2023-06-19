@@ -79,7 +79,8 @@
     "ADD_GROUP": "Add group",
     "DELETE_FORM": "Delete Form",
     "DELETE_NOW": "Delete Now",
-    "ADD_TO_GROUP": "Add to group"
+    "ADD_TO_GROUP": "Add to group",
+    "OPEN": "open"
   },
   "CONTACT_US": {
     "DESCRIPTION": "Any questions or remarks? Just write us a message",
@@ -173,7 +174,6 @@
     "URL": "Form URL",
     "IMPORTED_BY": "Imported By",
     "IMPORTED_ON": "Imported On",
-    "ADD_GROUP": "Add group on form",
     "SETTINGS": {
       "DESCRIPTION": "Collaborators can import forms, delete forms, see responses and delete response.",
       "FORM_LINK": {
@@ -199,6 +199,11 @@
         "PUBLIC": "Public",
         "PRIVATE": "Private"
       }
+    },
+    "ADD_GROUP": {
+      "TITLE": "Add {{form}} to Group",
+      "DESCRIPTION": "Select groups to make form visible only to them.",
+      "LABEL": "Select Group"
     }
   },
   "FORMS": "Forms",
@@ -488,7 +493,8 @@
     "PINNED": "Pinned to your public workspace view",
     "OPTIONS": "Options",
     "FORM_OPTIONS": "Form options",
-    "SHARE_FORM": "Share form"
+    "SHARE_FORM": "Share form",
+    "FORM_IS_ALREADY_ON_GROUP": "{{form}} is already on {{group}}"
   },
   "UNTITLED": "Untitled",
   "UPDATED": "Updated",

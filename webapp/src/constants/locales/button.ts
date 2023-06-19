@@ -56,5 +56,6 @@ export const buttonConstant = {
     addGroup: 'BUTTON.ADD_GROUP',
     addMember: 'BUTTON.ADD_MEMBER',
     addForm: 'BUTTON.ADD_FORM',
-    addToGroup: 'BUTTON.ADD_TO_GROUP'
+    addToGroup: 'BUTTON.ADD_TO_GROUP',
+    open: 'BUTTON.OPEN'
 };

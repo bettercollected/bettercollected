@@ -16,5 +16,6 @@ export const toolTipConstant = {
     pinned: 'TOOLTIP.PINNED',
     Options: 'TOOLTIP.OPTIONS',
     formOptions: 'TOOLTIP.FORM_OPTIONS',
-    shareForm: 'TOOLTIP.SHARE_FORM'
+    shareForm: 'TOOLTIP.SHARE_FORM',
+    formIsAlreadyOnGroup: 'TOOLTIP.FORM_IS_ALREADY_ON_GROUP'
 };

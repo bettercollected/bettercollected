@@ -70,9 +70,9 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                     );
                 return null;
             })}
-            {responderGroupsQuery.data?.length === 0 && isAdmin && AddButton(() => openModal('CREATE_GROUP', { email: email }))}
-            {responderGroupsQuery.data?.filter((group: ResponderGroupDto) => group.emails.includes(email)).length === 0 && !isAdmin && <p className="body5 text-black-800">{t(groupConstant.notInAnyGroup)}</p>}
-            {responderGroupsQuery.data?.length > 0 && isAdmin && (
+            {responderGroupsQuery.data && responderGroupsQuery.data?.length === 0 && isAdmin && AddButton(() => openModal('CREATE_GROUP', { email: email }))}
+            {responderGroupsQuery.data && responderGroupsQuery.data?.filter((group: ResponderGroupDto) => group.emails.includes(email)).length === 0 && !isAdmin && <p className="body5 text-black-800">{t(groupConstant.notInAnyGroup)}</p>}
+            {responderGroupsQuery.data && responderGroupsQuery.data?.length > 0 && isAdmin && (
                 <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
                     {responderGroupsQuery.data?.map((group: ResponderGroupDto) => (
                         <MenuItem disabled={!!isEmailInGroup(group, email)} onClick={() => addMemberOnGroup({ email, group, workspaceId: workspace.id })} key={group.id} className="flex justify-between py-3 hover:bg-black-200">
