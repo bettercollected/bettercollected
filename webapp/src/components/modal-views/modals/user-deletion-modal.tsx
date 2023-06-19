@@ -37,6 +37,9 @@ export default function UserDeletionModal() {
             toast(t(toastMessage.accountDeletion.failed).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
     };
+    const handleCopyPaste = (event: any) => {
+        event.preventDefault();
+    };
 
     return (
         <form onSubmit={handleDeleteAccount} className="p-6 pb-3 rounded relative w-full bg-white md:w-[682px]">
@@ -68,6 +71,9 @@ export default function UserDeletionModal() {
                     onChange={(e) => {
                         setConfirm(e.target.value);
                     }}
+                    onCut={handleCopyPaste}
+                    onPaste={handleCopyPaste}
+                    onCopy={handleCopyPaste}
                 />
                 <Button disabled={confirm !== 'CONFIRM'} isLoading={isLoading || isSuccess} className={cn('body4 !text-brand-100 py-4 px-6 !leading-none !h-[42px] bg-red-500 hover:!bg-red-600', confirm !== 'CONFIRM' && 'opacity-30 cursor-not-allowed')}>
                     {t(buttonConstant.deleteNow)}
