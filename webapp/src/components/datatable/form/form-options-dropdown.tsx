@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import AddMember from '@Components/Common/Icons/Add-member';
 import CopyIcon from '@Components/Common/Icons/Copy';
 import Delete from '@Components/Common/Icons/Delete';
 import EditIcon from '@Components/Common/Icons/Edit';
@@ -118,7 +119,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     const menuItemPinSettings = (
         <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPinnedChange(e, currentActiveForm?.form)} disabled={!!currentActiveForm?.form?.settings?.private}>
             <ListItemIcon>
-                <Pin width={20} height={20} />
+                <Pin width={20} height={20} className="text-black-900" />
             </ListItemIcon>
             <span>{currentActiveForm?.form?.settings?.pinned ? t(formConstant.unPinForm) : t(formConstant.menu.pinForm)}</span>
         </MenuItem>
@@ -147,7 +148,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         <ActiveLink key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
             <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
                 <ListItemIcon>
-                    <Eye width={20} height={20} />
+                    <Eye width={20} height={20} className="text-black-900" />
                 </ListItemIcon>
                 Open
             </MenuItem>
@@ -166,7 +167,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             }}
         >
             <ListItemIcon>
-                <CopyIcon width={20} height={20} />
+                <CopyIcon width={20} height={20} className="text-black-900" />
             </ListItemIcon>
             {t(buttonConstant.copyLink)}
         </MenuItem>
@@ -184,9 +185,26 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             }}
         >
             <ListItemIcon>
-                <EditIcon width={20} height={20} />
+                <EditIcon width={20} height={20} className="text-black-900" />
             </ListItemIcon>
             {t(buttonConstant.customizeLink)}
+        </MenuItem>
+    );
+    const menuItemAddToGroup = (
+        <MenuItem
+            sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
+            className="body4 hover:bg-brand-100"
+            onClick={() => {
+                openModal('CUSTOMIZE_URL', {
+                    url: isCustomDomain ? customDomain : clientHost,
+                    form: currentActiveForm?.form
+                });
+            }}
+        >
+            <ListItemIcon>
+                <AddMember width={20} height={20} />
+            </ListItemIcon>
+            {t(buttonConstant.addToGroup)}
         </MenuItem>
     );
 
@@ -203,13 +221,14 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 )}
                 {menuItemCopy}
                 {menuItemCustomizeLink}
+                {menuItemAddToGroup}
                 <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)}>
                     <ListItemIcon>{!currentActiveForm?.form?.settings?.private ? <PrivateIcon width={20} height={20} /> : <PublicIcon width={20} height={20} />}</ListItemIcon>
                     <span>{t(!currentActiveForm?.form?.settings?.private ? formConstant.menu.makeFormPrivate : formConstant.menu.makeFormPublic)}</span>
                 </MenuItem>
                 <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4">
                     <ListItemIcon>
-                        <Delete width={20} height={20} />
+                        <Delete width={20} height={20} className="text-black-900" />
                     </ListItemIcon>
                     <span>{t(formConstant.menu.deleteForm)}</span>
                 </MenuItem>

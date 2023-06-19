@@ -78,7 +78,8 @@
     "SAVE_CHANGES": "Wijzigingen opslaan",
     "ADD_GROUP": "Groep toevoegen",
     "DELETE_FORM": "Formulier verwijderen",
-    "DELETE_NOW": "Nu verwijderen"
+    "DELETE_NOW": "Nu verwijderen",
+    "ADD_TO_GROUP": "Toevoegen aan groep"
   },
   "CONTACT_US": {
     "DESCRIPTION": "Vragen of opmerkingen? Schrijf ons gewoon een bericht",

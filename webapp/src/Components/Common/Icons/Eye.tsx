@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Eye({ props }: any) {
+export default function Eye(props: React.SVGAttributes<{}>) {
     return (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
             <path d="M12 6C7.33385 6 3.38308 8.51733 2 12C3.38308 15.4827 7.33385 18 12 18C16.6662 18 20.6169 15.4827 22 12C20.6169 8.51733 16.6662 6 12 6Z" stroke="currentColor" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />

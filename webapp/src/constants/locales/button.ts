@@ -55,5 +55,6 @@ export const buttonConstant = {
     saveChanges: 'BUTTON.SAVE_CHANGES',
     addGroup: 'BUTTON.ADD_GROUP',
     addMember: 'BUTTON.ADD_MEMBER',
-    addForm: 'BUTTON.ADD_FORM'
+    addForm: 'BUTTON.ADD_FORM',
+    addToGroup: 'BUTTON.ADD_TO_GROUP'
 };

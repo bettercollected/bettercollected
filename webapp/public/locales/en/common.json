@@ -78,7 +78,8 @@
     "SAVE_CHANGES": "Save Changes",
     "ADD_GROUP": "Add group",
     "DELETE_FORM": "Delete Form",
-    "DELETE_NOW": "Delete Now"
+    "DELETE_NOW": "Delete Now",
+    "ADD_TO_GROUP": "Add to group"
   },
   "CONTACT_US": {
     "DESCRIPTION": "Any questions or remarks? Just write us a message",
