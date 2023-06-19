@@ -10,7 +10,6 @@ import BetterInput from '@app/components/Common/input';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { accountDeletion } from '@app/constants/locales/account-deletion';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -29,9 +28,14 @@ export default function UserDeletionModal() {
     const handleDeleteAccount = async () => {
         try {
             if (confirm === 'CONFIRM') {
-                await deleteAccount();
-                router.push(`/${locale}login`);
-                toast(t(toastMessage.accountDeletion.success).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+                await deleteAccount().then((data: any) => {
+                    if (data) {
+                        router.push(`/${locale}login`);
+                        toast(t(toastMessage.accountDeletion.success).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+                    } else {
+                        toast(t(toastMessage.accountDeletion.failed).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+                    }
+                });
             }
         } catch (e) {
             toast(t(toastMessage.accountDeletion.failed).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
