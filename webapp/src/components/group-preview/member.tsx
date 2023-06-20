@@ -60,7 +60,7 @@ export default function GroupMembers({ group, workspace }: { group: ResponderGro
                     <div className="flex flex-col gap-2">
                         {emails.map((email) => {
                             return (
-                                <div key={email} className="flex  justify-between body4 bg-white px-4  rounded py-5 !text-black-800">
+                                <div key={email} className="flex  justify-between body4 bg-white px-4  rounded py-4 items-center !text-black-800">
                                     <span>{email}</span>
                                     {isAdmin && <DeleteDropDown onClick={() => openModal('DELETE_CONFIRMATION', { title: t(localesCommon.remove) + ' ' + email, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) })} />}
                                 </div>

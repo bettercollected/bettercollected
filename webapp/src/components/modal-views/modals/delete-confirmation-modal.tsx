@@ -25,7 +25,7 @@ export default function DeleteConfirmationModal({ title, handleDelete }: IDelete
                     </div>
                     <div className="flex w-full gap-4 justify-between">
                         <Button className="flex-1 body4" data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
-                            {t(buttonConstant.delete)}
+                            {title.split(' ')[0]}
                         </Button>
                         <Button variant="solid" color="gray" size="medium" className="flex-1 body4 !bg-black-500" onClick={() => closeModal()}>
                             {t(buttonConstant.cancel)}

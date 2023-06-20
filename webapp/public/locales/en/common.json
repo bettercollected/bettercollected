@@ -204,6 +204,9 @@
       "TITLE": "Add {{form}} to Group",
       "DESCRIPTION": "Select groups to make form visible only to them.",
       "LABEL": "Select Group"
+    },
+    "GROUP": {
+      "DESCRIPTION": "Add form on group to grant access to group specific member"
     }
   },
   "FORMS": "Forms",

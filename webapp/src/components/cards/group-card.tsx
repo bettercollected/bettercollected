@@ -19,25 +19,19 @@ import { useDeleteResponderGroupMutation } from '@app/store/workspaces/api';
 
 import DeleteDropDown from '../ui/delete-dropdown';
 
-export default function GroupCard({ responderGroup }: { responderGroup: ResponderGroupDto }) {
+interface IGroupCardProps {
+    responderGroup: ResponderGroupDto;
+    handleDelete: () => void;
+}
+
+export default function GroupCard({ responderGroup, handleDelete }: IGroupCardProps) {
     const { t } = useTranslation();
     const router = useRouter();
     const { openModal, closeModal } = useModal();
-    const [trigger] = useDeleteResponderGroupMutation();
+
     const workspace = useAppSelector((state) => state.workspace);
     const isAdmin = useAppSelector(selectIsAdmin);
-    const handleDeletegroup = async () => {
-        try {
-            await trigger({
-                workspaceId: workspace.id,
-                groupId: responderGroup.id
-            });
-            toast(t(toastMessage.groupDeleted).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
-            closeModal();
-        } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-        }
-    };
+
     const handlePreviewGroup = (event: any) => {
         event.preventDefault();
         router.push(`/${workspace.workspaceName}/dashboard/responders/${responderGroup.id}`);
@@ -49,10 +43,10 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
                     onClick={(event) => {
                         event.stopPropagation();
                         event.preventDefault();
-                        openModal('DELETE_CONFIRMATION', { title: t(localesCommon.delete) + ' ' + responderGroup.name, handleDelete: handleDeletegroup });
+                        openModal('DELETE_CONFIRMATION', { title: t(!!responderGroup.forms ? localesCommon.delete : localesCommon.remove) + ' ' + responderGroup.name, handleDelete });
                     }}
                     className="absolute top-3 right-3"
-                    label={t(localesCommon.delete)}
+                    label={t(!!responderGroup.forms ? localesCommon.delete : localesCommon.remove)}
                 />
             )}
             <div>
@@ -64,13 +58,16 @@ export default function GroupCard({ responderGroup }: { responderGroup: Responde
                 </div>
                 {responderGroup.description && <p className="body4 line-clamp-2 break-all !text-black-800 mt-4 !leading-none">{responderGroup.description}</p>}
             </div>
-
-            <p className="my-10 body6 !leading-none">
-                {responderGroup.emails.length > 1 ? t(members.default) : t(members.member)} ({responderGroup.emails.length})
-            </p>
-            <p className="body6 !leading-none">
-                {responderGroup.forms.length > 1 ? t(localesCommon.forms) : t(formConstant.default)} ({responderGroup.forms.length})
-            </p>
+            {responderGroup.emails && (
+                <p className="my-10 body6 !leading-none">
+                    {responderGroup.emails.length > 1 ? t(members.default) : t(members.member)} ({responderGroup.emails.length})
+                </p>
+            )}
+            {responderGroup.forms && (
+                <p className="body6 !leading-none">
+                    {!!responderGroup.forms && responderGroup.forms.length > 1 ? t(localesCommon.forms) : t(formConstant.default)} ({responderGroup.forms.length})
+                </p>
+            )}
 
             {/* <Button className="!px-3 !py-[9px] !bg-white border !border-black-400  hover:!bg-brand-200" size="medium">
                 <div className="flex items-center gap-[5px]">

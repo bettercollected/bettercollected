@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import { Typography } from '@mui/material';
+import { toast } from 'react-toastify';
 
 import GroupCard from '@app/components/cards/group-card';
 import EmptyGroup from '@app/components/dashboard/empty-group';
@@ -10,17 +11,32 @@ import { Plus } from '@app/components/icons/plus';
 import { useModal } from '@app/components/modal-views/context';
 import Loader from '@app/components/ui/loader';
 import { groupConstant } from '@app/constants/locales/group';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
+import { useDeleteResponderGroupMutation, useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 
 export default function WorkspaceGropus({ workspace }: { workspace: WorkspaceDto }) {
-    const { openModal } = useModal();
+    const { openModal, closeModal } = useModal();
     const { t } = useTranslation();
     const isAdmin = useAppSelector(selectIsAdmin);
     const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
+    const [trigger] = useDeleteResponderGroupMutation();
+    const handleDeletegroup = async (group: ResponderGroupDto) => {
+        try {
+            await trigger({
+                workspaceId: workspace.id,
+                groupId: group.id
+            });
+            toast(t(toastMessage.groupDeleted).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            closeModal();
+        } catch (error) {
+            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+        }
+    };
     const Group = () => (
         <div>
             <div className="flex justify-between">
@@ -38,7 +54,7 @@ export default function WorkspaceGropus({ workspace }: { workspace: WorkspaceDto
             <div className="grid sm:grid-cols-2 2xl:grid-cols-3  grid-flow-row gap-6">
                 {data &&
                     data?.map((group: ResponderGroupDto) => {
-                        return <GroupCard key={group.id} responderGroup={group} />;
+                        return <GroupCard key={group.id} responderGroup={group} handleDelete={() => handleDeletegroup(group)} />;
                     })}
             </div>
         </div>

@@ -202,6 +202,9 @@
       "TITLE": "Voeg {{form}} toe aan groep",
       "DESCRIPTION": "Selecteer groepen om het formulier alleen voor hen zichtbaar te maken.",
       "LABEL": "Groep selecteren"
+    },
+    "GROUP": {
+      "DESCRIPTION": "Voeg formulier toe aan groep om toegang te verlenen aan groepsspecifiek lid"
     }
   },
   "FORMS": "Formulieren",

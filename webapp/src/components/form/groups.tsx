@@ -2,6 +2,7 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import Plus from '@Components/Common/Icons/Plus';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { CheckCircle } from '@mui/icons-material';
 import { MenuItem, Typography } from '@mui/material';
@@ -25,12 +26,14 @@ import { useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
 
+import GroupCard from '../cards/group-card';
+
 export default function FormGroups() {
     const { t } = useTranslation();
     const form: StandardFormDto = useAppSelector((state) => state.form);
     const workspace = useAppSelector(selectWorkspace);
-    const { deleteFormFromGroup, addFormOnGroup } = useGroupForm();
     const { openModal } = useModal();
+    const { deleteFormFromGroup } = useGroupForm();
     const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
     const isAdmin = useAppSelector(selectIsAdmin);
     const NoGroupLink = () => (
@@ -41,28 +44,6 @@ export default function FormGroups() {
                 <li>{t(groupConstant.limitAccessToFrom)}</li>
                 <li>{t(groupConstant.sendFormsToMultiplePeople)}</li>
             </ul>
-            {AddGroupButton()}
-        </div>
-    );
-    const AddGroupButton = () => (
-        <div className={cn('flex justify-center  mt-4', data?.length === 0 && form.groups?.length === 0 && 'cursor-not-allowed opacity-30 pointer-events-none')}>
-            <MenuDropdown
-                showExpandMore={false}
-                className="cursor-pointer "
-                width={180}
-                id="group-option"
-                menuTitle={''}
-                menuContent={<div className="bg-brand-500 px-3 rounded text-white py-1">{data?.length === 0 && form.groups?.length === 0 ? t(groupConstant.askAdminToCreateAGroup) : t(buttonConstant.addGroup)}</div>}
-            >
-                {data?.map((group: ResponderGroupDto) => (
-                    <MenuItem disabled={isFormAlreadyInGroup(form.groups, group.id)} onClick={() => addFormOnGroup({ groups: form?.groups, group, workspaceId: workspace.id, form })} key={group.id} className="py-3 flex justify-between hover:bg-black-200">
-                        <Typography className="body4" noWrap>
-                            {group.name}
-                        </Typography>
-                        {isFormAlreadyInGroup(form.groups, group.id) && <CheckCircle className="h-5 w-5 text-brand-500" />}
-                    </MenuItem>
-                ))}
-            </MenuDropdown>
         </div>
     );
 
@@ -71,13 +52,18 @@ export default function FormGroups() {
             <p className="body1">
                 {t(groupConstant.groups)} ({form.groups?.length})
             </p>
-            {form.groups?.map((group: ResponderGroupDto) => (
-                <div key={group.id} className="flex items-center bg-white justify-between p-4 rounded">
-                    <p className="body6 !font-normal">{group.name}</p>
-                    <DeleteDropDown onClick={() => openModal('DELETE_CONFIRMATION', { title: t(localesCommon.remove) + ' ' + group.name, handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form }) })} />
+            <div className="flex  gap-[72px] items-center ">
+                <p className="body4 !text-black-700 md:w-[450px] ">{t(formConstant.group.description)}</p>
+                <div onClick={() => openModal('ADD_FORM_GROUP', { responderGroups: data, form })} className="flex gap-2   text-brand-500 items-center cursor-pointer">
+                    <Plus className="h-4 w-4" />
+                    <Typography className="!text-brand-500  body6"> {t(buttonConstant.addGroup)}</Typography>
                 </div>
-            ))}
-            {AddGroupButton()}
+            </div>
+            <div className="grid grid-flow-row md:grid-cols-2 mt-6 xl:grid-cols-3 grid-cols-1 gap-6">
+                {form.groups?.map((group: ResponderGroupDto) => (
+                    <GroupCard key={group.id} responderGroup={group} handleDelete={() => deleteFormFromGroup({ group, workspaceId: workspace.id, form })} />
+                ))}
+            </div>
         </div>
     );
     if (isLoading)

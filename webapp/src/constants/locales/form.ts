@@ -92,5 +92,8 @@ export const formConstant = {
             public: 'FORM.SETTINGS.VISIBILITY.PUBLIC',
             private: 'FORM.SETTINGS.VISIBILITY.PRIVATE'
         }
+    },
+    group: {
+        description: 'FORM.GROUP.DESCRIPTION'
     }
 };
