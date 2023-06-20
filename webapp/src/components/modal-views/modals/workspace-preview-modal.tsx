@@ -24,7 +24,7 @@ export default function WorkspacePreviewModal() {
                     >
                         <Close />
                     </div>
-                    <WorkspaceHomeContainer isCustomDomain={false} />
+                    <WorkspaceHomeContainer isCustomDomain={false} isWorkspacePreview={true} />
                 </div>
             </div>
         </div>

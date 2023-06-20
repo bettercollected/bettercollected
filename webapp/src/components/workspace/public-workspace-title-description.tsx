@@ -12,7 +12,7 @@ import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
-import { toEndDottedStr } from '@app/utils/stringUtils';
+import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';
 
 interface IPublicWorkspaceTitleAndDescriptionProps {
     isFormCreator: boolean;
@@ -59,10 +59,10 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
         return (
             <div className={`h-full w-full ${className}`}>
                 <div className="w-full flex flex-col gap-4">
-                    <Tooltip title={fullWorkspaceName}>
+                    <Tooltip title={trimTooltipTitle(fullWorkspaceName)}>
                         <h4 className="h4 w-fit">{strippedWorkspaceTitle}</h4>
                     </Tooltip>
-                    <MarkdownText scrollTitle={fullWorkspaceName} description={workspace.description} contentStripLength={280} markdownClassName="text-black-700 body3 !leading-none" textClassName="text-black-700 body3 !leading-none" />
+                    <MarkdownText scrollTitle={fullWorkspaceName} description={workspace.description} contentStripLength={280} markdownClassName="text-black-700 " textClassName="text-black-700 body3" />
                 </div>
             </div>
         );

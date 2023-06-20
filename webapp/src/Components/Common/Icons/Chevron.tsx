@@ -1,9 +1,9 @@
 import React from 'react';
 
-export default function Chevron({ props }: any) {
+export default function Chevron(props: React.SVGAttributes<{}>) {
     return (
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-            <path d="M16 7L10 13L4 7" stroke="currentColor" strokeLinecap="round" />
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+            <path d="M2.66602 6L7.99935 11.3333L13.3327 6" stroke="#343A40" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
     );
 }
