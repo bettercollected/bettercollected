@@ -19,8 +19,6 @@ from common.models.user import OAuthState, User, UserInfo, UserLoginWithOTP
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
 
-crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
-
 
 class AuthService:
     def __init__(
@@ -31,6 +29,7 @@ class AuthService:
         jwt_service: JwtService,
         workspace_service: WorkspaceService,
         temporal_service: TemporalService,
+        crypto: Crypto,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
@@ -38,6 +37,7 @@ class AuthService:
         self.jwt_service = jwt_service
         self.workspace_service = workspace_service
         self.temporal_service = temporal_service
+        self.crypto = crypto
 
     async def get_user_status(self, user: User):
         response_data = await self.http_client.get(
@@ -65,7 +65,7 @@ class AuthService:
         )
         if user is not None and Roles.FORM_CREATOR in user.roles:
             oauth_state.email = user.sub
-        state = crypto.encrypt(oauth_state.json())
+        state = self.crypto.encrypt(oauth_state.json())
         authorization_url = f"{provider_url}/{provider_name}/oauth/authorize"
         response_data = await self.http_client.get(
             authorization_url, params={"state": state}, timeout=60
@@ -93,7 +93,7 @@ class AuthService:
         )
         user = User(**response_data)
         await workspaces_service.create_workspace(user)
-        decrypted_data = json.loads(crypto.decrypt(state))
+        decrypted_data = json.loads(self.crypto.decrypt(state))
         state = OAuthState(**decrypted_data)
         if state.email is not None and user.sub != state.email:
             raise HTTPException(403, "Invalid User Authentication.")

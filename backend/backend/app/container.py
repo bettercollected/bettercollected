@@ -38,6 +38,7 @@ from backend.app.services.workspace_responders_service import WorkspaceResponder
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
+from common.configs.crypto import Crypto
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
 
@@ -72,8 +73,10 @@ class AppContainer(containers.DeclarativeContainer):
     responder_groups_repository = providers.Singleton(ResponderGroupsRepository)
 
     # Services
+    crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
+
     temporal_service = providers.Singleton(
-        TemporalService, settings.temporal_settings.server_uri
+        TemporalService, server_uri=settings.temporal_settings.server_uri, crypto=crypto
     )
 
     aws_service: AWSS3Service = providers.Singleton(
@@ -175,6 +178,7 @@ class AppContainer(containers.DeclarativeContainer):
         jwt_service=jwt_service,
         workspace_service=workspace_service,
         temporal_service=temporal_service,
+        crypto=crypto,
     )
 
     workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(
