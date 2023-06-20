@@ -58,8 +58,8 @@ export const authApi = createApi({
         }),
         deleteAccount: builder.mutation<string, void>({
             query: () => ({
-                url: '/auth/user',
-                method: 'DELETE'
+                url: '/auth/user/delete/workflow',
+                method: 'POST'
             })
         })
     })

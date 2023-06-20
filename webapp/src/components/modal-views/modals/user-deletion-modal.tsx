@@ -28,8 +28,8 @@ export default function UserDeletionModal() {
     const handleDeleteAccount = async () => {
         try {
             if (confirm === 'CONFIRM') {
-                await deleteAccount().then((data: any) => {
-                    if (data) {
+                await deleteAccount().then((response) => {
+                    if ('data' in response) {
                         router.push(`/${locale}login`);
                         toast(t(toastMessage.accountDeletion.success).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
                     } else {
