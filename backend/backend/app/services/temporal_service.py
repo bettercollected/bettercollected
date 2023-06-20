@@ -9,8 +9,8 @@ from temporalio.exceptions import WorkflowAlreadyStartedError
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
-from common.build.lib.utils.asyncio_run import asyncio_run
 from common.configs.crypto import Crypto
+from common.utils.asyncio_run import asyncio_run
 
 
 class TemporalService:
