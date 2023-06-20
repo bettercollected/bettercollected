@@ -191,7 +191,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         </MenuItem>
     );
     const menuItemAddToGroup = (
-        <Tooltip title={data?.length === 0 ? 'No group found' : ''}>
+        <Tooltip title={data?.length === 0 ? t(localesCommon.noGroupFound) : ''}>
             <span>
                 <MenuItem
                     sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}

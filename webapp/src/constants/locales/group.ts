@@ -1,8 +1,6 @@
 export const groupConstant = {
     groups: 'GROUP.GROUPS',
-    createAGroupTo: 'GROUP.CREATE_A_GROUP_TO',
-    limitAccessToFrom: 'GROUP.LIMIT_ACCESS_TO_FORM',
-    sendFormsToMultiplePeople: 'GROUP.SEND_FORMS_TO_MULTIPLE_PEOPLE',
+    title: 'GROUP.TITLE',
     createGroup: 'GROUP.CREATE_GROUP',
     details: 'GROUP.DETAILS',
     createNewGroup: {

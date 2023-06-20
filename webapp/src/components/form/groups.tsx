@@ -4,7 +4,7 @@ import { useTranslation } from 'next-i18next';
 
 import Plus from '@Components/Common/Icons/Plus';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { CheckCircle } from '@mui/icons-material';
+import { CheckCircle, Group } from '@mui/icons-material';
 import { MenuItem, Typography } from '@mui/material';
 import cn from 'classnames';
 
@@ -17,6 +17,7 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { groupConstant } from '@app/constants/locales/group';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
@@ -36,21 +37,11 @@ export default function FormGroups() {
     const { deleteFormFromGroup } = useGroupForm();
     const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
     const isAdmin = useAppSelector(selectIsAdmin);
-    const NoGroupLink = () => (
-        <div className="mt-[119px] flex flex-col items-center">
-            <UserMore />
-            <p className="body1">{form.groups?.length === 0 && data?.length === 0 ? t(groupConstant.createAGroupTo) : t(formConstant.addgroup.title)}</p>
-            <ul className="list-disc body4 text-black-700 flex flex-col gap-4 mt-4">
-                <li>{t(groupConstant.limitAccessToFrom)}</li>
-                <li>{t(groupConstant.sendFormsToMultiplePeople)}</li>
-            </ul>
-        </div>
-    );
 
     const ShowFormGroups = () => (
         <div className="flex flex-col gap-4">
             <p className="body1">
-                {t(groupConstant.groups)} ({form.groups?.length})
+                {t(groupConstant.groups)} ({form.groups?.length || 0})
             </p>
             <div className="flex  gap-[72px] items-center ">
                 <p className="body4 !text-black-700 md:w-[450px] ">{t(formConstant.group.description)}</p>
@@ -72,9 +63,6 @@ export default function FormGroups() {
                 <Loader />
             </div>
         );
-    else if (data && data?.length === 0 && isAdmin) return <EmptyGroup />;
-    else if (data && data?.length === 0 && !isAdmin) return NoGroupLink();
-    else if (data && data.length > 0 && form.groups?.length === 0) return NoGroupLink();
-    else if (data && data?.length > 0 && form.groups?.length !== 0) return ShowFormGroups();
-    else return <></>;
+    else if (data && data?.length === 0) return <EmptyGroup />;
+    else return ShowFormGroups();
 }

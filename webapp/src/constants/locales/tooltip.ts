@@ -17,5 +17,6 @@ export const toolTipConstant = {
     Options: 'TOOLTIP.OPTIONS',
     formOptions: 'TOOLTIP.FORM_OPTIONS',
     shareForm: 'TOOLTIP.SHARE_FORM',
-    formIsAlreadyOnGroup: 'TOOLTIP.FORM_IS_ALREADY_ON_GROUP'
+    formIsAlreadyOnGroup: 'TOOLTIP.FORM_IS_ALREADY_ON_GROUP',
+    noAccessToGroup: 'TOOLTIP.NO_ACCESS_TO_GROUP'
 };

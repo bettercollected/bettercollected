@@ -252,6 +252,7 @@
       "BUTTON_TEXT": "Probeer het eens"
     }
   },
+  "NO_GROUP_FOUND": "Geen groep gevonden",
   "GROUP": {
     "DEFAULT": "Groep",
     "GROUPS": "Groepen",
@@ -260,9 +261,7 @@
       "DESCRIPTION": "Groepsleden hebben toegang tot alle formulieren die aan de groep zijn toegevoegd"
     },
     "DETAILS": "Groepsgegevens",
-    "CREATE_A_GROUP_TO": "Maak een groep aan ",
-    "LIMIT_ACCESS_TO_FORM": "Beperk toegang tot formulier vanuit uw werkruimte",
-    "SEND_FORMS_TO_MULTIPLE_PEOPLE": "Stuur formulieren naar meerdere mensen tegelijk",
+    "TITLE": "Maak een groep aan om de toegang tot het formulier vanuit uw werkruimte te beperken",
     "CREATE_GROUP": "Groep aanmaken",
     "CREATE_NEW_GROUP": {
       "DEFAULT": "Nieuwe groep aanmaken",
@@ -486,7 +485,8 @@
     "OPTIONS": "Opties",
     "FORM_OPTIONS": "Formulieropties",
     "SHARE_FORM": "Formulier delen",
-    "FORM_IS_ALREADY_ON_GROUP": "{{form}} is al lid van {{group}}"
+    "FORM_IS_ALREADY_ON_GROUP": "{{form}} is al lid van {{group}}",
+    "NO_ACCESS_TO_GROUP": "Je hebt geen toegang om een ​​groep te maken"
   },
   "UNTITLED": "Zonder titel",
   "UPDATED": "Bijgewerkt",

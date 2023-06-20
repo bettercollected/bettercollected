@@ -56,5 +56,6 @@ export const localesCommon = {
     shareYourWorkspace: 'SHARE_YOUR_WORKSPACE',
     deletionRemaining: 'DELETION_REMAINING',
     forms: 'FORMS',
-    respondersAndGroups: 'RESPONDERS_AND_GROUPS'
+    respondersAndGroups: 'RESPONDERS_AND_GROUPS',
+    noGroupFound: 'NO_GROUP_FOUND'
 };
