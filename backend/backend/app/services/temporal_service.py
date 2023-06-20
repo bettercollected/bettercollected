@@ -16,6 +16,7 @@ from common.utils.asyncio_run import asyncio_run
 class TemporalService:
     def __init__(self, server_uri: str, namespace: str, crypto: Crypto):
         try:
+            loguru.logger.info("Temporal URI: " + server_uri)
             self.crypto = crypto
             self.client: Client = asyncio_run(
                 Client.connect(server_uri, namespace=namespace)
@@ -23,7 +24,8 @@ class TemporalService:
             loguru.logger.info("Temporal Server Connected Successfully")
         except Exception as e:
             self.client = None
-            loguru.logger.error("Could not connect to Temporal server")
+            loguru.logger.exception(e)
+            loguru.logger.error("Could not connect to Temporal server", e)
 
     async def start_user_deletion_workflow(self, user_tokens: UserTokens, user_id: str):
         if not self.client:
