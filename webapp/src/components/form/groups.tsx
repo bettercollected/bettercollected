@@ -3,11 +3,9 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Plus from '@Components/Common/Icons/Plus';
-import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { CheckCircle, Group } from '@mui/icons-material';
-import { MenuItem, Typography } from '@mui/material';
-import cn from 'classnames';
+import { Button, Typography } from '@mui/material';
 
+import GroupCard from '@app/components/cards/group-card';
 import EmptyGroup from '@app/components/dashboard/empty-group';
 import UserMore from '@app/components/icons/user-more';
 import { useModal } from '@app/components/modal-views/context';
@@ -17,21 +15,18 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { groupConstant } from '@app/constants/locales/group';
-import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
+import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
-
-import GroupCard from '../cards/group-card';
 
 export default function FormGroups() {
     const { t } = useTranslation();
-    const form: StandardFormDto = useAppSelector((state) => state.form);
+    const form: StandardFormDto = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
     const { openModal } = useModal();
     const { deleteFormFromGroup } = useGroupForm();

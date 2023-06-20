@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 
 import ActiveLink from '@app/components/ui/links/active-link';
 import Logo from '@app/components/ui/logo';
+import PoweredBy from '@app/components/ui/powered-by';
 import { localesCommon } from '@app/constants/locales/common';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
@@ -25,12 +26,7 @@ export default function WorkspaceFooter({ workspace, isCustomDomain, showProTag 
                     {t(localesCommon.privacyPolicy.title)}
                 </ActiveLink>
             </div>
-            {isCustomDomain && (
-                <div data-testid="logo">
-                    <p className="body3 !not-italic !text-black-800">{t(localesCommon.poweredBy)}</p>
-                    <Logo showProTag={showProTag} isFooter isCustomDomain={isCustomDomain} isClientDomain />
-                </div>
-            )}
+            {isCustomDomain && <PoweredBy />}
         </div>
     );
 }
