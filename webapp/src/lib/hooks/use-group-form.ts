@@ -17,7 +17,7 @@ interface IDeleteFormFromGroupProps {
     form: StandardFormDto;
 }
 interface IAddFormOnGroupProps extends IDeleteFormFromGroupProps {
-    groups: any;
+    groups: Array<ResponderGroupDto>;
 }
 export function useGroupForm() {
     const [addForm] = useAddFormOnGroupMutation();

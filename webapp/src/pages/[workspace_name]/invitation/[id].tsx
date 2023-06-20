@@ -28,7 +28,6 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
     const [rejected, setRejected] = useState(false);
     const router = useRouter();
 
-    console.log(invitation);
     const onAccept = async () => {
         await handleResponse('ACCEPTED');
     };

@@ -26,8 +26,6 @@ export default function FormResponsesTable({ props }: any) {
             const { dataOwnerIdentifier, ...removedQuery } = query;
             setQuery(removedQuery);
         }
-        console.log(event.target.value);
-        console.log(query);
     };
 
     if (isLoading)

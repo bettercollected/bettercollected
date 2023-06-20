@@ -31,7 +31,6 @@ export default function FormGroups() {
     const { openModal } = useModal();
     const { deleteFormFromGroup } = useGroupForm();
     const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
-    const isAdmin = useAppSelector(selectIsAdmin);
 
     const ShowFormGroups = () => (
         <div className="flex flex-col gap-4">
@@ -47,7 +46,7 @@ export default function FormGroups() {
             </div>
             <div className="grid grid-flow-row md:grid-cols-2 mt-6 xl:grid-cols-3 grid-cols-1 gap-6">
                 {form.groups?.map((group: ResponderGroupDto) => (
-                    <GroupCard key={group.id} responderGroup={group} handleDelete={() => deleteFormFromGroup({ group, workspaceId: workspace.id, form })} />
+                    <GroupCard key={group.id} responderGroup={group} isFormGroup={true} handleDelete={() => deleteFormFromGroup({ group, workspaceId: workspace.id, form })} />
                 ))}
             </div>
         </div>

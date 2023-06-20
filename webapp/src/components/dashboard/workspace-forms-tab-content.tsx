@@ -70,7 +70,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
             workspace_id: workspaceId,
             query: escapeRegExp(event.target.value)
         });
-        console.log(event.target.value);
+
         if (event.target.value && response.data) {
             setAllForms(response?.data);
         } else {

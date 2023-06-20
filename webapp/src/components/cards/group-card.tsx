@@ -22,9 +22,10 @@ import DeleteDropDown from '../ui/delete-dropdown';
 interface IGroupCardProps {
     responderGroup: ResponderGroupDto;
     handleDelete: () => void;
+    isFormGroup?: boolean;
 }
 
-export default function GroupCard({ responderGroup, handleDelete }: IGroupCardProps) {
+export default function GroupCard({ responderGroup, handleDelete, isFormGroup = false }: IGroupCardProps) {
     const { t } = useTranslation();
     const router = useRouter();
     const { openModal, closeModal } = useModal();
@@ -58,15 +59,19 @@ export default function GroupCard({ responderGroup, handleDelete }: IGroupCardPr
                 </div>
                 {responderGroup.description && <p className="body4 line-clamp-2 break-all !text-black-800 mt-4 !leading-none">{responderGroup.description}</p>}
             </div>
-            {responderGroup.emails && (
-                <p className="my-10 body6 !leading-none">
-                    {responderGroup.emails.length > 1 ? t(members.default) : t(members.member)} ({responderGroup.emails.length})
-                </p>
-            )}
-            {responderGroup.forms && (
-                <p className="body6 !leading-none">
-                    {!!responderGroup.forms && responderGroup.forms.length > 1 ? t(localesCommon.forms) : t(formConstant.default)} ({responderGroup.forms.length})
-                </p>
+            {!isFormGroup && (
+                <>
+                    {responderGroup.emails && (
+                        <p className="my-10 body6 !leading-none">
+                            {responderGroup.emails.length > 1 ? t(members.default) : t(members.member)} ({responderGroup.emails.length})
+                        </p>
+                    )}
+                    {responderGroup.forms && (
+                        <p className="body6 !leading-none">
+                            {!!responderGroup.forms && responderGroup.forms.length > 1 ? t(localesCommon.forms) : t(formConstant.default)} ({responderGroup.forms.length})
+                        </p>
+                    )}
+                </>
             )}
 
             {/* <Button className="!px-3 !py-[9px] !bg-white border !border-black-400  hover:!bg-brand-200" size="medium">

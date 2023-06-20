@@ -37,7 +37,7 @@ export interface StandardFormDto {
     dataOwnerIdentifier?: string;
     responses?: number;
     deletionRequests?: number;
-    groups?: Array<ResponderGroupDto>;
+    groups: Array<ResponderGroupDto>;
     settings?: {
         pinned: boolean;
         embedUrl?: string;

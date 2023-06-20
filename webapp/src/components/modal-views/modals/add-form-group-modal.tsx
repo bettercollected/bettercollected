@@ -32,7 +32,9 @@ export default function AddFormOnGroup({ responderGroups, form }: IAddFormOnGrou
     const [selectedGroup, setSelectedGroup] = useState<ResponderGroupDto | null>(null);
     const { addFormOnGroup } = useGroupForm();
     const workspace = useAppSelector(selectWorkspace);
-
+    const handleAddForm = () => {
+        if (responderGroups) addFormOnGroup({ groups: form.groups, group: selectedGroup, form, workspaceId: workspace.id });
+    };
     return (
         <div className="p-10 relative bg-white md:w-[658px] rounded-[8px]">
             <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
@@ -73,7 +75,7 @@ export default function AddFormOnGroup({ responderGroups, form }: IAddFormOnGrou
             )}
 
             <div className="flex justify-end">
-                <Button disabled={!selectedGroup} size="medium" onClick={() => addFormOnGroup({ groups: responderGroups, group: selectedGroup, form, workspaceId: workspace.id })}>
+                <Button disabled={!selectedGroup} size="medium" onClick={handleAddForm}>
                     {t(buttonConstant.add)}
                 </Button>
             </div>
