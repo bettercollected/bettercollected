@@ -14,13 +14,16 @@ from common.configs.crypto import Crypto
 
 
 class TemporalService:
-    def __init__(self, server_uri: str, crypto: Crypto):
+    def __init__(self, server_uri: str, namespace: str, crypto: Crypto):
         try:
             self.crypto = crypto
-            self.client: Client = asyncio_run(Client.connect(server_uri))
+            self.client: Client = asyncio_run(
+                Client.connect(server_uri, namespace=namespace)
+            )
+            loguru.logger.info("Temporal Server Connected Successfully")
         except Exception as e:
             self.client = None
-            loguru.logger.info("Could not connect to Temporal server")
+            loguru.logger.error("Could not connect to Temporal server")
 
     async def start_user_deletion_workflow(self, user_tokens: UserTokens, user_id: str):
         if not self.client:

@@ -76,7 +76,10 @@ class AppContainer(containers.DeclarativeContainer):
     crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
 
     temporal_service = providers.Singleton(
-        TemporalService, server_uri=settings.temporal_settings.server_uri, crypto=crypto
+        TemporalService,
+        server_uri=settings.temporal_settings.server_uri,
+        namespace=settings.temporal_settings.namespace,
+        crypto=crypto,
     )
 
     aws_service: AWSS3Service = providers.Singleton(
