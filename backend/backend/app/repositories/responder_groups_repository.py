@@ -143,6 +143,7 @@ class ResponderGroupsRepository:
     async def remove_responder_group(self, group_id: PydanticObjectId):
         await ResponderGroupDocument.find({"_id": group_id}).delete()
         await ResponderGroupMemberDocument.find({"group_id": group_id}).delete()
+        await ResponderGroupFormDocument.find({"group_id": group_id}).delete()
 
     async def get_groups_in_workspace(self, workspace_id: PydanticObjectId):
         return (
@@ -199,3 +200,14 @@ class ResponderGroupsRepository:
 
     async def delete_workspace_form_groups(self, form_id: str):
         await ResponderGroupFormDocument.find({"form_id": form_id}).delete()
+
+    async def delete_responder_groups(self, workspace_ids: List[PydanticObjectId]):
+        group_ids_query = ResponderGroupDocument.find(
+            {"workspace_id": {"$in": workspace_ids}}
+        )
+        group_ids = [group.id for group in await group_ids_query.to_list()]
+        await ResponderGroupFormDocument.find({"group_id": {"$in": group_ids}}).delete()
+        await ResponderGroupMemberDocument.find(
+            {"group_id": {"$in": group_ids}}
+        ).delete()
+        await group_ids_query.delete()

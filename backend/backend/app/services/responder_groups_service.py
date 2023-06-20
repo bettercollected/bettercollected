@@ -157,3 +157,8 @@ class ResponderGroupsService:
         await self.responder_groups_repo.remove_group_from_form(
             form_id=form_id, group_id=group_id
         )
+
+    async def delete_groups_of_workspaces(self, workspace_ids: List[PydanticObjectId]):
+        await self.responder_groups_repo.delete_responder_groups(
+            workspace_ids=workspace_ids
+        )

@@ -171,6 +171,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_service=workspace_user_service,
         workspace_form_service=workspace_form_service,
         form_response_service=form_response_service,
+        responder_groups_service=responder_groups_service,
     )
 
     auth_service: AuthService = providers.Singleton(
