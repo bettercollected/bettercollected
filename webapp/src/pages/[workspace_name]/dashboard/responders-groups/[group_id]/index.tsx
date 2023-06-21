@@ -46,11 +46,11 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
             title: t(localesCommon.respondersAndGroups),
-            url: `/${locale}${workspace?.workspaceName}/dashboard/responders`
+            url: `/${locale}${workspace?.workspaceName}/dashboard/responders-groups`
         },
         {
             title: t(groupConstant.groups),
-            url: `/${locale}${workspace?.workspaceName}/dashboard/responders?view=Groups`
+            url: `/${locale}${workspace?.workspaceName}/dashboard/responders-groups?view=Groups`
         },
         {
             title: data?.name,

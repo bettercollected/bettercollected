@@ -35,7 +35,7 @@ export default function GroupCard({ responderGroup, handleDelete, isFormGroup = 
 
     const handlePreviewGroup = (event: any) => {
         event.preventDefault();
-        router.push(`/${workspace.workspaceName}/dashboard/responders/${responderGroup.id}`);
+        router.push(`/${workspace.workspaceName}/dashboard/responders-groups/${responderGroup.id}`);
     };
     return (
         <div onClick={handlePreviewGroup} className="flex cursor-pointer flex-col justify-between border-[2px] border-brand-100 hover:border-black-500 transition shadow-formCard bg-white items-start p-5 rounded-[8px] relative">

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import { Typography } from '@mui/material';
 import { toast } from 'react-toastify';
@@ -25,6 +26,7 @@ export default function WorkspaceGropus({ workspace }: { workspace: WorkspaceDto
     const isAdmin = useAppSelector(selectIsAdmin);
     const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
     const [trigger] = useDeleteResponderGroupMutation();
+    const router = useRouter();
     const handleDeletegroup = async (group: ResponderGroupDto) => {
         try {
             await trigger({
@@ -44,7 +46,7 @@ export default function WorkspaceGropus({ workspace }: { workspace: WorkspaceDto
                     {t(groupConstant.groups)} {data && ' (' + data.length + ')'}{' '}
                 </p>
                 {isAdmin && (
-                    <div onClick={() => openModal('CREATE_GROUP')} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
+                    <div onClick={() => router.push(`/${workspace?.workspaceName}/dashboard/responders-groups/create-group`)} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
                         <Plus className="h-4 w-4" />
                         <Typography className="!text-brand-500  body6"> {t(groupConstant.createGroup)}</Typography>
                     </div>

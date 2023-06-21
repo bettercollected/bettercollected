@@ -55,7 +55,7 @@ export default function CreateGroup() {
             }).then((response) => {
                 if ('data' in response) {
                     toast(t(toastMessage.workspaceSuccess).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
-                    router.push(`/${workspace?.workspaceName}/dashboard/responders?view=Groups`);
+                    router.push(`/${workspace?.workspaceName}/dashboard/responders-groups?view=Groups`);
                 } else toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
             });
         } catch (error) {
@@ -66,11 +66,11 @@ export default function CreateGroup() {
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
             title: t(localesCommon.respondersAndGroups),
-            url: `/${locale}${workspace?.workspaceName}/dashboard/responders`
+            url: `/${locale}${workspace?.workspaceName}/dashboard/responders-groups`
         },
         {
             title: t(groupConstant.groups),
-            url: `/${locale}${workspace?.workspaceName}/dashboard/responders?view=Groups`
+            url: `/${locale}${workspace?.workspaceName}/dashboard/responders-groups?view=Groups`
         },
         {
             title: t(groupConstant.createGroup),

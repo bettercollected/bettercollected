@@ -113,7 +113,7 @@ export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerT
         {
             key: 'responders',
             name: t(localesCommon.respondersAndGroups),
-            url: `${commonWorkspaceUrl}/responders`,
+            url: `${commonWorkspaceUrl}/responders-groups`,
             icon: <ResponderIcon />
         },
         {
