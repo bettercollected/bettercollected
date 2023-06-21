@@ -41,13 +41,13 @@ export default function GroupCard({ responderGroup, handleDelete, isFormGroup = 
         <div onClick={handlePreviewGroup} className="flex cursor-pointer flex-col justify-between border-[2px] border-brand-100 hover:border-black-500 transition shadow-formCard bg-white items-start p-5 rounded-[8px] relative">
             {isAdmin && (
                 <DeleteDropDown
-                    onClick={(event) => {
+                    onDropDownItemClick={(event) => {
                         event.stopPropagation();
                         event.preventDefault();
                         openModal('DELETE_CONFIRMATION', { title: t(!!responderGroup.forms ? localesCommon.delete : localesCommon.remove) + ' ' + responderGroup.name, handleDelete });
                     }}
                     className="absolute top-3 right-3"
-                    label={t(!!responderGroup.forms ? localesCommon.delete : localesCommon.remove)}
+                    label={t(!!responderGroup.forms && !isFormGroup ? localesCommon.delete : localesCommon.remove)}
                 />
             )}
             <div>

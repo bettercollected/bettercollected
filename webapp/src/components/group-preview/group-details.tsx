@@ -57,9 +57,9 @@ export default function GroupDetails({ group }: { group: ResponderGroupDto }) {
                 {t(groupConstant.name)}
                 <span className="text-red-800">*</span>
             </p>
-            <BetterInput disabled={!isAdmin} value={groupInfo.name} className="!mb-0 " inputProps={{ className: '!py-3' }} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
+            <BetterInput disabled={!isAdmin} value={groupInfo.name} className="!mb-0 bg-white " inputProps={{ className: '!py-3' }} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
             <p className="body4 leading-none mt-6 mb-2">{t(localesCommon.description)}</p>
-            <BetterInput disabled={!isAdmin} value={groupInfo.description} className="!mb-0 " inputProps={{ maxLength: 250 }} id="description" placeholder={t(placeHolder.description)} rows={3} multiline onChange={handleInput} />
+            <BetterInput disabled={!isAdmin} value={groupInfo.description} className="!mb-0 bg-white " inputProps={{ maxLength: 250 }} id="description" placeholder={t(placeHolder.description)} rows={3} multiline onChange={handleInput} />
             {isAdmin && (
                 <div className="flex justify-end mt-10">
                     <Button isLoading={updateGroupResponse.isLoading}>{t(buttonConstant.saveChanges)}</Button>

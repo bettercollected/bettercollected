@@ -89,7 +89,7 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
                         {/* <ChevronForward className=" h-6 w-6 py-[2px] cursor-pointer px-[3px] rotate-180" /> */}
                         <span className="h4">{t(groupConstant.groups)}</span>
                     </div>
-                    <ParamTab className="mb-[38px] mt-[24px]  pb-0 " tabMenu={paramTabs}>
+                    <ParamTab className="mb-[38px] mt-6  pb-0 " tabMenu={paramTabs}>
                         <TabPanel className="focus:outline-none" key="Group Details">
                             <GroupDetails group={data} />
                         </TabPanel>

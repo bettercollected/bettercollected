@@ -10,7 +10,7 @@ import { MenuItem } from '@mui/material';
 import { localesCommon } from '@app/constants/locales/common';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 
-export default function DeleteDropDown({ onClick, className, label }: { onClick: (event?: any) => void; className?: string; label?: string }) {
+export default function DeleteDropDown({ onDropDownItemClick, className, label }: { onDropDownItemClick: (event?: any) => void; className?: string; label?: string }) {
     const { t } = useTranslation();
     return (
         <MenuDropdown
@@ -36,7 +36,7 @@ export default function DeleteDropDown({ onClick, className, label }: { onClick:
             menuTitle={t(toolTipConstant.Options)}
             menuContent={<MoreHoriz />}
         >
-            <MenuItem className="body4  flex gap-4" onClick={onClick}>
+            <MenuItem className="body4  flex gap-4" onClick={onDropDownItemClick}>
                 <Delete width={20} height={20} />
                 {label ?? t(localesCommon.remove)}
             </MenuItem>

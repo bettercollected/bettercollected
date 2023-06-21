@@ -136,7 +136,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                     )}
                     {!!group && isAdmin && (
                         <DeleteDropDown
-                            onClick={(event) => {
+                            onDropDownItemClick={(event) => {
                                 event.stopPropagation();
                                 event.preventDefault();
                                 openModal('DELETE_CONFIRMATION', { title: t(localesCommon.remove) + ' ' + form.title, handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form }) });

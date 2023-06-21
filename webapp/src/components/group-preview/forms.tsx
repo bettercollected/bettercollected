@@ -18,11 +18,12 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
 
 export default function GroupForms({ group, workspaceForms }: { group: ResponderGroupDto; workspaceForms: Array<StandardFormDto> }) {
     const { t } = useTranslation();
-    const workspace = useAppSelector((state) => state.workspace);
+    const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
     const isAdmin = useAppSelector(selectIsAdmin);
 
@@ -52,10 +53,13 @@ export default function GroupForms({ group, workspaceForms }: { group: Responder
 
     return (
         <div>
-            <div className="flex items-center  justify-between">
-                <p className="body1 !leading-none">
-                    {t(localesCommon.forms)} ({group.forms?.length})
-                </p>
+            <div className="flex items-center  mb-10 md:max-w-[618px]  justify-between">
+                <div className="flex flex-col gap-4">
+                    <p className="body1 !leading-none">
+                        {t(localesCommon.forms)} ({group.forms?.length})
+                    </p>
+                    <p className="body4 leading-none   !text-black-700 ">Make form private so that only members of the group will have exclusive access to these forms.</p>
+                </div>
                 {isAdmin && (
                     <MenuDropdown
                         showExpandMore={false}
@@ -86,13 +90,12 @@ export default function GroupForms({ group, workspaceForms }: { group: Responder
                     </MenuDropdown>
                 )}
             </div>
-            <p className="body4 leading-none mt-4 mb-10 md:max-w-[355px] !text-black-700 break-all">{t(groupConstant.description)}</p>
             {group.forms.length > 0 && (
                 <div className="gap-6 flex flex-col">
                     <div className="sm:w-[240px]">
                         <SearchInput handleSearch={handleSearch} />
                     </div>
-                    <div className="grid mt-6 grid-flow-row md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
+                    <div className="grid mt-6 grid-flow-row xl:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
                         {forms.map((form, idx) => {
                             return (
                                 <div onClick={handleCardClick} key={form.formId + idx}>
