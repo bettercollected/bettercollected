@@ -22,7 +22,7 @@ import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
 import AddFormOnGroup from './modals/add-form-group-modal';
-import AddMemberModal from './modals/add-member-modal';
+import AddMembersModal from './modals/add-members-modal';
 import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
@@ -66,7 +66,7 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
         case 'PREVIEW_GROUP':
             return <PreviewGroup {...modalProps} />;
         case 'ADD_MEMBER':
-            return <AddMemberModal {...modalProps} />;
+            return <AddMembersModal {...modalProps} />;
         case 'DELETE_CONFIRMATION':
             return <DeleteConfirmationModal {...modalProps} />;
         case 'USER_DELETION':

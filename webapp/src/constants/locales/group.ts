@@ -3,6 +3,12 @@ export const groupConstant = {
     title: 'GROUP.TITLE',
     createGroup: 'GROUP.CREATE_GROUP',
     details: 'GROUP.DETAILS',
+    regex: {
+        title: 'GROUP.REGEX.TITLE',
+        description: 'GROUP.REGEX.DESCRIPTION',
+        example: 'GROUP.REGEX.EXAMPLE'
+    },
+    addedMembers: 'GROUP.ADDED_MEMBERS',
     createNewGroup: {
         default: 'GROUP.CREATE_NEW_GROUP.DEFAULT',
         description: 'GROUP.CREATE_NEW_GROUP.DESCRIPTION'
@@ -10,6 +16,9 @@ export const groupConstant = {
     default: 'GROUP.DEFAULT',
     name: 'GROUP.NAME',
     description: 'GROUP.DESCRIPTION',
+    form: {
+        description: 'GROUP.FORM.DESCRIPTION'
+    },
     members: {
         default: 'GROUP.MEMBERS.DEFAULT',
         description: 'GROUP.MEMBERS.DESCRIPTION'
@@ -18,10 +27,12 @@ export const groupConstant = {
     createdOn: 'GROUP.CREATED_ON',
     memberEmail: 'GROUP.MEMBER_EMAIL',
     editGroup: 'GROUP.EDIT_GROUP',
-    addMember: {
-        default: 'GROUP.ADD_MEMBER.DEFAULT',
-        description: 'GROUP.ADD_MEMBER.DESCRIPTION'
+    addMembers: {
+        default: 'GROUP.ADD_MEMBERS.DEFAULT',
+        description: 'GROUP.ADD_MEMBERS.DESCRIPTION'
     },
     notInAnyGroup: 'GROUP.NOT_IN_ANY_GROUP',
-    askAdminToCreateAGroup: 'GROUP.ASK_ADMIN_TO_CREATE_A_GROUP'
+    askAdminToCreateAGroup: 'GROUP.ASK_ADMIN_TO_CREATE_A_GROUP',
+    basicInformation: 'GROUP.BASIC_INFORMATION',
+    memberAdded: 'GROUP.MEMBERS_ADDED'
 };

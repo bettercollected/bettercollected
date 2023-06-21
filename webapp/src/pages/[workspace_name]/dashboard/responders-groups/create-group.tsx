@@ -99,7 +99,7 @@ export default function CreateGroup() {
             <div className="flex flex-col relative -mt-6 md:max-w-[700px] xl:max-w-[1000px]">
                 <div className="absolute top-10 right-0">
                     <Button isLoading={isLoading} disabled={!groupInfo.name || groupInfo.emails.length === 0} onClick={handleCreateGroup}>
-                        {t(buttonConstant.save)}
+                        {t(buttonConstant.saveGroup)}
                     </Button>
                 </div>
                 <div className="md:max-w-[618px]">

@@ -9,6 +9,7 @@ import MemberCard from '@app/components/cards/member-card';
 import RegexCard from '@app/components/cards/regex-card';
 import { Plus } from '@app/components/icons/plus';
 import { useModal } from '@app/components/modal-views/context';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { members } from '@app/constants/locales/members';
@@ -52,12 +53,14 @@ export default function GroupMember({ group, emails, handleSearch, handleAddMemb
             <RegexCard addRegex={() => {}} />
             <div className="flex items-center justify-between">
                 <div className="flex flex-col">
-                    <p className="mt-10 leading-none mb-2 body1">Members Added ({group?.emails.length || emails.length || 0})</p>
+                    <p className="mt-10 leading-none mb-2 body1">
+                        {t(groupConstant.memberAdded)} ({group?.emails.length || emails.length || 0})
+                    </p>
                     <p className="text-black-700 leading-none body4">{t(groupConstant.members.description)} </p>
                 </div>
                 <div onClick={() => openModal('ADD_MEMBER', { handleAddMembers, group })} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
                     <Plus className="h-4 w-4" />
-                    <Typography className="!text-brand-500  body6">Add Member</Typography>
+                    <Typography className="!text-brand-500  body6">{t(buttonConstant.addMember)}</Typography>
                 </div>
             </div>
             {handleMemberList()}

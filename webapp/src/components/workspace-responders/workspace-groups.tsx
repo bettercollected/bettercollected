@@ -42,17 +42,22 @@ export default function WorkspaceGropus({ workspace }: { workspace: WorkspaceDto
     const Group = () => (
         <div>
             <div className="flex justify-between">
-                <p className="body1">
-                    {t(groupConstant.groups)} {data && ' (' + data.length + ')'}{' '}
-                </p>
-                {isAdmin && (
-                    <div onClick={() => router.push(`/${workspace?.workspaceName}/dashboard/responders-groups/create-group`)} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
-                        <Plus className="h-4 w-4" />
-                        <Typography className="!text-brand-500  body6"> {t(groupConstant.createGroup)}</Typography>
+                <div className="flex  gap-[72px] mb-8 items-center ">
+                    <div className="flex flex-col">
+                        <p className="body1">
+                            {t(groupConstant.groups)} {data && ' (' + data.length + ')'}{' '}
+                        </p>
+                        <p className="mt-2  body4 text-black-700">{t(groupConstant.description)}</p>
                     </div>
-                )}
+                    {isAdmin && (
+                        <div onClick={() => router.push(`/${workspace?.workspaceName}/dashboard/responders-groups/create-group`)} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
+                            <Plus className="h-4 w-4" />
+                            <Typography className="!text-brand-500  body6"> {t(groupConstant.createGroup)}</Typography>
+                        </div>
+                    )}
+                </div>
             </div>
-            <p className="mt-4 mb-8 body4 sm:max-w-[355px] text-black-700">{t(groupConstant.description)}</p>
+
             <div className="grid sm:grid-cols-2 2xl:grid-cols-3  grid-flow-row gap-6">
                 {data &&
                     data?.map((group: ResponderGroupDto) => {

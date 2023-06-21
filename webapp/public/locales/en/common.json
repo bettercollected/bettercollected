@@ -24,6 +24,9 @@
   "NO_GROUP_FOUND": "No Group Found",
   "BUTTON": {
     "ADD": "Add",
+    "ADD_MEMBERS": "Add Members",
+    "SAVE_GROUP": "Save Group",
+    "ADD_REGEX": "Add Regex",
     "ADD_MEMBER": "Add Member",
     "ADD_FORM": "Add Form",
     "BACK": "Back",
@@ -260,20 +263,31 @@
   "GROUP": {
     "DEFAULT": "Group",
     "GROUPS": "Groups",
-    "ADD_MEMBER": {
-      "DEFAULT": "Add Member",
-      "DESCRIPTION": "Group members can access all forms added on group"
+    "BASIC_INFORMATION": "Group Basic Information",
+    "REGEX": {
+      "TITLE": "Domain-Based Group Member",
+      "DESCRIPTION": "Auto add members based on common Domain address.",
+      "EXAMPLE": "Eg: johndoe@yourdomain.any"
     },
+    "FORM": {
+      "DESCRIPTION": "Make form private so that only members of the group will have exclusive access to these forms"
+    },
+    "MEMBERS_ADDED": "Members Added",
+    "ADD_MEMBERS": {
+      "DEFAULT": "Add Members",
+      "DESCRIPTION": "Enter email to add new members"
+    },
+    "ADDED_MEMBERS": "Added Members",
     "DETAILS": "Group Details",
     "TITLE": "Create a group to limit access to form from your workspace",
     "CREATE_GROUP": "Create Group",
     "EDIT_GROUP": "Edit Group",
     "CREATE_NEW_GROUP": {
       "DEFAULT": "Create New Group",
-      "DESCRIPTION": "Create a group to send forms to entire groups, streamlining the process and saving time."
+      "DESCRIPTION": "Create groups to grant them access to group-specific forms."
     },
     "NAME": "Group Name",
-    "DESCRIPTION": "Send forms to entire groups, streamlining the process and saving time.",
+    "DESCRIPTION": "Create groups to grant them access to group-specific forms.",
     "MEMBERS": {
       "DEFAULT": "Members",
       "DESCRIPTION": "Only these members can see your form in your workspace."

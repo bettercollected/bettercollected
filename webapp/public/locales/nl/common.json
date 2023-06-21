@@ -23,6 +23,9 @@
   },
   "BUTTON": {
     "ADD": "Toevoegen",
+    "ADD_MEMBERS": "Leden toevoegen",
+    "SAVE_GROUP": "Groep opslaan",
+    "ADD_REGEX": "Regex toevoegen",
     "ADD_MEMBER": "Lid toevoegen",
     "ADD_FORM": "Voeg formulier toe",
     "BACK": "terug",
@@ -256,19 +259,30 @@
   "GROUP": {
     "DEFAULT": "Groep",
     "GROUPS": "Groepen",
-    "ADD_MEMBER": {
-      "DEFAULT": "Lid toevoegen",
+    "REGEX": {
+      "TITLE": "Domeingebaseerd groepslid",
+      "DESCRIPTION": "Leden automatisch toevoegen op basis van gemeenschappelijk domeinadres.",
+      "EXAMPLE": "Bijv.: johndoe@uwdomein.any"
+    },
+    "FORM": {
+      "DESCRIPTION": "Maak het formulier privé zodat alleen leden van de groep exclusieve toegang hebben tot deze formulieren"
+    },
+    "BASIC_INFORMATION": "Groepsbasisinformatie",
+    "MEMBERS_ADDED": "Leden toegevoegd",
+    "ADD_MEMBERS": {
+      "DEFAULT": "Leden toevoegen",
       "DESCRIPTION": "Voer e-mailadres in om nieuwe leden toe te voegen"
     },
+    "ADDED_MEMBERS": "Toegevoegde leden",
     "DETAILS": "Groepsgegevens",
     "TITLE": "Maak een groep aan om de toegang tot het formulier vanuit uw werkruimte te beperken",
     "CREATE_GROUP": "Groep aanmaken",
     "CREATE_NEW_GROUP": {
       "DEFAULT": "Nieuwe groep aanmaken",
-      "DESCRIPTION": "Maak een groep om formulieren naar hele groepen te sturen, stroomlijn het proces en bespaar tijd."
+      "DESCRIPTION": "Maak groepen aan om ze toegang te geven tot groepsspecifieke formulieren."
     },
     "NAME": "Groepsnaam",
-    "DESCRIPTION": "Stuur formulieren naar hele groepen, stroomlijn het proces en bespaar tijd.",
+    "DESCRIPTION": "Maak groepen aan om ze toegang te geven tot groepsspecifieke formulieren.",
     "MEMBERS": {
       "DEFAULT": "Leden",
       "DESCRIPTION": "Alleen deze leden kunnen uw formulier in uw werkruimte zien."

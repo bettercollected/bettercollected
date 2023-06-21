@@ -22,7 +22,7 @@ interface IAddMemberModalProps {
     handleAddMembers: (members: Array<string>) => void;
     group?: ResponderGroupDto;
 }
-export default function AddMemberModal({ handleAddMembers, group }: IAddMemberModalProps) {
+export default function AddMembersModal({ handleAddMembers, group }: IAddMemberModalProps) {
     const { t } = useTranslation();
     const { closeModal } = useModal();
     const [emails, setEmails] = useState<Array<string>>([]);
@@ -45,8 +45,8 @@ export default function AddMemberModal({ handleAddMembers, group }: IAddMemberMo
     return (
         <div className=" p-6 relative bg-brand-100 rounded-[8px] md:w-[674px]">
             <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
-            <div className="sh1 !leading-none">{t(groupConstant.addMember.default)}</div>
-            <div className="body4 pt-6 !leading-none ">{t(groupConstant.addMember.description)}</div>
+            <div className="sh1 !leading-none">{t(groupConstant.addMembers.default)}</div>
+            <div className="body4 pt-6 !leading-none ">{t(groupConstant.addMembers.description)}</div>
             <form onSubmit={addEmail} className="flex gap-2 mt-4">
                 <div className="md:w-[260px]">
                     <BetterInput value={email} type="email" inputProps={{ className: '!py-3 ' }} id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
@@ -57,7 +57,7 @@ export default function AddMemberModal({ handleAddMembers, group }: IAddMemberMo
             </form>
             {emails.length !== 0 && (
                 <>
-                    <p className="mt-2 leading-none mb-4 body5">Added members</p>
+                    <p className="mt-2 leading-none mb-4 body5">{t(groupConstant.addedMembers)}</p>
                     <div className="items-center  w-full p-3 bg-white   gap-4 flex flex-wrap ">
                         {emails.map((email) => {
                             return (
@@ -77,7 +77,7 @@ export default function AddMemberModal({ handleAddMembers, group }: IAddMemberMo
             )}
             <div className="flex w-full mt-8 justify-end">
                 <Button onClick={() => handleAddMembers(emails)} className="!text-[16px]" size="medium" disabled={emails.length === 0} type="submit">
-                    {t(buttonConstant.addMember)}
+                    {t(buttonConstant.addMembers)}
                 </Button>
             </div>
         </div>

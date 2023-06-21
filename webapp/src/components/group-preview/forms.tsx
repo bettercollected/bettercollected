@@ -58,7 +58,7 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
                     <p className="body1 !leading-none">
                         {t(localesCommon.forms)} ({group.forms?.length})
                     </p>
-                    <p className="body4 leading-none   !text-black-700 ">Make form private so that only members of the group will have exclusive access to these forms.</p>
+                    <p className="body4 leading-none   !text-black-700 ">{t(groupConstant.form.description)}</p>
                 </div>
                 {isAdmin && (
                     <MenuDropdown

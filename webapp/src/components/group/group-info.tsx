@@ -20,7 +20,7 @@ export default function GroupInfo({ handleInput, groupInfo }: IGroupInfoProps) {
     const isAdmin = useAppSelector(selectIsAdmin);
     return (
         <div>
-            <p className="body1">Group Basic Information</p>
+            <p className="body1">{t(groupConstant.basicInformation)}</p>
             <p className="body4 mt-4 leading-none mb-2">
                 {t(groupConstant.name)}
                 <span className="text-red-800">*</span>
