@@ -23,7 +23,6 @@ import { Transition } from '@app/components/ui/transition';
 
 import AddFormOnGroup from './modals/add-form-group-modal';
 import AddMemberModal from './modals/add-member-modal';
-import CreateGroupModal from './modals/create-group-modal';
 import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
@@ -64,8 +63,6 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <UpgradeToProModal />;
         case 'EDIT_WORKSPACE_MODAL':
             return <EditWorkspaceModal />;
-        case 'CREATE_GROUP':
-            return <CreateGroupModal {...modalProps} />;
         case 'PREVIEW_GROUP':
             return <PreviewGroup {...modalProps} />;
         case 'ADD_MEMBER':

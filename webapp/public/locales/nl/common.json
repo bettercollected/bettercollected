@@ -258,7 +258,7 @@
     "GROUPS": "Groepen",
     "ADD_MEMBER": {
       "DEFAULT": "Lid toevoegen",
-      "DESCRIPTION": "Groepsleden hebben toegang tot alle formulieren die aan de groep zijn toegevoegd"
+      "DESCRIPTION": "Voer e-mailadres in om nieuwe leden toe te voegen"
     },
     "DETAILS": "Groepsgegevens",
     "TITLE": "Maak een groep aan om de toegang tot het formulier vanuit uw werkruimte te beperken",

@@ -10,7 +10,8 @@ import { useAddResponderOnGroupMutation, useDeleteResponderFromGroupMutation } f
 import { isEmailInGroup } from '@app/utils/groupUtils';
 
 interface IGroupMembersprops {
-    email: string;
+    emails?: Array<string>;
+    email?: string;
     group: ResponderGroupDto;
     workspaceId: string;
 }
@@ -39,17 +40,17 @@ export function useGroupMember() {
         }
     };
 
-    const addMemberOnGroup = async ({ email, group, workspaceId }: IGroupMembersprops) => {
+    const addMembersOnGroup = async ({ emails, email, group, workspaceId }: IGroupMembersprops) => {
         try {
-            if (isEmailInGroup(group, email)) {
+            if (emails && group.emails.some((groupEmail) => emails?.includes(groupEmail))) {
                 toast(t(toastMessage.alreadyInGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
                 return;
             }
             await addMember({
                 workspaceId: workspaceId,
                 groupId: group.id,
-                emails: [email]
-            }).unwrap();
+                emails: emails ?? [email]
+            });
             toast(t(toastMessage.addedOnGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
             closeModal();
         } catch (error) {
@@ -58,7 +59,7 @@ export function useGroupMember() {
     };
     return {
         removeMemberFromGroup,
-        addMemberOnGroup,
+        addMembersOnGroup,
         addMemberResponse,
         removeMemberResponse
     };

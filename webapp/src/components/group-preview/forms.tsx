@@ -21,7 +21,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
 
-export default function GroupForms({ group, workspaceForms }: { group: ResponderGroupDto; workspaceForms: Array<StandardFormDto> }) {
+export default function GroupFormsTab({ group, workspaceForms }: { group: ResponderGroupDto; workspaceForms: Array<StandardFormDto> }) {
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();

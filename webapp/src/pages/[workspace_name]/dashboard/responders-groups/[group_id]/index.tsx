@@ -8,9 +8,10 @@ import MembersIcon from '@Components/Common/Icons/Members';
 import { Groups } from '@mui/icons-material';
 
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
-import GroupForms from '@app/components/group-preview/forms';
-import GroupDetails from '@app/components/group-preview/group-details';
-import GroupMembers from '@app/components/group-preview/member';
+import GroupFormsTab from '@app/components/group-preview/forms';
+import GroupDetailsTab from '@app/components/group-preview/group-details';
+import GroupMembersTab from '@app/components/group-preview/member';
+import Back from '@app/components/icons/back';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import Loader from '@app/components/ui/loader';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
@@ -22,6 +23,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetRespondersGroupQuery, useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export async function getServerSideProps(_context: any) {
     const { group_id } = _context.query;
@@ -36,7 +38,7 @@ export async function getServerSideProps(_context: any) {
 export default function GroupPreviewPage({ groupId }: { groupId: string }) {
     const router = useRouter();
     const locale = router?.locale === 'en' ? '' : `${router?.locale}/`;
-    const workspace: WorkspaceDto = useAppSelector((state) => state.workspace);
+    const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
     const { data, isLoading } = useGetRespondersGroupQuery({
         workspaceId: workspace.id,
         groupId: groupId
@@ -86,18 +88,18 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
                 <div className="flex flex-col -mt-6 ">
                     <BreadcrumbsRenderer items={breadcrumbsItem} />
                     <div className="flex gap-2 items-center ">
-                        {/* <ChevronForward className=" h-6 w-6 py-[2px] cursor-pointer px-[3px] rotate-180" /> */}
+                        <Back onClick={() => router.push(`/${workspace?.workspaceName}/dashboard/responders-groups?view=Groups`)} className="cursor-pointer" />
                         <span className="h4">{t(groupConstant.groups)}</span>
                     </div>
                     <ParamTab className="mb-[38px] mt-6  pb-0 " tabMenu={paramTabs}>
                         <TabPanel className="focus:outline-none" key="Group Details">
-                            <GroupDetails group={data} />
+                            <GroupDetailsTab group={data} />
                         </TabPanel>
                         <TabPanel className="focus:outline-none" key="Members">
-                            <GroupMembers group={data} workspace={workspace} />
+                            <GroupMembersTab group={data} workspace={workspace} />
                         </TabPanel>
                         <TabPanel className="focus:outline-none" key="Forms">
-                            <GroupForms group={data} workspaceForms={workspaceForms.data?.items} />
+                            <GroupFormsTab group={data} workspaceForms={workspaceForms.data?.items} />
                         </TabPanel>
                     </ParamTab>
                 </div>

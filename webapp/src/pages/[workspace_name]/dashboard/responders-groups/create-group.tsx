@@ -9,6 +9,8 @@ import { toast } from 'react-toastify';
 import BetterInput from '@app/components/Common/input';
 import RegexCard from '@app/components/cards/regex-card';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
+import GroupInfo from '@app/components/group/group-info';
+import GroupMember from '@app/components/group/group-member';
 import Back from '@app/components/icons/back';
 import { Plus } from '@app/components/icons/plus';
 import { useModal } from '@app/components/modal-views/context';
@@ -32,7 +34,7 @@ export default function CreateGroup() {
     const router = useRouter();
     const locale = router?.locale === 'en' ? '' : `${router?.locale}/`;
     const { t } = useTranslation();
-    const { openModal } = useModal();
+    const { closeModal } = useModal();
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
     const [groupInfo, setGroupInfo] = useState<GroupInfoDto>({
         name: '',
@@ -77,40 +79,38 @@ export default function CreateGroup() {
             disabled: true
         }
     ];
+
+    const handleAddMembers = (members: Array<string>) => {
+        setGroupInfo({
+            ...groupInfo,
+            emails: [...groupInfo.emails, ...members]
+        });
+        closeModal();
+    };
+
+    const handleRemoveMember = (email: string) => {
+        setGroupInfo({
+            ...groupInfo,
+            emails: groupInfo.emails.filter((groupInfoEmail) => groupInfoEmail !== email)
+        });
+    };
     return (
         <DashboardLayout>
             <div className="flex flex-col relative -mt-6 md:max-w-[700px] xl:max-w-[1000px]">
                 <div className="absolute top-10 right-0">
-                    <Button isLoading={isLoading} onClick={handleCreateGroup}>
+                    <Button isLoading={isLoading} disabled={!groupInfo.name || groupInfo.emails.length === 0} onClick={handleCreateGroup}>
                         {t(buttonConstant.save)}
                     </Button>
                 </div>
                 <div className="md:max-w-[618px]">
                     <BreadcrumbsRenderer items={breadcrumbsItem} />
-                    <div className="flex gap-2 items-center">
-                        <Back onClick={() => router.back()} />
-                        <p className="sh1">{t(groupConstant.createGroup)}</p>
-                    </div>
-
-                    <p className="mt-11 body1">Group Basic Information</p>
-                    <p className="body4 mt-[27px] leading-none mb-2">
-                        {t(groupConstant.name)}
-                        <span className="text-red-800">*</span>
-                    </p>
-                    <BetterInput value={groupInfo.name} className="!mb-0 bg-white" inputProps={{ className: '!py-3' }} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
-                    <p className="body4 leading-none mt-6 mb-2">{t(localesCommon.description)}</p>
-                    <BetterInput value={groupInfo.description} className="!mb-0 bg-white" inputProps={{ maxLength: 250 }} id="description" placeholder={t(placeHolder.description)} rows={3} multiline onChange={handleInput} />
-                    <p className="mt-10  leading-none mb-6 body1">{t(members.default)}</p>
-                    <RegexCard addRegex={() => {}} />
-                    <div className="flex items-center justify-between">
-                        <div className="flex flex-col">
-                            <p className="mt-10 leading-none mb-2 body1">Members Added ({groupInfo.emails.length})</p>
-                            <p className="text-black-700 leading-none body4">{t(groupConstant.members.description)} </p>
+                    <div className="flex flex-col gap-10">
+                        <div className="flex gap-2  items-center">
+                            <Back onClick={() => router.back()} className="cursor-pointer" />
+                            <p className="h4">{t(groupConstant.createGroup)}</p>
                         </div>
-                        <div onClick={() => openModal('ADD_MEMBER')} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
-                            <Plus className="h-4 w-4" />
-                            <Typography className="!text-brand-500  body6">Add Member</Typography>
-                        </div>
+                        <GroupInfo handleInput={handleInput} groupInfo={groupInfo} />
+                        <GroupMember emails={groupInfo.emails} handleAddMembers={handleAddMembers} handleRemoveMember={handleRemoveMember} />
                     </div>
                 </div>
             </div>

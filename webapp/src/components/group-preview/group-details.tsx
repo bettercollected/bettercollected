@@ -13,18 +13,21 @@ import { groupConstant } from '@app/constants/locales/group';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
-import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
 
-export default function GroupDetails({ group }: { group: ResponderGroupDto }) {
+import GroupInfo from '../group/group-info';
+
+export default function GroupDetailsTab({ group }: { group: ResponderGroupDto }) {
     const { t } = useTranslation();
     const [updateResponderGroup, updateGroupResponse] = useUpdateResponderGroupMutation();
-    const [groupInfo, setGroupInfo] = useState({
+    const [groupInfo, setGroupInfo] = useState<GroupInfoDto>({
         name: group.name,
         description: group.description,
-        emails: group.emails
+        emails: group.emails,
+        email: ''
     });
     const isAdmin = useAppSelector(selectIsAdmin);
     const workspace = useAppSelector((state) => state.workspace);
@@ -50,16 +53,7 @@ export default function GroupDetails({ group }: { group: ResponderGroupDto }) {
     };
     return (
         <form onSubmit={handleUpdateGroup} className="md:max-w-[618px]">
-            <div className="h-[120px] mb-4 w-[120px] flex justify-center items-center bg-black-500 rounded-[8px]">
-                <Typography className=" text-[90px] font-semibold !text-white">{group.name[0].toUpperCase()}</Typography>
-            </div>
-            <p className="body4 mt-10 leading-none mb-2">
-                {t(groupConstant.name)}
-                <span className="text-red-800">*</span>
-            </p>
-            <BetterInput disabled={!isAdmin} value={groupInfo.name} className="!mb-0 bg-white " inputProps={{ className: '!py-3' }} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
-            <p className="body4 leading-none mt-6 mb-2">{t(localesCommon.description)}</p>
-            <BetterInput disabled={!isAdmin} value={groupInfo.description} className="!mb-0 bg-white " inputProps={{ maxLength: 250 }} id="description" placeholder={t(placeHolder.description)} rows={3} multiline onChange={handleInput} />
+            <GroupInfo handleInput={handleInput} groupInfo={groupInfo} />
             {isAdmin && (
                 <div className="flex justify-end mt-10">
                     <Button isLoading={updateGroupResponse.isLoading}>{t(buttonConstant.saveChanges)}</Button>

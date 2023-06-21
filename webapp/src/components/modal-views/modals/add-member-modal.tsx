@@ -2,6 +2,9 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import cn from 'classnames';
+import { toast } from 'react-toastify';
+
 import BetterInput from '@app/components/Common/input';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
@@ -10,50 +13,73 @@ import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
-import { useGroupMember } from '@app/lib/hooks/use-group-members';
+import { placeHolder } from '@app/constants/locales/placeholder';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
-import { useAppSelector } from '@app/store/hooks';
 
-export default function AddMemberModal({ group }: { group: ResponderGroupDto }) {
-    const { addMemberOnGroup, addMemberResponse } = useGroupMember();
-    const workspace = useAppSelector((state) => state.workspace);
-
+interface IAddMemberModalProps {
+    handleAddMembers: (members: Array<string>) => void;
+    group?: ResponderGroupDto;
+}
+export default function AddMemberModal({ handleAddMembers, group }: IAddMemberModalProps) {
     const { t } = useTranslation();
-    const [member, setmember] = useState('');
     const { closeModal } = useModal();
+    const [emails, setEmails] = useState<Array<string>>([]);
+    const [email, setEmail] = useState<string>('');
+    const handleInput = (event: any) => {
+        setEmail(event.target.value);
+    };
+    const addEmail = (event: any) => {
+        event.preventDefault();
+        if (emails.includes(email)) {
+            toast(t(toastMessage.emailAlreadyExist).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            return;
+        } else if (group && group.emails.includes(email)) {
+            toast(t(toastMessage.alreadyInGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            return;
+        }
+        setEmails([...emails, email]);
+        setEmail('');
+    };
     return (
-        <>
-            <SettingsCard className="!space-y-0 relative">
-                <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
-                <div className="sh1 !leading-none">{t(groupConstant.addMember.default)}</div>
-                <div className="body4 pt-6 !leading-none ">{t(groupConstant.addMember.description)}</div>
-                <form
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        addMemberOnGroup({ email: member, group, workspaceId: workspace.id });
-                    }}
-                    className="flex pt-8  flex-col justify-start"
-                >
-                    <div className="body1 mb-3 !leading-none">{t(localesCommon.enterEmail)}</div>
-                    <BetterInput
-                        disabled={addMemberResponse.isLoading}
-                        data-testid="otp-input"
-                        spellCheck={false}
-                        value={member}
-                        type="email"
-                        className="!mb-0"
-                        placeholder={t(localesCommon.enterEmail)}
-                        onChange={(event) => {
-                            setmember(event.target.value);
-                        }}
-                    />
-                    <div className="flex w-full mt-8 justify-end">
-                        <Button disabled={!member} isLoading={addMemberResponse.isLoading} size="small" type="submit">
-                            {t(buttonConstant.addMember)}
-                        </Button>
+        <div className=" p-6 relative bg-brand-100 rounded-[8px] md:w-[674px]">
+            <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
+            <div className="sh1 !leading-none">{t(groupConstant.addMember.default)}</div>
+            <div className="body4 pt-6 !leading-none ">{t(groupConstant.addMember.description)}</div>
+            <form onSubmit={addEmail} className="flex gap-2 mt-4">
+                <div className="md:w-[260px]">
+                    <BetterInput value={email} type="email" inputProps={{ className: '!py-3 ' }} id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
+                </div>
+                <Button size="medium" disabled={!email} className={cn('bg-black-800 hover:!bg-black-900', !email && 'opacity-30')}>
+                    {t(buttonConstant.add)}
+                </Button>
+            </form>
+            {emails.length !== 0 && (
+                <>
+                    <p className="mt-2 leading-none mb-4 body5">Added members</p>
+                    <div className="items-center  w-full p-3 bg-white   gap-4 flex flex-wrap ">
+                        {emails.map((email) => {
+                            return (
+                                <div className="p-2 rounded flex items-center gap-2 leading-none bg-brand-200 border border-brand-300 body5 !text-brand-500" key={email}>
+                                    <span className="leading-none">{email}</span>
+                                    <Close
+                                        className="h-3 w-3 cursor-pointer"
+                                        onClick={() => {
+                                            setEmails(emails.filter((item) => item !== email));
+                                        }}
+                                    />
+                                </div>
+                            );
+                        })}
                     </div>
-                </form>
-            </SettingsCard>
-        </>
+                </>
+            )}
+            <div className="flex w-full mt-8 justify-end">
+                <Button onClick={() => handleAddMembers(emails)} className="!text-[16px]" size="medium" disabled={emails.length === 0} type="submit">
+                    {t(buttonConstant.addMember)}
+                </Button>
+            </div>
+        </div>
     );
 }
