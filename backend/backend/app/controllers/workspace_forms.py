@@ -9,6 +9,7 @@ from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.response_dtos import (
     WorkspaceFormPatchResponse,
+    StandardFormCamelModel,
 )
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.router import router
@@ -16,6 +17,7 @@ from backend.app.services.form_service import FormService
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from common.models.form_import import FormImportRequestBody
+from common.models.standard_form import StandardForm, StandardFormResponse
 from common.models.user import User
 
 
@@ -43,6 +45,31 @@ class WorkspaceFormsRouter(Routable):
             workspace_id, sort, user
         )
         return forms
+
+    @post("", response_model=StandardFormCamelModel)
+    async def create_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form: StandardFormCamelModel,
+        user: User = Depends(get_logged_user),
+    ):
+        # Camel model is converted to basic modal so that camel case is not stored in db
+        response = await self.workspace_form_service.create_form(
+            workspace_id=workspace_id, form=StandardForm(**form.dict()), user=user
+        )
+        return StandardFormCamelModel(**response.dict())
+
+    @post("/forms/{form_id}/response")
+    async def respond_to_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        response: StandardFormResponse,
+        user: User = Depends(get_logged_user),
+    ):
+        return await self.workspace_form_service.submit_response(
+            workspace_id=workspace_id, form_id=form_id, response=response, user=user
+        )
 
     @post("/search")
     async def search_forms_in_workspace(

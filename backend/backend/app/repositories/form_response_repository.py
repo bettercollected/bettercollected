@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Sequence
 
 import fastapi_pagination.ext.beanie
+from beanie import PydanticObjectId
 from fastapi_pagination import Page
 
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
@@ -258,3 +259,11 @@ class FormResponseRepository(BaseRepository):
         return await FormResponseDeletionRequest.find(
             {"form_id": {"$in": form_ids}}
         ).delete()
+
+    async def save_form_response(
+        self, form_id: PydanticObjectId, response: StandardFormResponse
+    ):
+        response_document = FormResponseDocument(**response.dict())
+        response_document.response_id = str(PydanticObjectId())
+        response_document.form_id = str(form_id)
+        return await response_document.save()

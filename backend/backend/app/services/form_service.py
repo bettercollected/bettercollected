@@ -8,7 +8,6 @@ from fastapi_pagination.ext.beanie import paginate
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_member_dto import (
-    WorkspaceMemberDto,
     FormImporterDetails,
 )
 from backend.app.models.minified_form import MinifiedForm
@@ -197,3 +196,6 @@ class FormService:
 
     async def delete_forms(self, form_ids: List[str]):
         return await self._form_repo.delete_forms(form_ids=form_ids)
+
+    async def create_form(self, form: StandardForm) -> FormDocument:
+        return await self._form_repo.create_form(form=form)

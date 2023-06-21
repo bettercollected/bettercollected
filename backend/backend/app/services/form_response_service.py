@@ -22,6 +22,7 @@ from backend.app.schemas.standard_form_response import (
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from common.constants import MESSAGE_UNAUTHORIZED
+from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 
@@ -246,3 +247,10 @@ class FormResponseService:
             )
         )
         return response
+
+    async def submit_form_response(
+        self, form_id: PydanticObjectId, response: StandardFormResponse
+    ):
+        return await self._form_response_repo.save_form_response(
+            form_id=form_id, response=response
+        )

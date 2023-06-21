@@ -6,6 +6,7 @@ from beanie.odm.queries.aggregation import AggregationQuery
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
+from common.models.standard_form import StandardForm
 
 
 class FormRepository:
@@ -167,3 +168,7 @@ class FormRepository:
 
     async def delete_forms(self, form_ids: List[str]):
         return await FormDocument.find({"form_id": {"$in": form_ids}}).delete()
+
+    async def create_form(self, form: StandardForm) -> FormDocument:
+        form_document = FormDocument(**form.dict())
+        return await form_document.save()
