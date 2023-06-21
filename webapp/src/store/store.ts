@@ -7,6 +7,7 @@ import environments from '@app/configs/environments';
 import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
 import { authApi } from '@app/store/auth/api';
 import authSlice from '@app/store/auth/slice';
+import createFormSlice from '@app/store/create-form/slice';
 import formSlice from '@app/store/forms/slice';
 import { plansApi } from '@app/store/plans/api';
 import { providerApi } from '@app/store/providers/api';
@@ -14,8 +15,6 @@ import joyrideSlice from '@app/store/tours/slice';
 import { workspacesApi } from '@app/store/workspaces/api';
 import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitations-api';
 import workspaceSlice from '@app/store/workspaces/slice';
-
-const loggerMiddleware = createLogger();
 
 // Add more middlewares here
 // const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
@@ -28,7 +27,7 @@ const reducers = {
     [formSlice.reducerPath]: formSlice.reducer,
     [joyrideSlice.reducerPath]: joyrideSlice.reducer,
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
-
+    [createFormSlice.reducerPath]: createFormSlice.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [membersNInvitationsApi.reducerPath]: membersNInvitationsApi.reducer,
     [providerApi.reducerPath]: providerApi.reducer,

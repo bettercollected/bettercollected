@@ -20,36 +20,12 @@ import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form'
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 
 const StyledTextField = styled.div`
-    // .MuiInputBase-input {
-    //     padding-left: 0;
-    //     padding-right: 0;
-    //     padding-bottom: 8px;
-    // }
-
-    // .MuiSelect-select {
-    //     padding-right: 32px;
-    //     padding-left: 16px;
-    //     padding-bottom: 16px;
-    // }
-
-    // textarea {
-    //     padding-left: 0;
-    //     padding-right: 0;
-    //     padding-bottom: 8px;
-    //     width: 100%;
-    //     border-bottom-style: dotted;
-    // }
-
     textarea:disabled {
         color: rgba(0, 0, 0, 0.38);
     }
 `;
 
-interface ISubmission extends IServerSideProps {
-    form: StandardFormDto;
-}
-
-enum QUESTION_TYPE {
+export enum QUESTION_TYPE {
     DATE = 'date',
     SHORT_TEXT = 'short_text',
     LONG_TEXT = 'long_text',

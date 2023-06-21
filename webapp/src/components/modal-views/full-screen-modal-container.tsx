@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 
 import { Close } from '@app/components/icons/close';
 import { UPGRADE_MODAL_VIEW, useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import AddFormFieldModal from '@app/components/modal-views/modals/add-form-field';
 import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
 import WorkspacePreviewModal from '@app/components/modal-views/modals/workspace-preview-modal';
 import Button from '@app/components/ui/button';
@@ -20,6 +21,8 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW | string, modalProps: any) 
             return <UpgradeToProModal {...modalProps} />;
         case 'WORKSPACE_PREVIEW':
             return <WorkspacePreviewModal />;
+        case 'ADD_FIELD':
+            return <AddFormFieldModal />;
         default:
             return <></>;
     }
@@ -52,7 +55,7 @@ export default function FullScreenModalContainer() {
                 </div>
 
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
-                    <div data-testid="modal-view" className={`relative min-h-screen inline-block items-center content-center !w-full  z-50  ${view === 'UPGRADE_TO_PRO' ? '!bg-white' : ''} text-left align-middle md:w-fit`}>
+                    <div data-testid="modal-view" className={`relative min-h-screen flex flex-col items-center content-center !w-full  z-50  ${view === 'UPGRADE_TO_PRO' ? '!bg-white' : ''} text-left align-middle md:w-fit`}>
                         {view && renderModalContent(view, modalProps)}
                     </div>
                 </Transition.Child>

@@ -121,6 +121,15 @@ export const workspacesApi = createApi({
                 return returnValue;
             }
         }),
+
+        createForm: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms`,
+                method: 'POST',
+                body: request.body
+            }),
+            invalidatesTags: [FORM_TAG]
+        }),
         importForm: builder.mutation<any, ImportFormQueryInterface>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/import/${request.provider}`,
@@ -415,6 +424,7 @@ export const {
     useGetWorkspaceFormQuery,
     useGetWorkspaceStatsQuery,
     useLazyGetWorkspaceFormsQuery,
+    useCreateFormMutation,
     useGetWorkspaceSubmissionsQuery,
     useGetWorkspaceAllSubmissionsQuery,
     useGetWorkspaceRespondersQuery,

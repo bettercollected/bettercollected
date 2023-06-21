@@ -1,15 +1,18 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
+import Button from '@app/components/ui/button';
 import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
 import WorkspaceDashboardOverview from '@app/components/workspace-dashboard/workspace-dashboard-overview';
 import environments from '@app/configs/environments';
+import { buttonConstant } from '@app/constants/locales/button';
 import { formConstant } from '@app/constants/locales/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
@@ -21,6 +24,7 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
     const { t } = useTranslation();
 
     const workspace = useAppSelector(selectWorkspace);
+    const router = useRouter();
 
     const workspaceQuery = {
         workspace_id: workspace.id
@@ -67,7 +71,18 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
             <WorkspaceDashboardOverview workspace={workspace} />
             <div className="min-h-9 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <p className="sh1">{t(formConstant.recentForms)}</p>
-                <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
+                <div className="flex gap-3">
+                    <Button
+                        variant="solid"
+                        className={`w-full sm:w-auto`}
+                        onClick={() => {
+                            router.push(`/${workspace.workspaceName}/dashboard/forms/create`);
+                        }}
+                    >
+                        Create Form
+                    </Button>
+                    <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
+                </div>
             </div>
             <WorkspaceDashboardForms hasCustomDomain={hasCustomDomain} workspace={workspace} workspaceForms={workspaceForms} />
         </DashboardLayout>
