@@ -8,6 +8,7 @@ import PinnedIcon from '@Components/Common/Icons/Pinned';
 import PrivateIcon from '@Components/Common/Icons/Private';
 import PublicIcon from '@Components/Common/Icons/Public';
 import Share from '@Components/Common/Icons/Share';
+import SmallLogo from '@Components/Common/Icons/SmallLogo';
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { Button, Typography } from '@mui/material';
@@ -89,7 +90,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                 <div className="rounded h-[34px] w-[34px]">
                     {form?.settings?.provider === 'typeform' && <TypeformIcon width={34} height={34} />}
                     {form?.settings?.provider === 'google' && <GoogleFormIcon width={34} height={34} className="-ml-1" />}
-                    {form?.settings?.provider === 'self' && <Logo />}
+                    {form?.settings?.provider === 'self' && <SmallLogo />}
                 </div>
                 <Tooltip title="">
                     <Typography className="body3 !leading-none w-[inherit]" noWrap>

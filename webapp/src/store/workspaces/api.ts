@@ -130,6 +130,14 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: [FORM_TAG]
         }),
+        patchForm: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}`,
+                method: 'PATCH',
+                body: request.body
+            }),
+            invalidatesTags: [FORM_TAG]
+        }),
         submitResponse: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/${request.formId}/response`,
@@ -441,6 +449,7 @@ export const {
     useLazyGetWorkspaceSubmissionQuery,
     useSearchWorkspaceFormsMutation,
     useGetFormsSubmissionsQuery,
+    usePatchFormMutation,
     usePatchFormSettingsMutation,
     useDeleteFormMutation,
     useSubmitResponseMutation,

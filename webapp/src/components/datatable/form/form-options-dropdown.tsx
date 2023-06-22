@@ -155,6 +155,17 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         </ActiveLink>
     );
 
+    const menuItemEdit = (
+        <ActiveLink key={'edit'} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`}>
+            <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
+                <ListItemIcon>
+                    <EditIcon width={20} height={20} className="text-black-900" />
+                </ListItemIcon>
+                Edit
+            </MenuItem>
+        </ActiveLink>
+    );
+
     const menuItemCopy = (
         <MenuItem
             sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
@@ -217,6 +228,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         <div className={className + ' !text-black-900'} onClick={(e) => e.preventDefault()}>
             <MenuDropdown width={210} onClick={(e: any) => handleClick(e, form)} id="form-menu" menuTitle={t(toolTipConstant.formOptions)} menuContent={<EllipsisOption />} showExpandMore={false}>
                 {menuItemOpen}
+                {currentActiveForm?.form?.settings?.provider === 'self' && menuItemEdit}
                 {!!currentActiveForm?.form?.settings?.private ? (
                     <Tooltip title={t(toolTipConstant.visibility)}>
                         <span>{menuItemPinSettings}</span>

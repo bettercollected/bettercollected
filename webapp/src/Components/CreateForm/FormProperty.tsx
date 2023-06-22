@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useDispatch } from 'react-redux';
 
@@ -18,18 +18,14 @@ FormProperty.defaultProps = {
 
 export default function FormProperty({ propertyValue, action, inputProps }: IFormTitleProps) {
     const dispatch = useDispatch();
-    const [value, setValue] = useState(propertyValue || '');
-
     return (
         <>
             <BetterInput
+                value={propertyValue}
                 className={(inputProps.className || '') + ' !bg-white'}
                 {...inputProps}
                 onChange={(event) => {
-                    setValue(event.target.value);
-                }}
-                onBlur={(e) => {
-                    dispatch(action(value));
+                    dispatch(action(event.target.value));
                 }}
             />
         </>

@@ -4,6 +4,7 @@ import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
 import { QUESTION_TYPE } from '@app/components/form/renderer/form-renderer';
+import { StandardFormQuestionDto } from '@app/models/dtos/form';
 import { FormFieldState, FormState } from '@app/store/create-form/types';
 import { RootState } from '@app/store/store';
 
@@ -22,7 +23,18 @@ export const slice = createSlice({
     name: 'createForm',
     initialState,
     reducers: {
-        resetForm: (state, action) => {
+        setEditForm: (state, action) => {
+            const fields: any = {};
+            for (const field of action.payload.fields) {
+                fields[field.id] = field;
+            }
+            return {
+                title: action.payload.title,
+                description: action.payload.description,
+                fields: fields
+            };
+        },
+        resetForm: (state) => {
             return initialState;
         },
         setFormTitle: (state, action) => {
@@ -116,6 +128,6 @@ const reducerObj = { reducerPath: slice.name, reducer: createFormReducer };
 
 export const selectCreateForm = (state: RootState) => state.createForm;
 
-export const { resetForm, deleteField, setFieldDescription, setFieldRequired, setFieldTitle, setFormDescription, setFieldType, addField, setFormTitle } = slice.actions;
+export const { setEditForm, resetForm, deleteField, setFieldDescription, setFieldRequired, setFieldTitle, setFormDescription, setFieldType, addField, setFormTitle } = slice.actions;
 
 export default reducerObj;
