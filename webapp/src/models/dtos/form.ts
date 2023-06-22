@@ -4,12 +4,13 @@ import { UserStatus } from '@app/models/dtos/UserStatus';
 import { ResponderGroupDto } from './groups';
 
 export interface StandardFormQuestionDto {
-    id?: string;
-    questionId: string;
+    id: string;
+    questionId?: string;
     formId?: string;
-
+    validations?: {
+        required?: boolean;
+    };
     properties?: any;
-
     attachment?: any;
     title: string;
     description?: string | null;
@@ -57,7 +58,9 @@ export interface StandardFormDto {
 }
 
 export interface StandardFormResponseDto {
-    answers: object;
+    answers: {
+        [fieldId: string]: AnswerDto;
+    };
     responseId: string;
     formId: string;
     formTitle: string;
@@ -76,4 +79,24 @@ export interface WorkspaceResponderDto {
     email: string;
     responses: number;
     deletionRequests: number;
+}
+
+export interface AnswerDto {
+    field: {
+        id: string;
+    };
+    type: string;
+    text?: string;
+    number?: number;
+    email?: string;
+    boolean?: boolean;
+    date?: string;
+    time?: string;
+    choice?: {
+        label?: string;
+    };
+    choices?: {
+        labels: Array<string>;
+        other?: string;
+    };
 }

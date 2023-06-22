@@ -1,5 +1,6 @@
 import React from 'react';
 
+import ShortText from '@Components/Form/ShortText';
 import styled from '@emotion/styled';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -18,6 +19,8 @@ import Loader from '@app/components/ui/loader';
 import MarkdownText from '@app/components/ui/markdown-text';
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
+import { selectInvalidFields } from '@app/store/fill-form/slice';
+import { useAppSelector } from '@app/store/hooks';
 
 const StyledTextField = styled.div`
     textarea:disabled {
@@ -58,9 +61,16 @@ enum VideoEmbedProvider {
 interface FormRendererProps {
     form: any;
     response?: any;
+    enabled?: boolean;
 }
 
-export default function FormRenderer({ form, response }: FormRendererProps) {
+FormRenderer.defaultProps = {
+    enabled: false
+};
+
+export default function FormRenderer({ form, response, enabled }: FormRendererProps) {
+    const invalidFields = useAppSelector(selectInvalidFields);
+
     const renderGridRowColumns = (question: any) => {
         const gridRowQuestions = question.properties?.fields;
         const gridColumnOptions = question.properties?.fields[0].properties.choices;
@@ -139,11 +149,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                     </LocalizationProvider>
                 );
             case QUESTION_TYPE.LONG_TEXT:
-                return (
-                    <StyledTextField>
-                        <BetterInput value={ans?.text} disabled />
-                    </StyledTextField>
-                );
+                return <ShortText question={question} ans={ans} enabled={enabled} />;
             case QUESTION_TYPE.MULTIPLE_CHOICE:
                 const choiceAnswer = ans?.choice?.value ?? ans?.choices?.values;
                 return (
@@ -257,11 +263,7 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
                 // Render no input element for statement
                 return <></>;
             case QUESTION_TYPE.SHORT_TEXT:
-                return (
-                    <StyledTextField>
-                        <BetterInput value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled={true} fullWidth />
-                    </StyledTextField>
-                );
+                return <ShortText question={question} ans={ans} enabled={enabled} />;
             default:
                 return <></>;
         }
@@ -314,17 +316,20 @@ export default function FormRenderer({ form, response }: FormRendererProps) {
     );
 
     return (
-        <div data-testid="form-renderer" className="relative max-w-[700px]  md:px-0">
+        <div data-testid="form-renderer" className="relative max-w-[700px] w-full  md:px-0">
             <div className="flex flex-col gap-4">
                 <div className="p-6 bg-white rounded-lg flex flex-col gap-4">
                     <h1 className="font-semibold h4">{form?.title}</h1>
                     {form?.description && <MarkdownText description={form?.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />}
                 </div>
-                {form?.fields?.map((question: any, idx: number) => (
-                    <div key={question?.id + idx} className="p-6 bg-white rounded-lg">
-                        {renderQuestionField(question, response?.answers)}
-                    </div>
-                ))}
+                {form?.fields?.map((question: StandardFormQuestionDto, idx: number) => {
+                    return (
+                        <div key={question?.id + idx} className={`p-6 bg-white relative rounded-lg border border-solid ${invalidFields.includes(question?.id) ? 'border-red-500' : 'border-white'}`}>
+                            {question?.validations?.required && <div className="absolute top-5 right-5 text-red-500">*</div>}
+                            {renderQuestionField(question, response?.answers)}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

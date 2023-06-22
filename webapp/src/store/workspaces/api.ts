@@ -130,6 +130,13 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: [FORM_TAG]
         }),
+        submitResponse: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/response`,
+                method: 'POST',
+                body: request.body
+            })
+        }),
         importForm: builder.mutation<any, ImportFormQueryInterface>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/import/${request.provider}`,
@@ -434,6 +441,7 @@ export const {
     useGetFormsSubmissionsQuery,
     usePatchFormSettingsMutation,
     useDeleteFormMutation,
+    useSubmitResponseMutation,
     useCreateWorkspaceMutation,
     usePatchExistingWorkspaceMutation,
     usePatchThemeMutation,

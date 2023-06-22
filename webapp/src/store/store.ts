@@ -8,6 +8,7 @@ import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
 import { authApi } from '@app/store/auth/api';
 import authSlice from '@app/store/auth/slice';
 import createFormSlice from '@app/store/create-form/slice';
+import fillFormSlice from '@app/store/fill-form/slice';
 import formSlice from '@app/store/forms/slice';
 import { plansApi } from '@app/store/plans/api';
 import { providerApi } from '@app/store/providers/api';
@@ -28,6 +29,7 @@ const reducers = {
     [joyrideSlice.reducerPath]: joyrideSlice.reducer,
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
     [createFormSlice.reducerPath]: createFormSlice.reducer,
+    [fillFormSlice.reducerPath]: fillFormSlice.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [membersNInvitationsApi.reducerPath]: membersNInvitationsApi.reducer,
     [providerApi.reducerPath]: providerApi.reducer,

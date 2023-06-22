@@ -1,9 +1,12 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import { useRouter } from 'next/router';
 
+import selectReducer from '@mui/base/useSelect/selectReducer';
 import { Widget } from '@typeform/embed-react';
+import { toast } from 'react-toastify';
 
+import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
@@ -11,7 +14,10 @@ import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
-import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { selectAnswers, selectInvalidFields, selectRequiredFields, setInvalidFields, setRequiredFields } from '@app/store/fill-form/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useGetWorkspaceFormQuery, useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 
 export default function SingleFormPage(props: any) {
@@ -19,19 +25,59 @@ export default function SingleFormPage(props: any) {
 
     const { data, isLoading, error } = useGetWorkspaceFormQuery({ workspace_id: workspace.id, custom_url: slug });
 
+    const [submitResponse] = useSubmitResponseMutation();
+
     const router = useRouter();
-    const form: any = data;
+    const form: StandardFormDto | undefined = data;
+
+    const dispatch = useAppDispatch();
+
+    const requiredFields = useAppSelector(selectRequiredFields);
 
     const iframeRef = useRef(null);
 
-    if (isLoading) return <FullScreenLoader />;
+    const answers = useAppSelector(selectAnswers);
 
-    const responderUri = form?.settings?.embedUrl;
+    const responderUri = form?.settings?.embedUrl || '';
+
+    useEffect(() => {
+        const requiredFields: Array<string> = [];
+        for (const field of form?.fields || []) {
+            if (field?.validations?.required) {
+                requiredFields.push(field.id);
+            }
+        }
+        dispatch(setRequiredFields(requiredFields));
+    }, [form]);
 
     if (error) {
         return <div className="min-h-screen min-w-screen flex items-center justify-center">Error: Could not fetch form!!</div>;
     }
+    if (isLoading) return <FullScreenLoader />;
 
+    const onSubmitForm = async (event: any) => {
+        const invalidFields: Array<string> = [];
+        for (const requiredField of requiredFields) {
+            if (!answers[requiredField]) {
+                invalidFields.push(requiredField);
+            }
+        }
+        if (invalidFields.length > 0) {
+            dispatch(setInvalidFields(invalidFields));
+            toast('All required fields are not filled yet.', { type: 'error' });
+            return;
+        }
+        const postBody = {
+            form_id: form?.formId,
+            answers: answers
+        };
+        const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: postBody });
+        if (response?.data) {
+            toast('Response Submitted', { type: 'success' });
+        } else {
+            toast('Error submitting response', { type: 'error' });
+        }
+    };
     const hasFileUpload = (fields: Array<any>) => {
         let isUploadField = false;
         if (fields && Array.isArray(fields) && fields.length > 0) {
@@ -108,12 +154,20 @@ export default function SingleFormPage(props: any) {
                 </Button>
             )}
             <div className={'absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
-                {form.settings?.provider === 'google' && !!responderUri && (
+                {form?.settings?.provider === 'google' && !!responderUri && (
                     <iframe ref={iframeRef} src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0">
                         <Loader />
                     </iframe>
                 )}
-                {form.settings?.provider === 'typeform' && <Widget id={form.formId} style={{ height: '100vh' }} className="my-form" />}
+                {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
+                {form?.settings?.provider === 'self' && (
+                    <div className="w-full py-10 flex flex-col items-center ">
+                        <FormRenderer form={form} enabled={true} />
+                        <Button className="mt-10" onClick={onSubmitForm}>
+                            Submit
+                        </Button>
+                    </div>
+                )}
             </div>
         </Layout>
     );

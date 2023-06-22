@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { router } from 'next/client';
 import { useRouter } from 'next/router';
 
 import AddFieldGrid from '@Components/CreateForm/AddFieldGrid';
@@ -10,7 +9,6 @@ import FormProperty from '@Components/CreateForm/FormProperty';
 import { Button } from '@mui/material';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
-import { unused } from 'tailwind-scrollbar/src/typedefs';
 
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';

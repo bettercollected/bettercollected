@@ -16,6 +16,7 @@ import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options
 import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
 import { useModal } from '@app/components/modal-views/context';
+import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -85,7 +86,11 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                 />
             )}
             <div className="rounded relative w-full px-4 py-6 flex min-h-28 flex-col gap-4 items-start justify-between overflow-hidden">
-                <div className="rounded h-[34px] w-[34px]">{form?.settings?.provider === 'typeform' ? <TypeformIcon width={34} height={34} /> : <GoogleFormIcon width={34} height={34} className="-ml-1" />}</div>
+                <div className="rounded h-[34px] w-[34px]">
+                    {form?.settings?.provider === 'typeform' && <TypeformIcon width={34} height={34} />}
+                    {form?.settings?.provider === 'google' && <GoogleFormIcon width={34} height={34} className="-ml-1" />}
+                    {form?.settings?.provider === 'self' && <Logo />}
+                </div>
                 <Tooltip title="">
                     <Typography className="body3 !leading-none w-[inherit]" noWrap>
                         {form?.title || t(localesCommon.untitled)}
@@ -139,7 +144,10 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                             onDropDownItemClick={(event) => {
                                 event.stopPropagation();
                                 event.preventDefault();
-                                openModal('DELETE_CONFIRMATION', { title: t(localesCommon.remove) + ' ' + form.title, handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form }) });
+                                openModal('DELETE_CONFIRMATION', {
+                                    title: t(localesCommon.remove) + ' ' + form.title,
+                                    handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form })
+                                });
                             }}
                         />
                     )}

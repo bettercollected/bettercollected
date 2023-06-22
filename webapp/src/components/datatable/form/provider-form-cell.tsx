@@ -1,6 +1,7 @@
 import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import SmallLogo from '@Components/Common/Icons/SmallLogo';
 import { Typography } from '@mui/material';
 
 import { TypeformIcon } from '@app/components/icons/brands/typeform';
@@ -16,7 +17,12 @@ interface IDataTableProviderFormCellProps {
 }
 
 export default function DataTableProviderFormCell({ workspace, form }: IDataTableProviderFormCellProps) {
-    const Icon = form?.settings?.provider === 'google' ? GoogleFormIcon : TypeformIcon;
+    let Icon = SmallLogo;
+    if (form?.settings?.provider === 'google') {
+        Icon = GoogleFormIcon;
+    } else if (form?.settings?.provider === 'typeform') {
+        Icon = TypeformIcon;
+    }
     const { t } = useTranslation();
 
     return (
