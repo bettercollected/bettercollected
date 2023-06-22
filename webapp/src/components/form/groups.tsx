@@ -57,6 +57,6 @@ export default function FormGroups() {
                 <Loader />
             </div>
         );
-    else if (data && data?.length === 0) return <EmptyGroup />;
+    else if (data && data?.length === 0) return <EmptyGroup formId={form.formId} />;
     else return ShowFormGroups();
 }

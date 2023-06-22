@@ -20,7 +20,7 @@ import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteResponderGroupMutation, useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 
-export default function WorkspaceGropus({ workspace }: { workspace: WorkspaceDto }) {
+export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto }) {
     const { openModal, closeModal } = useModal();
     const { t } = useTranslation();
     const isAdmin = useAppSelector(selectIsAdmin);

@@ -31,8 +31,9 @@ import { useCreateRespondersGroupMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isEmptyString } from '@app/utils/stringUtils';
 
-export default function CreateGroup() {
+export default function CreateGroup(props: any) {
     const router = useRouter();
+    let formId: string = (router?.query?.formId as string) ?? '';
     const locale = router?.locale === 'en' ? '' : `${router?.locale}/`;
     const { t } = useTranslation();
     const { closeModal } = useModal();
@@ -41,7 +42,8 @@ export default function CreateGroup() {
         name: '',
         description: '',
         emails: [],
-        regex: ''
+        regex: '',
+        formId: formId ?? ''
     });
     const [createResponderGroup, { isLoading }] = useCreateRespondersGroupMutation();
     const handleInput = (event: any) => {

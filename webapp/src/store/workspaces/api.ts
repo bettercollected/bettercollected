@@ -348,7 +348,8 @@ export const workspacesApi = createApi({
                 params: {
                     name: request.groupInfo.name,
                     description: request.groupInfo.description,
-                    regex: request.groupInfo.regex
+                    regex: request.groupInfo.regex,
+                    form_id: request.groupInfo.formId
                 },
                 body: request.groupInfo.emails
             }),

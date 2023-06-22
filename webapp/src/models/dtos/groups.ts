@@ -4,6 +4,7 @@ export interface GroupInfoDto {
     name: string;
     description: string;
     emails?: Array<string>;
+    formId?: string;
     regex?: string;
 }
 

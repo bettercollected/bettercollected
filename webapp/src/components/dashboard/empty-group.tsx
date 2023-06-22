@@ -14,9 +14,9 @@ import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-export default function EmptyGroup() {
+export default function EmptyGroup({ formId }: { formId?: string }) {
+    console.log(formId);
     const { t } = useTranslation();
-    const { openModal } = useModal();
     const isAdmin = useAppSelector(selectIsAdmin);
     const router = useRouter();
     const workspace = useAppSelector(selectWorkspace);
@@ -25,7 +25,16 @@ export default function EmptyGroup() {
             <UserMore />
             <p className="body2 text-center !font-medium sm:w-[252px] mt-7 mb-6">{t(groupConstant.title)}</p>
             <Tooltip title={!isAdmin ? t(toolTipConstant.noAccessToGroup) : ''}>
-                <Button disabled={!isAdmin} size="small" onClick={() => router.push(`/${workspace.workspaceName}/dashboard/responders-groups/create-group`)}>
+                <Button
+                    disabled={!isAdmin}
+                    size="small"
+                    onClick={() =>
+                        router.push({
+                            pathname: `/${workspace.workspaceName}/dashboard/responders-groups/create-group`,
+                            query: formId ? { formId } : {}
+                        })
+                    }
+                >
                     {t(groupConstant.createNewGroup.default)}
                 </Button>
             </Tooltip>
