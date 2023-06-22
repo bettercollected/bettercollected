@@ -266,4 +266,5 @@ class FormResponseRepository(BaseRepository):
         response_document = FormResponseDocument(**response.dict())
         response_document.response_id = str(PydanticObjectId())
         response_document.form_id = str(form_id)
+        response_document.provider = "self"
         return await response_document.save()
