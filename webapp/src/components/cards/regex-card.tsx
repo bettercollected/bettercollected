@@ -32,12 +32,14 @@ export default function RegexCard({ handleRegex, regex }: IRegexCardProps) {
                 )}
             </div>
             <p className="body4 !text-black-700">{t(groupConstant.regex.description)}</p>
-            <p className="body4 !text-black-700">{t(groupConstant.regex.example)}</p>
+            <p className="body4 !text-black-700">
+                Eg: johndoe@<span className=" underline underline-offset-[6px]">yourdomain.any</span>
+            </p>
             {!!regex && !isEmptyString(regex) && (
                 <>
                     <p className="body1 mt-7 mb-3">{t(localesCommon.added)}</p>
-                    <div className="px-2 py-3 border border-black-400 !leading-none flex items-center justify-between md:w-[400px] body4">
-                        <Typography noWrap className="!text-black-800 !leading-none">
+                    <div className="px-2 py-3 border-2 border-black-400  rounded flex items-center justify-between md:w-[400px] body4">
+                        <Typography noWrap className="!text-black-800">
                             {regex}
                         </Typography>
                         <span onClick={() => handleRegex(regex, handleRegexType.REMOVE)} className="text-red-500 cursor-pointer">

@@ -49,7 +49,7 @@ export default function GroupMember({ group, emails, handleSearch, handleAddMemb
                     </p>
                     <p className="text-black-700 leading-none body4">{t(groupConstant.members.description)} </p>
                 </div>
-                <div onClick={() => openModal('ADD_MEMBER', { handleAddMembers, group })} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
+                <div onClick={() => openModal('ADD_MEMBERS', { handleAddMembers, group })} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
                     <Plus className="h-4 w-4" />
                     <Typography className="!text-brand-500  body6">{t(buttonConstant.addMember)}</Typography>
                 </div>

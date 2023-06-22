@@ -64,7 +64,7 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <UpgradeToProModal />;
         case 'EDIT_WORKSPACE_MODAL':
             return <EditWorkspaceModal />;
-        case 'ADD_MEMBER':
+        case 'ADD_MEMBERS':
             return <AddMembersModal {...modalProps} />;
         case 'DELETE_CONFIRMATION':
             return <DeleteConfirmationModal {...modalProps} />;

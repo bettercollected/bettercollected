@@ -3,11 +3,13 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import StyledPagination from '@Components/Common/Pagination';
 import SearchInput from '@Components/Common/Search/SearchInput';
 import { CheckCircle } from '@mui/icons-material';
 import { MenuItem, Typography } from '@mui/material';
+import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
@@ -50,11 +52,13 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
         setQuery({ ...query, page: page });
     };
 
-    const AddButton = (onClick: () => void) => (
-        <div onClick={onClick} className="flex gap-1 items-center cursor-pointer text-black-600">
-            <Plus className="h-4 w-4 " />
-            <p className="body5 !text-black-600">{t(buttonConstant.add)}</p>
-        </div>
+    const AddButton = (onClick?: () => void) => (
+        <Tooltip title={!onClick ? t(localesCommon.noGroupFound) : ''}>
+            <div onClick={onClick} className={cn('flex gap-1 items-center  text-black-600', !onClick && 'cursor-not-allowed opacity-30')}>
+                <Plus className="h-4 w-4 " />
+                <p className="body5 !text-black-600">{t(buttonConstant.add)}</p>
+            </div>
+        </Tooltip>
     );
     const ShowResponderGroups = (email: string) => (
         <div className="flex flex-col gap-1">
@@ -72,7 +76,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                     );
                 return null;
             })}
-            {responderGroupsQuery.data && responderGroupsQuery.data?.length === 0 && isAdmin && AddButton(() => router.push(`/${workspace.workspaceName}/dashboard/responders-groups/create-group`))}
+            {responderGroupsQuery.data && responderGroupsQuery.data?.length === 0 && isAdmin && AddButton()}
             {responderGroupsQuery.data && responderGroupsQuery.data?.filter((group: ResponderGroupDto) => group.emails?.includes(email)).length === 0 && !isAdmin && <p className="body5 text-black-800">{t(groupConstant.notInAnyGroup)}</p>}
             {responderGroupsQuery.data && responderGroupsQuery.data?.length > 0 && isAdmin && (
                 <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
