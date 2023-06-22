@@ -50,26 +50,6 @@ class FormRepository:
                     "as": "groups",
                 }
             },
-            # {
-            #     "$set": {
-            #         "groups": "$groups.group_id"
-            #     }
-            # }
-            # {
-            #     "$lookup": {
-            #         "from": "responder_group",
-            #         "localField": "workspace_id",
-            #         "foreignField": str(workspace_id),
-            #         "as": "group",
-            #     }
-            # },
-            # {
-            #     "$set": {
-            #
-            #         "groups": {"name": "$group.name", "role": "$group_form.role"}
-            #
-            #     }
-            # },
         ]
 
         aggregation_pipeline.extend(create_filter_pipeline(sort=sort))

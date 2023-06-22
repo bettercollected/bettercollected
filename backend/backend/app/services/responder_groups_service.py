@@ -74,13 +74,18 @@ class ResponderGroupsService:
         name: str,
         emails: List[EmailStr],
         user: User,
+        form_id: str,
         description: str,
     ):
         await self.workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
         return await self.responder_groups_repo.create_group(
-            workspace_id=workspace_id, name=name, emails=emails, description=description
+            workspace_id=workspace_id,
+            name=name,
+            emails=emails,
+            description=description,
+            form_id=form_id,
         )
 
     async def add_emails_to_group(

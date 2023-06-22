@@ -17,6 +17,7 @@ class ResponderGroupsRepository:
         workspace_id: PydanticObjectId,
         name: str,
         description: Optional[str],
+        form_id: Optional[str],
         emails: List[EmailStr],
     ):
         if description and len(description) > 280:
@@ -26,15 +27,18 @@ class ResponderGroupsRepository:
         )
         responder_group = await responder_group.save()
         responder_group_emails = []
-        if not emails:
-            return responder_group
-        for email in emails:
-            responder_group_emails.append(
-                ResponderGroupMemberDocument(
-                    group_id=responder_group.id, identifier=email
+        if emails:
+            for email in emails:
+                responder_group_emails.append(
+                    ResponderGroupMemberDocument(
+                        group_id=responder_group.id, identifier=email
+                    )
                 )
+            await ResponderGroupMemberDocument.insert_many(responder_group_emails)
+        if form_id:
+            await ResponderGroupFormDocument.insert(
+                ResponderGroupFormDocument(group_id=responder_group.id, form_id=form_id)
             )
-        await ResponderGroupMemberDocument.insert_many(responder_group_emails)
         return responder_group
 
     async def update_group(

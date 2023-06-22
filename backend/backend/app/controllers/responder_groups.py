@@ -38,10 +38,16 @@ class ResponderGroupsRouter(Routable):
         name: str,
         description: Optional[str] = None,
         emails: List[EmailStr] = None,
+        form_id: Optional[str] = None,
         user: User = Depends(get_logged_user),
     ):
         return await self.responder_groups_service.create_group(
-            workspace_id, name, emails, user, description
+            workspace_id,
+            name,
+            emails,
+            user,
+            form_id,
+            description,
         )
 
     @get("/{group_id}")
