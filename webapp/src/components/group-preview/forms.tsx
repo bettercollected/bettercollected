@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import SearchInput from '@Components/Common/Search/SearchInput';
 import { CheckCircle } from '@mui/icons-material';
@@ -13,6 +14,7 @@ import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-for
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
@@ -20,6 +22,8 @@ import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
+
+import { useModal } from '../modal-views/context';
 
 export default function GroupFormsTab({ group, workspaceForms }: { group: ResponderGroupDto; workspaceForms: Array<StandardFormDto> }) {
     const { t } = useTranslation();
@@ -35,6 +39,7 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
     };
     const [forms, setForms] = useState(group.forms);
     const [searchQuery, setSearchQuery] = useState('');
+    const { openModal } = useModal();
     useEffect(() => {
         setForms(group.forms);
     }, [group]);
@@ -61,33 +66,12 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
                     <p className="body4 leading-none   !text-black-700 ">{t(groupConstant.form.description)}</p>
                 </div>
                 {isAdmin && (
-                    <MenuDropdown
-                        showExpandMore={false}
-                        className="cursor-pointer "
-                        width={180}
-                        id="group-option"
-                        menuTitle={''}
-                        menuContent={
-                            <div className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
-                                <Plus className="h-4 w-4" />
-                                <Typography className="!text-brand-500  body6"> {t(buttonConstant.addForm)}</Typography>
-                            </div>
-                        }
-                    >
-                        {workspaceForms.map((form: StandardFormDto) => (
-                            <MenuItem
-                                key={form.formId}
-                                disabled={isFormAlreadyInGroup(form.groups, group.id)}
-                                onClick={() => addFormOnGroup({ group, groups: form.groups, form, workspaceId: workspace.id })}
-                                className="py-3 flex justify-between hover:bg-black-200"
-                            >
-                                <Typography className="body4" noWrap>
-                                    {form.title}
-                                </Typography>
-                                {isFormAlreadyInGroup(form.groups, group.id) && <CheckCircle className="h-5 w-5 text-brand-500" />}
-                            </MenuItem>
-                        ))}
-                    </MenuDropdown>
+                    <Tooltip title={workspaceForms.length === 0 ? t(toolTipConstant.emptyFormOnWorkspace) : ''}>
+                        <button disabled={workspaceForms.length === 0} onClick={() => openModal('ADD_FORM_GROUP', { forms: workspaceForms, group })} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
+                            <Plus className="h-4 w-4" />
+                            <Typography className="!text-brand-500 min-w-[65px]  body6"> {t(buttonConstant.addForm)}</Typography>
+                        </button>
+                    </Tooltip>
                 )}
             </div>
             {group.forms.length > 0 && (

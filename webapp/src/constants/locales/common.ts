@@ -57,5 +57,6 @@ export const localesCommon = {
     deletionRemaining: 'DELETION_REMAINING',
     forms: 'FORMS',
     respondersAndGroups: 'RESPONDERS_AND_GROUPS',
-    noGroupFound: 'NO_GROUP_FOUND'
+    noGroupFound: 'NO_GROUP_FOUND',
+    chooseYourForm: 'CHOOSE_YOUR_FORM'
 };

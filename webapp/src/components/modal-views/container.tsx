@@ -22,6 +22,7 @@ import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
 import AddFormOnGroup from './modals/add-form-group-modal';
+import AddGroupOnForm from './modals/add-group-form-modal';
 import AddMembersModal from './modals/add-members-modal';
 import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
@@ -71,6 +72,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <DeleteConfirmationModal {...modalProps} />;
         case 'USER_DELETION':
             return <UserDeletionModal {...modalProps} />;
+        case 'ADD_GROUP_FORM':
+            return <AddGroupOnForm {...modalProps} />;
         case 'ADD_FORM_GROUP':
             return <AddFormOnGroup {...modalProps} />;
         default:

@@ -39,7 +39,7 @@ export default function FormGroups() {
             </p>
             <div className="flex  gap-[72px] items-center ">
                 <p className="body4 !text-black-700 md:w-[450px] ">{t(formConstant.group.description)}</p>
-                <div onClick={() => openModal('ADD_FORM_GROUP', { responderGroups: data, form })} className="flex gap-2   text-brand-500 items-center cursor-pointer">
+                <div onClick={() => openModal('ADD_GROUP_FORM', { responderGroups: data, form })} className="flex gap-2   text-brand-500 items-center cursor-pointer">
                     <Plus className="h-4 w-4" />
                     <Typography className="!text-brand-500  body6"> {t(buttonConstant.addGroup)}</Typography>
                 </div>

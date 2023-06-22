@@ -213,6 +213,7 @@
       "DESCRIPTION": "Add form on group to grant access to group specific member"
     }
   },
+  "CHOOSE_YOUR_FORM": "Choose your form",
   "FORMS": "Forms",
   "FORMS_LINK": "Forms Links",
   "FORM_LINK_WITH_PREVIOUS_DOMAIN_WONT_WORK": "Form links with previous domain won't work after updating.",
@@ -511,7 +512,8 @@
     "FORM_OPTIONS": "Form options",
     "SHARE_FORM": "Share form",
     "FORM_IS_ALREADY_ON_GROUP": "{{form}} is already on {{group}}",
-    "NO_ACCESS_TO_GROUP": "You dont have access to create group"
+    "NO_ACCESS_TO_GROUP": "You dont have access to create group",
+    "EMPTY_FORM_ON_WORKSPACE": "You dont have any form on your workspace"
   },
   "UNTITLED": "Untitled",
   "UPDATED": "Updated",

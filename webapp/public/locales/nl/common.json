@@ -255,6 +255,7 @@
       "BUTTON_TEXT": "Probeer het eens"
     }
   },
+  "CHOOSE_YOUR_FORM": "Kies uw formulier",
   "NO_GROUP_FOUND": "Geen groep gevonden",
   "GROUP": {
     "DEFAULT": "Groep",
@@ -500,7 +501,8 @@
     "FORM_OPTIONS": "Formulieropties",
     "SHARE_FORM": "Formulier delen",
     "FORM_IS_ALREADY_ON_GROUP": "{{form}} is al lid van {{group}}",
-    "NO_ACCESS_TO_GROUP": "Je hebt geen toegang om een ​​groep te maken"
+    "NO_ACCESS_TO_GROUP": "Je hebt geen toegang om een ​​groep te maken",
+    "EMPTY_FORM_ON_WORKSPACE": "U heeft geen enkel formulier op uw werkruimte"
   },
   "UNTITLED": "Zonder titel",
   "UPDATED": "Bijgewerkt",

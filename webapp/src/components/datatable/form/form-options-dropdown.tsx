@@ -198,7 +198,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     disabled={data?.length === 0}
                     className="body4 hover:bg-brand-100"
                     onClick={() => {
-                        openModal('ADD_FORM_GROUP', {
+                        openModal('ADD_GROUP_FORM', {
                             responderGroups: data,
                             form: currentActiveForm?.form
                         });

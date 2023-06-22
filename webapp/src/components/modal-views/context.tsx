@@ -26,7 +26,8 @@ export type MODAL_VIEW =
     | 'ADD_MEMBER'
     | 'DELETE_CONFIRMATION'
     | 'USER_DELETION'
-    | 'ADD_FORM_GROUP';
+    | 'ADD_FORM_GROUP'
+    | 'ADD_GROUP_FORM';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 
