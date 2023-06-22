@@ -66,7 +66,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
 
     const workspaceOptions = isCustomDomain && (
         <AuthAccountMenuDropdown
-            isClientDomain={!isCustomDomain}
+            isClientDomain={isCustomDomain}
             menuContent={
                 <>
                     <AuthAccountProfileImage size={['xs', '2xs'].indexOf(screenSize) === -1 ? 36 : 28} image={user?.profileImage} name={getFullNameFromUser(user) ?? ''} />

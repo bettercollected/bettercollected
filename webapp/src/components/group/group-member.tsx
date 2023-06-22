@@ -6,18 +6,11 @@ import SearchInput from '@Components/Common/Search/SearchInput';
 import { Typography } from '@mui/material';
 
 import MemberCard from '@app/components/cards/member-card';
-import RegexCard from '@app/components/cards/regex-card';
 import { Plus } from '@app/components/icons/plus';
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
-import { members } from '@app/constants/locales/members';
-import { useGroupForm } from '@app/lib/hooks/use-group-form';
-import { useGroupMember } from '@app/lib/hooks/use-group-members';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface IGroupMemberProps {
     group?: ResponderGroupDto;
@@ -45,14 +38,14 @@ export default function GroupMember({ group, emails, handleSearch, handleAddMemb
         </div>
     );
     const handleMemberList = () => {
-        if ((handleSearch && group && group.emails.length > 0) || emails.length > 0) return MemberList();
+        if ((handleSearch && group && group.emails && group.emails.length > 0) || emails.length > 0) return MemberList();
     };
     return (
         <>
             <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                     <p className="mt-10 leading-none mb-2 body1">
-                        {t(groupConstant.memberAdded)} ({group?.emails.length || emails.length || 0})
+                        {t(groupConstant.memberAdded)} ({group?.emails?.length || emails.length || 0})
                     </p>
                     <p className="text-black-700 leading-none body4">{t(groupConstant.members.description)} </p>
                 </div>

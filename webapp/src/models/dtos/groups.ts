@@ -3,7 +3,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 export interface GroupInfoDto {
     name: string;
     description: string;
-    emails: Array<string>;
+    emails?: Array<string>;
     regex?: string;
 }
 

@@ -22,11 +22,6 @@ export function useGroupMember() {
     const { t } = useTranslation();
     const removeMemberFromGroup = async ({ email, group, workspaceId }: IGroupMembersprops) => {
         try {
-            if (group.emails.length === 1) {
-                toast(t(toastMessage.lastPersonOfGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-                return;
-            }
-
             await removeMember({
                 workspaceId: workspaceId,
                 groupId: group.id,
@@ -42,7 +37,7 @@ export function useGroupMember() {
 
     const addMembersOnGroup = async ({ emails, email, group, workspaceId }: IGroupMembersprops) => {
         try {
-            if (emails && group.emails.some((groupEmail) => emails?.includes(groupEmail))) {
+            if (emails && group.emails?.some((groupEmail) => emails?.includes(groupEmail))) {
                 toast(t(toastMessage.alreadyInGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
                 return;
             }

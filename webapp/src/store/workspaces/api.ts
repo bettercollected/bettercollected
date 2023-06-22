@@ -339,7 +339,8 @@ export const workspacesApi = createApi({
                 method: 'POST',
                 params: {
                     name: request.groupInfo.name,
-                    description: request.groupInfo.description
+                    description: request.groupInfo.description,
+                    regex: request.groupInfo.regex
                 },
                 body: request.groupInfo.emails
             }),
@@ -408,7 +409,8 @@ export const workspacesApi = createApi({
                 url: `${request.workspaceId}/responder-groups/${request.groupId}`,
                 params: {
                     name: request.groupInfo.name,
-                    description: request.groupInfo.description
+                    description: request.groupInfo.description,
+                    regex: request.groupInfo.regex
                 },
                 body: request.groupInfo.emails,
                 method: 'PATCH'

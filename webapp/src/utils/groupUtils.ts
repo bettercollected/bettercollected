@@ -1,7 +1,7 @@
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 
 export const isEmailInGroup = (group: ResponderGroupDto, email: string) => {
-    if (group.emails.includes(email)) return true;
+    if (group.emails?.includes(email)) return true;
 };
 
 export const isFormAlreadyInGroup = (groups: any, groupId: string) => {

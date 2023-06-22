@@ -20,7 +20,8 @@ export default function AddRegexModal({ handleRegex }: { handleRegex: (regex: st
         setRegex(event.target.value);
     };
 
-    const handleSubmit = (e: any) => {
+    const handleSubmit = (event: any) => {
+        event.preventDefault();
         if (!isEmptyString(regex)) {
             handleRegex(regex, handleRegexType.ADD);
         }

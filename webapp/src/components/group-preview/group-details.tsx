@@ -6,6 +6,7 @@ import { Typography } from '@mui/material';
 import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
+import GroupInfo from '@app/components/group/group-info';
 import Button from '@app/components/ui/button/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -18,15 +19,12 @@ import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
 
-import GroupInfo from '../group/group-info';
-
 export default function GroupDetailsTab({ group }: { group: ResponderGroupDto }) {
     const { t } = useTranslation();
     const [updateResponderGroup, updateGroupResponse] = useUpdateResponderGroupMutation();
     const [groupInfo, setGroupInfo] = useState<GroupInfoDto>({
         name: group.name,
-        description: group.description,
-        emails: group.emails
+        description: group.description
     });
     const isAdmin = useAppSelector(selectIsAdmin);
     const workspace = useAppSelector((state) => state.workspace);

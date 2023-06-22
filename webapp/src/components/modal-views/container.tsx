@@ -28,7 +28,6 @@ import AddRegexModal from './modals/add-regex-modal';
 import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
-import PreviewGroup from './modals/preview-group-modal';
 import UserDeletionModal from './modals/user-deletion-modal';
 
 function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
@@ -65,8 +64,6 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <UpgradeToProModal />;
         case 'EDIT_WORKSPACE_MODAL':
             return <EditWorkspaceModal />;
-        case 'PREVIEW_GROUP':
-            return <PreviewGroup {...modalProps} />;
         case 'ADD_MEMBER':
             return <AddMembersModal {...modalProps} />;
         case 'DELETE_CONFIRMATION':

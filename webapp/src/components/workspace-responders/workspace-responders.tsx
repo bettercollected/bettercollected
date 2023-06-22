@@ -59,7 +59,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
     const ShowResponderGroups = (email: string) => (
         <div className="flex flex-col gap-1">
             {responderGroupsQuery.data?.map((group: ResponderGroupDto) => {
-                if (group.emails.includes(email))
+                if (group.emails?.includes(email))
                     return (
                         <div
                             key={group.id}
@@ -73,7 +73,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                 return null;
             })}
             {responderGroupsQuery.data && responderGroupsQuery.data?.length === 0 && isAdmin && AddButton(() => router.push(`/${workspace.workspaceName}/dashboard/responders-groups/create-group`))}
-            {responderGroupsQuery.data && responderGroupsQuery.data?.filter((group: ResponderGroupDto) => group.emails.includes(email)).length === 0 && !isAdmin && <p className="body5 text-black-800">{t(groupConstant.notInAnyGroup)}</p>}
+            {responderGroupsQuery.data && responderGroupsQuery.data?.filter((group: ResponderGroupDto) => group.emails?.includes(email)).length === 0 && !isAdmin && <p className="body5 text-black-800">{t(groupConstant.notInAnyGroup)}</p>}
             {responderGroupsQuery.data && responderGroupsQuery.data?.length > 0 && isAdmin && (
                 <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
                     {responderGroupsQuery.data?.map((group: ResponderGroupDto) => (

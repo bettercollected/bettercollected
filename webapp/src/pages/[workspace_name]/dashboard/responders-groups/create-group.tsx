@@ -29,6 +29,7 @@ import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateRespondersGroupMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { isEmptyString } from '@app/utils/stringUtils';
 
 export default function CreateGroup() {
     const router = useRouter();
@@ -97,24 +98,28 @@ export default function CreateGroup() {
     ];
 
     const handleAddMembers = (members: Array<string>) => {
-        setGroupInfo({
-            ...groupInfo,
-            emails: [...groupInfo.emails, ...members]
-        });
-        closeModal();
+        if (groupInfo.emails) {
+            setGroupInfo({
+                ...groupInfo,
+                emails: [...groupInfo.emails, ...members]
+            });
+            closeModal();
+        } else {
+            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+        }
     };
 
     const handleRemoveMember = (email: string) => {
         setGroupInfo({
             ...groupInfo,
-            emails: groupInfo.emails.filter((groupInfoEmail) => groupInfoEmail !== email)
+            emails: groupInfo.emails?.filter((groupInfoEmail) => groupInfoEmail !== email)
         });
     };
     return (
         <DashboardLayout>
             <div className="flex flex-col relative -mt-6 md:max-w-[700px] xl:max-w-[1000px]">
                 <div className="absolute top-10 right-0">
-                    <Button isLoading={isLoading} disabled={!groupInfo.name || groupInfo.emails.length === 0} onClick={handleCreateGroup}>
+                    <Button isLoading={isLoading} disabled={!groupInfo.name || (groupInfo.emails?.length === 0 && groupInfo.regex?.length === 0)} onClick={handleCreateGroup}>
                         {t(buttonConstant.saveGroup)}
                     </Button>
                 </div>
@@ -129,7 +134,7 @@ export default function CreateGroup() {
                         <div>
                             <p className="leading-none mb-6 body1">{t(members.default)}</p>
                             <RegexCard handleRegex={handleRegex} regex={groupInfo.regex} />
-                            <GroupMember emails={groupInfo.emails} handleAddMembers={handleAddMembers} handleRemoveMember={handleRemoveMember} />
+                            {groupInfo.emails && <GroupMember emails={groupInfo.emails} handleAddMembers={handleAddMembers} handleRemoveMember={handleRemoveMember} />}
                         </div>
                     </div>
                 </div>

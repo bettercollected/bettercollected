@@ -33,7 +33,7 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
         if (emails.includes(email)) {
             toast(t(toastMessage.emailAlreadyExist).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
             return;
-        } else if (group && group.emails.includes(email)) {
+        } else if (group && group.emails?.includes(email)) {
             toast(t(toastMessage.alreadyInGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
             return;
         }
