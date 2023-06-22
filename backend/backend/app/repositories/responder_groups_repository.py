@@ -19,11 +19,12 @@ class ResponderGroupsRepository:
         description: Optional[str],
         form_id: Optional[str],
         emails: List[EmailStr],
+        regex: Optional[str],
     ):
         if description and len(description) > 280:
             return {"message": "description should be less than 280 characters"}
         responder_group = ResponderGroupDocument(
-            name=name, workspace_id=workspace_id, description=description
+            name=name, workspace_id=workspace_id, description=description, regex=regex
         )
         responder_group = await responder_group.save()
         responder_group_emails = []
@@ -44,10 +45,11 @@ class ResponderGroupsRepository:
     async def update_group(
         self,
         workspace_id: PydanticObjectId,
-        name: str,
+        name: Optional[str],
         description: Optional[str],
         emails: List[EmailStr],
         group_id: PydanticObjectId,
+        regex: Optional[str],
     ):
         responder_group = await ResponderGroupDocument.find_one(
             {"workspace_id": workspace_id, "_id": group_id}
@@ -55,23 +57,25 @@ class ResponderGroupsRepository:
         existing_group_members = await ResponderGroupMemberDocument.find(
             {"group_id": group_id}
         ).to_list()
-        for existing_group_member in existing_group_members:
-            for email in existing_group_member:
-                await ResponderGroupMemberDocument.find(
-                    {"group_id": group_id, "identifier": {"$in": email}}
-                ).delete()
-        responder_group_emails = []
-        for email in emails:
-            responder_group_emails.append(
-                ResponderGroupMemberDocument(
-                    group_id=responder_group.id, identifier=email
+        if emails and len(emails) != 0:
+            for existing_group_member in existing_group_members:
+                for email in existing_group_member:
+                    await ResponderGroupMemberDocument.find(
+                        {"group_id": group_id, "identifier": {"$in": email}}
+                    ).delete()
+            responder_group_emails = []
+            for email in emails:
+                responder_group_emails.append(
+                    ResponderGroupMemberDocument(
+                        group_id=responder_group.id, identifier=email
+                    )
                 )
-            )
-        await ResponderGroupMemberDocument.insert_many(responder_group_emails)
+            await ResponderGroupMemberDocument.insert_many(responder_group_emails)
 
         if responder_group:
             responder_group.name = name
             responder_group.description = description
+            responder_group.regex = regex
         return await responder_group.save()
 
     async def get_group_in_workspace(
@@ -135,6 +139,7 @@ class ResponderGroupsRepository:
                             "workspace_id": 1,
                             "emails": "$emails.identifier",
                             "description": 1,
+                            "regex": 1,
                             "forms": "$forms.form_id",
                         }
                     },
@@ -177,6 +182,7 @@ class ResponderGroupsRepository:
                             "workspace_id": 1,
                             "emails": "$emails.identifier",
                             "description": 1,
+                            "regex": 1,
                             "forms": "$forms.form_id",
                         }
                     },

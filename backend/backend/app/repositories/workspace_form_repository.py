@@ -111,6 +111,12 @@ class WorkspaceFormRepository:
                                 "$or": [
                                     {"settings.private": False},
                                     {"emails.identifier": user.sub},
+                                    {
+                                        "emails.identifier": {
+                                            "$regex": "$groups.regex",
+                                            "$options": "i",
+                                        }
+                                    },
                                 ]
                             }
                         },

@@ -11,7 +11,7 @@ class ResponderGroupDocument(MongoDocument):
     name: str
     workspace_id: PydanticObjectId
     description: Optional[str] = None
-    allowed_regex: Optional[str]
+    regex: Optional[str]
 
     class Settings:
         name = "responder_group"

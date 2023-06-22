@@ -54,6 +54,7 @@ class ResponderGroupsService:
         user: User,
         name: str,
         emails: List[EmailStr],
+        regex: str,
         description: str,
     ):
         await self.check_user_can_access_group(
@@ -65,6 +66,7 @@ class ResponderGroupsService:
             name=name,
             description=description,
             workspace_id=workspace_id,
+            regex=regex,
         )
         return response.dict()
 
@@ -76,6 +78,7 @@ class ResponderGroupsService:
         user: User,
         form_id: str,
         description: str,
+        regex: str,
     ):
         await self.workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
@@ -86,6 +89,7 @@ class ResponderGroupsService:
             emails=emails,
             description=description,
             form_id=form_id,
+            regex=regex,
         )
 
     async def add_emails_to_group(
