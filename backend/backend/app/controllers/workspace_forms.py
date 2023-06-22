@@ -59,7 +59,7 @@ class WorkspaceFormsRouter(Routable):
         )
         return StandardFormCamelModel(**response.dict())
 
-    @post("/forms/{form_id}/response")
+    @post("/{form_id}/response")
     async def respond_to_form(
         self,
         workspace_id: PydanticObjectId,
