@@ -252,6 +252,18 @@ class WorkspaceFormService:
         saved_form.settings = workspace_form_settings
         return saved_form
 
+    async def update_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        form: StandardForm,
+        user: User,
+    ):
+        await self.workspace_user_service.check_user_has_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        return await self.form_service.update_form(form_id=form_id, form=form)
+
     async def submit_response(
         self,
         workspace_id: PydanticObjectId,

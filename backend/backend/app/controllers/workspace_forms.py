@@ -59,6 +59,23 @@ class WorkspaceFormsRouter(Routable):
         )
         return StandardFormCamelModel(**response.dict())
 
+    @patch("/{form_id}", response_model=StandardFormCamelModel)
+    async def patch_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        form: StandardFormCamelModel,
+        user: User = Depends(get_logged_user),
+    ):
+        # Camel model is converted to basic modal so that camel case is not stored in db
+        response = await self.workspace_form_service.update_form(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            form=StandardForm(**form.dict()),
+            user=user,
+        )
+        return StandardFormCamelModel(**response.dict())
+
     @post("/{form_id}/response")
     async def respond_to_form(
         self,

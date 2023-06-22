@@ -152,3 +152,10 @@ class FormRepository:
     async def create_form(self, form: StandardForm) -> FormDocument:
         form_document = FormDocument(**form.dict())
         return await form_document.save()
+
+    async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
+        form_document = await FormDocument.find_one({"form_id": str(form_id)})
+        form_document.fields = form.fields
+        form_document.title = form.title
+        form_document.description = form.description
+        return await form_document.save()
