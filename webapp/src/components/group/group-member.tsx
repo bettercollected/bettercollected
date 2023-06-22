@@ -48,9 +48,7 @@ export default function GroupMember({ group, emails, handleSearch, handleAddMemb
         if ((handleSearch && group && group.emails.length > 0) || emails.length > 0) return MemberList();
     };
     return (
-        <div>
-            <p className="leading-none mb-6 body1">{t(members.default)}</p>
-            <RegexCard addRegex={() => {}} />
+        <>
             <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                     <p className="mt-10 leading-none mb-2 body1">
@@ -64,6 +62,6 @@ export default function GroupMember({ group, emails, handleSearch, handleAddMemb
                 </div>
             </div>
             {handleMemberList()}
-        </div>
+        </>
     );
 }

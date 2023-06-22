@@ -38,7 +38,7 @@ export default function AddFormOnGroup({ forms, group }: IAddFormOnGroupProps) {
         }
     };
     return (
-        <div className="p-10 relative bg-white md:w-[658px] rounded-[8px]">
+        <div className="p-10 relative bg-brand-100 md:w-[658px] rounded-[8px]">
             <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
             <h4 className="h4">{t(buttonConstant.addForm)}</h4>
             <p className="mt-2 mb-8 body4  !text-black-700">{t(groupConstant.form.description)}</p>
@@ -46,7 +46,7 @@ export default function AddFormOnGroup({ forms, group }: IAddFormOnGroupProps) {
                 <Autocomplete
                     disablePortal
                     id="form_list"
-                    className="mb-6 mt-5"
+                    className="mb-6 mt-5 bg-white"
                     fullWidth
                     onChange={(e, value) => setSelectedForm(value)}
                     value={selectedForm}

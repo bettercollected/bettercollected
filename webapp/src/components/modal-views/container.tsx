@@ -24,6 +24,7 @@ import { Transition } from '@app/components/ui/transition';
 import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
 import AddMembersModal from './modals/add-members-modal';
+import AddRegexModal from './modals/add-regex-modal';
 import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
@@ -76,6 +77,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <AddGroupOnForm {...modalProps} />;
         case 'ADD_FORM_GROUP':
             return <AddFormOnGroup {...modalProps} />;
+        case 'ADD_REGEX':
+            return <AddRegexModal {...modalProps} />;
         default:
             return <></>;
     }

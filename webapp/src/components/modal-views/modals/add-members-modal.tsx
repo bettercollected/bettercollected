@@ -8,10 +8,8 @@ import { toast } from 'react-toastify';
 import BetterInput from '@app/components/Common/input';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import SettingsCard from '@app/components/settings/card';
 import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -49,7 +47,7 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
             <div className="body4 pt-6 !leading-none ">{t(groupConstant.addMembers.description)}</div>
             <form onSubmit={addEmail} className="flex gap-2 mt-4">
                 <div className="md:w-[260px]">
-                    <BetterInput value={email} type="email" inputProps={{ className: '!py-3 ' }} id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
+                    <BetterInput className="bg-white" value={email} type="email" inputProps={{ className: '!py-3 ' }} id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
                 </div>
                 <Button size="medium" disabled={!email} className={cn('bg-black-800 hover:!bg-black-900', !email && 'opacity-30')}>
                     {t(buttonConstant.add)}

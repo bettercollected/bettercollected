@@ -85,6 +85,7 @@
     "ADD_TO_GROUP": "Toevoegen aan groep",
     "OPEN": "openen"
   },
+  "ADDED": "Toegevoegd",
   "CONTACT_US": {
     "DESCRIPTION": "Vragen of opmerkingen? Schrijf ons gewoon een bericht",
     "DEFAULT": "Contacteer ons"
@@ -255,6 +256,7 @@
       "BUTTON_TEXT": "Probeer het eens"
     }
   },
+  "EXAMPLE": "Voorbeeld:",
   "CHOOSE_YOUR_FORM": "Kies uw formulier",
   "NO_GROUP_FOUND": "Geen groep gevonden",
   "GROUP": {
@@ -263,7 +265,12 @@
     "REGEX": {
       "TITLE": "Domeingebaseerd groepslid",
       "DESCRIPTION": "Leden automatisch toevoegen op basis van gemeenschappelijk domeinadres.",
-      "EXAMPLE": "Bijv.: johndoe@uwdomein.any"
+      "EXAMPLE": "Bijv.: johndoe@uwdomein.any",
+      "MODAL": {
+        "TITLE": "Domeingebaseerd groepslid",
+        "DESCRIPTION": "als u een groep wilt maken voor werknemers in een specifieke afdeling, kunt u een regex-patroon gebruiken zoals '*@uwbedrijf.com' om alle werknemers toe te voegen met e-mailadressen eindigend op '@uwbedrijf.com'.",
+        "LABEL": "Domein Regex"
+      }
     },
     "FORM": {
       "DESCRIPTION": "Maak het formulier privé zodat alleen leden van de groep exclusieve toegang hebben tot deze formulieren"

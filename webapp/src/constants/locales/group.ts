@@ -6,7 +6,12 @@ export const groupConstant = {
     regex: {
         title: 'GROUP.REGEX.TITLE',
         description: 'GROUP.REGEX.DESCRIPTION',
-        example: 'GROUP.REGEX.EXAMPLE'
+        example: 'GROUP.REGEX.EXAMPLE',
+        modal: {
+            title: 'GROUP.REGEX.MODAL.TITLE',
+            description: 'GROUP.REGEX.MODAL.DESCRIPTION',
+            label: 'GROUP.REGEX.MODAL.LABEL'
+        }
     },
     addedMembers: 'GROUP.ADDED_MEMBERS',
     createNewGroup: {

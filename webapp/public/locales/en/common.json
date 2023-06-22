@@ -115,6 +115,7 @@
     "DEFAULT": "Delete",
     "MESSAGE": "Once this action is completed, it can't be undone."
   },
+  "ADDED": "Added",
   "DELETION_REMAINING": "deletion remaining",
   "DESCRIPTION": "Description",
   "DOMAIN": "Domain",
@@ -261,6 +262,7 @@
       "BUTTON_TEXT": " Give it a try"
     }
   },
+  "EXAMPLE": "Example:",
   "GROUP": {
     "DEFAULT": "Group",
     "GROUPS": "Groups",
@@ -268,7 +270,12 @@
     "REGEX": {
       "TITLE": "Domain-Based Group Member",
       "DESCRIPTION": "Auto add members based on common Domain address.",
-      "EXAMPLE": "Eg: johndoe@yourdomain.any"
+      "EXAMPLE": "Eg: johndoe@yourdomain.any",
+      "MODAL": {
+        "TITLE": "Domain-Based Group Member",
+        "DESCRIPTION": "if you want to create a group for employees in a specific department, you can use a regex pattern such as '*@yourcompany.com' to add all employees with email addresses ending in '@yourcompany.com'.",
+        "LABEL": "Domain Regex"
+      }
     },
     "FORM": {
       "DESCRIPTION": "Make form private so that only members of the group will have exclusive access to these forms"

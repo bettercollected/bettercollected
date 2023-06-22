@@ -27,7 +27,8 @@ export type MODAL_VIEW =
     | 'DELETE_CONFIRMATION'
     | 'USER_DELETION'
     | 'ADD_FORM_GROUP'
-    | 'ADD_GROUP_FORM';
+    | 'ADD_GROUP_FORM'
+    | 'ADD_REGEX';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 

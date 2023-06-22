@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import RegexCard from '@app/components/cards/regex-card';
 import GroupMember from '@app/components/group/group-member';
 import { useModal } from '@app/components/modal-views/context';
 import { localesCommon } from '@app/constants/locales/common';
+import { members } from '@app/constants/locales/members';
 import { useGroupMember } from '@app/lib/hooks/use-group-members';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -25,6 +27,7 @@ export default function GroupMembersTab({ group, workspace }: { group: Responder
     const handleRemoveMembers = (email: string) => {
         openModal('DELETE_CONFIRMATION', { title: t(localesCommon.remove) + ' ' + email, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) });
     };
+    const handleRegex = (regex: string) => {};
     useEffect(() => {
         const filteredEmails = group.emails.filter((email) => {
             return email.toLowerCase().includes(searchQuery);
@@ -36,7 +39,11 @@ export default function GroupMembersTab({ group, workspace }: { group: Responder
     }, [group]);
     return (
         <div className="md:max-w-[618px] ">
-            <GroupMember group={group} emails={emails} handleSearch={handleSearch} handleAddMembers={handleAddmembers} handleRemoveMember={handleRemoveMembers} />
+            <div>
+                <p className="leading-none mb-6 body1">{t(members.default)}</p>
+                <RegexCard handleRegex={handleRegex} regex="" />
+                <GroupMember group={group} emails={emails} handleSearch={handleSearch} handleAddMembers={handleAddmembers} handleRemoveMember={handleRemoveMembers} />
+            </div>
         </div>
     );
 }

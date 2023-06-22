@@ -6,7 +6,6 @@ import { useRouter } from 'next/router';
 import { Typography } from '@mui/material';
 import { toast } from 'react-toastify';
 
-import BetterInput from '@app/components/Common/input';
 import RegexCard from '@app/components/cards/regex-card';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import GroupInfo from '@app/components/group/group-info';
@@ -25,6 +24,7 @@ import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { GroupInfoDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { handleRegexType } from '@app/models/enums/groupRegex';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateRespondersGroupMutation } from '@app/store/workspaces/api';
@@ -39,8 +39,8 @@ export default function CreateGroup() {
     const [groupInfo, setGroupInfo] = useState<GroupInfoDto>({
         name: '',
         description: '',
-        email: '',
-        emails: []
+        emails: [],
+        regex: ''
     });
     const [createResponderGroup, { isLoading }] = useCreateRespondersGroupMutation();
     const handleInput = (event: any) => {
@@ -49,6 +49,22 @@ export default function CreateGroup() {
             [event.target.id]: event.target.value
         });
     };
+
+    const handleRegex = (regex: string, type: handleRegexType) => {
+        if (type === handleRegexType.ADD) {
+            setGroupInfo({
+                ...groupInfo,
+                regex
+            });
+            closeModal();
+        } else if (type === handleRegexType.REMOVE) {
+            setGroupInfo({
+                ...groupInfo,
+                regex: ''
+            });
+        }
+    };
+
     const handleCreateGroup = async () => {
         try {
             await createResponderGroup({
@@ -110,7 +126,11 @@ export default function CreateGroup() {
                             <p className="h4">{t(groupConstant.createGroup)}</p>
                         </div>
                         <GroupInfo handleInput={handleInput} groupInfo={groupInfo} />
-                        <GroupMember emails={groupInfo.emails} handleAddMembers={handleAddMembers} handleRemoveMember={handleRemoveMember} />
+                        <div>
+                            <p className="leading-none mb-6 body1">{t(members.default)}</p>
+                            <RegexCard handleRegex={handleRegex} regex={groupInfo.regex} />
+                            <GroupMember emails={groupInfo.emails} handleAddMembers={handleAddMembers} handleRemoveMember={handleRemoveMember} />
+                        </div>
                     </div>
                 </div>
             </div>

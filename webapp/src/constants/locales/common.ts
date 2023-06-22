@@ -14,6 +14,7 @@ export const localesCommon = {
     of: 'OF',
     or: 'OR',
     and: 'AND',
+    example: 'EXAMPLE',
     noImage: 'NO_IMAGE',
     newLink: 'NEW_LINK',
     goToResponse: 'GO_TO_RESPONSE',
@@ -58,5 +59,6 @@ export const localesCommon = {
     forms: 'FORMS',
     respondersAndGroups: 'RESPONDERS_AND_GROUPS',
     noGroupFound: 'NO_GROUP_FOUND',
-    chooseYourForm: 'CHOOSE_YOUR_FORM'
+    chooseYourForm: 'CHOOSE_YOUR_FORM',
+    added: 'ADDED'
 };
