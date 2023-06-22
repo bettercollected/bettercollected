@@ -83,7 +83,7 @@ export default function EditFromPage(props: any) {
 
     return (
         <DashboardLayout>
-            <div className="flex justify-between">
+            <div className="flex items-center justify-between">
                 <BreadcrumbsRenderer items={breadcrumbsItem} />
                 <Button isLoading={isLoading} onClick={onSaveClick}>
                     Save

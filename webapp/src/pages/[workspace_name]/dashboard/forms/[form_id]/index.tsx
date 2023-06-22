@@ -17,6 +17,7 @@ import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
+import Button from '@app/components/ui/button';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { localesCommon } from '@app/constants/locales/common';
@@ -98,10 +99,22 @@ export default function FormPage(props: any) {
         <SidebarLayout>
             <div className="w-full   my-2 ">
                 <BreadcrumbsRenderer items={breadcrumbsItem} />
-                <div className="gap-2 my-[10px] flex items-center">
-                    <ChevronForward onClick={handleBackClick} className=" cursor-pointer rotate-180 h-6 w-6  p-[2px] " />
-                    <p className="h4">{form.title}</p>
+                <div className="flex items-center justify-between">
+                    <div className="gap-2 my-[10px] flex items-center">
+                        <ChevronForward onClick={handleBackClick} className=" cursor-pointer rotate-180 h-6 w-6  p-[2px] " />
+                        <p className="h4">{form.title}</p>
+                    </div>
+                    {form?.settings?.provider === 'self' && (
+                        <Button
+                            onClick={() => {
+                                router.push(`/${props.workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
+                            }}
+                        >
+                            Edit
+                        </Button>
+                    )}
                 </div>
+
                 <ParamTab className="mb-[38px] pb-0" tabMenu={paramTabs}>
                     <TabPanel className="focus:outline-none" key="Preview">
                         <FormPreview />
