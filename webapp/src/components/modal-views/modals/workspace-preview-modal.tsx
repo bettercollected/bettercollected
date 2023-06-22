@@ -9,7 +9,7 @@ export default function WorkspacePreviewModal() {
 
     return (
         <div
-            className="p-5 md:p-10 md:px-20 lg:px-30 xl:px-40 min-h-screen flex flex-col justify-center min-w-screen"
+            className="p-5 md:p-10 md:px-20 flex-1 w-full lg:px-30 xl:px-40 min-h-screen flex flex-col justify-center min-w-screen"
             onClick={(event: any) => {
                 if (event.target === event.currentTarget) closeModal();
             }}

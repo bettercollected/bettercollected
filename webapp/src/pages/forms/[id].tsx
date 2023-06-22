@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 
 import { useRouter } from 'next/router';
 
-import selectReducer from '@mui/base/useSelect/selectReducer';
 import { Widget } from '@typeform/embed-react';
 import { toast } from 'react-toastify';
 
@@ -76,6 +75,8 @@ export default function SingleFormPage(props: any) {
             toast('Response Submitted', { type: 'success' });
         } else {
             toast('Error submitting response', { type: 'error' });
+            const workspaceUrl = hasCustomDomain ? `https://${workspace.customDomain}` : `/${workspace.workspaceName}`;
+            router.push(workspaceUrl);
         }
     };
     const hasFileUpload = (fields: Array<any>) => {
