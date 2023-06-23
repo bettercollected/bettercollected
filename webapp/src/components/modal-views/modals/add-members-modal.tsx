@@ -30,14 +30,14 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
     };
     const addEmail = (event: any) => {
         event.preventDefault();
-        if (emails.includes(email)) {
+        if (emails.includes(email.toLowerCase())) {
             toast(t(toastMessage.emailAlreadyExist).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
             return;
-        } else if (group && group.emails?.includes(email)) {
+        } else if (group && group.emails?.includes(email.toLowerCase())) {
             toast(t(toastMessage.alreadyInGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
             return;
         }
-        setEmails([...emails, email]);
+        setEmails([...emails, email.toLowerCase()]);
         setEmail('');
     };
     return (
