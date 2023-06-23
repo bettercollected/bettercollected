@@ -10,6 +10,8 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { handleRegexType } from '@app/models/enums/groupRegex';
+import { selectIsAdmin } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { isEmptyString } from '@app/utils/stringUtils';
 
 interface IRegexCardProps {
@@ -19,12 +21,13 @@ interface IRegexCardProps {
 export default function RegexCard({ handleRegex, regex }: IRegexCardProps) {
     const { t } = useTranslation();
     const { openModal } = useModal();
+    const isAdmin = useAppSelector(selectIsAdmin);
 
     return (
         <div className=" p-6 bg-white  rounded">
             <div className="flex justify-between items-center">
                 <p className="body1">{t(groupConstant.regex.title)}</p>
-                {regex?.length === 0 && (
+                {regex?.length === 0 && isAdmin && (
                     <div onClick={() => openModal('ADD_REGEX', { handleRegex: handleRegex })} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
                         <Plus className="h-4 w-4" />
                         <Typography className="!text-brand-500  body6">{t(buttonConstant.addRegex)}</Typography>
@@ -42,9 +45,11 @@ export default function RegexCard({ handleRegex, regex }: IRegexCardProps) {
                         <Typography noWrap className="!text-black-800">
                             {regex}
                         </Typography>
-                        <span onClick={() => handleRegex(regex, handleRegexType.REMOVE)} className="text-red-500 cursor-pointer">
-                            {t(localesCommon.remove)}
-                        </span>
+                        {isAdmin && (
+                            <span onClick={() => handleRegex(regex, handleRegexType.REMOVE)} className="text-red-500 cursor-pointer">
+                                {t(localesCommon.remove)}
+                            </span>
+                        )}
                     </div>
                 </>
             )}

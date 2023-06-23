@@ -31,7 +31,7 @@ import { useCreateRespondersGroupMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isEmptyString } from '@app/utils/stringUtils';
 
-export default function CreateGroup(props: any) {
+export default function CreateGroup() {
     const router = useRouter();
     let formId: string = (router?.query?.formId as string) ?? '';
     const locale = router?.locale === 'en' ? '' : `${router?.locale}/`;
@@ -144,4 +144,4 @@ export default function CreateGroup(props: any) {
         </DashboardLayout>
     );
 }
-export { getGlobalServerSidePropsByWorkspaceName as getServerSideProps } from '@app/lib/serverSideProps';
+export { getAuthUserPropsWithWorkspace as getServerSideProps } from '@app/lib/serverSideProps';

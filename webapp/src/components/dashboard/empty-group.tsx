@@ -15,7 +15,6 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function EmptyGroup({ formId }: { formId?: string }) {
-    console.log(formId);
     const { t } = useTranslation();
     const isAdmin = useAppSelector(selectIsAdmin);
     const router = useRouter();

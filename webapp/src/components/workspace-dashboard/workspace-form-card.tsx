@@ -140,7 +140,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                             <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                         </div>
                     )}
-                    {!!group && isAdmin && (
+                    {!!group && (
                         <DeleteDropDown
                             onDropDownItemClick={(event) => {
                                 event.stopPropagation();

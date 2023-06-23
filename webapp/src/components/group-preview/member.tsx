@@ -15,11 +15,19 @@ import { useGroupMember } from '@app/lib/hooks/use-group-members';
 import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { handleRegexType } from '@app/models/enums/groupRegex';
+import { selectIsAdmin } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
 
-export default function GroupMembersTab({ group, workspace }: { group: ResponderGroupDto; workspace: WorkspaceDto }) {
+interface IGroupMemberTabProps {
+    group: ResponderGroupDto;
+    workspace: WorkspaceDto;
+}
+export default function GroupMembersTab({ group, workspace }: IGroupMemberTabProps) {
     const [emails, setEmails] = useState(group.emails);
     const { t } = useTranslation();
+    const isAdmin = useAppSelector(selectIsAdmin);
+
     const { openModal, closeModal } = useModal();
     const [searchQuery, setSearchQuery] = useState('');
     const [patchRegex] = useUpdateResponderGroupMutation();

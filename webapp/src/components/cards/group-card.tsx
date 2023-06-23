@@ -28,7 +28,7 @@ interface IGroupCardProps {
 export default function GroupCard({ responderGroup, handleDelete, isFormGroup = false }: IGroupCardProps) {
     const { t } = useTranslation();
     const router = useRouter();
-    const { openModal, closeModal } = useModal();
+    const { openModal } = useModal();
 
     const workspace = useAppSelector((state) => state.workspace);
     const isAdmin = useAppSelector(selectIsAdmin);
@@ -39,7 +39,7 @@ export default function GroupCard({ responderGroup, handleDelete, isFormGroup = 
     };
     return (
         <div onClick={handlePreviewGroup} className="flex cursor-pointer flex-col justify-between border-[2px] border-brand-100 hover:border-black-500 transition shadow-formCard bg-white items-start p-5 rounded-[8px] relative">
-            {isAdmin && (
+            {(isAdmin || isFormGroup) && (
                 <DeleteDropDown
                     onDropDownItemClick={(event) => {
                         event.stopPropagation();

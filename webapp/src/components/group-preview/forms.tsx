@@ -65,14 +65,13 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
                     </p>
                     <p className="body4 leading-none   !text-black-700 ">{t(groupConstant.form.description)}</p>
                 </div>
-                {isAdmin && (
-                    <Tooltip title={workspaceForms.length === 0 ? t(toolTipConstant.emptyFormOnWorkspace) : ''}>
-                        <button disabled={workspaceForms.length === 0} onClick={() => openModal('ADD_FORM_GROUP', { forms: workspaceForms, group })} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
-                            <Plus className="h-4 w-4" />
-                            <Typography className="!text-brand-500 min-w-[65px]  body6"> {t(buttonConstant.addForm)}</Typography>
-                        </button>
-                    </Tooltip>
-                )}
+
+                <Tooltip title={workspaceForms.length === 0 ? t(toolTipConstant.emptyFormOnWorkspace) : ''}>
+                    <button disabled={workspaceForms.length === 0} onClick={() => openModal('ADD_FORM_GROUP', { forms: workspaceForms, group })} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
+                        <Plus className="h-4 w-4" />
+                        <Typography className="!text-brand-500 min-w-[65px]  body6"> {t(buttonConstant.addForm)}</Typography>
+                    </button>
+                </Tooltip>
             </div>
             {group.forms.length > 0 && (
                 <div className="gap-6 flex flex-col">
