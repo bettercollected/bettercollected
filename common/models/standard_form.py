@@ -16,6 +16,7 @@ class StandardFormFieldType(str, Enum):
     DATE = "date"
     SHORT_TEXT = "short_text"
     LONG_TEXT = "long_text"
+    EMAIL = "email"
     MULTIPLE_CHOICE = "multiple_choice"
     OPINION_SCALE = "opinion_scale"
     RANKING = "ranking"
