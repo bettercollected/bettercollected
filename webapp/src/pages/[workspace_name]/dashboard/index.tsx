@@ -74,7 +74,6 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                 <div className="flex gap-3">
                     <Button
                         variant="solid"
-                        className={`w-full sm:w-auto`}
                         onClick={() => {
                             router.push(`/${workspace.workspaceName}/dashboard/forms/create`);
                         }}

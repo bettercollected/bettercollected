@@ -55,7 +55,7 @@ export default function ImportFormsButton({ size, className = '' }: ButtonProps)
 
     const importFormButton = (
         <span>
-            <Button variant="solid" className={`w-full sm:w-auto ${className}`} disabled={!providers.google && !providers.typeform} size={size} onClick={handleClick}>
+            <Button variant="solid" className={`${className}`} disabled={!providers.google && !providers.typeform} size={size} onClick={handleClick}>
                 {t(buttonConstant.importForms)}
             </Button>
         </span>

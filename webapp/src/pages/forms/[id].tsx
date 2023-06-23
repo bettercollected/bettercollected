@@ -73,10 +73,10 @@ export default function SingleFormPage(props: any) {
         const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: postBody });
         if (response?.data) {
             toast('Response Submitted', { type: 'success' });
-        } else {
-            toast('Error submitting response', { type: 'error' });
             const workspaceUrl = hasCustomDomain ? `https://${workspace.customDomain}` : `/${workspace.workspaceName}`;
             router.push(workspaceUrl);
+        } else {
+            toast('Error submitting response', { type: 'error' });
         }
     };
     const hasFileUpload = (fields: Array<any>) => {

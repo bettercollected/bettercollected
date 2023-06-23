@@ -17,6 +17,7 @@ import DataTableProviderFormCell from '@app/components/datatable/form/provider-f
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import { useModal } from '@app/components/modal-views/context';
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
+import Button from '@app/components/ui/button';
 import EmptyResponse from '@app/components/ui/empty-response';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
@@ -29,6 +30,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 
 const formTableStyles = {
@@ -207,7 +209,17 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                 <div className="py-10 w-full h-full">
                     <h1 className="sh1">{t(localesCommon.forms)}</h1>
                     <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
-                        <ImportFormsButton size="small" />
+                        <div className="flex gap-3">
+                            <Button
+                                variant="solid"
+                                onClick={() => {
+                                    router.push(`/${workspace.workspaceName}/dashboard/forms/create`);
+                                }}
+                            >
+                                Create Form
+                            </Button>
+                            <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
+                        </div>
                     </div>
                     <Divider />
                     {Response()}
