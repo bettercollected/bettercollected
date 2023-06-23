@@ -274,7 +274,16 @@ class FormResponseRepository(BaseRepository):
     ):
         await FormResponseDocument.find(
             {"form_id": str(form_id), "response_id": str(response_id)}
-        ).delete()
+        ).update_many(
+            {
+                "$unset": {
+                    "answers": 1,
+                    "created_at": 1,
+                    "updated_at": 1,
+                    "published_at": 1,
+                }
+            }
+        )
         deletion_request = await FormResponseDeletionRequest.find_one(
             {"form_id": str(form_id), "response_id": str(response_id)}
         )
