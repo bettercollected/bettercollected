@@ -1,5 +1,6 @@
 import React from 'react';
 
+import LongText from '@Components/Form/LongText';
 import ShortText from '@Components/Form/ShortText';
 import styled from '@emotion/styled';
 import Checkbox from '@mui/material/Checkbox';
@@ -30,6 +31,7 @@ const StyledTextField = styled.div`
 
 export enum QUESTION_TYPE {
     DATE = 'date',
+    EMAIL = 'email',
     SHORT_TEXT = 'short_text',
     LONG_TEXT = 'long_text',
     MULTIPLE_CHOICE = 'multiple_choice',
@@ -149,7 +151,7 @@ export default function FormRenderer({ form, response, enabled }: FormRendererPr
                     </LocalizationProvider>
                 );
             case QUESTION_TYPE.LONG_TEXT:
-                return <ShortText question={question} ans={ans} enabled={enabled} />;
+                return <LongText question={question} ans={ans} enabled={enabled} />;
             case QUESTION_TYPE.MULTIPLE_CHOICE:
                 const choiceAnswer = ans?.choice?.value ?? ans?.choices?.values;
                 return (
@@ -263,6 +265,8 @@ export default function FormRenderer({ form, response, enabled }: FormRendererPr
                 // Render no input element for statement
                 return <></>;
             case QUESTION_TYPE.SHORT_TEXT:
+                return <ShortText question={question} ans={ans} enabled={enabled} />;
+            case QUESTION_TYPE.EMAIL:
                 return <ShortText question={question} ans={ans} enabled={enabled} />;
             default:
                 return <></>;

@@ -42,7 +42,7 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
             disabled: false
         },
         {
-            title: t(breadcrumbsItems.create),
+            title: 'Create Form',
             disabled: false
         }
     ];

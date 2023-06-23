@@ -14,7 +14,8 @@ import Loader from '@app/components/ui/loader';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { selectAnswers, selectInvalidFields, selectRequiredFields, setInvalidFields, setRequiredFields } from '@app/store/fill-form/slice';
+import { resetForm } from '@app/store/create-form/slice';
+import { resetFillForm, selectAnswers, selectInvalidFields, selectRequiredFields, setInvalidFields, setRequiredFields } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormQuery, useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
@@ -49,12 +50,16 @@ export default function SingleFormPage(props: any) {
         dispatch(setRequiredFields(requiredFields));
     }, [form]);
 
+    useEffect(() => {
+        dispatch(resetFillForm());
+    }, []);
     if (error) {
         return <div className="min-h-screen min-w-screen flex items-center justify-center">Error: Could not fetch form!!</div>;
     }
     if (isLoading) return <FullScreenLoader />;
 
     const onSubmitForm = async (event: any) => {
+        event.preventDefault();
         const invalidFields: Array<string> = [];
         for (const requiredField of requiredFields) {
             if (!answers[requiredField]) {
@@ -63,7 +68,7 @@ export default function SingleFormPage(props: any) {
         }
         if (invalidFields.length > 0) {
             dispatch(setInvalidFields(invalidFields));
-            toast('All required fields are not filled yet.', { type: 'error' });
+            // toast('All required fields are not filled yet.', { type: 'error' });
             return;
         }
         const postBody = {
@@ -162,12 +167,20 @@ export default function SingleFormPage(props: any) {
                 )}
                 {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (
-                    <div className="w-full py-10 flex flex-col items-center ">
+                    <form
+                        className="w-full py-10 flex flex-col items-center "
+                        onKeyDown={(event: any) => {
+                            if (event.key === 'Enter') {
+                                event.preventDefault();
+                            }
+                        }}
+                        onSubmit={onSubmitForm}
+                    >
                         <FormRenderer form={form} enabled={true} />
-                        <Button className="mt-10" onClick={onSubmitForm}>
+                        <Button className="mt-10" type="submit">
                             Submit
                         </Button>
-                    </div>
+                    </form>
                 )}
             </div>
         </Layout>

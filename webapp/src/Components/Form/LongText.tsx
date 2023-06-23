@@ -1,31 +1,28 @@
 import React, { ChangeEvent } from 'react';
 
-import { a } from 'msw/lib/glossary-de6278a9';
 import { useDispatch } from 'react-redux';
 
 import BetterInput from '@app/components/Common/input';
 import { AnswerDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { addAnswer, deleteAnswer } from '@app/store/fill-form/slice';
 
-interface IShortTextProps {
+interface ILongTextProps {
     question: StandardFormQuestionDto;
     ans?: any;
     enabled?: boolean;
 }
 
-ShortText.defaultProps = {
+LongText.defaultProps = {
     enabled: false
 };
 
-export default function ShortText({ ans, enabled, question }: IShortTextProps) {
+export default function LongText({ ans, enabled, question }: ILongTextProps) {
     const dispatch = useDispatch();
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
         const answer = {} as AnswerDto;
         answer.field = { id: question.id };
         answer.text = event.target.value;
-        if (question.type === 'email') {
-            answer.email = event.target.value;
-        }
+
         if (answer.text !== '') {
             dispatch(addAnswer(answer));
         } else {
@@ -33,9 +30,5 @@ export default function ShortText({ ans, enabled, question }: IShortTextProps) {
         }
     };
 
-    return (
-        // <StyledTextField>
-        <BetterInput type={question?.type === 'email' ? 'email' : 'text'} value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled={!enabled} fullWidth onChange={onChange} />
-        // </StyledTextField>
-    );
+    return <BetterInput minRows={3} maxRows={5} multiline value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled={!enabled} fullWidth onChange={onChange} />;
 }

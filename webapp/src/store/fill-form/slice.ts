@@ -25,6 +25,9 @@ const slice = createSlice({
     name: 'fillForm',
     initialState: initialState,
     reducers: {
+        resetFillForm: () => {
+            return initialState;
+        },
         addAnswer: (state, action) => {
             return {
                 ...state,
@@ -61,7 +64,7 @@ const fillFormReducer = persistReducer(
     slice.reducer
 );
 
-export const { setInvalidFields, setRequiredFields, deleteAnswer, addAnswer } = slice.actions;
+export const { resetFillForm, setInvalidFields, setRequiredFields, deleteAnswer, addAnswer } = slice.actions;
 
 const reducerObj = { reducerPath: slice.name, reducer: fillFormReducer };
 

@@ -21,6 +21,10 @@ export const FieldsMap: {
     [QUESTION_TYPE.STATEMENT]: {
         value: 'Statement',
         icon: <FormIcon />
+    },
+    [QUESTION_TYPE.EMAIL]: {
+        value: 'Email',
+        icon: <FormIcon />
     }
 };
 
