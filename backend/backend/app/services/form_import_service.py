@@ -8,10 +8,10 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDeletionRequest,
     FormResponseDocument,
 )
-from common.services.crypto_service import crypto_service
 from backend.app.services.form_service import FormService
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponseAnswer
+from common.services.crypto_service import crypto_service
 
 
 class FormImportService:
@@ -74,6 +74,8 @@ class FormImportService:
             deletion_requests_query
         ).to_list()
 
+        # TODO Delete the responses for which deletion request are not created yet if deleted from individual provider
+
         if deletion_requests:
             await FormResponseDocument.find(
                 {
@@ -86,7 +88,17 @@ class FormImportService:
                         ]
                     },
                 }
-            ).delete()
+                # TODO make separate repo to fetch deletion request and remove the response completely
+            ).update_many(
+                {
+                    "$unset": {
+                        "answers": 1,
+                        "created_at": 1,
+                        "updated_at": 1,
+                        "published_at": 1,
+                    }
+                }
+            )
 
             await FormResponseDeletionRequest.find(deletion_requests_query).update_many(
                 {
