@@ -18,6 +18,8 @@ import { formConstant } from '@app/constants/locales/form';
 import { StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
 import { Page } from '@app/models/dtos/page';
 import { Provider } from '@app/models/enums/provider';
+import { selectIsAdmin } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
 const responseTableStyles = {
@@ -42,6 +44,7 @@ interface IResponsetableProps {
 }
 const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage }: IResponsetableProps) => {
     const router = useRouter();
+    const isAdmin = useAppSelector(selectIsAdmin);
     const googleFormHostUrl = 'https://docs.google.com/';
     const typeFormHostUrl = 'https://admin.typeform.com/';
     const handlePageChange = (e: any, page: number) => {
@@ -80,7 +83,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     const Status = ({ status, response }: { status: string; response: StandardFormResponseDto }) => (
         <div className="flex gap-6">
             <StatusBadge status={status} />
-            {status.toLowerCase() === 'pending' && (
+            {status.toLowerCase() === 'pending' && isAdmin && (
                 <Typography noWrap>
                     <AnchorLink
                         target="_blank"
