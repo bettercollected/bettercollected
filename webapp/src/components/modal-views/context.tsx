@@ -27,7 +27,8 @@ export type MODAL_VIEW =
     | 'USER_DELETION'
     | 'ADD_FORM_GROUP'
     | 'ADD_GROUP_FORM'
-    | 'ADD_REGEX';
+    | 'ADD_REGEX'
+    | 'DELETE_RESPONSE';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 

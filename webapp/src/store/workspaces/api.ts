@@ -145,6 +145,13 @@ export const workspacesApi = createApi({
                 body: request.body
             })
         }),
+        deleteResponse: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/response/${request.responseId}`,
+                method: 'DELETE'
+            }),
+            invalidatesTags: [SUBMISSION_TAG]
+        }),
         importForm: builder.mutation<any, ImportFormQueryInterface>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/import/${request.provider}`,
@@ -451,6 +458,7 @@ export const {
     useSearchWorkspaceFormsMutation,
     useGetFormsSubmissionsQuery,
     usePatchFormMutation,
+    useDeleteResponseMutation,
     usePatchFormSettingsMutation,
     useDeleteFormMutation,
     useSubmitResponseMutation,

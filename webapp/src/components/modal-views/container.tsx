@@ -12,6 +12,7 @@ import CustomizeUrlModal from '@app/components/modal-views/modals/customize-url-
 import DeleteCustomDomainModal from '@app/components/modal-views/modals/delete-custom-domain-modal';
 import DeleteInvitationModal from '@app/components/modal-views/modals/delete-invitation-modal';
 import DeleteMemberModal from '@app/components/modal-views/modals/delete-member-modal';
+import DeleteResponseModal from '@app/components/modal-views/modals/delete-response-modal';
 import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
 import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
@@ -76,6 +77,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <AddFormOnGroup {...modalProps} />;
         case 'ADD_REGEX':
             return <AddRegexModal {...modalProps} />;
+        case 'DELETE_RESPONSE':
+            return <DeleteResponseModal {...modalProps} />;
         default:
             return <></>;
     }

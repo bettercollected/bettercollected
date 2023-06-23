@@ -3,10 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import DeleteIcon from '@Components/Common/Icons/Delete';
 import { toast } from 'react-toastify';
 
 import FormResponsesTable from '@app/components/datatable/form/form-responses';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
+import { useModal } from '@app/components/modal-views/context';
 import BackButton from '@app/components/settings/back';
 import { formConstant } from '@app/constants/locales/form';
 import { selectForm } from '@app/store/forms/slice';
@@ -24,6 +26,7 @@ export default function FormResponses() {
     const workspace = useAppSelector(selectWorkspace);
     const [submissionForm, setSubmissionForm] = useState<any>([]);
     const requestForDeletion = false;
+    const { openModal } = useModal();
 
     useEffect(() => {
         if (!!submissionId) {
@@ -54,7 +57,23 @@ export default function FormResponses() {
             )}
             {!!submissionForm && !!submissionId && (
                 <>
-                    <BackButton />
+                    <div className="flex items-center justify-between">
+                        <BackButton />
+                        {form?.settings?.provider === 'self' && (
+                            <div className="cursor-pointer hover:bg-gray-200 p-2 h-min rounded">
+                                <DeleteIcon
+                                    onClick={() => {
+                                        openModal('DELETE_RESPONSE', {
+                                            workspace: workspace,
+                                            formId: form.formId,
+                                            responseId: submissionId,
+                                            navigateToForm: true
+                                        });
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </div>
                     <FormRenderer form={submissionForm.form} response={submissionForm.response} />
                 </>
             )}
