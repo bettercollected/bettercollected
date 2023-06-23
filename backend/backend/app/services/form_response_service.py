@@ -186,6 +186,7 @@ class FormResponseService:
         await FormResponseDeletionRequest(
             form_id=response.form_id,
             response_id=response_id,
+            dataOwnerIdentifier=response.dataOwnerIdentifier,
             provider=response.provider,
         ).save()
 
@@ -253,4 +254,11 @@ class FormResponseService:
     ):
         return await self._form_response_repo.save_form_response(
             form_id=form_id, response=response
+        )
+
+    async def delete_form_response(
+        self, form_id: PydanticObjectId, response_id: PydanticObjectId
+    ):
+        return await self._form_response_repo.delete_form_response(
+            form_id=form_id, response_id=response_id
         )

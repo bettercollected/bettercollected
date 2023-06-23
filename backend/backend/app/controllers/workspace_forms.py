@@ -88,6 +88,21 @@ class WorkspaceFormsRouter(Routable):
             workspace_id=workspace_id, form_id=form_id, response=response, user=user
         )
 
+    @delete("/{form_id}/response/{response_id}")
+    async def delete_form_response(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        response_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ):
+        return await self.workspace_form_service.delete_form_response(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            response_id=response_id,
+            user=user,
+        )
+
     @post("/search")
     async def search_forms_in_workspace(
         self,
