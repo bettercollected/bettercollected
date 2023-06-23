@@ -79,7 +79,7 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
                             )}
                         </>
                     )}
-                    {showAuthAccount && <AuthAccountMenuDropdown hideMenu={hideMenu} />}
+                    {showAuthAccount && <AuthAccountMenuDropdown hideMenu={hideMenu} isClientDomain={isClientDomain} />}
                 </div>
             </div>
         </Header>

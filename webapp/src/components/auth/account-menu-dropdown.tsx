@@ -21,7 +21,7 @@ import { localesCommon } from '@app/constants/locales/common';
 import { profileMenu } from '@app/constants/locales/profile-menu';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { UserStatus } from '@app/models/dtos/UserStatus';
-import { selectAuth } from '@app/store/auth/slice';
+import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
@@ -46,7 +46,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
     const workspace = useAppSelector(selectWorkspace);
     const { t } = useTranslation();
     const authStatus = useAppSelector(selectAuth);
-
+    const isAdmin = useAppSelector(selectIsAdmin);
     const user: UserStatus = authStatus ?? null;
 
     const screenSize = useBreakpoint();
@@ -84,14 +84,16 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
             </ListItem>
             <WorkspaceAdminSelector>
                 <Divider className="my-2" />
-                <ActiveLink href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/account-settings`} referrerPolicy="no-referrer">
-                    <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
-                        <ListItemIcon className="text-black-900">
-                            <SettingsIcon width={20} height={20} />
-                        </ListItemIcon>
-                        <span>{t(profileMenu.accountSettings)}</span>
-                    </MenuItem>
-                </ActiveLink>
+                {isClientDomain && (
+                    <ActiveLink href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/dashboard`} referrerPolicy="no-referrer">
+                        <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
+                            <ListItemIcon className="text-black-900">
+                                <DashboardIcon width={20} height={20} />
+                            </ListItemIcon>
+                            <span>{t(profileMenu.myDashboard)}</span>
+                        </MenuItem>
+                    </ActiveLink>
+                )}
                 {user.stripeCustomerId && (
                     <ActiveLink href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer">
                         <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
@@ -103,6 +105,14 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                     </ActiveLink>
                 )}
             </WorkspaceAdminSelector>
+            <ActiveLink href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/account-settings`} referrerPolicy="no-referrer">
+                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
+                    <ListItemIcon className="text-black-900">
+                        <SettingsIcon width={20} height={20} />
+                    </ListItemIcon>
+                    <span>{t(profileMenu.accountSettings)}</span>
+                </MenuItem>
+            </ActiveLink>
 
             {/* <Divider className="my-2" /> */}
             <MenuItem onClick={handleLogout} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-red-100 !text-red-500">
