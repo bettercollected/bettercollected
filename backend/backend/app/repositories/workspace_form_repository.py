@@ -95,15 +95,30 @@ class WorkspaceFormRepository:
                                 "from": "responder_group_form",
                                 "localField": "form_id",
                                 "foreignField": "form_id",
-                                "as": "groups",
-                            },
+                                "as": "groups_form",
+                            }
                         },
                         {
                             "$lookup": {
                                 "from": "responder_group_member",
-                                "localField": "groups.group_id",
+                                "localField": "groups_form.group_id",
                                 "foreignField": "group_id",
                                 "as": "emails",
+                            }
+                        },
+                        {
+                            "$lookup": {
+                                "from": "responder_group",
+                                "localField": "groups_form.group_id",
+                                "foreignField": "_id",
+                                "as": "groups",
+                            }
+                        },
+                        {"$set": {"regex": "$groups.regex"}},
+                        {
+                            "$unwind": {
+                                "path": "$regex",
+                                "preserveNullAndEmptyArrays": True,
                             }
                         },
                         {
@@ -112,10 +127,17 @@ class WorkspaceFormRepository:
                                     {"settings.private": False},
                                     {"emails.identifier": user.sub},
                                     {
-                                        "emails.identifier": {
-                                            "$regex": "$groups.regex",
-                                            "$options": "i",
-                                        }
+                                        "$and": [
+                                            {
+                                                "$expr": {
+                                                    "$regexMatch": {
+                                                        "input": user.sub,
+                                                        "regex": "$regex",
+                                                    }
+                                                }
+                                            },
+                                            {"regex": {"$ne": ""}},
+                                        ]
                                     },
                                 ]
                             }
@@ -128,7 +150,7 @@ class WorkspaceFormRepository:
                 .aggregate(aggregation_pipeline)
                 .to_list()
             )
-            return [a["form_id"] for a in workspace_forms]
+            return list(set([a["form_id"] for a in workspace_forms]))
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
