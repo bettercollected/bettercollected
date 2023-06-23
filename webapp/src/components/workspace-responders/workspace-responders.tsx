@@ -68,7 +68,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                         <div
                             key={group.id}
                             onClick={() => openModal('DELETE_CONFIRMATION', { title: t(localesCommon.remove) + ' ' + group.name, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) })}
-                            className="p-1 cursor-pointer w-fit group rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500"
+                            className={cn('p-1 cursor-pointer w-fit group rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500', !isAdmin && 'pointer-events-none')}
                         >
                             <span className="body5 text-black-8000">{group.name}</span>
                             {isAdmin && <Close className="h-2 group-hover:block hidden w-2 " />}
