@@ -70,39 +70,23 @@ class FormImportService:
             "provider": standard_form.settings.provider,
             "response_id": {"$nin": updated_responses_id},
         }
-        deletion_requests = await FormResponseDeletionRequest.find(
-            deletion_requests_query
-        ).to_list()
 
-        # TODO Delete the responses for which deletion request are not created yet if deleted from individual provider
+        deleted_response_ids = [
+            response.response_id
+            for response in responses
+            if (response.response_id not in updated_responses_id)
+        ]
 
-        if deletion_requests:
-            await FormResponseDocument.find(
-                {
-                    "form_id": standard_form.form_id,
-                    "answers": {"$exists": 1},
-                    "response_id": {
-                        "$in": [
-                            deleted_response.response_id
-                            for deleted_response in deletion_requests
-                        ]
-                    },
-                }
-                # TODO make separate repo to fetch deletion request and remove the response completely
-            ).update_many(
-                {
-                    "$unset": {
-                        "answers": 1,
-                        "created_at": 1,
-                        "updated_at": 1,
-                        "published_at": 1,
-                    }
-                }
-            )
+        await FormResponseDocument.find(
+            {
+                "form_id": standard_form.form_id,
+                "response_id": {"$in": deleted_response_ids},
+            }
+        ).delete()
 
-            await FormResponseDeletionRequest.find(deletion_requests_query).update_many(
-                {
-                    "$set": {"status": DeletionRequestStatus.SUCCESS},
-                }
-            )
+        await FormResponseDeletionRequest.find(deletion_requests_query).update_many(
+            {
+                "$set": {"status": DeletionRequestStatus.SUCCESS},
+            }
+        )
         return standard_form
