@@ -16,7 +16,6 @@ class StandardFormFieldType(str, Enum):
     DATE = "date"
     SHORT_TEXT = "short_text"
     LONG_TEXT = "long_text"
-    EMAIL = "email"
     MULTIPLE_CHOICE = "multiple_choice"
     OPINION_SCALE = "opinion_scale"
     RANKING = "ranking"
@@ -25,8 +24,13 @@ class StandardFormFieldType(str, Enum):
     MATRIX = "matrix"
     FILE_UPLOAD = "file_upload"
     GROUP = "group"
+    EMAIL = "email"
     PAYMENT = "payment"
     STATEMENT = "statement"
+    PAGE_BREAK = "page_break"
+    CALCULATED = "calculated"
+    HIDDEN = "hidden"
+    CONDITIONAL = "conditional"
 
 
 class StandardResponseType(str, Enum):
@@ -88,6 +92,53 @@ class StandardChoicesAnswer(BaseModel):
     other: Optional[str]
 
 
+class Comparison(str, enum.Enum):
+    CONTAINS = "contains"
+    DOES_NOT_CONTAIN = "does_not_contain"
+    IS_EQUAL = "is_equal"
+    IS_NOT_EQUAL = "is_not_equal"
+    STARTS_WITH = "starts_with"
+    ENDS_WITH = "ends_with"
+    IS_EMPTY = "is_empty"
+    IS_NOT_EMPTY = "is_not_empty"
+    GREATER_THAN = "greater_than"
+    LESS_THAN = "less_than"
+    GREATER_THEN_EQUAL = "greater_than_equal"
+    LESS_THAN_EQUAL = "less_than_equal"
+
+
+class FieldType(str, enum.Enum):
+    SINGLE = "single"
+    MATRIX = "matrix"
+
+
+class Conditional(BaseModel):
+    comparison: Optional[Comparison]
+    field: Optional["StandardFormField"]
+    fieldType: Optional[FieldType]
+    matrixId: Optional[str]
+    value: Optional[Any]
+
+
+class ConditionalPayload(BaseModel):
+    field: Optional[Any]
+    operator: Optional[str]
+    value: Optional[Any]
+
+
+class ActionType(str, enum.Enum):
+    JUMP_TO_PAGE = "jump_to_page"
+    CALCULATE = "calculate"
+    REQUIRE_ANSWERS = "require_answer"
+    SHOW_FIELDS = "show_fields"
+    HIDE_FIELDS = "hide_fields"
+
+
+class ConditionalActions(BaseModel):
+    type: Optional[ActionType]
+    payload: Optional[List[str] | str]
+
+
 class StandardFormSettings(BaseModel):
     """
     Data transfer object for standard form settings.
@@ -107,7 +158,13 @@ class StandardFormSettings(BaseModel):
     is_closed: Optional[bool]
 
 
+class LogicalOperator(str, enum.Enum):
+    AND = "and"
+    OR = "or"
+
+
 class StandardFieldProperty(BaseModel):
+    hidden: Optional[bool]
     description: Optional[str]
     choices: Optional[List[StandardChoice]]
     fields: Optional[List["StandardFormField"]]
@@ -120,6 +177,10 @@ class StandardFieldProperty(BaseModel):
     rating_shape: Optional[str]
     labels: Optional[Dict[str, str]]
     date_format: Optional[str]
+    actions: Optional[List[ConditionalActions]]
+    conditionals: Optional[List[Conditional]]
+    logicalOperator: Optional[LogicalOperator]
+    updateId: Optional[str]
 
 
 class StandardFieldValidations(BaseModel):
