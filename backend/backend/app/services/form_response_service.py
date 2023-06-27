@@ -111,7 +111,6 @@ class FormResponseService:
             raise HTTPException(
                 HTTPStatus.NOT_FOUND, "Form not found in the workspace."
             )
-        # TODO : Refactor with mongo query instead of python
         form_responses = await self._form_response_repo.list(
             [form_id], request_for_deletion, filter_query, sort
         )
