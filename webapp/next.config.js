@@ -116,6 +116,7 @@ const nextConfig = {
         CUSTOM_DOMAIN_JSON: process.env.CUSTOM_DOMAIN_JSON,
         ENABLE_TYPEFORM: process.env.ENABLE_TYPEFORM || false,
         ENABLE_GOOGLE: process.env.ENABLE_GOOGLE || false,
+        ENABLE_COMMAND_FORM_BUILDERS: process.env.ENABLE_COMMAND_FORM_BUILDERS || false,
         ENABLE_CHECK_MY_DATA: process.env.ENABLE_CHECK_MY_DATA || false,
         ENABLE_BRAND_COLORS: process.env.ENABLE_BRAND_COLORS || false,
         ENABLE_JOYRIDE_TOURS: process.env.ENABLE_JOYRIDE_TOURS || false,

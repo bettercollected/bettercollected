@@ -10,9 +10,10 @@ import DashboardDrawer from '@app/components/sidebar/dashboard-drawer';
 interface ISidebarLayout {
     children: any;
     DrawerComponent?: any;
+    boxClassName?: string;
 }
 
-export default function SidebarLayout({ children, DrawerComponent = DashboardDrawer }: ISidebarLayout) {
+export default function SidebarLayout({ children, DrawerComponent = DashboardDrawer, boxClassName = '' }: ISidebarLayout) {
     const drawerWidth = 289;
 
     const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -25,7 +26,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
             <div className="relative min-h-screen w-full">
                 <AuthNavbar handleDrawerToggle={handleDrawerToggle} mobileOpen={mobileOpen} />
                 <DrawerComponent drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
-                <Box className={`float-none lg:float-right mt-[68px] min-h-calc-68 px-5 lg:px-10`} component="main" sx={{ display: 'flex', width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
+                <Box className={`float-none lg:float-right mt-[68px] min-h-calc-68 px-5 lg:px-10 ${boxClassName}`} component="main" sx={{ display: 'flex', width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
                     <motion.div
                         initial={{ x: 0, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
@@ -35,7 +36,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
                             duration: 0.5,
                             x: { duration: 0.5 }
                         }}
-                        className={cn('w-full h-full')}
+                        className={cn(`w-full h-full ${boxClassName}`)}
                     >
                         {children}
                     </motion.div>
