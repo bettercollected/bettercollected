@@ -1,5 +1,7 @@
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
+import { resetServerContext } from 'react-beautiful-dnd';
+
 import environments from '@app/configs/environments';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { checkHasAdminDomain, checkHasCustomDomain, checkIfUserIsAuthorizedToViewPage, checkIfUserIsAuthorizedToViewWorkspaceSettingsPage, getRequestHost, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
@@ -77,6 +79,8 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
 }
 
 export async function getAuthUserPropsWithWorkspace(_context: any) {
+    // Resets and enables the drag and drop functionality without an issue
+    resetServerContext();
     const hasAdminDomain = checkHasAdminDomain(getRequestHost(_context));
     const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
     const locale = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
