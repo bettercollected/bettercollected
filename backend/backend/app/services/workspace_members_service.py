@@ -63,12 +63,6 @@ class WorkspaceMembersService:
             workspace_id=workspace_id, user=user
         )
 
-        if user.plan != Plans.PRO:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                content="Upgrade to pro to add collaborators",
-            )
-
         workspace = await WorkspaceDocument.get(workspace_id)
 
         workspace_invitation = (
