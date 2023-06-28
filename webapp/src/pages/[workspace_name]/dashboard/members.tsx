@@ -11,22 +11,19 @@ import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
 export default function ManageMembers({ workspace }: any) {
-    const isProPlan = useAppSelector(selectIsProPlan);
     const { t } = useTranslation();
     const paramTabs = [
         {
             icon: <MembersIcon />,
             title: t(members.collaborators.default),
             path: 'Collaborators'
-        }
-    ];
-    if (isProPlan) {
-        paramTabs.push({
+        },
+        {
             icon: <MembersIcon />,
             title: t(members.pendingRequests.default),
             path: 'Pending Requests'
-        });
-    }
+        }
+    ];
     return (
         <DashboardLayout>
             <div className="flex justify-between">

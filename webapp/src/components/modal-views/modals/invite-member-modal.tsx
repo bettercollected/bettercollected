@@ -1,7 +1,6 @@
 import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import { toast } from 'react-toastify';
 
@@ -14,7 +13,6 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery, useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
 
@@ -26,8 +24,6 @@ export default function InviteMemberModal() {
     const [invitationMail, setInvitationMail] = useState('');
     const workspaceMember = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
 
-    const router = useRouter();
-    const isProPlan = useAppSelector(selectIsProPlan);
     const { closeModal } = useModal();
     const isMemberExist = () => {
         if (workspaceMember.data && workspaceMember.data?.filter((member) => member.email === invitationMail).length > 0) {
@@ -41,30 +37,26 @@ export default function InviteMemberModal() {
             return;
         }
 
-        if (isProPlan) {
-            if (isMemberExist()) {
-                toast(t(toastMessage.emailAlreadyExist).toString(), { type: 'error' });
-            } else {
-                const response: any = await trigger({
-                    workspaceId: workspace.id,
-                    body: {
-                        role: 'COLLABORATOR',
-                        email: invitationMail
-                    }
-                });
-
-                if (response.data) {
-                    setInvitationMail('');
-                    toast(t(toastMessage.invitationSent).toString(), { type: 'success' });
-                } else if (response.error) {
-                    toast(t(toastMessage.failedToSentEmail).toString(), { type: 'error' });
-                }
-            }
-
-            closeModal();
+        if (isMemberExist()) {
+            toast(t(toastMessage.emailAlreadyExist).toString(), { type: 'error' });
         } else {
-            router.push(`/${workspace.workspaceName}/upgrade`);
+            const response: any = await trigger({
+                workspaceId: workspace.id,
+                body: {
+                    role: 'COLLABORATOR',
+                    email: invitationMail
+                }
+            });
+
+            if (response.data) {
+                setInvitationMail('');
+                toast(t(toastMessage.invitationSent).toString(), { type: 'success' });
+            } else if (response.error) {
+                toast(t(toastMessage.failedToSentEmail).toString(), { type: 'error' });
+            }
         }
+
+        closeModal();
     };
     return (
         <>

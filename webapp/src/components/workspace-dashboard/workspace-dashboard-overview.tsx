@@ -15,11 +15,8 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import dashboardConstants from '@app/constants/locales/dashboard';
-import { Features } from '@app/constants/locales/feature';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { workspaceConstant } from '@app/constants/locales/workspace';
-import { UserDto } from '@app/models/dtos/UserDto';
-import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
@@ -28,8 +25,6 @@ import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';
 import { getFullNameFromUser } from '@app/utils/userUtils';
-
-import ProPlanHoc from '../hoc/pro-plan-hoc';
 
 interface IWorkspaceDashboardOverviewProps {
     workspace: WorkspaceDto;
@@ -107,18 +102,16 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                 </div>
                 {isAdmin && (
                     <div className={`space-x-[1px] hidden sm:flex min-h-12 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_COLLABORATORS}`}>
-                        <ProPlanHoc feature={Features.collaborator}>
-                            <Tooltip title={t(buttonConstant.inviteCollaborator)}>
-                                <div
-                                    className="rounded bg-black-300 items-center cursor-pointer justify-center flex h-10 w-10"
-                                    onClick={(event: any) => {
-                                        if (isProPlan) openModal('INVITE_MEMBER');
-                                    }}
-                                >
-                                    <PlusIcon />
-                                </div>
-                            </Tooltip>
-                        </ProPlanHoc>
+                        <Tooltip title={t(buttonConstant.inviteCollaborator)}>
+                            <div
+                                className="rounded bg-black-300 items-center cursor-pointer justify-center flex h-10 w-10"
+                                onClick={() => {
+                                    openModal('INVITE_MEMBER');
+                                }}
+                            >
+                                <PlusIcon />
+                            </div>
+                        </Tooltip>
                         {data?.map((user: WorkspaceMembersDto) => (
                             <div key={user.email}>
                                 <AuthAccountProfileImage image={user.profileImage} name={getFullNameFromUser(user)} size={40} />
