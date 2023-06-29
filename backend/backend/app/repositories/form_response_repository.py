@@ -30,7 +30,7 @@ class FormResponseRepository(BaseRepository):
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
     ) -> Page[StandardFormResponseCamelModel]:
-        find_query = {"form_id": {"$in": form_ids}}
+        find_query = {"form_id": {"$in": form_ids}, "answers": {"$exists": True}}
         if extra_find_query is not None:
             find_query.update(extra_find_query)
         aggregate_query = [
