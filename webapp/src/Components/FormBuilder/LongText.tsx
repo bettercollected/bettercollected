@@ -1,4 +1,4 @@
-import FormBuilderInput from '@Components/FormBuilder/InputComponents/FormBuilderInput';
+import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { Notes } from '@mui/icons-material';
 
 export default function LongText() {

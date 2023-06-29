@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 
 import BetterInput from '@app/components/Common/input';
-import { setFieldTitle } from '@app/store/create-form/slice';
-import { FormFieldState } from '@app/store/create-form/types';
+import { setFieldTitle } from '@app/store/form-builder/slice';
+import { FormFieldState } from '@app/store/form-builder/types';
 
 interface IQuestionInputProps {
     field: FormFieldState;

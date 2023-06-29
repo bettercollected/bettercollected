@@ -1,4 +1,4 @@
-import FormBuilderInput from '@Components/FormBuilder/InputComponents/FormBuilderInput';
+import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { ArrowDropDown, TrendingUpSharp } from '@mui/icons-material';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';

@@ -1,4 +1,4 @@
-import FormBuilderInput from '@Components/FormBuilder/InputComponents/FormBuilderInput';
+import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { AlternateEmail, DateRange, LocalPhone, ShortText } from '@mui/icons-material';
 import LinkIcon from '@mui/icons-material/Link';
 

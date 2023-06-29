@@ -45,7 +45,17 @@ export enum QUESTION_TYPE {
     PAYMENT = 'payment',
     STATEMENT = 'statement',
     VIDEO_CONTENT = 'VIDEO_CONTENT',
-    IMAGE_CONTENT = 'IMAGE_CONTENT'
+    IMAGE_CONTENT = 'IMAGE_CONTENT',
+    DATE_INPUT = 'date_input',
+    EMAIL_INPUT = 'email_input',
+    SHORT_TEXT_INPUT = 'short_text_input',
+    LONG_TEXT_INPUT = 'long_text_input',
+    MULTIPLE_CHOICE_INPUT = 'multiple_choice_input',
+    RANKING_INPUT = 'ranking_input',
+    RATING_INPUT = 'rating_input',
+    DROP_DOWN_INPUT = 'drop_down_input',
+    MEDIA_INPUT = 'media_input',
+    MATRIX_ROW_INPUT = 'matrix_row_input'
 }
 
 enum AttachmentType {

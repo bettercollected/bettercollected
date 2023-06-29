@@ -4,8 +4,8 @@ import FormProperty from '@Components/CreateForm/FormProperty';
 import { Button } from '@mui/material';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import { selectCreateForm, setFormDescription, setFormTitle } from '@app/store/create-form/slice';
-import { FormFieldState, FormState } from '@app/store/create-form/types';
+import { selectCreateForm, setFormDescription, setFormTitle } from '@app/store/form-builder/slice';
+import { FormFieldState, FormState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 
 export default function CreateForm() {

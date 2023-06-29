@@ -5,7 +5,7 @@ import storage from 'redux-persist/lib/storage';
 
 import { QUESTION_TYPE } from '@app/components/form/renderer/form-renderer';
 import { StandardFormQuestionDto } from '@app/models/dtos/form';
-import { FormFieldState, FormState } from '@app/store/create-form/types';
+import { FormFieldState, FormState } from '@app/store/form-builder/types';
 import { RootState } from '@app/store/store';
 
 const initialState: FormState = {

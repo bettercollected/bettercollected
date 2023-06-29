@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux';
 
 import { QUESTION_TYPE } from '@app/components/form/renderer/form-renderer';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import { addField } from '@app/store/create-form/slice';
+import { addField } from '@app/store/form-builder/slice';
 
 export const FieldsMap: {
     [key: string]: any;
