@@ -71,16 +71,10 @@ class FormImportService:
             "response_id": {"$nin": updated_responses_id},
         }
 
-        deleted_response_ids = [
-            response.response_id
-            for response in responses
-            if (response.response_id not in updated_responses_id)
-        ]
-
         await FormResponseDocument.find(
             {
                 "form_id": standard_form.form_id,
-                "response_id": {"$in": deleted_response_ids},
+                "response_id": {"$nin": updated_responses_id},
             }
         ).delete()
 
