@@ -32,6 +32,16 @@ class DeletionRequestsRepository:
             },
             {"$set": {"form_title": "$form.title"}},
             {"$unwind": "$form_title"},
+            {
+                "$lookup": {
+                    "from": "workspace_forms",
+                    "localField": "form_id",
+                    "foreignField": "form_id",
+                    "as": "workspace_form",
+                },
+            },
+            {"$set": {"form_imported_by": "$workspace_form.user_id"}},
+            {"$unwind": "$form_imported_by"},
         ]
 
         aggregate_query.extend(
