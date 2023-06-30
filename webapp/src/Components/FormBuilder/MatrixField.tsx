@@ -11,7 +11,7 @@ export default function MatrixField({ allowMultipleSelection, rows, columns }: I
     if (rows.length === 0) rows = [1];
     if (columns.length === 0) columns = [1];
     return (
-        <div className="overflow-auto">
+        <div className="overflow-auto w-min">
             <div className={`grid grid-flow-col grid-cols-${columns.length + 1}`}>
                 <div className="border w-40">
                     <div className="h-1 w-1 border" />

@@ -44,6 +44,8 @@ export enum FormBuilderTagNames {
     INPUT_LINEAR_SCALE = 'input_linear_scale',
     INPUT_TEMPLATE_BUTTON = 'input_template_button',
     INPUT_FILE_UPLOAD = 'input_file_upload',
+    INPUT_RANKING = 'input_ranking',
+    INPUT_MATRIX = 'input_matrix',
 
     EMBED_IMAGE = 'embed_image',
     EMBED_VIDEO = 'embed_video',

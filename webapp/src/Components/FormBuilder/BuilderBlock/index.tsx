@@ -1,8 +1,11 @@
 import React from 'react';
 
+import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
+import { Popover } from '@mui/material';
 import { Draggable } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 
+import { Menu } from '@app/components/ui/menu';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { contentEditableClassNames, isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
 
@@ -284,7 +287,7 @@ export default class FormBuilderBlock extends React.Component<any, any> {
                         }}
                         {...provided.draggableProps}
                     >
-                        <div className="flex flex-col md:flex-row w-full">
+                        <div className="flex flex-col my-6 md:flex-row w-full">
                             <FormBuilderActionMenu id={this.props.id} provided={provided} addBlock={this.props.addBlock} deleteBlock={this.props.deleteBlock} />
                             {!isContentEditableTag(this.state.tag) ? (
                                 <FormBuilderBlockContent tag={this.state.tag} position={this.props.position} reference={this.contentEditable} />

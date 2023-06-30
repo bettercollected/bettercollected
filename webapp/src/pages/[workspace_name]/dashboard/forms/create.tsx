@@ -17,7 +17,7 @@ import FormBuilder from '@app/containers/FormBuilder';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { resetForm, selectCreateForm } from '@app/store/form-builder/slice';
-import { FormFieldState, FormState } from '@app/store/form-builder/types';
+import { FormState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateFormMutation } from '@app/store/workspaces/api';
 

@@ -1,11 +1,115 @@
 import { useEffect, useState } from 'react';
 
 import DeleteIcon from '@Components/Common/Icons/Delete';
+import { AlternateEmail, ArrowDownward, ArrowDropDown, DateRange, Grid4x4, Notes, Phone, ShortText, Star, TrendingUpSharp } from '@mui/icons-material';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import LinkIcon from '@mui/icons-material/Link';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import { Divider } from '@mui/material';
 
+import { TagIcon } from '@app/components/icons/tag-icon';
 import { BlockTypes, FormBuilderTagNames, KeyType } from '@app/models/enums/formBuilder';
 
 const allowedTags = [
+    {
+        id: FormBuilderTagNames.INPUT_SHORT_TEXT,
+        tag: FormBuilderTagNames.INPUT_SHORT_TEXT,
+        label: 'Short Input Text',
+        icon: <ShortText />,
+        type: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_LONG_TEXT,
+        tag: FormBuilderTagNames.INPUT_LONG_TEXT,
+        label: 'Long Text Input',
+        icon: <Notes />,
+        type: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_EMAIL,
+        tag: FormBuilderTagNames.INPUT_EMAIL,
+        label: 'Email',
+        icon: <AlternateEmail />,
+        type: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_NUMBER,
+        tag: FormBuilderTagNames.INPUT_NUMBER,
+        label: 'Number',
+        icon: <TagIcon />,
+        type: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_LINK,
+        tag: FormBuilderTagNames.INPUT_LINK,
+        label: 'Link',
+        icon: <LinkIcon />,
+        type: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_DATE,
+        tag: FormBuilderTagNames.INPUT_DATE,
+        label: 'Date',
+        icon: <DateRange />,
+        type: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_PHONE_NUMBER,
+        tag: FormBuilderTagNames.INPUT_PHONE_NUMBER,
+        label: 'Phone Number',
+        icon: <Phone />,
+        type: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_CHECKBOXES,
+        tag: FormBuilderTagNames.INPUT_CHECKBOXES,
+        label: 'Checkboxes',
+        icon: <CheckBoxOutlineBlankIcon />,
+        type: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_MULTIPLE_CHOICE,
+        tag: FormBuilderTagNames.INPUT_MULTIPLE_CHOICE,
+        label: 'Multiple Choice',
+        icon: <RadioButtonUncheckedIcon />,
+        type: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_DROPDOWN,
+        tag: FormBuilderTagNames.INPUT_DROPDOWN,
+        label: 'Dropdown',
+        icon: <ArrowDropDown />,
+        type: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_LINEAR_SCALE,
+        tag: FormBuilderTagNames.INPUT_LINEAR_SCALE,
+        label: 'Linear Scale',
+        icon: <Star />,
+        type: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_RANKING,
+        tag: FormBuilderTagNames.INPUT_RANKING,
+        label: 'Ranking',
+        icon: <TrendingUpSharp />,
+        type: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_MATRIX,
+        tag: FormBuilderTagNames.INPUT_MATRIX,
+        label: 'Matrix',
+        icon: <Grid4x4 />,
+        type: BlockTypes.INPUT_BLOCKS
+    },
+
+    {
+        id: FormBuilderTagNames.EMBED_IMAGE,
+        tag: FormBuilderTagNames.EMBED_IMAGE,
+        label: 'Image',
+        icon: <DeleteIcon />,
+        type: BlockTypes.EMBED_BLOCKS
+    },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER1,
         tag: FormBuilderTagNames.LAYOUT_HEADER1,
@@ -54,20 +158,6 @@ const allowedTags = [
         label: 'Label',
         icon: <DeleteIcon />,
         type: BlockTypes.LAYOUT_BLOCKS
-    },
-    {
-        id: FormBuilderTagNames.INPUT_SHORT_TEXT,
-        tag: FormBuilderTagNames.INPUT_SHORT_TEXT,
-        label: 'Short Input Text',
-        icon: <DeleteIcon />,
-        type: BlockTypes.INPUT_BLOCKS
-    },
-    {
-        id: FormBuilderTagNames.EMBED_IMAGE,
-        tag: FormBuilderTagNames.EMBED_IMAGE,
-        label: 'Image',
-        icon: <DeleteIcon />,
-        type: BlockTypes.EMBED_BLOCKS
     }
 ];
 
@@ -151,11 +241,11 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection }: any) => {
     );
 
     return (
-        <div className="absolute top-full left-0 right-0 z-9999 overflow-hidden rounded bg-white shadow-custom-box-shadow3">
+        <div className="absolute top-full left-0 right-0 z-[9999] overflow-hidden rounded bg-white shadow-custom-box-shadow3">
             <div className="h-60 overflow-auto">
-                {renderSingleTypeTagElements(BlockTypes.LAYOUT_BLOCKS, layoutBlocksTagList)}
-                <Divider style={{ margin: 0 }} />
                 {renderSingleTypeTagElements(BlockTypes.INPUT_BLOCKS, inputBlocksTagList)}
+                <Divider style={{ margin: 0 }} />
+                {renderSingleTypeTagElements(BlockTypes.LAYOUT_BLOCKS, layoutBlocksTagList)}
                 <Divider style={{ margin: 0 }} />
                 {renderSingleTypeTagElements(BlockTypes.EMBED_BLOCKS, embedBlocksTagList)}
                 <Divider style={{ margin: 0 }} />
