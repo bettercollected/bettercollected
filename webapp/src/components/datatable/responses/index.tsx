@@ -12,14 +12,16 @@ import StatusBadge from '@app/components/badge/status-badge';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import EmptyResponse from '@app/components/ui/empty-response';
 import AnchorLink from '@app/components/ui/links/anchor-link';
+import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
 import { Page } from '@app/models/dtos/page';
 import { Provider } from '@app/models/enums/provider';
-import { selectIsAdmin } from '@app/store/auth/slice';
+import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 
 const responseTableStyles = {
@@ -35,6 +37,7 @@ const responseTableStyles = {
         }
     }
 };
+
 interface IResponsetableProps {
     requestForDeletion: boolean;
     submissions: Page<StandardFormResponseDto>;
@@ -42,9 +45,11 @@ interface IResponsetableProps {
     page: number;
     setPage: (page: number) => void;
 }
+
 const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage }: IResponsetableProps) => {
     const router = useRouter();
-    const isAdmin = useAppSelector(selectIsAdmin);
+    const user = useAppSelector(selectAuth);
+    const workspace = useAppSelector(selectWorkspace);
     const googleFormHostUrl = 'https://docs.google.com/';
     const typeFormHostUrl = 'https://admin.typeform.com/';
     const handlePageChange = (e: any, page: number) => {
@@ -80,16 +85,23 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         </div>
     );
 
+    const getResponseUrl = (response: StandardFormResponseDto) => {
+        switch (response.provider) {
+            case 'google':
+                return `${googleFormHostUrl}forms/d/${response.formId}/edit?pli=1#response=${response.responseId}`;
+            case 'typeform':
+                return `${typeFormHostUrl}form /${response.formId}/results#responses`;
+            default:
+                return `/${workspace.workspaceName}/dashboard/forms/${response.formId}?view=Responses&sub_id=${response.responseId}`;
+        }
+    };
+
     const Status = ({ status, response }: { status: string; response: StandardFormResponseDto }) => (
         <div className="flex gap-6">
             <StatusBadge status={status} />
-            {status.toLowerCase() === 'pending' && isAdmin && (
+            {status.toLowerCase() === 'pending' && (response.provider === 'self' || response.formImportedBy === user.id) && (
                 <Typography noWrap>
-                    <AnchorLink
-                        target="_blank"
-                        href={response.provider === Provider.google ? `${googleFormHostUrl}forms/d/${response.formId}/edit?pli=1#response=${response.responseId}` : `${typeFormHostUrl}form/${response.formId}/results#responses`}
-                        className="cursor-pointer body4 !text-brand-500"
-                    >
+                    <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'} href={getResponseUrl(response)} className="cursor-pointer body4 !text-brand-500">
                         {t(localesCommon.goToResponse)}
                     </AnchorLink>
                 </Typography>
@@ -99,7 +111,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
 
     const dataTableResponseColumns: any = [
         {
-            name: !!requestForDeletion ? t(formConstant.requestedBy) : t(formConstant.responder),
+            name: requestForDeletion ? t(formConstant.requestedBy) : t(formConstant.responder),
             selector: (response: StandardFormResponseDto) => responseDataOwnerField(response),
             grow: 2,
             style: {
@@ -111,7 +123,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
             }
         },
         {
-            name: !!requestForDeletion ? t(formConstant.requestedOn) : t(formConstant.respondedOn),
+            name: requestForDeletion ? t(formConstant.requestedOn) : t(formConstant.respondedOn),
             selector: (row: StandardFormResponseDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
@@ -123,11 +135,15 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         }
     ];
 
-    if (!!requestForDeletion) {
+    if (requestForDeletion) {
         const statusToAdd = [
             {
                 name: t(localesCommon.status),
-                selector: (row: StandardFormResponseDto) => Status({ status: row?.deletionStatus || t(formConstant.status.pending), response: row }),
+                selector: (row: StandardFormResponseDto) =>
+                    Status({
+                        status: row?.deletionStatus || t(formConstant.status.pending),
+                        response: row
+                    }),
                 grow: 2,
                 style: {
                     color: 'rgba(0,0,0,.54)',

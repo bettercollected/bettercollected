@@ -68,7 +68,7 @@ export interface StandardFormResponseDto {
     provider: string;
     createdAt: string | Date;
     updatedAt: string | Date;
-
+    formImportedBy?: string;
     deletionStatus?: string;
     requestForDeletion?: boolean;
     dataOwnerIdentifier: string | null | undefined;
