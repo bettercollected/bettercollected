@@ -72,10 +72,15 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
             'column-1': {
                 id: 'column-1',
                 title: 'To-do',
-                tasks: ['task-1', 'task-2', 'task-3', 'task-4']
+                tasks: ['task-2', 'task-3', 'task-4']
+            },
+            'column-2': {
+                id: 'column-2',
+                title: 'In-Progress',
+                tasks: ['task-1']
             }
         },
-        columnOrder: ['column-1']
+        columnOrder: ['column-1', 'column-2']
     };
 
     const [state, setState] = useState<{ tasks: any; columns: any; columnOrder: Array<string> }>({ ...initialData });
@@ -171,6 +176,7 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
 
     const onTestDragEndHandler: OnDragEndResponder = (result: DropResult, provided: ResponderProvided) => {
         const { destination, source, draggableId } = result;
+        console.log(destination, source);
         if (!destination) return;
 
         if (destination.droppableId === source.droppableId && destination.index === source.index) return;
@@ -179,6 +185,7 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
         const newTasksId = Array.from(column.tasks);
         newTasksId.splice(source.index, 1);
         newTasksId.splice(destination.index, 0, draggableId);
+        console.log(column, newTasksId);
 
         const newColumn = {
             ...column,
@@ -231,12 +238,14 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
 
                     {/* TODO: Don't use below. This is for testing only and don't remove it as well */}
                     <DragDropContext onDragStart={onTestDragStartHandler} onDragUpdate={onTestDragUpdateHandler} onDragEnd={onTestDragEndHandler}>
-                        {state.columnOrder.map((columnId: string, index: number) => {
-                            const column = state.columns[columnId];
-                            const tasks = column.tasks.map((taskId: string) => state.tasks[taskId]);
+                        <div className="flex flex-row">
+                            {state.columnOrder.map((columnId: string, index: number) => {
+                                const column = state.columns[columnId];
+                                const tasks = column.tasks.map((taskId: string) => state.tasks[taskId]);
 
-                            return <Column key={column.id} column={column} tasks={tasks} />;
-                        })}
+                                return <Column key={column.id} column={column} tasks={tasks} />;
+                            })}
+                        </div>
                     </DragDropContext>
                 </FormBuilderHotkeysHookListener>
             </HotkeysProvider>
