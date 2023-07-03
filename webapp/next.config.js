@@ -120,6 +120,7 @@ const nextConfig = {
         ENABLE_CHECK_MY_DATA: process.env.ENABLE_CHECK_MY_DATA || false,
         ENABLE_BRAND_COLORS: process.env.ENABLE_BRAND_COLORS || false,
         ENABLE_JOYRIDE_TOURS: process.env.ENABLE_JOYRIDE_TOURS || false,
+        ENABLE_FORM_BUILDER: process.env.ENABLE_FORM_BUILDER || false,
 
         // api hosts
         API_ENDPOINT_HOST: process.env.API_ENDPOINT_HOST,

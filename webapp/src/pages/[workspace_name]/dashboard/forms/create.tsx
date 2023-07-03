@@ -14,6 +14,7 @@ import environments from '@app/configs/environments';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { formConstant } from '@app/constants/locales/form';
 import FormBuilder from '@app/containers/FormBuilder';
+import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { resetForm, selectCreateForm } from '@app/store/form-builder/slice';
@@ -84,4 +85,13 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
     );
 }
 
-export { getAuthUserPropsWithWorkspace as getServerSideProps } from '@app/lib/serverSideProps';
+export async function getServerSideProps(_context: any) {
+    if (!environments.ENABLE_FORM_BUILDER)
+        return {
+            notFound: true
+        };
+    const globalProps = await getAuthUserPropsWithWorkspace(_context);
+    return {
+        props: { ...globalProps.props }
+    };
+}

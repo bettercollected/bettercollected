@@ -21,6 +21,7 @@ import Button from '@app/components/ui/button';
 import EmptyResponse from '@app/components/ui/empty-response';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
+import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -210,14 +211,16 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                     <h1 className="sh1">{t(localesCommon.forms)}</h1>
                     <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
                         <div className="flex gap-3">
-                            <Button
-                                variant="solid"
-                                onClick={() => {
-                                    router.push(`/${workspace.workspaceName}/dashboard/forms/create`);
-                                }}
-                            >
-                                Create Form
-                            </Button>
+                            {environments.ENABLE_FORM_BUILDER && (
+                                <Button
+                                    variant="solid"
+                                    onClick={() => {
+                                        router.push(`/${workspace.workspaceName}/dashboard/forms/create`);
+                                    }}
+                                >
+                                    Create Form
+                                </Button>
+                            )}
                             <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
                         </div>
                     </div>

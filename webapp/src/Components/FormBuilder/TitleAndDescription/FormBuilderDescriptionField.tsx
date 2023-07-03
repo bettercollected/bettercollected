@@ -9,7 +9,10 @@ import mermaid from 'mermaid';
 import { getCodeString } from 'rehype-rewrite';
 import rehypeSanitize from 'rehype-sanitize';
 
-const MDEditor: any = dynamic((): any => import('@uiw/react-md-editor').then((mod: any) => mod.default), { ssr: false, loading: () => <div className="h-[200px]" /> });
+const MDEditor: any = dynamic((): any => import('@uiw/react-md-editor').then((mod: any) => mod.default), {
+    ssr: false,
+    loading: () => <div className="h-[200px]" />
+});
 const MDEditorCommands: any = dynamic((): any => import('@uiw/react-md-editor').then((mod: any) => mod.commands), { ssr: false });
 
 const StyledFormBuilderDescriptionField = styled.div`
@@ -48,6 +51,7 @@ export default function FormBuilderDescriptionField({ description, handleFormDes
         useEffect(() => {
             if (demo.current) {
                 try {
+                    // @ts-ignore
                     const str = mermaid.render(demoid.current, code, () => null, demo.current);
                     // @ts-ignore
                     demo.current.innerHTML = str;

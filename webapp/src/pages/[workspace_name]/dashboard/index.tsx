@@ -72,14 +72,17 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
             <div className="min-h-9 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <p className="sh1">{t(formConstant.recentForms)}</p>
                 <div className="flex gap-3">
-                    <Button
-                        variant="solid"
-                        onClick={() => {
-                            router.push(`/${workspace.workspaceName}/dashboard/forms/create`);
-                        }}
-                    >
-                        Create Form
-                    </Button>
+                    {environments.ENABLE_FORM_BUILDER && (
+                        <Button
+                            variant="solid"
+                            onClick={() => {
+                                router.push(`/${workspace.workspaceName}/dashboard/forms/create`);
+                            }}
+                        >
+                            Create Form
+                        </Button>
+                    )}
+
                     <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
                 </div>
             </div>

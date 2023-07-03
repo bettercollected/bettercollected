@@ -10,6 +10,7 @@ import { toast } from 'react-toastify';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import Button from '@app/components/ui/button';
+import environments from '@app/configs/environments';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { formConstant } from '@app/constants/locales/form';
 import { getServerSidePropsForDashboardFormPage } from '@app/lib/serverSideProps';
@@ -97,6 +98,10 @@ export default function EditFromPage(props: any) {
 }
 
 export async function getServerSideProps(_context: any) {
+    if (!environments.ENABLE_FORM_BUILDER)
+        return {
+            notFound: true
+        };
     const globalProps = await getServerSidePropsForDashboardFormPage(_context);
     if (globalProps?.props?.form?.settings?.provider !== 'self') {
         return {

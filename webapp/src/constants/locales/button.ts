@@ -6,6 +6,7 @@ export const buttonConstant = {
     logout: 'BUTTON.LOGOUT',
     googleSignin: 'BUTTON.GOOGLE_SIGNIN',
     typeFormSignin: 'BUTTON.TYPEFORM_SIGNIN',
+    createForm: 'BUTTON.CREATE_FORM',
     createWorkspace: 'BUTTON.CREATE_WORKSPACE',
     updateWorkspace: 'BUTTON.UPDATE_WORKSPACE',
     next: 'BUTTON.NEXT',

@@ -228,7 +228,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         <div className={className + ' !text-black-900'} onClick={(e) => e.preventDefault()}>
             <MenuDropdown width={210} onClick={(e: any) => handleClick(e, form)} id="form-menu" menuTitle={t(toolTipConstant.formOptions)} menuContent={<EllipsisOption />} showExpandMore={false}>
                 {menuItemOpen}
-                {currentActiveForm?.form?.settings?.provider === 'self' && menuItemEdit}
+                {currentActiveForm?.form?.settings?.provider === 'self' && environments.ENABLE_FORM_BUILDER && menuItemEdit}
                 {!!currentActiveForm?.form?.settings?.private ? (
                     <Tooltip title={t(toolTipConstant.visibility)}>
                         <span>{menuItemPinSettings}</span>
