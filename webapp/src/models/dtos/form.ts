@@ -69,7 +69,7 @@ export interface StandardFormResponseDto {
     createdAt: string | Date;
     updatedAt: string | Date;
     formImportedBy?: string;
-    deletionStatus?: string;
+    status?: string;
     requestForDeletion?: boolean;
     dataOwnerIdentifier: string | null | undefined;
     responses: Array<{ questionId: string; answer: any }>;

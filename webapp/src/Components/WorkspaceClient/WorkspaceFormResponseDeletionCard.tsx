@@ -22,7 +22,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, isResponde
     const submittedAt = `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(response.updatedAt)))}`;
     const { t } = useTranslation();
     return (
-        <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px] border-brand-100 ${!!response?.deletionStatus ? '' : 'hover:border-brand-500'} transition cursor-pointer rounded ${className}`}>
+        <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px] border-brand-100 ${!!response?.status ? '' : 'hover:border-brand-500'} transition cursor-pointer rounded ${className}`}>
             <div className="rounded relative w-full px-4 py-6 flex min-h-28 flex-col gap-4 items-start justify-between">
                 <div className="rounded h-[34px] w-[34px]">
                     <FormProviderIcon provider={response?.provider} />
@@ -41,9 +41,9 @@ export default function WorkspaceFormResponseDeletionCard({ response, isResponde
                     </p>
                 </div>
 
-                {isResponderPortal && !!response?.deletionStatus && (
+                {isResponderPortal && !!response?.status && (
                     <Tooltip title="">
-                        <StatusBadge status={response?.deletionStatus || t(formConstant.status.pending)} />
+                        <StatusBadge status={response?.status || t(formConstant.status.pending)} />
                     </Tooltip>
                 )}
             </div>

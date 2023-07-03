@@ -141,7 +141,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 name: t(localesCommon.status),
                 selector: (row: StandardFormResponseDto) =>
                     Status({
-                        status: row?.deletionStatus || t(formConstant.status.pending),
+                        status: row?.status || t(formConstant.status.pending),
                         response: row
                     }),
                 grow: 2,
