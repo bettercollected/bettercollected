@@ -1,6 +1,6 @@
-from backend.version import __version__
-
 from pydantic import BaseSettings
+
+from backend.version import __version__
 
 
 class ApiSettings(BaseSettings):
@@ -12,6 +12,7 @@ class ApiSettings(BaseSettings):
     HOST: str = ""
     ALLOWED_COLLABORATORS = 10
     ALLOWED_WORKSPACES = 3
+    ENABLE_FORM_CREATION = False
 
     class Config:
         env_prefix = "API_"
