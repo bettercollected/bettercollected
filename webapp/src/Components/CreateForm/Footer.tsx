@@ -11,7 +11,7 @@ import { value } from 'dom7';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { QUESTION_TYPE } from '@app/components/form/renderer/form-renderer';
-import { deleteField, setFieldRequired, setFieldType } from '@app/store/create-form/slice';
+import { deleteField, setFieldRequired, setFieldType } from '@app/store/form-builder/slice';
 import { RootState } from '@app/store/store';
 
 interface FooterProps {

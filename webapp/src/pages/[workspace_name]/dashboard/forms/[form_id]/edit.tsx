@@ -16,8 +16,8 @@ import { getServerSidePropsForDashboardFormPage } from '@app/lib/serverSideProps
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
-import { resetForm, selectCreateForm, setEditForm } from '@app/store/create-form/slice';
-import { FormState } from '@app/store/create-form/types';
+import { resetForm, selectCreateForm, setEditForm } from '@app/store/form-builder/slice';
+import { FormState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchFormMutation, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 

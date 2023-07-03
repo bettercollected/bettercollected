@@ -99,7 +99,7 @@ export const Login = () => {
                 </div>
                 <div className="flex flex-col order-1 md:order-2 items-start justify-start px-8 py-7 md:py-8 md:px-[110px] h-fit md:h-full w-full md:w-[50%]">
                     <div className="mb-28">
-                        <Logo />
+                        <Logo isLink={false} />
                     </div>
                     <h3 className="h3 mb-4">{constants.heading3}</h3>
                     <p className="sh2 mb-12 !text-black-700">{constants.subHeading2}</p>

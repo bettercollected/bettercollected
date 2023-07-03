@@ -1,7 +1,7 @@
 import Footer from '@Components/CreateForm/Footer';
 import QuestionInput from '@Components/CreateForm/QuestionInput';
 
-import { FormFieldState } from '@app/store/create-form/types';
+import { FormFieldState } from '@app/store/form-builder/types';
 
 interface IFormFieldProps {
     field: FormFieldState;

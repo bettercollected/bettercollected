@@ -11,6 +11,9 @@ import ServerSideWorkspaceDispatcher from '@Components/HOCs/ServerSideWorkspaceD
 import { CacheProvider, EmotionCache, css } from '@emotion/react';
 import { GlobalStyles } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
+import '@uiw/react-markdown-preview/dist/markdown.min.css';
+import '@uiw/react-md-editor/dist/mdeditor.min.css';
+import 'katex/dist/katex.min.css';
 import ReactGA from 'react-ga4';
 import { Provider } from 'react-redux';
 import { ToastContainer } from 'react-toastify';

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 
 import BetterInput from '@app/components/Common/input';
-import { setFormTitle } from '@app/store/create-form/slice';
+import { setFormTitle } from '@app/store/form-builder/slice';
 
 interface IFormTitleProps {
     propertyValue?: string;

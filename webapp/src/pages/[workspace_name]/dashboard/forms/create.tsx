@@ -10,12 +10,14 @@ import { toast } from 'react-toastify';
 
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
+import environments from '@app/configs/environments';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { formConstant } from '@app/constants/locales/form';
+import FormBuilder from '@app/containers/FormBuilder';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
-import { resetForm, selectCreateForm } from '@app/store/create-form/slice';
-import { FormFieldState, FormState } from '@app/store/create-form/types';
+import { resetForm, selectCreateForm } from '@app/store/form-builder/slice';
+import { FormState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateFormMutation } from '@app/store/workspaces/api';
 
@@ -65,7 +67,11 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
         }
     };
 
-    return (
+    return environments.ENABLE_COMMAND_FORM_BUILDERS ? (
+        <DashboardLayout sidebarClassName="!px-0" dashboardContentClassName="!py-0 w-full h-full">
+            <FormBuilder formData={{}} formId="dummyId" />
+        </DashboardLayout>
+    ) : (
         <DashboardLayout>
             <BreadcrumbsRenderer items={breadcrumbsItem} />
             <div className="w-full flex justify-end lg:max-w-[800px]">
