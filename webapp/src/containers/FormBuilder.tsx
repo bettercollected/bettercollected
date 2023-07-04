@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import DragHandleIcon from '@Components/Common/Icons/DragHandle';
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
 import { StrictModeDroppable } from '@Components/FormBuilder/StrictModeDroppable';
-import FormBuilderDescriptionField from '@Components/FormBuilder/TitleAndDescription/FormBuilderDescriptionField';
 import FormBuilderTitleInput from '@Components/FormBuilder/TitleAndDescription/FormBuilderTitleInput';
 import FormBuilderHotkeysHookListener from '@Components/HOCs/FormBuilderHotkeysHookListener';
 import {
@@ -113,7 +112,6 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
         const newBlock = {
             id: uuidv4(),
             tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-            type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
             html: builderConstants.BuilderContentPlaceholder,
             placeholder: true,
             isTyping: false,
@@ -142,7 +140,6 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
             const newBlock = {
                 id: uuidv4(),
                 tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-                type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
                 html: builderConstants.BuilderContentPlaceholder,
                 placeholder: true,
                 isTyping: false,
@@ -199,23 +196,7 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
                                 <div {...provided.droppableProps} ref={provided.innerRef}>
                                     {blocks.map((block: any) => {
                                         const position = blocks.map((b: any) => b.id).indexOf(block.id) + 1;
-                                        return (
-                                            <FormBuilderBlock
-                                                block={block}
-                                                key={block.id}
-                                                position={position}
-                                                id={block.id}
-                                                type={block.type}
-                                                tag={block.tag}
-                                                html={block.html}
-                                                imageUrl={block.imageUrl}
-                                                formId={formId}
-                                                dispatch={dispatch}
-                                                addBlock={addBlockHandler}
-                                                deleteBlock={deleteBlockHandler}
-                                                updateBlock={updateBlockHandler}
-                                            />
-                                        );
+                                        return <FormBuilderBlock field={block} key={block.id} position={position} dispatch={dispatch} addBlock={addBlockHandler} deleteBlock={deleteBlockHandler} updateBlock={updateBlockHandler} />;
                                     })}
                                     {provided.placeholder}
                                 </div>

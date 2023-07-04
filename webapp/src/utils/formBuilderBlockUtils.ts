@@ -7,15 +7,7 @@ export function extractFormBuilderTagNames() {}
 export function mapFormBuilderTagNames() {}
 
 export function isContentEditableTag(tag: string): boolean {
-    const editableTags: Array<string> = [
-        FormBuilderTagNames.LAYOUT_HEADER1 as string,
-        FormBuilderTagNames.LAYOUT_HEADER2 as string,
-        FormBuilderTagNames.LAYOUT_HEADER3 as string,
-        FormBuilderTagNames.LAYOUT_HEADER4 as string,
-        FormBuilderTagNames.LAYOUT_HEADER5 as string,
-        FormBuilderTagNames.LAYOUT_SHORT_TEXT as string,
-        FormBuilderTagNames.LAYOUT_LABEL as string
-    ];
+    const editableTags: Array<string> = [FormBuilderTagNames.LAYOUT_SHORT_TEXT as string];
     return editableTags.includes(tag);
 }
 
@@ -25,7 +17,7 @@ export function isContentEditableTag(tag: string): boolean {
  * @param tag - tagName
  */
 export function contentEditableClassNames(isPlaceholder: boolean, tag: string = FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
-    let className = '';
+    let className = 'outline-none placeholder-gray-400 ';
     if (isPlaceholder) className += 'text-neutral-200';
     else className += 'text-neutral-800';
 

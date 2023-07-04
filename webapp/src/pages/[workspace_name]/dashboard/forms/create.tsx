@@ -55,21 +55,27 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
     }, []);
 
     const onSave = async () => {
-        const postRequest: any = {};
-        postRequest.title = createForm.title;
-        postRequest.description = createForm.description;
-        postRequest.fields = Object.values(createForm.fields);
-        const response: any = await postCreateForm({ workspaceId: workspace.id, body: postRequest });
-        if (response?.data) {
-            toast('Form created!!', { type: 'success' });
-            await router.push(`/${locale}${workspace?.workspaceName}/dashboard`);
-        } else {
-            toast('Error creating form', { type: 'error' });
-        }
+        console.log(createForm.fields);
+        // const postRequest: any = {};
+        // postRequest.title = createForm.title;
+        // postRequest.description = createForm.description;
+        // postRequest.fields = Object.values(createForm.fields);
+        // const response: any = await postCreateForm({ workspaceId: workspace.id, body: postRequest });
+        // if (response?.data) {
+        //     toast('Form created!!', { type: 'success' });
+        //     await router.push(`/${locale}${workspace?.workspaceName}/dashboard`);
+        // } else {
+        //     toast('Error creating form', { type: 'error' });
+        // }
     };
 
     return environments.ENABLE_COMMAND_FORM_BUILDERS ? (
         <DashboardLayout sidebarClassName="!px-0" dashboardContentClassName="!py-0 w-full h-full bg-white">
+            <div className="bg-white flex justify-start pt-10 pl-10 lg:max-w-[800px]">
+                <Button variant="outlined" onClick={onSave}>
+                    Save
+                </Button>
+            </div>
             <FormBuilder formData={{}} formId="dummyId" />
         </DashboardLayout>
     ) : (

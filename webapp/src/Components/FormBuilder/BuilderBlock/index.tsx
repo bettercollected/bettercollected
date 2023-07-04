@@ -1,11 +1,8 @@
 import React from 'react';
 
-import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { Popover } from '@mui/material';
 import { Draggable } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 
-import { Menu } from '@app/components/ui/menu';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addField } from '@app/store/form-builder/slice';
 import { contentEditableClassNames, isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
@@ -16,19 +13,27 @@ import FormBuilderTagSelector from './FormBuilderTagSelector';
 
 const CMD_KEY = '/';
 
-export default class FormBuilderBlock extends React.Component<any, any> {
+interface IFormBuilderBlockProps {
+    field: any;
+    position: any;
+    dispatch: any;
+    addBlock: any;
+    deleteBlock: any;
+    updateBlock: any;
+}
+
+export default class FormBuilderBlock extends React.Component<IFormBuilderBlockProps, any> {
     contentEditable: any = React.createRef();
     fileInput: any = null;
     textInput: any = null;
 
-    constructor(props: any) {
+    constructor(props: IFormBuilderBlockProps) {
         super(props);
         this.state = {
             htmlBackup: null,
-            html: props.html || 'Type / to open commands',
-            tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-            type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-            imageUrl: '',
+            html: props.field.html || 'Type / to open commands',
+            tag: this.props.field.tag || FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+            imageUrl: props.field.imageUrl || '',
             placeholder: true,
             isTyping: false,
             previousKey: null,
@@ -42,35 +47,33 @@ export default class FormBuilderBlock extends React.Component<any, any> {
     componentDidMount() {
         // Add a placeholder if the first block has no sibling elements and no content
         const hasPlaceholder = this.addPlaceholder({
-            content: this.props.html || this.props.imageUrl
+            content: this.props.field.html || this.props.field.imageUrl
         });
         if (!hasPlaceholder) {
             this.setState({
                 ...this.state,
-                html: this.props.html,
-                tag: this.props.tag,
-                type: this.props.type,
-                imageUrl: this.props.imageUrl
+                html: this.props.field.html,
+                tag: this.props.field.tag,
+                imageUrl: this.props.field.imageUrl
             });
         }
     }
 
-    componentDidUpdate(prevProps: any, prevState: any) {
+    componentDidUpdate(prevProps: IFormBuilderBlockProps, prevState: any) {
         // update the page on the server if one of the following is true
         // 1. user stopped typing and the html content has changed & no placeholder set
         // 2. user changed the tag & no placeholder set
         // 3. user changed the image & no placeholder set
         const stoppedTyping = prevState.isTyping && !this.state.isTyping;
         const hasNoPlaceholder = !this.state.placeholder;
-        const htmlChanged = this.props.html !== this.state.html;
-        const tagChanged = this.props.tag !== this.state.tag;
-        const imageChanged = this.props.imageUrl !== this.state.imageUrl;
+        const htmlChanged = this.props.field.html !== this.state.html;
+        const tagChanged = this.props.field.tag !== this.state.tag;
+        const imageChanged = this.props.field.imageUrl !== this.state.imageUrl;
         if (((stoppedTyping && htmlChanged) || tagChanged || imageChanged) && hasNoPlaceholder) {
             this.props.updateBlock({
-                id: this.props.id,
+                id: this.props.field.id,
                 html: this.state.html,
                 tag: this.state.tag,
-                type: this.state.type,
                 imageUrl: this.state.imageUrl
             });
         }
@@ -87,7 +90,6 @@ export default class FormBuilderBlock extends React.Component<any, any> {
                 ...this.state,
                 html: 'Type / to open commands',
                 tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-                type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
                 imageUrl: '',
                 placeholder: true,
                 isTyping: false
@@ -118,9 +120,7 @@ export default class FormBuilderBlock extends React.Component<any, any> {
 
     handleChange = (e: any) => {
         this.setState({ ...this.state, html: e.target.value });
-        if (this.props.tag === FormBuilderTagNames.LAYOUT_HEADER1 || this.props.tag === FormBuilderTagNames.LAYOUT_HEADER2 || this.props.tag === FormBuilderTagNames.LAYOUT_HEADER3) {
-            this.props.dispatch(addField({ ...this.props.block }));
-        }
+        this.props.dispatch(addField({ ...this.props.field, html: e.target.value }));
     };
 
     handleFocus = () => {
@@ -154,14 +154,14 @@ export default class FormBuilderBlock extends React.Component<any, any> {
             // after the content type selection was finished.
             this.setState({ htmlBackup: this.state.html });
         } else if (e.key === 'Backspace' && !this.state.html) {
-            this.props.deleteBlock({ id: this.props.id });
+            this.props.deleteBlock({ id: this.props.field.id });
         } else if (e.key === 'Enter' && this.state.previousKey !== 'Shift' && !this.state.tagSelectorMenuOpen) {
             // If the user presses Enter, we want to add a new block
             // Only the Shift-Enter-combination should add a new paragraph,
             // i.e. Shift-Enter acts as the default enter behaviour
             e.preventDefault();
             this.props.addBlock({
-                id: this.props.id,
+                id: this.props.field.id,
                 html: this.state.html,
                 tag: this.state.tag,
                 imageUrl: this.state.imageUrl,
@@ -246,18 +246,15 @@ export default class FormBuilderBlock extends React.Component<any, any> {
     // i.e. img = display <div><input /><img /></div> (input picker is hidden)
     // i.e. every other tag = <ContentEditable /> with its tag and html content
     handleTagSelection = (tag: any) => {
-        if (tag === FormBuilderTagNames.EMBED_IMAGE || tag === FormBuilderTagNames.INPUT_SHORT_TEXT) {
+        if (tag !== FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
             this.setState({ ...this.state, tag: tag }, () => {
                 this.closeTagSelectorMenu();
                 // Add new block so that the user can continue writing
                 // after adding an image
-                this.props.addBlock({
-                    id: this.props.id,
+                this.props.updateBlock({
+                    id: this.props.field.id,
                     ref: this.contentEditable.current,
-                    html: 'Type / to open commands',
-                    tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-                    imageUrl: '',
-                    placeholder: true
+                    tag: tag
                 });
             });
         } else {
@@ -276,7 +273,7 @@ export default class FormBuilderBlock extends React.Component<any, any> {
 
     render(): React.ReactNode {
         return (
-            <Draggable draggableId={this.props.id} index={this.props.position}>
+            <Draggable draggableId={this.props.field.id} index={this.props.position}>
                 {(provided: any) => (
                     <div
                         ref={provided.innerRef}
@@ -290,9 +287,9 @@ export default class FormBuilderBlock extends React.Component<any, any> {
                         {...provided.draggableProps}
                     >
                         <div className="builder-block px-5 md:px-[89px]">
-                            <FormBuilderActionMenu id={this.props.id} provided={provided} addBlock={this.props.addBlock} deleteBlock={this.props.deleteBlock} className={this.state.isFocused ? 'visible' : 'invisible'} />
+                            <FormBuilderActionMenu id={this.props.field.id} provided={provided} addBlock={this.props.addBlock} deleteBlock={this.props.deleteBlock} className={this.state.isFocused ? 'visible' : 'invisible'} />
                             {!isContentEditableTag(this.state.tag) ? (
-                                <FormBuilderBlockContent tag={this.state.tag} position={this.props.position} reference={this.contentEditable} />
+                                <FormBuilderBlockContent tag={this.state.tag} position={this.props.position} reference={this.contentEditable} field={this.props.field} />
                             ) : (
                                 <div className="flex flex-col w-full">
                                     <div className={`w-full px-0 flex items-center min-h-[40px]`}>
