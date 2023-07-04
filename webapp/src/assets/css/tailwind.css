@@ -403,3 +403,11 @@ p {
 
     color: #000000;
 }
+
+.builder-block {
+    @apply relative my-3 flex w-full;
+}
+
+.builder-block:hover .builder-block-actions {
+    @apply visible !important;
+}

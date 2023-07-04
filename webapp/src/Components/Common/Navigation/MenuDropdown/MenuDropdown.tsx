@@ -9,7 +9,7 @@ interface IMenuDropdownProps {
     id: string;
     menuTitle: string;
     menuContent: React.ReactNode | React.ReactNode[];
-    children: React.ReactNode | React.ReactNode[];
+    children?: React.ReactNode | React.ReactNode[];
     width?: number;
     className?: string;
     onClick?: any;
@@ -22,6 +22,7 @@ interface IMenuDropdownProps {
     PaperProps?: Partial<PaperProps>;
     transformOrigin?: PopoverOrigin;
     anchorOrigin?: PopoverOrigin;
+    hasMenu?: boolean;
 }
 
 const defaultPaperProps: PaperProps = {
@@ -54,7 +55,8 @@ export default function MenuDropdown({
     showExpandMore = true,
     PaperProps = defaultPaperProps,
     transformOrigin = defaultTransformOrigin,
-    anchorOrigin = defaultAnchorOrigin
+    anchorOrigin = defaultAnchorOrigin,
+    hasMenu = true
 }: IMenuDropdownProps) {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
@@ -92,9 +94,11 @@ export default function MenuDropdown({
                     )}
                 </IconButton>
             </Tooltip>
-            <Menu id={id} anchorEl={anchorEl} open={open} onClose={handleClose} onClick={handleClose} draggable disableScrollLock={true} PaperProps={PaperProps} transformOrigin={transformOrigin} anchorOrigin={anchorOrigin}>
-                {children}
-            </Menu>
+            {hasMenu && typeof children !== 'undefined' && (
+                <Menu id={id} anchorEl={anchorEl} open={open} onClose={handleClose} onClick={handleClose} draggable disableScrollLock={true} PaperProps={PaperProps} transformOrigin={transformOrigin} anchorOrigin={anchorOrigin}>
+                    {children}
+                </Menu>
+            )}
         </>
     );
 }

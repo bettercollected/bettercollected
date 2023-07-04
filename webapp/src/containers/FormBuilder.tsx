@@ -184,10 +184,12 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
     };
 
     return (
-        <div className="min-h-calc-68 w-full bg-white px-5 lg:px-10 py-10">
-            <h1 className="sh1">Start building your form</h1>
-            <p className="body4">Click anywhere and start typing</p>
-            <FormBuilderTitleInput title={formTitle} handleFormTitleChange={(e: any) => setFormTitle(e.target.value)} />
+        <div className="min-h-calc-68 w-full max-w-4xl mx-auto py-10">
+            <h1 className="sh1 px-5 md:px-[89px]">Start building your form</h1>
+            <p className="body4 px-5 md:px-[89px]">Click anywhere and start typing</p>
+            <div className="px-5 md:px-[89px]">
+                <FormBuilderTitleInput title={formTitle} handleFormTitleChange={(e: any) => setFormTitle(e.target.value)} />
+            </div>
             {/* TODO: Fix description component */}
             <HotkeysProvider initiallyActiveScopes={['builder']}>
                 <FormBuilderHotkeysHookListener scopes="builder">
@@ -222,7 +224,7 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
                     </DragDropContext>
                     {/* TODO: Don't use below. This is for testing only and don't remove it as well */}
                     <DragDropContext onDragStart={onTestDragStartHandler} onDragUpdate={onTestDragUpdateHandler} onDragEnd={onTestDragEndHandler}>
-                        <div className="flex flex-row">
+                        <div className="flex flex-row px-5 md:px-[89px]">
                             {state.columnOrder.map((columnId: string, index: number) => {
                                 const column = state.columns[columnId];
                                 const tasks = column.tasks.map((taskId: string) => state.tasks[taskId]);

@@ -289,13 +289,13 @@ export default class FormBuilderBlock extends React.Component<any, any> {
                         }}
                         {...provided.draggableProps}
                     >
-                        <div className="flex flex-col my-6 md:flex-row w-full">
-                            <FormBuilderActionMenu id={this.props.id} provided={provided} addBlock={this.props.addBlock} deleteBlock={this.props.deleteBlock} />
+                        <div className="builder-block px-5 md:px-[89px]">
+                            <FormBuilderActionMenu id={this.props.id} provided={provided} addBlock={this.props.addBlock} deleteBlock={this.props.deleteBlock} className={this.state.isFocused ? 'visible' : 'invisible'} />
                             {!isContentEditableTag(this.state.tag) ? (
                                 <FormBuilderBlockContent tag={this.state.tag} position={this.props.position} reference={this.contentEditable} />
                             ) : (
                                 <div className="flex flex-col w-full">
-                                    <div className={`mb-4 w-full ${this.state.isFocused ? 'border-b-[1px] border-neutral-200' : 'border-white'} px-0 pb-2 hover:border-indigo-500`}>
+                                    <div className={`w-full px-0 flex items-center min-h-[40px]`}>
                                         <ContentEditable
                                             innerRef={this.contentEditable}
                                             data-position={this.props.position}

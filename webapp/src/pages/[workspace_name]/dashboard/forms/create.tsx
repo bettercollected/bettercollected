@@ -69,7 +69,7 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
     };
 
     return environments.ENABLE_COMMAND_FORM_BUILDERS ? (
-        <DashboardLayout sidebarClassName="!px-0" dashboardContentClassName="!py-0 w-full h-full">
+        <DashboardLayout sidebarClassName="!px-0" dashboardContentClassName="!py-0 w-full h-full bg-white">
             <FormBuilder formData={{}} formId="dummyId" />
         </DashboardLayout>
     ) : (
