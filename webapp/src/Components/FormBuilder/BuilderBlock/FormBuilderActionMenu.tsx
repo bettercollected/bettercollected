@@ -32,7 +32,17 @@ const FormBuilderActionMenu = ({ id, provided, addBlock, deleteBlock }: any) => 
     // const optionsMenu = <Menu items={optionsMenuItems.length === 0 ? [noOptionsObj] : [...optionsMenuItems]} />;
 
     return (
-        <div className="flex justify-start items-start rounded-sm h-fit w-fit p-[0.5px] mr-3">
+        <div className="flex justify-start items-center rounded-sm h-fit w-fit p-[0.5px] mr-3">
+            <Tooltip title="Add a new block">
+                <div
+                    role="button"
+                    tabIndex={0}
+                    className="flex items-center justify-center rounded-sm mr-0.5 p-1 h-fit text-neutral-400 border-[0.5px] border-transparent border-dashed hover:border-indigo-500 hover:text-indigo-500"
+                    onClick={() => deleteBlock(id)}
+                >
+                    <DeleteOutlined />
+                </div>
+            </Tooltip>
             <Tooltip title="Add a new block">
                 <div
                     role="button"
@@ -53,10 +63,10 @@ const FormBuilderActionMenu = ({ id, provided, addBlock, deleteBlock }: any) => 
             <Tooltip title="Drag this block">
                 <div
                     tabIndex={0}
-                    className="flex items-center h-5 w-5 justify-center cursor-pointer rounded-sm p-1 text-neutral-400 border-[0.5px] border-transparent border-dashed hover:border-neutral-500 hover:text-neutral-500"
+                    className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400 border-[0.5px] border-transparent border-dashed hover:border-neutral-500 hover:text-neutral-500"
                     {...provided.dragHandleProps}
                 >
-                    <DragHandleIcon />
+                    <DragHandleIcon width={40} height={40} />
                 </div>
             </Tooltip>
         </div>

@@ -7,6 +7,7 @@ import ContentEditable from 'react-contenteditable';
 
 import { Menu } from '@app/components/ui/menu';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { addField } from '@app/store/form-builder/slice';
 import { contentEditableClassNames, isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
 
 import FormBuilderActionMenu from './FormBuilderActionMenu';
@@ -24,8 +25,9 @@ export default class FormBuilderBlock extends React.Component<any, any> {
         super(props);
         this.state = {
             htmlBackup: null,
-            html: 'Type / to open commands',
+            html: props.html || 'Type / to open commands',
             tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+            type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
             imageUrl: '',
             placeholder: true,
             isTyping: false,
@@ -40,8 +42,6 @@ export default class FormBuilderBlock extends React.Component<any, any> {
     componentDidMount() {
         // Add a placeholder if the first block has no sibling elements and no content
         const hasPlaceholder = this.addPlaceholder({
-            block: this.contentEditable.current,
-            position: this.props.position,
             content: this.props.html || this.props.imageUrl
         });
         if (!hasPlaceholder) {
@@ -49,6 +49,7 @@ export default class FormBuilderBlock extends React.Component<any, any> {
                 ...this.state,
                 html: this.props.html,
                 tag: this.props.tag,
+                type: this.props.type,
                 imageUrl: this.props.imageUrl
             });
         }
@@ -69,6 +70,7 @@ export default class FormBuilderBlock extends React.Component<any, any> {
                 id: this.props.id,
                 html: this.state.html,
                 tag: this.state.tag,
+                type: this.state.type,
                 imageUrl: this.state.imageUrl
             });
         }
@@ -79,14 +81,13 @@ export default class FormBuilderBlock extends React.Component<any, any> {
         document.removeEventListener('click', this.closeActionMenu, false);
     }
 
-    addPlaceholder = ({ block, position, content }: any) => {
-        const isFirstBlockWithoutHtml = position === 1 && !content;
-        const isFirstBlockWithoutSibling = block && !block.parentElement.nextElementSibling;
-        if (isFirstBlockWithoutHtml && isFirstBlockWithoutSibling) {
+    addPlaceholder = ({ content }: any) => {
+        if (!content) {
             this.setState({
                 ...this.state,
                 html: 'Type / to open commands',
                 tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+                type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
                 imageUrl: '',
                 placeholder: true,
                 isTyping: false
@@ -117,6 +118,9 @@ export default class FormBuilderBlock extends React.Component<any, any> {
 
     handleChange = (e: any) => {
         this.setState({ ...this.state, html: e.target.value });
+        if (this.props.tag === FormBuilderTagNames.LAYOUT_HEADER1 || this.props.tag === FormBuilderTagNames.LAYOUT_HEADER2 || this.props.tag === FormBuilderTagNames.LAYOUT_HEADER3) {
+            this.props.dispatch(addField({ ...this.props.block }));
+        }
     };
 
     handleFocus = () => {
@@ -136,8 +140,6 @@ export default class FormBuilderBlock extends React.Component<any, any> {
     handleBlur = () => {
         // Show placeholder if block is still the only one and empty
         const hasPlaceholder = this.addPlaceholder({
-            block: this.contentEditable.current,
-            position: this.props.position,
             content: this.state.html || this.state.imageUrl
         });
         if (!hasPlaceholder) {

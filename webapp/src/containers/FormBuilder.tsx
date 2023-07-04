@@ -26,6 +26,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 import builderConstants from '@app/constants/builder';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { addField, deleteField, selectFormBuilderFields, setFields } from '@app/store/form-builder/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 // TODO: this is for test
 const Column = ({ column, tasks }: any) => {
@@ -61,6 +63,7 @@ interface IFormBuilderProps {
 }
 
 export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
+    const dispatch = useAppDispatch();
     const initialData = {
         tasks: {
             'task-1': { id: 'task-1', content: 'Task 1' },
@@ -86,29 +89,31 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
     const [state, setState] = useState<{ tasks: any; columns: any; columnOrder: Array<string> }>({ ...initialData });
 
     const [formTitle, setFormTitle] = useState(formData?.title ?? builderConstants.FormTitle);
-    const [formDescription, setFormDescription] = useState(formData?.description ?? builderConstants.FormDescription);
-    const [blocks, setBlocks] = useState<any>([]);
 
-    const onDragEndHandler: OnDragEndResponder = (result: DropResult, provided: ResponderProvided) => {
-        const { destination, source } = result;
-        // If we don't have a destination (due to dropping outside the droppable)
-        // or the destination hasn't changed, we change nothing
-        if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
+    const formFields = useAppSelector(selectFormBuilderFields);
+
+    const blocks: any = Object.values(formFields);
+
+    const reorder = (list: Array<any>, startIndex: number, endIndex: number) => {
+        const result = Array.from(list);
+        const [removed] = result.splice(startIndex - 1, 1);
+        result.splice(endIndex - 1, 0, removed);
+        return result;
+    };
+
+    const onDragEndHandler: OnDragEndResponder = (result: DropResult) => {
+        if (!result.destination) {
             return;
         }
-
-        const updatedBlocks = [...blocks];
-        const removedBlocks = updatedBlocks.splice(source.index - 1, 1);
-        updatedBlocks.splice(destination.index - 1, 0, removedBlocks[0]);
-        setBlocks(updatedBlocks);
+        const items = reorder(blocks, result.source.index, result.destination.index);
+        dispatch(setFields(items));
     };
 
     const addBlockHandler = (block: any) => {
-        const index = blocks.length - 1;
-        const updatedBlocks = [...blocks];
         const newBlock = {
             id: uuidv4(),
             tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+            type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
             html: builderConstants.BuilderContentPlaceholder,
             placeholder: true,
             isTyping: false,
@@ -118,37 +123,18 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
             // properties: {},
             // validations: {},
         };
-        updatedBlocks.splice(index + 1, 0, newBlock);
-        updatedBlocks[index] = {
-            ...updatedBlocks[index],
-            tag: block.tag,
-            html: block.html
-            // type: block.type,
-            // content: block.content,
-        };
-        setBlocks(updatedBlocks);
+        dispatch(addField(newBlock));
+        // setBlocks(updatedBlocks);
     };
 
-    const deleteBlockHandler = (block: any) => {
+    const deleteBlockHandler = (id: string) => {
         if (blocks.length > 1) {
-            const index = blocks.map((b: any) => b.id).indexOf(block.id);
-            const updatedBlocks = [...blocks];
-            updatedBlocks.splice(index, 1);
-            setBlocks(updatedBlocks);
+            dispatch(deleteField(id));
         }
     };
 
     const updateBlockHandler = (block: any) => {
-        const index = blocks.map((b: any) => b.id).indexOf(block.id);
-        const updatedBlocks = [...blocks];
-        updatedBlocks[index] = {
-            ...updatedBlocks[index],
-            tag: block.tag,
-            html: block.html
-            // type: block.type,
-            // content: block.content,
-        };
-        setBlocks(updatedBlocks);
+        dispatch(addField(block));
     };
 
     useEffect(() => {
@@ -156,6 +142,7 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
             const newBlock = {
                 id: uuidv4(),
                 tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+                type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
                 html: builderConstants.BuilderContentPlaceholder,
                 placeholder: true,
                 isTyping: false,
@@ -165,9 +152,10 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
                 // properties: {},
                 // validations: {},
             };
-            setBlocks([{ ...newBlock }]);
+            dispatch(addField(newBlock));
+            // setBlocks([{ ...newBlock }]);
         }
-    }, [blocks.length]);
+    }, [blocks]);
 
     // Don't remove these methods
     const onTestDragStartHandler: OnDragStartResponder = (start: DragStart, provided: ResponderProvided) => {};
@@ -201,12 +189,6 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
             <p className="body4">Click anywhere and start typing</p>
             <FormBuilderTitleInput title={formTitle} handleFormTitleChange={(e: any) => setFormTitle(e.target.value)} />
             {/* TODO: Fix description component */}
-            {/* <FormBuilderDescriptionField
-                description={formDescription}
-                handleFormDescriptionChange={(e: any) => {
-                    setFormDescription(e);
-                }}
-            /> */}
             <HotkeysProvider initiallyActiveScopes={['builder']}>
                 <FormBuilderHotkeysHookListener scopes="builder">
                     <DragDropContext onDragEnd={onDragEndHandler}>
@@ -217,13 +199,16 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
                                         const position = blocks.map((b: any) => b.id).indexOf(block.id) + 1;
                                         return (
                                             <FormBuilderBlock
+                                                block={block}
                                                 key={block.id}
                                                 position={position}
                                                 id={block.id}
+                                                type={block.type}
                                                 tag={block.tag}
                                                 html={block.html}
                                                 imageUrl={block.imageUrl}
                                                 formId={formId}
+                                                dispatch={dispatch}
                                                 addBlock={addBlockHandler}
                                                 deleteBlock={deleteBlockHandler}
                                                 updateBlock={updateBlockHandler}
@@ -235,7 +220,6 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
                             )}
                         </StrictModeDroppable>
                     </DragDropContext>
-
                     {/* TODO: Don't use below. This is for testing only and don't remove it as well */}
                     <DragDropContext onDragStart={onTestDragStartHandler} onDragUpdate={onTestDragUpdateHandler} onDragEnd={onTestDragEndHandler}>
                         <div className="flex flex-row">

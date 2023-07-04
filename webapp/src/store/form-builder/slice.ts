@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import ansiRegex from 'ansi-regex';
 import ObjectID from 'bson-objectid';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
@@ -50,12 +51,11 @@ export const slice = createSlice({
             };
         },
         addField: (state, action) => {
-            const id: string = new ObjectID().toString();
             return {
                 ...state,
                 fields: {
                     ...state.fields,
-                    [id]: getInitialFieldDto(id, action.payload)
+                    [action.payload.id]: action.payload
                 }
             };
         },
@@ -111,6 +111,16 @@ export const slice = createSlice({
                     }
                 }
             };
+        },
+        setFields: (state, action) => {
+            const fields: any = {};
+            action.payload.forEach((field: any, index: number) => {
+                fields[field.id] = field;
+            });
+            return {
+                ...state,
+                fields: fields
+            };
         }
     }
 });
@@ -128,6 +138,8 @@ const reducerObj = { reducerPath: slice.name, reducer: createFormReducer };
 
 export const selectCreateForm = (state: RootState) => state.createForm;
 
-export const { setEditForm, resetForm, deleteField, setFieldDescription, setFieldRequired, setFieldTitle, setFormDescription, setFieldType, addField, setFormTitle } = slice.actions;
+export const selectFormBuilderFields = (state: RootState) => state.createForm.fields;
+
+export const { setFields, setEditForm, resetForm, deleteField, setFieldDescription, setFieldRequired, setFieldTitle, setFormDescription, setFieldType, addField, setFormTitle } = slice.actions;
 
 export default reducerObj;
