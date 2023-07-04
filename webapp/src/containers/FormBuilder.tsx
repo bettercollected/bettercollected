@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { BaseSyntheticEvent, useEffect, useState } from 'react';
 
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
 import { StrictModeDroppable } from '@Components/FormBuilder/StrictModeDroppable';
-import FormBuilderTitleInput from '@Components/FormBuilder/TitleAndDescription/FormBuilderTitleInput';
 import FormBuilderHotkeysHookListener from '@Components/HOCs/FormBuilderHotkeysHookListener';
+import TextField from '@mui/material/TextField';
 import { DragDropContext, DragStart, DragUpdate, DropResult, DroppableProvided, DroppableStateSnapshot, OnDragEndResponder, OnDragStartResponder, OnDragUpdateResponder, ResponderProvided } from 'react-beautiful-dnd';
 import { HotkeysProvider } from 'react-hotkeys-hook';
 import { v4 as uuidV4 } from 'uuid';
@@ -21,7 +21,7 @@ interface IFormBuilderProps {
 export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
     const dispatch = useAppDispatch();
 
-    const [formTitle, setFormTitle] = useState(formData?.title ?? builderConstants.FormTitle);
+    const [formTitle, setFormTitle] = useState(formData?.title ?? '');
 
     const formFields = useAppSelector(selectFormBuilderFields);
 
@@ -95,7 +95,29 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
     return (
         <div className="min-h-calc-68 w-full max-w-4xl mx-auto py-10">
             <div className="px-5 md:px-[89px]">
-                <FormBuilderTitleInput title={formTitle} handleFormTitleChange={(e: any) => setFormTitle(e.target.value)} />
+                <TextField
+                    required
+                    fullWidth
+                    margin="none"
+                    value={formTitle}
+                    placeholder="Form title"
+                    variant="standard"
+                    inputMode="text"
+                    inputProps={{
+                        style: {
+                            padding: '0 0 8px 0',
+                            fontSize: 30,
+                            fontWeight: 600,
+                            content: 'none',
+                            letterSpacing: 1
+                        }
+                    }}
+                    InputProps={{ sx: { ':before': { content: 'none' } } }}
+                    size="medium"
+                    onChange={(e: BaseSyntheticEvent) => {
+                        setFormTitle(e.target.value);
+                    }}
+                />
             </div>
             <HotkeysProvider initiallyActiveScopes={['builder']}>
                 <FormBuilderHotkeysHookListener scopes="builder">
