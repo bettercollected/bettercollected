@@ -4,6 +4,7 @@ import EndAdornmentInputField from '@Components/FormBuilder/EndAdornmentInputFIe
 import HeaderInputBlock from '@Components/FormBuilder/HeaderInputBlock';
 import LongText from '@Components/FormBuilder/LongText';
 import MatrixField from '@Components/FormBuilder/MatrixField';
+import MultipleChoice from '@Components/FormBuilder/MultipleChoice';
 import RatingField from '@Components/FormBuilder/RatingField';
 import StartAdornmentInputField from '@Components/FormBuilder/StartAdornmentInputField';
 
@@ -35,14 +36,11 @@ export default function FormBuilderBlockContent({ tag, position, reference, fiel
                 return <EndAdornmentInputField type="date" />;
             case FormBuilderTagNames.INPUT_PHONE_NUMBER:
                 return <EndAdornmentInputField type="phone_number" />;
-            case FormBuilderTagNames.INPUT_CHECKBOXES:
-                return <StartAdornmentInputField type="checkbox" />;
-            case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
-                return <StartAdornmentInputField type="choice" />;
-            case FormBuilderTagNames.INPUT_DROPDOWN:
-                return <StartAdornmentInputField type="dropdown" />;
-            case FormBuilderTagNames.INPUT_RANKING:
-                return <StartAdornmentInputField type="ranking" />;
+            case FormBuilderTagNames.QUESTION_CHECKBOXES:
+            case FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE:
+            case FormBuilderTagNames.QUESTION_DROPDOWN:
+            case FormBuilderTagNames.QUESTION_RANKING:
+                return <MultipleChoice field={field} />;
             case FormBuilderTagNames.INPUT_RATING:
                 return <RatingField number={10} />;
             case FormBuilderTagNames.INPUT_MATRIX:

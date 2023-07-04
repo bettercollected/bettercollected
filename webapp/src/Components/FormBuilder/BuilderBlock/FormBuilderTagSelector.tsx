@@ -61,22 +61,22 @@ const allowedTags = [
         type: BlockTypes.INPUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.INPUT_CHECKBOXES,
-        tag: FormBuilderTagNames.INPUT_CHECKBOXES,
+        id: FormBuilderTagNames.QUESTION_CHECKBOXES,
+        tag: FormBuilderTagNames.QUESTION_CHECKBOXES,
         label: 'Checkboxes',
         icon: <CheckBoxOutlineBlankIcon />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.INPUT_MULTIPLE_CHOICE,
-        tag: FormBuilderTagNames.INPUT_MULTIPLE_CHOICE,
+        id: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
+        tag: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
         label: 'Multiple Choice',
         icon: <RadioButtonUncheckedIcon />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.INPUT_DROPDOWN,
-        tag: FormBuilderTagNames.INPUT_DROPDOWN,
+        id: FormBuilderTagNames.QUESTION_DROPDOWN,
+        tag: FormBuilderTagNames.QUESTION_DROPDOWN,
         label: 'Dropdown',
         icon: <ArrowDropDown />,
         type: BlockTypes.INPUT_BLOCKS
@@ -89,8 +89,8 @@ const allowedTags = [
         type: BlockTypes.INPUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.INPUT_RANKING,
-        tag: FormBuilderTagNames.INPUT_RANKING,
+        id: FormBuilderTagNames.QUESTION_RANKING,
+        tag: FormBuilderTagNames.QUESTION_RANKING,
         label: 'Ranking',
         icon: <TrendingUpSharp />,
         type: BlockTypes.INPUT_BLOCKS

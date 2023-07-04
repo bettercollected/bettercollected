@@ -1,31 +1,40 @@
+import { ChangeEvent } from 'react';
+
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { ArrowDropDown, TrendingUpSharp } from '@mui/icons-material';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+
 interface IStartAdornmentInputFieldProps {
-    type: 'checkbox' | 'choice' | 'dropdown' | 'ranking';
+    type: FormBuilderTagNames;
+    value: string;
+    onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 }
 
-function getIcon(type: string) {
+function getIcon(type: FormBuilderTagNames) {
     switch (type) {
-        case 'checkbox':
+        case FormBuilderTagNames.QUESTION_CHECKBOXES:
             return <CheckBoxOutlineBlankIcon />;
-        case 'choice':
+        case FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE:
             return <RadioButtonUncheckedIcon />;
-        case 'dropdown':
+        case FormBuilderTagNames.QUESTION_DROPDOWN:
             return <ArrowDropDown />;
-        case 'ranking':
+        case FormBuilderTagNames.QUESTION_RANKING:
             return <TrendingUpSharp />;
         default:
             return <></>;
     }
 }
 
-export default function StartAdornmentInputField({ type }: IStartAdornmentInputFieldProps) {
+export default function StartAdornmentInputField({ type, value, onChange }: IStartAdornmentInputFieldProps) {
     return (
         <FormBuilderInput
-            className="w-fit"
+            autoFocus={false}
+            className="!w-fit !mb-0"
+            value={value}
+            onChange={onChange}
             InputProps={{
                 startAdornment: getIcon(type)
             }}

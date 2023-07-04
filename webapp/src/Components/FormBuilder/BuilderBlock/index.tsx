@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import ContentEditable from 'react-contenteditable';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
@@ -159,13 +160,23 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
             // Only the Shift-Enter-combination should add a new paragraph,
             // i.e. Shift-Enter acts as the default enter behaviour
             e.preventDefault();
-            this.props.addBlock({
+            const newBlock: any = {
                 id: this.props.field.id,
                 html: this.state.html,
                 tag: this.state.tag,
                 imageUrl: this.state.imageUrl,
                 ref: this.contentEditable.current
-            });
+            };
+            if (this.state.tag === FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE) {
+                const id = uuidv4();
+                newBlock['choices'] = {
+                    [id]: {
+                        id: id,
+                        value: ''
+                    }
+                };
+            }
+            this.props.addBlock(newBlock);
         }
         // We need the previousKey to detect a Shift-Enter-combination
         this.setState({ previousKey: e.key });
@@ -250,11 +261,35 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
                 this.closeTagSelectorMenu();
                 // Add new block so that the user can continue writing
                 // after adding an image
-                this.props.updateBlock({
+
+                const newBlock: any = {
                     id: this.props.field.id,
-                    ref: this.contentEditable.current,
-                    tag: tag
-                });
+                    html: this.state.html,
+                    tag: this.state.tag,
+                    imageUrl: this.state.imageUrl,
+                    ref: this.contentEditable.current
+                };
+                if (
+                    this.state.tag === FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE ||
+                    this.state.tag === FormBuilderTagNames.QUESTION_CHECKBOXES ||
+                    this.state.tag === FormBuilderTagNames.QUESTION_RANKING ||
+                    this.state.tag === FormBuilderTagNames.QUESTION_DROPDOWN ||
+                    this.state.tag === FormBuilderTagNames.QUESTION_MULTISELECT
+                ) {
+                    const id = uuidv4();
+                    newBlock['choices'] = {
+                        [id]: {
+                            id: id,
+                            value: ''
+                        }
+                    };
+                    if (this.state.tag === FormBuilderTagNames.QUESTION_CHECKBOXES || this.state.tag === FormBuilderTagNames.QUESTION_MULTISELECT) {
+                        newBlock['properties'] = {
+                            allowMultipleSelection: true
+                        };
+                    }
+                }
+                this.props.updateBlock(newBlock);
             });
         } else {
             if (this.state.isTyping) {

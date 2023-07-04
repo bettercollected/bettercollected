@@ -12,6 +12,7 @@ import builderConstants from '@app/constants/builder';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addField, deleteField, selectFormBuilderFields, setFields } from '@app/store/form-builder/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { reorder } from '@app/utils/arrayUtils';
 
 interface IFormBuilderProps {
     formId: string;
@@ -27,13 +28,6 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
 
     const blocks: any = Object.values(formFields);
 
-    const reorder = (list: Array<any>, startIndex: number, endIndex: number) => {
-        const result = Array.from(list);
-        const [removed] = result.splice(startIndex - 1, 1);
-        result.splice(endIndex - 1, 0, removed);
-        return result;
-    };
-
     const addBlockHandler = (block: any) => {
         const newBlock = {
             id: uuidV4(),
@@ -42,10 +36,6 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
             placeholder: true,
             isTyping: false,
             imageUrl: ''
-            // content: null,
-            // contentPlaceholder: builderConstants.BuilderContentPlaceholder,
-            // properties: {},
-            // validations: {},
         };
         dispatch(addField(newBlock));
     };

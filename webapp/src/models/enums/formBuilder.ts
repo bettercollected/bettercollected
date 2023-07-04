@@ -68,6 +68,8 @@ export enum FormBuilderTagNames {
     QUESTION_TIME_RANGE = 'question_time_range',
     QUESTION_DATETIME_RANGE = 'question_datetime_range',
     QUESTION_DROPDOWN = 'question_dropdown',
+    QUESTION_MULTISELECT = 'question_multiselect',
+    QUESTION_RANKING = 'question_ranking',
     QUESTION_RATING = 'question_rating',
     QUESTION_LINEAR_SCALE = 'question_linear_scale',
     QUESTION_FILE_UPLOAD = 'question_file_upload'
