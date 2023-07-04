@@ -405,7 +405,7 @@ p {
 }
 
 .builder-block {
-    @apply relative my-3 flex w-full;
+    @apply relative flex w-full;
 }
 
 .builder-block:hover .builder-block-actions {

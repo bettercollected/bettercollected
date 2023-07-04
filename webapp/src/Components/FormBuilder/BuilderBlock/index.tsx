@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Draggable } from 'react-beautiful-dnd';
+import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
@@ -18,14 +18,13 @@ interface IFormBuilderBlockProps {
     position: any;
     dispatch: any;
     addBlock: any;
+    duplicateBlock: any;
     deleteBlock: any;
     updateBlock: any;
 }
 
 export default class FormBuilderBlock extends React.Component<IFormBuilderBlockProps, any> {
     contentEditable: any = React.createRef();
-    fileInput: any = null;
-    textInput: any = null;
 
     constructor(props: IFormBuilderBlockProps) {
         super(props);
@@ -274,10 +273,10 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
     render(): React.ReactNode {
         return (
             <Draggable draggableId={this.props.field.id} index={this.props.position}>
-                {(provided: any) => (
+                {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                     <div
                         ref={provided.innerRef}
-                        className="relative flex w-full flex-col"
+                        className={`relative flex w-full flex-col ${snapshot.isDragging ? 'bg-brand-100' : 'bg-transparent'}`}
                         onFocus={(event) => this.handleMouseOver(event)}
                         onBlur={(event: any) => {
                             if (!event.currentTarget.contains(event.relatedTarget)) {
@@ -286,8 +285,15 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
                         }}
                         {...provided.draggableProps}
                     >
-                        <div className="builder-block px-5 md:px-[89px]">
-                            <FormBuilderActionMenu id={this.props.field.id} provided={provided} addBlock={this.props.addBlock} deleteBlock={this.props.deleteBlock} className={this.state.isFocused ? 'visible' : 'invisible'} />
+                        <div className={`builder-block px-5 md:px-[89px]`}>
+                            <FormBuilderActionMenu
+                                id={this.props.field.id}
+                                provided={provided}
+                                addBlock={this.props.addBlock}
+                                duplicateBlock={this.props.duplicateBlock}
+                                deleteBlock={this.props.deleteBlock}
+                                className={this.state.isFocused ? 'visible' : 'invisible'}
+                            />
                             {!isContentEditableTag(this.state.tag) ? (
                                 <FormBuilderBlockContent tag={this.state.tag} position={this.props.position} reference={this.contentEditable} field={this.props.field} />
                             ) : (
