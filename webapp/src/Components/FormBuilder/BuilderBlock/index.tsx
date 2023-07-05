@@ -343,7 +343,7 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
                             {!isContentEditableTag(this.state.tag) ? (
                                 <FormBuilderBlockContent tag={this.state.tag} position={this.props.position} reference={this.contentEditable} field={this.props.field} />
                             ) : (
-                                <div className="flex flex-col w-full">
+                                <div className="flex flex-col w-full relative">
                                     <div className={`w-full px-0 flex items-center min-h-[40px]`}>
                                         <ContentEditable
                                             innerRef={this.contentEditable}
@@ -357,7 +357,7 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
                                             onKeyUp={this.handleKeyUp}
                                             onMouseUp={this.handleMouseUp}
                                             tagName={this.state.tag}
-                                            className={`m-0 p-0 focus-visible:border-0 focus-visible:outline-none ${contentEditableClassNames(this.state.placeholder, this.state.tag)}`}
+                                            className={`m-0 p-0 w-full focus-visible:border-0 focus-visible:outline-none ${contentEditableClassNames(this.state.placeholder, this.state.tag)}`}
                                         />
                                     </div>
                                     {this.state.tagSelectorMenuOpen && <FormBuilderTagSelector closeMenu={this.closeTagSelectorMenu} handleSelection={this.handleTagSelection} />}

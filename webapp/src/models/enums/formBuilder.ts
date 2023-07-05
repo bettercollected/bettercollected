@@ -1,4 +1,5 @@
 export enum KeyType {
+    Escape = 'Escape',
     ArrowDown = 'ArrowDown',
     ArrowUp = 'ArrowUp',
     Backspace = 'Backspace',
@@ -6,12 +7,13 @@ export enum KeyType {
     CommandKey = 'CommandKey',
     Enter = 'Enter',
     Shift = 'Shift',
-    Tab = 'Tab'
+    Tab = 'Tab',
+    ShiftTab = 'Shift + Tab'
 }
 
 export enum BlockTypes {
-    LAYOUT_BLOCKS = 'Layout Blocks',
     INPUT_BLOCKS = 'Input Blocks',
+    LAYOUT_BLOCKS = 'Layout Blocks',
     EMBED_BLOCKS = 'Embed Blocks',
     QUESTION_BLOCKS = 'Question Blocks'
 }

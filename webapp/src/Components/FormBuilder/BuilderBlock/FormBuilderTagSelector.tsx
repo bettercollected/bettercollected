@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import { AlternateEmail, ArrowDownward, ArrowDropDown, DateRange, Grid4x4, Notes, Phone, ShortText, Star, TrendingUpSharp } from '@mui/icons-material';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import LinkIcon from '@mui/icons-material/Link';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
-import { Divider } from '@mui/material';
+import { Divider, List, ListItem, ListItemText, ListSubheader, Paper } from '@mui/material';
 
 import { TagIcon } from '@app/components/icons/tag-icon';
 import { BlockTypes, FormBuilderTagNames, KeyType } from '@app/models/enums/formBuilder';
@@ -15,91 +15,91 @@ const allowedTags = [
         id: FormBuilderTagNames.INPUT_SHORT_TEXT,
         tag: FormBuilderTagNames.INPUT_SHORT_TEXT,
         label: 'Short Input Text',
-        icon: <ShortText />,
+        icon: <ShortText width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_LONG_TEXT,
         tag: FormBuilderTagNames.INPUT_LONG_TEXT,
         label: 'Long Text Input',
-        icon: <Notes />,
+        icon: <Notes width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_EMAIL,
         tag: FormBuilderTagNames.INPUT_EMAIL,
         label: 'Email',
-        icon: <AlternateEmail />,
+        icon: <AlternateEmail width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_NUMBER,
         tag: FormBuilderTagNames.INPUT_NUMBER,
         label: 'Number',
-        icon: <TagIcon />,
+        icon: <TagIcon width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_LINK,
         tag: FormBuilderTagNames.INPUT_LINK,
         label: 'Link',
-        icon: <LinkIcon />,
+        icon: <LinkIcon width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_DATE,
         tag: FormBuilderTagNames.INPUT_DATE,
         label: 'Date',
-        icon: <DateRange />,
+        icon: <DateRange width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_PHONE_NUMBER,
         tag: FormBuilderTagNames.INPUT_PHONE_NUMBER,
         label: 'Phone Number',
-        icon: <Phone />,
+        icon: <Phone width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_CHECKBOXES,
         tag: FormBuilderTagNames.QUESTION_CHECKBOXES,
         label: 'Checkboxes',
-        icon: <CheckBoxOutlineBlankIcon />,
+        icon: <CheckBoxOutlineBlankIcon width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
         tag: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
         label: 'Multiple Choice',
-        icon: <RadioButtonUncheckedIcon />,
+        icon: <RadioButtonUncheckedIcon width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_DROPDOWN,
         tag: FormBuilderTagNames.QUESTION_DROPDOWN,
         label: 'Dropdown',
-        icon: <ArrowDropDown />,
+        icon: <ArrowDropDown width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_RATING,
         tag: FormBuilderTagNames.QUESTION_RATING,
         label: 'Rating',
-        icon: <Star />,
+        icon: <Star width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_RANKING,
         tag: FormBuilderTagNames.QUESTION_RANKING,
         label: 'Ranking',
-        icon: <TrendingUpSharp />,
+        icon: <TrendingUpSharp width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_MATRIX,
         tag: FormBuilderTagNames.INPUT_MATRIX,
         label: 'Matrix',
-        icon: <Grid4x4 />,
+        icon: <Grid4x4 width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
 
@@ -107,150 +107,198 @@ const allowedTags = [
         id: FormBuilderTagNames.EMBED_IMAGE,
         tag: FormBuilderTagNames.EMBED_IMAGE,
         label: 'Image',
-        icon: <DeleteIcon />,
+        icon: <DeleteIcon width={20} height={20} />,
         type: BlockTypes.EMBED_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER1,
         tag: FormBuilderTagNames.LAYOUT_HEADER1,
         label: 'Heading 1',
-        icon: <DeleteIcon />,
+        icon: <DeleteIcon width={20} height={20} />,
         type: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER2,
         tag: FormBuilderTagNames.LAYOUT_HEADER2,
         label: 'Heading 2',
-        icon: <DeleteIcon />,
+        icon: <DeleteIcon width={20} height={20} />,
         type: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER3,
         tag: FormBuilderTagNames.LAYOUT_HEADER3,
         label: 'Heading 3',
-        icon: <DeleteIcon />,
+        icon: <DeleteIcon width={20} height={20} />,
         type: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER4,
         tag: FormBuilderTagNames.LAYOUT_HEADER4,
         label: 'Heading 4',
-        icon: <DeleteIcon />,
+        icon: <DeleteIcon width={20} height={20} />,
         type: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER5,
         tag: FormBuilderTagNames.LAYOUT_HEADER5,
         label: 'Heading 5',
-        icon: <DeleteIcon />,
+        icon: <DeleteIcon width={20} height={20} />,
         type: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         label: 'Text',
-        icon: <DeleteIcon />,
+        icon: <DeleteIcon width={20} height={20} />,
         type: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_LABEL,
         tag: FormBuilderTagNames.LAYOUT_LABEL,
         label: 'Label',
-        icon: <DeleteIcon />,
+        icon: <DeleteIcon width={20} height={20} />,
         type: BlockTypes.LAYOUT_BLOCKS
     }
 ];
 
 const FormBuilderTagSelector = ({ closeMenu, handleSelection }: any) => {
     const [tagList, setTagList] = useState(allowedTags);
-    const [selectedTag, setSelectedTag] = useState(0);
+    const [selectedTag, setSelectedTag] = useState({ type: BlockTypes.INPUT_BLOCKS, index: 0 });
     const [command, setCommand] = useState('');
 
-    const layoutBlocksTagList = tagList.filter((lst) => lst.type === BlockTypes.LAYOUT_BLOCKS);
-    const inputBlocksTagList = tagList.filter((lst) => lst.type === BlockTypes.INPUT_BLOCKS);
-    const embedBlocksTagList = tagList.filter((lst) => lst.type === BlockTypes.EMBED_BLOCKS);
-    const questionsBlocksTagList = tagList.filter((lst) => lst.type === BlockTypes.QUESTION_BLOCKS);
+    const [blockListTypes, setBlockListTypes] = useState<Array<any>>([BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.EMBED_BLOCKS]);
 
-    // Filter tagList based on given command
+    const listRef: any = useRef(null);
+
     useEffect(() => {
         setTagList(allowedTags);
-    }, [command]);
+        // const blockList: Array<any> = [];
+        // tagList.forEach((tag) => {
+        //     if (!blockList.includes(tag.type)) blockList.push(tag.type);
+        // });
+        // setBlockListTypes([...blockList]);
+    }, []);
 
-    // Attach listener to allow tag selection via keyboard
     useEffect(() => {
         const handleKeyDown = (e: any) => {
             e.preventDefault();
-            switch (e.key) {
-                case KeyType.Enter: {
-                    handleSelection(tagList[selectedTag].tag);
-                    break;
-                }
 
-                case KeyType.ArrowDown:
-                case KeyType.Tab: {
-                    const newSelectedTag = selectedTag === tagList.length - 1 ? 0 : selectedTag + 1;
-                    setSelectedTag(newSelectedTag);
-                    break;
-                }
-
-                case KeyType.ArrowUp: {
-                    const newSelectedTag = selectedTag === 0 ? tagList.length - 1 : selectedTag - 1;
-                    setSelectedTag(newSelectedTag);
-                    break;
-                }
-
-                case KeyType.Backspace: {
-                    if (command) {
-                        setCommand(command.slice(0, -1));
-                    } else {
-                        closeMenu();
+            const keyActions: any = {
+                [KeyType.Enter]: () => {
+                    const selectedListItem: any = listRef.current?.querySelector('.selected');
+                    if (selectedListItem) {
+                        const tag = selectedListItem.dataset.tag;
+                        handleSelection(tag);
                     }
-                    break;
-                }
-                default: {
-                    // setCommand(command + e.key);
-                }
-            }
+                },
+                [KeyType.ArrowDown]: selectNextTag,
+                [KeyType.ArrowUp]: selectPreviousTag,
+                [KeyType.Backspace]: () => {
+                    setCommand((prevCommand) => {
+                        closeMenu();
+                        return command.slice(0, -1);
+                    });
+                },
+                [KeyType.Escape]: () => closeMenu(),
+                default: () => {}
+            };
+
+            const action = keyActions[e.key] || keyActions.default;
+            action();
         };
+
+        const selectNextTag = () => {
+            if (getFilteredList(selectedTag.type).length - 1 === selectedTag.index) {
+                return setSelectedTag(() => {
+                    const type = blockListTypes[(blockListTypes.indexOf(selectedTag.type) + 1) % blockListTypes.length];
+                    scrollToSelectedItem(type, 0);
+                    return { type, index: 0 };
+                });
+            }
+            setSelectedTag((prevTag) => {
+                const filteredList = getFilteredList(selectedTag.type);
+                const newIndex = (prevTag.index + 1) % filteredList.length;
+                scrollToSelectedItem(prevTag.type, newIndex);
+                return { ...prevTag, index: newIndex };
+            });
+        };
+
+        const selectPreviousTag = () => {
+            if (selectedTag.index === 0) {
+                return setSelectedTag(() => {
+                    const type = blockListTypes[(blockListTypes.indexOf(selectedTag.type) - 1 + blockListTypes.length) % blockListTypes.length];
+                    const filteredList = getFilteredList(type);
+                    const newIndex = filteredList.length - 1;
+                    scrollToSelectedItem(type, newIndex);
+                    return { type, index: newIndex };
+                });
+            }
+            setSelectedTag((prevTag) => {
+                const filteredList = getFilteredList(selectedTag.type);
+                const newIndex = (prevTag.index - 1 + filteredList.length) % filteredList.length;
+                scrollToSelectedItem(prevTag.type, newIndex);
+                return { ...prevTag, index: newIndex };
+            });
+        };
+
         document.addEventListener('keydown', handleKeyDown);
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [tagList, selectedTag, handleSelection, command, closeMenu]);
+    }, [handleSelection, selectedTag, command, closeMenu]);
+
+    const getFilteredList = (type: string) => {
+        return tagList.filter((tag) => tag.type === type);
+    };
+
+    const scrollToSelectedItem = (type: string, index: number | string) => {
+        const selectedItem = listRef.current?.querySelector(`[data-id="${type}-${index}"]`);
+        if (selectedItem) {
+            selectedItem.scrollIntoView({
+                block: 'end',
+                inline: 'end'
+            });
+        }
+    };
 
     const renderSingleTypeTagElements = (type: string, typeTagList: Array<any>) => (
-        <div className="items-center">
-            <p className="mb-0 px-3 py-2 font-bold tracking-widest">{type.toUpperCase()}</p>
-            {typeTagList.length === 0 && <p className="m-0 px-3 py-2 text-neutral-300">No items</p>}
-            {typeTagList.map((tag, key) => {
-                return (
-                    <div
-                        key={key}
-                        data-tag={tag.tag}
-                        className={`${tagList.indexOf(tag) === selectedTag ? 'bg-indigo-500 text-white' : 'text-neutral-700 hover:bg-indigo-400 hover:text-white'} flex items-center px-3 py-2 last:border-b-0`}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => handleSelection(tag.tag)}
-                    >
-                        {tag.icon}
-                        <span className="ml-2">{tag.label}</span>
-                    </div>
-                );
-            })}
-        </div>
+        <li key={type}>
+            <ul>
+                <ListSubheader className="font-bold tracking-widest shadow-sm">{type.toUpperCase()}</ListSubheader>
+                {typeTagList.length === 0 && <p className="m-0 px-4 py-2 text-sm text-neutral-300">No items</p>}
+                {typeTagList.map((tag: any, index: number) => {
+                    const isSelected = selectedTag.type === type && selectedTag.index === index;
+                    const listItemClass = isSelected ? 'bg-indigo-500 text-white selected' : 'text-neutral-700 hover:bg-indigo-400 hover:text-white';
+
+                    return (
+                        <ListItem key={index} data-id={`${type}-${index}`} data-tag={tag.tag} className={`flex items-center px-3 py-2 gap-3 last:border-b-0 ${listItemClass}`} role="button" tabIndex={0} onClick={() => handleSelection(tag.tag)}>
+                            {tag.icon}
+                            <span className="ml-2">{tag.label}</span>
+                        </ListItem>
+                    );
+                })}
+            </ul>
+        </li>
     );
 
     return (
-        <div className="absolute top-full left-0 right-0 z-[9999] overflow-hidden rounded bg-white shadow-custom-box-shadow3">
-            <div className="h-60 overflow-auto">
-                {renderSingleTypeTagElements(BlockTypes.INPUT_BLOCKS, inputBlocksTagList)}
-                <Divider style={{ margin: 0 }} />
-                {renderSingleTypeTagElements(BlockTypes.LAYOUT_BLOCKS, layoutBlocksTagList)}
-                <Divider style={{ margin: 0 }} />
-                {renderSingleTypeTagElements(BlockTypes.EMBED_BLOCKS, embedBlocksTagList)}
-                <Divider style={{ margin: 0 }} />
-                {renderSingleTypeTagElements(BlockTypes.QUESTION_BLOCKS, questionsBlocksTagList)}
-            </div>
+        <div className="absolute top-full left-0 right-0 z-[9999] overflow-hidden rounded bg-white drop-shadow-main">
+            <Paper style={{ maxHeight: 320, overflowY: 'auto' }}>
+                <List
+                    ref={listRef}
+                    sx={{
+                        width: '100%',
+                        bgcolor: 'background.paper',
+                        position: 'relative',
+                        overflow: 'auto',
+                        maxHeight: 300,
+                        '& ul': { padding: 0 }
+                    }}
+                    subheader={<li />}
+                >
+                    {blockListTypes.map((type) => renderSingleTypeTagElements(type, getFilteredList(type)))}
+                </List>
+            </Paper>
         </div>
     );
 };
