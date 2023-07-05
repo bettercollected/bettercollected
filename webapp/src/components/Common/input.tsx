@@ -5,5 +5,5 @@ import TextField from '@mui/material/TextField';
 
 export default function BetterInput(props: TextFieldProps) {
     const { className, ...otherProps } = props;
-    return <TextField {...otherProps} className={`flex-1 w-full placeholder:font-normal placeholder:text-sm placeholder:tracking-normal !mb-4 !rounded-[1px] text-black-900 bg-white ` + className} />;
+    return <TextField {...otherProps} className={`flex-1 w-full placeholder:font-normal placeholder:text-sm placeholder:tracking-normal !mb-4 !rounded-[1px] text-black-900 bg-white ${className}`} />;
 }

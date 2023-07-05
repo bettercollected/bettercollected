@@ -5,6 +5,7 @@ import PlusIcon from '@Components/Common/Icons/Plus';
 import StartAdornmentInputField from '@Components/FormBuilder/StartAdornmentInputField';
 import { StrictModeDroppable } from '@Components/FormBuilder/StrictModeDroppable';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { TextField } from '@mui/material';
 import { GridCloseIcon } from '@mui/x-data-grid';
 import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react-beautiful-dnd';
 import { useDispatch } from 'react-redux';
@@ -61,27 +62,41 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
         <div>
             {field.title !== undefined && (
                 <div>
-                    <input
+                    <TextField
                         onChange={(event) => {
                             addFieldTitle(event.target.value);
                         }}
-                        className="w-fit outline-none border-b border-b-1 my-3 "
                         placeholder="Question Title"
                         value={field.title}
+                        fullWidth
+                        variant="standard"
+                        inputMode="text"
+                        inputProps={{
+                            style: {
+                                padding: 0,
+                                paddingBottom: 0,
+                                height: 40,
+                                fontSize: 18,
+                                fontWeight: 600,
+                                content: 'none',
+                                letterSpacing: 1
+                            }
+                        }}
+                        InputProps={{ sx: { ':before': { content: 'none' } } }}
                     />
                 </div>
             )}
-            <div className="flex">
+            <div className="flex w-full items-start">
                 <DragDropContext onDragEnd={onDragEnd}>
                     <StrictModeDroppable droppableId="choices">
                         {(provided: DroppableProvided) => (
-                            <div {...provided.droppableProps} ref={provided.innerRef}>
+                            <div {...provided.droppableProps} ref={provided.innerRef} className="w-full">
                                 {Object.values(field.choices || {}).map((choice: any, index) => {
                                     return (
                                         <Draggable key={choice.id} draggableId={choice.id} index={index}>
                                             {(provided) => (
                                                 <div className="flex my-3 gap-5 items-center" {...provided.draggableProps} ref={provided.innerRef}>
-                                                    <div className=" relative">
+                                                    <div className="relative">
                                                         <div className="absolute flex items-center gap-2 justify-center -top-2 -right-2">
                                                             {Object.values(field.choices).length > 1 && (
                                                                 <div
@@ -127,7 +142,7 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
 
                 {field.title === undefined && (
                     <div
-                        className="text-gray-400 ml-10 mt-6 cursor-pointer"
+                        className="text-gray-400 w-full mt-4 cursor-pointer"
                         onClick={() => {
                             addFieldTitle('');
                         }}

@@ -14,6 +14,8 @@ const FormBuilderActionMenu = ({ id, provided, addBlock, duplicateBlock, deleteB
             <MenuDropdown
                 showExpandMore={false}
                 width={200}
+                enterDelay={1000}
+                leaveDelay={0}
                 className="!p-[2px]"
                 onClick={(event: any) => {
                     event.stopPropagation();
@@ -42,6 +44,8 @@ const FormBuilderActionMenu = ({ id, provided, addBlock, duplicateBlock, deleteB
             <MenuDropdown
                 showExpandMore={false}
                 width={200}
+                enterDelay={1000}
+                leaveDelay={0}
                 className="!p-[2px]"
                 onClick={(event: any) => {
                     event.stopPropagation();
