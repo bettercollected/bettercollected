@@ -2,9 +2,9 @@ import { ChangeEvent } from 'react';
 
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { AlternateEmail, DateRange, LocalPhone, Numbers, ShortText } from '@mui/icons-material';
+import LinkIcon from '@mui/icons-material/Link';
 import { useDispatch } from 'react-redux';
 
-import { TagIcon } from '@app/components/icons/tag-icon';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addField } from '@app/store/form-builder/slice';
 
@@ -21,9 +21,9 @@ function getIcon(type: FormBuilderTagNames) {
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
             return <ShortText />;
         case FormBuilderTagNames.INPUT_LINK:
-            return <Numbers />;
+            return <LinkIcon />;
         case FormBuilderTagNames.INPUT_NUMBER:
-            return <TagIcon />;
+            return <Numbers />;
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
             return <LocalPhone />;
 

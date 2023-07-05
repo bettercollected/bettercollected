@@ -61,36 +61,36 @@ const allowedTags = [
         type: BlockTypes.INPUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.QUESTION_CHECKBOXES,
-        tag: FormBuilderTagNames.QUESTION_CHECKBOXES,
+        id: FormBuilderTagNames.INPUT_CHECKBOXES,
+        tag: FormBuilderTagNames.INPUT_CHECKBOXES,
         label: 'Checkboxes',
         icon: <CheckBoxOutlineBlankIcon width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
-        tag: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
+        id: FormBuilderTagNames.INPUT_MULTIPLE_CHOICE,
+        tag: FormBuilderTagNames.INPUT_MULTIPLE_CHOICE,
         label: 'Multiple Choice',
         icon: <RadioButtonUncheckedIcon width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.QUESTION_DROPDOWN,
-        tag: FormBuilderTagNames.QUESTION_DROPDOWN,
+        id: FormBuilderTagNames.INPUT_DROPDOWN,
+        tag: FormBuilderTagNames.INPUT_DROPDOWN,
         label: 'Dropdown',
         icon: <ArrowDropDown width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.QUESTION_RATING,
-        tag: FormBuilderTagNames.QUESTION_RATING,
+        id: FormBuilderTagNames.INPUT_RATING,
+        tag: FormBuilderTagNames.INPUT_RATING,
         label: 'Rating',
         icon: <Star width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.QUESTION_RANKING,
-        tag: FormBuilderTagNames.QUESTION_RANKING,
+        id: FormBuilderTagNames.INPUT_RANKING,
+        tag: FormBuilderTagNames.INPUT_RANKING,
         label: 'Ranking',
         icon: <TrendingUpSharp width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
@@ -101,6 +101,99 @@ const allowedTags = [
         label: 'Matrix',
         icon: <Grid4x4 width={20} height={20} />,
         type: BlockTypes.INPUT_BLOCKS
+    },
+
+    {
+        id: FormBuilderTagNames.QUESTION_SHORT_TEXT,
+        tag: FormBuilderTagNames.QUESTION_SHORT_TEXT,
+        label: 'Header + Short Input Text',
+        icon: <ShortText width={20} height={20} />,
+        type: BlockTypes.QUESTION_INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.QUESTION_LONG_TEXT,
+        tag: FormBuilderTagNames.QUESTION_LONG_TEXT,
+        label: 'Header + Long Text Input',
+        icon: <Notes width={20} height={20} />,
+        type: BlockTypes.QUESTION_INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.QUESTION_EMAIL,
+        tag: FormBuilderTagNames.QUESTION_EMAIL,
+        label: 'Header + Email',
+        icon: <AlternateEmail width={20} height={20} />,
+        type: BlockTypes.QUESTION_INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.QUESTION_NUMBER,
+        tag: FormBuilderTagNames.QUESTION_NUMBER,
+        label: 'Header + Number',
+        icon: <TagIcon width={20} height={20} />,
+        type: BlockTypes.QUESTION_INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.QUESTION_LINK,
+        tag: FormBuilderTagNames.QUESTION_LINK,
+        label: 'Header + Link',
+        icon: <LinkIcon width={20} height={20} />,
+        type: BlockTypes.QUESTION_INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.QUESTION_DATE,
+        tag: FormBuilderTagNames.QUESTION_DATE,
+        label: 'Header + Date',
+        icon: <DateRange width={20} height={20} />,
+        type: BlockTypes.QUESTION_INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.QUESTION_PHONE_NUMBER,
+        tag: FormBuilderTagNames.QUESTION_PHONE_NUMBER,
+        label: 'Header + Phone Number',
+        icon: <Phone width={20} height={20} />,
+        type: BlockTypes.QUESTION_INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.QUESTION_CHECKBOXES,
+        tag: FormBuilderTagNames.QUESTION_CHECKBOXES,
+        label: 'Header + Checkboxes',
+        icon: <CheckBoxOutlineBlankIcon width={20} height={20} />,
+        type: BlockTypes.QUESTION_INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
+        tag: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
+        label: 'Header + Multiple Choice',
+        icon: <RadioButtonUncheckedIcon width={20} height={20} />,
+        type: BlockTypes.QUESTION_INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.QUESTION_DROPDOWN,
+        tag: FormBuilderTagNames.QUESTION_DROPDOWN,
+        label: 'Header + Dropdown',
+        icon: <ArrowDropDown width={20} height={20} />,
+        type: BlockTypes.QUESTION_INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.QUESTION_RATING,
+        tag: FormBuilderTagNames.QUESTION_RATING,
+        label: 'Header + Rating',
+        icon: <Star width={20} height={20} />,
+        type: BlockTypes.QUESTION_INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.QUESTION_RANKING,
+        tag: FormBuilderTagNames.QUESTION_RANKING,
+        label: 'Header + Ranking',
+        icon: <TrendingUpSharp width={20} height={20} />,
+        type: BlockTypes.QUESTION_INPUT_BLOCKS
+    },
+
+    {
+        id: FormBuilderTagNames.QUESTION_INPUT_MATRIX,
+        tag: FormBuilderTagNames.QUESTION_INPUT_MATRIX,
+        label: 'Header + Matrix',
+        icon: <Grid4x4 width={20} height={20} />,
+        type: BlockTypes.QUESTION_INPUT_BLOCKS
     },
 
     {
@@ -166,7 +259,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection }: any) => {
     const [selectedTag, setSelectedTag] = useState({ type: BlockTypes.INPUT_BLOCKS, index: 0 });
     const [command, setCommand] = useState('');
 
-    const [blockListTypes, setBlockListTypes] = useState<Array<any>>([BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.EMBED_BLOCKS]);
+    const [blockListTypes, setBlockListTypes] = useState<Array<any>>([BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.EMBED_BLOCKS, BlockTypes.QUESTION_INPUT_BLOCKS]);
 
     const listRef: any = useRef(null);
 

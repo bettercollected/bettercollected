@@ -15,7 +15,8 @@ export enum BlockTypes {
     INPUT_BLOCKS = 'Input Blocks',
     LAYOUT_BLOCKS = 'Layout Blocks',
     EMBED_BLOCKS = 'Embed Blocks',
-    QUESTION_BLOCKS = 'Question Blocks'
+    QUESTION_BLOCKS = 'Question Blocks',
+    QUESTION_INPUT_BLOCKS = 'Question + Input BLocks'
 }
 
 export enum FormBuilderTagNames {
@@ -74,5 +75,23 @@ export enum FormBuilderTagNames {
     QUESTION_RANKING = 'question_ranking',
     QUESTION_RATING = 'question_rating',
     QUESTION_LINEAR_SCALE = 'question_linear_scale',
-    QUESTION_FILE_UPLOAD = 'question_file_upload'
+    QUESTION_FILE_UPLOAD = 'question_file_upload',
+    QUESTION_INPUT_MATRIX = 'question_input_matrix'
 }
+
+export const NonInputFormBuilderTagNames = [
+    FormBuilderTagNames.LAYOUT_HEADER1,
+    FormBuilderTagNames.LAYOUT_HEADER2,
+    FormBuilderTagNames.LAYOUT_HEADER3,
+    FormBuilderTagNames.LAYOUT_HEADER4,
+    FormBuilderTagNames.LAYOUT_HEADER5,
+    FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+    FormBuilderTagNames.LAYOUT_LABEL,
+    FormBuilderTagNames.LAYOUT_DIVIDER,
+    FormBuilderTagNames.EMBED_IMAGE,
+    FormBuilderTagNames.EMBED_VIDEO,
+    FormBuilderTagNames.EMBED_AUDIO,
+    FormBuilderTagNames.EMBED_ANYTHING,
+    FormBuilderTagNames.EMBED_CODE,
+    FormBuilderTagNames.EMBED_RECAPTCHA
+];

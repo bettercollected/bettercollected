@@ -15,15 +15,16 @@ export default function FormBuilderInput(props: TextFieldProps) {
                     height: 40,
                     fontSize: 14,
                     fontWeight: 400,
+                    color: 'gray',
                     content: 'none',
                     letterSpacing: 1
                 }
             }}
             InputProps={{ sx: { ':before': { content: 'none' } } }}
             size="small"
-            className="!mb-0 !bg-white"
+            className="!mb-0 !bg-white w-full"
             {...otherProps}
-            placeholder={placeholder || 'Your placeholder'}
+            placeholder={placeholder || 'Placeholder for Input'}
         />
     );
 }

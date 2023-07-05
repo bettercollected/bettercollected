@@ -331,7 +331,7 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
                         }}
                         {...provided.draggableProps}
                     >
-                        <div className={`builder-block px-5 md:px-[89px]`}>
+                        <div className={`builder-block px-5 min-h-[40px] flex items-center md:px-[89px]`}>
                             <FormBuilderActionMenu
                                 id={this.props.field.id}
                                 provided={provided}

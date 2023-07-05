@@ -12,6 +12,7 @@ import AltRouteIcon from '@mui/icons-material/AltRoute';
 import { FormControlLabel, ListItemIcon, MenuItem } from '@mui/material';
 import { DraggableProvided } from 'react-beautiful-dnd';
 
+import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addField, deleteField, selectFormField } from '@app/store/form-builder/slice';
 import { FormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -99,19 +100,21 @@ export default function FieldOptions({ provided, id }: IFieldOptionsProps) {
                     control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!formField.properties?.hidden} />}
                 />
             </MenuItem>
-            <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
-                <FormControlLabel
-                    slotProps={{
-                        typography: {
-                            fontSize: 14
-                        }
-                    }}
-                    label="Required"
-                    labelPlacement="start"
-                    className="m-0 text-xs flex items-center justify-between w-full"
-                    control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleFieldRequiredChange} checked={!!formField.validations?.required} />}
-                />
-            </MenuItem>
+            {!NonInputFormBuilderTagNames.includes(formField.tag || FormBuilderTagNames.LAYOUT_SHORT_TEXT) && (
+                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
+                    <FormControlLabel
+                        slotProps={{
+                            typography: {
+                                fontSize: 14
+                            }
+                        }}
+                        label="Required"
+                        labelPlacement="start"
+                        className="m-0 text-xs flex items-center justify-between w-full"
+                        control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleFieldRequiredChange} checked={!!formField.validations?.required} />}
+                    />
+                </MenuItem>
+            )}
 
             <IndividualFieldOptions field={formField} />
 
