@@ -23,19 +23,14 @@ export default function FormBuilderBlockContent({ tag, position, reference, fiel
             case FormBuilderTagNames.LAYOUT_LABEL:
                 return <HeaderInputBlock field={field} />;
             case FormBuilderTagNames.INPUT_SHORT_TEXT:
-                return <EndAdornmentInputField type="short_text" />;
+            case FormBuilderTagNames.INPUT_EMAIL:
+            case FormBuilderTagNames.INPUT_NUMBER:
+            case FormBuilderTagNames.INPUT_LINK:
+            case FormBuilderTagNames.INPUT_DATE:
+            case FormBuilderTagNames.INPUT_PHONE_NUMBER:
+                return <EndAdornmentInputField field={field} />;
             case FormBuilderTagNames.INPUT_LONG_TEXT:
                 return <LongText />;
-            case FormBuilderTagNames.INPUT_EMAIL:
-                return <EndAdornmentInputField type="email" />;
-            case FormBuilderTagNames.INPUT_NUMBER:
-                return <EndAdornmentInputField type="number" />;
-            case FormBuilderTagNames.INPUT_LINK:
-                return <EndAdornmentInputField type="link" />;
-            case FormBuilderTagNames.INPUT_DATE:
-                return <EndAdornmentInputField type="date" />;
-            case FormBuilderTagNames.INPUT_PHONE_NUMBER:
-                return <EndAdornmentInputField type="phone_number" />;
             case FormBuilderTagNames.QUESTION_CHECKBOXES:
             case FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE:
             case FormBuilderTagNames.QUESTION_DROPDOWN:

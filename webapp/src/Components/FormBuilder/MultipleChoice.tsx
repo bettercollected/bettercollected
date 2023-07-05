@@ -10,7 +10,6 @@ import { GridCloseIcon } from '@mui/x-data-grid';
 import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react-beautiful-dnd';
 import { useDispatch } from 'react-redux';
 
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addField, setFieldTitle } from '@app/store/form-builder/slice';
 import { reorder } from '@app/utils/arrayUtils';
 

@@ -35,6 +35,7 @@ export default function StartAdornmentInputField({ type, value, onChange }: ISta
             className="!w-fit !mb-0"
             value={value}
             onChange={onChange}
+            placeholder="Option"
             InputProps={{
                 startAdornment: getIcon(type)
             }}

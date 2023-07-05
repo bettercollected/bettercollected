@@ -1,26 +1,30 @@
+import { ChangeEvent } from 'react';
+
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
-import { AlternateEmail, DateRange, LocalPhone, ShortText } from '@mui/icons-material';
-import LinkIcon from '@mui/icons-material/Link';
+import { AlternateEmail, DateRange, LocalPhone, Numbers, ShortText } from '@mui/icons-material';
+import { useDispatch } from 'react-redux';
 
 import { TagIcon } from '@app/components/icons/tag-icon';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { addField } from '@app/store/form-builder/slice';
 
 interface IEndAdornmentInputFieldProps {
-    type: 'email' | 'date' | 'short_text' | 'link' | 'number' | 'phone_number';
+    field: any;
 }
 
-function getIcon(type: string) {
+function getIcon(type: FormBuilderTagNames) {
     switch (type) {
-        case 'email':
+        case FormBuilderTagNames.INPUT_EMAIL:
             return <AlternateEmail />;
-        case 'date':
+        case FormBuilderTagNames.INPUT_DATE:
             return <DateRange />;
-        case 'short_text':
+        case FormBuilderTagNames.INPUT_SHORT_TEXT:
             return <ShortText />;
-        case 'link':
-            return <LinkIcon />;
-        case 'number':
+        case FormBuilderTagNames.INPUT_LINK:
+            return <Numbers />;
+        case FormBuilderTagNames.INPUT_NUMBER:
             return <TagIcon />;
-        case 'phone_number':
+        case FormBuilderTagNames.INPUT_PHONE_NUMBER:
             return <LocalPhone />;
 
         default:
@@ -28,11 +32,17 @@ function getIcon(type: string) {
     }
 }
 
-export default function EndAdornmentInputField({ type }: IEndAdornmentInputFieldProps) {
+export default function EndAdornmentInputField({ field }: IEndAdornmentInputFieldProps) {
+    const dispatch = useDispatch();
+    const onChange = (event: ChangeEvent<HTMLInputElement>) => {
+        dispatch(addField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
+    };
     return (
         <FormBuilderInput
+            onChange={onChange}
+            value={field?.properties?.placeholder || ''}
             InputProps={{
-                endAdornment: getIcon(type)
+                endAdornment: getIcon(field.tag)
             }}
         />
     );
