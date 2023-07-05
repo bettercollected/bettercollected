@@ -36,8 +36,8 @@ export default function FormBuilderBlockContent({ tag, position, reference, fiel
             case FormBuilderTagNames.QUESTION_DROPDOWN:
             case FormBuilderTagNames.QUESTION_RANKING:
                 return <MultipleChoice field={field} />;
-            case FormBuilderTagNames.INPUT_RATING:
-                return <RatingField number={10} />;
+            case FormBuilderTagNames.QUESTION_RATING:
+                return <RatingField field={field} />;
             case FormBuilderTagNames.INPUT_MATRIX:
                 return <MatrixField allowMultipleSelection={false} rows={[1, 2, 3]} columns={[1, 2, 3]} />;
             default:

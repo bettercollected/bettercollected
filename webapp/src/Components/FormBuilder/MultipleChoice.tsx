@@ -85,7 +85,7 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
                     />
                 </div>
             )}
-            <div className="flex w-full items-start">
+            <div className="flex w-full items-start justify-start">
                 <DragDropContext onDragEnd={onDragEnd}>
                     <StrictModeDroppable droppableId="choices">
                         {(provided: DroppableProvided) => (
@@ -94,7 +94,7 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
                                     return (
                                         <Draggable key={choice.id} draggableId={choice.id} index={index}>
                                             {(provided) => (
-                                                <div className="flex my-3 gap-5 items-center" {...provided.draggableProps} ref={provided.innerRef}>
+                                                <div className="flex gap-5 mb-3 items-start justify-start" {...provided.draggableProps} ref={provided.innerRef}>
                                                     <div className="relative">
                                                         <div className="absolute flex items-center gap-2 justify-center -top-2 -right-2">
                                                             {Object.values(field.choices).length > 1 && (
@@ -141,7 +141,7 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
 
                 {field.title === undefined && (
                     <div
-                        className="text-gray-400 w-full mt-4 cursor-pointer"
+                        className="text-gray-400 w-full mt-2 cursor-pointer"
                         onClick={() => {
                             addFieldTitle('');
                         }}

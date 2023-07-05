@@ -139,6 +139,7 @@ const reducerObj = { reducerPath: slice.name, reducer: createFormReducer };
 export const selectCreateForm = (state: RootState) => state.createForm;
 
 export const selectFormBuilderFields = (state: RootState) => state.createForm.fields;
+export const selectFormField = (id: string) => (state: RootState) => state.createForm.fields[id];
 
 export const { setFields, setEditForm, resetForm, deleteField, setFieldDescription, setFieldRequired, setFieldTitle, setFormDescription, setFieldType, addField, setFormTitle } = slice.actions;
 

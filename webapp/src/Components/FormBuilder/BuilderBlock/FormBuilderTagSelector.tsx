@@ -82,9 +82,9 @@ const allowedTags = [
         type: BlockTypes.INPUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.INPUT_LINEAR_SCALE,
-        tag: FormBuilderTagNames.INPUT_LINEAR_SCALE,
-        label: 'Linear Scale',
+        id: FormBuilderTagNames.QUESTION_RATING,
+        tag: FormBuilderTagNames.QUESTION_RATING,
+        label: 'Rating',
         icon: <Star />,
         type: BlockTypes.INPUT_BLOCKS
     },

@@ -23,6 +23,7 @@ interface IMenuDropdownProps {
     transformOrigin?: PopoverOrigin;
     anchorOrigin?: PopoverOrigin;
     hasMenu?: boolean;
+    closeOnClick?: boolean;
 }
 
 const defaultPaperProps: PaperProps = {
@@ -56,7 +57,8 @@ export default function MenuDropdown({
     PaperProps = defaultPaperProps,
     transformOrigin = defaultTransformOrigin,
     anchorOrigin = defaultAnchorOrigin,
-    hasMenu = true
+    hasMenu = true,
+    closeOnClick = true
 }: IMenuDropdownProps) {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
@@ -95,7 +97,20 @@ export default function MenuDropdown({
                 </IconButton>
             </Tooltip>
             {hasMenu && typeof children !== 'undefined' && (
-                <Menu id={id} anchorEl={anchorEl} open={open} onClose={handleClose} onClick={handleClose} draggable disableScrollLock={true} PaperProps={PaperProps} transformOrigin={transformOrigin} anchorOrigin={anchorOrigin}>
+                <Menu
+                    id={id}
+                    anchorEl={anchorEl}
+                    open={open}
+                    onClose={handleClose}
+                    onClick={(event) => {
+                        if (closeOnClick) handleClose(event);
+                    }}
+                    draggable
+                    disableScrollLock={true}
+                    PaperProps={PaperProps}
+                    transformOrigin={transformOrigin}
+                    anchorOrigin={anchorOrigin}
+                >
                     {children}
                 </Menu>
             )}

@@ -5,10 +5,10 @@ import _ from 'lodash';
 import { Star, StarBorder } from '@mui/icons-material';
 
 interface IRatingFieldProps {
-    number: number;
+    field: any;
 }
 
-export default function RatingField({ number }: IRatingFieldProps) {
+export default function RatingField({ field }: IRatingFieldProps) {
     const [hovered, setHovered] = useState(-1);
 
     return (
@@ -18,7 +18,7 @@ export default function RatingField({ number }: IRatingFieldProps) {
                 setHovered(-1);
             }}
         >
-            {_.range(number).map((index) => {
+            {_.range(field.properties?.steps || 5).map((index) => {
                 const Component = index <= hovered ? Star : StarBorder;
 
                 return (

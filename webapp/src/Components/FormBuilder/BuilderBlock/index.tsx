@@ -1,7 +1,9 @@
 import React from 'react';
 
-import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
+import _ from 'lodash';
+
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
@@ -118,9 +120,13 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
         });
     };
 
+    dispatchChange = () => {
+        this.props.dispatch(addField({ ...this.props.field, value: this.state.html }));
+    };
+
     handleChange = (e: any) => {
         this.setState({ ...this.state, html: e.target.value });
-        this.props.dispatch(addField({ ...this.props.field, html: e.target.value }));
+        _.debounce(this.dispatchChange, 500);
     };
 
     handleFocus = () => {
@@ -269,6 +275,11 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
                     imageUrl: this.state.imageUrl,
                     ref: this.contentEditable.current
                 };
+                if (this.state.tag === FormBuilderTagNames.QUESTION_RATING) {
+                    newBlock['properties'] = {
+                        steps: 5
+                    };
+                }
                 if (
                     this.state.tag === FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE ||
                     this.state.tag === FormBuilderTagNames.QUESTION_CHECKBOXES ||
