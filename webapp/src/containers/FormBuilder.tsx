@@ -96,8 +96,8 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
                     inputProps={{
                         style: {
                             padding: '0 0 8px 0',
-                            fontSize: 30,
-                            fontWeight: 600,
+                            fontSize: 36,
+                            fontWeight: 700,
                             content: 'none',
                             letterSpacing: 1
                         }
