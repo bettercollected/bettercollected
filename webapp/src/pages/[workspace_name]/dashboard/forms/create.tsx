@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import CreateForm from '@Components/CreateForm';
+import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
 import { Button } from '@mui/material';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -54,7 +55,17 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
         dispatch(resetForm());
     }, []);
 
-    const onSave = async () => {
+    const onInsert = () => {};
+
+    const onAddNewPage = () => {};
+
+    const onAddFormLogo = () => {};
+
+    const onAddFormCover = () => {};
+
+    const onPreview = () => {};
+
+    const onFormPublish = async () => {
         console.log(createForm.fields);
         // const postRequest: any = {};
         // postRequest.title = createForm.title;
@@ -69,13 +80,24 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
         // }
     };
 
+    const onSave = async () => {
+        // This is for old form builder. Look above onFormPublish for the new form builder on save
+        const postRequest: any = {};
+        postRequest.title = createForm.title;
+        postRequest.description = createForm.description;
+        postRequest.fields = Object.values(createForm.fields);
+        const response: any = await postCreateForm({ workspaceId: workspace.id, body: postRequest });
+        if (response?.data) {
+            toast('Form created!!', { type: 'success' });
+            await router.push(`/${locale}${workspace?.workspaceName}/dashboard`);
+        } else {
+            toast('Error creating form', { type: 'error' });
+        }
+    };
+
     return environments.ENABLE_COMMAND_FORM_BUILDERS ? (
         <DashboardLayout sidebarClassName="!px-0" dashboardContentClassName="!py-0 w-full h-full bg-white">
-            <div className="bg-white flex justify-start pt-10 pl-10 lg:max-w-[800px]">
-                <Button variant="outlined" onClick={onSave}>
-                    Save
-                </Button>
-            </div>
+            <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
             <FormBuilder formData={{}} formId="dummyId" />
         </DashboardLayout>
     ) : (
