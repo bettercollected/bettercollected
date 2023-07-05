@@ -5,9 +5,10 @@ import CopyIcon from '@Components/Common/Icons/Copy';
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import DragHandleIcon from '@Components/Common/Icons/DragHandle';
 import PlusIcon from '@Components/Common/Icons/Plus';
+import MuiSwitch from '@Components/Common/Input/Switch';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
-import { Box, ListItem, ListItemIcon, MenuItem, Switch } from '@mui/material';
+import { FormControlLabel, ListItemIcon, MenuItem, Switch } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
 
 const FormBuilderActionMenu = ({ id, provided, addBlock, duplicateBlock, deleteBlock, className = '' }: any) => {
@@ -76,10 +77,17 @@ const FormBuilderActionMenu = ({ id, provided, addBlock, duplicateBlock, deleteB
                     <p className="text-xs font-semibold tracking-widest leading-none uppercase text-black-700">Options</p>
                 </div>
                 <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
-                    <ListItem className="flex-1" disableGutters>
-                        Hide field
-                    </ListItem>
-                    <Switch className="text-black-900" />
+                    <FormControlLabel
+                        slotProps={{
+                            typography: {
+                                fontSize: 14
+                            }
+                        }}
+                        label="Hide field"
+                        labelPlacement="start"
+                        className="m-0 text-xs flex items-center justify-between w-full"
+                        control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" />}
+                    />
                 </MenuItem>
                 <Divider className="my-2" />
                 <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={() => duplicateBlock(id)}>
@@ -92,13 +100,19 @@ const FormBuilderActionMenu = ({ id, provided, addBlock, duplicateBlock, deleteB
                     <ListItemIcon className="text-black-900">
                         <CopyIcon width={20} height={20} />
                     </ListItemIcon>
-                    <span className="leading-none flex items-center">Duplicate</span>
+                    <span className="leading-none flex items-center justify-between w-full">
+                        <span>Duplicate</span>
+                        <span className="italic text-xs text-black-500">Ctrl/Cmd + D</span>
+                    </span>
                 </MenuItem>
                 <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={() => deleteBlock(id)}>
                     <ListItemIcon className="text-black-900">
                         <DeleteIcon width={20} height={20} />
                     </ListItemIcon>
-                    <span className="leading-none">Delete</span>
+                    <span className="leading-none flex items-center justify-between w-full">
+                        <span>Delete</span>
+                        <span className="italic text-xs text-black-500">Ctrl/Cmd + Shift + D</span>
+                    </span>
                 </MenuItem>
             </MenuDropdown>
         </div>
