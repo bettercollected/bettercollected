@@ -1,5 +1,6 @@
 import { UserDto } from '@app/models/dtos/UserDto';
 import { UserStatus } from '@app/models/dtos/UserStatus';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 
 import { ResponderGroupDto } from './groups';
 
@@ -11,6 +12,8 @@ export interface StandardFormQuestionDto {
         required?: boolean;
     };
     properties?: any;
+    tag?: FormBuilderTagNames;
+    value?: string;
     attachment?: any;
     title: string;
     description?: string | null;

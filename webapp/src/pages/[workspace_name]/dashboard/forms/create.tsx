@@ -44,8 +44,6 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
     const onPreview = () => {};
 
     const onFormPublish = async () => {
-        console.log(createForm);
-
         const postRequest: any = {};
         postRequest.title = createForm.title;
         postRequest.description = createForm.description;

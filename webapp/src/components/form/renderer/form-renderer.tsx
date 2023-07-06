@@ -1,5 +1,6 @@
 import React from 'react';
 
+import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import LongText from '@Components/Form/LongText';
 import ShortText from '@Components/Form/ShortText';
 import styled from '@emotion/styled';
@@ -18,8 +19,7 @@ import SelectDropdown from '@app/components/dropdown/select';
 import Button from '@app/components/ui/button';
 import Loader from '@app/components/ui/loader';
 import MarkdownText from '@app/components/ui/markdown-text';
-import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
-import { IServerSideProps } from '@app/models/dtos/serverSideProps';
+import { StandardFormQuestionDto } from '@app/models/dtos/form';
 import { selectInvalidFields } from '@app/store/fill-form/slice';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -331,20 +331,24 @@ export default function FormRenderer({ form, response, enabled }: FormRendererPr
 
     return (
         <div data-testid="form-renderer" className="relative max-w-[700px] w-full  md:px-0">
-            <div className="flex flex-col gap-4">
-                <div className="p-6 bg-white rounded-lg flex flex-col gap-4">
-                    <h1 className="font-semibold h4">{form?.title}</h1>
-                    {form?.description && <MarkdownText description={form?.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />}
+            {form?.settings?.provider === 'self' ? (
+                <BetterCollectedForm form={form} />
+            ) : (
+                <div className="flex flex-col gap-4">
+                    <div className="p-6 bg-white rounded-lg flex flex-col gap-4">
+                        <h1 className="font-semibold h4">{form?.title}</h1>
+                        {form?.description && <MarkdownText description={form?.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />}
+                    </div>
+                    {form?.fields?.map((question: StandardFormQuestionDto, idx: number) => {
+                        return (
+                            <div key={question?.id + idx} className={`p-6 bg-white relative rounded-lg border border-solid ${invalidFields.includes(question?.id) ? 'border-red-500' : 'border-white'}`}>
+                                {question?.validations?.required && <div className="absolute top-5 right-5 text-red-500">*</div>}
+                                {renderQuestionField(question, response?.answers)}
+                            </div>
+                        );
+                    })}
                 </div>
-                {form?.fields?.map((question: StandardFormQuestionDto, idx: number) => {
-                    return (
-                        <div key={question?.id + idx} className={`p-6 bg-white relative rounded-lg border border-solid ${invalidFields.includes(question?.id) ? 'border-red-500' : 'border-white'}`}>
-                            {question?.validations?.required && <div className="absolute top-5 right-5 text-red-500">*</div>}
-                            {renderQuestionField(question, response?.answers)}
-                        </div>
-                    );
-                })}
-            </div>
+            )}
         </div>
     );
 }
