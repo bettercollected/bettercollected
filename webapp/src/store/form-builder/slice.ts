@@ -23,7 +23,11 @@ export const slice = createSlice({
         setEditForm: (state, action) => {
             const fields: any = {};
             for (const field of action.payload.fields) {
-                fields[field.id] = field;
+                const choices: any = {};
+                for (const choice of field?.properties?.choices || []) {
+                    choices[choice.id] = choice;
+                }
+                fields[field.id] = { ...field, properties: { ...field.properties, choices: choices } };
             }
             return {
                 title: action.payload.title,

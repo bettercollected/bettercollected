@@ -33,5 +33,5 @@ export default function HeaderInputBlock({ field }: IHeaderInputBlockProps) {
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
         dispatch(addField({ ...field, value: event.target.value }));
     };
-    return <input className={contentEditableClassNames(false, field.tag)} onChange={onChange} placeholder={getPlaceholder(field.tag)} />;
+    return <input value={field.value || ''} className={contentEditableClassNames(false, field.tag)} onChange={onChange} placeholder={getPlaceholder(field.tag)} />;
 }

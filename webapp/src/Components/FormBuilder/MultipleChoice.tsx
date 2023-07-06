@@ -20,9 +20,6 @@ interface IMultipleChoiceProps {
 
 export default function MultipleChoice({ field }: IMultipleChoiceProps) {
     const dispatch = useDispatch();
-    const addFieldTitle = (title: string) => {
-        dispatch(setFieldTitle({ fieldId: field.id, title: title }));
-    };
 
     const handleChoiceValueChange = (id: string, value: string) => {
         dispatch(
@@ -70,32 +67,6 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
 
     return (
         <div>
-            {field.title !== undefined && (
-                <div>
-                    <TextField
-                        onChange={(event) => {
-                            addFieldTitle(event.target.value);
-                        }}
-                        placeholder="Question Title"
-                        value={field.title}
-                        fullWidth
-                        variant="standard"
-                        inputMode="text"
-                        inputProps={{
-                            style: {
-                                padding: 0,
-                                paddingBottom: 0,
-                                height: 40,
-                                fontSize: 18,
-                                fontWeight: 600,
-                                content: 'none',
-                                letterSpacing: 1
-                            }
-                        }}
-                        InputProps={{ sx: { ':before': { content: 'none' } } }}
-                    />
-                </div>
-            )}
             <div className="flex w-full items-start justify-start">
                 <DragDropContext onDragEnd={onDragEnd}>
                     <StrictModeDroppable droppableId="choices">

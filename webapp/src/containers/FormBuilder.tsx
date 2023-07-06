@@ -16,23 +16,13 @@ import { addField, deleteField, selectCreateForm, selectFormBuilderFields, setFi
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { reorder } from '@app/utils/arrayUtils';
 
-interface IFormBuilderProps {
-    formId: string;
-}
-
-export default function FormBuilder({ formId }: IFormBuilderProps) {
+export default function FormBuilder() {
     const dispatch = useAppDispatch();
     const form = useAppSelector(selectCreateForm);
-
-    const [title, setTitle] = useState(form?.title ?? '');
 
     const formFields = useAppSelector(selectFormBuilderFields);
 
     const blocks: any = Object.values(formFields);
-
-    useEffect(() => {
-        dispatch(setFormTitle(title));
-    }, [title]);
 
     const addBlockHandler = (block: any) => {
         const newBlock = {
@@ -91,7 +81,7 @@ export default function FormBuilder({ formId }: IFormBuilderProps) {
                     required
                     fullWidth
                     margin="none"
-                    value={title}
+                    value={form?.title || ''}
                     placeholder="Form title"
                     variant="standard"
                     inputMode="text"
@@ -107,7 +97,7 @@ export default function FormBuilder({ formId }: IFormBuilderProps) {
                     InputProps={{ sx: { ':before': { content: 'none' } } }}
                     size="medium"
                     onChange={(e: BaseSyntheticEvent) => {
-                        setTitle(e.target.value);
+                        dispatch(setFormTitle(e.target.value));
                     }}
                 />
             </div>

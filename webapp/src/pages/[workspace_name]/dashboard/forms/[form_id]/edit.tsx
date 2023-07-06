@@ -12,12 +12,13 @@ import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { formConstant } from '@app/constants/locales/form';
+import FormBuilder from '@app/containers/FormBuilder';
 import { getServerSidePropsForDashboardFormPage } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { resetForm, selectCreateForm, setEditForm } from '@app/store/form-builder/slice';
-import { FormState } from '@app/store/form-builder/types';
+import { FormFieldState, FormState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchFormMutation } from '@app/store/workspaces/api';
 
@@ -71,7 +72,14 @@ export default function EditFromPage(props: any) {
         const patchRequest: any = {};
         patchRequest.title = createForm.title;
         patchRequest.description = createForm.description;
-        patchRequest.fields = Object.values(createForm.fields);
+        let fields: any = Object.values(createForm.fields);
+        fields = fields.map((field: FormFieldState) => {
+            if (field.properties?.choices) {
+                return { ...field, properties: { ...field.properties, choices: Object.values(field.properties?.choices) } };
+            }
+            return field;
+        });
+        patchRequest.fields = fields;
         const response: any = await patchForm({ workspaceId: workspace.id, formId: form.formId, body: patchRequest });
         if (response?.data) {
             toast('Form updated', { type: 'success' });
@@ -82,14 +90,16 @@ export default function EditFromPage(props: any) {
     };
 
     return (
-        <DashboardLayout>
-            <div className="flex items-center justify-between">
+        <DashboardLayout sidebarClassName="!px-0" dashboardContentClassName="!py-0 w-full h-full bg-white">
+            <div className="flex items-center px-10 py-6 bg-white justify-between">
                 <BreadcrumbsRenderer items={breadcrumbsItem} />
                 <Button isLoading={isLoading} onClick={onSaveClick}>
                     Save
                 </Button>
             </div>
-            <div className="w-full flex flex-col items-center">{/*<CreateForm />*/}</div>
+            <div className="w-full bg-white flex flex-col items-center">
+                <FormBuilder />
+            </div>
         </DashboardLayout>
     );
 }
