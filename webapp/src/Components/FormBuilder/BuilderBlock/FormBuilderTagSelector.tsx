@@ -195,61 +195,53 @@ const allowedTags = [
         icon: <Grid4x4 width={20} height={20} />,
         type: BlockTypes.QUESTION_INPUT_BLOCKS
     },
-
-    {
-        id: FormBuilderTagNames.EMBED_IMAGE,
-        tag: FormBuilderTagNames.EMBED_IMAGE,
-        label: 'Image',
-        icon: <DeleteIcon width={20} height={20} />,
-        type: BlockTypes.EMBED_BLOCKS
-    },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER1,
         tag: FormBuilderTagNames.LAYOUT_HEADER1,
         label: 'Heading 1',
-        icon: <DeleteIcon width={20} height={20} />,
+        icon: <span className="w-5 font-bold text-xl">H1</span>,
         type: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER2,
         tag: FormBuilderTagNames.LAYOUT_HEADER2,
         label: 'Heading 2',
-        icon: <DeleteIcon width={20} height={20} />,
+        icon: <span className="w-5 font-bold text-xl">H2</span>,
         type: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER3,
         tag: FormBuilderTagNames.LAYOUT_HEADER3,
         label: 'Heading 3',
-        icon: <DeleteIcon width={20} height={20} />,
+        icon: <span className="w-5 font-bold text-xl">H3</span>,
         type: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER4,
         tag: FormBuilderTagNames.LAYOUT_HEADER4,
         label: 'Heading 4',
-        icon: <DeleteIcon width={20} height={20} />,
+        icon: <span className="w-5 font-bold text-xl">H4</span>,
         type: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER5,
         tag: FormBuilderTagNames.LAYOUT_HEADER5,
         label: 'Heading 5',
-        icon: <DeleteIcon width={20} height={20} />,
+        icon: <span className="w-5 font-bold text-xl">H5</span>,
         type: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         label: 'Text',
-        icon: <DeleteIcon width={20} height={20} />,
+        icon: <span className="w-5 font-bold text-center text-xl">{'T'}</span>,
         type: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_LABEL,
         tag: FormBuilderTagNames.LAYOUT_LABEL,
         label: 'Label',
-        icon: <DeleteIcon width={20} height={20} />,
+        icon: <span className="w-5 font-bold text-center text-xl">{'L'}</span>,
         type: BlockTypes.LAYOUT_BLOCKS
     }
 ];
@@ -259,17 +251,12 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection }: any) => {
     const [selectedTag, setSelectedTag] = useState({ type: BlockTypes.INPUT_BLOCKS, index: 0 });
     const [command, setCommand] = useState('');
 
-    const [blockListTypes, setBlockListTypes] = useState<Array<any>>([BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.EMBED_BLOCKS, BlockTypes.QUESTION_INPUT_BLOCKS]);
+    const [blockListTypes, setBlockListTypes] = useState<Array<any>>([BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.QUESTION_INPUT_BLOCKS]);
 
     const listRef: any = useRef(null);
 
     useEffect(() => {
         setTagList(allowedTags);
-        // const blockList: Array<any> = [];
-        // tagList.forEach((tag) => {
-        //     if (!blockList.includes(tag.type)) blockList.push(tag.type);
-        // });
-        // setBlockListTypes([...blockList]);
     }, []);
 
     useEffect(() => {

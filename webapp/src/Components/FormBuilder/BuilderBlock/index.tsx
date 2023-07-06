@@ -6,8 +6,8 @@ import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addField } from '@app/store/form-builder/slice';
+import { FormBuilderTagNames, getFormBuilderTagNameFromString } from '@app/models/enums/formBuilder';
+import { addField, addQuestionAndAnswerField, setFields } from '@app/store/form-builder/slice';
 import { contentEditableClassNames, isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
 
 import FormBuilderActionMenu from './FormBuilderActionMenu';
@@ -24,6 +24,7 @@ interface IFormBuilderBlockProps {
     duplicateBlock: any;
     deleteBlock: any;
     updateBlock: any;
+    fields: any;
 }
 
 export default class FormBuilderBlock extends React.Component<IFormBuilderBlockProps, any> {
@@ -57,26 +58,6 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
                 html: this.props.field.html,
                 tag: this.props.field.tag,
                 imageUrl: this.props.field.imageUrl
-            });
-        }
-    }
-
-    componentDidUpdate(prevProps: IFormBuilderBlockProps, prevState: any) {
-        // update the page on the server if one of the following is true
-        // 1. user stopped typing and the html content has changed & no placeholder set
-        // 2. user changed the tag & no placeholder set
-        // 3. user changed the image & no placeholder set
-        const stoppedTyping = prevState.isTyping && !this.state.isTyping;
-        const hasNoPlaceholder = !this.state.placeholder;
-        const htmlChanged = this.props.field.html !== this.state.html;
-        const tagChanged = this.props.field.tag !== this.state.tag;
-        const imageChanged = this.props.field.imageUrl !== this.state.imageUrl;
-        if (((stoppedTyping && htmlChanged) || tagChanged || imageChanged) && hasNoPlaceholder) {
-            this.props.updateBlock({
-                id: this.props.field.id,
-                html: this.state.html,
-                tag: this.state.tag,
-                imageUrl: this.state.imageUrl
             });
         }
     }
@@ -261,47 +242,43 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
     // Convert editableBlock shape based on the chosen tag
     // i.e. img = display <div><input /><img /></div> (input picker is hidden)
     // i.e. every other tag = <ContentEditable /> with its tag and html content
-    handleTagSelection = (tag: any) => {
+    handleTagSelection = (tag: FormBuilderTagNames) => {
         if (tag !== FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
-            this.setState({ ...this.state, tag: tag }, () => {
-                this.closeTagSelectorMenu();
-                // Add new block so that the user can continue writing
-                // after adding an image
-
-                const newBlock: any = {
-                    id: this.props.field.id,
-                    html: this.state.html,
-                    tag: this.state.tag,
-                    imageUrl: this.state.imageUrl,
-                    ref: this.contentEditable.current
+            if (tag.includes('question')) {
+                this.props.dispatch(
+                    addQuestionAndAnswerField({
+                        position: this.props.position,
+                        id: this.props.field.id,
+                        tag
+                    })
+                );
+                return;
+            }
+            this.closeTagSelectorMenu();
+            const newBlock: any = {
+                id: this.props.field.id,
+                tag: tag
+            };
+            if (tag === FormBuilderTagNames.INPUT_RATING) {
+                newBlock['properties'] = {
+                    steps: 5
                 };
-                if (this.state.tag === FormBuilderTagNames.QUESTION_RATING) {
-                    newBlock['properties'] = {
-                        steps: 5
-                    };
-                }
-                if (
-                    this.state.tag === FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE ||
-                    this.state.tag === FormBuilderTagNames.QUESTION_CHECKBOXES ||
-                    this.state.tag === FormBuilderTagNames.QUESTION_RANKING ||
-                    this.state.tag === FormBuilderTagNames.QUESTION_DROPDOWN ||
-                    this.state.tag === FormBuilderTagNames.QUESTION_MULTISELECT
-                ) {
-                    const id = uuidv4();
-                    newBlock['choices'] = {
-                        [id]: {
-                            id: id,
-                            value: ''
-                        }
-                    };
-                    if (this.state.tag === FormBuilderTagNames.QUESTION_CHECKBOXES || this.state.tag === FormBuilderTagNames.QUESTION_MULTISELECT) {
-                        newBlock['properties'] = {
-                            allowMultipleSelection: true
-                        };
+            }
+            if (tag === FormBuilderTagNames.INPUT_MULTIPLE_CHOICE || tag === FormBuilderTagNames.INPUT_CHECKBOXES || tag === FormBuilderTagNames.INPUT_RANKING || tag === FormBuilderTagNames.INPUT_DROPDOWN || tag === FormBuilderTagNames.INPUT_MULTISELECT) {
+                const id = uuidv4();
+                newBlock['choices'] = {
+                    [id]: {
+                        id: id,
+                        value: ''
                     }
+                };
+                if (tag === FormBuilderTagNames.INPUT_CHECKBOXES || tag === FormBuilderTagNames.INPUT_MULTISELECT) {
+                    newBlock['properties'] = {
+                        allowMultipleSelection: true
+                    };
                 }
-                this.props.updateBlock(newBlock);
-            });
+            }
+            this.props.updateBlock(newBlock);
         } else {
             if (this.state.isTyping) {
                 // Update the tag and restore the html backup without the command
@@ -333,6 +310,7 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
                     >
                         <div className={`builder-block px-5 min-h-[40px] flex items-center md:px-[89px]`}>
                             <FormBuilderActionMenu
+                                index={this.props.position}
                                 id={this.props.field.id}
                                 provided={provided}
                                 addBlock={this.props.addBlock}
@@ -340,15 +318,15 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
                                 deleteBlock={this.props.deleteBlock}
                                 className={this.state.isFocused ? 'visible' : 'invisible'}
                             />
-                            {!isContentEditableTag(this.state.tag) ? (
-                                <FormBuilderBlockContent tag={this.state.tag} position={this.props.position} reference={this.contentEditable} field={this.props.field} />
+                            {!isContentEditableTag(this.props.field.tag) ? (
+                                <FormBuilderBlockContent tag={this.props.field.tag} position={this.props.position} reference={this.contentEditable} field={this.props.field} />
                             ) : (
                                 <div className="flex flex-col w-full relative">
                                     <div className={`w-full px-0 flex items-center min-h-[40px]`}>
                                         <ContentEditable
                                             innerRef={this.contentEditable}
                                             data-position={this.props.position}
-                                            data-tag={this.state.tag}
+                                            data-tag={this.props.field.tag}
                                             html={this.state.html}
                                             onChange={this.handleChange}
                                             onFocus={this.handleFocus}
@@ -356,8 +334,8 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
                                             onKeyDown={this.handleKeyDown}
                                             onKeyUp={this.handleKeyUp}
                                             onMouseUp={this.handleMouseUp}
-                                            tagName={this.state.tag}
-                                            className={`m-0 p-0 w-full focus-visible:border-0 focus-visible:outline-none ${contentEditableClassNames(this.state.placeholder, this.state.tag)}`}
+                                            tagName={this.props.field.tag}
+                                            className={`m-0 p-0 w-full focus-visible:border-0 focus-visible:outline-none ${contentEditableClassNames(this.state.placeholder, this.props.field.tag)}`}
                                         />
                                     </div>
                                     {this.state.tagSelectorMenuOpen && <FormBuilderTagSelector closeMenu={this.closeTagSelectorMenu} handleSelection={this.handleTagSelection} />}

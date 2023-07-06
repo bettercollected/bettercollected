@@ -3,9 +3,21 @@ import React from 'react';
 import PlusIcon from '@Components/Common/Icons/Plus';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import FieldOptions from '@Components/FormBuilder/FieldOptions/FieldOptions';
+import { useDispatch } from 'react-redux';
 import { v4 as uuidv4 } from 'uuid';
 
-const FormBuilderActionMenu = ({ id, provided, addBlock, className = '' }: any) => {
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { selectFormBuilderFields, setFields } from '@app/store/form-builder/slice';
+import { useAppSelector } from '@app/store/hooks';
+
+const FormBuilderActionMenu = ({ id, provided, addBlock, className = '', index }: any) => {
+    const formFields = useAppSelector(selectFormBuilderFields);
+    const dispatch = useDispatch();
+    const addField = () => {
+        const fieldsArray = Object.values(formFields);
+        fieldsArray.splice(index + 1, 0, { id: uuidv4(), tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT });
+        dispatch(setFields(fieldsArray));
+    };
     return (
         <div className={`builder-block-actions absolute -top-10 md:top-0 md:-left-1 flex justify-start items-center rounded-sm h-10 w-fit p-[0.5px] bg-white md:bg-transparent mr-4 ${className}`}>
             <MenuDropdown
@@ -33,7 +45,7 @@ const FormBuilderActionMenu = ({ id, provided, addBlock, className = '' }: any) 
                 hasMenu={false}
                 menuTitle="Add a new block"
                 menuContent={
-                    <div tabIndex={0} className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400" onClick={() => addBlock({ id: uuidv4() })}>
+                    <div tabIndex={0} className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400" onClick={addField}>
                         <PlusIcon width={40} height={40} />
                     </div>
                 }

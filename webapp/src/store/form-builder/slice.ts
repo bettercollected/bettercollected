@@ -1,3 +1,4 @@
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { createSlice } from '@reduxjs/toolkit';
 import ansiRegex from 'ansi-regex';
 import ObjectID from 'bson-objectid';
@@ -6,6 +7,7 @@ import storage from 'redux-persist/lib/storage';
 
 import { QUESTION_TYPE } from '@app/components/form/renderer/form-renderer';
 import { StandardFormQuestionDto } from '@app/models/dtos/form';
+import { FormBuilderTagNames, getFormBuilderTagNameFromString } from '@app/models/enums/formBuilder';
 import { FormFieldState, FormState } from '@app/store/form-builder/types';
 import { RootState } from '@app/store/store';
 
@@ -14,12 +16,6 @@ const initialState: FormState = {
     description: '',
     fields: {}
 };
-
-const getInitialFieldDto = (id: string, type: QUESTION_TYPE): FormFieldState => ({
-    title: '',
-    id: id,
-    type: type
-});
 export const slice = createSlice({
     name: 'createForm',
     initialState,
@@ -57,6 +53,48 @@ export const slice = createSlice({
                     ...state.fields,
                     [action.payload.id]: action.payload
                 }
+            };
+        },
+        addQuestionAndAnswerField: (state, action) => {
+            let { position, tag, id } = action.payload;
+            const newTag = tag.replace('question_', 'input_');
+            tag = getFormBuilderTagNameFromString(newTag);
+            const fields = { ...state.fields };
+            fields[id] = {
+                id: id,
+                tag: tag
+            };
+            if (tag === FormBuilderTagNames.INPUT_RATING) {
+                fields[id]['properties'] = {
+                    steps: 5
+                };
+            }
+            if (tag === FormBuilderTagNames.INPUT_MULTIPLE_CHOICE || tag === FormBuilderTagNames.INPUT_CHECKBOXES || tag === FormBuilderTagNames.INPUT_RANKING || tag === FormBuilderTagNames.INPUT_DROPDOWN || tag === FormBuilderTagNames.INPUT_MULTISELECT) {
+                const choiceId = uuidv4();
+                fields[id]['choices'] = {
+                    [choiceId]: {
+                        id: choiceId,
+                        value: ''
+                    }
+                };
+                if (tag === FormBuilderTagNames.INPUT_CHECKBOXES || tag === FormBuilderTagNames.INPUT_MULTISELECT) {
+                    fields[id]['properties'] = {
+                        allowMultipleSelection: true
+                    };
+                }
+            }
+            const fieldsArray = Object.values(fields);
+            fieldsArray.splice(position, 0, {
+                id: uuidv4(),
+                tag: FormBuilderTagNames.LAYOUT_HEADER3
+            });
+            const newFields: any = {};
+            fieldsArray.forEach((field: any, index: number) => {
+                newFields[field.id] = { ...field, index };
+            });
+            return {
+                ...state,
+                fields: newFields
             };
         },
         deleteField: (state, action) => {
@@ -115,7 +153,7 @@ export const slice = createSlice({
         setFields: (state, action) => {
             const fields: any = {};
             action.payload.forEach((field: any, index: number) => {
-                fields[field.id] = field;
+                fields[field.id] = { ...field, index };
             });
             return {
                 ...state,
@@ -141,6 +179,6 @@ export const selectCreateForm = (state: RootState) => state.createForm;
 export const selectFormBuilderFields = (state: RootState) => state.createForm.fields;
 export const selectFormField = (id: string) => (state: RootState) => state.createForm.fields[id];
 
-export const { setFields, setEditForm, resetForm, deleteField, setFieldDescription, setFieldRequired, setFieldTitle, setFormDescription, setFieldType, addField, setFormTitle } = slice.actions;
+export const { addQuestionAndAnswerField, setFields, setEditForm, resetForm, deleteField, setFieldDescription, setFieldRequired, setFieldTitle, setFormDescription, setFieldType, addField, setFormTitle } = slice.actions;
 
 export default reducerObj;

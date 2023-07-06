@@ -3,15 +3,17 @@ import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 
 export interface FormFieldState {
     id: string;
-    title: string;
+    title?: string;
     description?: string;
     value?: string;
-    type: QUESTION_TYPE;
+    type?: QUESTION_TYPE;
     tag?: FormBuilderTagNames;
+    index?: number;
     properties?: {
         steps?: number;
         placeholder?: string;
         hidden?: boolean;
+        allowMultipleSelection?: boolean;
     };
     choices?: {};
     validations?: {

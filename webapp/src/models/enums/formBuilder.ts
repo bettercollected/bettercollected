@@ -14,9 +14,7 @@ export enum KeyType {
 export enum BlockTypes {
     INPUT_BLOCKS = 'Input Blocks',
     LAYOUT_BLOCKS = 'Layout Blocks',
-    EMBED_BLOCKS = 'Embed Blocks',
-    QUESTION_BLOCKS = 'Question Blocks',
-    QUESTION_INPUT_BLOCKS = 'Question + Input BLocks'
+    QUESTION_INPUT_BLOCKS = 'Header + Input BLocks'
 }
 
 export enum FormBuilderTagNames {
@@ -32,6 +30,7 @@ export enum FormBuilderTagNames {
     INPUT_SHORT_TEXT = 'input_short_text',
     INPUT_LONG_TEXT = 'input_long_text',
     INPUT_MULTIPLE_CHOICE = 'input_multiple_choice',
+    INPUT_MULTISELECT = 'input_multiselect',
     INPUT_CHECKBOXES = 'input_checkboxes',
     INPUT_EMAIL = 'input_email',
     INPUT_NUMBER = 'input_number',
@@ -76,7 +75,11 @@ export enum FormBuilderTagNames {
     QUESTION_RATING = 'question_rating',
     QUESTION_LINEAR_SCALE = 'question_linear_scale',
     QUESTION_FILE_UPLOAD = 'question_file_upload',
-    QUESTION_INPUT_MATRIX = 'question_input_matrix'
+    QUESTION_INPUT_MATRIX = 'question_matrix'
+}
+
+export function getFormBuilderTagNameFromString(value: string) {
+    return value as FormBuilderTagNames;
 }
 
 export const NonInputFormBuilderTagNames = [

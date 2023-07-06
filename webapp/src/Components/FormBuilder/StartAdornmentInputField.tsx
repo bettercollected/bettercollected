@@ -15,13 +15,13 @@ interface IStartAdornmentInputFieldProps {
 
 function getIcon(type: FormBuilderTagNames) {
     switch (type) {
-        case FormBuilderTagNames.QUESTION_CHECKBOXES:
+        case FormBuilderTagNames.INPUT_CHECKBOXES:
             return <CheckBoxOutlineBlankIcon />;
-        case FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE:
+        case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
             return <RadioButtonUncheckedIcon />;
-        case FormBuilderTagNames.QUESTION_DROPDOWN:
+        case FormBuilderTagNames.INPUT_DROPDOWN:
             return <ArrowDropDown />;
-        case FormBuilderTagNames.QUESTION_RANKING:
+        case FormBuilderTagNames.INPUT_RANKING:
             return <TrendingUpSharp />;
         default:
             return <></>;
@@ -37,7 +37,7 @@ export default function StartAdornmentInputField({ type, value, onChange }: ISta
             onChange={onChange}
             placeholder="Option"
             InputProps={{
-                startAdornment: getIcon(type)
+                startAdornment: <div className="text-gray-400"> {getIcon(type)}</div>
             }}
         />
     );

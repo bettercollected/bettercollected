@@ -49,7 +49,7 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
             return;
         }
 
-        const items = reorder(Object.values(field.choices), result.source.index + 1, result.destination.index + 1);
+        const items = reorder(Object.values(field.choices), result.source.index, result.destination.index);
         const choices: any = {};
         items.forEach((item) => {
             choices[item.id] = item;
@@ -139,16 +139,16 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
                     </StrictModeDroppable>
                 </DragDropContext>
 
-                {field.title === undefined && (
-                    <div
-                        className="text-gray-400 w-full mt-2 cursor-pointer"
-                        onClick={() => {
-                            addFieldTitle('');
-                        }}
-                    >
-                        Add title
-                    </div>
-                )}
+                {/*{field.title === undefined && (*/}
+                {/*    <div*/}
+                {/*        className="text-gray-400 w-full mt-2 cursor-pointer"*/}
+                {/*        onClick={() => {*/}
+                {/*            addFieldTitle('');*/}
+                {/*        }}*/}
+                {/*    >*/}
+                {/*        Add title*/}
+                {/*    </div>*/}
+                {/*)}*/}
             </div>
         </div>
     );

@@ -31,12 +31,12 @@ export default function FormBuilderBlockContent({ tag, position, reference, fiel
                 return <EndAdornmentInputField field={field} />;
             case FormBuilderTagNames.INPUT_LONG_TEXT:
                 return <LongText />;
-            case FormBuilderTagNames.QUESTION_CHECKBOXES:
-            case FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE:
-            case FormBuilderTagNames.QUESTION_DROPDOWN:
-            case FormBuilderTagNames.QUESTION_RANKING:
+            case FormBuilderTagNames.INPUT_CHECKBOXES:
+            case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
+            case FormBuilderTagNames.INPUT_DROPDOWN:
+            case FormBuilderTagNames.INPUT_RANKING:
                 return <MultipleChoice field={field} />;
-            case FormBuilderTagNames.QUESTION_RATING:
+            case FormBuilderTagNames.INPUT_RATING:
                 return <RatingField field={field} />;
             case FormBuilderTagNames.INPUT_MATRIX:
                 return <MatrixField allowMultipleSelection={false} rows={[1, 2, 3]} columns={[1, 2, 3]} />;

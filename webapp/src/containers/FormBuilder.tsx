@@ -61,10 +61,6 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
                 placeholder: true,
                 isTyping: false,
                 imageUrl: ''
-                // content: null,
-                // contentPlaceholder: builderConstants.BuilderContentPlaceholder,
-                // properties: {},
-                // validations: {},
             };
             dispatch(addField(newBlock));
         }
@@ -115,13 +111,13 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
                         <StrictModeDroppable droppableId="droppable">
                             {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
                                 <div className={`flex flex-col py-10 gap-2 transition-all duration-200 ease-in ${snapshot.isDraggingOver ? 'bg-black-100 bg-opacity-30 rounded' : 'bg-white'}`} {...provided.droppableProps} ref={provided.innerRef}>
-                                    {blocks.map((block: any) => {
-                                        const position = blocks.map((b: any) => b.id).indexOf(block.id) + 1;
+                                    {blocks.map((block: any, index: number) => {
                                         return (
                                             <FormBuilderBlock
+                                                fields={formFields}
                                                 key={block.id}
                                                 field={block}
-                                                position={position}
+                                                position={index}
                                                 dispatch={dispatch}
                                                 addBlock={addBlockHandler}
                                                 duplicateBlock={duplicateBlockHandler}
