@@ -266,7 +266,8 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
             }
             if (tag === FormBuilderTagNames.INPUT_MULTIPLE_CHOICE || tag === FormBuilderTagNames.INPUT_CHECKBOXES || tag === FormBuilderTagNames.INPUT_RANKING || tag === FormBuilderTagNames.INPUT_DROPDOWN || tag === FormBuilderTagNames.INPUT_MULTISELECT) {
                 const id = uuidv4();
-                newBlock['choices'] = {
+                newBlock['properties'] = {};
+                newBlock['properties']['choices'] = {
                     [id]: {
                         id: id,
                         value: ''
@@ -274,6 +275,7 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
                 };
                 if (tag === FormBuilderTagNames.INPUT_CHECKBOXES || tag === FormBuilderTagNames.INPUT_MULTISELECT) {
                     newBlock['properties'] = {
+                        ...(newBlock['properties'] || {}),
                         allowMultipleSelection: true
                     };
                 }

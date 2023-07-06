@@ -71,7 +71,9 @@ export const slice = createSlice({
             }
             if (tag === FormBuilderTagNames.INPUT_MULTIPLE_CHOICE || tag === FormBuilderTagNames.INPUT_CHECKBOXES || tag === FormBuilderTagNames.INPUT_RANKING || tag === FormBuilderTagNames.INPUT_DROPDOWN || tag === FormBuilderTagNames.INPUT_MULTISELECT) {
                 const choiceId = uuidv4();
-                fields[id]['choices'] = {
+                fields[id]['properties'] = {};
+                // @ts-ignore
+                fields[id]['properties']['choices'] = {
                     [choiceId]: {
                         id: choiceId,
                         value: ''
@@ -79,6 +81,7 @@ export const slice = createSlice({
                 };
                 if (tag === FormBuilderTagNames.INPUT_CHECKBOXES || tag === FormBuilderTagNames.INPUT_MULTISELECT) {
                     fields[id]['properties'] = {
+                        ...(fields[id]['properties'] || {}),
                         allowMultipleSelection: true
                     };
                 }

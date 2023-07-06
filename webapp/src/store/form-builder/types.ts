@@ -7,13 +7,19 @@ export interface FormFieldState {
     description?: string;
     value?: string;
     type?: QUESTION_TYPE;
-    tag?: FormBuilderTagNames;
+    tag: FormBuilderTagNames;
     index?: number;
     properties?: {
         steps?: number;
         placeholder?: string;
         hidden?: boolean;
         allowMultipleSelection?: boolean;
+        choices?: {
+            [choiceId: string]: {
+                id: string;
+                value?: string;
+            };
+        };
     };
     choices?: {};
     validations?: {

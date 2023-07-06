@@ -9,12 +9,14 @@ import { TextField } from '@mui/material';
 import { GridCloseIcon } from '@mui/x-data-grid';
 import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react-beautiful-dnd';
 import { useDispatch } from 'react-redux';
+import properties from 'refractor/lang/properties';
 
 import { addField, setFieldTitle } from '@app/store/form-builder/slice';
+import { FormFieldState } from '@app/store/form-builder/types';
 import { reorder } from '@app/utils/arrayUtils';
 
 interface IMultipleChoiceProps {
-    field: any;
+    field: FormFieldState;
 }
 
 export default function MultipleChoice({ field }: IMultipleChoiceProps) {
@@ -24,24 +26,29 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
     };
 
     const handleChoiceValueChange = (id: string, value: string) => {
-        dispatch(addField({ ...field, choices: { ...field.choices, [id]: { id, value } } }));
+        dispatch(
+            addField({
+                ...field,
+                properties: { ...field.properties?.choices, choices: { ...field.properties?.choices, [id]: { id, value } } }
+            })
+        );
     };
 
     const addChoice = (index: number) => {
         const id = uuidv4();
-        const newChoices = Object.values(field.choices);
+        const newChoices = Object.values(field.properties?.choices || {});
         newChoices.splice(index + 1, 0, { id, value: '' });
         const choices: any = {};
         newChoices.forEach((choice: any) => {
             choices[choice.id] = choice;
         });
-        dispatch(addField({ ...field, choices: choices }));
+        dispatch(addField({ ...field, properties: { ...field.properties, choices: choices } }));
     };
 
     const deleteChoice = (id: string) => {
-        const choices = { ...field.choices };
+        const choices = { ...field.properties?.choices };
         delete choices[id];
-        dispatch(addField({ ...field, choices: { ...choices } }));
+        dispatch(addField({ ...field, properties: { ...field.properties, choices: { ...choices } } }));
     };
 
     const onDragEnd = (result: DropResult) => {
@@ -49,12 +56,17 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
             return;
         }
 
-        const items = reorder(Object.values(field.choices), result.source.index, result.destination.index);
+        const items = reorder(Object.values(field.properties?.choices || {}), result.source.index, result.destination.index);
         const choices: any = {};
         items.forEach((item) => {
             choices[item.id] = item;
         });
-        dispatch(addField({ ...field, choices: { ...choices } }));
+        dispatch(
+            addField({
+                ...field,
+                properties: { ...field.properties, choices: { ...choices } }
+            })
+        );
     };
 
     return (
@@ -90,14 +102,15 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
                     <StrictModeDroppable droppableId="choices">
                         {(provided: DroppableProvided) => (
                             <div {...provided.droppableProps} ref={provided.innerRef} className="w-full">
-                                {Object.values(field.choices || {}).map((choice: any, index) => {
+                                {Object.values(field.properties?.choices || {}).map((choice: any, index) => {
+                                    // @ts-ignore
                                     return (
                                         <Draggable key={choice.id} draggableId={choice.id} index={index}>
                                             {(provided) => (
                                                 <div className="flex gap-5 mb-3 items-start justify-start" {...provided.draggableProps} ref={provided.innerRef}>
                                                     <div className="relative">
                                                         <div className="absolute flex items-center gap-2 justify-center -top-2 -right-2">
-                                                            {Object.values(field.choices).length > 1 && (
+                                                            {Object.values(field.properties?.choices || {}).length > 1 && (
                                                                 <div
                                                                     onClick={() => {
                                                                         deleteChoice(choice.id);
@@ -125,7 +138,8 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
                                                             onChange={(event) => {
                                                                 handleChoiceValueChange(choice.id, event.target.value);
                                                             }}
-                                                            value={field.choices[choice?.id]?.value}
+                                                            // @ts-ignore
+                                                            value={field?.properties?.choices[choice?.id]?.value || ''}
                                                         />
                                                     </div>
                                                 </div>
