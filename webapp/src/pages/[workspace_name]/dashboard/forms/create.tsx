@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
 
+import { useRouter } from 'next/router';
+
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
 import { useDispatch } from 'react-redux';
+import { toast } from 'react-toastify';
 
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import environments from '@app/configs/environments';
@@ -9,8 +12,9 @@ import FormBuilder from '@app/containers/FormBuilder';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { resetForm, selectCreateForm } from '@app/store/form-builder/slice';
-import { FormState } from '@app/store/form-builder/types';
+import { FormFieldState, FormState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
+import { useCreateFormMutation } from '@app/store/workspaces/api';
 
 interface ICreateFormProps {
     workspace: WorkspaceDto;
@@ -20,6 +24,10 @@ interface ICreateFormProps {
 export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormProps) {
     const createForm: FormState = useAppSelector(selectCreateForm);
     const dispatch = useDispatch();
+
+    const [postCreateForm] = useCreateFormMutation();
+
+    const router = useRouter();
 
     useEffect(() => {
         dispatch(resetForm());
@@ -36,24 +44,32 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
     const onPreview = () => {};
 
     const onFormPublish = async () => {
-        console.log(createForm.fields);
-        // const postRequest: any = {};
-        // postRequest.title = createForm.title;
-        // postRequest.description = createForm.description;
-        // postRequest.fields = Object.values(createForm.fields);
-        // const response: any = await postCreateForm({ workspaceId: workspace.id, body: postRequest });
-        // if (response?.data) {
-        //     toast('Form created!!', { type: 'success' });
-        //     await router.push(`/${locale}${workspace?.workspaceName}/dashboard`);
-        // } else {
-        //     toast('Error creating form', { type: 'error' });
-        // }
+        console.log(createForm);
+
+        const postRequest: any = {};
+        postRequest.title = createForm.title;
+        postRequest.description = createForm.description;
+        let fields: any = Object.values(createForm.fields);
+        fields = fields.map((field: FormFieldState) => {
+            if (field.properties?.choices) {
+                return { ...field, properties: { ...field.properties, choices: Object.values(field.properties?.choices) } };
+            }
+            return field;
+        });
+        postRequest.fields = fields;
+        const response: any = await postCreateForm({ workspaceId: workspace.id, body: postRequest });
+        if (response?.data) {
+            toast('Form created!!', { type: 'success' });
+            await router.push(`/${workspace?.workspaceName}/dashboard`);
+        } else {
+            toast('Error creating form', { type: 'error' });
+        }
     };
 
     return environments.ENABLE_FORM_BUILDER ? (
         <DashboardLayout sidebarClassName="!px-0" dashboardContentClassName="!py-0 w-full h-full bg-white">
             <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
-            <FormBuilder formData={{}} formId="dummyId" />
+            <FormBuilder formId="dummyId" />
         </DashboardLayout>
     ) : (
         <></>

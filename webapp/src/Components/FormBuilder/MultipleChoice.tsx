@@ -9,7 +9,6 @@ import { TextField } from '@mui/material';
 import { GridCloseIcon } from '@mui/x-data-grid';
 import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react-beautiful-dnd';
 import { useDispatch } from 'react-redux';
-import properties from 'refractor/lang/properties';
 
 import { addField, setFieldTitle } from '@app/store/form-builder/slice';
 import { FormFieldState } from '@app/store/form-builder/types';

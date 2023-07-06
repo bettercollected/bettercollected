@@ -35,6 +35,18 @@ export default function StartAdornmentInputField({ type, value, onChange }: ISta
             className="!w-fit !mb-0"
             value={value}
             onChange={onChange}
+            inputProps={{
+                style: {
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                    height: 40,
+                    fontSize: 14,
+                    fontWeight: 400,
+                    color: 'black',
+                    content: 'none',
+                    letterSpacing: 1
+                }
+            }}
             placeholder="Option"
             InputProps={{
                 startAdornment: <div className="text-gray-400"> {getIcon(type)}</div>

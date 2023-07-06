@@ -1,5 +1,7 @@
 import React, { BaseSyntheticEvent, useEffect, useState } from 'react';
 
+import _ from 'lodash';
+
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
 import { StrictModeDroppable } from '@Components/FormBuilder/StrictModeDroppable';
 import FormBuilderHotkeysHookListener from '@Components/HOCs/FormBuilderHotkeysHookListener';
@@ -10,23 +12,27 @@ import { v4 as uuidV4 } from 'uuid';
 
 import builderConstants from '@app/constants/builder';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addField, deleteField, selectFormBuilderFields, setFields } from '@app/store/form-builder/slice';
+import { addField, deleteField, selectCreateForm, selectFormBuilderFields, setFields, setFormTitle } from '@app/store/form-builder/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { reorder } from '@app/utils/arrayUtils';
 
 interface IFormBuilderProps {
     formId: string;
-    formData: any;
 }
 
-export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
+export default function FormBuilder({ formId }: IFormBuilderProps) {
     const dispatch = useAppDispatch();
+    const form = useAppSelector(selectCreateForm);
 
-    const [formTitle, setFormTitle] = useState(formData?.title ?? '');
+    const [title, setTitle] = useState(form?.title ?? '');
 
     const formFields = useAppSelector(selectFormBuilderFields);
 
     const blocks: any = Object.values(formFields);
+
+    useEffect(() => {
+        dispatch(setFormTitle(title));
+    }, [title]);
 
     const addBlockHandler = (block: any) => {
         const newBlock = {
@@ -85,7 +91,7 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
                     required
                     fullWidth
                     margin="none"
-                    value={formTitle}
+                    value={title}
                     placeholder="Form title"
                     variant="standard"
                     inputMode="text"
@@ -101,7 +107,7 @@ export default function FormBuilder({ formId, formData }: IFormBuilderProps) {
                     InputProps={{ sx: { ':before': { content: 'none' } } }}
                     size="medium"
                     onChange={(e: BaseSyntheticEvent) => {
-                        setFormTitle(e.target.value);
+                        setTitle(e.target.value);
                     }}
                 />
             </div>
