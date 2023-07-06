@@ -4,7 +4,6 @@ import { useRouter } from 'next/router';
 
 import { Close } from '@app/components/icons/close';
 import { UPGRADE_MODAL_VIEW, useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import AddFormFieldModal from '@app/components/modal-views/modals/add-form-field';
 import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
 import WorkspacePreviewModal from '@app/components/modal-views/modals/workspace-preview-modal';
 import Button from '@app/components/ui/button';
@@ -21,8 +20,6 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW | string, modalProps: any) 
             return <UpgradeToProModal {...modalProps} />;
         case 'WORKSPACE_PREVIEW':
             return <WorkspacePreviewModal />;
-        case 'ADD_FIELD':
-            return <AddFormFieldModal />;
         default:
             return <></>;
     }

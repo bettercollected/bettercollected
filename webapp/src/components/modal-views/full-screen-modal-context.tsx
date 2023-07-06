@@ -1,6 +1,6 @@
 import { atom, useAtom } from 'jotai';
 
-export type UPGRADE_MODAL_VIEW = 'CROP_IMAGE' | 'UPGRADE_TO_PRO' | 'WORKSPACE_PREVIEW' | 'ADD_FIELD' | '';
+export type UPGRADE_MODAL_VIEW = 'CROP_IMAGE' | 'UPGRADE_TO_PRO' | 'WORKSPACE_PREVIEW' | '';
 
 const modalAtom = atom({ isOpen: false, modalProps: null, view: '' });
 

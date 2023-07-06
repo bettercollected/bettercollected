@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import CreateForm from '@Components/CreateForm';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 
@@ -20,7 +19,7 @@ import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { resetForm, selectCreateForm, setEditForm } from '@app/store/form-builder/slice';
 import { FormState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
-import { usePatchFormMutation, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
+import { usePatchFormMutation } from '@app/store/workspaces/api';
 
 export default function EditFromPage(props: any) {
     const {
@@ -90,9 +89,7 @@ export default function EditFromPage(props: any) {
                     Save
                 </Button>
             </div>
-            <div className="w-full flex flex-col items-center">
-                <CreateForm />
-            </div>
+            <div className="w-full flex flex-col items-center">{/*<CreateForm />*/}</div>
         </DashboardLayout>
     );
 }
