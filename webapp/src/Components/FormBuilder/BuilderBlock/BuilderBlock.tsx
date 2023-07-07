@@ -156,9 +156,9 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
     };
 
     const handleChange = (e: any) => {
-        console.log(e.target.value);
+        const newHtml = e.currentTarget.innerHTML;
         setIsFormDirty(true);
-        setState({ ...state, html: e.target.value });
+        setState({ ...state, html: newHtml });
         _.debounce(dispatchChange, 500);
     };
 
@@ -337,7 +337,7 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
                                         innerRef={contentEditable}
                                         data-position={position}
                                         data-tag={field.tag}
-                                        html={state.html}
+                                        html={state.html || ''}
                                         onChange={handleChange}
                                         onFocus={handleFocus}
                                         onBlur={handleBlur}

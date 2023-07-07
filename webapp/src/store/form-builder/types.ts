@@ -28,6 +28,7 @@ export interface FormFieldState {
 }
 
 export interface FormState {
+    formId: string;
     title: string;
     description?: string;
     responseOwnerField?: string;

@@ -12,23 +12,32 @@ import FormBuilderHotkeysHookListener from '@Components/HOCs/FormBuilderHotkeysH
 import TextField from '@mui/material/TextField';
 import { DragDropContext, DragStart, DragUpdate, DropResult, DroppableProvided, DroppableStateSnapshot, OnDragEndResponder, OnDragStartResponder, OnDragUpdateResponder, ResponderProvided } from 'react-beautiful-dnd';
 import { HotkeysProvider } from 'react-hotkeys-hook';
+import { toast } from 'react-toastify';
 import { v4 as uuidV4 } from 'uuid';
 
 import builderConstants from '@app/constants/builder';
+import useAsyncState from '@app/lib/hooks/use-async-state';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addField, deleteField, selectCreateForm, selectFormBuilderFields, setFields, setFormTitle } from '@app/store/form-builder/slice';
+import { FormFieldState, FormState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useCreateFormMutation, usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
 
-export default function FormBuilder({ onFormPublish }: any) {
+export default function FormBuilder({ workspace, _nextI18Next, isEditMode = false }: { isEditMode?: boolean; workspace: WorkspaceDto; _nextI18Next: any }) {
     const dispatch = useAppDispatch();
     const router = useRouter();
-    const [isFormDirty, setIsFormDirty] = useState(false);
-    const form = useAppSelector(selectCreateForm);
+    const createForm: FormState = useAppSelector(selectCreateForm);
+
+    const [postCreateForm] = useCreateFormMutation();
+    const [patchForm] = usePatchFormMutation();
+    const [isFormDirty, setIsFormDirty] = useAsyncState(false);
 
     const formFields = useAppSelector(selectFormBuilderFields);
 
     const blocks: any = Object.values(formFields);
+    const locale = _nextI18Next.initialLocale === 'en' ? '' : `${_nextI18Next.initialLocale}/`;
 
     const addBlockHandler = (block: any) => {
         const newBlock = {
@@ -123,6 +132,37 @@ export default function FormBuilder({ onFormPublish }: any) {
         dispatch(setFields(items));
     };
 
+    const onFormPublish = async () => {
+        const apiCall = !isEditMode ? postCreateForm : patchForm;
+
+        const redirectUrl = !isEditMode ? `/${workspace?.workspaceName}/dashboard` : `/${locale}${workspace?.workspaceName}/dashboard/forms/${createForm.formId}`;
+        const createUpdateText = !isEditMode ? 'creat' : 'updat';
+        const publishRequest: any = {};
+        publishRequest.title = createForm.title;
+        publishRequest.description = createForm.description;
+        let fields: any = Object.values(createForm.fields);
+        fields = fields.map((field: FormFieldState) => {
+            if (field.properties?.choices) {
+                return { ...field, properties: { ...field.properties, choices: Object.values(field.properties?.choices) } };
+            }
+            return field;
+        });
+        publishRequest.fields = fields;
+
+        const apiObj: any = { workspaceId: workspace.id, body: publishRequest };
+        if (isEditMode) apiObj['formId'] = createForm.formId;
+
+        const response: any = await apiCall(apiObj);
+        if (response?.data) {
+            toast(`Form ${createUpdateText}ed!!`, { type: 'success' });
+            setIsFormDirty(false).then(async () => {
+                await router.push(redirectUrl);
+            });
+        } else {
+            toast(`Error ${createUpdateText}ing form`, { type: 'error' });
+        }
+    };
+
     return (
         <>
             <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
@@ -132,7 +172,7 @@ export default function FormBuilder({ onFormPublish }: any) {
                         required
                         fullWidth
                         margin="none"
-                        value={form?.title || ''}
+                        value={createForm?.title || ''}
                         placeholder="Form title"
                         variant="standard"
                         inputMode="text"

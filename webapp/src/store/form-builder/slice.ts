@@ -12,6 +12,7 @@ import { FormFieldState, FormState } from '@app/store/form-builder/types';
 import { RootState } from '@app/store/store';
 
 const initialState: FormState = {
+    formId: '',
     title: '',
     description: '',
     fields: {}
@@ -30,6 +31,7 @@ export const slice = createSlice({
                 fields[field.id] = { ...field, properties: { ...field.properties, choices: choices } };
             }
             return {
+                formId: action.payload.formId,
                 title: action.payload.title,
                 description: action.payload.description,
                 fields: fields
