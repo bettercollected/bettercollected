@@ -250,5 +250,9 @@ class FormResponseRepository(BaseRepository):
         ).delete()
         await FormResponseDeletionRequest.find(
             {"form_id": str(form_id), "response_id": str(response_id)}
-        ).update({"status": DeletionRequestStatus.SUCCESS})
+        ).update(
+            {
+                "$set": {"status": DeletionRequestStatus.SUCCESS},
+            }
+        )
         return str(response_id)
