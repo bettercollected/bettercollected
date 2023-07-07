@@ -1,12 +1,24 @@
+import { ChangeEvent } from 'react';
+
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { Notes } from '@mui/icons-material';
+import { useDispatch } from 'react-redux';
 
-export default function LongText() {
+import { addField } from '@app/store/form-builder/slice';
+import { FormFieldState } from '@app/store/form-builder/types';
+
+export default function LongText({ field }: { field: FormFieldState }) {
+    const dispatch = useDispatch();
+    const onChange = (event: ChangeEvent<HTMLInputElement>) => {
+        dispatch(addField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
+    };
+
     return (
         <FormBuilderInput
             multiline
-            minRows={3}
-            maxRows={5}
+            onChange={onChange}
+            minRows={5}
+            maxRows={10}
             InputProps={{
                 endAdornment: <Notes />,
                 sx: {

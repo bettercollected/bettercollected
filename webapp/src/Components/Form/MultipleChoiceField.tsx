@@ -6,7 +6,7 @@ export default function MultipleChoiceField({ field }: { field: StandardFormQues
     return (
         <>
             {(field?.properties?.choices || []).map((choice: any) => (
-                <div key={choice?.id} className="flex">
+                <div key={choice?.id} className="flex items-center">
                     <Radio />
                     <div>{choice?.value}</div>
                 </div>

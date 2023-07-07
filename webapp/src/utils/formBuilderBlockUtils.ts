@@ -23,22 +23,22 @@ export function contentEditableClassNames(isPlaceholder: boolean, tag: string = 
 
     switch (tag) {
         case FormBuilderTagNames.LAYOUT_HEADER1:
-            className += ' text-4xl font-bold';
+            className += ' text-4xl font-semibold';
             break;
         case FormBuilderTagNames.LAYOUT_HEADER2:
-            className += ' text-3xl font-bold';
+            className += ' text-3xl font-semibold';
             break;
         case FormBuilderTagNames.LAYOUT_HEADER3:
-            className += ' text-2xl font-bold';
+            className += ' text-2xl font-semibold';
             break;
         case FormBuilderTagNames.LAYOUT_HEADER4:
-            className += ' text-xl font-bold';
+            className += ' text-xl font-semibold';
             break;
         case FormBuilderTagNames.LAYOUT_HEADER5:
-            className += ' text-lg font-bold';
+            className += ' text-lg font-semibold';
             break;
         case FormBuilderTagNames.LAYOUT_LABEL:
-            className += ' text-base font-bold';
+            className += ' text-base font-semibold';
             break;
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
             className += ' text-base';

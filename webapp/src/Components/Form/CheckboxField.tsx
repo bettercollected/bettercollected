@@ -6,7 +6,7 @@ export default function CheckboxField({ field }: { field: StandardFormQuestionDt
     return (
         <>
             {(field?.properties?.choices || []).map((choice: any) => (
-                <div key={choice?.id} className="flex">
+                <div key={choice?.id} className="flex ">
                     <Checkbox />
                     <div>{choice?.value}</div>
                 </div>

@@ -1,6 +1,8 @@
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
 import MultipleChoiceField from '@Components/Form/MultipleChoiceField';
+import RankingField from '@Components/Form/RankingField';
+import RatingField from '@Components/Form/RatingField';
 import TextField from '@mui/material/TextField';
 
 import BetterInput from '@app/components/Common/input';
@@ -17,22 +19,26 @@ const renderFormField = (field: StandardFormQuestionDto) => {
         case FormBuilderTagNames.LAYOUT_HEADER2:
         case FormBuilderTagNames.LAYOUT_HEADER5:
         case FormBuilderTagNames.LAYOUT_LABEL:
-            return <div className={contentEditableClassNames(false, field?.tag)}>{field?.value}</div>;
+            return <div className={'mt-3 ' + contentEditableClassNames(false, field?.tag)}>{field?.value}</div>;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
         case FormBuilderTagNames.INPUT_EMAIL:
         case FormBuilderTagNames.INPUT_NUMBER:
         case FormBuilderTagNames.INPUT_LINK:
         case FormBuilderTagNames.INPUT_DATE:
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
-            return <BetterInput />;
+            return <BetterInput placeholder={field?.properties?.placeholder} />;
         case FormBuilderTagNames.INPUT_LONG_TEXT:
-            return <TextField className="w-full mb-3 bg-white" multiline minRows={3} maxRows={10} />;
+            return <TextField className="w-full mb-3 bg-white" placeholder={field?.properties?.placeholder} multiline minRows={3} maxRows={10} />;
         case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
             return <MultipleChoiceField field={field} />;
         case FormBuilderTagNames.INPUT_CHECKBOXES:
             return <CheckboxField field={field} />;
         case FormBuilderTagNames.INPUT_DROPDOWN:
             return <DropdownField field={field} />;
+        case FormBuilderTagNames.INPUT_RANKING:
+            return <RankingField field={field} />;
+        case FormBuilderTagNames.INPUT_RATING:
+            return <RatingField field={field} />;
 
         default:
             return <></>;

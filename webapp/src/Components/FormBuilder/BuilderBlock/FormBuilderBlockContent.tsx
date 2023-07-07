@@ -30,7 +30,7 @@ export default function FormBuilderBlockContent({ tag, position, reference, fiel
             case FormBuilderTagNames.INPUT_PHONE_NUMBER:
                 return <EndAdornmentInputField field={field} />;
             case FormBuilderTagNames.INPUT_LONG_TEXT:
-                return <LongText />;
+                return <LongText field={field} />;
             case FormBuilderTagNames.INPUT_CHECKBOXES:
             case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
             case FormBuilderTagNames.INPUT_DROPDOWN:
