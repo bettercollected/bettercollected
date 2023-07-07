@@ -244,6 +244,7 @@ class StandardFormField(BaseModel):
 
 
 StandardFieldProperty.update_forward_refs()
+Conditional.update_forward_refs()
 
 
 class StandardForm(BaseModel):
