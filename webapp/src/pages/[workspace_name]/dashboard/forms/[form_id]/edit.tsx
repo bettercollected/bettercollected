@@ -6,17 +6,12 @@ import { useRouter } from 'next/router';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 
-import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
-import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
-import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
-import { formConstant } from '@app/constants/locales/form';
 import FormBuilder from '@app/containers/FormBuilder';
 import { getServerSidePropsForDashboardFormPage } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { resetForm, selectCreateForm, setEditForm } from '@app/store/form-builder/slice';
 import { FormFieldState, FormState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
@@ -39,25 +34,6 @@ export default function EditFromPage(props: any) {
     const dispatch = useDispatch();
     const { t } = useTranslation();
 
-    const breadcrumbsItem: Array<BreadcrumbsItem> = [
-        {
-            title: t(breadcrumbsItems.dashboard),
-            url: `/${locale}${workspace?.workspaceName}/dashboard`
-        },
-        {
-            title: t(formConstant.default),
-            disabled: false
-        },
-        {
-            title: form.title || 'Untitled Form',
-            disabled: false
-        },
-        {
-            title: 'Edit',
-            disabled: false
-        }
-    ];
-
     useEffect(() => {
         dispatch(setEditForm(form));
     }, [form]);
@@ -68,7 +44,7 @@ export default function EditFromPage(props: any) {
         };
     }, []);
 
-    const onSaveClick = async () => {
+    const onFormPublish = async () => {
         const patchRequest: any = {};
         patchRequest.title = createForm.title;
         patchRequest.description = createForm.description;
@@ -91,15 +67,7 @@ export default function EditFromPage(props: any) {
 
     return (
         <DashboardLayout sidebarClassName="!px-0" dashboardContentClassName="!py-0 w-full h-full bg-white">
-            <div className="flex items-center px-10 py-6 bg-white justify-between">
-                <BreadcrumbsRenderer items={breadcrumbsItem} />
-                <Button isLoading={isLoading} onClick={onSaveClick}>
-                    Save
-                </Button>
-            </div>
-            <div className="w-full bg-white flex flex-col items-center">
-                <FormBuilder />
-            </div>
+            <FormBuilder onFormPublish={onFormPublish} />
         </DashboardLayout>
     );
 }

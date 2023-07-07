@@ -1,8 +1,12 @@
 import React, { BaseSyntheticEvent, useEffect, useState } from 'react';
 
+import { useRouter } from 'next/router';
+
 import _ from 'lodash';
 
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
+import NewFormBuilderBlock from '@Components/FormBuilder/BuilderBlock/BuilderBlock';
+import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
 import { StrictModeDroppable } from '@Components/FormBuilder/StrictModeDroppable';
 import FormBuilderHotkeysHookListener from '@Components/HOCs/FormBuilderHotkeysHookListener';
 import TextField from '@mui/material/TextField';
@@ -16,8 +20,10 @@ import { addField, deleteField, selectCreateForm, selectFormBuilderFields, setFi
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { reorder } from '@app/utils/arrayUtils';
 
-export default function FormBuilder() {
+export default function FormBuilder({ onFormPublish }: any) {
     const dispatch = useAppDispatch();
+    const router = useRouter();
+    const [isFormDirty, setIsFormDirty] = useState(false);
     const form = useAppSelector(selectCreateForm);
 
     const formFields = useAppSelector(selectFormBuilderFields);
@@ -48,6 +54,49 @@ export default function FormBuilder() {
         dispatch(addField(block));
     };
 
+    const onInsert = () => {};
+
+    const onAddNewPage = () => {};
+
+    const onAddFormLogo = () => {};
+
+    const onAddFormCover = () => {};
+
+    const onPreview = () => {};
+
+    useEffect(() => {
+        const handleBeforeUnload = (event: any) => {
+            if (isFormDirty) {
+                event.preventDefault();
+                event.returnValue = ''; // This empty string will prompt the browser to show a confirmation dialog
+            }
+        };
+
+        const handleBeforePopState = (state: any) => {
+            if (isFormDirty && !window.confirm('Are you sure you want to leave? Your changes will not be saved.')) {
+                router.events.emit('routeChangeError', state);
+                throw "Abort route change by user's confirmation."; // Prevent navigation
+            }
+            return true; // Allow navigation
+        };
+
+        const handleError = (state: any) => {
+            // Handle the route change error
+            // You can customize this function to perform any necessary actions
+            return null;
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        router.events.on('routeChangeStart', handleBeforePopState);
+        router.events.on('routeChangeError', handleError);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            router.events.off('routeChangeStart', handleBeforePopState);
+            router.events.off('routeChangeError', handleError);
+        };
+    }, [isFormDirty, router]);
+
     useEffect(() => {
         if (blocks.length === 0) {
             const newBlock = {
@@ -75,60 +124,65 @@ export default function FormBuilder() {
     };
 
     return (
-        <div className="min-h-calc-68 w-full max-w-4xl mx-auto py-10">
-            <div className="px-5 md:px-[89px]">
-                <TextField
-                    required
-                    fullWidth
-                    margin="none"
-                    value={form?.title || ''}
-                    placeholder="Form title"
-                    variant="standard"
-                    inputMode="text"
-                    inputProps={{
-                        style: {
-                            padding: '0 0 8px 0',
-                            fontSize: 36,
-                            fontWeight: 700,
-                            content: 'none',
-                            letterSpacing: 1
-                        }
-                    }}
-                    InputProps={{ sx: { ':before': { content: 'none' } } }}
-                    size="medium"
-                    onChange={(e: BaseSyntheticEvent) => {
-                        dispatch(setFormTitle(e.target.value));
-                    }}
-                />
+        <>
+            <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
+            <div className="min-h-calc-68 w-full max-w-4xl mx-auto py-10">
+                <div className="px-5 md:px-[89px]">
+                    <TextField
+                        required
+                        fullWidth
+                        margin="none"
+                        value={form?.title || ''}
+                        placeholder="Form title"
+                        variant="standard"
+                        inputMode="text"
+                        inputProps={{
+                            style: {
+                                padding: '0 0 8px 0',
+                                fontSize: 36,
+                                fontWeight: 700,
+                                content: 'none',
+                                letterSpacing: 1
+                            }
+                        }}
+                        InputProps={{ sx: { ':before': { content: 'none' } } }}
+                        size="medium"
+                        onChange={(e: BaseSyntheticEvent) => {
+                            setIsFormDirty(true);
+                            dispatch(setFormTitle(e.target.value));
+                        }}
+                    />
+                </div>
+                <HotkeysProvider initiallyActiveScopes={['builder']}>
+                    <FormBuilderHotkeysHookListener scopes="builder" addBlock={addBlockHandler}>
+                        <DragDropContext onDragStart={onDragStartHandler} onDragUpdate={onDragUpdateHandler} onDragEnd={onDragEndHandler}>
+                            <StrictModeDroppable droppableId="droppable">
+                                {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
+                                    <div className={`flex flex-col py-10 gap-2 transition-all duration-200 ease-in ${snapshot.isDraggingOver ? 'bg-black-100 bg-opacity-30 rounded' : 'bg-white'}`} {...provided.droppableProps} ref={provided.innerRef}>
+                                        {blocks.map((block: any, index: number) => {
+                                            return (
+                                                <NewFormBuilderBlock
+                                                    fields={formFields}
+                                                    key={block.id}
+                                                    field={block}
+                                                    position={index}
+                                                    dispatch={dispatch}
+                                                    setIsFormDirty={setIsFormDirty}
+                                                    addBlock={addBlockHandler}
+                                                    duplicateBlock={duplicateBlockHandler}
+                                                    deleteBlock={deleteBlockHandler}
+                                                    updateBlock={updateBlockHandler}
+                                                />
+                                            );
+                                        })}
+                                        {provided.placeholder}
+                                    </div>
+                                )}
+                            </StrictModeDroppable>
+                        </DragDropContext>
+                    </FormBuilderHotkeysHookListener>
+                </HotkeysProvider>
             </div>
-            <HotkeysProvider initiallyActiveScopes={['builder']}>
-                <FormBuilderHotkeysHookListener scopes="builder">
-                    <DragDropContext onDragStart={onDragStartHandler} onDragUpdate={onDragUpdateHandler} onDragEnd={onDragEndHandler}>
-                        <StrictModeDroppable droppableId="droppable">
-                            {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
-                                <div className={`flex flex-col py-10 gap-2 transition-all duration-200 ease-in ${snapshot.isDraggingOver ? 'bg-black-100 bg-opacity-30 rounded' : 'bg-white'}`} {...provided.droppableProps} ref={provided.innerRef}>
-                                    {blocks.map((block: any, index: number) => {
-                                        return (
-                                            <FormBuilderBlock
-                                                fields={formFields}
-                                                key={block.id}
-                                                field={block}
-                                                position={index}
-                                                dispatch={dispatch}
-                                                addBlock={addBlockHandler}
-                                                duplicateBlock={duplicateBlockHandler}
-                                                deleteBlock={deleteBlockHandler}
-                                                updateBlock={updateBlockHandler}
-                                            />
-                                        );
-                                    })}
-                                    {provided.placeholder}
-                                </div>
-                            )}
-                        </StrictModeDroppable>
-                    </DragDropContext>
-                </FormBuilderHotkeysHookListener>
-            </HotkeysProvider>
-        </div>
+        </>
     );
 }

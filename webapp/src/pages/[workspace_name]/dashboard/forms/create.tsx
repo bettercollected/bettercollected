@@ -33,16 +33,6 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
         dispatch(resetForm());
     }, []);
 
-    const onInsert = () => {};
-
-    const onAddNewPage = () => {};
-
-    const onAddFormLogo = () => {};
-
-    const onAddFormCover = () => {};
-
-    const onPreview = () => {};
-
     const onFormPublish = async () => {
         const postRequest: any = {};
         postRequest.title = createForm.title;
@@ -66,8 +56,7 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
 
     return environments.ENABLE_FORM_BUILDER ? (
         <DashboardLayout sidebarClassName="!px-0" dashboardContentClassName="!py-0 w-full h-full bg-white">
-            <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
-            <FormBuilder />
+            <FormBuilder onFormPublish={onFormPublish} />
         </DashboardLayout>
     ) : (
         <></>

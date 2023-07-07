@@ -3,12 +3,13 @@ import React, { useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 interface IHotkeysHookListenerProps {
+    addBlock?: any;
     enableHotkeys?: boolean;
     scopes: string;
     children: React.ReactNode | React.ReactNode[];
 }
 
-export default function FormBuilderHotkeysHookListener({ children, scopes, enableHotkeys = true }: IHotkeysHookListenerProps) {
+export default function FormBuilderHotkeysHookListener({ children, scopes, addBlock = () => {}, enableHotkeys = true }: IHotkeysHookListenerProps) {
     const [hotkeysOptions, setHotkeysOptions] = useState({
         enabled: enableHotkeys,
         scopes
@@ -19,6 +20,7 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, enabl
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
             console.log('Dispatch enter event!');
+            addBlock();
         },
         hotkeysOptions
     );
