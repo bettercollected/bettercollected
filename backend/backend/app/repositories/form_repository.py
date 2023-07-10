@@ -6,6 +6,7 @@ from beanie.odm.queries.aggregation import AggregationQuery
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
+from common.models.standard_form import StandardForm
 
 
 class FormRepository:
@@ -49,26 +50,6 @@ class FormRepository:
                     "as": "groups",
                 }
             },
-            # {
-            #     "$set": {
-            #         "groups": "$groups.group_id"
-            #     }
-            # }
-            # {
-            #     "$lookup": {
-            #         "from": "responder_group",
-            #         "localField": "workspace_id",
-            #         "foreignField": str(workspace_id),
-            #         "as": "group",
-            #     }
-            # },
-            # {
-            #     "$set": {
-            #
-            #         "groups": {"name": "$group.name", "role": "$group_form.role"}
-            #
-            #     }
-            # },
         ]
 
         aggregation_pipeline.extend(create_filter_pipeline(sort=sort))
@@ -167,3 +148,14 @@ class FormRepository:
 
     async def delete_forms(self, form_ids: List[str]):
         return await FormDocument.find({"form_id": {"$in": form_ids}}).delete()
+
+    async def create_form(self, form: StandardForm) -> FormDocument:
+        form_document = FormDocument(**form.dict())
+        return await form_document.save()
+
+    async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
+        form_document = await FormDocument.find_one({"form_id": str(form_id)})
+        form_document.fields = form.fields
+        form_document.title = form.title
+        form_document.description = form.description
+        return await form_document.save()

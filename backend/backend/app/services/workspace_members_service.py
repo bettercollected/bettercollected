@@ -7,9 +7,10 @@ from beanie import PydanticObjectId
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.invitation_response import InvitationResponse
 from backend.app.models.invitation_request import InvitationRequest
-from backend.app.models.workspace_member_dto import WorkspaceMemberDto
+from backend.app.models.dtos.workspace_member_dto import WorkspaceMemberDto
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.schemas.workspace import WorkspaceDocument
+from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
@@ -45,7 +46,7 @@ class WorkspaceMembersService:
         response_user_list = []
         for workspace_user, user_info in zip(workspace_users, users_info):
             user = WorkspaceMemberDto()
-            user.id = workspace_user.user_id
+            user.id = str(workspace_user.user_id)
             user.first_name = user_info.get("first_name")
             user.last_name = user_info.get("last_name")
             user.email = user_info.get("email")
@@ -61,12 +62,6 @@ class WorkspaceMembersService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-
-        if user.plan != Plans.PRO:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                content="Upgrade to pro to add collaborators",
-            )
 
         workspace = await WorkspaceDocument.get(workspace_id)
 
@@ -95,9 +90,12 @@ class WorkspaceMembersService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        return await self.workspace_invitation_repository.get_workspace_invitations(
-            workspace_id=workspace_id
+        member_invitations = (
+            await self.workspace_invitation_repository.get_workspace_invitations(
+                workspace_id=workspace_id
+            )
         )
+        return member_invitations
 
     async def get_workspace_invitation_by_token(
         self, workspace_id: PydanticObjectId, user: User, invitation_token: str

@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, patch, post, delete
 from fastapi import Depends
@@ -5,17 +7,21 @@ from fastapi_pagination import Page
 from starlette.requests import Request
 
 from backend.app.container import container
+from backend.app.exceptions import HTTPException
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.response_dtos import (
     WorkspaceFormPatchResponse,
+    StandardFormCamelModel,
 )
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.router import router
 from backend.app.services.form_service import FormService
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_form_service import WorkspaceFormService
+from backend.config import settings
 from common.models.form_import import FormImportRequestBody
+from common.models.standard_form import StandardForm, StandardFormResponse
 from common.models.user import User
 
 
@@ -43,6 +49,72 @@ class WorkspaceFormsRouter(Routable):
             workspace_id, sort, user
         )
         return forms
+
+    @post("", response_model=StandardFormCamelModel)
+    async def create_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form: StandardFormCamelModel,
+        user: User = Depends(get_logged_user),
+    ):
+        if not settings.api_settings.ENABLE_FORM_CREATION:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+        # Camel model is converted to basic modal so that camel case is not stored in db
+        response = await self.workspace_form_service.create_form(
+            workspace_id=workspace_id, form=StandardForm(**form.dict()), user=user
+        )
+        return StandardFormCamelModel(**response.dict())
+
+    @patch("/{form_id}", response_model=StandardFormCamelModel)
+    async def patch_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        form: StandardFormCamelModel,
+        user: User = Depends(get_logged_user),
+    ):
+        if not settings.api_settings.ENABLE_FORM_CREATION:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+        # Camel model is converted to basic modal so that camel case is not stored in db
+        response = await self.workspace_form_service.update_form(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            form=StandardForm(**form.dict()),
+            user=user,
+        )
+        return StandardFormCamelModel(**response.dict())
+
+    @post("/{form_id}/response")
+    async def respond_to_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        response: StandardFormResponse,
+        user: User = Depends(get_logged_user),
+    ):
+        if not settings.api_settings.ENABLE_FORM_CREATION:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+        return await self.workspace_form_service.submit_response(
+            workspace_id=workspace_id, form_id=form_id, response=response, user=user
+        )
+
+    @delete("/{form_id}/response/{response_id}")
+    async def delete_form_response(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        response_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ):
+
+        if not settings.api_settings.ENABLE_FORM_CREATION:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+        return await self.workspace_form_service.delete_form_response(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            response_id=response_id,
+            user=user,
+        )
 
     @post("/search")
     async def search_forms_in_workspace(

@@ -20,6 +20,7 @@ from backend.app.utils import AiohttpClient
 from backend.config import settings
 from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
+from common.models.standard_form import StandardForm, StandardFormResponse
 from common.models.user import User
 
 
@@ -154,10 +155,14 @@ class WorkspaceFormService:
         )
         if len(workspace_ids) > 1:
             return "Form deleted form workspace."
-        self.schedular.remove_job(f"{workspace_form.settings.provider}_{form_id}")
+        if workspace_form.settings.provider != "self":
+            self.schedular.remove_job(f"{workspace_form.settings.provider}_{form_id}")
         await self.form_service.delete_form(form_id=form_id)
         await self.form_response_service.delete_form_responses(form_id=form_id)
         await self.form_response_service.delete_deletion_requests(form_id=form_id)
+        await self.responder_groups_service.responder_groups_repo.delete_workspace_form_groups(
+            form_id=form_id
+        )
         return "Form deleted form workspace."
 
     async def get_form_ids_in_workspace(self, workspace_id: PydanticObjectId):
@@ -218,11 +223,88 @@ class WorkspaceFormService:
                 workspace_form.settings.provider + "_" + workspace_form.form_id
             )
 
-        await self.form_service.delete_forms(form_ids=form_ids)
         await self.form_response_service.delete_form_responses_of_form_ids(
             form_ids=form_ids
         )
         await self.form_response_service.delete_deletion_requests_of_form_ids(
             form_ids=form_ids
         )
+        await self.form_service.delete_forms(form_ids=form_ids)
         return await self.workspace_form_repository.delete_forms(form_ids=form_ids)
+
+    async def create_form(
+        self, workspace_id: PydanticObjectId, form: StandardForm, user: User
+    ):
+        await self.workspace_user_service.check_user_has_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        form.form_id = str(PydanticObjectId())
+        saved_form = await self.form_service.create_form(form=form)
+        workspace_form_settings = WorkspaceFormSettings(
+            custom_url=form.form_id, provider="self"
+        )
+        await self.workspace_form_repository.save_workspace_form(
+            workspace_id=workspace_id,
+            form_id=form.form_id,
+            user_id=user.id,
+            workspace_form_settings=workspace_form_settings,
+        )
+        saved_form.settings = workspace_form_settings
+        return saved_form
+
+    async def update_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        form: StandardForm,
+        user: User,
+    ):
+        await self.workspace_user_service.check_user_has_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        return await self.form_service.update_form(form_id=form_id, form=form)
+
+    async def submit_response(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        response: StandardFormResponse,
+        user: User,
+    ):
+        workspace_form_ids = (
+            await self.workspace_form_repository.get_form_ids_in_workspace(
+                workspace_id=workspace_id,
+                is_not_admin=True,
+                user=user,
+                match_query={
+                    "$or": [
+                        {"form_id": str(form_id)},
+                        {"settings.custom_url": str(form_id)},
+                    ]
+                },
+            )
+        )
+        if not workspace_form_ids:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found"
+            )
+        if user:
+            response.dataOwnerIdentifier = user.sub
+        return await self.form_response_service.submit_form_response(
+            form_id=form_id, response=response
+        )
+
+    async def delete_form_response(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        response_id: PydanticObjectId,
+        user: User,
+    ):
+
+        await self.workspace_user_service.check_user_has_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        return await self.form_response_service.delete_form_response(
+            form_id=form_id, response_id=response_id
+        )

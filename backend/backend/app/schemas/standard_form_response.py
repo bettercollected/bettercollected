@@ -26,7 +26,8 @@ class DeletionRequestStatus(str, enum.Enum):
 class FormResponseDeletionRequest(MongoDocument):
     form_id: str
     response_id: str
-    provider: str
+    provider: Optional[str]
+    dataOwnerIdentifier: Optional[str]
     status: DeletionRequestStatus = DeletionRequestStatus.PENDING
     deleted_at: Optional[str]
 

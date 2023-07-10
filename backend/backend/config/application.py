@@ -3,18 +3,17 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+from pydantic import BaseSettings
+
 from backend.config.api_settings import ApiSettings
 from backend.config.auth_settings import AuthSettings
 from backend.config.aws import AWSSettings
 from backend.config.database import MongoSettings
 from backend.config.https_certificate import HttpsCertificateApiSettings
 from backend.config.schedular_settings import SchedularSettings
-
-from dotenv import load_dotenv
-
-from pydantic import BaseSettings
-
 from backend.config.sentry_setting import SentrySettings
+from backend.config.temporal_settings import TemporalSettings
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
@@ -45,6 +44,7 @@ class Application(BaseSettings):
     aws_settings: AWSSettings = AWSSettings()
     https_cert_api_settings: HttpsCertificateApiSettings = HttpsCertificateApiSettings()
     sentry_settings: SentrySettings = SentrySettings()
+    temporal_settings: TemporalSettings = TemporalSettings()
 
     # All your additional application configuration should go either here or in
     # separate file in this submodule.

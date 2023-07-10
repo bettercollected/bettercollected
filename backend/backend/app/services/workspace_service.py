@@ -19,6 +19,7 @@ from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_response_service import FormResponseService
+from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
@@ -37,6 +38,7 @@ class WorkspaceService:
         workspace_user_service: WorkspaceUserService,
         workspace_form_service: WorkspaceFormService,
         form_response_service: FormResponseService,
+        responder_groups_service: ResponderGroupsService,
     ):
         self.http_client = http_client
         self._workspace_repo = workspace_repo
@@ -44,6 +46,7 @@ class WorkspaceService:
         self._workspace_user_service = workspace_user_service
         self.workspace_form_service = workspace_form_service
         self.form_response_service = form_response_service
+        self.responder_groups_service = responder_groups_service
 
     async def get_workspace_by_id(self, workspace_id: PydanticObjectId):
         workspace = await self._workspace_repo.get_workspace_by_id(
@@ -221,10 +224,8 @@ class WorkspaceService:
         await self.update_https_server_for_certificate(
             old_domain=workspace_document.custom_domain
         )
-        workspace_document.custom_domain = None
-        saved_workspace = await self._workspace_repo.update(
-            workspace_id, workspace_document
-        )
+        workspace_document.custom_domain = ""
+        saved_workspace = await workspace_document.save()
         return WorkspaceResponseDto(**saved_workspace.dict())
 
     async def get_mine_workspaces(self, user: User):
@@ -308,7 +309,12 @@ class WorkspaceService:
                 await self.http_client.post(
                     f"{settings.https_cert_api_settings.host}/domains",
                     headers={"api_key": settings.https_cert_api_settings.key},
-                    params={"domain": new_domain},
+                    params={
+                        "domain": new_domain,
+                        "upstream": settings.https_cert_api_settings.upstream
+                        if settings.https_cert_api_settings.upstream
+                        else None,
+                    },
                 )
         except Exception as e:
             logger.error("Error form https server: ", e)
@@ -348,6 +354,9 @@ class WorkspaceService:
         workspace_ids = [workspace.id for workspace in workspaces]
         form_ids = await self.workspace_form_service.get_form_ids_in_workspaces_and_imported_by_user(
             workspace_ids, user
+        )
+        await self.responder_groups_service.delete_groups_of_workspaces(
+            workspace_ids=workspace_ids
         )
         await self.workspace_form_service.delete_forms_with_ids(form_ids=form_ids)
         await self._workspace_user_service.delete_user_form_all_workspaces(user)

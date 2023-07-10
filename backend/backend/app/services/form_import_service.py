@@ -8,10 +8,10 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDeletionRequest,
     FormResponseDocument,
 )
-from common.services.crypto_service import crypto_service
 from backend.app.services.form_service import FormService
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponseAnswer
+from common.services.crypto_service import crypto_service
 
 
 class FormImportService:
@@ -70,27 +70,17 @@ class FormImportService:
             "provider": standard_form.settings.provider,
             "response_id": {"$nin": updated_responses_id},
         }
-        deletion_requests = await FormResponseDeletionRequest.find(
-            deletion_requests_query
-        ).to_list()
 
-        if deletion_requests:
-            await FormResponseDocument.find(
-                {
-                    "form_id": standard_form.form_id,
-                    "answers": {"$exists": 1},
-                    "response_id": {
-                        "$in": [
-                            deleted_response.response_id
-                            for deleted_response in deletion_requests
-                        ]
-                    },
-                }
-            ).delete()
+        await FormResponseDocument.find(
+            {
+                "form_id": standard_form.form_id,
+                "response_id": {"$nin": updated_responses_id},
+            }
+        ).delete()
 
-            await FormResponseDeletionRequest.find(deletion_requests_query).update_many(
-                {
-                    "$set": {"status": DeletionRequestStatus.SUCCESS},
-                }
-            )
+        await FormResponseDeletionRequest.find(deletion_requests_query).update_many(
+            {
+                "$set": {"status": DeletionRequestStatus.SUCCESS},
+            }
+        )
         return standard_form

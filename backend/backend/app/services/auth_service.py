@@ -5,9 +5,11 @@ from typing import Tuple
 from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.plugin_proxy_service import PluginProxyService
+from backend.app.services.temporal_service import TemporalService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
@@ -16,8 +18,6 @@ from common.enums.roles import Roles
 from common.models.user import OAuthState, User, UserInfo, UserLoginWithOTP
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
-
-crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
 
 
 class AuthService:
@@ -28,19 +28,23 @@ class AuthService:
         form_provider_service: FormPluginProviderService,
         jwt_service: JwtService,
         workspace_service: WorkspaceService,
+        temporal_service: TemporalService,
+        crypto: Crypto,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
         self.form_provider_service = form_provider_service
         self.jwt_service = jwt_service
         self.workspace_service = workspace_service
+        self.temporal_service = temporal_service
+        self.crypto = crypto
 
     async def get_user_status(self, user: User):
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + "/auth/status",
             params={"user_id": user.id},
         )
-        return {"user": response_data}
+        return response_data
 
     async def validate_otp(self, login_details: UserLoginWithOTP):
         response_data = await self.http_client.get(
@@ -61,7 +65,7 @@ class AuthService:
         )
         if user is not None and Roles.FORM_CREATOR in user.roles:
             oauth_state.email = user.sub
-        state = crypto.encrypt(oauth_state.json())
+        state = self.crypto.encrypt(oauth_state.json())
         authorization_url = f"{provider_url}/{provider_name}/oauth/authorize"
         response_data = await self.http_client.get(
             authorization_url, params={"state": state}, timeout=60
@@ -89,7 +93,7 @@ class AuthService:
         )
         user = User(**response_data)
         await workspaces_service.create_workspace(user)
-        decrypted_data = json.loads(crypto.decrypt(state))
+        decrypted_data = json.loads(self.crypto.decrypt(state))
         state = OAuthState(**decrypted_data)
         if state.email is not None and user.sub != state.email:
             raise HTTPException(403, "Invalid User Authentication.")
@@ -116,16 +120,14 @@ class AuthService:
         return user, response_data.get("client_referer_url", "")
 
     async def delete_user(self, user: User):
-        # TODO Move deleting user to scheduled job and return with removing cookie only when deleting
-        #  the user in auth server and credentials in integrations is a success
         await self.delete_credentials_from_integrations(user=user)
-        await self.delete_user_form_auth(user=user)
         await self.workspace_service.delete_workspaces_of_user_with_forms(user=user)
+        await self.delete_user_form_auth(user=user)
 
     async def delete_credentials_from_integrations(self, user: User):
         providers = await self.form_provider_service.get_providers(get_all=True)
         for provider in providers:
-            await AiohttpClient.get_aiohttp_client().delete(
+            response = await AiohttpClient.get_aiohttp_client().delete(
                 await self.form_provider_service.get_provider_url(
                     provider.provider_name
                 )
@@ -134,8 +136,21 @@ class AuthService:
                 params={"user_id": user.id, "email": user.sub},
                 timeout=20000,
             )
+            if response.status != HTTPStatus.OK:
+                raise HTTPException(
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    content=f"Could not delete credentials from {provider.provider_name} integration.",
+                )
 
     async def delete_user_form_auth(self, user: User):
         await AiohttpClient.get_aiohttp_client().delete(
             settings.auth_settings.BASE_URL + "/users/" + user.id, timeout=20000
+        )
+
+    async def add_workflow_to_delete_user(
+        self, access_token: str, refresh_token: str, user: User
+    ):
+        return await self.temporal_service.start_user_deletion_workflow(
+            UserTokens(access_token=access_token, refresh_token=refresh_token),
+            user_id=user.id,
         )

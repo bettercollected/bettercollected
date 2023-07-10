@@ -54,6 +54,7 @@ class ResponderGroupsService:
         user: User,
         name: str,
         emails: List[EmailStr],
+        regex: str,
         description: str,
     ):
         await self.check_user_can_access_group(
@@ -65,6 +66,7 @@ class ResponderGroupsService:
             name=name,
             description=description,
             workspace_id=workspace_id,
+            regex=regex,
         )
         return response.dict()
 
@@ -74,13 +76,20 @@ class ResponderGroupsService:
         name: str,
         emails: List[EmailStr],
         user: User,
+        form_id: str,
         description: str,
+        regex: str,
     ):
         await self.workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
         return await self.responder_groups_repo.create_group(
-            workspace_id=workspace_id, name=name, emails=emails, description=description
+            workspace_id=workspace_id,
+            name=name,
+            emails=emails,
+            description=description,
+            form_id=form_id,
+            regex=regex,
         )
 
     async def add_emails_to_group(
@@ -156,4 +165,9 @@ class ResponderGroupsService:
     async def remove_group_from_form(self, form_id: str, group_id: PydanticObjectId):
         await self.responder_groups_repo.remove_group_from_form(
             form_id=form_id, group_id=group_id
+        )
+
+    async def delete_groups_of_workspaces(self, workspace_ids: List[PydanticObjectId]):
+        await self.responder_groups_repo.delete_responder_groups(
+            workspace_ids=workspace_ids
         )

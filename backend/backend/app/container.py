@@ -31,12 +31,14 @@ from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
+from backend.app.services.temporal_service import TemporalService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_members_service import WorkspaceMembersService
 from backend.app.services.workspace_responders_service import WorkspaceRespondersService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
+from common.configs.crypto import Crypto
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
 
@@ -54,7 +56,6 @@ class AppContainer(containers.DeclarativeContainer):
     workspace_user_repo: WorkspaceUserRepository = providers.Singleton(
         WorkspaceUserRepository
     )
-
     workspace_repo: WorkspaceRepository = providers.Singleton(WorkspaceRepository)
 
     form_repo: FormRepository = providers.Singleton(FormRepository)
@@ -72,6 +73,15 @@ class AppContainer(containers.DeclarativeContainer):
     responder_groups_repository = providers.Singleton(ResponderGroupsRepository)
 
     # Services
+    crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
+
+    temporal_service = providers.Singleton(
+        TemporalService,
+        server_uri=settings.temporal_settings.server_uri,
+        namespace=settings.temporal_settings.namespace,
+        crypto=crypto,
+    )
+
     aws_service: AWSS3Service = providers.Singleton(
         AWSS3Service,
         settings.aws_settings.ACCESS_KEY_ID,
@@ -161,6 +171,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_service=workspace_user_service,
         workspace_form_service=workspace_form_service,
         form_response_service=form_response_service,
+        responder_groups_service=responder_groups_service,
     )
 
     auth_service: AuthService = providers.Singleton(
@@ -170,6 +181,8 @@ class AppContainer(containers.DeclarativeContainer):
         form_provider_service=form_provider_service,
         jwt_service=jwt_service,
         workspace_service=workspace_service,
+        temporal_service=temporal_service,
+        crypto=crypto,
     )
 
     workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(

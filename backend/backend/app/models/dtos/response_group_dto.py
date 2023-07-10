@@ -8,6 +8,7 @@ class ResponderGroupDto(BaseModel):
     id: str = None
     name: str = None
     description: Optional[str] = None
+    regex: Optional[str] = None
     emails: List[str] = None
     forms: Optional[List] = None
 

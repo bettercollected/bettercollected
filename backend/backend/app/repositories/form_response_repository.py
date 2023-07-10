@@ -1,11 +1,15 @@
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List
 
 import fastapi_pagination.ext.beanie
+from beanie import PydanticObjectId
 from fastapi_pagination import Page
 
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.models.response_dtos import StandardFormResponseCamelModel
+from backend.app.repositories.deletion_requests_repository import (
+    DeletionRequestsRepository,
+)
 from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
     FormResponseDeletionRequest,
@@ -22,14 +26,11 @@ class FormResponseRepository(BaseRepository):
     @staticmethod
     async def get_form_responses(
         form_ids,
-        request_for_deletion: bool,
         extra_find_query: Dict[str, Any] = None,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
-    ) -> Page[FormResponseDocument]:
-        find_query = {"form_id": {"$in": form_ids}}
-        if not request_for_deletion:
-            find_query["answers"] = {"$exists": True}
+    ) -> Page[StandardFormResponseCamelModel]:
+        find_query = {"form_id": {"$in": form_ids}, "answers": {"$exists": True}}
         if extra_find_query is not None:
             find_query.update(extra_find_query)
         aggregate_query = [
@@ -45,46 +46,14 @@ class FormResponseRepository(BaseRepository):
             {"$unwind": "$form_title"},
         ]
 
-        if request_for_deletion:
-            aggregate_query.extend(
-                [
-                    {
-                        "$lookup": {
-                            "from": "responses_deletion_requests",
-                            "localField": "response_id",
-                            "foreignField": "response_id",
-                            "as": "deletion_request",
-                        }
-                    },
-                    {"$unwind": "$deletion_request"},
-                    {
-                        "$set": {
-                            "deletion_status": "$deletion_request.status",
-                            "updated_at": "$deletion_request.created_at",
-                            "created_at": "$deletion_request.created_at",
-                        }
-                    },
-                ]
-            )
-
         aggregate_query.extend(
             create_filter_pipeline(filter_object=filter_query, sort=sort)
         )
 
-        def transformer(items: Sequence[Any]):
-            for item in items:
-                item["answers"] = None
-            return items
-
-        deletion_transformer = transformer if request_for_deletion else None
-
         form_responses_query = FormResponseDocument.find(find_query).aggregate(
             aggregate_query,
         )
-        form_responses = await fastapi_pagination.ext.beanie.paginate(
-            form_responses_query, transformer=deletion_transformer
-        )
-        return form_responses
+        return await fastapi_pagination.ext.beanie.paginate(form_responses_query)
 
     async def get_workspace_responders(
         self,
@@ -173,18 +142,21 @@ class FormResponseRepository(BaseRepository):
         data_subjects: bool = None,
     ) -> Page[StandardFormResponseCamelModel]:
         if data_subjects:
-            form_responses = await self.get_workspace_responders(
+            return await self.get_workspace_responders(
                 form_ids=form_ids, filter_query=filter_query, sort=sort
             )
-
-        else:
-            form_responses = await self.get_form_responses(
+        elif request_for_deletion:
+            return await DeletionRequestsRepository.get_deletion_requests(
                 form_ids,
-                request_for_deletion,
                 filter_query=filter_query,
                 sort=sort,
             )
-        return form_responses
+        else:
+            return await self.get_form_responses(
+                form_ids,
+                filter_query=filter_query,
+                sort=sort,
+            )
 
     async def get_user_submissions(
         self, form_ids, user: User, request_for_deletion: bool = False
@@ -192,10 +164,12 @@ class FormResponseRepository(BaseRepository):
         extra_find_query = {
             "dataOwnerIdentifier": user.sub,
         }
-        form_responses = await self.get_form_responses(
-            form_ids, request_for_deletion, extra_find_query
-        )
-        return form_responses
+        if request_for_deletion:
+            return await DeletionRequestsRepository.get_deletion_requests(
+                form_ids=form_ids, extra_find_query=extra_find_query
+            )
+        else:
+            return await self.get_form_responses(form_ids, extra_find_query)
 
     async def count_responses_for_form_ids(self, form_ids: List[str]) -> int:
         return await FormResponseDocument.find({"form_id": {"$in": form_ids}}).count()
@@ -258,3 +232,27 @@ class FormResponseRepository(BaseRepository):
         return await FormResponseDeletionRequest.find(
             {"form_id": {"$in": form_ids}}
         ).delete()
+
+    async def save_form_response(
+        self, form_id: PydanticObjectId, response: StandardFormResponse
+    ):
+        response_document = FormResponseDocument(**response.dict())
+        response_document.response_id = str(PydanticObjectId())
+        response_document.form_id = str(form_id)
+        response_document.provider = "self"
+        return await response_document.save()
+
+    async def delete_form_response(
+        self, form_id: PydanticObjectId, response_id: PydanticObjectId
+    ):
+        await FormResponseDocument.find(
+            {"form_id": str(form_id), "response_id": str(response_id)}
+        ).delete()
+        await FormResponseDeletionRequest.find(
+            {"form_id": str(form_id), "response_id": str(response_id)}
+        ).update(
+            {
+                "$set": {"status": DeletionRequestStatus.SUCCESS},
+            }
+        )
+        return str(response_id)

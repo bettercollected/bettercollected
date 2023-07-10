@@ -8,6 +8,7 @@ from pydantic import EmailStr
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
     WorkspaceResponseDto,
@@ -114,7 +115,7 @@ class WorkspaceRouter(Routable):
             workspace_id=workspace_id, user=user
         )
 
-    @get("/{workspace_id}/stats")
+    @get("/{workspace_id}/stats", response_model=WorkspaceStatsDto)
     async def get_workspace_stats(
         self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
     ):

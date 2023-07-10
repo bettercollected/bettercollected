@@ -5,12 +5,20 @@ from typing import List
 from beanie import PydanticObjectId
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
+
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.workspace_member_dto import (
+    FormImporterDetails,
+)
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
+from backend.app.schemas.responder_group import (
+    ResponderGroupDocument,
+    ResponderGroupMemberDocument,
+)
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.utils import AiohttpClient
 from backend.config import settings
@@ -44,6 +52,7 @@ class FormService:
             is_admin=is_admin,
             sort=sort,
         )
+
         forms_page = await paginate(forms_query)
 
         user_ids = [form.imported_by for form in forms_page.items]
@@ -55,9 +64,11 @@ class FormService:
         )
 
         for form in forms_page.items:
-            for user in user_details.get("users_info", []):
-                if form.imported_by == user["_id"]:
-                    form.importer_details = user
+            for user_info in user_details.get("users_info", []):
+                if form.imported_by == user_info["_id"]:
+                    form.importer_details = FormImporterDetails(
+                        **user_info, id=form.imported_by
+                    )
                     break
 
         return forms_page
@@ -88,9 +99,11 @@ class FormService:
         )
 
         for form in forms:
-            for user in user_details["users_info"]:
-                if form["imported_by"] == user["_id"]:
-                    form["importer_details"] = user
+            for user_info in user_details["users_info"]:
+                if form["imported_by"] == user.id:
+                    form["importer_details"] = FormImporterDetails(
+                        **user_info, id=form["imported_by"]
+                    )
                     break
         return [MinifiedForm(**form) for form in forms]
 
@@ -127,7 +140,10 @@ class FormService:
             if not user_ids
             else await self.fetch_user_details(user_ids=user_ids)
         )
-        form[0]["importer_details"] = user_details.get("users_info")[0]
+        user_info = user_details.get("users_info")[0]
+        form[0]["importer_details"] = FormImporterDetails(
+            **user_info, id=user_info.get("_id")
+        )
         return MinifiedForm(**form[0])
 
     async def save_form(self, form: StandardForm):
@@ -185,3 +201,9 @@ class FormService:
 
     async def delete_forms(self, form_ids: List[str]):
         return await self._form_repo.delete_forms(form_ids=form_ids)
+
+    async def create_form(self, form: StandardForm) -> FormDocument:
+        return await self._form_repo.create_form(form=form)
+
+    async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
+        return await self._form_repo.update_form(form_id=form_id, form=form)

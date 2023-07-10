@@ -34,18 +34,19 @@ async def update_all_scheduled_forms(scheduler: AsyncIOScheduler):
             + " and id: "
             + workspace_form.form_id
         )
-        scheduler.add_job(
-            container.form_schedular().update_form,
-            "interval",
-            id=f"{workspace_form.settings.provider}_{workspace_form.form_id}",
-            coalesce=True,
-            replace_existing=True,
-            kwargs={
-                "form_id": workspace_form.form_id,
-                "workspace_id": workspace_form.workspace_id,
-            },
-            minutes=settings.schedular_settings.INTERVAL_MINUTES,
-        )
+        if workspace_form.settings.provider != "self":
+            scheduler.add_job(
+                container.form_schedular().update_form,
+                "interval",
+                id=f"{workspace_form.settings.provider}_{workspace_form.form_id}",
+                coalesce=True,
+                replace_existing=True,
+                kwargs={
+                    "form_id": workspace_form.form_id,
+                    "workspace_id": workspace_form.workspace_id,
+                },
+                minutes=settings.schedular_settings.INTERVAL_MINUTES,
+            )
 
 
 async def init_schedulers(scheduler: AsyncIOScheduler):

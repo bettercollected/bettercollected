@@ -38,10 +38,12 @@ class ResponderGroupsRouter(Routable):
         name: str,
         description: Optional[str] = None,
         emails: List[EmailStr] = None,
+        form_id: Optional[str] = None,
+        regex: Optional[str] = None,
         user: User = Depends(get_logged_user),
     ):
         return await self.responder_groups_service.create_group(
-            workspace_id, name, emails, user, description
+            workspace_id, name, emails, user, form_id, description, regex
         )
 
     @get("/{group_id}")
@@ -60,9 +62,10 @@ class ResponderGroupsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         group_id: PydanticObjectId,
-        name: str,
+        name: Optional[str] = None,
         description: Optional[str] = None,
         emails: List[EmailStr] = None,
+        regex: Optional[str] = None,
         user: User = Depends(get_logged_user),
     ):
         return await self.responder_groups_service.update_responder_group(
@@ -72,6 +75,7 @@ class ResponderGroupsRouter(Routable):
             description=description,
             emails=emails,
             user=user,
+            regex=regex,
         )
 
     @patch("/{group_id}/emails")
