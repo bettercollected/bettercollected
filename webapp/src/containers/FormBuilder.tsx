@@ -15,6 +15,7 @@ import { HotkeysProvider } from 'react-hotkeys-hook';
 import { toast } from 'react-toastify';
 import { v4 as uuidV4 } from 'uuid';
 
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import builderConstants from '@app/constants/builder';
 import useAsyncState from '@app/lib/hooks/use-async-state';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -33,6 +34,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const [postCreateForm] = useCreateFormMutation();
     const [patchForm] = usePatchFormMutation();
     const [isFormDirty, setIsFormDirty] = useAsyncState(false);
+
+    const { openModal, closeModal } = useFullScreenModal();
 
     const formFields = useAppSelector(selectFormBuilderFields);
 
@@ -71,7 +74,9 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const onAddFormCover = () => {};
 
-    const onPreview = () => {};
+    const onPreview = () => {
+        openModal('FORM_BUILDER_PREVIEW');
+    };
 
     useEffect(() => {
         const handleBeforeUnload = (event: any) => {
