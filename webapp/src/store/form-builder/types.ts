@@ -21,6 +21,7 @@ export interface FormFieldState {
             };
         };
     };
+    isFocused?: boolean;
     choices?: {};
     validations?: {
         required: boolean;

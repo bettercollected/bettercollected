@@ -42,11 +42,12 @@ const FormBuilderActionMenu = ({ id, provided, addBlock, className = '', index }
                     }
                 }}
                 id="block-add-menu"
+                tabIndex={-1}
                 hasMenu={false}
                 menuTitle="Add a new block"
                 menuContent={
-                    <div tabIndex={0} className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400" onClick={addField}>
-                        <PlusIcon width={40} height={40} />
+                    <div tabIndex={-1} className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400" onClick={addField}>
+                        <PlusIcon tabIndex={-1} width={40} height={40} />
                     </div>
                 }
             ></MenuDropdown>

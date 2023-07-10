@@ -15,9 +15,10 @@ import { reorder } from '@app/utils/arrayUtils';
 
 interface IMultipleChoiceProps {
     field: FormFieldState;
+    id: any;
 }
 
-export default function MultipleChoice({ field }: IMultipleChoiceProps) {
+export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
     const dispatch = useDispatch();
 
     const handleChoiceValueChange = (id: string, value: string) => {
@@ -104,6 +105,7 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
 
                                                         <StartAdornmentInputField
                                                             type={field.tag}
+                                                            id={id}
                                                             onChange={(event) => {
                                                                 handleChoiceValueChange(choice.id, event.target.value);
                                                             }}

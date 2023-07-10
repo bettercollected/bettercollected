@@ -5,9 +5,10 @@ interface IMatrixFieldProps {
     allowMultipleSelection: boolean;
     rows: Array<any>;
     columns: Array<any>;
+    id: any;
 }
 
-export default function MatrixField({ allowMultipleSelection, rows, columns }: IMatrixFieldProps) {
+export default function MatrixField({ allowMultipleSelection, rows, columns, id }: IMatrixFieldProps) {
     if (rows.length === 0) rows = [1];
     if (columns.length === 0) columns = [1];
     return (
@@ -27,7 +28,7 @@ export default function MatrixField({ allowMultipleSelection, rows, columns }: I
                         const Component = allowMultipleSelection ? CheckBoxOutlineBlankIcon : RadioButtonUncheckedIcon;
                         return (
                             <div key={index} className="border flex items-center justify-center p-2 w-40">
-                                <Component className="text-gray-400" />
+                                <Component id={id} className="text-gray-400" />
                             </div>
                         );
                     })}

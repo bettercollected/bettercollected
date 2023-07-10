@@ -23,6 +23,7 @@ interface IMenuDropdownProps {
     transformOrigin?: PopoverOrigin;
     anchorOrigin?: PopoverOrigin;
     hasMenu?: boolean;
+    tabIndex?: number;
     closeOnClick?: boolean;
 }
 
@@ -58,6 +59,7 @@ export default function MenuDropdown({
     transformOrigin = defaultTransformOrigin,
     anchorOrigin = defaultAnchorOrigin,
     hasMenu = true,
+    tabIndex = 0,
     closeOnClick = true
 }: IMenuDropdownProps) {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -84,6 +86,7 @@ export default function MenuDropdown({
                     className={`${fullWidth ? 'w-full' : 'w-fit'} flex justify-between gap-2 body3 rounded hover:rounded hover:bg-brand-100 ${className}`}
                     onClick={handleClick}
                     size={size}
+                    tabIndex={tabIndex}
                     aria-controls={open ? id : undefined}
                     aria-haspopup="true"
                     aria-expanded={open ? 'true' : undefined}

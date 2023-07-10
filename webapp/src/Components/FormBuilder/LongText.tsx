@@ -7,7 +7,7 @@ import { useDispatch } from 'react-redux';
 import { addField } from '@app/store/form-builder/slice';
 import { FormFieldState } from '@app/store/form-builder/types';
 
-export default function LongText({ field }: { field: FormFieldState }) {
+export default function LongText({ field, id }: { field: FormFieldState; id: any }) {
     const dispatch = useDispatch();
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
         dispatch(addField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
@@ -16,6 +16,7 @@ export default function LongText({ field }: { field: FormFieldState }) {
     return (
         <FormBuilderInput
             multiline
+            id={id}
             onChange={onChange}
             minRows={5}
             maxRows={10}

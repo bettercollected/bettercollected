@@ -10,6 +10,7 @@ import { addField } from '@app/store/form-builder/slice';
 
 interface IEndAdornmentInputFieldProps {
     field: any;
+    id: any;
 }
 
 function getIcon(type: FormBuilderTagNames) {
@@ -32,7 +33,7 @@ function getIcon(type: FormBuilderTagNames) {
     }
 }
 
-export default function EndAdornmentInputField({ field }: IEndAdornmentInputFieldProps) {
+export default function EndAdornmentInputField({ field, id }: IEndAdornmentInputFieldProps) {
     const dispatch = useDispatch();
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
         dispatch(addField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
@@ -40,6 +41,7 @@ export default function EndAdornmentInputField({ field }: IEndAdornmentInputFiel
     return (
         <FormBuilderInput
             onChange={onChange}
+            id={id}
             value={field?.properties?.placeholder || ''}
             InputProps={{
                 endAdornment: getIcon(field.tag)

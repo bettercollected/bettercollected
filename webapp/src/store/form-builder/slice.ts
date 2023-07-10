@@ -1,5 +1,5 @@
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import { createSlice } from '@reduxjs/toolkit';
+import { PayloadAction, createSlice } from '@reduxjs/toolkit';
 import ansiRegex from 'ansi-regex';
 import ObjectID from 'bson-objectid';
 import { persistReducer } from 'redux-persist';
@@ -51,6 +51,10 @@ export const slice = createSlice({
                 ...state,
                 description: action.payload
             };
+        },
+        setBlockFocus: (state, action: PayloadAction<{ fieldId: string; isFocused: boolean }>) => {
+            const { fieldId, isFocused } = action.payload;
+            state.fields[fieldId].isFocused = isFocused;
         },
         addField: (state, action) => {
             return {
@@ -188,6 +192,6 @@ export const selectCreateForm = (state: RootState) => state.createForm;
 export const selectFormBuilderFields = (state: RootState) => state.createForm.fields;
 export const selectFormField = (id: string) => (state: RootState) => state.createForm.fields[id];
 
-export const { addQuestionAndAnswerField, setFields, setEditForm, resetForm, deleteField, setFieldDescription, setFieldRequired, setFieldTitle, setFormDescription, setFieldType, addField, setFormTitle } = slice.actions;
+export const { addQuestionAndAnswerField, setFields, setEditForm, resetForm, deleteField, setFieldDescription, setFieldRequired, setFieldTitle, setFormDescription, setFieldType, addField, setFormTitle, setBlockFocus } = slice.actions;
 
 export default reducerObj;

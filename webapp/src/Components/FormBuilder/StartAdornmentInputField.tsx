@@ -10,6 +10,7 @@ import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 interface IStartAdornmentInputFieldProps {
     type: FormBuilderTagNames;
     value: string;
+    id: any;
     onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -28,10 +29,11 @@ function getIcon(type: FormBuilderTagNames) {
     }
 }
 
-export default function StartAdornmentInputField({ type, value, onChange }: IStartAdornmentInputFieldProps) {
+export default function StartAdornmentInputField({ type, value, id, onChange }: IStartAdornmentInputFieldProps) {
     return (
         <FormBuilderInput
             autoFocus={false}
+            id={id}
             className="!w-fit !mb-0"
             value={value}
             onChange={onChange}

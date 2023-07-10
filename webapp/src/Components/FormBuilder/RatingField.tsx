@@ -6,9 +6,10 @@ import { Star, StarBorder } from '@mui/icons-material';
 
 interface IRatingFieldProps {
     field: any;
+    id: any;
 }
 
-export default function RatingField({ field }: IRatingFieldProps) {
+export default function RatingField({ field, id }: IRatingFieldProps) {
     const [hovered, setHovered] = useState(-1);
 
     return (
@@ -25,6 +26,7 @@ export default function RatingField({ field }: IRatingFieldProps) {
                     <Component
                         fontSize="large"
                         key={index}
+                        id={id}
                         onMouseEnter={() => {
                             setHovered(index);
                         }}

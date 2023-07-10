@@ -60,6 +60,7 @@ export default function FieldOptions({ provided, id }: IFieldOptionsProps) {
             leaveDelay={0}
             closeOnClick={false}
             className="!p-[2px]"
+            tabIndex={-1}
             onClick={(event: React.MouseEvent<HTMLElement>) => {
                 event.stopPropagation();
                 event.preventDefault();
@@ -78,8 +79,8 @@ export default function FieldOptions({ provided, id }: IFieldOptionsProps) {
             id="block-options-menu"
             menuTitle="Drag or click to open options for this block"
             menuContent={
-                <div tabIndex={0} className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400" {...provided.dragHandleProps}>
-                    <DragHandleIcon width={40} height={40} />
+                <div className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400" {...provided.dragHandleProps} tabIndex={-1}>
+                    <DragHandleIcon tabIndex={-1} width={40} height={40} />
                 </div>
             }
         >
