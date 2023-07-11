@@ -1,16 +1,23 @@
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
+import LongText from '@Components/Form/LongText';
 import MultipleChoiceField from '@Components/Form/MultipleChoiceField';
 import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
+import ShortText from '@Components/Form/ShortText';
 import TextField from '@mui/material/TextField';
 
-import BetterInput from '@app/components/Common/input';
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 
-const renderFormField = (field: StandardFormQuestionDto) => {
+export interface FormFieldProps {
+    field: StandardFormQuestionDto;
+    ans?: any;
+    enabled?: boolean;
+}
+
+const renderFormField = (field: StandardFormQuestionDto, answer?: any) => {
     switch (field?.tag) {
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
         case FormBuilderTagNames.LAYOUT_HEADER3:
@@ -19,18 +26,18 @@ const renderFormField = (field: StandardFormQuestionDto) => {
         case FormBuilderTagNames.LAYOUT_HEADER2:
         case FormBuilderTagNames.LAYOUT_HEADER5:
         case FormBuilderTagNames.LAYOUT_LABEL:
-            return <div className={'mt-3 ' + contentEditableClassNames(false, field?.tag)}>{field?.value}</div>;
+            return <div className={'mt-5 ' + contentEditableClassNames(false, field?.tag)}>{field?.value}</div>;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
         case FormBuilderTagNames.INPUT_EMAIL:
         case FormBuilderTagNames.INPUT_NUMBER:
         case FormBuilderTagNames.INPUT_LINK:
         case FormBuilderTagNames.INPUT_DATE:
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
-            return <BetterInput placeholder={field?.properties?.placeholder} />;
+            return <ShortText enabled field={field} ans={answer} />;
         case FormBuilderTagNames.INPUT_LONG_TEXT:
-            return <TextField className="w-full mb-3 bg-white" placeholder={field?.properties?.placeholder} multiline minRows={3} maxRows={10} />;
+            return <LongText field={field} ans={answer} enabled />;
         case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
-            return <MultipleChoiceField field={field} />;
+            return <MultipleChoiceField field={field} enabled />;
         case FormBuilderTagNames.INPUT_CHECKBOXES:
             return <CheckboxField field={field} />;
         case FormBuilderTagNames.INPUT_DROPDOWN:
@@ -47,13 +54,16 @@ const renderFormField = (field: StandardFormQuestionDto) => {
 
 export default function BetterCollectedForm({ form }: { form: StandardFormDto }) {
     return (
-        <>
-            <div className="max-w-[900px]">
+        <div
+            className="w-full max-w-4xl mx-auto px-10 lg:px-0
+         py-10"
+        >
+            <div>
                 <div className="text-[36px] font-bold">{form?.title}</div>
             </div>
             {form?.fields.map((field: StandardFormQuestionDto) => (
                 <div key={field?.id}>{renderFormField(field)}</div>
             ))}
-        </>
+        </div>
     );
 }

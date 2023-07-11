@@ -75,7 +75,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const onAddFormCover = () => {};
 
     const onPreview = () => {
-        openModal('FORM_BUILDER_PREVIEW');
+        openModal('FORM_BUILDER_PREVIEW', { form: createForm });
     };
 
     useEffect(() => {

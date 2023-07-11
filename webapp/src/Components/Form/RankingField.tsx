@@ -28,7 +28,6 @@ export default function RankingField({ field }: { field: StandardFormQuestionDto
                                         <div {...provided.dragHandleProps} className="rotate-90">
                                             <Code />
                                         </div>
-                                        <span>{index + 1}.</span>
                                         {choice.value}
                                     </div>
                                 )}

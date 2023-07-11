@@ -95,11 +95,15 @@ export interface AnswerDto {
     boolean?: boolean;
     date?: string;
     time?: string;
+    url?: string;
+    phoneNumber?: string;
     choice?: {
         label?: string;
+        value?: string;
     };
     choices?: {
         labels: Array<string>;
+        values?: Array<string>;
         other?: string;
     };
 }

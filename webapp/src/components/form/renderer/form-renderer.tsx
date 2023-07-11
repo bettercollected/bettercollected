@@ -2,7 +2,6 @@ import React from 'react';
 
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import LongText from '@Components/Form/LongText';
-import ShortText from '@Components/Form/ShortText';
 import styled from '@emotion/styled';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -275,9 +274,9 @@ export default function FormRenderer({ form, response, enabled }: FormRendererPr
                 // Render no input element for statement
                 return <></>;
             case QUESTION_TYPE.SHORT_TEXT:
-                return <ShortText question={question} ans={ans} enabled={enabled} />;
+                return <BetterInput value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled />;
             case QUESTION_TYPE.EMAIL:
-                return <ShortText question={question} ans={ans} enabled={enabled} />;
+                return <BetterInput value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled />;
             default:
                 return <></>;
         }
