@@ -70,6 +70,8 @@ const reducerObj = { reducerPath: slice.name, reducer: fillFormReducer };
 
 export const selectAnswers = (state: RootState) => state.fillForm.answers;
 
+export const selectAnswer = (fieldId: string) => (state: RootState) => state.fillForm.answers[fieldId];
+
 export const selectRequiredFields = (state: RootState) => state.fillForm.requiredFields;
 
 export const selectInvalidFields = (state: RootState) => state.fillForm.invalidFields;

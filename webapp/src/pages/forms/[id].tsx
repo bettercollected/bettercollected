@@ -54,7 +54,7 @@ export default function SingleFormPage(props: any) {
         dispatch(resetFillForm());
     }, []);
     if (error) {
-        return <div className="min-h-screen min-w-screen flex items-center justify-center">Error: Could not fetch form!!</div>;
+        return <div className="min-h-screen min-w-screen  flex items-center justify-center">Error: Could not fetch form!!</div>;
     }
     if (isLoading) return <FullScreenLoader />;
 
@@ -119,7 +119,7 @@ export default function SingleFormPage(props: any) {
     // TODO: Update this component to be reusable
     if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
         return (
-            <Layout className="relative !min-h-screen">
+            <Layout className="relative !bg-white !min-h-screen">
                 {back && (
                     <Button className="!absolute !top-0 !left-0 w-auto z-10 !h-8 mx-4 mt-0 sm:mt-1 md:mt-3 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => goToForms()}>
                         <LongArrowLeft width={15} height={15} />
@@ -153,13 +153,13 @@ export default function SingleFormPage(props: any) {
     }
 
     return (
-        <Layout className="relative !min-h-screen">
+        <Layout className="relative !bg-white !min-h-screen">
             {back && (
                 <Button className="!absolute !top-0 !left-0 w-auto z-10 !h-8 mx-4 mt-0 sm:mt-1 md:mt-3 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => goToForms()}>
                     <LongArrowLeft width={15} height={15} />
                 </Button>
             )}
-            <div className={'absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
+            <div className={'absolute bg-white left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
                 {form?.settings?.provider === 'google' && !!responderUri && (
                     <iframe ref={iframeRef} src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0">
                         <Loader />
@@ -168,7 +168,7 @@ export default function SingleFormPage(props: any) {
                 {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (
                     <form
-                        className="w-full py-10 flex flex-col items-center "
+                        className="w-full bg-white py-10 flex flex-col items-center "
                         onKeyDown={(event: any) => {
                             if (event.key === 'Enter') {
                                 event.preventDefault();
@@ -177,9 +177,11 @@ export default function SingleFormPage(props: any) {
                         onSubmit={onSubmitForm}
                     >
                         <FormRenderer form={form} enabled={true} />
-                        <Button className="mt-10" type="submit">
-                            Submit
-                        </Button>
+                        <div className="w-full max-w-[700px] items-center">
+                            <Button className="mt-10" type="submit">
+                                Submit
+                            </Button>
+                        </div>
                     </form>
                 )}
             </div>

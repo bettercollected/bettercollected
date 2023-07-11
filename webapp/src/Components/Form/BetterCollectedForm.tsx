@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
 import LongText from '@Components/Form/LongText';
@@ -5,10 +7,12 @@ import MultipleChoiceField from '@Components/Form/MultipleChoiceField';
 import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
-import TextField from '@mui/material/TextField';
+import FieldRequiredIcon from '@Components/FormBuilder/FieldRequiredIcon';
 
 import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { resetFillForm, selectInvalidFields } from '@app/store/fill-form/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 
 export interface FormFieldProps {
@@ -46,23 +50,38 @@ const renderFormField = (field: StandardFormQuestionDto, answer?: any) => {
             return <RankingField field={field} />;
         case FormBuilderTagNames.INPUT_RATING:
             return <RatingField field={field} />;
-
         default:
             return <></>;
     }
 };
 
 export default function BetterCollectedForm({ form }: { form: StandardFormDto }) {
+    const dispatch = useAppDispatch();
+    const invalidFields = useAppSelector(selectInvalidFields);
+
+    useEffect(() => {
+        dispatch(resetFillForm);
+    }, []);
     return (
         <div
-            className="w-full max-w-4xl mx-auto px-10 lg:px-0
+            className="w-full max-w-[700px] mx-auto px-10 lg:px-0
          py-10"
         >
             <div>
                 <div className="text-[36px] font-bold">{form?.title}</div>
             </div>
             {form?.fields.map((field: StandardFormQuestionDto) => (
-                <div key={field?.id}>{renderFormField(field)}</div>
+                <div key={field?.id} className="relative">
+                    {renderFormField(field)}
+                    {invalidFields?.includes(field?.id) && <div className="text-red-500 mt-2">Field Required*</div>}
+                    {field?.validations?.required && (
+                        <>
+                            <div className="absolute top-1  cursor-pointer  rounded-full">
+                                <span className="!w-4 text-center flex items-center justify-center pt-1.5 text-xl font-bold rounded-full !h-4 relative -left-2  bg-gray-300 px-0.5  z-[35003]">*</span>
+                            </div>
+                        </>
+                    )}
+                </div>
             ))}
         </div>
     );

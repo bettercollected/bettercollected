@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 
 import _ from 'lodash';
 
+import FieldRequiredIcon from '@Components/FormBuilder/FieldRequiredIcon';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { AcUnit } from '@mui/icons-material';
 import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 
@@ -327,6 +329,7 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
                     {...provided.draggableProps}
                 >
                     <div className={`builder-block px-5 min-h-[40px] flex items-center md:px-[89px]`}>
+                        <FieldRequiredIcon field={field} />
                         <FormBuilderActionMenu index={position} id={field.id} provided={provided} addBlock={addBlock} duplicateBlock={duplicateBlock} deleteBlock={deleteBlock} className={state.isFocused ? 'visible' : 'invisible'} />
                         {!isContentEditableTag(field.tag) ? (
                             <FormBuilderBlockContent tag={field.tag} position={position} reference={contentEditable} field={field} />

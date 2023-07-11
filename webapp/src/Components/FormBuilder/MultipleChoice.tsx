@@ -5,12 +5,11 @@ import PlusIcon from '@Components/Common/Icons/Plus';
 import StartAdornmentInputField from '@Components/FormBuilder/StartAdornmentInputField';
 import { StrictModeDroppable } from '@Components/FormBuilder/StrictModeDroppable';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import { TextField } from '@mui/material';
 import { GridCloseIcon } from '@mui/x-data-grid';
 import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react-beautiful-dnd';
 import { useDispatch } from 'react-redux';
 
-import { addField, setFieldTitle } from '@app/store/form-builder/slice';
+import { addField } from '@app/store/form-builder/slice';
 import { FormFieldState } from '@app/store/form-builder/types';
 import { reorder } from '@app/utils/arrayUtils';
 
@@ -122,17 +121,6 @@ export default function MultipleChoice({ field }: IMultipleChoiceProps) {
                         )}
                     </StrictModeDroppable>
                 </DragDropContext>
-
-                {/*{field.title === undefined && (*/}
-                {/*    <div*/}
-                {/*        className="text-gray-400 w-full mt-2 cursor-pointer"*/}
-                {/*        onClick={() => {*/}
-                {/*            addFieldTitle('');*/}
-                {/*        }}*/}
-                {/*    >*/}
-                {/*        Add title*/}
-                {/*    </div>*/}
-                {/*)}*/}
             </div>
         </div>
     );

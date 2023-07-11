@@ -1,6 +1,5 @@
 import React, { ChangeEvent } from 'react';
 
-import { a } from 'msw/lib/glossary-de6278a9';
 import { useDispatch } from 'react-redux';
 
 import BetterInput from '@app/components/Common/input';
@@ -68,7 +67,7 @@ export default function ShortText({ ans, enabled, field }: IShortTextProps) {
                     letterSpacing: 1
                 }
             }}
-            className="!mt-2"
+            className={`!mt-2 `}
             fullWidth
             onChange={onChange}
         />

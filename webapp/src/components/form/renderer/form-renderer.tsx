@@ -160,7 +160,7 @@ export default function FormRenderer({ form, response, enabled }: FormRendererPr
                     </LocalizationProvider>
                 );
             case QUESTION_TYPE.LONG_TEXT:
-                return <LongText question={question} ans={ans} enabled={enabled} />;
+                return <LongText field={question} ans={ans} enabled={enabled} />;
             case QUESTION_TYPE.MULTIPLE_CHOICE:
                 const choiceAnswer = ans?.choice?.value ?? ans?.choices?.values;
                 return (
