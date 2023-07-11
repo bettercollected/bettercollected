@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+
+import Image from 'next/image';
 
 import _ from 'lodash';
 
@@ -26,8 +28,9 @@ interface IScope {
 interface IPermission {
     type?: string;
     name: string;
-    icon: React.ReactNode;
+    icon?: React.ReactNode;
     isPermissionGiven: boolean;
+    description?: string;
     helpText: {
         enable: boolean;
         title?: string;
@@ -51,19 +54,10 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
 
     const googlePermissions: Array<IPermission> = [
         {
-            type: 'non-sensitive',
-            isPermissionGiven: true,
-            name: "See your personal info, including any personal info you've made publicly available",
-            icon: <CheckCircle fontSize="small" color="success" />,
-            helpText: {
-                enable: false
-            }
-        },
-        {
             type: 'sensitive',
             isPermissionGiven: false,
             name: 'See information about your Google Drive files.',
-            icon: <HourglassEmpty fontSize="small" color="warning" />,
+            description: 'In order for our app to identify and distinguish between form files and other files, we require access to view the names and file types of your Google Drive files',
             helpText: {
                 enable: true,
                 title: 'Information about your Drive files, includes:',
@@ -76,7 +70,7 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
             type: 'sensitive',
             isPermissionGiven: false,
             name: 'See all your Google Forms forms.',
-            icon: <HourglassEmpty fontSize="small" color="warning" />,
+            description: 'In order to import forms, we require access to view all the forms created using Google Forms.',
             helpText: {
                 enable: true,
                 title: 'See all your forms, including:',
@@ -88,7 +82,7 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
             type: 'sensitive',
             isPermissionGiven: false,
             name: 'See all responses to your Google Forms forms.',
-            icon: <HourglassEmpty fontSize="small" color="warning" />,
+            description: 'This allows us to provide you with the necessary functionality and features to enhance your experience.',
             helpText: {
                 enable: true,
                 title: 'See all the responses submitted to your forms, including:',
@@ -181,7 +175,7 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
     ];
     const [defaultContent] = useState<IDefaultContent>({
         type: provider === 'google' ? 'dark' : 'typeform',
-        permissionText: 'We require additional permissions before you can start importing the forms.',
+        permissionText: provider === 'google' ? 'Enable Google Drive Access \n for Form Imports' : '',
         authorizeText: `Please click the button below to provide additional permissions for ${_.capitalize(provider)}.`,
         scopes: provider === 'google' ? googleScopes : typeformScopes,
         permissions: provider === 'google' ? googlePermissions : typeformPermissions
@@ -209,16 +203,16 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
     };
 
     return (
-        <div className="text-sm relative py-10 px-10 flex items-center justify-center flex-col space-y-5 w-full md:max-w-[500px] p-4 rounded-md shadow-md bg-white">
-            <div onClick={() => closeModal()} className="border-[1.5px] absolute right-5 top-5 border-gray-200 hover:shadow hover:text-black cursor-pointer rounded-full p-3">
-                <Close className="cursor-pointer text-gray-600 hover:text-black" />
+        <div className="text-sm relative flex items-center justify-center flex-col space-y-5 w-full md:max-w-[500px] rounded-md shadow-md bg-white pb-10">
+            <div onClick={() => closeModal()} className="absolute right-3 top-3  cursor-pointer rounded-full p-3">
+                <Close className="cursor-pointer" />
             </div>
-            <div className="flex gap-2 items-center justify-between">
-                <SyncProblem className="hidden md:block md:w-[40px] md:h-[40px] text-orange-400" />
-                <h2 className="text-gray-800 text-lg md:text-xl text-center">{defaultContent.permissionText}</h2>
+            <div className="flex flex-col gap-6 mb-6 items-center justify-between">
+                <Image src="/drive_logo.png" width={58} height={58} />
+                <h2 className="text-black-900 font-semibold text-lg md:text-xl whitespace-pre-wrap text-center">{defaultContent.permissionText}</h2>
             </div>
             {provider === 'google' && (
-                <p className="text-gray-500 text-xs text-center">
+                <p className="text-black-800 text-[12px] px-4 leading-5 mb-10 text-center">
                     Better Collected Platform&apos;s use and transfer to any other app of information received from Google APIs will adhere to{' '}
                     <a target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-400" href="https://developers.google.com/terms/api-services-user-data-policy">
                         Google API Services User Data Policy
@@ -226,66 +220,21 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
                     , including the Limited Use requirements.
                 </p>
             )}
-
-            <Disclosure defaultOpen>
-                {({ open }) => (
-                    <>
-                        <Disclosure.Button className="flex items-center w-full justify-between rounded-lg bg-blue-100 px-4 py-2 text-left text-sm font-medium text-blue-900 hover:bg-blue-200 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75">
-                            <span>See all the required permissions</span>
-                            <ChevronDown className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 text-blue-900`} />
-                        </Disclosure.Button>
-                        <Disclosure.Panel className="pt-2 pb-2 text-sm text-gray-500 w-full">
-                            <ol className="list-decimal flex flex-col gap-2">
-                                {defaultContent.permissions.map((permission) => (
-                                    <div key={permission.name} className="flex w-full justify-start gap-6 items-center border-b-[1px] border-gray-200 pb-1 last:border-none">
-                                        {permission.icon}
-                                        <span>{permission.name}</span>
-                                        {!permission.isPermissionGiven && permission.helpText.enable && (
-                                            <div className="ml-auto">
-                                                <PopupState variant="popover" popupId={permission.name}>
-                                                    {(popupState) => (
-                                                        <div>
-                                                            <span className="text-blue-500" {...bindTrigger(popupState)}>
-                                                                <HelpOutline />
-                                                            </span>
-                                                            <Popover
-                                                                {...bindPopover(popupState)}
-                                                                anchorOrigin={{
-                                                                    vertical: 'bottom',
-                                                                    horizontal: 'right'
-                                                                }}
-                                                                transformOrigin={{
-                                                                    vertical: 'top',
-                                                                    horizontal: 'right'
-                                                                }}
-                                                            >
-                                                                <div className="text-xs text-gray-500 p-4 max-w-xs md:max-w-md flex flex-col gap-4">
-                                                                    <p>{permission?.helpText?.title}</p>
-                                                                    <ul className="list-disc">
-                                                                        {permission?.helpText?.info?.map((info, idx) => (
-                                                                            <li className="ml-6" key={idx}>
-                                                                                {info}
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
-                                                                    <p>{permission?.helpText?.footer}</p>
-                                                                    {permission?.helpText?.note && <p className="font-bold text-gray-800">{permission?.helpText?.note}</p>}
-                                                                </div>
-                                                            </Popover>
-                                                        </div>
-                                                    )}
-                                                </PopupState>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </ol>
-                        </Disclosure.Panel>
-                    </>
-                )}
-            </Disclosure>
-
-            <p className="text-gray-700 text-xs text-center">{defaultContent.authorizeText}</p>
+            <div className="w-full border-b-[1px]">
+                {defaultContent.permissions.map((permission, index) => (
+                    <Disclosure key={permission.name} defaultOpen={false}>
+                        {({ open }) => (
+                            <>
+                                <Disclosure.Button className="flex items-center w-full justify-between px-8 py-3 border-t-[1px] text-left body6 font-medium text-black-800 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75">
+                                    <span>{permission.name}</span>
+                                    <ChevronDown className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 text-blue-900`} />
+                                </Disclosure.Button>
+                                <Disclosure.Panel className="body4 pb-2 -mt-2 pr-8 text-gray-500 w-full">{<div className="px-8">{permission?.description}</div>}</Disclosure.Panel>
+                            </>
+                        )}
+                    </Disclosure>
+                ))}
+            </div>
             <FormControlLabel
                 checked={isConsentGiven}
                 onChange={handleUserConsent}
@@ -305,19 +254,6 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
                 }
             />
             <ConnectWithProviderButton disabled={!isConsentGiven} type={defaultContent.type} url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/oauth`} text={`Authorize ${_.capitalize(provider)}`} creator />
-            <Disclosure>
-                {({ open }) => (
-                    <>
-                        <Disclosure.Button className="flex items-center w-full justify-between rounded-lg bg-purple-100 px-4 py-2 text-left text-sm font-medium text-purple-900 hover:bg-purple-200 focus:outline-none focus-visible:ring focus-visible:ring-purple-500 focus-visible:ring-opacity-75">
-                            <span>See all the required permission scopes</span>
-                            <ChevronDown className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 text-purple-900`} />
-                        </Disclosure.Button>
-                        <Disclosure.Panel className="px-4 pt-2 pb-2 text-sm text-gray-500 w-full">
-                            <ol className="list-decimal ml-4">{defaultContent.scopes.map((scope) => getScopeContent(scope))}</ol>
-                        </Disclosure.Panel>
-                    </>
-                )}
-            </Disclosure>
         </div>
     );
 }
