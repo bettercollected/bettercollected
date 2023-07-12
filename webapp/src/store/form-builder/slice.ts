@@ -1,5 +1,5 @@
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import { PayloadAction, createSlice } from '@reduxjs/toolkit';
+import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import ansiRegex from 'ansi-regex';
 import ObjectID from 'bson-objectid';
 import { persistReducer } from 'redux-persist';
@@ -15,12 +15,35 @@ const initialState: FormState = {
     formId: '',
     title: '',
     description: '',
-    fields: {}
+    fields: {},
+    isFormDirty: false
 };
+
+export const setIsFormDirtyAsync = createAsyncThunk('form/setIsFormDirtyAsync', async (isDirty, { getState }) => {
+    // Perform async logic here, e.g., making an API call or any other asynchronous operation
+    // You can access the current state using `getState()`
+
+    // Simulating an asynchronous operation with a delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Return the new value for isFormDirty
+    return isDirty;
+});
+
 export const slice = createSlice({
     name: 'createForm',
     initialState,
+    extraReducers: (builder) => {
+        // Handling the async thunk action
+        builder.addCase(setIsFormDirtyAsync.fulfilled, (state, action) => {
+            // @ts-ignore
+            state.isFormDirty = action.payload;
+        });
+    },
     reducers: {
+        setIsFormDirty: (state, action) => {
+            return { ...state, isFormDirty: action.payload };
+        },
         setEditForm: (state, action) => {
             const fields: any = {};
             for (const field of action.payload.fields) {
@@ -31,6 +54,7 @@ export const slice = createSlice({
                 fields[field.id] = { ...field, properties: { ...field.properties, choices: choices } };
             }
             return {
+                ...state,
                 formId: action.payload.formId,
                 title: action.payload.title,
                 description: action.payload.description,
@@ -189,9 +213,11 @@ const reducerObj = { reducerPath: slice.name, reducer: createFormReducer };
 
 export const selectCreateForm = (state: RootState) => state.createForm;
 
+export const selectIsFormDirty = (state: RootState) => state.createForm.isFormDirty;
+
 export const selectFormBuilderFields = (state: RootState) => state.createForm.fields;
 export const selectFormField = (id: string) => (state: RootState) => state.createForm.fields[id];
 
-export const { addQuestionAndAnswerField, setFields, setEditForm, resetForm, deleteField, setFieldDescription, setFieldRequired, setFieldTitle, setFormDescription, setFieldType, addField, setFormTitle, setBlockFocus } = slice.actions;
+export const { setIsFormDirty, addQuestionAndAnswerField, setFields, setEditForm, resetForm, deleteField, setFieldDescription, setFieldRequired, setFieldTitle, setFormDescription, setFieldType, addField, setFormTitle, setBlockFocus } = slice.actions;
 
 export default reducerObj;

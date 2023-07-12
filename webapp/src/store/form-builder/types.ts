@@ -36,4 +36,5 @@ export interface FormState {
     fields: {
         [questionId: string]: FormFieldState;
     };
+    isFormDirty: boolean;
 }
