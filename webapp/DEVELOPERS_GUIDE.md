@@ -65,6 +65,7 @@ Please refer to the [.env.example](.env.example) file for updated environment va
 5. Run `yarn clean` to clear cache, node_modules, and build folders.
 6. `(Optional) Should be done automatically during the package installation process (i.e. npm install)` Run `yarn prepare` to install and initialize husky for commit hooks
 
+
 ### Configure Nginx locally to map the path for ADMIN_HOST, CLIENT_HOST, and CUSTOM DOMAIN to load all of them at once.
 
 1. Install `nginx` with `sudo apt install nginx`.
@@ -99,13 +100,54 @@ Please refer to the [.env.example](.env.example) file for updated environment va
 4. After adding the config, restart the nginx with `systemctl restart nginx`.
 5. After this, you'll be able to see `ADMIN_HOST` in `localhost:3000`, `CLIENT_HOST` in `localhost:3001/{workspace_handle}`, and `CUSTOM_DOMAIN` in `localhost:3002`.
 
+
+### Walk through `README.md` 
+1.  Walk thorugh `README.md` of this repository `bettercollected` and other dependent repositories `bettercollected-auth`,`bettercollected-backend`,0          `bettercollected-integrations-google-forms`,`bettercollected-integrations-typeform`.
+2. Use python version `3.10` , if you dont have then install using pyenv with command `pyenv install version_number` and set it global with `pyenv global version_number`.
+3. Also inside each repository set up for "common" submodule with command:
+ `git submodule update --init --recursive --remote`
+  And then navigate to common submodule `cd common` and checkout master branch `git checkout master && git pull` and `cd ..`.
+
+
 ### Add the localhost inside the database
 
-1. Go to `backend` datasbe in the MongoDB, if not present, run the `bettercollected-backend` repo, the database should be created if all the configuration is correct.
-2. Inside `backend` database, go to `allowed_origins` collection, if not present, you can create it manually.
-3. Add individual document for `localhost:3000`, `localhost:3001`, and `localhost:3002` with a field like:
+1. Go to `backend` database in the MongoDB, if not present, run the `bettercollected-backend` repo, the database should be created if all the configuration is correct.
+2. If not then you can run `mongoDB` locally by creating `docker compose` file which looks like:
+    ```
+        version: "3.7"
+        networks:
+        default:
+            name: mongodb
+            attachable: true
+        services:
+        mongodb_container:
+            image: mongo:latest
+            environment:
+            MONGO_INITDB_ROOT_USERNAME: <mongoDB_user>
+            MONGO_INITDB_ROOT_PASSWORD: <mongoDB_password>
+            ports:
+            - 27017:27017
+            volumes:
+            - mongodb_data_container:/data/db
+            restart: always
+        volumes:
+        mongodb_data_container:
+    ```
+    and finally use command `docker compose up`.
+3. Use CLI or `MongoDB Compass` to connect to MongoDB . `MongoDB Compass` is preferred [Installation Link](https://www.mongodb.com/try/download/compass).
+4. Inside `backend` database, go to `allowed_origins` collection, if not present, you can create it manually.
+5. Add individual document for `localhost:3000`, `localhost:3001`, and `localhost:3002` with a field like:
     ```
      "origin":"http://localhost:3000"  # Replace 3000 with 3001 and 3002
+    ```
+6. Also go to 'forms_plugin_configs' collection, if not present create it manually.
+7. And then add individual document for `google` and `typeform` with a field like:
+    ```
+        "enabled":"true"
+        "provider_name":"typeform"      # Replace typeform with `google`
+        "provider_url":"http://localhost:8002/api/v1"       # Replace `8002` with `8003`
+        "auth_callback_url":"http://localhost:8002/api/v1/typeform/oauth/callback"      # Replace typeform with `google` and replace `8002` with `8003`
+        "type":"oauth2"
     ```
 
 ### Default and Custom Domain Configuration
