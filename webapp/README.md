@@ -47,7 +47,7 @@ The need for you to clone this repository is because you need it to seed the dat
 1. Generate a Fernet key or use the provided one in the services environment example itself. The Fernet key must be a base64-encoded 32-byte key. [See how to generate fernet key](https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/security/secrets/fernet.html). Or, install `cryptography` package in python and print out the `fernet_key` and use it where necessary. **Note:** The generated fernet key must be same in the entire service environment where applicable.
 
     - Environment name used in `backend` service: `AUTH_AES_HEX_KEY`
-    - Environment name used in `auth` service: `AUTH_AEX_HEX_KEY`
+    - Environment name used in `auth` service: `AUTH_AES_HEX_KEY`
     - Environment name used in `integrations-googleform` service: `GOOGLE_AES_KEY`
 
     ```py
