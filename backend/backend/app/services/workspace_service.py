@@ -363,6 +363,7 @@ class WorkspaceService:
         await self._workspace_user_service.delete_user_of_workspaces(
             workspace_ids=workspace_ids
         )
+        await self._workspace_repo.delete_workspaces_with_ids(workspace_ids)
 
 
 async def create_workspace(user: User):

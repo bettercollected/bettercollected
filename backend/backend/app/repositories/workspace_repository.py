@@ -74,3 +74,6 @@ class WorkspaceRepository(BaseRepository):
         self, owner_id: str
     ) -> WorkspaceDocument:
         return await WorkspaceDocument.find_one({"owner_id": owner_id, "default": True})
+
+    async def delete_workspaces_with_ids(self, workspace_ids: List[PydanticObjectId]):
+        return await WorkspaceDocument.find({"_id": {"$in": workspace_ids}}).delete()
