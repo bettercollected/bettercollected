@@ -219,9 +219,10 @@ class WorkspaceFormService:
             )
         )
         for workspace_form in workspace_forms:
-            self.schedular.remove_job(
-                workspace_form.settings.provider + "_" + workspace_form.form_id
-            )
+            if workspace_form.settings.provider != "self":
+                self.schedular.remove_job(
+                    workspace_form.settings.provider + "_" + workspace_form.form_id
+                )
 
         await self.form_response_service.delete_form_responses_of_form_ids(
             form_ids=form_ids
