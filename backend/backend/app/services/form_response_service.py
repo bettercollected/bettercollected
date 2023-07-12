@@ -134,12 +134,12 @@ class FormResponseService:
         deletion_request = await FormResponseDeletionRequest.find_one(
             {"response_id": response_id}
         )
-        workspace_form = await WorkspaceFormDocument.find(
+        workspace_form = await WorkspaceFormDocument.find_one(
             {
                 "workspace_id": workspace_id,
                 "form_id": form.form_id,
             }
-        ).to_list()
+        )
         if not workspace_form:
             raise HTTPException(404, "Form not found in this workspace")
 
@@ -150,7 +150,7 @@ class FormResponseService:
         if deletion_request is not None:
             response.deletion_status = deletion_request.status
         form = StandardFormCamelModel(**form.dict())
-
+        form.settings = workspace_form.settings
         response.form_title = form.title
         return {
             "form": form,
