@@ -1,11 +1,15 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import UserDetails from '@Components/Common/DataDisplay/UserDetails';
+import EditIcon from '@Components/Common/Icons/Edit';
 import Share from '@Components/Common/Icons/Share';
+import Button from '@Components/Common/Input/Button';
 
 import { FormTabContent } from '@app/components/dashboard/form-tab-content';
+import { ShareIcon } from '@app/components/icons/share-icon';
 import { formConstant } from '@app/constants/locales/form';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
@@ -23,35 +27,55 @@ export default function FormPreview() {
     const form = useAppSelector(selectForm);
     const { t } = useTranslation();
     const { openModal } = useModal();
+    const router = useRouter();
     return (
-        <div className="flex md:flex-row flex-col-reverse gap-10  w-full   ">
+        <div className="flex lg:flex-row flex-col-reverse gap-10  w-full   ">
             <FormTabContent form={form} />
-            {isAdmin && !isProPlan ? (
-                <></>
-            ) : (
-                <div className="flex flex-col gap-6 w-full">
-                    <div
+            <div className="flex flex-col lg:basis-1/4 gap-6 w-full">
+                <div className="flex gap-4">
+                    {form?.settings?.provider === 'self' && (
+                        <Button
+                            variant="contained"
+                            className="w-fit bg-brand-500 px-8 gap-2 py-3 "
+                            onClick={() => {
+                                router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
+                            }}
+                        >
+                            <span>
+                                <EditIcon />
+                            </span>
+                            Edit
+                        </Button>
+                    )}
+                    <Button
+                        variant="outlined"
+                        className="w-fit text-brand-500 px-8 gap-2 py-3 "
                         onClick={() =>
                             openModal('SHARE_VIEW', {
                                 url: getFormUrl(form, workspace),
                                 title: t(formConstant.shareThisForm)
                             })
                         }
-                        className=" cursor-pointer items-center  flex gap-[10px]"
                     >
-                        <Share className="h-4 w-4  !text-brand-500" />
-                        <span className="body6 !text-brand-500">Share Form</span>
-                    </div>
-                    <div className="flex gap-4 items-center">
-                        <div className="body4 text-black-700 ">{t(formConstant.importedBy)}:</div>
-                        <UserDetails user={form.importerDetails} />
-                    </div>
-                    <div className="flex gap-4 items-center">
-                        <div className="body4 text-black-700">{t(formConstant.importedOn)}:</div>
-                        <div className="body4">{toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(form.createdAt)))}</div>
-                    </div>
+                        <span>
+                            <Share />
+                        </span>
+                        Share
+                    </Button>
                 </div>
-            )}
+                {isAdmin && isProPlan && (
+                    <>
+                        <div className="flex gap-4 items-center">
+                            <div className="body4 text-black-700 ">{t(formConstant.importedBy)}:</div>
+                            <UserDetails user={form.importerDetails} />
+                        </div>
+                        <div className="flex gap-4 items-center">
+                            <div className="body4 text-black-700">{t(formConstant.importedOn)}:</div>
+                            <div className="body4">{toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(form.createdAt)))}</div>
+                        </div>
+                    </>
+                )}
+            </div>
         </div>
     );
 }

@@ -36,7 +36,7 @@ export default function ShortText({ ans, enabled, field }: IShortTextProps) {
                 answer.date = event.target.value;
                 break;
             case FormBuilderTagNames.INPUT_PHONE_NUMBER:
-                answer.phoneNumber = event.target.value;
+                answer.phone_number = event.target.value;
                 break;
             default:
                 answer.text = event.target.value;
@@ -52,7 +52,7 @@ export default function ShortText({ ans, enabled, field }: IShortTextProps) {
         // <StyledTextField>
         <BetterInput
             type={field?.type === 'email' ? 'email' : 'text'}
-            value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name}
+            value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name || ans?.date || ans?.phone_number}
             placeholder={field?.properties?.placeholder}
             disabled={!enabled}
             inputProps={{

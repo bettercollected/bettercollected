@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import environments from '@app/configs/environments';
 import FormBuilder from '@app/containers/FormBuilder';
+import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { resetForm } from '@app/store/form-builder/slice';
@@ -22,9 +23,9 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
     }, []);
 
     return environments.ENABLE_FORM_BUILDER ? (
-        <DashboardLayout sidebarClassName="!px-0" dashboardContentClassName="!py-0 w-full h-full bg-white">
+        <Layout isCustomDomain={false} isClientDomain={true} showNavbar={true} hideMenu={true} className="!p-0 !bg-white flex flex-col min-h-screen">
             <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} />
-        </DashboardLayout>
+        </Layout>
     ) : (
         <></>
     );

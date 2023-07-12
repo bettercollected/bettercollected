@@ -1,10 +1,11 @@
+import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
 import Checkbox from '@mui/material/Checkbox';
 
 import { StandardFormQuestionDto } from '@app/models/dtos/form';
 import { addAnswer, selectAnswer, selectAnswers } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
-export default function CheckboxField({ field }: { field: StandardFormQuestionDto }) {
+export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
     const dispatch = useAppDispatch();
     const answer = useAppSelector(selectAnswer(field.id));
     const answerChoices = answer?.choices?.values;
@@ -28,7 +29,7 @@ export default function CheckboxField({ field }: { field: StandardFormQuestionDt
         <>
             {(field?.properties?.choices || []).map((choice: any) => (
                 <div key={choice?.id} className="flex items-center ">
-                    <Checkbox checked={!!answerChoices?.includes(choice?.value)} onClick={() => handleSelectChoice(choice)} />
+                    <Checkbox disabled={!enabled} checked={!!ans?.choices?.values?.includes(choice?.value) || !!answerChoices?.includes(choice?.value)} onClick={() => handleSelectChoice(choice)} />
                     <div>{choice?.value}</div>
                 </div>
             ))}

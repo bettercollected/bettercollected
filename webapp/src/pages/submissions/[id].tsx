@@ -115,7 +115,6 @@ export default function Submission(props: any) {
     ];
 
     const deletionStatus = !!form?.response?.deletionStatus;
-
     return (
         <div className="container mx-auto mt-5 flex flex-col  items-center px-6  pb-6">
             <div className="flex w-full justify-between">

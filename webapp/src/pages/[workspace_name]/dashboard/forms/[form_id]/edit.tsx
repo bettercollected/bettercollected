@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import environments from '@app/configs/environments';
 import FormBuilder from '@app/containers/FormBuilder';
+import Layout from '@app/layouts/_layout';
 import { getServerSidePropsForDashboardFormPage } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -33,9 +34,9 @@ export default function EditFromPage(props: any) {
     }, [form]);
 
     return (
-        <DashboardLayout sidebarClassName="!px-0" dashboardContentClassName="!py-0 w-full h-full bg-white">
+        <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={true} className="!p-0 !bg-white flex flex-col min-h-screen">
             <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} isEditMode />
-        </DashboardLayout>
+        </Layout>
     );
 }
 

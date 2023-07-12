@@ -331,7 +331,7 @@ export default function FormRenderer({ form, response, enabled }: FormRendererPr
     return (
         <div data-testid="form-renderer" className="relative max-w-[700px] w-full  md:px-0">
             {form?.settings?.provider === 'self' ? (
-                <BetterCollectedForm form={form} />
+                <BetterCollectedForm form={form} response={response} enabled={enabled} />
             ) : (
                 <div className="flex flex-col gap-4">
                     <div className="p-6 bg-white rounded-lg flex flex-col gap-4">

@@ -1,13 +1,11 @@
-import { useState } from 'react';
-
+import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
 import { Select, SelectChangeEvent } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 
-import { StandardFormQuestionDto } from '@app/models/dtos/form';
-import { addAnswer, selectAnswer, selectAnswers } from '@app/store/fill-form/slice';
+import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
-export default function DropdownField({ field }: { field: StandardFormQuestionDto }) {
+export default function DropdownField({ field, ans, enabled }: FormFieldProps) {
     const dispatch = useAppDispatch();
     const answer = useAppSelector(selectAnswer(field.id));
     const onChange = (event: SelectChangeEvent<any>) => {
@@ -22,7 +20,9 @@ export default function DropdownField({ field }: { field: StandardFormQuestionDt
             MenuProps={{
                 style: { zIndex: 35001 }
             }}
-            value={answer?.choice?.value || ''}
+            defaultValue={ans?.choice.value}
+            disabled={!enabled}
+            value={ans?.choice.value || answer?.choice?.value || ''}
             onChange={onChange}
             className="w-fit mt-3 min-w-[200px] mb-3 text-black-900 !bg-white"
         >

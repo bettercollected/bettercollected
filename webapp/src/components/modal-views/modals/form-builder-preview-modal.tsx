@@ -39,14 +39,15 @@ export default function FormBuilderPreviewModal({ form }: IFormBuilderPreviewMod
 
     return (
         <div className="relative h-full w-full overflow-auto pt-10 !bg-white ">
-            <Close
+            <div
                 className="absolute cursor-pointer text-black-600 top-10 right-10"
-                height={20}
-                width={20}
                 onClick={() => {
                     closeModal();
                 }}
-            />
+            >
+                {' '}
+                Back to Editor
+            </div>
             <BetterCollectedForm form={formToRender} />
         </div>
     );

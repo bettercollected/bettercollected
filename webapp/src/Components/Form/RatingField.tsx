@@ -2,15 +2,15 @@ import { useState } from 'react';
 
 import _ from 'lodash';
 
+import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
 import { Star, StarBorder } from '@mui/icons-material';
 
-import { StandardFormQuestionDto } from '@app/models/dtos/form';
-import { addAnswer, selectAnswer, selectAnswers } from '@app/store/fill-form/slice';
+import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
-export default function RatingField({ field }: { field: StandardFormQuestionDto }) {
+export default function RatingField({ field, ans, enabled }: FormFieldProps) {
     const dispatch = useAppDispatch();
-    const [hovered, setHovered] = useState(-1);
+    const [hovered, setHovered] = useState(ans?.number || -1);
     const answer = useAppSelector(selectAnswer(field.id));
     return (
         <div className="w-fit mt-3">
@@ -21,19 +21,21 @@ export default function RatingField({ field }: { field: StandardFormQuestionDto 
                     <span
                         key={index}
                         onMouseOut={() => {
-                            setHovered((answer?.number || 0) - 1 || -1);
+                            if (enabled) setHovered((ans?.number || answer?.number || 0) - 1 || -1);
                         }}
                         onClick={() => {
-                            const answer: any = {
-                                field: {
-                                    id: field.id
-                                }
-                            };
-                            answer.number = index + 1;
-                            dispatch(addAnswer(answer));
+                            if (enabled) {
+                                const answer: any = {
+                                    field: {
+                                        id: field.id
+                                    }
+                                };
+                                answer.number = index + 1;
+                                dispatch(addAnswer(answer));
+                            }
                         }}
                         onMouseOver={() => {
-                            setHovered(index);
+                            if (enabled) setHovered(index);
                         }}
                     >
                         <Component fontSize="large" className={`pointer-events-none ${index <= hovered ? 'cursor-pointer text-yellow-500' : 'text-gray-400'} `} />

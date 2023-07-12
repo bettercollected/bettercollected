@@ -9,7 +9,7 @@ import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
 import FieldRequiredIcon from '@Components/FormBuilder/FieldRequiredIcon';
 
-import { StandardFormDto, StandardFormQuestionDto } from '@app/models/dtos/form';
+import { StandardFormDto, StandardFormQuestionDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { resetFillForm, selectInvalidFields } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -21,7 +21,7 @@ export interface FormFieldProps {
     enabled?: boolean;
 }
 
-const renderFormField = (field: StandardFormQuestionDto, answer?: any) => {
+const renderFormField = (field: StandardFormQuestionDto, enabled?: boolean, answer?: any) => {
     switch (field?.tag) {
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
         case FormBuilderTagNames.LAYOUT_HEADER3:
@@ -37,25 +37,25 @@ const renderFormField = (field: StandardFormQuestionDto, answer?: any) => {
         case FormBuilderTagNames.INPUT_LINK:
         case FormBuilderTagNames.INPUT_DATE:
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
-            return <ShortText enabled field={field} ans={answer} />;
+            return <ShortText enabled={enabled} field={field} ans={answer} />;
         case FormBuilderTagNames.INPUT_LONG_TEXT:
-            return <LongText field={field} ans={answer} enabled />;
+            return <LongText field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
-            return <MultipleChoiceField field={field} enabled />;
+            return <MultipleChoiceField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_CHECKBOXES:
-            return <CheckboxField field={field} />;
+            return <CheckboxField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_DROPDOWN:
-            return <DropdownField field={field} />;
+            return <DropdownField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_RANKING:
-            return <RankingField field={field} />;
+            return <RankingField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_RATING:
-            return <RatingField field={field} />;
+            return <RatingField field={field} ans={answer} enabled={enabled} />;
         default:
             return <></>;
     }
 };
 
-export default function BetterCollectedForm({ form }: { form: StandardFormDto }) {
+export default function BetterCollectedForm({ form, enabled = false, response }: { form: StandardFormDto; enabled?: boolean; response?: StandardFormResponseDto }) {
     const dispatch = useAppDispatch();
     const invalidFields = useAppSelector(selectInvalidFields);
 
@@ -63,16 +63,13 @@ export default function BetterCollectedForm({ form }: { form: StandardFormDto })
         dispatch(resetFillForm);
     }, []);
     return (
-        <div
-            className="w-full max-w-[700px] mx-auto px-10 lg:px-0
-         py-10"
-        >
+        <div className="w-full max-w-[700px] mx-auto px-10 lg:px-0 py-10">
             <div>
                 <div className="text-[36px] font-bold">{form?.title}</div>
             </div>
             {form?.fields.map((field: StandardFormQuestionDto) => (
                 <div key={field?.id} className="relative">
-                    {renderFormField(field)}
+                    {renderFormField(field, enabled, response?.answers[field.id])}
                     {invalidFields?.includes(field?.id) && <div className="text-red-500 mt-2">Field Required*</div>}
                     {field?.validations?.required && (
                         <>

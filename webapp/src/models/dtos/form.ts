@@ -65,17 +65,17 @@ export interface StandardFormResponseDto {
         [fieldId: string]: AnswerDto;
     };
     responseId: string;
-    formId: string;
-    formTitle: string;
-    formCustomUrl: string;
+    formId?: string;
+    formTitle?: string;
+    formCustomUrl?: string;
     provider: string;
     createdAt: string | Date;
     updatedAt: string | Date;
     formImportedBy?: string;
     status?: string;
     requestForDeletion?: boolean;
-    dataOwnerIdentifier: string | null | undefined;
-    responses: Array<{ questionId: string; answer: any }>;
+    dataOwnerIdentifier?: string | null | undefined;
+    responses?: Array<{ questionId: string; answer: any }>;
 }
 
 export interface WorkspaceResponderDto {
@@ -97,6 +97,7 @@ export interface AnswerDto {
     time?: string;
     url?: string;
     phoneNumber?: string;
+    phone_number?: string;
     choice?: {
         label?: string;
         value?: string;

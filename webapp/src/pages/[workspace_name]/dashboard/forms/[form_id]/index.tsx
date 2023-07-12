@@ -104,15 +104,6 @@ export default function FormPage(props: any) {
                         <ChevronForward onClick={handleBackClick} className=" cursor-pointer rotate-180 h-6 w-6  p-[2px] " />
                         <p className="h4">{form.title}</p>
                     </div>
-                    {form?.settings?.provider === 'self' && (
-                        <Button
-                            onClick={() => {
-                                router.push(`/${props.workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
-                            }}
-                        >
-                            Edit
-                        </Button>
-                    )}
                 </div>
 
                 <ParamTab className="mb-[38px] pb-0" tabMenu={paramTabs}>
