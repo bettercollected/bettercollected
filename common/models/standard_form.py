@@ -65,6 +65,37 @@ class StandardFormFieldType(str, Enum):
     HIDDEN = "hidden"
     CONDITIONAL = "conditional"
 
+    LAYOUT_HEADER1 = 'h1'
+    LAYOUT_HEADER2 = 'h2'
+    LAYOUT_HEADER3 = 'h3'
+    LAYOUT_HEADER4 = 'h4'
+    LAYOUT_HEADER5 = 'h5'
+    LAYOUT_SHORT_TEXT = 'p'
+    LAYOUT_LABEL = 'strong'
+    LAYOUT_DIVIDER = 'divider'
+
+    INPUT_SHORT_TEXT = 'input_short_text'
+    INPUT_LONG_TEXT = 'input_long_text'
+    INPUT_MULTIPLE_CHOICE = 'input_multiple_choice'
+    INPUT_MULTISELECT = 'input_multiselect'
+    INPUT_CHECKBOXES = 'input_checkboxes'
+    INPUT_EMAIL = 'input_email'
+    INPUT_NUMBER = 'input_number'
+    INPUT_PHONE_NUMBER = 'input_phone_number'
+    INPUT_LINK = 'input_link'
+    INPUT_DATE = 'input_date'
+    INPUT_TIME = 'input_time'
+    INPUT_DATE_RANGE = 'input_date_range'
+    INPUT_TIME_RANGE = 'input_time_range'
+    INPUT_DATETIME_RANGE = 'input_datetime_range'
+    INPUT_DROPDOWN = 'input_dropdown'
+    INPUT_RATING = 'input_rating'
+    INPUT_LINEAR_SCALE = 'input_linear_scale'
+    INPUT_TEMPLATE_BUTTON = 'input_template_button'
+    INPUT_FILE_UPLOAD = 'input_file_upload'
+    INPUT_RANKING = 'input_ranking'
+    INPUT_MATRIX = 'input_matrix'
+
 
 class StandardResponseType(str, Enum):
     TEXT = "text"
