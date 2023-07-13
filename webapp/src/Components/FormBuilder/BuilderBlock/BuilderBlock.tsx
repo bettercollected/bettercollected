@@ -7,7 +7,7 @@ import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beau
 import ContentEditable from 'react-contenteditable';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addField, addQuestionAndAnswerField, setBlockFocus, setIsFormDirty } from '@app/store/form-builder/slice';
+import { addQuestionAndAnswerField, setActiveFieldIndex, setBlockFocus, setIsFormDirty, updateField } from '@app/store/form-builder/slice';
 import { useAppAsyncDispatch, useAppDispatch } from '@app/store/hooks';
 import { contentEditableClassNames, isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
 
@@ -154,7 +154,7 @@ export default function FormBuilderBlock({ item, position, addBlock, duplicateBl
     };
 
     const dispatchChange = () => {
-        dispatch(addField({ ...item, value: state.html }));
+        dispatch(updateField({ ...item, value: state.html }));
     };
 
     const handleChange = async (e: any) => {
@@ -354,6 +354,9 @@ export default function FormBuilderBlock({ item, position, addBlock, duplicateBl
                                         data-position={position}
                                         data-type={item.type}
                                         html={state.html || ''}
+                                        onClick={() => {
+                                            dispatch(setActiveFieldIndex(position));
+                                        }}
                                         onChange={handleChange}
                                         onFocus={handleFocus}
                                         onBlur={handleBlur}

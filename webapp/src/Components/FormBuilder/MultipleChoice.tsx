@@ -9,7 +9,7 @@ import { GridCloseIcon } from '@mui/x-data-grid';
 import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react-beautiful-dnd';
 import { useDispatch } from 'react-redux';
 
-import { addField } from '@app/store/form-builder/slice';
+import { updateField } from '@app/store/form-builder/slice';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { reorder } from '@app/utils/arrayUtils';
 
@@ -23,7 +23,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
 
     const handleChoiceValueChange = (id: string, value: string) => {
         dispatch(
-            addField({
+            updateField({
                 ...field,
                 properties: { ...field.properties?.choices, choices: { ...field.properties?.choices, [id]: { id, value } } }
             })
@@ -38,13 +38,13 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
         newChoices.forEach((choice: any) => {
             choices[choice.id] = choice;
         });
-        dispatch(addField({ ...field, properties: { ...field.properties, choices: choices } }));
+        dispatch(updateField({ ...field, properties: { ...field.properties, choices: choices } }));
     };
 
     const deleteChoice = (id: string) => {
         const choices = { ...field.properties?.choices };
         delete choices[id];
-        dispatch(addField({ ...field, properties: { ...field.properties, choices: { ...choices } } }));
+        dispatch(updateField({ ...field, properties: { ...field.properties, choices: { ...choices } } }));
     };
 
     const onDragEnd = (result: DropResult) => {
@@ -58,7 +58,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
             choices[item.id] = item;
         });
         dispatch(
-            addField({
+            updateField({
                 ...field,
                 properties: { ...field.properties, choices: { ...choices } }
             })

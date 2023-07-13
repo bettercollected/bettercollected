@@ -9,6 +9,7 @@ import { QUESTION_TYPE } from '@app/components/form/renderer/form-renderer';
 import { StandardFormQuestionDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames, getFormBuilderTagNameFromString } from '@app/models/enums/formBuilder';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
+import { getInitialPropertiesForFieldType } from '@app/store/form-builder/utils';
 import { RootState } from '@app/store/store';
 
 const initialState: IBuilderState = {
@@ -16,7 +17,8 @@ const initialState: IBuilderState = {
     title: '',
     description: '',
     fields: {},
-    isFormDirty: false
+    isFormDirty: false,
+    activeFieldIndex: -1
 };
 
 export const setIsFormDirtyAsync = createAsyncThunk('form/setIsFormDirtyAsync', async (isDirty, { getState }) => {
@@ -61,6 +63,12 @@ export const slice = createSlice({
                 fields: fields
             };
         },
+        setActiveFieldIndex: (state, action) => {
+            return {
+                ...state,
+                activeFieldIndex: action.payload
+            };
+        },
         resetForm: (state) => {
             return initialState;
         },
@@ -80,13 +88,41 @@ export const slice = createSlice({
             const { fieldId, isFocused } = action.payload;
             state.fields[fieldId].isFocused = isFocused;
         },
-        addField: (state, action) => {
+        updateField: (state, action) => {
             return {
                 ...state,
                 fields: {
                     ...state.fields,
                     [action.payload.id]: action.payload
                 }
+            };
+        },
+        addFieldNewImplementation: (state, action) => {
+            const { type, position, id } = action.payload;
+            let newType = type;
+            const fieldsToAdd: any = [];
+            if (type.includes('question')) {
+                newType = type.replace('question_', 'input_');
+                fieldsToAdd.push({
+                    id: uuidv4(),
+                    type: FormBuilderTagNames.LAYOUT_HEADER3
+                });
+            }
+            const newField: any = {
+                id: uuidv4(),
+                type: newType
+            };
+            newField.properties = getInitialPropertiesForFieldType(newType);
+            fieldsToAdd.push(newField);
+            const fieldsArray = Object.values(state.fields);
+            fieldsArray.splice(position, !!id ? 0 : 1, fieldsToAdd);
+            const newFieldsMap: any = {};
+            fieldsArray.forEach((field: any, index: number) => {
+                newFieldsMap[field.id] = { ...field, index };
+            });
+            return {
+                ...state,
+                fields: newFieldsMap
             };
         },
         addQuestionAndAnswerField: (state, action) => {
@@ -224,6 +260,22 @@ export const selectIsFormDirty = (state: RootState) => state.createForm.isFormDi
 export const selectFormBuilderFields = (state: RootState) => state.createForm.fields;
 export const selectFormField = (id: string) => (state: RootState) => state.createForm.fields[id];
 
-export const { setIsFormDirty, addQuestionAndAnswerField, setFields, setEditForm, resetForm, deleteField, setFieldDescription, setFieldRequired, setFieldTitle, setFormDescription, setFieldType, addField, setFormTitle, setBlockFocus } = slice.actions;
+export const {
+    setActiveFieldIndex,
+    setIsFormDirty,
+    addQuestionAndAnswerField,
+    setFields,
+    setEditForm,
+    resetForm,
+    deleteField,
+    setFieldDescription,
+    setFieldRequired,
+    setFieldTitle,
+    setFormDescription,
+    setFieldType,
+    updateField,
+    setFormTitle,
+    setBlockFocus
+} = slice.actions;
 
 export default reducerObj;

@@ -7,7 +7,7 @@ import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beau
 import ContentEditable from 'react-contenteditable';
 
 import { FormBuilderTagNames, getFormBuilderTagNameFromString } from '@app/models/enums/formBuilder';
-import { addField, addQuestionAndAnswerField, setFields } from '@app/store/form-builder/slice';
+import { addQuestionAndAnswerField, setFields, updateField } from '@app/store/form-builder/slice';
 import { contentEditableClassNames, isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
 
 import FormBuilderActionMenu from './FormBuilderActionMenu';
@@ -102,7 +102,7 @@ export default class FormBuilderBlock extends React.Component<IFormBuilderBlockP
     };
 
     dispatchChange = () => {
-        this.props.dispatch(addField({ ...this.props.field, value: this.state.html }));
+        this.props.dispatch(updateField({ ...this.props.field, value: this.state.html }));
     };
 
     handleChange = (e: any) => {

@@ -3,16 +3,15 @@ import React from 'react';
 import EndAdornmentInputField from '@Components/FormBuilder/EndAdornmentInputFIeld';
 import HeaderInputBlock from '@Components/FormBuilder/HeaderInputBlock';
 import LongText from '@Components/FormBuilder/LongText';
-import MatrixField from '@Components/FormBuilder/MatrixField';
 import MultipleChoice from '@Components/FormBuilder/MultipleChoice';
 import RatingField from '@Components/FormBuilder/RatingField';
-import StartAdornmentInputField from '@Components/FormBuilder/StartAdornmentInputField';
 
-import BetterInput from '@app/components/Common/input';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
+import { setActiveFieldIndex } from '@app/store/form-builder/slice';
+import { useAppDispatch } from '@app/store/hooks';
 
 export default function FormBuilderBlockContent({ type, position, reference, field, id }: any) {
+    const dispatch = useAppDispatch();
     const renderBlockContent = () => {
         switch (type) {
             case FormBuilderTagNames.LAYOUT_HEADER1:
@@ -44,7 +43,12 @@ export default function FormBuilderBlockContent({ type, position, reference, fie
     };
 
     return (
-        <div className="w-full">
+        <div
+            className="w-full"
+            onClick={() => {
+                dispatch(setActiveFieldIndex(position));
+            }}
+        >
             <div data-position={position} data-tag={type} ref={reference}>
                 {renderBlockContent()}
             </div>

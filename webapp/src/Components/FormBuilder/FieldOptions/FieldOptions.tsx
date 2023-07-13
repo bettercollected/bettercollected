@@ -13,7 +13,7 @@ import { FormControlLabel, ListItemIcon, MenuItem } from '@mui/material';
 import { DraggableProvided } from 'react-beautiful-dnd';
 
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addField, deleteField, selectFormField } from '@app/store/form-builder/slice';
+import { deleteField, selectFormField, updateField } from '@app/store/form-builder/slice';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
@@ -29,7 +29,7 @@ export default function FieldOptions({ provided, id }: IFieldOptionsProps) {
     const duplicateField = () => {
         const newField: IFormFieldState = { ...formField };
         newField.id = uuidv4();
-        dispatch(addField(newField));
+        dispatch(updateField(newField));
     };
     const deleteFieldWithId = () => {
         dispatch(deleteField(id));
@@ -40,7 +40,7 @@ export default function FieldOptions({ provided, id }: IFieldOptionsProps) {
         event.stopPropagation();
         const fieldProperties = { ...formField.properties } || {};
         fieldProperties.hidden = checked;
-        dispatch(addField({ ...formField, properties: fieldProperties }));
+        dispatch(updateField({ ...formField, properties: fieldProperties }));
     };
 
     const handleFieldRequiredChange = (event: React.SyntheticEvent<Element, Event>, checked: boolean) => {
@@ -49,7 +49,7 @@ export default function FieldOptions({ provided, id }: IFieldOptionsProps) {
 
         const fieldValidations = { ...formField.validations } || {};
         fieldValidations.required = checked;
-        dispatch(addField({ ...formField, validations: fieldValidations }));
+        dispatch(updateField({ ...formField, validations: fieldValidations }));
     };
 
     return (

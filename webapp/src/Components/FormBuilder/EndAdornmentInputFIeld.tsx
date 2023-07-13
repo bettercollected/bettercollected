@@ -3,10 +3,11 @@ import { ChangeEvent } from 'react';
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { AlternateEmail, DateRange, LocalPhone, Numbers, ShortText } from '@mui/icons-material';
 import LinkIcon from '@mui/icons-material/Link';
+import { value } from 'dom7';
 import { useDispatch } from 'react-redux';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addField } from '@app/store/form-builder/slice';
+import { updateField } from '@app/store/form-builder/slice';
 
 interface IEndAdornmentInputFieldProps {
     field: any;
@@ -27,7 +28,6 @@ function getIcon(type: FormBuilderTagNames) {
             return <Numbers />;
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
             return <LocalPhone />;
-
         default:
             return <></>;
     }
@@ -36,7 +36,7 @@ function getIcon(type: FormBuilderTagNames) {
 export default function EndAdornmentInputField({ field, id }: IEndAdornmentInputFieldProps) {
     const dispatch = useDispatch();
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
-        dispatch(addField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
+        dispatch(updateField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
     };
     return (
         <FormBuilderInput

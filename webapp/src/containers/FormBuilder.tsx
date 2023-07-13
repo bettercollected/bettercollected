@@ -18,7 +18,7 @@ import builderConstants from '@app/constants/builder';
 import useAsyncState from '@app/lib/hooks/use-async-state';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addField, deleteField, selectCreateForm, selectFormBuilderFields, setFields, setFormTitle, setIsFormDirty } from '@app/store/form-builder/slice';
+import { deleteField, selectCreateForm, selectFormBuilderFields, setFields, setFormTitle, setIsFormDirty, updateField } from '@app/store/form-builder/slice';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { initialIBuilderState } from '@app/store/forms/slice';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -69,7 +69,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             blockElement.focus();
         }
 
-        dispatch(addField(newBlock));
+        dispatch(updateField(newBlock));
     };
 
     const duplicateBlockHandler = () => {};
@@ -81,7 +81,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     };
 
     const updateBlockHandler = (block: any) => {
-        dispatch(addField(block));
+        dispatch(updateField(block));
     };
 
     const onInsert = () => {
@@ -108,7 +108,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                 isTyping: false,
                 imageUrl: ''
             };
-            dispatch(addField(newBlock));
+            dispatch(updateField(newBlock));
         }
     }, [blocks]);
 

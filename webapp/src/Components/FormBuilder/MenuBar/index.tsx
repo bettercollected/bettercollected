@@ -8,7 +8,6 @@ import PageIcon from '@Components/Common/Icons/PageIcon';
 import PlusIcon from '@Components/Common/Icons/Plus';
 import PublishIcon from '@Components/Common/Icons/PublishIcon';
 import SettingsIcon from '@Components/Common/Icons/Settings';
-import PublishOutlinedIcon from '@mui/icons-material/PublishOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import AppBar from '@mui/material/AppBar';
 import IconButton from '@mui/material/IconButton';

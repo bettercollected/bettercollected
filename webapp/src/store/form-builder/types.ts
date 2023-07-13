@@ -27,6 +27,7 @@ export interface IBuilderState {
     versions?: Array<IBuilderStateVersion>;
     currentVersionIndex?: number;
     isFormDirty?: boolean;
+    activeFieldIndex?: number;
 }
 
 export interface IBuilderStateProps {

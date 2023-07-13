@@ -13,7 +13,7 @@ import { useAppSelector } from '@app/store/hooks';
 const FormBuilderActionMenu = ({ id, provided, addBlock, className = '', index }: any) => {
     const formFields = useAppSelector(selectFormBuilderFields);
     const dispatch = useDispatch();
-    const addField = () => {
+    const updateField = () => {
         const fieldsArray = Object.values(formFields);
         fieldsArray.splice(index + 1, 0, { id: uuidv4(), type: FormBuilderTagNames.LAYOUT_SHORT_TEXT });
         dispatch(setFields(fieldsArray));
@@ -46,7 +46,7 @@ const FormBuilderActionMenu = ({ id, provided, addBlock, className = '', index }
                 hasMenu={false}
                 menuTitle="Add a new block"
                 menuContent={
-                    <div tabIndex={-1} className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400" onClick={addField}>
+                    <div tabIndex={-1} className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400" onClick={updateField}>
                         <PlusIcon tabIndex={-1} width={40} height={40} />
                     </div>
                 }
