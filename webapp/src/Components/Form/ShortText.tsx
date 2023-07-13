@@ -22,7 +22,7 @@ export default function ShortText({ ans, enabled, field }: IShortTextProps) {
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
         const answer = {} as AnswerDto;
         answer.field = { id: field.id };
-        switch (field?.tag) {
+        switch (field?.type) {
             case FormBuilderTagNames.INPUT_EMAIL:
                 answer.email = event.target.value;
                 break;

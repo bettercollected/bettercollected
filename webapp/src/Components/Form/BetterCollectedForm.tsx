@@ -7,7 +7,6 @@ import MultipleChoiceField from '@Components/Form/MultipleChoiceField';
 import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
-import FieldRequiredIcon from '@Components/FormBuilder/FieldRequiredIcon';
 
 import { StandardFormDto, StandardFormQuestionDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
@@ -22,7 +21,7 @@ export interface FormFieldProps {
 }
 
 const renderFormField = (field: StandardFormQuestionDto, enabled?: boolean, answer?: any) => {
-    switch (field?.tag) {
+    switch (field?.type) {
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
         case FormBuilderTagNames.LAYOUT_HEADER3:
         case FormBuilderTagNames.LAYOUT_HEADER1:
