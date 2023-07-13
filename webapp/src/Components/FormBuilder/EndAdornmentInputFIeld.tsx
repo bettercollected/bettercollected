@@ -44,7 +44,7 @@ export default function EndAdornmentInputField({ field, id }: IEndAdornmentInput
             id={id}
             value={field?.properties?.placeholder || ''}
             InputProps={{
-                endAdornment: getIcon(field.tag)
+                endAdornment: getIcon(field.type)
             }}
         />
     );

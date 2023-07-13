@@ -6,7 +6,7 @@ import sanitizeHtml, { AllowedAttribute } from 'sanitize-html';
 interface IReactContentEditableProps {
     allowedTags?: Array<string>;
     allowedAttributes?: Record<string, AllowedAttribute[]>;
-    tag?: string;
+    type?: string;
     rows?: number;
     className?: string;
     editable?: boolean;
@@ -45,7 +45,7 @@ export default class ReactContentEditable extends React.Component<IReactContentE
 
     render() {
         const className = this.props?.className ?? '';
-        const tag = this.props?.tag ?? 'p';
+        const tag = this.props?.type ?? 'p';
         const attributes = this.props?.rows && tag === 'textarea' ? { rows: this.props.rows, cols: 20 } : {};
 
         return (

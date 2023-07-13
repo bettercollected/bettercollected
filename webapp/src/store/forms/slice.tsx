@@ -6,7 +6,7 @@ import { Plan } from '@app/models/dtos/UserStatus';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { RootState } from '@app/store/store';
 
-export const initialFormState: StandardFormDto = {
+export const initialIBuilderState: StandardFormDto = {
     formId: '',
     title: '',
     description: '',
@@ -32,7 +32,7 @@ export const initialFormState: StandardFormDto = {
 
 export const slice = createSlice({
     name: 'form',
-    initialState: initialFormState,
+    initialState: initialIBuilderState,
     reducers: {
         setForm: (state, action) => {
             return { ...action.payload };

@@ -65,7 +65,6 @@ Please refer to the [.env.example](.env.example) file for updated environment va
 5. Run `yarn clean` to clear cache, node_modules, and build folders.
 6. `(Optional) Should be done automatically during the package installation process (i.e. npm install)` Run `yarn prepare` to install and initialize husky for commit hooks
 
-
 ### Configure Nginx locally to map the path for ADMIN_HOST, CLIENT_HOST, and CUSTOM DOMAIN to load all of them at once.
 
 1. Install `nginx` with `sudo apt install nginx`.
@@ -100,14 +99,13 @@ Please refer to the [.env.example](.env.example) file for updated environment va
 4. After adding the config, restart the nginx with `systemctl restart nginx`.
 5. After this, you'll be able to see `ADMIN_HOST` in `localhost:3000`, `CLIENT_HOST` in `localhost:3001/{workspace_handle}`, and `CUSTOM_DOMAIN` in `localhost:3002`.
 
+### Walk through `README.md`
 
-### Walk through `README.md` 
-1.  Walk thorugh `README.md` of this repository `bettercollected` and other dependent repositories `bettercollected-auth`,`bettercollected-backend`,0          `bettercollected-integrations-google-forms`,`bettercollected-integrations-typeform`.
-2. Use python version `3.10` , if you dont have then install using pyenv with command `pyenv install version_number` and set it global with `pyenv global version_number`.
-3. Also inside each repository set up for "common" submodule with command:
- `git submodule update --init --recursive --remote`
-  And then navigate to common submodule `cd common` and checkout master branch `git checkout master && git pull` and `cd ..`.
-
+1.  Walk thorugh `README.md` of this repository `bettercollected` and other dependent repositories `bettercollected-auth`,`bettercollected-backend`,0 `bettercollected-integrations-google-forms`,`bettercollected-integrations-typeform`.
+2.  Use python version `3.10` , if you dont have then install using pyenv with command `pyenv install version_number` and set it global with `pyenv global version_number`.
+3.  Also inside each repository set up for "common" submodule with command:
+    `git submodule update --init --recursive --remote`
+    And then navigate to common submodule `cd common` and checkout master branch `git checkout master && git pull` and `cd ..`.
 
 ### Add the localhost inside the database
 

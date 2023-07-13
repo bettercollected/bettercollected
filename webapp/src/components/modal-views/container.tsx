@@ -13,6 +13,7 @@ import DeleteCustomDomainModal from '@app/components/modal-views/modals/delete-c
 import DeleteInvitationModal from '@app/components/modal-views/modals/delete-invitation-modal';
 import DeleteMemberModal from '@app/components/modal-views/modals/delete-member-modal';
 import DeleteResponseModal from '@app/components/modal-views/modals/delete-response-modal';
+import FormBuilderSpotlightModal from '@app/components/modal-views/modals/form-builder-spotlight-modal';
 import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
 import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
@@ -79,6 +80,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <AddRegexModal {...modalProps} />;
         case 'DELETE_RESPONSE':
             return <DeleteResponseModal {...modalProps} />;
+        case 'FORM_BUILDER_SPOTLIGHT_VIEW':
+            return <FormBuilderSpotlightModal {...modalProps} />;
         default:
             return <></>;
     }

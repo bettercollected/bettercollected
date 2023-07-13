@@ -1,9 +1,9 @@
 import { setFieldRequired } from '@app/store/form-builder/slice';
-import { FormFieldState } from '@app/store/form-builder/types';
+import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch } from '@app/store/hooks';
 
 interface IFieldRequiredIconProps {
-    field: FormFieldState;
+    field: IFormFieldState;
 }
 
 export default function FieldRequiredIcon({ field }: IFieldRequiredIconProps) {

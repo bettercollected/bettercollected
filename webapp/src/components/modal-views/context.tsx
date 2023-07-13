@@ -28,7 +28,8 @@ export type MODAL_VIEW =
     | 'ADD_FORM_GROUP'
     | 'ADD_GROUP_FORM'
     | 'ADD_REGEX'
-    | 'DELETE_RESPONSE';
+    | 'DELETE_RESPONSE'
+    | 'FORM_BUILDER_SPOTLIGHT_VIEW';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 

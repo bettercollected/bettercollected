@@ -5,7 +5,7 @@ import storage from 'redux-persist/lib/storage';
 import { AnswerDto } from '@app/models/dtos/form';
 import { RootState } from '@app/store/store';
 
-interface FillFormState {
+interface FillIBuilderState {
     id: string;
     answers: {
         [fieldId: string]: AnswerDto;
@@ -14,7 +14,7 @@ interface FillFormState {
     invalidFields: Array<string>;
 }
 
-const initialState: FillFormState = {
+const initialState: FillIBuilderState = {
     id: '',
     answers: {},
     requiredFields: [],

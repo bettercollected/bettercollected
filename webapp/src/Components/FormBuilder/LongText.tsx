@@ -5,9 +5,9 @@ import { Notes } from '@mui/icons-material';
 import { useDispatch } from 'react-redux';
 
 import { addField } from '@app/store/form-builder/slice';
-import { FormFieldState } from '@app/store/form-builder/types';
+import { IFormFieldState } from '@app/store/form-builder/types';
 
-export default function LongText({ field, id }: { field: FormFieldState; id: any }) {
+export default function LongText({ field, id }: { field: IFormFieldState; id: any }) {
     const dispatch = useDispatch();
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
         dispatch(addField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));

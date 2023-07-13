@@ -14,7 +14,7 @@ import { DraggableProvided } from 'react-beautiful-dnd';
 
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addField, deleteField, selectFormField } from '@app/store/form-builder/slice';
-import { FormFieldState } from '@app/store/form-builder/types';
+import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 interface IFieldOptionsProps {
@@ -23,11 +23,11 @@ interface IFieldOptionsProps {
 }
 
 export default function FieldOptions({ provided, id }: IFieldOptionsProps) {
-    const formField: FormFieldState = useAppSelector(selectFormField(id));
+    const formField: IFormFieldState = useAppSelector(selectFormField(id));
     const dispatch = useAppDispatch();
 
     const duplicateField = () => {
-        const newField: FormFieldState = { ...formField };
+        const newField: IFormFieldState = { ...formField };
         newField.id = uuidv4();
         dispatch(addField(newField));
     };
@@ -101,7 +101,7 @@ export default function FieldOptions({ provided, id }: IFieldOptionsProps) {
                     control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!formField.properties?.hidden} />}
                 />
             </MenuItem>
-            {!NonInputFormBuilderTagNames.includes(formField.tag || FormBuilderTagNames.LAYOUT_SHORT_TEXT) && (
+            {!NonInputFormBuilderTagNames.includes(formField.type || FormBuilderTagNames.LAYOUT_SHORT_TEXT) && (
                 <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
                     <FormControlLabel
                         slotProps={{

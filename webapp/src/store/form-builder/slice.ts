@@ -8,11 +8,11 @@ import storage from 'redux-persist/lib/storage';
 import { QUESTION_TYPE } from '@app/components/form/renderer/form-renderer';
 import { StandardFormQuestionDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames, getFormBuilderTagNameFromString } from '@app/models/enums/formBuilder';
-import { FormFieldState, FormState } from '@app/store/form-builder/types';
+import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { RootState } from '@app/store/store';
 
-const initialState: FormState = {
-    formId: '',
+const initialState: IBuilderState = {
+    id: '',
     title: '',
     description: '',
     fields: {},
@@ -90,20 +90,26 @@ export const slice = createSlice({
             };
         },
         addQuestionAndAnswerField: (state, action) => {
-            let { position, tag, id } = action.payload;
-            const newTag = tag.replace('question_', 'input_');
-            tag = getFormBuilderTagNameFromString(newTag);
+            let { position, type, id } = action.payload;
+            const newTag = type.replace('question_', 'input_');
+            type = getFormBuilderTagNameFromString(newTag);
             const fields = { ...state.fields };
             fields[id] = {
                 id: id,
-                tag: tag
+                type: type
             };
-            if (tag === FormBuilderTagNames.INPUT_RATING) {
+            if (type === FormBuilderTagNames.INPUT_RATING) {
                 fields[id]['properties'] = {
                     steps: 5
                 };
             }
-            if (tag === FormBuilderTagNames.INPUT_MULTIPLE_CHOICE || tag === FormBuilderTagNames.INPUT_CHECKBOXES || tag === FormBuilderTagNames.INPUT_RANKING || tag === FormBuilderTagNames.INPUT_DROPDOWN || tag === FormBuilderTagNames.INPUT_MULTISELECT) {
+            if (
+                type === FormBuilderTagNames.INPUT_MULTIPLE_CHOICE ||
+                type === FormBuilderTagNames.INPUT_CHECKBOXES ||
+                type === FormBuilderTagNames.INPUT_RANKING ||
+                type === FormBuilderTagNames.INPUT_DROPDOWN ||
+                type === FormBuilderTagNames.INPUT_MULTISELECT
+            ) {
                 const choiceId = uuidv4();
                 fields[id]['properties'] = {};
                 // @ts-ignore
@@ -113,7 +119,7 @@ export const slice = createSlice({
                         value: ''
                     }
                 };
-                if (tag === FormBuilderTagNames.INPUT_CHECKBOXES || tag === FormBuilderTagNames.INPUT_MULTISELECT) {
+                if (type === FormBuilderTagNames.INPUT_CHECKBOXES || type === FormBuilderTagNames.INPUT_MULTISELECT) {
                     fields[id]['properties'] = {
                         ...(fields[id]['properties'] || {}),
                         allowMultipleSelection: true
@@ -123,7 +129,7 @@ export const slice = createSlice({
             const fieldsArray = Object.values(fields);
             fieldsArray.splice(position, 0, {
                 id: uuidv4(),
-                tag: FormBuilderTagNames.LAYOUT_HEADER3
+                type: FormBuilderTagNames.LAYOUT_HEADER3
             });
             const newFields: any = {};
             fieldsArray.forEach((field: any, index: number) => {

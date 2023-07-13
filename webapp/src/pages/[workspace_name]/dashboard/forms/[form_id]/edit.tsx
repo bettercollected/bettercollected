@@ -34,7 +34,7 @@ export default function EditFromPage(props: any) {
     }, [form]);
 
     return (
-        <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col min-h-screen">
+        <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
             <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} isEditMode />
         </Layout>
     );

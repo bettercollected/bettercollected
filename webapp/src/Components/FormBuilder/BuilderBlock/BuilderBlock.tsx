@@ -1,15 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import _ from 'lodash';
 
-import FieldRequiredIcon from '@Components/FormBuilder/FieldRequiredIcon';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import { AcUnit } from '@mui/icons-material';
 import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addField, addQuestionAndAnswerField } from '@app/store/form-builder/slice';
+import { addField, addQuestionAndAnswerField, setBlockFocus, setIsFormDirty } from '@app/store/form-builder/slice';
+import { useAppAsyncDispatch, useAppDispatch } from '@app/store/hooks';
 import { contentEditableClassNames, isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
 
 import FormBuilderActionMenu from './FormBuilderActionMenu';
@@ -17,21 +16,20 @@ import FormBuilderBlockContent from './FormBuilderBlockContent';
 import FormBuilderTagSelector from './FormBuilderTagSelector';
 
 interface IFormBuilderBlockProps {
-    field: any;
+    item: any;
     position: any;
-    dispatch: any;
     addBlock: any;
     duplicateBlock: any;
+    onKeyDown?: any;
     deleteBlock: any;
     updateBlock: any;
-    setIsFormDirty: any;
     fields: any;
 }
 
 interface IFormBuilderBlockState {
     htmlBackup: any;
     html: any;
-    tag: FormBuilderTagNames;
+    type: FormBuilderTagNames;
     imageUrl: any;
     placeholder: boolean;
     isTyping: any;
@@ -42,16 +40,18 @@ interface IFormBuilderBlockState {
     isFocused: boolean;
 }
 
-export default function FormBuilderBlock({ field, setIsFormDirty, position, dispatch, addBlock, duplicateBlock, deleteBlock, updateBlock, fields }: IFormBuilderBlockProps) {
+export default function FormBuilderBlock({ item, position, addBlock, duplicateBlock, deleteBlock, updateBlock, onKeyDown = () => {}, fields }: IFormBuilderBlockProps) {
     const CMD_KEY = '/';
-
     const contentEditable = useRef(null);
+
+    const dispatch = useAppDispatch();
+    const asyncDispatch = useAppAsyncDispatch();
 
     const [state, setState] = useState<IFormBuilderBlockState>({
         htmlBackup: null,
-        html: field.html || 'Type / to open commands',
-        tag: field.tag || FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-        imageUrl: field.imageUrl || '',
+        html: item.html || 'Type / to open commands',
+        type: item.type || FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+        imageUrl: item.imageUrl || '',
         placeholder: true,
         isTyping: false,
         previousKey: null,
@@ -64,14 +64,14 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
     useEffect(() => {
         // Add a placeholder if the first block has no sibling elements and no content
         const hasPlaceholder = addPlaceholder({
-            content: field.html || field.imageUrl
+            content: item.html || item.imageUrl
         });
         if (!hasPlaceholder) {
             setState({
                 ...state,
-                html: field.html,
-                tag: field.tag,
-                imageUrl: field.imageUrl
+                html: item.html,
+                type: item.type,
+                imageUrl: item.imageUrl
             });
         }
 
@@ -85,7 +85,7 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
             setState({
                 ...state,
                 html: 'Type / to open commands',
-                tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+                type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
                 imageUrl: '',
                 placeholder: true,
                 isTyping: false
@@ -154,14 +154,14 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
     };
 
     const dispatchChange = () => {
-        dispatch(addField({ ...field, value: state.html }));
+        dispatch(addField({ ...item, value: state.html }));
     };
 
-    const handleChange = (e: any) => {
-        const newHtml = e.currentTarget.innerHTML;
-        setIsFormDirty(true);
+    const handleChange = async (e: any) => {
+        const newHtml = e.target.value;
+        await asyncDispatch(setIsFormDirty(true));
         setState({ ...state, html: newHtml });
-        _.debounce(dispatchChange, 500);
+        dispatchChange();
     };
 
     const handleFocus = () => {
@@ -176,6 +176,7 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
         } else {
             setState({ ...state, isTyping: true });
         }
+        dispatch(setBlockFocus({ fieldId: item.id, isFocused: true }));
     };
 
     const handleBlur = () => {
@@ -186,29 +187,30 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
         if (!hasPlaceholder) {
             setState({ ...state, isTyping: false });
         }
+        dispatch(setBlockFocus({ fieldId: item.id, isFocused: false }));
     };
 
-    const handleKeyDown = (e: any) => {
-        if (e.key === CMD_KEY) {
+    const handleKeyDown = (event: React.KeyboardEvent) => {
+        event.preventDefault();
+        if (event.key === CMD_KEY) {
             // If the user starts to enter a command, we store a backup copy of
             // the html. We need this to restore a clean version of the content
             // after the content type selection was finished.
             setState({ ...state, htmlBackup: state.html });
-        } else if (e.key === 'Backspace' && !state.html) {
-            deleteBlock({ id: field.id });
-        } else if (e.key === 'Enter' && state.previousKey !== 'Shift' && !state.tagSelectorMenuOpen) {
+        } else if (event.key === 'Backspace' && !state.html) {
+            deleteBlock({ id: item.id });
+        } else if (event.key === 'Enter' && state.previousKey !== 'Shift' && !state.tagSelectorMenuOpen) {
             // If the user presses Enter, we want to add a new block
             // Only the Shift-Enter-combination should add a new paragraph,
             // i.e. Shift-Enter acts as the default enter behaviour
-            e.preventDefault();
             const newBlock: any = {
-                id: field.id,
+                id: item.id,
                 html: state.html,
-                tag: state.tag,
+                type: state.type,
                 imageUrl: state.imageUrl,
                 ref: contentEditable.current
             };
-            if (state.tag === FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE) {
+            if (state.type === FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE) {
                 const id = uuidv4();
                 newBlock['choices'] = {
                     [id]: {
@@ -220,7 +222,11 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
             addBlock(newBlock);
         }
         // We need the previousKey to detect a Shift-Enter-combination
-        setState({ ...state, previousKey: e.key });
+        setState({ ...state, previousKey: event.key });
+
+        // if (item.isFocused && !state.tagSelectorMenuOpen) {
+        //     onKeyDown(event, state.tagSelectorMenuOpen);
+        // }
     };
 
     // The openTagSelectorMenu function needs to be invoked on key up. Otherwise
@@ -259,29 +265,35 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
     // Convert editableBlock shape based on the chosen tag
     // i.e. img = display <div><input /><img /></div> (input picker is hidden)
     // i.e. every other tag = <ContentEditable /> with its tag and html content
-    const handleTagSelection = (tag: FormBuilderTagNames) => {
-        if (tag !== FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
-            if (tag.includes('question')) {
+    const handleTagSelection = (type: FormBuilderTagNames) => {
+        console.log(type);
+        if (type !== FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
+            if (type.includes('question')) {
                 dispatch(
                     addQuestionAndAnswerField({
                         position: position,
-                        id: field.id,
-                        tag
+                        id: item.id,
+                        type
                     })
                 );
                 return;
             }
-            closeTagSelectorMenu();
             const newBlock: any = {
-                id: field.id,
-                tag: tag
+                id: item.id,
+                type: type
             };
-            if (tag === FormBuilderTagNames.INPUT_RATING) {
+            if (type === FormBuilderTagNames.INPUT_RATING) {
                 newBlock['properties'] = {
                     steps: 5
                 };
             }
-            if (tag === FormBuilderTagNames.INPUT_MULTIPLE_CHOICE || tag === FormBuilderTagNames.INPUT_CHECKBOXES || tag === FormBuilderTagNames.INPUT_RANKING || tag === FormBuilderTagNames.INPUT_DROPDOWN || tag === FormBuilderTagNames.INPUT_MULTISELECT) {
+            if (
+                type === FormBuilderTagNames.INPUT_MULTIPLE_CHOICE ||
+                type === FormBuilderTagNames.INPUT_CHECKBOXES ||
+                type === FormBuilderTagNames.INPUT_RANKING ||
+                type === FormBuilderTagNames.INPUT_DROPDOWN ||
+                type === FormBuilderTagNames.INPUT_MULTISELECT
+            ) {
                 const id = uuidv4();
                 newBlock['properties'] = {};
                 newBlock['properties']['choices'] = {
@@ -290,7 +302,7 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
                         value: ''
                     }
                 };
-                if (tag === FormBuilderTagNames.INPUT_CHECKBOXES || tag === FormBuilderTagNames.INPUT_MULTISELECT) {
+                if (type === FormBuilderTagNames.INPUT_CHECKBOXES || type === FormBuilderTagNames.INPUT_MULTISELECT) {
                     newBlock['properties'] = {
                         ...(newBlock['properties'] || {}),
                         allowMultipleSelection: true
@@ -298,24 +310,25 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
                 }
             }
             updateBlock(newBlock);
+            closeTagSelectorMenu();
         } else {
             if (state.isTyping) {
                 // Update the tag and restore the html backup without the command
                 setState((prevState) => {
                     closeTagSelectorMenu();
-                    return { ...prevState, tag: tag, html: state.htmlBackup };
+                    return { ...prevState, type: type, html: state.htmlBackup };
                 });
             } else {
                 setState((prevState) => {
                     closeTagSelectorMenu();
-                    return { ...prevState, tag: tag };
+                    return { ...prevState, type: type };
                 });
             }
         }
     };
 
     return (
-        <Draggable draggableId={field.id} index={position}>
+        <Draggable draggableId={item.id} index={position}>
             {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                 <div
                     ref={provided.innerRef}
@@ -329,17 +342,17 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
                     {...provided.draggableProps}
                 >
                     <div className={`builder-block px-5 min-h-[40px] flex items-center md:px-[89px]`}>
-                        <FieldRequiredIcon field={field} />
-                        <FormBuilderActionMenu index={position} id={field.id} provided={provided} addBlock={addBlock} duplicateBlock={duplicateBlock} deleteBlock={deleteBlock} className={state.isFocused ? 'visible' : 'invisible'} />
-                        {!isContentEditableTag(field.tag) ? (
-                            <FormBuilderBlockContent tag={field.tag} position={position} reference={contentEditable} field={field} />
+                        <FormBuilderActionMenu index={position} id={item.id} provided={provided} addBlock={addBlock} duplicateBlock={duplicateBlock} deleteBlock={deleteBlock} className={state.isFocused ? 'visible' : 'invisible'} />
+                        {!isContentEditableTag(item.type) ? (
+                            <FormBuilderBlockContent id={`field-${item.id}`} type={item.type} position={position} reference={contentEditable} field={item} />
                         ) : (
                             <div className="flex flex-col w-full relative">
                                 <div className={`w-full px-0 flex items-center min-h-[40px]`}>
                                     <ContentEditable
+                                        id={`field-${item.id}`}
                                         innerRef={contentEditable}
                                         data-position={position}
-                                        data-tag={field.tag}
+                                        data-type={item.type}
                                         html={state.html || ''}
                                         onChange={handleChange}
                                         onFocus={handleFocus}
@@ -347,11 +360,11 @@ export default function FormBuilderBlock({ field, setIsFormDirty, position, disp
                                         onKeyDown={handleKeyDown}
                                         onKeyUp={handleKeyUp}
                                         onMouseUp={handleMouseUp}
-                                        tagName={field.tag}
-                                        className={`m-0 p-0 w-full focus-visible:border-0 focus-visible:outline-none ${contentEditableClassNames(state.placeholder, field.tag)}`}
+                                        tagName={item.type}
+                                        className={`m-0 p-0 w-full focus-visible:border-0 focus-visible:outline-none ${contentEditableClassNames(state.placeholder, item.type)}`}
                                     />
                                 </div>
-                                {state.tagSelectorMenuOpen && <FormBuilderTagSelector closeMenu={closeTagSelectorMenu} handleSelection={handleTagSelection} />}
+                                <FormBuilderTagSelector className={state.tagSelectorMenuOpen ? 'visible' : 'invisible'} closeMenu={closeTagSelectorMenu} handleSelection={handleTagSelection} />
                             </div>
                         )}
                     </div>

@@ -15,7 +15,7 @@ const FormBuilderActionMenu = ({ id, provided, addBlock, className = '', index }
     const dispatch = useDispatch();
     const addField = () => {
         const fieldsArray = Object.values(formFields);
-        fieldsArray.splice(index + 1, 0, { id: uuidv4(), tag: FormBuilderTagNames.LAYOUT_SHORT_TEXT });
+        fieldsArray.splice(index + 1, 0, { id: uuidv4(), type: FormBuilderTagNames.LAYOUT_SHORT_TEXT });
         dispatch(setFields(fieldsArray));
     };
     return (

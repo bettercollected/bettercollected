@@ -12,9 +12,9 @@ import BetterInput from '@app/components/Common/input';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 
-export default function FormBuilderBlockContent({ tag, position, reference, field, id }: any) {
+export default function FormBuilderBlockContent({ type, position, reference, field, id }: any) {
     const renderBlockContent = () => {
-        switch (tag) {
+        switch (type) {
             case FormBuilderTagNames.LAYOUT_HEADER1:
             case FormBuilderTagNames.LAYOUT_HEADER2:
             case FormBuilderTagNames.LAYOUT_HEADER3:
@@ -38,8 +38,6 @@ export default function FormBuilderBlockContent({ tag, position, reference, fiel
                 return <MultipleChoice field={field} id={id} />;
             case FormBuilderTagNames.INPUT_RATING:
                 return <RatingField field={field} id={id} />;
-            case FormBuilderTagNames.INPUT_MATRIX:
-                return <MatrixField id={id} allowMultipleSelection={false} rows={[1, 2, 3]} columns={[1, 2, 3]} />;
             default:
                 return null;
         }
@@ -47,7 +45,7 @@ export default function FormBuilderBlockContent({ tag, position, reference, fiel
 
     return (
         <div className="w-full">
-            <div data-position={position} data-tag={tag} ref={reference}>
+            <div data-position={position} data-tag={type} ref={reference}>
                 {renderBlockContent()}
             </div>
         </div>

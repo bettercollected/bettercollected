@@ -10,11 +10,11 @@ import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react
 import { useDispatch } from 'react-redux';
 
 import { addField } from '@app/store/form-builder/slice';
-import { FormFieldState } from '@app/store/form-builder/types';
+import { IFormFieldState } from '@app/store/form-builder/types';
 import { reorder } from '@app/utils/arrayUtils';
 
 interface IMultipleChoiceProps {
-    field: FormFieldState;
+    field: IFormFieldState;
     id: any;
 }
 
@@ -104,7 +104,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
                                                         </div>
 
                                                         <StartAdornmentInputField
-                                                            type={field.tag}
+                                                            type={field.type}
                                                             id={id}
                                                             onChange={(event) => {
                                                                 handleChoiceValueChange(choice.id, event.target.value);

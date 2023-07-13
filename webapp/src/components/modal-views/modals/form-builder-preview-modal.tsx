@@ -3,17 +3,17 @@ import React, { useEffect, useState } from 'react';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 
 import { Close } from '@app/components/icons/close';
-import { FormFieldState, FormState } from '@app/store/form-builder/types';
-import { initialFormState } from '@app/store/forms/slice';
+import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
+import { initialIBuilderState } from '@app/store/forms/slice';
 
 import { useFullScreenModal } from '../full-screen-modal-context';
 
 interface IFormBuilderPreviewModal {
-    form: FormState;
+    form: IBuilderState;
 }
 
 export default function FormBuilderPreviewModal({ form }: IFormBuilderPreviewModal) {
-    const [formToRender, setFormToRender] = useState(initialFormState);
+    const [formToRender, setFormToRender] = useState(initialIBuilderState);
     const { closeModal } = useFullScreenModal();
 
     useEffect(() => {
@@ -22,7 +22,7 @@ export default function FormBuilderPreviewModal({ form }: IFormBuilderPreviewMod
             previewForm.title = form.title;
             previewForm.description = form.description;
             let fields: any = Object.values(form.fields);
-            fields = fields.map((field: FormFieldState) => {
+            fields = fields.map((field: IFormFieldState) => {
                 if (field.properties?.choices) {
                     return {
                         ...field,
