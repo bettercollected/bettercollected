@@ -99,6 +99,8 @@ The need for you to clone this repository is because you need it to seed the dat
 
 After configuring all the environments in the `docker-compose.yml` file, run the following command to start the services:
 
+##  `docker login git.sireto.io:5050`
+##  And sign in using your git.sireto.io login credentials
 ## `docker compose up --build --remove-orphans`
 
 After running this command, you may need to login into stripe.
@@ -139,17 +141,16 @@ services:
     # If you want to run webapp locally without using docker-compose,
     # you will also need to run nginx locally and not from docker-compose
     webapp:
-        image: bettercollected/webapp
+        image: git.sireto.io:5050/bettercollected/webapp:nightly
+        # image: bettercollected/webapp:nightly
         networks:
             - frontend
         environment:
             INTERNAL_DOCKER_API_ENDPOINT_HOST: http://backend:8000/api/v1
             API_ENDPOINT_HOST: http://localhost:8000/api/v1
-            CLIENT_DOMAIN: localhost:3001
             ADMIN_DOMAIN: localhost:3000
+            CLIENT_DOMAIN: localhost:3001
             NEXT_PUBLIC_NODE_ENV: development
-            ENABLE_TYPEFORM: 'true'
-            ENABLE_GOOGLE: 'true'
         ports:
             - '3000:3000'
 
@@ -167,165 +168,102 @@ services:
             - '3002:3002'
 
     backend:
-        image: bettercollected/backend:latest
+        image: git.sireto.io:5050/bettercollected/backend:nightly
+        # image: bettercollected/backend:nightly
         networks:
             - backend
             - db
             - frontend
         environment:
-            DEBUG: 'false'
-            # Api
-            API_TITLE: Better Collected Development API
-            API_DESCRIPTION: Rest endpoints for bettercollected api
-            API_VERSION: 1.0.0
-            API_ROOT_PATH: /api/v1
-            # Auth
-            AUTH_AES_HEX_KEY: agsb0ds6fv-W1vETYfzm98aM-rslaN89I19F-YXvkUA=
-            AUTH_JWT_SECRET: J5aMzF0RiPbVKeGcOwqxDt7pL8Uh9nSy
-            AUTH_ACCESS_TOKEN_EXPIRY_MINUTES: 1440
-            AUTH_REFRESH_TOKEN_EXPIRY_DAYS: 30
             AUTH_BASE_URL: http://auth:8000/api/v1
             AUTH_CALLBACK_URI: http://auth:8000/api/v1/auth/callback
-            # Mongo
-            MONGO_DB: bettercollected_backend
-            MONGO_URI: mongodb://root:root@mongodb:27017
-            # Schedular
-            SCHEDULAR_INTERVAL_MINUTES: 1
-
-            # AWS
-            # This is needed to upload workspace profile image and workspace banner image
-            AWS_ACCESS_KEY_ID:
-            AWS_SECRET_ACCESS_KEY:
-
-            # HTTPS API (DEV)
-            HTTPS_CERT_API_HOST:
-            HTTPS_CERT_API_KEY:
+        env_file:
+            - .env
         ports:
             - '8000:8000'
 
     auth:
-        image: bettercollected/auth:latest
+        image: git.sireto.io:5050/bettercollected/auth:nightly
+        # image: bettercollected/auth:nightly
         networks:
             - backend
             - db
         environment:
-            DEBUG: 'false'
-            # Api
-            API_ROOT_PATH: /api/v1
-            # Mongo
-            MONGO_DB: bettercollected_auth
-            MONGO_URI: mongodb://root:root@mongodb:27017
-            # Mail
-            MAIL_USER:
-            MAIL_PASSWORD:
-            MAIL_SMTP_SERVER: smtp.gmail.com
-            MAIL_SMTP_PORT: 58
-            MAIL_SENDER: BetterCollected<betatest@sireto.io>
-            # Google
-            GOOGLE_CLIENT_ID:
-            GOOGLE_PROJECT_ID:
-            GOOGLE_AUTH_URI: https://accounts.google.com/o/oauth2/auth
-            GOOGLE_TOKEN_URI: https://oauth2.googleapis.com/token
-            GOOGLE_AUTH_PROVIDER_X509_CERT_URL: https://www.googleapis.com/oauth2/v1/certs
-            GOOGLE_CLIENT_SECRET:
-            GOOGLE_REDIRECT_URIS: http://localhost:8000/api/v1/auth/google/basic/callback
-            GOOGLE_BASIC_AUTH_REDIRECT: http://localhost:8000/api/v1/auth/google/basic/callback
-            GOOGLE_JAVASCRIPT_ORIGINS: http://localhost:3000
-            # Typeform
-            TYPEFORM_SCOPE: accounts:read
-            TYPEFORM_CLIENT_ID:
-            TYPEFORM_CLIENT_SECRET:
-            TYPEFORM_AUTH_URI: https://api.typeform.com/oauth/authorize?state={state}&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}
-            TYPEFORM_TOKEN_URI: https://api.typeform.com/oauth/token
-            TYPEFORM_REDIRECT_URI: http://localhost:8000/api/v1/auth/typeform/basic/callback
-            TYPEFORM_API_URI: https://api.typeform.com
-
-            # Auth
-            AUTH_JWT_SECRET: J5aMzF0RiPbVKeGcOwqxDt7pL8Uh9nSy
-            AUTH_AEX_HEX_KEY: agsb0ds6fv-W1vETYfzm98aM-rslaN89I19F-YXvkUA=
-            ORGANIZATION_NAME: Better Collected
-            OAUTHLIB_INSECURE_TRANSPORT: 1
-            OAUTHLIB_RELAX_TOKEN_SCOPE: 1
-
+            TYPEFORM_SCOPE: ${TYPEFORM_BASIC_SCOPE}
+            TYPEFORM_REDIRECT_URI: ${TYPEFORM_BASIC_REDIRECT_URI}
             # Stripe
-            STRIPE_PRODUCT_ID: <ADD_YOUR_OWN>
-            STRIPE_SECRET: <ADD_YOUR_OWN>
-            STRIPE_WEBHOOK_SECRET: <ADD_YOUR_OWN>
-
-            STRIPE_SUCCESS_URL: http://localhost:3000/refresh-token
-            STRIPE_CANCEL_URL: http://localhost:3000/refresh-token
-            STRIPE_RETURN_URL: http://localhost:3000/refresh-token
-            CLIENT_ADMIN_URL: http://localhost:3000
+            STRIPE_SUCCESS_URL: ${STRIPE_REDIRECT_URL}
+            STRIPE_CANCEL_URL: ${STRIPE_REDIRECT_URL}
+            STRIPE_RETURN_URL: ${STRIPE_REDIRECT_URL}
+        env_file:
+            - .env
         ports:
             - '8001:8000'
 
-    stripe-webhook:
-        image: stripe/stripe-cli:latest
-        entrypoint:
-            - '/bin/sh'
-            - '-c'
-            - 'stripe login && stripe listen --forward-to backend:8000/api/v1/stripe/webhooks'
-        networks:
-            - backend
-        depends_on:
-            - backend
-
     integrations-typeform:
-        image: bettercollected/integrations-typeform:latest
+        image: git.sireto.io:5050/bettercollected/integrations-typeform:nightly
+        # image: bettercollected/integrations-typeform:nightly
         networks:
             - backend
             - db
-        environment:
-            DEBUG: 'false'
-            # Api
-            API_ROOT_PATH: /api/v1
-            #Auth
-            AUTH_JWT_SECRET: J5aMzF0RiPbVKeGcOwqxDt7pL8Uh9nSy
-            # Mongo
-            MONGO_DB: bettercollected_typeform
-            MONGO_URI: mongodb://root:root@mongodb:27017
-            # Typeform
-            TYPEFORM_SCOPE: offline+accounts:read+forms:read+responses:read
-            TYPEFORM_CLIENT_ID:
-            TYPEFORM_CLIENT_SECRET:
-            TYPEFORM_AUTH_URI: https://api.typeform.com/oauth/authorize?state={state}&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}
-            TYPEFORM_TOKEN_URI: https://api.typeform.com/oauth/token
-            TYPEFORM_REDIRECT_URI: https://localhost:8000/api/v1/auth/typeform/oauth/callback
-            TYPEFORM_API_URI: https://api.typeform.com
+        env_file:
+            - .env
         ports:
             - '8002:8000'
 
     integrations-googleform:
-        image: bettercollected/integrations-googleform:latest
+        image: git.sireto.io:5050/bettercollected/integrations-googleform:nightly
+        # image: bettercollected/integrations-googleform:nightly
         networks:
             - backend
             - db
-        environment:
-            DEBUG: 'false'
-            AUTH_JWT_SECRET: J5aMzF0RiPbVKeGcOwqxDt7pL8Uh9nSy
-            GOOGLE_AES_KEY: agsb0ds6fv-W1vETYfzm98aM-rslaN89I19F-YXvkUA=
-            API_ROOT_PATH: /api/v1
-            # Mongo
-            MONGO_DB: bettercollected_googleform
-            MONGO_URI: mongodb://root:root@mongodb:27017
-            # Google
-            GOOGLE_CLIENT_TYPE: web
-            GOOGLE_CLIENT_ID:
-            GOOGLE_PROJECT_ID:
-            GOOGLE_CLIENT_SECRET:
-            GOOGLE_AUTH_URI: https://accounts.google.com/o/oauth2/auth
-            GOOGLE_TOKEN_URI: https://oauth2.googleapis.com/token
-            GOOGLE_AUTH_PROVIDER_X509_CERT_URL: https://www.googleapis.com/oauth2/v1/certs
-            GOOGLE_REDIRECT_URIS: http://localhost:8000/api/v1/auth/google/oauth/callback
-            GOOGLE_JAVASCRIPT_ORIGINS: http://localhost:3000,http://localhost:3001
-            GOOGLE_SCOPES: 'openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly'
-            GOOGLE_API_SERVICE_NAME: drive
-            GOOGLE_API_VERSION: v2
-            GOOGLE_REVOKE_CREDENTIALS_URL: https://oauth2.googleapis.com/revoke
-            OAUTHLIB_INSECURE_TRANSPORT: 1
-            OAUTHLIB_RELAX_TOKEN_SCOPE: 1
+        env_file:
+            - .env
         ports:
             - '8003:8000'
+
+```
+
+Also put this environment variable in the same folder containing the docker-compose.yml file.
+##### Environment Variables
+
+```
+    # Auth
+- AUTH_AES_HEX_KEY='UAW6iquPs8Q2ZdKqjgIWcBZ-H8kPsGyFzedSGis7ZTA='
+- AUTH_JWT_SECRET=qZ86c1g6Mm4J9cVSzx6zGeppUyqDpS31
+
+# Mongo
+- MONGO_URI=mongodb://root:root@mongodb:27017
+
+# Stripe
+- STRIPE_PRODUCT_ID=
+- STRIPE_SECRET=
+- STRIPE_WEBHOOK_SECRET=
+- STRIPE_REDIRECT_URL=http://localhost:3000/refresh-token
+- CLIENT_ADMIN_URL=http://localhost:3000
+
+# Google
+- GOOGLE_SCOPES='openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly'
+- GOOGLE_CLIENT_ID=132120488980-tnq1s7b7qfp876s67l77jmfukjonggpp.apps.googleusercontent.com
+- GOOGLE_PROJECT_ID=bettercollected-sireto
+- GOOGLE_CLIENT_SECRET=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
+- GOOGLE_JAVASCRIPT_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002
+- GOOGLE_BASIC_AUTH_REDIRECT=http://localhost:8000/api/v1/auth/google/basic/callback
+- GOOGLE_REDIRECT_URIS=http://localhost:8000/api/v1/auth/google/oauth/callback
+- OAUTHLIB_INSECURE_TRANSPORT=1
+- OAUTHLIB_RELAX_TOKEN_SCOPE=1
+
+# Typeform
+- TYPEFORM_BASIC_SCOPE=accounts:read
+- TYPEFORM_SCOPE=offline+accounts:read+forms:read+responses:read
+- TYPEFORM_CLIENT_ID=25cnSnYpD8x7RF85CAqfyQF1aHvubtxAh5mo4f4ruuFF
+- TYPEFORM_CLIENT_SECRET=7ao4RFQnLVgzHDf5jN2pTgg8Q3QJzoM9wCa3sRMeRSHD
+- TYPEFORM_BASIC_REDIRECT_URI=http://localhost:8000/api/v1/auth/typeform/basic/callback
+- TYPEFORM_REDIRECT_URI=http://localhost:8000/api/v1/auth/typeform/oauth/callback
+
+# Encryption
+-MASTER_ENCRYPTION_KEYSET='ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=='
+
 ```
 
 **Notes:**
