@@ -115,10 +115,10 @@ export const slice = createSlice({
             newField.properties = getInitialPropertiesForFieldType(newType);
             fieldsToAdd.push(newField);
             const fieldsArray = Object.values(state.fields);
-            fieldsArray.splice(position, !!id ? 0 : 1, fieldsToAdd);
+            fieldsArray.splice(position + 1 || (state.activeFieldIndex || 0) + 1 || fieldsArray.length, !!id ? 1 : 0, ...fieldsToAdd);
             const newFieldsMap: any = {};
             fieldsArray.forEach((field: any, index: number) => {
-                newFieldsMap[field.id] = { ...field, index };
+                newFieldsMap[field.id] = field;
             });
             return {
                 ...state,
@@ -264,6 +264,7 @@ export const {
     setActiveFieldIndex,
     setIsFormDirty,
     addQuestionAndAnswerField,
+    addFieldNewImplementation,
     setFields,
     setEditForm,
     resetForm,

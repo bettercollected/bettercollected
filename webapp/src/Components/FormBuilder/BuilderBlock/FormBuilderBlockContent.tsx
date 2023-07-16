@@ -43,12 +43,7 @@ export default function FormBuilderBlockContent({ type, position, reference, fie
     };
 
     return (
-        <div
-            className="w-full"
-            onClick={() => {
-                dispatch(setActiveFieldIndex(position));
-            }}
-        >
+        <div className="w-full">
             <div data-position={position} data-tag={type} ref={reference}>
                 {renderBlockContent()}
             </div>

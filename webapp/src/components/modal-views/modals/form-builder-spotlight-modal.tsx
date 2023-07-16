@@ -2,7 +2,10 @@ import { allowedInputTags, allowedLayoutTags, allowedQuestionAndAnswerTags } fro
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { addFieldNewImplementation } from '@app/store/form-builder/slice';
 import { IBuilderStateProps } from '@app/store/form-builder/types';
+import { useAppDispatch } from '@app/store/hooks';
 
 const Fields = [
     {
@@ -19,10 +22,14 @@ const Fields = [
     }
 ];
 
-export default function FormBuilderSpotlightModal() {
+export default function FormBuilderSpotlightModal({ index }: { index?: number }) {
     const { closeModal, modalProps } = useModal();
 
-    const builderState: IBuilderStateProps | null = modalProps;
+    const dispatch = useAppDispatch();
+    const handleFieldSelected = (type: FormBuilderTagNames) => {
+        dispatch(addFieldNewImplementation({ type, position: index }));
+        closeModal();
+    };
 
     return (
         <div className="bg-white rounded relative flex flex-col gap-10 last:!mt-0 p-10">
@@ -37,7 +44,13 @@ export default function FormBuilderSpotlightModal() {
                     <div className="body1 mb-6">{fieldType.title}</div>
                     <div className="grid gap-x-12 gap-y-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                         {fieldType.items.map((tag, index) => (
-                            <div key={tag.id} className="flex cursor-pointer hover:bg-gray-100 p-2 items-center rounded gap-2">
+                            <div
+                                key={tag.id}
+                                className="flex cursor-pointer hover:bg-gray-100 p-2 items-center rounded gap-2"
+                                onClick={() => {
+                                    handleFieldSelected(tag.type);
+                                }}
+                            >
                                 {tag.icon}
                                 {tag.label}
                             </div>

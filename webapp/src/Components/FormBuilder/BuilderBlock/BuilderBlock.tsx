@@ -141,6 +141,7 @@ export default function FormBuilderBlock({ item, position, addBlock, duplicateBl
                 isHovering: true
             };
         });
+        dispatch(setActiveFieldIndex(position));
     };
 
     const handleMouseOut = () => {
@@ -151,6 +152,8 @@ export default function FormBuilderBlock({ item, position, addBlock, duplicateBl
                 isHovering: false
             };
         });
+
+        dispatch(setActiveFieldIndex(-1));
     };
 
     const dispatchChange = () => {
@@ -176,6 +179,7 @@ export default function FormBuilderBlock({ item, position, addBlock, duplicateBl
         } else {
             setState({ ...state, isTyping: true });
         }
+        dispatch(setActiveFieldIndex(position));
         dispatch(setBlockFocus({ fieldId: item.id, isFocused: true }));
     };
 
@@ -187,6 +191,7 @@ export default function FormBuilderBlock({ item, position, addBlock, duplicateBl
         if (!hasPlaceholder) {
             setState({ ...state, isTyping: false });
         }
+        dispatch(setActiveFieldIndex(undefined));
         dispatch(setBlockFocus({ fieldId: item.id, isFocused: false }));
     };
 
@@ -354,9 +359,6 @@ export default function FormBuilderBlock({ item, position, addBlock, duplicateBl
                                         data-position={position}
                                         data-type={item.type}
                                         html={state.html || ''}
-                                        onClick={() => {
-                                            dispatch(setActiveFieldIndex(position));
-                                        }}
                                         onChange={handleChange}
                                         onFocus={handleFocus}
                                         onBlur={handleBlur}
@@ -367,7 +369,7 @@ export default function FormBuilderBlock({ item, position, addBlock, duplicateBl
                                         className={`m-0 p-0 w-full focus-visible:border-0 focus-visible:outline-none ${contentEditableClassNames(state.placeholder, item.type)}`}
                                     />
                                 </div>
-                                <FormBuilderTagSelector className={state.tagSelectorMenuOpen ? 'visible' : 'invisible'} closeMenu={closeTagSelectorMenu} handleSelection={handleTagSelection} />
+                                {/*<FormBuilderTagSelector className={state.tagSelectorMenuOpen ? 'visible' : 'invisible'} closeMenu={closeTagSelectorMenu} handleSelection={handleTagSelection} />*/}
                             </div>
                         )}
                     </div>
