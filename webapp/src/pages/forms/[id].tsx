@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 
 import { useRouter } from 'next/router';
 
+import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import { Widget } from '@typeform/embed-react';
 import { toast } from 'react-toastify';
 
@@ -25,65 +26,17 @@ export default function SingleFormPage(props: any) {
 
     const { data, isLoading, error } = useGetWorkspaceFormQuery({ workspace_id: workspace.id, custom_url: slug });
 
-    const [submitResponse] = useSubmitResponseMutation();
-
     const router = useRouter();
     const form: StandardFormDto | undefined = data;
 
-    const dispatch = useAppDispatch();
-
-    const requiredFields = useAppSelector(selectRequiredFields);
-
     const iframeRef = useRef(null);
-
-    const answers = useAppSelector(selectAnswers);
 
     const responderUri = form?.settings?.embedUrl || '';
 
-    useEffect(() => {
-        const requiredFields: Array<string> = [];
-        for (const field of form?.fields || []) {
-            if (field?.validations?.required) {
-                requiredFields.push(field.id);
-            }
-        }
-        dispatch(setRequiredFields(requiredFields));
-    }, [form]);
-
-    useEffect(() => {
-        dispatch(resetFillForm());
-    }, []);
     if (error) {
         return <div className="min-h-screen min-w-screen  flex items-center justify-center">Error: Could not fetch form!!</div>;
     }
     if (isLoading) return <FullScreenLoader />;
-
-    const onSubmitForm = async (event: any) => {
-        event.preventDefault();
-        const invalidFields: Array<string> = [];
-        for (const requiredField of requiredFields) {
-            if (!answers[requiredField]) {
-                invalidFields.push(requiredField);
-            }
-        }
-        if (invalidFields.length > 0) {
-            dispatch(setInvalidFields(invalidFields));
-            // toast('All required fields are not filled yet.', { type: 'error' });
-            return;
-        }
-        const postBody = {
-            form_id: form?.formId,
-            answers: answers
-        };
-        const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: postBody });
-        if (response?.data) {
-            toast('Response Submitted', { type: 'success' });
-            const workspaceUrl = hasCustomDomain ? `https://${workspace.customDomain}` : `/${workspace.workspaceName}`;
-            router.push(workspaceUrl);
-        } else {
-            toast('Error submitting response', { type: 'error' });
-        }
-    };
     const hasFileUpload = (fields: Array<any>) => {
         let isUploadField = false;
         if (fields && Array.isArray(fields) && fields.length > 0) {
@@ -167,22 +120,9 @@ export default function SingleFormPage(props: any) {
                 )}
                 {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (
-                    <form
-                        className="w-full bg-white py-10 flex flex-col items-center "
-                        onKeyDown={(event: any) => {
-                            if (event.key === 'Enter') {
-                                event.preventDefault();
-                            }
-                        }}
-                        onSubmit={onSubmitForm}
-                    >
-                        <FormRenderer form={form} enabled={true} />
-                        <div className="w-full max-w-[700px] items-center">
-                            <Button className="mt-10" type="submit">
-                                Submit
-                            </Button>
-                        </div>
-                    </form>
+                    <div className="w-full max-w-[700px] items-center">
+                        <BetterCollectedForm form={form} enabled={true} isCustomDomain={hasCustomDomain} />
+                    </div>
                 )}
             </div>
         </Layout>

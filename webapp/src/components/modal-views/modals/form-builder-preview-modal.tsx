@@ -48,7 +48,7 @@ export default function FormBuilderPreviewModal({ form }: IFormBuilderPreviewMod
                 {' '}
                 Back to Editor
             </div>
-            <BetterCollectedForm form={formToRender} />
+            <BetterCollectedForm form={formToRender} enabled={true} preview={true} closeModal={closeModal} />
         </div>
     );
 }

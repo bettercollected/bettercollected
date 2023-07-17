@@ -10,15 +10,17 @@ export default function MultipleChoiceField({ field, ans, enabled }: FormFieldPr
     const dispatch = useDispatch();
     const answer = useAppSelector(selectAnswer(field.id));
     const handleSelectChoice = (choice: any) => {
-        const answer: any = {};
-        answer.field = { id: field.id };
-        answer.choice = { value: choice.value };
-        dispatch(addAnswer(answer));
+        if (enabled) {
+            const answer: any = {};
+            answer.field = { id: field.id };
+            answer.choice = { value: choice.value };
+            dispatch(addAnswer(answer));
+        }
     };
     return (
         <>
             {(field?.properties?.choices || []).map((choice: any) => (
-                <div key={choice?.id} className={`flex items-center cursor-pointer ${!enableES5}`} onClick={() => handleSelectChoice(choice)}>
+                <div key={choice?.id} className={`flex items-center ${enabled ? 'cursor-pointer' : ''} ${!enableES5}`} onClick={() => handleSelectChoice(choice)}>
                     <Radio disabled={!enabled} checked={ans?.choice?.value === choice?.value || answer?.choice?.value === choice?.value} />
                     <div>{choice?.value}</div>
                 </div>

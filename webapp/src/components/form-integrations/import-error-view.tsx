@@ -1,14 +1,10 @@
 import React, { useState } from 'react';
 
-import Image from 'next/image';
-
 import _ from 'lodash';
 
 import CheckedCircle from '@Components/Common/Icons/CheckedCircle';
 import { Disclosure } from '@headlessui/react';
-import { CheckCircle, HelpOutline, HourglassEmpty, SyncProblem } from '@mui/icons-material';
-import { Checkbox, FormControlLabel, Popover } from '@mui/material';
-import PopupState, { bindPopover, bindTrigger } from 'material-ui-popup-state';
+import { Checkbox, FormControlLabel } from '@mui/material';
 
 import { ChevronDown } from '@app/components/icons/chevron-down';
 import { Close } from '@app/components/icons/close';
