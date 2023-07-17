@@ -68,8 +68,8 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
         {
             type: 'sensitive',
             isPermissionGiven: false,
-            name: 'Permissions to import your Google Forms',
-            description: 'To be able to show a list of forms for you to import, we require permissions to search your Google Drive for Google Forms.'
+            name: 'Permissions to import your Typeform',
+            description: 'To be able to show a list of forms for you to import, we require permissions to fetch Typeforms.'
         },
         {
             type: 'sensitive',
