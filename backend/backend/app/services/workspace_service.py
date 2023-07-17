@@ -369,6 +369,7 @@ class WorkspaceService:
 async def create_workspace(user: User):
     workspace = await WorkspaceDocument.find_one({"owner_id": user.id, "default": True})
     if not workspace:
+
         workspace = WorkspaceDocument(
             title="",
             description="",

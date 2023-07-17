@@ -176,6 +176,9 @@ class AppContainer(containers.DeclarativeContainer):
         responder_groups_service=responder_groups_service,
     )
 
+    user_tags_repo = providers.Singleton(UserTagsRepository)
+    user_tags_service = providers.Singleton(UserTagsService, user_tags_repo=user_tags_repo)
+
     auth_service: AuthService = providers.Singleton(
         AuthService,
         http_client=http_client,
@@ -185,6 +188,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_service=workspace_service,
         temporal_service=temporal_service,
         crypto=crypto,
+        user_tags_service=user_tags_service
     )
 
     workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(
@@ -215,8 +219,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_service=workspace_user_service,
         form_response_service=form_response_service,
     )
-    user_tags_repo = providers.Singleton(UserTagsRepository)
-    user_tags_service = providers.Singleton(UserTagsService, user_tags_repo=user_tags_repo)
+
 
 
 container = AppContainer()
