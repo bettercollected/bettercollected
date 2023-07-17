@@ -69,9 +69,9 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
     return (
         <div className={`h-full w-full ${className}`}>
             <div className="w-full flex flex-col gap-4">
-                <ReactContentEditable callback={handleTitleChange} tag="h4" content={fullWorkspaceName} className="h4" />
+                <ReactContentEditable callback={handleTitleChange} type="h4" content={fullWorkspaceName} className="h4" />
                 {isMarkdownEditable ? (
-                    <ReactContentEditable callback={handleDescriptionChange} tag="p" content={workspace?.description} className="text-black-700 body3" />
+                    <ReactContentEditable callback={handleDescriptionChange} type="p" content={workspace?.description} className="text-black-700 body3" />
                 ) : (
                     <MarkdownText
                         scrollTitle={fullWorkspaceName}
