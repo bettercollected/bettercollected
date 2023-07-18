@@ -119,7 +119,7 @@ class AuthService:
         )
         user = response_data.get("user")
         if user and Roles.FORM_CREATOR in user.get("roles"):
-            await self.user_tags_service.add_user_tag(user_id=user['id'], tag=UserTagType.NEW_USER)
+            await self.user_tags_service.add_user_tag(user_id=User(**user).id, tag=UserTagType.NEW_USER)
             await workspaces_service.create_workspace(User(**user))
         return user, response_data.get("client_referer_url", "")
 

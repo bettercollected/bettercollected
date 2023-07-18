@@ -54,6 +54,9 @@ class AppContainer(containers.DeclarativeContainer):
         AsyncIOMotorClient, settings.mongo_settings.URI
     )
 
+    user_tags_repo = providers.Singleton(UserTagsRepository)
+    user_tags_service = providers.Singleton(UserTagsService, user_tags_repo=user_tags_repo)
+
     # Repositories
     workspace_user_repo: WorkspaceUserRepository = providers.Singleton(
         WorkspaceUserRepository
@@ -176,9 +179,6 @@ class AppContainer(containers.DeclarativeContainer):
         responder_groups_service=responder_groups_service,
     )
 
-    user_tags_repo = providers.Singleton(UserTagsRepository)
-    user_tags_service = providers.Singleton(UserTagsService, user_tags_repo=user_tags_repo)
-
     auth_service: AuthService = providers.Singleton(
         AuthService,
         http_client=http_client,
@@ -219,7 +219,6 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_service=workspace_user_service,
         form_response_service=form_response_service,
     )
-
 
 
 container = AppContainer()
