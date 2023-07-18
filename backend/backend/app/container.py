@@ -112,6 +112,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_repo=workspace_user_repo,
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
+        user_tags_service=user_tags_service,
     )
 
     form_response_service: FormResponseService = providers.Singleton(
@@ -168,6 +169,7 @@ class AppContainer(containers.DeclarativeContainer):
         schedular=schedular,
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
+        user_tags_service=user_tags_service,
     )
 
     workspace_service: WorkspaceService = providers.Singleton(

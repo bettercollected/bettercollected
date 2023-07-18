@@ -10,16 +10,14 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
 )
+from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
-from backend.app.schemas.responder_group import (
-    ResponderGroupDocument,
-    ResponderGroupMemberDocument,
-)
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
 from common.models.standard_form import StandardForm
@@ -32,10 +30,12 @@ class FormService:
         workspace_user_repo: WorkspaceUserRepository,
         form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
+        user_tags_service: UserTagsService,
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
+        self.user_tags_service = user_tags_service
 
     async def get_forms_in_workspace(
         self, workspace_id, sort, user
@@ -180,6 +180,9 @@ class FormService:
         if settings.pinned is not None:
             workspace_form.settings.pinned = settings.pinned
         if settings.customUrl is not None:
+            await self.user_tags_service.add_user_tag(
+                user_id=user.id, tag=UserTagType.CUSTOM_SLUG
+            )
             workspace_form_with_custom_slug = (
                 await self._workspace_form_repo.get_workspace_form_with_custom_slug(
                     workspace_id, settings.customUrl
