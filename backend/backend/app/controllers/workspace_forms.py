@@ -155,6 +155,7 @@ class WorkspaceFormsRouter(Routable):
         return WorkspaceFormPatchResponse(**data.dict())
 
     @patch("/{form_id}/groups/add", summary="Add form in group")
+    @user_tag(tag=UserTagType.FORM_ADDED_TO_GROUP)
     async def patch_groups_for_form(
             self,
             workspace_id: PydanticObjectId,
