@@ -8,6 +8,7 @@ from loguru import logger
 from pydantic import EmailStr
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
@@ -20,6 +21,7 @@ from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.responder_groups_service import ResponderGroupsService
+from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
@@ -31,14 +33,15 @@ from common.services.http_client import HttpClient
 
 class WorkspaceService:
     def __init__(
-        self,
-        http_client: HttpClient,
-        workspace_repo: WorkspaceRepository,
-        aws_service: AWSS3Service,
-        workspace_user_service: WorkspaceUserService,
-        workspace_form_service: WorkspaceFormService,
-        form_response_service: FormResponseService,
-        responder_groups_service: ResponderGroupsService,
+            self,
+            http_client: HttpClient,
+            workspace_repo: WorkspaceRepository,
+            aws_service: AWSS3Service,
+            workspace_user_service: WorkspaceUserService,
+            workspace_form_service: WorkspaceFormService,
+            form_response_service: FormResponseService,
+            responder_groups_service: ResponderGroupsService,
+            user_tags_service: UserTagsService,
     ):
         self.http_client = http_client
         self._workspace_repo = workspace_repo
@@ -47,6 +50,7 @@ class WorkspaceService:
         self.workspace_form_service = workspace_form_service
         self.form_response_service = form_response_service
         self.responder_groups_service = responder_groups_service
+        self.user_tags_service = user_tags_service
 
     async def get_workspace_by_id(self, workspace_id: PydanticObjectId):
         workspace = await self._workspace_repo.get_workspace_by_id(
@@ -67,13 +71,13 @@ class WorkspaceService:
         return WorkspaceResponseDto(**workspace.dict())
 
     async def create_non_default_workspace(
-        self,
-        title: str,
-        description: str,
-        workspace_name: str,
-        profile_image_file: UploadFile,
-        banner_image_file: UploadFile,
-        user: User,
+            self,
+            title: str,
+            description: str,
+            workspace_name: str,
+            profile_image_file: UploadFile,
+            banner_image_file: UploadFile,
+            user: User,
     ):
         if user.plan != "PRO":
             raise HTTPException(
@@ -114,12 +118,12 @@ class WorkspaceService:
         return WorkspaceResponseDto(**workspace_document.dict())
 
     async def patch_workspace(
-        self,
-        profile_image_file: UploadFile,
-        banner_image_file: UploadFile,
-        workspace_id,
-        workspace_patch: WorkspaceRequestDtoCamel,
-        user: User,
+            self,
+            profile_image_file: UploadFile,
+            banner_image_file: UploadFile,
+            workspace_id,
+            workspace_patch: WorkspaceRequestDtoCamel,
+            user: User,
     ):
         await self._workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
@@ -142,6 +146,7 @@ class WorkspaceService:
             exists_by_handle = await WorkspaceDocument.find_one(
                 {"workspace_name": workspace_patch.workspace_name}
             )
+            await self.user_tags_service.add_user_tag(user_id=user.id, tag=UserTagType.WORKSPACE_HANDLE_CHANGE)
             if exists_by_handle:
                 raise HTTPException(409, "Workspace with given handle already exists.")
 
@@ -189,6 +194,7 @@ class WorkspaceService:
                         old_domain=workspace_document.custom_domain,
                         new_domain=workspace_patch.custom_domain,
                     )
+                    await self.user_tags_service.add_user_tag(user_id=user.id, tag=UserTagType.CUSTOM_DOMAIN_UPDATED)
                 else:
                     raise HTTPException(409)
             except HTTPException as e:
@@ -209,7 +215,7 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.dict())
 
     async def delete_custom_domain_of_workspace(
-        self, workspace_id: PydanticObjectId, user: User
+            self, workspace_id: PydanticObjectId, user: User
     ):
         if user.plan == Plans.FREE:
             raise HTTPException(
@@ -236,7 +242,7 @@ class WorkspaceService:
         return [WorkspaceResponseDto(**workspace.dict()) for workspace in workspaces]
 
     async def send_otp_for_workspace(
-        self, workspace_id: PydanticObjectId, receiver_email: EmailStr
+            self, workspace_id: PydanticObjectId, receiver_email: EmailStr
     ):
         workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
         await self.http_client.get(
@@ -296,7 +302,7 @@ class WorkspaceService:
             )
 
     async def update_https_server_for_certificate(
-        self, old_domain: str = None, new_domain: str = None
+            self, old_domain: str = None, new_domain: str = None
     ):
         try:
             if old_domain:
@@ -321,10 +327,10 @@ class WorkspaceService:
             # raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, content="Could not update https certificate.")
 
     async def upload_images_of_workspace(
-        self,
-        workspace_document: WorkspaceDocument,
-        profile_image_file: UploadFile,
-        banner_image_file: UploadFile,
+            self,
+            workspace_document: WorkspaceDocument,
+            profile_image_file: UploadFile,
+            banner_image_file: UploadFile,
     ):
         if profile_image_file:
             profile_image = await self._aws_service.upload_file_to_s3(
@@ -369,7 +375,6 @@ class WorkspaceService:
 async def create_workspace(user: User):
     workspace = await WorkspaceDocument.find_one({"owner_id": user.id, "default": True})
     if not workspace:
-
         workspace = WorkspaceDocument(
             title="",
             description="",
