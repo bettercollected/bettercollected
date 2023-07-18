@@ -11,5 +11,5 @@ class UserTagsService:
     async def get_user_tags(self):
         return await self.user_tags_repo.list()
 
-    async def add_new_user_tag(self, user_id: PydanticObjectId):
-        await self.user_tags_repo.insert_user_tag(user_id=user_id, tag=UserTagType.NEW_USER)
+    async def add_user_tag(self, user_id: PydanticObjectId, tag: UserTagType):
+        await self.user_tags_repo.insert_user_tag(user_id=user_id, tag=tag)

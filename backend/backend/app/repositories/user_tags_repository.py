@@ -25,6 +25,9 @@ class UserTagsRepository(BaseRepository):
     async def list(self, **kwargs) -> List[UserTags]:
         return await UserTagsDocument.find().to_list()
 
-    async def insert_user_tag(self, user_id: PydanticObjectId, tag: UserTagType):
+    async def insert_user_tag(self, user_id: str, tag: UserTagType):
+        user_id = PydanticObjectId(user_id)
+
         await UserTagsDocument.find_one(UserTagsDocument.user_id == user_id).upsert(
-            {"$addToSet": {UserTagsDocument.tags: tag}}, on_insert=UserTagsDocument(uset_id=user_id, tags=[tag]))
+            {"$addToSet": {UserTagsDocument.tags: tag}},
+            on_insert=UserTagsDocument(user_id=user_id, tags=[tag]))

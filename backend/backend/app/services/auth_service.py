@@ -6,7 +6,7 @@ from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
-from backend.app.models.user_tags import UserTags
+from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.plugin_proxy_service import PluginProxyService
@@ -119,7 +119,7 @@ class AuthService:
         )
         user = response_data.get("user")
         if user and Roles.FORM_CREATOR in user.get("roles"):
-            await self.user_tags_service.add_new_user_tag(user_id=user['id'])
+            await self.user_tags_service.add_user_tag(user_id=user['id'], tag=UserTagType.NEW_USER)
             await workspaces_service.create_workspace(User(**user))
         return user, response_data.get("client_referer_url", "")
 
