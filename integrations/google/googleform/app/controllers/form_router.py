@@ -1,12 +1,12 @@
+import datetime
 from http import HTTPStatus
 from typing import Any, Dict, Optional
 
+import loguru
 from classy_fastapi import Routable, get, post
-
-from common.models.form_import import FormImportResponse
-
 from fastapi import Depends
 
+from common.models.form_import import FormImportResponse
 from googleform.app.containers import Container
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.app.services.transformer import GoogleFormTransformerService
@@ -26,10 +26,14 @@ class GoogleFormRouter(Routable):
     async def _get_all_google_forms(
         self, credential: Oauth2CredentialDocument = Depends(get_user_credential)
     ):
+        start_time = datetime.datetime.utcnow()
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
         )
-        return self.google_service.get_form_list(credential.credentials.dict())
+        forms_list = self.google_service.get_form_list(credential.credentials.dict())
+        loguru.logger.info(credential.email + ": Timer Fetch All forms list API Call Time" + str(
+            datetime.datetime.utcnow() - start_time))
+        return forms_list
 
     @get("/{form_id}", status_code=HTTPStatus.OK)
     async def _get_single_google_form(
@@ -37,10 +41,14 @@ class GoogleFormRouter(Routable):
         form_id: str,
         credential: Oauth2CredentialDocument = Depends(get_user_credential),
     ):
+        start_time = datetime.datetime.utcnow()
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
         )
-        return self.google_service.get_form(form_id, credential.credentials.dict())
+        form = self.google_service.get_form(form_id, credential.credentials.dict())
+        loguru.logger.info(credential.email + "form_id: " + form_id + ": Timer Fetch single API Call Time" + str(
+            datetime.datetime.utcnow()) - start_time)
+        return form
 
     @post("/convert/standard_form")
     async def _convert_form(

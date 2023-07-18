@@ -52,8 +52,9 @@ class GoogleService:
             .get(formId=form_id)
             .execute()
         )
-        loguru.logger.info(
-            "Timer: Single Form Fetch Time: " + str(datetime.datetime.utcnow() - single_form_fetch_start_time))
+        loguru.logger.info(credentials.get("email") +
+                           ": Timer: Single Form Fetch Time: " + str(
+            datetime.datetime.utcnow() - single_form_fetch_start_time))
         return google_form
 
     def get_form_list(self, credentials, page_token=None, max_page_size=100):
@@ -94,7 +95,7 @@ class GoogleService:
             if page_token is None:
                 break
         drive_service.close()
-        loguru.logger.info("Timer: Fetch Forms List Time: " +
+        loguru.logger.info(str(credentials.get("email")) + ": Timer: Fetch Forms List Time: " +
                            str(datetime.datetime.utcnow() - form_list_fetch_start_time))
         return forms
 
