@@ -290,7 +290,7 @@ class OauthGoogleService:
                 return await self.oauth_credential_repo.update(
                     oauth_credential.email, oauth_credential
                 )
-            logger.info(oauth_credential.email + ": Timer: Oauth Token Fetch Time: " + str(
+            logger.info(str(oauth_credential.email) + ": Timer: Oauth Token Fetch Time: " + str(
                 datetime.utcnow() - oauth_fetch_start_time))
             return oauth_credential
         except HttpError:

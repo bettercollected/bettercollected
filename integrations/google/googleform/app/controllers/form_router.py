@@ -31,7 +31,7 @@ class GoogleFormRouter(Routable):
             credential.email
         )
         forms_list = self.google_service.get_form_list(credential.credentials.dict())
-        loguru.logger.info(credential.email + ": Timer Fetch All forms list API Call Time" + str(
+        loguru.logger.info(str(credential.email) + ": Timer Fetch All forms list API Call Time" + str(
             datetime.datetime.utcnow() - start_time))
         return forms_list
 
@@ -46,8 +46,8 @@ class GoogleFormRouter(Routable):
             credential.email
         )
         form = self.google_service.get_form(form_id, credential.credentials.dict())
-        loguru.logger.info(credential.email + "form_id: " + form_id + ": Timer Fetch single API Call Time" + str(
-            datetime.datetime.utcnow()) - start_time)
+        loguru.logger.info(str(credential.email) + "form_id: " + form_id + ": Timer Fetch single API Call Time" + str(
+            datetime.datetime.utcnow() - start_time))
         return form
 
     @post("/convert/standard_form")

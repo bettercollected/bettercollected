@@ -52,7 +52,7 @@ class GoogleService:
             .get(formId=form_id)
             .execute()
         )
-        loguru.logger.info(credentials.get("email") +
+        loguru.logger.info(str(credentials.get("email")) +
                            ": Timer: Single Form Fetch Time: " + str(
             datetime.datetime.utcnow() - single_form_fetch_start_time))
         return google_form

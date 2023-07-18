@@ -21,5 +21,5 @@ async def get_user_credential(request: Request) -> Oauth2CredentialDocument:
     )
     user = User(**jwt_response)
     credential = await OauthCredentialRepository().get(user.sub)
-    loguru.logger.info(user.sub + ": Timer get_user_credential" + str(datetime.datetime.utcnow() - start_time))
+    loguru.logger.info(str(user.sub) + ": Timer get_user_credential" + str(datetime.datetime.utcnow() - start_time))
     return credential
