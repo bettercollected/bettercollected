@@ -10,8 +10,9 @@ from backend.app.services.user_tags_service import UserTagsService
 
 @router(prefix="/user", tags=["User Tags"])
 class UserTagsRoutes(Routable):
-
-    def __init__(self, user_tags_service=container.user_tags_service(), *args, **kwargs):
+    def __init__(
+        self, user_tags_service=container.user_tags_service(), *args, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.user_tags_service: UserTagsService = user_tags_service
 

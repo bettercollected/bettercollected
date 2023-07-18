@@ -7,4 +7,3 @@ from common.configs.mongo_document import MongoDocument
 class UserTagsDocument(MongoDocument, UserTags):
     class Settings:
         name = "user_tags"
-

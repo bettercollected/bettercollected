@@ -13,18 +13,17 @@ from common.services.http_client import HttpClient
 
 
 class PluginProxyService:
-    def __init__(self, http_client: HttpClient
-                 ):
+    def __init__(self, http_client: HttpClient):
         self.http_client = http_client
 
     async def pass_request(
-            self,
-            request: Request,
-            url: str,
-            *,
-            method: HTTPMethods = None,
-            data: Mapping[str, Any] = None,
-            extra_params: Dict[str, str] = None,
+        self,
+        request: Request,
+        url: str,
+        *,
+        method: HTTPMethods = None,
+        data: Mapping[str, Any] = None,
+        extra_params: Dict[str, str] = None,
     ) -> Mapping[str, Any]:
         # Merge query params if params is not none
         try:

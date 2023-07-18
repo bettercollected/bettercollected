@@ -8,7 +8,9 @@ from common.models.user import User
 def user_tag(tag: UserTagType):
     def decorator(func):
         @wraps(func)
-        async def wrapper(self, user_tags_service=container.user_tags_service(), *args, **kwargs):
+        async def wrapper(
+            self, user_tags_service=container.user_tags_service(), *args, **kwargs
+        ):
             user: User = kwargs.get("user")
             fun_response = await func(self, *args, **kwargs)
             await user_tags_service.add_user_tag(user_id=user.id, tag=tag)

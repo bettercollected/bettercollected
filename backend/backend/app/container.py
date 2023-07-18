@@ -55,7 +55,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     user_tags_repo = providers.Singleton(UserTagsRepository)
-    user_tags_service = providers.Singleton(UserTagsService, user_tags_repo=user_tags_repo)
+    user_tags_service = providers.Singleton(
+        UserTagsService, user_tags_repo=user_tags_repo
+    )
 
     # Repositories
     workspace_user_repo: WorkspaceUserRepository = providers.Singleton(
@@ -177,7 +179,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_service=workspace_form_service,
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
-        user_tags_service=user_tags_service
+        user_tags_service=user_tags_service,
     )
 
     auth_service: AuthService = providers.Singleton(
@@ -189,7 +191,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_service=workspace_service,
         temporal_service=temporal_service,
         crypto=crypto,
-        user_tags_service=user_tags_service
+        user_tags_service=user_tags_service,
     )
 
     workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(
