@@ -261,6 +261,8 @@ class OauthGoogleService:
             HTTPException: If there is an error fetching the token, or if the
                 token is missing or has expired.
         """
+
+        oauth_fetch_start_time = datetime.utcnow()
         try:
             credentials = dict_to_credential(oauth_credential.credentials.dict())
             expiry_datetime = credentials.expiry
@@ -288,6 +290,7 @@ class OauthGoogleService:
                 return await self.oauth_credential_repo.update(
                     oauth_credential.email, oauth_credential
                 )
+            # logger.info("Timer: Oauth Token Fetch Time: " + str(datetime.utcnow() - oauth_fetch_start_time))
             return oauth_credential
         except HttpError:
             raise HTTPException(

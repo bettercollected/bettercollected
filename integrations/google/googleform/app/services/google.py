@@ -1,3 +1,6 @@
+import datetime
+
+import loguru
 from googleapiclient.discovery import build
 
 from googleform.app.utils.google import dict_to_credential
@@ -42,12 +45,16 @@ class GoogleService:
         Returns:
             dict: A dictionary containing the form data.
         """
-        return (
+        single_form_fetch_start_time = datetime.datetime.utcnow()
+        google_form = (
             self._build_service(credentials=credentials, service_name="forms")
             .forms()
             .get(formId=form_id)
             .execute()
         )
+        loguru.logger.info(
+            "Timer: Single Form Fetch Time: " + str(datetime.datetime.utcnow() - single_form_fetch_start_time))
+        return google_form
 
     def get_form_list(self, credentials, page_token=None, max_page_size=100):
         """
@@ -61,6 +68,7 @@ class GoogleService:
         Returns:
             list: A list containing the forms.
         """
+        form_list_fetch_start_time = datetime.datetime.utcnow()
         forms = []
         drive_service = self._build_service(
             credentials=credentials, service_name="drive", version="v3"
@@ -86,6 +94,8 @@ class GoogleService:
             if page_token is None:
                 break
         drive_service.close()
+        loguru.logger.info("Timer: Fetch Forms List Time: " +
+                           str(datetime.datetime.utcnow() - form_list_fetch_start_time))
         return forms
 
     def get_form_response_list(self, form_id: str, credentials):
