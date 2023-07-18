@@ -140,7 +140,7 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     form_import_service: FormImportService = providers.Singleton(
-        FormImportService, form_service=form_service
+        FormImportService, form_service=form_service, workspace_repo=workspace_repo
     )
 
     form_schedular = providers.Singleton(

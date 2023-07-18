@@ -3,6 +3,9 @@ from typing import Any, Dict
 
 from beanie import PydanticObjectId
 
+from backend.app.models.enum.user_tag_enum import UserTagType
+from backend.app.models.workspace import WorkspaceResponseDto
+from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
     FormResponseDeletionRequest,
@@ -15,8 +18,13 @@ from common.services.crypto_service import crypto_service
 
 
 class FormImportService:
-    def __init__(self, form_service: FormService):
+    def __init__(
+        self,
+        form_service: FormService,
+        workspace_repo: WorkspaceRepository,
+    ):
         self.form_service = form_service
+        self._workspace_repo = workspace_repo
 
     async def save_converted_form_and_responses(
         self,
@@ -78,9 +86,19 @@ class FormImportService:
             }
         ).delete()
 
-        await FormResponseDeletionRequest.find(deletion_requests_query).update_many(
+        updated_result = await FormResponseDeletionRequest.find(
+            deletion_requests_query
+        ).update_many(
             {
                 "$set": {"status": DeletionRequestStatus.SUCCESS},
             }
         )
+        if updated_result.modified_count > 1:
+            workspace = await self._workspace_repo.get_workspace_by_id(
+                workspace_id=workspace_id
+            )
+            await self.form_service.user_tags_service.add_user_tag(
+                user_id=WorkspaceResponseDto(**workspace.dict()).owner_id,
+                tag=UserTagType.DELETION_REQUEST_PROCESSED,
+            )
         return standard_form
