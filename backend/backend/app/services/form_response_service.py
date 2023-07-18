@@ -174,7 +174,6 @@ class FormResponseService:
         deletion_request = await FormResponseDeletionRequest.find_one(
             {"response_id": response_id}
         )
-
         if deletion_request:
             raise HTTPException(
                 400,

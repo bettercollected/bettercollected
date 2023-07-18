@@ -171,7 +171,6 @@ class AppContainer(containers.DeclarativeContainer):
         responder_groups_service=responder_groups_service,
         user_tags_service=user_tags_service,
     )
-
     workspace_service: WorkspaceService = providers.Singleton(
         WorkspaceService,
         http_client=http_client,

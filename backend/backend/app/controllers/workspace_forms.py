@@ -7,7 +7,7 @@ from fastapi_pagination import Page
 from starlette.requests import Request
 
 from backend.app.container import container
-from backend.app.decorators.user_tag_decorator import user_tag
+from backend.app.decorators.user_tag_decorators import user_tag
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
