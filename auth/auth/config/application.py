@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 
+from auth.config.apm_settings import APMSettings
 from auth.config.database import MongoSettings
 from auth.config.google_settings import GoogleSettings
 from auth.config.mail_settings import MailSettings
@@ -9,9 +10,7 @@ from auth.config.sentry_setting import SentrySettings
 from auth.config.stripe import StripeSettings
 from auth.config.typeform_settings import TypeformSettings
 from auth.version import __version__
-
 from dotenv import load_dotenv
-
 from pydantic import BaseSettings
 
 default_dot_env_path = (
@@ -32,6 +31,8 @@ class Application(BaseSettings):
     API_ENVIRONMENT: str = "local"
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
+
+    apm_settings: APMSettings = APMSettings()
     mongo_settings: MongoSettings = MongoSettings()
     google_settings: GoogleSettings = GoogleSettings()
     typeform_settings: TypeformSettings = TypeformSettings()

@@ -1,12 +1,8 @@
 """Application implementation - ASGI."""
 import logging
 
-import sentry_sdk
-from sentry_sdk.integrations.asyncio import AsyncioIntegration
-from sentry_sdk.integrations.httpx import HttpxIntegration
-from sentry_sdk.integrations.loguru import LoguruIntegration
-
 import auth
+import sentry_sdk
 from auth.app.container import container
 from auth.app.exceptions import (
     HTTPException,
@@ -15,8 +11,11 @@ from auth.app.exceptions import (
 from auth.app.router import root_api_router
 from auth.app.services.database_service import close_db, init_db
 from auth.config import settings
-
+from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
 from fastapi import FastAPI
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
+from sentry_sdk.integrations.httpx import HttpxIntegration
+from sentry_sdk.integrations.loguru import LoguruIntegration
 
 log = logging.getLogger(__name__)
 
@@ -45,6 +44,9 @@ async def on_shutdown():
 
     database_client = container.database_client()
     await close_db(database_client)
+
+
+apm = make_apm_client()
 
 
 def get_application():
@@ -89,4 +91,6 @@ def get_application():
     app.include_router(root_api_router)
     log.debug("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
+    if settings.apm_settings.service_name and settings.apm_settings.server_url:
+        app.add_middleware(ElasticAPM, client=apm)
     return app
