@@ -95,6 +95,7 @@ export default function Joyride({
         }
     }
 }: IJoyrideProps) {
+    //@ts-ignore
     const dispatch = useAppDispatch();
     const reduxState = useAppSelector((state) => state.joyride.joyrides[id]);
 
@@ -117,8 +118,8 @@ export default function Joyride({
     const getFilteredState = ({ steps, ...rest }: JoyrideState) => rest;
 
     useEffect(() => {
-        setState({ ...reduxState, ...state, run: true });
-        dispatch(setJoyrideState(getFilteredState(state)));
+        setState({ ...state, ...reduxState, run: true });
+        // dispatch(setJoyrideState(getFilteredState(state)));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -144,18 +145,22 @@ export default function Joyride({
         const { action, index, status, type, lifecycle } = data;
 
         let newState = { ...state, lifecycle };
+        let skipStep = true;
         // @ts-ignore
         if ([EVENTS.STEP_AFTER, EVENTS.TARGET_NOT_FOUND].includes(type)) {
+            skipStep = false;
             // Update state to advance the tour
             const nextStepIndex = index + (action === ACTIONS.PREV ? -1 : 1);
             newState = { ...newState, stepIndex: nextStepIndex };
         }
         // @ts-ignore
         else if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+            skipStep = false;
             // Need to set our running state to false, so we can restart if we click start again.
             newState = { ...newState, run: false, stepIndex: 0, finished: true };
         }
 
+        if (skipStep) return;
         setState(newState);
         dispatch(setJoyrideState(getFilteredState(newState)));
     };

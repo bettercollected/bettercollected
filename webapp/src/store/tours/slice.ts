@@ -40,11 +40,12 @@ const joyrideSlice = createSlice({
     }
 });
 
+joyrideSlice.reducer;
+
 const joyrideStateReducer = persistReducer(
     {
         key: 'rtk:joyride',
-        storage,
-        whitelist: [joyrideSlice.name]
+        storage
     },
     joyrideSlice.reducer
 );
