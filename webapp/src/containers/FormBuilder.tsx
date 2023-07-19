@@ -1,13 +1,11 @@
-import React, { BaseSyntheticEvent, useEffect } from 'react';
+import React, { FormEvent, useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock/BuilderBlock';
+import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
-import BuilderSpotlightDispatcher from '@Components/HOCs/BuilderSpotlightDispatcher';
-import FormBuilderLeaveListener from '@Components/HOCs/FormBuilderLeaveListener';
-import TextField from '@mui/material/TextField';
 import { DragStart, DragUpdate, DropResult, OnDragEndResponder, OnDragStartResponder, OnDragUpdateResponder, ResponderProvided } from 'react-beautiful-dnd';
 import { toast } from 'react-toastify';
 import { v4 as uuidV4 } from 'uuid';
@@ -15,12 +13,13 @@ import { v4 as uuidV4 } from 'uuid';
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import builderConstants from '@app/constants/builder';
-import useAsyncState from '@app/lib/hooks/use-async-state';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { deleteField, selectCreateForm, selectFormBuilderFields, setFields, setFormTitle, setIsFormDirty, updateField } from '@app/store/form-builder/slice';
-import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
-import { initialIBuilderState } from '@app/store/forms/slice';
+import { setBuilderState } from '@app/store/form-builder/actions';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { deleteField, selectCreateForm, selectFormBuilderFields, setFields, updateField } from '@app/store/form-builder/slice';
+import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
+import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateFormMutation, usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
@@ -31,22 +30,16 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const router = useRouter();
 
+    const builderState: IBuilderState = useAppSelector(selectBuilderState);
+
     const createForm: IBuilderState = useAppSelector(selectCreateForm);
     const formFields = useAppSelector(selectFormBuilderFields);
 
     const [postCreateForm] = useCreateFormMutation();
     const [patchForm] = usePatchFormMutation();
 
-    const { openModal, closeModal } = useFullScreenModal();
-    const basicModal = useModal();
-
-    const [builderState, setBuilderState] = useAsyncState<IBuilderState>({
-        id: '',
-        title: '',
-        description: '',
-        fields: {},
-        isFormDirty: false
-    });
+    const fullScreenModal = useFullScreenModal();
+    const modal = useModal();
 
     const blocks: any = Object.values(formFields || {});
     const locale = _nextI18Next.initialLocale === 'en' ? '' : `${_nextI18Next.initialLocale}/`;
@@ -85,7 +78,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     };
 
     const onInsert = () => {
-        basicModal.openModal('FORM_BUILDER_SPOTLIGHT_VIEW');
+        modal.openModal('FORM_BUILDER_SPOTLIGHT_VIEW');
     };
 
     const onAddNewPage = () => {};
@@ -95,7 +88,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const onAddFormCover = () => {};
 
     const onPreview = () => {
-        openModal('FORM_BUILDER_PREVIEW', { form: createForm });
+        fullScreenModal.openModal('FORM_BUILDER_PREVIEW', { form: createForm });
     };
 
     useEffect(() => {
@@ -182,7 +175,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         const response: any = await apiCall(apiObj);
         if (response?.data) {
             toast(`Form ${createUpdateText}ed!!`, { type: 'success' });
-            asyncDispatch(setIsFormDirty(false)).then(async () => {
+            asyncDispatch(setBuilderState({ isFormDirty: false })).then(async () => {
                 await router.push(redirectUrl);
             });
         } else {
@@ -191,55 +184,58 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     };
 
     return (
-        <FormBuilderLeaveListener>
-            <BuilderSpotlightDispatcher state={{ builderState, setBuilderState }}>
-                <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
-                <div className="h-full w-full max-w-4xl mx-auto py-10">
-                    <div className="px-5 md:px-[89px]">
-                        <TextField
-                            required
-                            fullWidth
-                            margin="none"
-                            value={createForm?.title || ''}
-                            placeholder="Form title"
-                            variant="standard"
-                            inputMode="text"
-                            inputProps={{
-                                style: {
-                                    padding: '0 0 8px 0',
-                                    fontSize: 36,
-                                    fontWeight: 700,
-                                    content: 'none',
-                                    letterSpacing: 1
+        <>
+            <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
+            <div className="h-full w-full max-w-4xl mx-auto py-10">
+                <div className="flex flex-col gap-4 px-5 md:px-[89px]">
+                    {builderTitleAndDescriptionList.map((b: IBuilderTitleAndDescriptionObj, idx: number) => (
+                        <CustomContentEditable
+                            key={b.id}
+                            id={b.id}
+                            tagName={b.tagName}
+                            type={b.type}
+                            value={builderState[b.key]}
+                            position={b.position}
+                            activeFieldIndex={builderState.activeFieldIndex}
+                            placeholder={b.placeholder}
+                            className={b.className}
+                            onChangeCallback={(event: FormEvent<HTMLElement>) => {
+                                dispatch(setBuilderState({ isFormDirty: true, [b.key]: event.currentTarget.innerText }));
+                            }}
+                            onKeyUpCallback={(event: React.KeyboardEvent<HTMLElement>) => {
+                                if (event.key === 'Enter' || event.key === 'ArrowDown') {
+                                    // TODO: add support for activeFieldIndex increase if there are no elements
+                                    event.preventDefault();
+                                    dispatch(setBuilderState({ activeFieldIndex: idx + 1 }));
+                                }
+                                if ((event.key === 'ArrowUp' || (event.shiftKey && event.key === 'Tab')) && idx > 0) {
+                                    dispatch(setBuilderState({ activeFieldIndex: idx - 1 }));
                                 }
                             }}
-                            InputProps={{ sx: { ':before': { content: 'none' } } }}
-                            size="medium"
-                            onChange={async (e: BaseSyntheticEvent) => {
-                                asyncDispatch(setIsFormDirty(true));
-                                dispatch(setFormTitle(e.target.value));
+                            onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
+                                dispatch(setBuilderState({ activeFieldIndex: b.position }));
                             }}
                         />
-                    </div>
-                    <BuilderDragDropContext
-                        Component={FormBuilderBlock}
-                        componentAttrs={{
-                            fields: formFields,
-                            onKeyDown: handleKeyDown,
-                            addBlock: addBlockHandler,
-                            duplicateBlock: duplicateBlockHandler,
-                            deleteBlock: deleteBlockHandler,
-                            updateBlock: updateBlockHandler
-                        }}
-                        droppableId="form-builder"
-                        droppableItems={blocks}
-                        droppableClassName="py-10"
-                        onDragStartHandlerCallback={onDragStartHandler}
-                        onDragUpdateHandlerCallback={onDragUpdateHandler}
-                        onDragEndHandlerCallback={onDragEndHandler}
-                    />
+                    ))}
                 </div>
-            </BuilderSpotlightDispatcher>
-        </FormBuilderLeaveListener>
+                <BuilderDragDropContext
+                    Component={FormBuilderBlock}
+                    componentAttrs={{
+                        fields: formFields,
+                        onKeyDown: handleKeyDown,
+                        addBlock: addBlockHandler,
+                        duplicateBlock: duplicateBlockHandler,
+                        deleteBlock: deleteBlockHandler,
+                        updateBlock: updateBlockHandler
+                    }}
+                    droppableId="form-builder"
+                    droppableItems={blocks}
+                    droppableClassName="py-10"
+                    onDragStartHandlerCallback={onDragStartHandler}
+                    onDragUpdateHandlerCallback={onDragUpdateHandler}
+                    onDragEndHandlerCallback={onDragEndHandler}
+                />
+            </div>
+        </>
     );
 }

@@ -22,6 +22,8 @@ import RequestForDeletionView from '@app/components/submission-request-for-delet
 import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
+import { resetBuilderMenuState } from '@app/store/form-builder/actions';
+import { useAppDispatch } from '@app/store/hooks';
 
 import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
@@ -91,17 +93,24 @@ export default function ModalContainer() {
     const router = useRouter();
     const { view, isOpen, closeModal, modalProps } = useModal();
 
+    const dispatch = useAppDispatch();
+
+    const closeModalHandler = () => {
+        dispatch(resetBuilderMenuState());
+        closeModal();
+    };
+
     useEffect(() => {
         // close search modal when route change
-        router.events.on('routeChangeStart', closeModal);
+        router.events.on('routeChangeStart', closeModalHandler);
         return () => {
-            router.events.off('routeChangeStart', closeModal);
+            router.events.off('routeChangeStart', closeModalHandler);
         };
     }, []);
 
     return (
         <Transition appear show={isOpen} as={Fragment}>
-            <Dialog as="div" className="fixed inset-0 z-[2500] h-full w-full overflow-y-auto overflow-x-hidden p-4 text-center sm:p-6 lg:p-8 xl:p-10 3xl:p-12" onClose={closeModal}>
+            <Dialog as="div" className="fixed inset-0 z-[2500] h-full w-full overflow-y-auto overflow-x-hidden p-4 text-center sm:p-6 lg:p-8 xl:p-10 3xl:p-12" onClose={closeModalHandler}>
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
                     <Dialog.Overlay className="fixed inset-0 z-40 cursor-pointer bg-gray-700 bg-opacity-60 backdrop-blur" />
                 </Transition.Child>
@@ -115,7 +124,7 @@ export default function ModalContainer() {
 
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
                 <div className="sr-only">
-                    <Button size="small" color="gray" shape="circle" onClick={closeModal} className="opacity-50 hover:opacity-80 ">
+                    <Button size="small" color="gray" shape="circle" onClick={closeModalHandler} className="opacity-50 hover:opacity-80 ">
                         <Close className="h-auto w-[13px]" />
                     </Button>
                 </div>

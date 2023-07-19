@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
-import { selectIsFormDirty } from '@app/store/form-builder/slice';
+import { selectIsFormDirty } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
 
 interface IFormBuilderLeaveListenerProps {
