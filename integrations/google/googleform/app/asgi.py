@@ -2,6 +2,7 @@
 import logging
 
 import sentry_sdk
+from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
 from fastapi import FastAPI
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
@@ -51,6 +52,9 @@ async def on_shutdown():
     await AiohttpClient.close_aiohttp_client()
 
 
+apm = make_apm_client()
+
+
 def get_application():
     """Initialize FastAPI application.
 
@@ -93,5 +97,6 @@ def get_application():
     app.include_router(root_api_router)
     log.debug("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
-
+    if settings.apm_settings.service_name and settings.apm_settings.server_url:
+        app.add_middleware(ElasticAPM, client=apm)
     return app

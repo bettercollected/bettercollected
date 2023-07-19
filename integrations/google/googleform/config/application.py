@@ -3,13 +3,12 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from pydantic import BaseSettings
 
+from googleform.config.apm_settings import APMSettings
 from googleform.config.database import MongoSettings
 from googleform.config.sentry_setting import SentrySettings
 from googleform.version import __version__
-
-from pydantic import BaseSettings
-
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
@@ -71,6 +70,7 @@ class Application(BaseSettings):
     GOOGLE_API_VERSION = "v2"
     GOOGLE_REVOKE_CREDENTIALS_URL = "https://oauth2.googleapis.com/revoke"
 
+    apm_settings: APMSettings = APMSettings()
     mongo_settings: MongoSettings = MongoSettings()
     sentry_settings: SentrySettings = SentrySettings()
 

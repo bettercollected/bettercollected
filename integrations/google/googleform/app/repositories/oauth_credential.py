@@ -3,6 +3,7 @@ from datetime import datetime
 from http import HTTPStatus
 from typing import Any
 
+import loguru
 from fastapi import HTTPException
 from pydantic.networks import EmailStr
 from pymongo.errors import (
@@ -47,8 +48,14 @@ class OauthCredentialRepository:
             )
 
             if document:
+                start_time = datetime.utcnow()
                 document.credentials = OauthCredentialRepository.decrypt_token(
                     user_id=document.user_id, token=document.credentials
+                )
+                loguru.logger.info(
+                    str(document.email)
+                    + ": Timer: for decryption :"
+                    + str(datetime.utcnow() - start_time)
                 )
                 return document
             return None

@@ -26,13 +26,10 @@ class GoogleFormRouter(Routable):
     async def _get_all_google_forms(
         self, credential: Oauth2CredentialDocument = Depends(get_user_credential)
     ):
-        start_time = datetime.datetime.utcnow()
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
         )
         forms_list = self.google_service.get_form_list(credential.credentials.dict())
-        loguru.logger.info(str(credential.email) + ": Timer Fetch All forms list API Call Time" + str(
-            datetime.datetime.utcnow() - start_time))
         return forms_list
 
     @get("/{form_id}", status_code=HTTPStatus.OK)
@@ -41,13 +38,11 @@ class GoogleFormRouter(Routable):
         form_id: str,
         credential: Oauth2CredentialDocument = Depends(get_user_credential),
     ):
-        start_time = datetime.datetime.utcnow()
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
         )
         form = self.google_service.get_form(form_id, credential.credentials.dict())
-        loguru.logger.info(str(credential.email) + "form_id: " + form_id + ": Timer Fetch single API Call Time" + str(
-            datetime.datetime.utcnow() - start_time))
+
         return form
 
     @post("/convert/standard_form")
