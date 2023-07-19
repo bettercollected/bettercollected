@@ -23,7 +23,7 @@ export default function LocaleDropdownUi() {
         },
         {
             label: 'nl',
-            value: 'DUTCH',
+            value: 'NEDERLANDS',
             icon: Netherland
         }
     ];

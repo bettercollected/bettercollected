@@ -1,10 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { GetServerSidePropsContext } from 'next';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
-
-import _ from 'lodash';
 
 import { ChevronLeft } from '@mui/icons-material';
 import cn from 'classnames';
@@ -31,7 +29,7 @@ import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useCreateWorkspaceMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
+import { useCreateWorkspaceMutation, useLazyGetWorkspaceNameAvailabilityQuery, useLazyGetWorkspaceNameSuggestionsQuery, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 import { getFullNameFromUser } from '@app/utils/userUtils';
 
@@ -39,6 +37,7 @@ interface FormDataDto {
     title: string;
     description: string;
     workspaceLogo: any;
+    workspaceName: null | string;
 }
 
 interface onBoardingProps {
@@ -79,15 +78,32 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
     const profileEditorRef = useRef<AvatarEditor>(null);
     const dispatch = useAppDispatch();
     const [isError, setError] = useState(false);
+    const [workspaceNameSuggestions, setWorkspaceNameSuggestions] = useState<Array<string>>([]);
+    const [isWorkspaceNameAvailable, setIsWorkspaceNameAvailable] = useState<boolean | null>(null);
     const profileName = getFullNameFromUser(user);
     const [stepCount, setStepCount] = useState(createWorkspace ? 1 : 0);
     const [patchExistingWorkspace, { isLoading, isSuccess }] = usePatchExistingWorkspaceMutation();
+    const [trigger] = useLazyGetWorkspaceNameSuggestionsQuery();
+    const [getWorkspaceAvailability] = useLazyGetWorkspaceNameAvailabilityQuery();
     const [createWorkspaceRequest, data] = useCreateWorkspaceMutation();
     const [formData, setFormData] = useState<FormDataDto>({
         title: workspace?.title.toLowerCase() !== 'untitled' ? workspace?.title || '' : '',
+        workspaceName: null,
         description: workspace?.description ?? '',
         workspaceLogo: workspace?.profileImage ?? null
     });
+
+    useEffect(() => {
+        if (formData.workspaceName === null) return;
+
+        async function getAvailability() {
+            return await getAvailabilityStatusOfWorkspaceName(formData.workspaceName as string);
+        }
+
+        getAvailability().then((res) => setIsWorkspaceNameAvailable(res));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formData.workspaceName]);
+
     const increaseStep = () => {
         setStepCount(stepCount + 1);
     };
@@ -117,7 +133,32 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         });
     };
 
-    const handleUpdateProfile = async (e: any) => {
+    const fetchSuggestionsForWorkspaceHandle = async (e: any) => {
+        if (!!e.target.value) {
+            const { isSuccess, data } = await trigger(e.target.value);
+            if (isSuccess) {
+                setWorkspaceNameSuggestions(data);
+                return;
+            }
+        }
+        setWorkspaceNameSuggestions([]);
+        return;
+    };
+
+    const setWorkspaceSuggestionToWorkspaceNameField = (suggestion: string) => {
+        setFormData({ ...formData, workspaceName: suggestion });
+    };
+
+    const getAvailabilityStatusOfWorkspaceName = async (workspaceName: string | null) => {
+        if (!workspaceName) return false;
+        const { isSuccess, data } = await getWorkspaceAvailability(workspaceName);
+        if (isSuccess) {
+            return data === 'True';
+        }
+        return false;
+    };
+
+    const handleUpdateProfile = async () => {
         if (!!profileEditorRef.current) {
             const dataUrl = profileEditorRef.current.getImage().toDataURL();
             const result = await fetch(dataUrl);
@@ -148,7 +189,10 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         createFormData.append('description', formData.description);
         const response: any = await createWorkspaceRequest(createFormData);
         if (response.error) {
-            toast(response.error?.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast(response.error?.data || t(toastMessage.somethingWentWrong), {
+                toastId: ToastId.ERROR_TOAST,
+                type: 'error'
+            });
         }
         if (response.data) {
             toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
@@ -166,7 +210,10 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         updateFormData.append('description', formData.description);
         const response: any = await patchExistingWorkspace({ workspace_id: workspace?.id, body: updateFormData });
         if (response.error) {
-            toast(response.error?.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast(response.error?.data || t(toastMessage.somethingWentWrong), {
+                toastId: ToastId.ERROR_TOAST,
+                type: 'error'
+            });
         }
         if (response.data) {
             toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
@@ -220,8 +267,56 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                     className="w-full !mb-0"
                     value={formData.title}
                     onChange={handleOnchange}
+                    onBlur={fetchSuggestionsForWorkspaceHandle}
                 />
                 {formData.title === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">{t(validationMessage.workspaceTitle)}</p>}
+
+                {/* workspace handle */}
+                <p className=" mb-3 mt-6 body1 text-black-900">
+                    {t(workspaceConstant.handle)}
+                    <span className="text-red-500">*</span>
+                </p>
+                <BetterInput
+                    InputProps={{
+                        sx: {
+                            height: '46px',
+                            borderColor: '#0764EB !important'
+                        },
+                        endAdornment: (
+                            <div className={'min-w-fit italic'}>
+                                {isWorkspaceNameAvailable === null ? (
+                                    <></>
+                                ) : isWorkspaceNameAvailable ? (
+                                    <p className={'text-green-600 text-xs md:text-sm'}>&#10004; {t(onBoarding.workspaceNameAvailable)}</p>
+                                ) : (
+                                    <p className={'text-red-600 text-xs md:text-sm'}>&#10007; {t(onBoarding.workspaceNameNotAvailable)}</p>
+                                )}
+                            </div>
+                        )
+                    }}
+                    id="workspaceName"
+                    error={formData.workspaceName === '' && isError}
+                    placeholder={t(placeHolder.enterWorkspaceHandle)}
+                    className="w-full !mb-0"
+                    value={!formData.workspaceName ? '' : formData.workspaceName}
+                    onChange={handleOnchange}
+                />
+                {formData.workspaceName === '' && isError && <p className="body4 !text-red-500 mb-4 mt-2 h-[10px]">{t(validationMessage.workspaceName)}</p>}
+
+                <div className={'flex italic items-center flex-wrap'}>
+                    {workspaceNameSuggestions.length ? <p className={'text-sm'}>{t(onBoarding.suggestions)}&nbsp;</p> : <></>}
+                    {workspaceNameSuggestions
+                        .filter((w) => w !== formData.workspaceName)
+                        .map((suggestion, idx) => (
+                            <p key={suggestion} className={'text-sm text-blue-500 cursor-pointer'} onClick={() => setWorkspaceSuggestionToWorkspaceNameField(suggestion)}>
+                                {suggestion}
+                                {idx === workspaceNameSuggestions.filter((w) => w !== formData.workspaceName).length - 1 ? <></> : <span>,&nbsp;</span>}
+                            </p>
+                        ))}
+                </div>
+
+                {/* workspace description */}
+
                 <p className={cn('mb-3 body1 text-black-900', formData.title === '' && isError ? 'mt-[24px]' : 'mt-[42px]')}>{t(localesCommon.description)}</p>
                 <BetterInput
                     inputProps={{ maxLength: 280 }}
@@ -239,8 +334,8 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
             <div className="flex justify-end mt-8">
                 <Button
                     size="medium"
-                    onClick={() => {
-                        if (formData.title !== '') {
+                    onClick={async () => {
+                        if (formData.title !== '' && formData.workspaceName !== '' && (await getAvailabilityStatusOfWorkspaceName(formData.workspaceName))) {
                             increaseStep();
                         } else {
                             setError(true);
