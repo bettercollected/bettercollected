@@ -86,9 +86,10 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
     const [trigger] = useLazyGetWorkspaceNameSuggestionsQuery();
     const [getWorkspaceAvailability] = useLazyGetWorkspaceNameAvailabilityQuery();
     const [createWorkspaceRequest, data] = useCreateWorkspaceMutation();
+    const workspaceName: string | null = (workspace?.workspaceName as string) === (workspace?.ownerId as string) ? null : (workspace?.workspaceName as string);
     const [formData, setFormData] = useState<FormDataDto>({
         title: workspace?.title.toLowerCase() !== 'untitled' ? workspace?.title || '' : '',
-        workspaceName: null,
+        workspaceName: workspaceName,
         description: workspace?.description ?? '',
         workspaceLogo: workspace?.profileImage ?? null
     });
@@ -187,6 +188,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         }
         createFormData.append('title', formData.title);
         createFormData.append('description', formData.description);
+        createFormData.append('workspace_name', formData.workspaceName as string);
         const response: any = await createWorkspaceRequest(createFormData);
         if (response.error) {
             toast(response.error?.data || t(toastMessage.somethingWentWrong), {
@@ -208,7 +210,9 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         }
         updateFormData.append('title', formData.title);
         updateFormData.append('description', formData.description);
+        updateFormData.append('workspace_name', formData.workspaceName as string);
         const response: any = await patchExistingWorkspace({ workspace_id: workspace?.id, body: updateFormData });
+        debugger;
         if (response.error) {
             toast(response.error?.data || t(toastMessage.somethingWentWrong), {
                 toastId: ToastId.ERROR_TOAST,
@@ -218,7 +222,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         if (response.data) {
             toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
             dispatch(setWorkspace(response.data));
-            router.replace(`/${workspace?.workspaceName}/dashboard`);
+            router.replace(`/${response?.data?.workspaceName}/dashboard`);
         }
     };
 
