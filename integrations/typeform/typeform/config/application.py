@@ -5,6 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import BaseSettings
 
+from typeform.config.apm_settings import APMSettings
 from typeform.config.database import MongoSettings
 from typeform.config.sentry_setting import SentrySettings
 from typeform.version import __version__
@@ -53,6 +54,7 @@ class Application(BaseSettings):
 
     AUTH_JWT_SECRET: str
 
+    apm_settings: APMSettings = APMSettings()
     mongo_settings: MongoSettings = MongoSettings()
     sentry_settings: SentrySettings = SentrySettings()
 

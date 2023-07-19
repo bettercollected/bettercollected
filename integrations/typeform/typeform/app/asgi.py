@@ -2,6 +2,7 @@
 import logging
 
 import sentry_sdk
+from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
 from fastapi import FastAPI
 from fastapi_utils.timing import add_timing_middleware
 from loguru import logger
@@ -43,6 +44,9 @@ async def on_shutdown():
     log.debug("Execute FastAPI shutdown event handler.")
     await container.http_client().aclose()
     # Gracefully close utilities.
+
+
+apm = make_apm_client()
 
 
 def get_application():
@@ -90,5 +94,7 @@ def get_application():
 
     include_middlewares(app)
     add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
+    if settings.apm_settings.service_name and settings.apm_settings.server_url:
+        app.add_middleware(ElasticAPM, client=apm)
 
     return app
