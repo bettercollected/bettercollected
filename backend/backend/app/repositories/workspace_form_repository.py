@@ -207,7 +207,10 @@ class WorkspaceFormRepository:
         self, workspace_ids: List[PydanticObjectId], user: User
     ):
         forms = await WorkspaceFormDocument.find(
-            {"$or": [{"workspace_id": {"$in": workspace_ids}}, {"user_id": user.id}]}
+            {
+                "$or": [{"workspace_id": {"$in": workspace_ids}}, {"user_id": user.id}],
+                "settings.provider": {"$ne": "self"},
+            }
         ).to_list()
         return [form.form_id for form in forms]
 

@@ -3,14 +3,13 @@ from dataclasses import asdict
 from http import HTTPStatus
 
 import loguru
-from temporalio.client import Client
-from temporalio.common import RetryPolicy
-from temporalio.exceptions import WorkflowAlreadyStartedError
-
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from common.configs.crypto import Crypto
 from common.utils.asyncio_run import asyncio_run
+from temporalio.client import Client
+from temporalio.common import RetryPolicy
+from temporalio.exceptions import WorkflowAlreadyStartedError
 
 
 class TemporalService:
@@ -24,7 +23,6 @@ class TemporalService:
             loguru.logger.info("Temporal Server Connected Successfully")
         except Exception as e:
             self.client = None
-            loguru.logger.exception(e)
             loguru.logger.error("Could not connect to Temporal server", e)
 
     async def start_user_deletion_workflow(self, user_tokens: UserTokens, user_id: str):

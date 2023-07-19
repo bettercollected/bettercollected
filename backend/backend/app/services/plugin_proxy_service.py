@@ -46,6 +46,7 @@ class PluginProxyService:
                 raise HTTPException(
                     HTTPStatus.INTERNAL_SERVER_ERROR, messages.proxy_server_error
                 )
+
             return response.json()
         except ConnectError:
             raise HTTPException(

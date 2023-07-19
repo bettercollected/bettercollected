@@ -7,12 +7,15 @@ from fastapi_pagination import Page
 from starlette.requests import Request
 
 from backend.app.container import container
+from backend.app.decorators.user_tag_decorators import user_tag
 from backend.app.exceptions import HTTPException
+from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.response_dtos import (
     WorkspaceFormPatchResponse,
     StandardFormCamelModel,
+    StandardFormResponseCamelModel,
 )
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.router import router
@@ -21,7 +24,7 @@ from backend.app.services.user_service import get_logged_user, get_user_if_logge
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.config import settings
 from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm, StandardFormResponse
+from common.models.standard_form import StandardForm
 from common.models.user import User
 
 
@@ -89,7 +92,7 @@ class WorkspaceFormsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         form_id: PydanticObjectId,
-        response: StandardFormResponse,
+        response: StandardFormResponseCamelModel,
         user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
@@ -106,7 +109,6 @@ class WorkspaceFormsRouter(Routable):
         response_id: PydanticObjectId,
         user: User = Depends(get_logged_user),
     ):
-
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
         return await self.workspace_form_service.delete_form_response(
@@ -152,6 +154,7 @@ class WorkspaceFormsRouter(Routable):
         return WorkspaceFormPatchResponse(**data.dict())
 
     @patch("/{form_id}/groups/add", summary="Add form in group")
+    @user_tag(tag=UserTagType.FORM_ADDED_TO_GROUP)
     async def patch_groups_for_form(
         self,
         workspace_id: PydanticObjectId,
@@ -176,6 +179,7 @@ class WorkspaceFormsRouter(Routable):
         )
 
     @post("/import/{provider}")
+    @user_tag(tag=UserTagType.FORM_IMPORTED)
     async def _import_form_to_workspace(
         self,
         workspace_id: PydanticObjectId,
