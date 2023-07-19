@@ -127,17 +127,17 @@ function MainApp({ Component, pageProps, router, emotionCache = clientSideEmotio
                     <NextNProgress color="#0764EB" startPosition={0} stopDelayMs={400} height={2} options={{ easing: 'ease' }} />
                     <ToastContainer position="bottom-center" autoClose={5000} hideProgressBar newestOnTop closeOnClick rtl={false} pauseOnFocusLoss={false} draggable pauseOnHover={false} theme="dark" />{' '}
                     <Provider store={store}>
-                        <EnabledFormProviders>
-                            <ServerSideWorkspaceDispatcher workspace={pageProps?.workspace}>
-                                <AuthStatusDispatcher workspace={pageProps?.workspace}>
-                                    <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
+                        <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
+                            <EnabledFormProviders>
+                                <ServerSideWorkspaceDispatcher workspace={pageProps?.workspace}>
+                                    <AuthStatusDispatcher workspace={pageProps?.workspace}>
                                         {getLayout(<Component {...pageProps} key={router.asPath} />)}
                                         <ModalContainer />
                                         <FullScreenModalContainer />
-                                    </PersistGate>
-                                </AuthStatusDispatcher>
-                            </ServerSideWorkspaceDispatcher>
-                        </EnabledFormProviders>
+                                    </AuthStatusDispatcher>
+                                </ServerSideWorkspaceDispatcher>
+                            </EnabledFormProviders>
+                        </PersistGate>
                     </Provider>
                 </MuiThemeProvider>
             </CacheProvider>
