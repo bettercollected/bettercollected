@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import { List, ListItem, ListItemButton, ListItemIcon, ListItemText, SxProps, Theme } from '@mui/material';
 
 import { INavbarItem } from '@app/models/props/navbar';
+import { isValidRelativeURL } from '@app/utils/urlUtils';
 
 interface INavigationListProps {
     navigationList: Array<INavbarItem>;
@@ -17,7 +18,7 @@ export default function NavigationList({ navigationList, className = '', sx = {}
 
     useEffect(() => {
         navigationList.forEach((lst) => {
-            router.prefetch(lst.url);
+            if (isValidRelativeURL(lst.url)) router.prefetch(lst.url);
         });
     }, [navigationList, router]);
 
