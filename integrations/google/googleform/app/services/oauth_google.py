@@ -26,6 +26,7 @@ from common.constants import (
 from common.models.user import UserInfo
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
+from googleform.app.utils import AiohttpClient
 from googleform.app.utils.google import dict_to_credential
 from googleform.config import settings
 
@@ -276,7 +277,8 @@ class OauthGoogleService:
                     "refresh_token": credentials.refresh_token,
                     "grant_type": "refresh_token",
                 }
-                token = requests.post(credentials.token_uri, data).json()
+                refreshed_token_response = await AiohttpClient.post(credentials.token_uri, data)
+                token = await refreshed_token_response.json()
                 if token.get("error"):
                     raise InvalidGrantError()
                 if not token.get("access_token") or not token.get("expires_in"):
@@ -287,9 +289,16 @@ class OauthGoogleService:
                     GOOGLE_DATETIME_FORMAT
                 )
                 oauth_credential.updated_at = current_date
-                return await self.oauth_credential_repo.update(
+                saved_credentials = await self.oauth_credential_repo.update(
                     oauth_credential.email, oauth_credential
                 )
+                logger.info(
+                    str(oauth_credential.email)
+                    + ": Timer: Oauth Token Refresh Time: "
+                    + str(datetime.utcnow() - oauth_fetch_start_time)
+                )
+                return saved_credentials
+
             logger.info(
                 str(oauth_credential.email)
                 + ": Timer: Oauth Token Fetch Time: "

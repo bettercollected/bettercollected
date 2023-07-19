@@ -1,7 +1,8 @@
-from common.services.http_client import HttpClient
+from concurrent.futures.thread import ThreadPoolExecutor
 
 from dependency_injector import containers, providers
 
+from common.services.http_client import HttpClient
 from googleform.app.repositories.form import FormRepository
 from googleform.app.repositories.form_response import FormResponseRepository
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository
@@ -10,6 +11,7 @@ from googleform.app.services.form_response import FormResponseService
 from googleform.app.services.google import GoogleService
 from googleform.app.services.oauth_credential import OauthCredentialService
 from googleform.app.services.oauth_google import OauthGoogleService
+from googleform.config import settings
 
 
 class Container(containers.DeclarativeContainer):
@@ -51,3 +53,5 @@ class Container(containers.DeclarativeContainer):
         oauth_credential_repo=oauth_credential_repo,
         oauth_google_service=oauth_google_service,
     )
+    executor: ThreadPoolExecutor = providers.Singleton(ThreadPoolExecutor,
+                                                       max_workers=settings.MAX_THREAD_POOL_EXECUTORS)

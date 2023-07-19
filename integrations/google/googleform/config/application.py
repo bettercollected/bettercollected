@@ -69,6 +69,7 @@ class Application(BaseSettings):
     GOOGLE_API_SERVICE_NAME = "drive"
     GOOGLE_API_VERSION = "v2"
     GOOGLE_REVOKE_CREDENTIALS_URL = "https://oauth2.googleapis.com/revoke"
+    MAX_THREAD_POOL_EXECUTORS = 150
 
     apm_settings: APMSettings = APMSettings()
     mongo_settings: MongoSettings = MongoSettings()

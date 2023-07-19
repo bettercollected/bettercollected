@@ -8,6 +8,7 @@ from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 
+from googleform.app.containers import Container
 from googleform.app.exceptions import (
     HTTPException,
     http_exception_handler,
@@ -21,7 +22,6 @@ from googleform.app.utils import AiohttpClient, RedisClient
 from googleform.config import settings
 
 log = logging.getLogger(__name__)
-
 
 async def on_startup():
     """Define FastAPI startup event handler.
@@ -48,7 +48,7 @@ async def on_shutdown():
     # Gracefully close utilities.
     if settings.USE_REDIS:
         await RedisClient.close_redis_client()
-
+    Container.executor = None
     await AiohttpClient.close_aiohttp_client()
 
 

@@ -1,7 +1,6 @@
 import jwt
 from starlette.requests import Request
 
-from common.models.user import User
 from googleform.app.exceptions import HTTPException
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
@@ -15,6 +14,5 @@ async def get_user_credential(request: Request) -> Oauth2CredentialDocument:
     jwt_response = jwt.decode(
         access_token, key=settings.AUTH_JWT_SECRET, algorithms=["HS256"]
     )
-    user = User(**jwt_response)
-    credential = await OauthCredentialRepository().get(user.sub)
+    credential = await OauthCredentialRepository().get(jwt_response.get("sub"))
     return credential
