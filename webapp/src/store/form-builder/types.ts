@@ -1,13 +1,15 @@
-import React from 'react';
+import { ActionCreatorWithPayload } from '@reduxjs/toolkit';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 
+import { AppDispatch } from '../store';
+
 export interface IBuilderMenuState {
-    spotlightField: { isOpen: boolean; afterFieldUuid: string };
-    commands: { isOpen: boolean; afterFieldUuid: string };
-    fieldSettings: { isOpen: boolean; atFieldUuid: string };
-    pipingFields: { isOpen: boolean; atFieldUuid: string };
-    pipingFieldSettings: { isOpen: boolean; uuid: string };
+    spotlightField?: { isOpen: boolean; afterFieldUuid: string };
+    commands?: { isOpen: boolean; afterFieldUuid: string };
+    fieldSettings?: { isOpen: boolean; atFieldUuid: string };
+    pipingFields?: { isOpen: boolean; atFieldUuid: string };
+    pipingFieldSettings?: { isOpen: boolean; uuid: string };
 }
 
 export interface IBuilderPipingState {}
@@ -20,19 +22,20 @@ export interface IBuilderStateVersion {
 export interface IBuilderState {
     id?: string;
     title: string;
-    description?: string;
+    description: string;
     menus?: IBuilderMenuState;
     piping?: IBuilderPipingState;
     fields: Record<string, IFormFieldState>;
     versions?: Array<IBuilderStateVersion>;
     currentVersionIndex?: number;
     isFormDirty?: boolean;
-    activeFieldIndex?: number;
+    activeFieldIndex: number;
 }
 
 export interface IBuilderStateProps {
     builderState: IBuilderState;
-    setBuilderState: React.Dispatch<React.SetStateAction<IBuilderState>> | ((state: IBuilderState) => Promise<void>);
+    setBuilderState: ActionCreatorWithPayload<Partial<IBuilderState>, 'builder/setBuilderState'>;
+    dispatch: AppDispatch;
 }
 
 export interface IFormFieldProperties {
@@ -59,4 +62,15 @@ export interface IFormFieldState {
     properties?: IFormFieldProperties;
     cssProperties?: Record<string, string | number>;
     validations?: IFormFieldValidation;
+}
+
+// Builder title and description DTO and Array
+export interface IBuilderTitleAndDescriptionObj {
+    id: string;
+    tagName: string;
+    type: FormBuilderTagNames;
+    key: 'title' | 'description';
+    position: number;
+    placeholder: string;
+    className: string;
 }

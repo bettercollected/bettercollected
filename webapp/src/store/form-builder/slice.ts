@@ -46,6 +46,7 @@ export const slice = createSlice({
         setIsFormDirty: (state, action) => {
             return { ...state, isFormDirty: action.payload };
         },
+        // Existing form fetched from db
         setEditForm: (state, action) => {
             const fields: any = {};
             for (const field of action.payload.fields) {
@@ -63,6 +64,7 @@ export const slice = createSlice({
                 fields: fields
             };
         },
+        // current active/focused field
         setActiveFieldIndex: (state, action) => {
             return {
                 ...state,
@@ -88,6 +90,7 @@ export const slice = createSlice({
             const { fieldId, isFocused } = action.payload;
             state.fields[fieldId].isFocused = isFocused;
         },
+        // update whole field with options
         updateField: (state, action) => {
             return {
                 ...state,
@@ -97,6 +100,8 @@ export const slice = createSlice({
                 }
             };
         },
+        // add field in certain position with certain type or replace something with id
+        // also applicable for question fields
         addFieldNewImplementation: (state, action) => {
             const { type, position, id } = action.payload;
             let newType = type;
@@ -125,6 +130,7 @@ export const slice = createSlice({
                 fields: newFieldsMap
             };
         },
+        // Remove this once the above addFieldNewImplementation
         addQuestionAndAnswerField: (state, action) => {
             let { position, type, id } = action.payload;
             const newTag = type.replace('question_', 'input_');
@@ -179,6 +185,7 @@ export const slice = createSlice({
         deleteField: (state, action) => {
             delete state.fields[action.payload];
         },
+        // move this into field options
         setFieldRequired: (state, action) => {
             return {
                 ...state,
@@ -193,6 +200,7 @@ export const slice = createSlice({
                 }
             };
         },
+        // move this into field option
         setFieldType: (state, action) => {
             return {
                 ...state,
@@ -205,6 +213,7 @@ export const slice = createSlice({
                 }
             };
         },
+        // not needed must look the implementation before removing it
         setFieldTitle: (state, action) => {
             return {
                 ...state,
@@ -229,6 +238,7 @@ export const slice = createSlice({
                 }
             };
         },
+        // used during reorder of components
         setFields: (state, action) => {
             const fields: any = {};
             action.payload.forEach((field: any, index: number) => {

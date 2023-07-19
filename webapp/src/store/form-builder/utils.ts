@@ -2,6 +2,29 @@ import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 
+import { IBuilderTitleAndDescriptionObj } from './types';
+
+export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionObj> = [
+    {
+        id: 'field-title',
+        tagName: 'h1',
+        type: FormBuilderTagNames.LAYOUT_HEADER1,
+        key: 'title',
+        position: 0,
+        placeholder: 'Form title',
+        className: 'font-semibold text-3xl text-black-800'
+    },
+    {
+        id: 'field-description',
+        tagName: 'p',
+        type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+        key: 'description',
+        position: 1,
+        placeholder: 'Form description',
+        className: 'text-base text-black-800'
+    }
+];
+
 export function getInitialPropertiesForFieldType(type: FormBuilderTagNames) {
     switch (type) {
         case FormBuilderTagNames.INPUT_RATING:
