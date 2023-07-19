@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 
-import { useDispatch } from 'react-redux';
+import FormBuilderContainerWrapper from '@Components/HOCs/FormBuilderContainerWrapper';
 
-import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import environments from '@app/configs/environments';
 import FormBuilder from '@app/containers/FormBuilder';
 import Layout from '@app/layouts/_layout';
@@ -10,6 +9,7 @@ import { getServerSidePropsForDashboardFormPage } from '@app/lib/serverSideProps
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { resetForm, setEditForm } from '@app/store/form-builder/slice';
+import { useAppDispatch } from '@app/store/hooks';
 
 export default function EditFromPage(props: any) {
     const {
@@ -21,7 +21,7 @@ export default function EditFromPage(props: any) {
         workspace: WorkspaceDto;
         _nextI18Next: any;
     } = props;
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
 
     useEffect(() => {
         return () => {
@@ -34,9 +34,11 @@ export default function EditFromPage(props: any) {
     }, [form]);
 
     return (
-        <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
-            <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} isEditMode />
-        </Layout>
+        <FormBuilderContainerWrapper>
+            <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
+                <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} isEditMode />
+            </Layout>
+        </FormBuilderContainerWrapper>
     );
 }
 

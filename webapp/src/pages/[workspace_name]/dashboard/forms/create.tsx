@@ -1,14 +1,14 @@
 import { useEffect } from 'react';
 
-import { useDispatch } from 'react-redux';
+import FormBuilderContainerWrapper from '@Components/HOCs/FormBuilderContainerWrapper';
 
-import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import environments from '@app/configs/environments';
 import FormBuilder from '@app/containers/FormBuilder';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { resetForm } from '@app/store/form-builder/slice';
+import { useAppDispatch } from '@app/store/hooks';
 
 interface ICreateFormProps {
     workspace: WorkspaceDto;
@@ -16,16 +16,18 @@ interface ICreateFormProps {
 }
 
 export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormProps) {
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
 
     useEffect(() => {
         dispatch(resetForm());
     }, []);
 
     return environments.ENABLE_FORM_BUILDER ? (
-        <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
-            <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} />
-        </Layout>
+        <FormBuilderContainerWrapper>
+            <Layout isCustomDomain={false} isClientDomain={true} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
+                <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} />
+            </Layout>
+        </FormBuilderContainerWrapper>
     ) : (
         <></>
     );
