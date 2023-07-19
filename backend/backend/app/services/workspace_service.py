@@ -1,4 +1,5 @@
 import os
+import re
 from http import HTTPStatus
 
 import bson
@@ -237,6 +238,32 @@ class WorkspaceService:
         workspace_document.custom_domain = ""
         saved_workspace = await workspace_document.save()
         return WorkspaceResponseDto(**saved_workspace.dict())
+
+    async def generateUniqueNamesFromTheWorkspaceHandle(self, handle: str):
+        suggestions = []
+        clean_workspace_name = re.sub(r"\W+", "", handle)
+        is_valid_workspace_handle = await self.check_if_workspace_handle_is_unique(
+            clean_workspace_name
+        )
+        if is_valid_workspace_handle:
+            suggestions.append(clean_workspace_name)
+        for x in range(2, 6):
+            workspace_suggestion = clean_workspace_name + str(x)
+            is_valid_workspace_handle = await self.check_if_workspace_handle_is_unique(
+                workspace_suggestion
+            )
+            if is_valid_workspace_handle:
+                suggestions.append(workspace_suggestion)
+        is_valid_workspace_handle = await self.check_if_workspace_handle_is_unique(
+            clean_workspace_name
+        )
+        return suggestions
+
+    async def check_if_workspace_handle_is_unique(self, title: str):
+        workspace_title = await WorkspaceDocument.find_one({"workspace_name": title})
+        if workspace_title:
+            return False
+        return True
 
     async def get_mine_workspaces(self, user: User):
         workspace_ids = await self._workspace_user_service.get_mine_workspaces(user.id)
