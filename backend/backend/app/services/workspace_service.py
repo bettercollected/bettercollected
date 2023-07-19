@@ -247,16 +247,17 @@ class WorkspaceService:
         )
         if is_valid_workspace_handle:
             suggestions.append(clean_workspace_name)
-        for x in range(2, 6):
-            workspace_suggestion = clean_workspace_name + str(x)
+        i = 1
+        while 1:
+            workspace_suggestion = clean_workspace_name + str(i)
             is_valid_workspace_handle = await self.check_if_workspace_handle_is_unique(
                 workspace_suggestion
             )
             if is_valid_workspace_handle:
                 suggestions.append(workspace_suggestion)
-        is_valid_workspace_handle = await self.check_if_workspace_handle_is_unique(
-            clean_workspace_name
-        )
+            if len(suggestions) == 6:
+                break
+            i += 1
         return suggestions
 
     async def check_if_workspace_handle_is_unique(self, title: str):
