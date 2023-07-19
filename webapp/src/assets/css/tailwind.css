@@ -411,3 +411,9 @@ p {
 .builder-block:hover .builder-block-actions {
     @apply visible !important;
 }
+
+[data-placeholder]:empty:before {
+    content: attr(data-placeholder);
+
+    @apply text-neutral-400;
+}

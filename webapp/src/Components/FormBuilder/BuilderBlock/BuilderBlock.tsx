@@ -196,18 +196,20 @@ export default function FormBuilderBlock({ item, position, addBlock, duplicateBl
     };
 
     const handleKeyDown = (event: React.KeyboardEvent) => {
-        event.preventDefault();
         if (event.key === CMD_KEY) {
+            event.preventDefault();
             // If the user starts to enter a command, we store a backup copy of
             // the html. We need this to restore a clean version of the content
             // after the content type selection was finished.
             setState({ ...state, htmlBackup: state.html });
         } else if (event.key === 'Backspace' && !state.html) {
+            event.preventDefault();
             deleteBlock({ id: item.id });
         } else if (event.key === 'Enter' && state.previousKey !== 'Shift' && !state.tagSelectorMenuOpen) {
             // If the user presses Enter, we want to add a new block
             // Only the Shift-Enter-combination should add a new paragraph,
             // i.e. Shift-Enter acts as the default enter behaviour
+            event.preventDefault();
             const newBlock: any = {
                 id: item.id,
                 html: state.html,
@@ -369,7 +371,7 @@ export default function FormBuilderBlock({ item, position, addBlock, duplicateBl
                                         className={`m-0 p-0 w-full focus-visible:border-0 focus-visible:outline-none ${contentEditableClassNames(state.placeholder, item.type)}`}
                                     />
                                 </div>
-                                {/*<FormBuilderTagSelector className={state.tagSelectorMenuOpen ? 'visible' : 'invisible'} closeMenu={closeTagSelectorMenu} handleSelection={handleTagSelection} />*/}
+                                {/* <FormBuilderTagSelector className={state.tagSelectorMenuOpen ? 'visible' : 'invisible'} closeMenu={closeTagSelectorMenu} handleSelection={handleTagSelection} /> */}
                             </div>
                         )}
                     </div>
