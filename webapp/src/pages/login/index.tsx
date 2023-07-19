@@ -1,17 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
+import Link from 'next/link';
 
 import { Check } from '@mui/icons-material';
+import Divider from '@mui/material/Divider';
 
 import FormProviderContext from '@app/Contexts/FormProviderContext';
 import ImageWorkspacePreview from '@app/assets/images/workspace-preview.png';
+import BetterInput from '@app/components/Common/input';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
+import Button from '@app/components/ui/button';
 import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { signInScreen } from '@app/constants/locales/signin-screen';
+import { workspaceConstant } from '@app/constants/locales/workspace';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { IntegrationFormProviders } from '@app/models/dtos/provider';
@@ -71,6 +77,8 @@ export async function getServerSideProps(_context: any) {
 export const Login = () => {
     const { t } = useTranslation();
 
+    const [email, setEmail] = useState('');
+
     const constants = {
         heading4: t(signInScreen.features.title),
         heading3: t(signInScreen.signIn),
@@ -78,9 +86,13 @@ export const Login = () => {
         paragraphs: [t(signInScreen.features.feature1), t(signInScreen.features.feature2), t(signInScreen.features.feature3), t(signInScreen.features.feature4), t(signInScreen.features.feature5), t(signInScreen.features.feature6)]
     };
 
+    const handleEmailInput = (e: any) => {
+        setEmail(e.target.value);
+    };
+
     return (
         <Layout className="min-h-screen  ">
-            <div className="absolute h-fit  top-0 left-0  w-full flex flex-col md:flex-row">
+            <div className="absolute h-fit top-0 left-0 w-full flex flex-col md:flex-row">
                 <div className={`bg-brand-500 relative order-2 md:order-1 min-h-screen md:max-h-screen overflow-hidden h-fit md:h-full w-full md:w-[50%] flex flex-col justify-center`}>
                     <div className="flex flex-col px-8 md:max-h-[300px] my-10 md:px-[94px] ">
                         <h1 className="h4 !text-black-100 mb-6">{constants.heading4}</h1>
@@ -97,17 +109,30 @@ export const Login = () => {
                         </div>
                     </div>
                 </div>
-                <div className="flex flex-col order-1 md:order-2 items-start justify-start px-8 py-7 md:py-8 md:px-[110px] h-fit md:h-full w-full md:w-[50%]">
+                <div className="flex flex-col order-1 md:order-2 items-start justify-start md:justify-center px-8 py-7 md:py-8 md:px-[110px] h-fit md:h-full w-full md:max-w-[716px]">
                     <div className="mb-28">
                         <Logo isLink={false} />
                     </div>
-                    <h3 className="h3 mb-4">{constants.heading3}</h3>
-                    <p className="sh2 mb-12 !text-black-700">{constants.subHeading2}</p>
+                    <h3 className="h3 mb-[16px]">{constants.heading3}</h3>
+                    <div className={'flex items-center sh2 text-brand-500'}>
+                        <p className="!text-black-700">{constants.subHeading2}</p>
+                        <div className={'!text-brand-500'}> Sign up</div>
+                    </div>
+
+                    <p className=" mb-[8px] mt-[44px] text-black-900">Enter your email</p>
+                    <BetterInput placeholder={'Enter your email'} value={email} onChange={handleEmailInput} />
+                    <Button variant="solid" className={'w-full mt-[32px] mb-[40px]'} size={'large'}>
+                        Continue
+                    </Button>
+
+                    <Divider orientation="horizontal" flexItem className={'text-black-700 mb-[40px]'}>
+                        Or sign in using
+                    </Divider>
 
                     <div className="flex flex-col gap-[20px] mb-[60px]">
                         <FormProviderContext.Consumer>
                             {(formProviders: Array<IntegrationFormProviders>) => (
-                                <>
+                                <div className="flex gap-4 md:flex-row flex-col gap-4">
                                     {formProviders.map((provider: IntegrationFormProviders) => (
                                         <ConnectWithProviderButton
                                             key={provider.providerName}
@@ -117,7 +142,7 @@ export const Login = () => {
                                             creator
                                         />
                                     ))}
-                                </>
+                                </div>
                             )}
                         </FormProviderContext.Consumer>
                     </div>
