@@ -45,6 +45,7 @@ camel-converter = "^3.0.0"
 sentry-sdk = {extras = ["fastapi"], version = "^1.24.0"}
 tink = "^1.7.0"
 temporalio = "^1.2.0"
+elastic-apm = "^6.17.0"
 
 [tool.poetry.scripts]
 backend = 'backend.cli:cli'

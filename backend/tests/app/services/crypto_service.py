@@ -25,9 +25,9 @@ def crypto_service(test_keyset):
 
 
 def test_encryption_decryption(crypto_service):
-    workspace_id = "my-workspace-id-1"
-    form_id = "my-form-id-1"
-    response_data = "some-json-string"
+    workspace_id = "my-workspace-id-1" * 100
+    form_id = "my-form-id-1" * 100
+    response_data = "some-json-string" * 1000
 
     encrypted_response = crypto_service.encrypt(workspace_id, form_id, response_data)
     decrypted_response = crypto_service.decrypt(

@@ -3,10 +3,8 @@
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
-from pydantic import BaseSettings
-
 from backend.config.api_settings import ApiSettings
+from backend.config.apm_settings import APMSettings
 from backend.config.auth_settings import AuthSettings
 from backend.config.aws import AWSSettings
 from backend.config.database import MongoSettings
@@ -14,6 +12,8 @@ from backend.config.https_certificate import HttpsCertificateApiSettings
 from backend.config.schedular_settings import SchedularSettings
 from backend.config.sentry_setting import SentrySettings
 from backend.config.temporal_settings import TemporalSettings
+from dotenv import load_dotenv
+from pydantic import BaseSettings
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
@@ -36,7 +36,7 @@ class Application(BaseSettings):
     """
 
     DEBUG: bool = True
-
+    apm_settings: APMSettings = APMSettings()
     api_settings: ApiSettings = ApiSettings()
     auth_settings: AuthSettings = AuthSettings()
     mongo_settings: MongoSettings = MongoSettings()
