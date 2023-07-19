@@ -6,10 +6,12 @@ from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
+from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.temporal_service import TemporalService
+from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
@@ -30,6 +32,7 @@ class AuthService:
         workspace_service: WorkspaceService,
         temporal_service: TemporalService,
         crypto: Crypto,
+        user_tags_service: UserTagsService,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
@@ -38,6 +41,7 @@ class AuthService:
         self.workspace_service = workspace_service
         self.temporal_service = temporal_service
         self.crypto = crypto
+        self.user_tags_service = user_tags_service
 
     async def get_user_status(self, user: User):
         response_data = await self.http_client.get(
@@ -92,7 +96,6 @@ class AuthService:
             settings.auth_settings.CALLBACK_URI, params={"jwt_token": jwt_token}
         )
         user = User(**response_data)
-        await workspaces_service.create_workspace(user)
         decrypted_data = json.loads(self.crypto.decrypt(state))
         state = OAuthState(**decrypted_data)
         if state.email is not None and user.sub != state.email:
@@ -116,6 +119,9 @@ class AuthService:
         )
         user = response_data.get("user")
         if user and Roles.FORM_CREATOR in user.get("roles"):
+            await self.user_tags_service.add_user_tag(
+                user_id=User(**user).id, tag=UserTagType.NEW_USER
+            )
             await workspaces_service.create_workspace(User(**user))
         return user, response_data.get("client_referer_url", "")
 

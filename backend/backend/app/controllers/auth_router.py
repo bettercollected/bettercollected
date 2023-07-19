@@ -62,7 +62,7 @@ class AuthRoutes(Routable):
         self,
         provider_name: str,
         request: Request,
-        user=Depends(get_user_if_logged_in),
+        user=Depends(get_logged_user),
     ):
         client_referer_url = request.headers.get("referer")
         oauth_url = await self.auth_service.get_oauth_url(
@@ -77,7 +77,7 @@ class AuthRoutes(Routable):
         provider_name: str = None,
         state: str = None,
         code: str = None,
-        user=Depends(get_user_if_logged_in),
+        user=Depends(get_logged_user),
     ):
         if not state or not code:
             return {"message": "You cancelled the authorization request."}

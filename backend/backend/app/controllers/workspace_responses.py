@@ -6,6 +6,8 @@ from fastapi import Depends
 from fastapi_pagination import Page
 
 from backend.app.container import container
+from backend.app.decorators.user_tag_decorators import user_tag_from_workspace
+from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.models.response_dtos import StandardFormResponseCamelModel
@@ -91,6 +93,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
         )
 
     @delete("/submissions/{submission_id}")
+    @user_tag_from_workspace(tag=UserTagType.DELETION_REQUEST_RECEIVED)
     async def _request_workspace_form_response_delete(
         self,
         workspace_id: PydanticObjectId,

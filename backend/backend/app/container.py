@@ -14,6 +14,7 @@ from backend.app.repositories.form_response_repository import FormResponseReposi
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
+from backend.app.repositories.user_tags_repository import UserTagsRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
@@ -32,6 +33,7 @@ from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
 from backend.app.services.temporal_service import TemporalService
+from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_members_service import WorkspaceMembersService
 from backend.app.services.workspace_responders_service import WorkspaceRespondersService
@@ -50,6 +52,11 @@ class AppContainer(containers.DeclarativeContainer):
 
     database_client: AsyncIOMotorClient = providers.Singleton(
         AsyncIOMotorClient, settings.mongo_settings.URI
+    )
+
+    user_tags_repo = providers.Singleton(UserTagsRepository)
+    user_tags_service = providers.Singleton(
+        UserTagsService, user_tags_repo=user_tags_repo
     )
 
     # Repositories
@@ -105,6 +112,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_repo=workspace_user_repo,
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
+        user_tags_service=user_tags_service,
     )
 
     form_response_service: FormResponseService = providers.Singleton(
@@ -132,7 +140,7 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     form_import_service: FormImportService = providers.Singleton(
-        FormImportService, form_service=form_service
+        FormImportService, form_service=form_service, workspace_repo=workspace_repo
     )
 
     form_schedular = providers.Singleton(
@@ -161,8 +169,8 @@ class AppContainer(containers.DeclarativeContainer):
         schedular=schedular,
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
+        user_tags_service=user_tags_service,
     )
-
     workspace_service: WorkspaceService = providers.Singleton(
         WorkspaceService,
         http_client=http_client,
@@ -172,6 +180,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_service=workspace_form_service,
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
+        user_tags_service=user_tags_service,
     )
 
     auth_service: AuthService = providers.Singleton(
@@ -183,6 +192,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_service=workspace_service,
         temporal_service=temporal_service,
         crypto=crypto,
+        user_tags_service=user_tags_service,
     )
 
     workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(

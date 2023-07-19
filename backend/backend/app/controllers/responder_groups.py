@@ -6,6 +6,8 @@ from fastapi import Depends
 from pydantic import EmailStr
 
 from backend.app.container import container
+from backend.app.decorators.user_tag_decorators import user_tag
+from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.router import router
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.user_service import get_logged_user
@@ -32,6 +34,7 @@ class ResponderGroupsRouter(Routable):
         )
 
     @post("")
+    @user_tag(tag=UserTagType.GROUP_CREATED)
     async def create(
         self,
         workspace_id: PydanticObjectId,

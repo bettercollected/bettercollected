@@ -5,6 +5,7 @@ from typing import Any, Dict
 
 from fastapi import Body, Depends
 from starlette.requests import Request
+from starlette.responses import Response
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
@@ -66,7 +67,9 @@ class PluginProxy(BasePluginRoute):
         )
         return data
 
-    async def import_forms(self, provider: str | FormProvider, request: Request):
+    async def import_forms(
+        self, provider: str | FormProvider, request: Request, response: Response
+    ):
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         data = await self.plugin_proxy_service.pass_request(
             request, f"{proxy_url}/{provider}/forms"
