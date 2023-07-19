@@ -10,9 +10,9 @@ export default class EnterCommandListener extends ICommandListener {
         this.state = state;
     }
 
-    execute(callback?: Function | undefined): void {
+    execute(event: React.KeyboardEvent, callback?: Function | undefined): void {
+        event.preventDefault();
         if (this.state) {
-            console.log(this.state);
             // TODO: add a new block here
         }
 

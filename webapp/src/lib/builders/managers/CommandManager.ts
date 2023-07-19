@@ -20,22 +20,23 @@ export default class CommandManager {
 
     static getShortcutFromEvent(event: React.KeyboardEvent): FormBuilderCommands | string | null {
         if ((event.ctrlKey || event.metaKey) && (event.key === 'k' || event.key === 'K')) {
+            event.preventDefault();
             return FormBuilderCommands.SPOTLIGHT;
         }
-        if (event.key === 'Enter') {
-            return FormBuilderCommands.ENTER;
-        }
-        if (event.key === 'ArrowUp') {
-            return FormBuilderCommands.ARROW_UP;
-        }
-        if (event.key === 'ArrowDown') {
-            return FormBuilderCommands.ARROW_DOWN;
-        }
+        // if (event.key === 'Enter') {
+        //     return FormBuilderCommands.ENTER;
+        // }
+        // if (event.key === 'ArrowUp') {
+        //     return FormBuilderCommands.ARROW_UP;
+        // }
+        // if (event.key === 'ArrowDown') {
+        //     return FormBuilderCommands.ARROW_DOWN;
+        // }
         // Add more shortcut checks as needed
         return null;
     }
 
-    static executeCommand(shortcut: string | FormBuilderCommands, callback?: Function) {
+    static executeCommand(shortcut: string | FormBuilderCommands, event: React.KeyboardEvent, callback?: Function) {
         const command = this.commands[shortcut];
 
         if (shortcut === FormBuilderCommands.ENTER && (this.activeContext === 'SPOTLIGHT' || this.activeContext === 'COMMAND' || this.activeContext === 'PREVIEW')) {
@@ -44,7 +45,7 @@ export default class CommandManager {
         }
 
         if (command) {
-            command.execute(callback);
+            command.execute(event, callback);
         }
     }
 }

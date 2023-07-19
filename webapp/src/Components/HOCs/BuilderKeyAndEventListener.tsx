@@ -7,17 +7,29 @@ import SpotlightCommandListener from '@app/lib/builders/listeners/implementation
 import ICommandListener from '@app/lib/builders/listeners/interfaces/ICommandListener';
 import CommandManager from '@app/lib/builders/managers/CommandManager';
 import { FormBuilderCommands } from '@app/models/enums/FormBuilderCommands';
+import { setBuilderMenuState, setBuilderState } from '@app/store/form-builder/actions';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderStateProps } from '@app/store/form-builder/types';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { AppDispatch } from '@app/store/store';
 
 interface IBuilderSpotlightDispatcherProps {
     children: React.ReactNode | React.ReactNode[];
-    state: IBuilderStateProps;
 }
 
-export default function BuilderSpotlightDispatcher({ state, children }: IBuilderSpotlightDispatcherProps) {
+export default function BuilderKeyAndEventListener({ children }: IBuilderSpotlightDispatcherProps) {
     const { openModal } = useModal();
 
+    const dispatch: AppDispatch = useAppDispatch();
+    const builderState = useAppSelector(selectBuilderState);
+    const state: IBuilderStateProps = {
+        builderState,
+        setBuilderState,
+        dispatch
+    };
+
     const spotlightCallback = () => {
+        dispatch(setBuilderMenuState({ spotlightField: { isOpen: true, afterFieldUuid: '' } }));
         openModal('FORM_BUILDER_SPOTLIGHT_VIEW', state);
     };
 
@@ -26,23 +38,23 @@ export default function BuilderSpotlightDispatcher({ state, children }: IBuilder
         [FormBuilderCommands.SPOTLIGHT]: {
             listener: new SpotlightCommandListener(),
             callback: spotlightCallback
-        },
-        [FormBuilderCommands.ENTER]: {
-            listener: new EnterCommandListener(state)
-        },
-        [FormBuilderCommands.ARROW_UP]: {
-            listener: new ArrowCommandListener(state, FormBuilderCommands.ARROW_UP)
-        },
-        [FormBuilderCommands.ARROW_DOWN]: {
-            listener: new ArrowCommandListener(state, FormBuilderCommands.ARROW_DOWN)
         }
+        // [FormBuilderCommands.ENTER]: {
+        //     listener: new EnterCommandListener(state)
+        // },
+        // [FormBuilderCommands.ARROW_UP]: {
+        //     listener: new ArrowCommandListener(state, FormBuilderCommands.ARROW_UP)
+        // },
+        // [FormBuilderCommands.ARROW_DOWN]: {
+        //     listener: new ArrowCommandListener(state, FormBuilderCommands.ARROW_DOWN)
+        // }
     };
 
     const handleKeyDown = (event: React.KeyboardEvent) => {
         const shortcut = CommandManager.getShortcutFromEvent(event);
         if (shortcut) {
             // Execute the command for the matching shortcut
-            CommandManager.executeCommand(shortcut, commandListeners[shortcut].callback);
+            CommandManager.executeCommand(shortcut, event, commandListeners[shortcut].callback);
         }
     };
 
