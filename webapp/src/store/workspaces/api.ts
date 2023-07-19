@@ -160,6 +160,18 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: [WORKSPACE_TAGS]
         }),
+        getWorkspaceNameSuggestions: builder.query<any, any>({
+            query: (request) => ({
+                url: `/workspaces/suggest-handle/${request}`,
+                method: 'GET'
+            })
+        }),
+        getWorkspaceNameAvailability: builder.query<any, any>({
+            query: (request) => ({
+                url: `/workspaces/check-handle-availability/${request}`,
+                method: 'GET'
+            })
+        }),
         getWorkspace: builder.query<WorkspaceDto, string>({
             query: (body) => ({
                 url: `/workspaces/${body}`,
@@ -455,6 +467,8 @@ export const {
     useGetWorkspaceRespondersQuery,
     useGetWorkspaceSubmissionQuery,
     useLazyGetWorkspaceSubmissionQuery,
+    useLazyGetWorkspaceNameSuggestionsQuery,
+    useLazyGetWorkspaceNameAvailabilityQuery,
     useSearchWorkspaceFormsMutation,
     useGetFormsSubmissionsQuery,
     usePatchFormMutation,

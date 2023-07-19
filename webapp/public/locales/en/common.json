@@ -372,7 +372,10 @@
     "ADD_WORKSPACE": "Add your workspace",
     "DESCRIPTION": "Please create your workspace so that your team know you are here.",
     "TIME_MESSAGE": "It will only take few minutes",
-    "WELCOME_MESSAGE": "Welcome to BetterCollected."
+    "WELCOME_MESSAGE": "Welcome to BetterCollected.",
+    "SUGGESTIONS": "suggestions:",
+    "AVAILABLE": "Available",
+    "NOT_AVAILABLE": "Not Available"
   },
   "OR": "Or",
   "OTP_RENDERER": {
@@ -611,7 +614,8 @@
     "PREVIEW.EMPTY_FORM_TITLE": "No forms to show",
     "PROFILE_IMAGE": "Workspace Profile Image",
     "TITLE": "Workspace Title",
-    "TITLE.VALIDATION_MESSAGE": "Workspace title is required",
+    "TITLE_VALIDATION_MESSAGE": "Workspace title is required",
+    "WORKSPACE_NAME_VALIDATION_MESSAGE":"Workspace Handle is required",
     "URL": "Worksapce URL"
   }
 }

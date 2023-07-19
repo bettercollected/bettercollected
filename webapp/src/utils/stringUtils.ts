@@ -8,8 +8,7 @@ export const shortenStr = (str: string | number, expectedLength?: number, firstI
 };
 
 export const isEmptyString = (str: string) => {
-    if (str.length === 0) return true;
-    return false;
+    return str.length === 0;
 };
 
 export const toMidDottedStr = (str: string | number, leadingVisible = 12, firstIndex = 0) => {

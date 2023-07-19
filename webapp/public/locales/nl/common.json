@@ -365,7 +365,10 @@
     "ADD_WORKSPACE": "Voeg je werkruimte toe",
     "DESCRIPTION": "Maak uw werkruimte aan zodat uw team weet dat u er bent.",
     "TIME_MESSAGE": "Het duurt maar een paar minuten",
-    "WELCOME_MESSAGE": "Welkom bij BetterCollected."
+    "WELCOME_MESSAGE": "Welkom bij BetterCollected.",
+    "SUGGESTIONS": "suggesties:",
+    "AVAILABLE": "Beschikbaar",
+    "NOT_AVAILABLE": "Niet beschikbaar"
   },
   "OR": "of",
   "OTP_RENDERER": {
@@ -591,7 +594,8 @@
     "PREVIEW.EMPTY_FORM_TITLE": "Geen formulieren om te tonen",
     "PROFILE_IMAGE": "Werkruimte profielafbeelding",
     "TITLE": "Werkruimtetitel",
-    "TITLE.VALIDATION_MESSAGE": "Werkruimtetitel is vereist",
+    "TITLE_VALIDATION_MESSAGE": "Werkruimtetitel is vereist",
+    "WORKSPACE_NAME_VALIDATION_MESSAGE": "Werkruimtehandle is vereist",
     "URL": "Workspace-URL"
   }
 }
