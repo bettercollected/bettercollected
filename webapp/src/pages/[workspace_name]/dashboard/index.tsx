@@ -48,6 +48,14 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                             disableBeacon: false
                         },
                         {
+                            title: <JoyrideStepTitle text="Workspace Collaborators" />,
+                            content: <JoyrideStepContent>Invite others to collaborate on your workspace.</JoyrideStepContent>,
+                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_COLLABORATORS}`,
+                            placementBeacon: 'bottom-end',
+                            disableBeacon: false
+                        },
+
+                        {
                             title: <JoyrideStepTitle text="Share your workspace" />,
                             content: <JoyrideStepContent>Share your workspace in different social media platforms, or copy the link via &quot;Share&quot; button.</JoyrideStepContent>,
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_SHARE}`,
@@ -62,6 +70,13 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                                 </JoyrideStepContent>
                             ),
                             target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_PREVIEW}`,
+                            placementBeacon: 'bottom-end',
+                            disableBeacon: false
+                        },
+                        {
+                            title: <JoyrideStepTitle text="Edit your workspace" />,
+                            content: <JoyrideStepContent>Customize your workspace with your own name and logo.</JoyrideStepContent>,
+                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_EDIT}`,
                             placementBeacon: 'bottom-end',
                             disableBeacon: false
                         }
