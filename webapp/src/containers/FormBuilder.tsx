@@ -202,10 +202,12 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             placeholder={b.placeholder}
                             className={b.className}
                             onChangeCallback={(event: FormEvent<HTMLElement>) => {
-                                dispatch(setBuilderState({ isFormDirty: true, [b.key]: event.currentTarget.innerText }));
+                                // @ts-ignore
+                                const value = b.key === 'title' ? event.currentTarget.innerText : event.target.value;
+                                dispatch(setBuilderState({ isFormDirty: true, [b.key]: value }));
                             }}
                             onKeyUpCallback={(event: React.KeyboardEvent<HTMLElement>) => {
-                                if (event.key === 'Enter' || event.key === 'ArrowDown') {
+                                if ((event.key === 'Enter' && !event.shiftKey) || event.key === 'ArrowDown') {
                                     // TODO: add support for activeFieldIndex increase if there are no elements
                                     // TODO: add support for delete key and backspace key
                                     event.preventDefault();

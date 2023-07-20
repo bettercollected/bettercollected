@@ -39,7 +39,6 @@ interface IBuilderBlockProps {
 export default function FormBuilderBlock({ positionOffset = 0, droppableClassName = '' }: IBuilderBlockProps) {
     const dispatch = useAppDispatch();
     const builderState = useAppSelector(selectBuilderState);
-    const fields = Object.values(builderState.fields);
 
     const onDragStartHandler: OnDragStartResponder = (start: DragStart, provided: ResponderProvided) => {};
 
@@ -47,28 +46,29 @@ export default function FormBuilderBlock({ positionOffset = 0, droppableClassNam
 
     const onDragEndHandler: OnDragEndResponder = (result: DropResult, provided: ResponderProvided) => {
         if (!result.destination || !result.source) return;
-        const items: Array<IFormFieldState> = reorder(fields, result.source.index - positionOffset, result.destination.index - positionOffset);
+        const items: Array<IFormFieldState> = reorder(Object.values(builderState.fields), result.source.index - positionOffset, result.destination.index - positionOffset);
 
         dispatch(setFields(items));
     };
 
     useEffect(() => {
-        if (fields.length === 0) {
+        if (Object.values(builderState.fields).length === 0) {
             const newField: IFormFieldState = {
                 id: v4(),
                 type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-                isCommandMenuOpen: false
+                isCommandMenuOpen: false,
+                position: Object.values(builderState.fields).length === 0 ? 0 : Object.values(builderState.fields).length + 1
             };
             dispatch(setAddNewField(newField));
         }
-    }, [fields]);
+    }, []);
 
     return (
         <DragDropContext onDragStart={onDragStartHandler} onDragUpdate={onDragUpdateHandler} onDragEnd={onDragEndHandler}>
             <StrictModeDroppable droppableId="form-builder">
                 {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
                     <div className={`flex flex-col gap-2 transition-all duration-200 ease-in ${snapshot.isDraggingOver ? 'bg-black-100 bg-opacity-30 rounded' : 'bg-white'} ${droppableClassName}`} {...provided.droppableProps} ref={provided.innerRef}>
-                        {fields.map((field: IFormFieldState, idx: number) => {
+                        {Object.values(builderState.fields).map((field: IFormFieldState, idx: number) => {
                             const index = idx + positionOffset;
                             return (
                                 <Draggable key={index} draggableId={idx.toString()} index={idx}>
@@ -111,37 +111,52 @@ export default function FormBuilderBlock({ positionOffset = 0, droppableClassNam
                                                             placeholder={field.properties?.placeholder ?? 'Type / to open the commands menu'}
                                                             className="text-base text-black-800"
                                                             onChangeCallback={(event: FormEvent<HTMLElement>) => {
-                                                                console.log('Change ID:', field.id);
-                                                                dispatch(setBuilderState({ isFormDirty: true, fields: { ...builderState.fields, [field.id]: { ...field, label: event.currentTarget.innerText } } }));
+                                                                // @ts-ignore
+                                                                dispatch(setBuilderState({ isFormDirty: true, fields: { ...builderState.fields, [field.id]: { ...field, label: event.target.value } } }));
                                                             }}
                                                             onKeyUpCallback={(event: React.KeyboardEvent<HTMLElement>) => {
-                                                                console.log('Is menu Open', builderState.menus?.commands?.isOpen);
+                                                                console.log(field?.label, field?.label?.endsWith('/'));
 
-                                                                if (event.key === 'Escape') {
+                                                                if (event.key === 'Escape' || (event.key === 'Backspace' && field?.label?.endsWith('/'))) {
                                                                     event.preventDefault();
-                                                                    dispatch(setBuilderState({ menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
+                                                                    dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
                                                                 }
                                                                 if (builderState.menus?.commands?.isOpen) return;
-                                                                if (event.key === 'Enter' || event.key === 'ArrowDown') {
+                                                                if (event.key === 'Enter' && !event.shiftKey) {
+                                                                    const newField: IFormFieldState = {
+                                                                        id: v4(),
+                                                                        type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+                                                                        isCommandMenuOpen: false,
+                                                                        position: idx
+                                                                    };
+                                                                    batch(() => {
+                                                                        dispatch(setAddNewField(newField));
+                                                                        dispatch(setBuilderState({ isFormDirty: true, activeFieldIndex: index + 1 }));
+                                                                    });
+                                                                }
+                                                                if (event.key === 'ArrowDown' || event.key === 'Tab') {
                                                                     // TODO: add support for activeFieldIndex increase if there are no elements
                                                                     // TODO: add support for delete key and backspace key
                                                                     event.preventDefault();
+
                                                                     dispatch(setBuilderState({ activeFieldIndex: index + 1 }));
                                                                 }
-                                                                if ((event.key === 'ArrowUp' || (event.shiftKey && event.key === 'Tab')) && index > 0) {
+                                                                if (event.key === 'ArrowUp' || (event.shiftKey && event.key === 'Tab')) {
                                                                     dispatch(setBuilderState({ activeFieldIndex: index - 1 }));
                                                                 }
                                                                 if (event.code === 'Slash') {
-                                                                    dispatch(setBuilderState({ menus: { ...builderState.menus, commands: { isOpen: true, atFieldUuid: field.id } } }));
+                                                                    dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: true, atFieldUuid: field.id } } }));
+                                                                }
+                                                                if (event.key === 'Backspace') {
+                                                                    // TODO: remove the label and if clicked the backspace on empty label delete the field
+                                                                    dispatch(setBuilderState({ isFormDirty: true }));
                                                                 }
                                                             }}
                                                             onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
-                                                                console.log('Focused ID:', field.id);
                                                                 event.preventDefault();
                                                                 dispatch(setBuilderState({ activeFieldIndex: index }));
                                                             }}
                                                             onBlurCallback={(event: React.FocusEvent<HTMLElement>) => {
-                                                                console.log('OnBlur ID:', field.id);
                                                                 event.preventDefault();
                                                                 dispatch(setBuilderState({ menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
                                                             }}

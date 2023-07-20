@@ -4,6 +4,8 @@ import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
 
 import { useModal } from '@app/components/modal-views/context';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { useAppSelector } from '@app/store/hooks';
 
 interface ICustomContentEditableProps {
     id: string;
@@ -220,6 +222,7 @@ interface ICustomContentEditableProps {
 
 export default function CustomContentEditable({ id, tagName, type, placeholder, value, position, activeFieldIndex, className = '', onChangeCallback, onKeyUpCallback, onKeyDownCallback, onFocusCallback, onBlurCallback }: ICustomContentEditableProps) {
     const contentEditableRef = useRef<HTMLElement>(null);
+    const builderState = useAppSelector(selectBuilderState);
 
     const { isOpen } = useModal();
 

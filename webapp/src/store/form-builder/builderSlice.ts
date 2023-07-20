@@ -1,8 +1,12 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
+import { v4 } from 'uuid';
 
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { IBuilderMenuState, IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
+
+import { getInitialPropertiesForFieldType } from './utils';
 
 const initialState: IBuilderState = {
     id: '',
@@ -61,8 +65,32 @@ export const builder = createSlice({
             return { ...state, menus };
         },
         setAddNewField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
-            const fields: Record<string, IFormFieldState> = { ...state.fields, [action.payload.id]: { ...action.payload } };
-            return { ...state, fields };
+            const fieldsToAdd: Array<IFormFieldState> = [];
+
+            const type = action.payload?.type;
+            let newType = type;
+            if (type.includes('question')) {
+                // @ts-ignore
+                newType = type.replace('question_', 'input_');
+                fieldsToAdd.push({
+                    id: v4(),
+                    type: FormBuilderTagNames.LAYOUT_HEADER3
+                });
+            }
+            const newField: IFormFieldState = {
+                ...action.payload,
+                type: newType
+            };
+            newField.properties = getInitialPropertiesForFieldType(newType);
+            fieldsToAdd.push(newField);
+            const fieldsArray = Object.values(state.fields);
+            fieldsArray.splice((action.payload?.position ?? 0) + 1 || (state.activeFieldIndex || 0) + 1 || fieldsArray.length, 0, ...fieldsToAdd);
+            const newFieldsMap: any = {};
+            fieldsArray.forEach((field: any) => {
+                newFieldsMap[field.id] = field;
+            });
+
+            return { ...state, fields: newFieldsMap };
         },
         setFields: (state: IBuilderState, action: { payload: Array<IFormFieldState>; type: string }) => {
             const fields: Record<string, IFormFieldState> = {};
