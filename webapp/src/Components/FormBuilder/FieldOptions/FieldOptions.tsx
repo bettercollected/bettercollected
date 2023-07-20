@@ -98,10 +98,10 @@ export default function FieldOptions({ provided, id }: IFieldOptionsProps) {
                     label="Hide field"
                     labelPlacement="start"
                     className="m-0 text-xs flex items-center justify-between w-full"
-                    control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!formField.properties?.hidden} />}
+                    control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!formField?.properties?.hidden} />}
                 />
             </MenuItem>
-            {!NonInputFormBuilderTagNames.includes(formField.type || FormBuilderTagNames.LAYOUT_SHORT_TEXT) && (
+            {!NonInputFormBuilderTagNames.includes(formField?.type || FormBuilderTagNames.LAYOUT_SHORT_TEXT) && (
                 <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
                     <FormControlLabel
                         slotProps={{

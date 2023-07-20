@@ -21,7 +21,7 @@ export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionOb
         key: 'description',
         position: 1,
         placeholder: 'Form description',
-        className: 'text-base text-black-800'
+        className: 'text-base text-black-800 min-h-[40px]'
     }
 ];
 

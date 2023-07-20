@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
-import { IBuilderMenuState, IBuilderState } from '@app/store/form-builder/types';
+import { IBuilderMenuState, IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 
 const initialState: IBuilderState = {
     id: '',
@@ -10,7 +10,7 @@ const initialState: IBuilderState = {
     description: '',
     menus: {
         spotlightField: { isOpen: false, afterFieldUuid: '' },
-        commands: { isOpen: false, afterFieldUuid: '' },
+        commands: { isOpen: false, atFieldUuid: '' },
         fieldSettings: { isOpen: false, atFieldUuid: '' },
         pipingFields: { isOpen: false, atFieldUuid: '' },
         pipingFieldSettings: { isOpen: false, uuid: '' }
@@ -59,6 +59,20 @@ export const builder = createSlice({
         resetBuilderMenuState: (state: IBuilderState) => {
             const menus = { ...state.menus, ...initialState.menus };
             return { ...state, menus };
+        },
+        setAddNewField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
+            const fields: Record<string, IFormFieldState> = { ...state.fields, [action.payload.id]: { ...action.payload } };
+            return { ...state, fields };
+        },
+        setFields: (state: IBuilderState, action: { payload: Array<IFormFieldState>; type: string }) => {
+            const fields: Record<string, IFormFieldState> = {};
+            action.payload.forEach((field: IFormFieldState) => {
+                fields[field.id] = { ...field };
+            });
+            return {
+                ...state,
+                fields: fields
+            };
         }
     }
 });

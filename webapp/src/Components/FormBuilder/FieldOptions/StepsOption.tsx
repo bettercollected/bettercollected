@@ -20,7 +20,7 @@ export default function StepsOption({ field }: { field: IFormFieldState }) {
 
     return (
         <>
-            {field.type === FormBuilderTagNames.INPUT_RATING && (
+            {field?.type === FormBuilderTagNames.INPUT_RATING && (
                 <MenuItem sx={{ paddingX: '20px', paddingY: '10px' }} className="flex items-center justify-between body4 !text-black-700 !bg-white hover:bg-white">
                     <div>
                         Steps <span className="text-gray-600 text-xs">(Max: 25)</span>

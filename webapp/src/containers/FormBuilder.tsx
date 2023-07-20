@@ -2,6 +2,7 @@ import React, { FormEvent, useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
+import NewFormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock/BuilderBlock';
 import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
@@ -34,7 +35,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
 
     const createForm: IBuilderState = useAppSelector(selectCreateForm);
-    const formFields = useAppSelector(selectFormBuilderFields);
+    const formFields = builderState.fields;
 
     const [postCreateForm] = useCreateFormMutation();
     const [patchForm] = usePatchFormMutation();
@@ -104,7 +105,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             };
             dispatch(updateField(newBlock));
         }
-    }, [blocks]);
+    }, []);
 
     const onDragStartHandler: OnDragStartResponder = (start: DragStart, provided: ResponderProvided) => {};
 
@@ -220,7 +221,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         />
                     ))}
                 </div>
-                <BuilderDragDropContext
+                <NewFormBuilderBlock positionOffset={2} />
+                {/* <BuilderDragDropContext
                     Component={FormBuilderBlock}
                     componentAttrs={{
                         fields: formFields,
@@ -236,7 +238,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     onDragStartHandlerCallback={onDragStartHandler}
                     onDragUpdateHandlerCallback={onDragUpdateHandler}
                     onDragEndHandlerCallback={onDragEndHandler}
-                />
+                /> */}
                 <BuilderTips />
             </div>
         </>

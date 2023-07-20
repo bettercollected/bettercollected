@@ -251,18 +251,17 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '' }: 
 
     useEffect(() => {
         const handleKeyDown = (e: any) => {
-            e.preventDefault();
-
             const keyActions: any = {
                 [KeyType.Enter]: () => {
+                    e.preventDefault();
                     const selectedListItem: any = listRef.current?.querySelector('.selected');
                     if (selectedListItem) {
                         const tag = selectedListItem.dataset.tag;
                         handleSelection(tag);
                     }
                 },
-                [KeyType.ArrowDown]: selectNextTag,
-                [KeyType.ArrowUp]: selectPreviousTag,
+                [KeyType.ArrowDown]: () => selectNextTag(e),
+                [KeyType.ArrowUp]: () => selectPreviousTag(e),
                 [KeyType.Backspace]: () => {
                     setCommand((prevCommand) => {
                         closeMenu();
@@ -277,7 +276,8 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '' }: 
             action();
         };
 
-        const selectNextTag = () => {
+        const selectNextTag = (e: any) => {
+            e.preventDefault();
             if (getFilteredList(selectedTag.blockType).length - 1 === selectedTag.index) {
                 return setSelectedTag(() => {
                     const blockType = blockListTypes[(blockListTypes.indexOf(selectedTag.blockType) + 1) % blockListTypes.length];
@@ -293,7 +293,8 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '' }: 
             });
         };
 
-        const selectPreviousTag = () => {
+        const selectPreviousTag = (e: any) => {
+            e.preventDefault();
             if (selectedTag.index === 0) {
                 return setSelectedTag(() => {
                     const blockType = blockListTypes[(blockListTypes.indexOf(selectedTag.blockType) - 1 + blockListTypes.length) % blockListTypes.length];

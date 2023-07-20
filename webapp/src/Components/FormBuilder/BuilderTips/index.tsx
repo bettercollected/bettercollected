@@ -42,7 +42,7 @@ export default function BuilderTips() {
     ];
 
     return (
-        <div className="flex flex-col gap-4 px-5 md:px-[89px]">
+        <div className="flex flex-col gap-4 mt-5 px-5 md:px-[89px]">
             {/* <p className="bg-black-300 rounded-[4px] body4 p-4 h-[42px] flex gap-1 items-center">
                 Press
                 <strong className="text-brand">
