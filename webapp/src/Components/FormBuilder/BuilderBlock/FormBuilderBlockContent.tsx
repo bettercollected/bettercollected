@@ -12,7 +12,7 @@ import { useAppDispatch } from '@app/store/hooks';
 
 export default function FormBuilderBlockContent({ type, position, field, id }: any) {
     const dispatch = useAppDispatch();
-    const renderBlockContent = () => {
+    const renderBlockContent = (position: number) => {
         switch (type) {
             case FormBuilderTagNames.LAYOUT_HEADER1:
             case FormBuilderTagNames.LAYOUT_HEADER2:
@@ -20,16 +20,16 @@ export default function FormBuilderBlockContent({ type, position, field, id }: a
             case FormBuilderTagNames.LAYOUT_HEADER4:
             case FormBuilderTagNames.LAYOUT_HEADER5:
             case FormBuilderTagNames.LAYOUT_LABEL:
-                return <HeaderInputBlock field={field} id={id} />;
+                return <HeaderInputBlock field={field} id={id} position={position} />;
             case FormBuilderTagNames.INPUT_SHORT_TEXT:
             case FormBuilderTagNames.INPUT_EMAIL:
             case FormBuilderTagNames.INPUT_NUMBER:
             case FormBuilderTagNames.INPUT_LINK:
             case FormBuilderTagNames.INPUT_DATE:
             case FormBuilderTagNames.INPUT_PHONE_NUMBER:
-                return <EndAdornmentInputField field={field} id={id} />;
+                return <EndAdornmentInputField field={field} id={id} position={position} />;
             case FormBuilderTagNames.INPUT_LONG_TEXT:
-                return <LongText field={field} id={id} />;
+                return <LongText field={field} id={id} position={position} />;
             case FormBuilderTagNames.INPUT_CHECKBOXES:
             case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
             case FormBuilderTagNames.INPUT_DROPDOWN:
@@ -45,7 +45,7 @@ export default function FormBuilderBlockContent({ type, position, field, id }: a
     return (
         <div className="w-full">
             <div data-position={position} data-tag={type}>
-                {renderBlockContent()}
+                {renderBlockContent(position)}
             </div>
         </div>
     );
