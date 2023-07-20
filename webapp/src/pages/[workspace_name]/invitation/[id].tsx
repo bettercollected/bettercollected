@@ -71,7 +71,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
         return (
             <div className=" py-10 flex items-center flex-col">
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-                <div className="rounded-lg bg-white mt-14  flex flex-col items-center w-full p-10 md:max-w-[502px]">Request Rejected</div>
+                <div className="rounded-lg bg-white mt-36  flex flex-col items-center w-full p-10 md:max-w-[502px]">Request Rejected</div>
             </div>
         );
     }
@@ -80,7 +80,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
         return (
             <div className=" py-10 flex items-center flex-col">
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-                <div className="rounded-lg bg-white mt-14  flex flex-col items-center w-full p-10 md:max-w-[620px]">{t(workspaceConstant.invitationNotFound)}</div>
+                <div className="rounded-lg bg-white mt-36  flex flex-col items-center w-full p-10 md:max-w-[620px]">{t(workspaceConstant.invitationNotFound)}</div>
             </div>
         );
     }
@@ -88,7 +88,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
     return (
         <div className=" py-10 px-4 w-full">
             <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-            <div className="rounded w-full mt-[68px] flex flex-col items-center ">
+            <div className="rounded w-full mt-36 flex flex-col items-center ">
                 <div className="md:max-w-[620px] flex flex-col">
                     <div className="bg-white md:max-w-[620px] flex flex-col rounded p-10 items-center justify-center">
                         <AuthAccountProfileImage size={60} image={workspace?.profileImage} name={workspace?.title} />

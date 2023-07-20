@@ -26,7 +26,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
             <div className="relative min-h-screen w-full">
                 <AuthNavbar handleDrawerToggle={handleDrawerToggle} mobileOpen={mobileOpen} />
                 <DrawerComponent drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
-                <Box className={`float-none lg:float-right min-h-calc-68 px-5 lg:px-10 ${boxClassName}`} component="main" sx={{ display: 'flex', width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
+                <Box className={`float-none lg:float-right min-h-calc-68 px-5 mt-[68px] lg:px-10 ${boxClassName}`} component="main" sx={{ display: 'flex', width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
                     <motion.div
                         initial={{ x: 0, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
