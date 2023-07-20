@@ -9,6 +9,7 @@ interface IButtonProps {
     children: React.ReactNode;
     size?: 'small' | 'medium' | 'large';
     className?: string;
+    color?: string;
     centerRipple?: boolean;
     classes?: Partial<ButtonClasses> & Partial<ClassNameMap<never>>;
     disabled?: boolean;
@@ -33,6 +34,7 @@ export default function Button({
     disableTouchRipple = false,
     focusVisibleClassName = '',
     sx = {},
+    color,
     TouchRippleProps = {},
     variant = 'contained'
 }: IButtonProps) {
@@ -50,6 +52,7 @@ export default function Button({
         <MuiButton
             className={className}
             onClick={onClick}
+            color={color}
             centerRipple={centerRipple}
             classes={classes}
             disabled={disabled}

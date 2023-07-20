@@ -15,7 +15,7 @@ const Home = ({ workspace }: IHome) => {
     const isCustomDomain = true;
     if (workspace)
         return (
-            <Layout isCustomDomain={isCustomDomain} isClientDomain showNavbar={!isCustomDomain} hideMenu={!isCustomDomain} className="!p-0 bg-white flex flex-col min-h-screen">
+            <Layout isCustomDomain={isCustomDomain} showNavbar={!isCustomDomain} hideMenu={!isCustomDomain} className="!p-0 bg-white flex flex-col min-h-screen">
                 <WorkspaceHomeContainer showProTag={false} isCustomDomain={true} />
             </Layout>
         );

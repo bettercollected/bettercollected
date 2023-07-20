@@ -1,24 +1,23 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
+import { ChevronLeft } from '@mui/icons-material';
 import { Widget } from '@typeform/embed-react';
-import { toast } from 'react-toastify';
 
-import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
+import { localesCommon } from '@app/constants/locales/common';
+import { formConstant } from '@app/constants/locales/form';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { resetFillForm, selectAnswers, selectInvalidFields, selectRequiredFields, setInvalidFields, setRequiredFields } from '@app/store/fill-form/slice';
-import { resetForm } from '@app/store/form-builder/slice';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useGetWorkspaceFormQuery, useSubmitResponseMutation } from '@app/store/workspaces/api';
+import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 
 export default function SingleFormPage(props: any) {
@@ -32,6 +31,7 @@ export default function SingleFormPage(props: any) {
     const iframeRef = useRef(null);
 
     const responderUri = form?.settings?.embedUrl || '';
+    const { t } = useTranslation();
 
     if (error) {
         return <div className="min-h-screen min-w-screen  flex items-center justify-center">Error: Could not fetch form!!</div>;
@@ -74,9 +74,10 @@ export default function SingleFormPage(props: any) {
         return (
             <Layout className="relative !bg-white !min-h-screen">
                 {back && (
-                    <Button className="!absolute !top-0 !left-0 w-auto z-10 !h-8 mx-4 mt-0 sm:mt-1 md:mt-3 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => goToForms()}>
-                        <LongArrowLeft width={15} height={15} />
-                    </Button>
+                    <div className="flex cursor-pointer mt-5 items-center gap-2 px-5 lg:px-20 w-auto z-10 hover:!-translate-y-0 focus:-translate-y-0" onClick={() => goToForms()}>
+                        <ChevronLeft height={24} width={24} />
+                        <span className="sh1">{t(localesCommon.forms)}</span>
+                    </div>
                 )}
                 <div className="absolute left-0 right-0 top-16 bottom-0 !p-0 w-full items-start justify-between rounded-lg bg-white">
                     <div className="flex flex-col items-center gap-8 justify-between p-10">
@@ -106,11 +107,14 @@ export default function SingleFormPage(props: any) {
     }
 
     return (
-        <Layout className="relative !bg-white !min-h-screen">
+        <Layout showNavbar={form?.settings?.provider === 'self' && !hasCustomDomain} showAuthAccount={true} className="relative !bg-white !min-h-screen">
             {back && (
-                <Button className="!absolute !top-0 !left-0 w-auto z-10 !h-8 mx-4 mt-0 sm:mt-1 md:mt-3 hover:!-translate-y-0 focus:-translate-y-0" variant="solid" onClick={() => goToForms()}>
-                    <LongArrowLeft width={15} height={15} />
-                </Button>
+                <div className=" absolute  mt-5   px-5 lg:px-20 w-auto z-10 hover:!-translate-y-0 focus:-translate-y-0">
+                    <div className="flex items-center gap-2  cursor-pointer" onClick={() => goToForms()}>
+                        <ChevronLeft height={24} width={24} />
+                        <span className="sh1">{t(localesCommon.forms)}</span>
+                    </div>
+                </div>
             )}
             <div className={'absolute bg-white left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
                 {form?.settings?.provider === 'google' && !!responderUri && (
@@ -120,7 +124,7 @@ export default function SingleFormPage(props: any) {
                 )}
                 {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (
-                    <div className="w-full max-w-[700px] items-center">
+                    <div className="flex !bg-white justify-center w-full items-center">
                         <BetterCollectedForm form={form} enabled={true} isCustomDomain={hasCustomDomain} />
                     </div>
                 )}

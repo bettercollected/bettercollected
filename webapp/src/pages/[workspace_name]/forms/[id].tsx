@@ -27,7 +27,7 @@ export async function getServerSideProps(_context: any) {
         };
     }
 
-    if (!globalProps.workspace.id) {
+    if (!globalProps.workspace?.id) {
         return {
             notFound: true
         };

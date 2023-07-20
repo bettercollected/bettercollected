@@ -34,7 +34,6 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
     const { openModal } = useModal();
     const fullScreenModal = useFullScreenModal();
     const isAdmin = useAppSelector(selectIsAdmin);
-    const isProPlan = useAppSelector(selectIsProPlan);
     const router = useRouter();
     const { t } = useTranslation();
     const language = router?.locale === 'en' ? '' : `${router?.locale}/`;

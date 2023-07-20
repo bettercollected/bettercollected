@@ -126,7 +126,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
     return (
         <form
-            className="w-full max-w-[700px] mx-auto px-10 lg:px-0 py-10 bg-white flex flex-col items-start "
+            className="w-full max-w-[700px] mx-auto px-10 py-10 bg-white flex rounded-lg flex-col items-start "
             onKeyDown={(event: any) => {
                 if (event.key === 'Enter') {
                     event.preventDefault();
@@ -150,9 +150,11 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                     )}
                 </div>
             ))}
-            <Button className="mt-10" type="submit" disabled={!enabled}>
-                Submit
-            </Button>
+            {enabled && (
+                <Button className="mt-10" type="submit" disabled={!enabled}>
+                    Submit
+                </Button>
+            )}
         </form>
     );
 }

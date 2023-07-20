@@ -31,9 +31,15 @@ export default function UserDeletionModal() {
                 await deleteAccount().then((response) => {
                     if ('data' in response) {
                         router.push(`/${locale}login`);
-                        toast(t(toastMessage.accountDeletion.success).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+                        toast(t(toastMessage.accountDeletion.success).toString(), {
+                            toastId: ToastId.SUCCESS_TOAST,
+                            type: 'success'
+                        });
                     } else {
-                        toast(t(toastMessage.accountDeletion.failed).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+                        toast(t(toastMessage.accountDeletion.failed).toString(), {
+                            toastId: ToastId.ERROR_TOAST,
+                            type: 'error'
+                        });
                     }
                 });
             }
@@ -71,6 +77,7 @@ export default function UserDeletionModal() {
                             borderColor: '#0764EB !important'
                         }
                     }}
+                    inputProps={{ style: { textTransform: 'uppercase' } }}
                     placeholder={t(localesCommon.confirm)}
                     onChange={(e) => {
                         setConfirm(e.target.value);

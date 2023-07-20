@@ -4,29 +4,31 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import DeleteIcon from '@Components/Common/Icons/Delete';
+import Button from '@Components/Common/Input/Button';
+import { ChevronLeft } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 
 import FormRenderer from '@app/components/form/renderer/form-renderer';
-import { HomeIcon } from '@app/components/icons/home';
-import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
 import { TrashIcon } from '@app/components/icons/trash';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
+import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { ToastId } from '@app/constants/toastId';
+import Layout from '@app/layouts/_layout';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { useGetWorkspaceSubmissionQuery, useRequestWorkspaceSubmissionDeletionMutation } from '@app/store/workspaces/api';
+import { parseDateStrToDate, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
-import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface ISubmission extends IServerSideProps {
     form: StandardFormDto;
@@ -48,8 +50,6 @@ export default function Submission(props: any) {
     });
 
     const form: any = data ?? [];
-
-    if (isLoading || isError || !data) return <FullScreenLoader />;
 
     const handleRequestForDeletion = async () => {
         if (workspace && workspace.id && submissionId) {
@@ -92,54 +92,51 @@ export default function Submission(props: any) {
             .catch((e) => e);
     };
 
-    const breadcrumbsItem = [
-        {
-            title: t(breadcrumbsItems.home),
-            icon: <HomeIcon className="w-4 h-4 mr-2" />,
-            onClick: () =>
-                hasCustomDomain
-                    ? router.push('/', undefined, {
-                          scroll: true,
-                          shallow: true
-                      })
-                    : router.push(`/${router.query.workspace_name}`, undefined, { scroll: true, shallow: true })
-        },
-        {
-            title: t(breadcrumbsItems.submissions),
-            onClick: goToSubmissions
-        },
-        {
-            title: ['xs'].indexOf(breakpoint) !== -1 ? toEndDottedStr(form.form.formId, 10) : form.formId,
-            icon: ''
-        }
-    ];
-
     const deletionStatus = !!form?.response?.deletionStatus;
+    const submittedAt = `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(form?.response?.createdAt)))}`;
+
     return (
-        <div className="container mx-auto mt-5 flex flex-col  items-center px-6  pb-6">
-            <div className="flex w-full justify-between">
-                <Button variant="solid" onClick={goToSubmissions}>
-                    <LongArrowLeft width={15} height={15} />
-                </Button>
-                <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
-                    <Button
-                        className={`w-auto z-10 !h-10 mt-0 sm:mt-1 md:mt-3  rounded text-white ${deletionStatus ? '!bg-red-600 opacity-30' : 'bg-red-500'}  hover:!bg-red-700 hover:!-translate-y-0 focus:-translate-y-0`}
-                        variant="solid"
-                        onClick={handleRequestForDeletionModal}
-                        disabled={!!form?.response?.deletionStatus}
-                    >
-                        <span className="flex gap-2 items-center">
-                            <TrashIcon width={15} height={15} />
-                            {/* {form?.response?.deletionStatus ? t(buttonConstant.requestedForDeletion) : t(buttonConstant.requestForDeletion)} */}
-                        </span>
-                    </Button>
-                </Tooltip>
-            </div>
-            {/* <BreadcrumbsRenderer breadcrumbsItem={breadcrumbsItem} /> */}
-            <div className="py-10 md:w-[700px] sm:w-[600px] w-full">
-                <FormRenderer form={form.form} response={form.response} />
-            </div>
-        </div>
+        <Layout showAuthAccount={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showNavbar={true}>
+            {isLoading || isError || !data ? (
+                <FullScreenLoader />
+            ) : (
+                <div className="container mx-auto mt-5 flex flex-col  items-center px-6  pb-6">
+                    <div className="w-full mb-8 absolute left-0 right-0 lg:px-20 px-5">
+                        <div className="flex items-center justify-start gap-2 w-fit cursor-pointer" onClick={goToSubmissions}>
+                            <ChevronLeft width={24} height={24} />
+                            <span className="sh1 ">{t(breadcrumbsItems.mySubmissions)}</span>
+                        </div>
+                    </div>
+                    <div className="flex-col-reverse lg:flex-row flex gap-5 w-full pt-20">
+                        <div className="bg-white rounded-xl w-full">
+                            <FormRenderer form={form.form} response={form.response} />
+                        </div>
+                        <div className="flex flex-row-reverse justify-between lg:justify-start gap-10 lg:flex-col basis-1/4 ">
+                            <div>
+                                <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
+                                    <Button
+                                        color="error"
+                                        className={`w-auto min-w-[196px] z-10 capitalize !h-10 mt-0 body-6 !border-yellow-600  text-red rounded ${deletionStatus ? '!text-yellow-600' : ''} `}
+                                        variant="outlined"
+                                        onClick={handleRequestForDeletionModal}
+                                        disabled={!!form?.response?.deletionStatus}
+                                    >
+                                        <span className="flex gap-2  items-center">
+                                            <DeleteIcon className={!deletionStatus ? 'text-red-500' : ' text-yellow-700'} width={16} height={16} />
+                                            {form?.response?.deletionStatus ? t(buttonConstant.requestedForDeletion) : t(buttonConstant.requestForDeletion)}
+                                        </span>
+                                    </Button>
+                                </Tooltip>
+                            </div>
+                            <div>
+                                <div className="body4 pb-2 text-black-700">{t(localesCommon.lastSubmittedAt)}</div>
+                                <div className="text-black-900 body3">{submittedAt}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </Layout>
     );
 }
 
@@ -166,7 +163,6 @@ export async function getServerSideProps(_context: any) {
         }
     } catch (err) {
         form = null;
-        console.error(err);
     }
 
     return {

@@ -19,7 +19,8 @@
     "HOME": "huis",
     "MANAGE_WORKSPACE": "Werkruimte beheren",
     "RESPONSES": "Reacties",
-    "SUBMISSIONS": "Inzendingen"
+    "SUBMISSIONS": "Inzendingen",
+    "MY_SUBMISSIONS": "Mijn bijdragen"
   },
   "BUTTON": {
     "ADD": "Toevoegen",
@@ -394,7 +395,7 @@
   },
   "POWERED_BY": "Mogelijk gemaakt door:",
   "PRICING_PLAN": {
-    "DESCRIPTION": "Wij zijn een veilige betaalmethode",
+    "DESCRIPTION": "Veilige betalingen verwerkt met Stripe.",
     "NO_RISK": "Geen risico. Op elk moment annuleren",
     "TITLE": "Upgraden naar PRO",
     "FOR_UNLIMITED_IMPORT": "voor onbeperkt importeren van formulieren en nog veel meer functies.",

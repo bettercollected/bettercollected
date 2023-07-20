@@ -9,7 +9,6 @@ import Share from '@Components/Common/Icons/Share';
 import Button from '@Components/Common/Input/Button';
 
 import { FormTabContent } from '@app/components/dashboard/form-tab-content';
-import { ShareIcon } from '@app/components/icons/share-icon';
 import { formConstant } from '@app/constants/locales/form';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';

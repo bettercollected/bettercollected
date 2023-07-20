@@ -19,7 +19,8 @@
     "HOME": "Home",
     "MANAGE_WORKSPACE": "Manage Workspace",
     "RESPONSES": "Responses",
-    "SUBMISSIONS": "Submissions"
+    "SUBMISSIONS": "Submissions",
+    "MY_SUBMISSIONS": "My Submissions"
   },
   "NO_GROUP_FOUND": "No Group Found",
   "BUTTON": {
@@ -401,7 +402,7 @@
   },
   "POWERED_BY": "Powered by:",
   "PRICING_PLAN": {
-    "DESCRIPTION": "We are secure payment method",
+    "DESCRIPTION": "Secure payments processed with Stripe.",
     "NO_RISK": "No risk. Cancel anytime",
     "TITLE": "Upgrade to PRO",
     "FOR_UNLIMITED_IMPORT": "for unlimited form import and many more features.",
@@ -615,7 +616,7 @@
     "PROFILE_IMAGE": "Workspace Profile Image",
     "TITLE": "Workspace Title",
     "TITLE_VALIDATION_MESSAGE": "Workspace title is required",
-    "WORKSPACE_NAME_VALIDATION_MESSAGE":"Workspace Handle is required",
+    "WORKSPACE_NAME_VALIDATION_MESSAGE": "Workspace Handle is required",
     "URL": "Worksapce URL"
   }
 }
