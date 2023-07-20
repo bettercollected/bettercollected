@@ -2,6 +2,7 @@ import React, { FocusEvent, FormEvent, KeyboardEvent, useEffect, useRef } from '
 
 import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
 
+import { useModal } from '@app/components/modal-views/context';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 
 interface ICustomContentEditableProps {
@@ -220,6 +221,8 @@ interface ICustomContentEditableProps {
 export default function CustomContentEditable({ id, tagName, type, placeholder, value, position, activeFieldIndex, className = '', onChangeCallback, onKeyUpCallback, onKeyDownCallback, onFocusCallback, onBlurCallback }: ICustomContentEditableProps) {
     const contentEditableRef = useRef<HTMLElement>(null);
 
+    const { isOpen } = useModal();
+
     const onChangeHandler = (event: ContentEditableEvent) => {
         onChangeCallback(event);
     };
@@ -242,7 +245,7 @@ export default function CustomContentEditable({ id, tagName, type, placeholder, 
 
     useEffect(() => {
         // Focus on the first contentEditable element (title) when the page loads
-        if (position !== activeFieldIndex) return;
+        if (position !== activeFieldIndex || isOpen) return;
 
         contentEditableRef.current?.focus();
 
@@ -258,7 +261,7 @@ export default function CustomContentEditable({ id, tagName, type, placeholder, 
             selection.removeAllRanges();
             selection.addRange(range);
         }
-    }, [position, activeFieldIndex]);
+    }, [position, activeFieldIndex, isOpen]);
 
     return (
         <ContentEditable

@@ -26,15 +26,17 @@ const Fields = [
 const GroupHeader = styled('div')(({ theme }) => ({
     position: 'sticky',
     top: '-8px',
-    padding: '4px 10px',
+    padding: '8px 16px',
     color: 'white',
-    backgroundColor: darken(theme.palette.primary.contrastText, 0.7)
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    backgroundColor: '#0764EB'
 }));
 
 const GroupItems = styled('ul')(({ theme }) => ({
     padding: 0,
     color: theme.palette.text.primary,
-    backgroundColor: lighten(theme.palette.secondary.contrastText, 0.8)
+    backgroundColor: theme.palette.secondary.contrastText
 }));
 
 interface IField {
@@ -69,7 +71,7 @@ export default function FormBuilderSpotlightModal({ index }: { index?: number })
     }, []);
 
     return (
-        <div className="px-5 py-3 md:px-10 md:py-6 bg-black-800 text-white relative rounded-[4px] w-full md:max-w-[500px] min-h-52 flex flex-col justify-between">
+        <div className="px-5 py-3 md:px-10 md:py-6 bg-white text-black-800 relative rounded-[4px] w-full md:max-w-[500px] min-h-52 flex flex-col justify-between">
             <Autocomplete
                 id="search-fields"
                 options={defaultFields}
@@ -79,7 +81,18 @@ export default function FormBuilderSpotlightModal({ index }: { index?: number })
                     minWidth: 300,
                     maxWidth: '100%'
                 }}
-                PaperComponent={({ children }) => <Paper style={{ background: darken(theme.palette.primary.contrastText, 0.7) }}>{children}</Paper>}
+                PaperComponent={(props) => (
+                    <Paper
+                        sx={{
+                            background: 'white',
+                            borderTopLeftRadius: 0,
+                            borderTopRightRadius: 0,
+                            borderBottomRightRadius: 8,
+                            borderBottomLeftRadius: 8
+                        }}
+                        {...props}
+                    />
+                )}
                 size="medium"
                 fullWidth
                 disablePortal
@@ -99,7 +112,7 @@ export default function FormBuilderSpotlightModal({ index }: { index?: number })
                                 height: 40,
                                 fontSize: 16,
                                 fontWeight: 400,
-                                color: 'white',
+                                color: 'black',
                                 content: 'none',
                                 borderColor: 'white'
                             }
@@ -116,11 +129,11 @@ export default function FormBuilderSpotlightModal({ index }: { index?: number })
                     </li>
                 )}
             />
-            <div className="text-neutral-300 mt-4 text-xs flex flex-col items-start justify-start gap-3">
-                <span className="bg-indigo-500 rounded-3xl px-2 py-1 font-semibold uppercase leading-none">Tips</span>
+            <div className="text-neutral-500 mt-4 text-xs flex flex-col items-start justify-start gap-3">
+                <span className="bg-brand-500 rounded-3xl px-2 py-1 font-semibold uppercase leading-none text-white">Tips</span>
                 <ol className="flex flex-col gap-2 list-inside list-decimal">
                     <li className="">
-                        Enter the type of the field you want to add, select it with your arrow keys (&#8597;), and press <strong>Enter</strong> to see the magic.
+                        Move your arrow keys (&#8597;), and press <strong>Enter</strong> to see the magic.
                     </li>
                     <li className="">
                         Press <strong>Esc</strong> to close the builder spotlight.
