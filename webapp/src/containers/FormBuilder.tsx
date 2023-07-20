@@ -78,7 +78,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     };
 
     const onInsert = () => {
-        modal.openModal('FORM_BUILDER_SPOTLIGHT_VIEW');
+        modal.openModal('FORM_BUILDER_ADD_FIELD_VIEW');
     };
 
     const onAddNewPage = () => {};
@@ -205,6 +205,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             onKeyUpCallback={(event: React.KeyboardEvent<HTMLElement>) => {
                                 if (event.key === 'Enter' || event.key === 'ArrowDown') {
                                     // TODO: add support for activeFieldIndex increase if there are no elements
+                                    // TODO: add support for delete key and backspace key
                                     event.preventDefault();
                                     dispatch(setBuilderState({ activeFieldIndex: idx + 1 }));
                                 }

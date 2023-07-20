@@ -19,7 +19,7 @@ const FormBuilderActionMenu = ({ id, provided, addBlock, className = '', index }
             <div
                 className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400"
                 onClick={() => {
-                    openModal('FORM_BUILDER_SPOTLIGHT_VIEW', { index });
+                    openModal('FORM_BUILDER_ADD_FIELD_VIEW', { index });
                 }}
             >
                 <PlusIcon width={40} height={40} />

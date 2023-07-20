@@ -13,7 +13,7 @@ import DeleteCustomDomainModal from '@app/components/modal-views/modals/delete-c
 import DeleteInvitationModal from '@app/components/modal-views/modals/delete-invitation-modal';
 import DeleteMemberModal from '@app/components/modal-views/modals/delete-member-modal';
 import DeleteResponseModal from '@app/components/modal-views/modals/delete-response-modal';
-import FormBuilderSpotlightModal from '@app/components/modal-views/modals/form-builder-spotlight-modal';
+import FormBuilderAddFieldModal from '@app/components/modal-views/modals/form-builder-add-field-modal';
 import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
 import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
@@ -32,6 +32,7 @@ import AddRegexModal from './modals/add-regex-modal';
 import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
+import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
 import UserDeletionModal from './modals/user-deletion-modal';
 
 function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
@@ -82,6 +83,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <AddRegexModal {...modalProps} />;
         case 'DELETE_RESPONSE':
             return <DeleteResponseModal {...modalProps} />;
+        case 'FORM_BUILDER_ADD_FIELD_VIEW':
+            return <FormBuilderAddFieldModal {...modalProps} />;
         case 'FORM_BUILDER_SPOTLIGHT_VIEW':
             return <FormBuilderSpotlightModal {...modalProps} />;
         default:

@@ -58,7 +58,6 @@ export const builder = createSlice({
         },
         resetBuilderMenuState: (state: IBuilderState) => {
             const menus = { ...state.menus, ...initialState.menus };
-            console.log(menus);
             return { ...state, menus };
         }
     }
