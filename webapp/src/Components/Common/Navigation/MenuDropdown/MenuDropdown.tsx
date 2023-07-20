@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import Chevron from '@Components/Common/Icons/Chevron';
@@ -16,6 +16,7 @@ interface IMenuDropdownProps {
     enterDelay?: number;
     leaveDelay?: number;
     enterTouchDelay?: number;
+    open?: boolean;
     size?: OverridableStringUnion<'small' | 'large' | 'medium', IconButtonPropsSizeOverrides>;
     fullWidth?: boolean;
     showExpandMore?: boolean;
@@ -49,6 +50,7 @@ export default function MenuDropdown({
     className = '',
     width = 289,
     onClick = undefined,
+    open,
     enterDelay = 1000,
     leaveDelay = 100,
     enterTouchDelay = 300,
@@ -64,13 +66,18 @@ export default function MenuDropdown({
 }: IMenuDropdownProps) {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
-    const open = Boolean(anchorEl);
+    const menuOpen = Boolean(anchorEl);
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
         if (onClick) onClick(event);
     };
 
+    useEffect(() => {
+        if (open === false) {
+            setAnchorEl(null);
+        }
+    }, [open]);
     const handleClose = (e: any) => {
         e.stopPropagation();
         setAnchorEl(null);
@@ -87,13 +94,13 @@ export default function MenuDropdown({
                     onClick={handleClick}
                     size={size}
                     tabIndex={tabIndex}
-                    aria-controls={open ? id : undefined}
+                    aria-controls={menuOpen ? id : undefined}
                     aria-haspopup="true"
-                    aria-expanded={open ? 'true' : undefined}
+                    aria-expanded={menuOpen ? 'true' : undefined}
                 >
                     <span className="flex items-center gap-2">{menuContent}</span>
                     {showExpandMore && (
-                        <div className={`${open ? '!rotate-180' : '!-rotate-0'} transition-all duration-300`}>
+                        <div className={`${menuOpen ? '!rotate-180' : '!-rotate-0'} transition-all duration-300`}>
                             <Chevron />
                         </div>
                     )}
@@ -103,7 +110,7 @@ export default function MenuDropdown({
                 <Menu
                     id={id}
                     anchorEl={anchorEl}
-                    open={open}
+                    open={menuOpen}
                     onClose={handleClose}
                     onClick={(event) => {
                         if (closeOnClick) handleClose(event);

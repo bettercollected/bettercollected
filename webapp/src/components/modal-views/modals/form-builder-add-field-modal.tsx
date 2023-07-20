@@ -1,8 +1,10 @@
 import { allowedInputTags, allowedLayoutTags, allowedQuestionAndAnswerTags } from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { setAddNewField } from '@app/store/form-builder/actions';
 import { addFieldNewImplementation } from '@app/store/form-builder/slice';
 import { IBuilderStateProps } from '@app/store/form-builder/types';
 import { useAppDispatch } from '@app/store/hooks';
@@ -27,7 +29,7 @@ export default function FormBuilderAddFieldModal({ index }: { index?: number }) 
 
     const dispatch = useAppDispatch();
     const handleFieldSelected = (type: FormBuilderTagNames) => {
-        dispatch(addFieldNewImplementation({ type, position: index }));
+        dispatch(setAddNewField({ id: uuidv4(), type, position: index }));
         closeModal();
     };
 

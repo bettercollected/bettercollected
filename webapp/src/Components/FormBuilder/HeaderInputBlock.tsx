@@ -3,6 +3,7 @@ import React, { ChangeEvent } from 'react';
 import { useDispatch } from 'react-redux';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { setUpdateField } from '@app/store/form-builder/actions';
 import { updateField } from '@app/store/form-builder/slice';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 
@@ -32,7 +33,7 @@ const getPlaceholder = (type: FormBuilderTagNames) => {
 export default function HeaderInputBlock({ field, id }: IHeaderInputBlockProps) {
     const dispatch = useDispatch();
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
-        dispatch(updateField({ ...field, value: event.target.value }));
+        dispatch(setUpdateField({ ...field, value: event.target.value }));
     };
     return <input id={id} value={field.value || ''} className={'w-full ' + contentEditableClassNames(false, field.type)} onChange={onChange} placeholder={getPlaceholder(field.type)} />;
 }

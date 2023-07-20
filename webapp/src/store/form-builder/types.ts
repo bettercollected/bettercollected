@@ -47,7 +47,7 @@ export interface IFormFieldProperties {
 }
 
 export interface IFormFieldValidation {
-    required: boolean;
+    required?: boolean;
 }
 
 export interface IFormFieldState {

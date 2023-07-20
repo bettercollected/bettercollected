@@ -9,6 +9,7 @@ import { GridCloseIcon } from '@mui/x-data-grid';
 import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react-beautiful-dnd';
 import { useDispatch } from 'react-redux';
 
+import { setUpdateField } from '@app/store/form-builder/actions';
 import { updateField } from '@app/store/form-builder/slice';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { reorder } from '@app/utils/arrayUtils';
@@ -23,7 +24,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
 
     const handleChoiceValueChange = (id: string, value: string) => {
         dispatch(
-            updateField({
+            setUpdateField({
                 ...field,
                 properties: { ...field.properties?.choices, choices: { ...field.properties?.choices, [id]: { id, value } } }
             })

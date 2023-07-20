@@ -105,6 +105,16 @@ export const builder = createSlice({
 
             return { ...state, fields: newFieldsMap };
         },
+
+        setUpdateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
+            return {
+                ...state,
+                fields: {
+                    ...state.fields,
+                    [action.payload.id]: action.payload
+                }
+            };
+        },
         setFields: (state: IBuilderState, action: { payload: Array<IFormFieldState>; type: string }) => {
             const fields: Record<string, IFormFieldState> = {};
             action.payload.forEach((field: IFormFieldState) => {
@@ -114,6 +124,9 @@ export const builder = createSlice({
                 ...state,
                 fields: fields
             };
+        },
+        setDeleteField: (state, action) => {
+            delete state.fields[action.payload];
         }
     }
 });

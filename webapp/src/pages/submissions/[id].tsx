@@ -10,14 +10,12 @@ import { ChevronLeft } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 
 import FormRenderer from '@app/components/form/renderer/form-renderer';
-import { TrashIcon } from '@app/components/icons/trash';
 import { useModal } from '@app/components/modal-views/context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
-import { formConstant } from '@app/constants/locales/form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { ToastId } from '@app/constants/toastId';

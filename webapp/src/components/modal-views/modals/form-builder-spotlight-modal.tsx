@@ -1,27 +1,14 @@
 import { useEffect, useRef } from 'react';
 
 import { allowedInputTags, allowedLayoutTags, allowedQuestionAndAnswerTags } from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { Autocomplete, Paper, TextField, darken, lighten, styled, useTheme } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
 import { BlockTypes, FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { setAddNewField } from '@app/store/form-builder/actions';
 import { addFieldNewImplementation } from '@app/store/form-builder/slice';
 import { useAppDispatch } from '@app/store/hooks';
-
-const Fields = [
-    {
-        title: 'Elements with Label',
-        items: allowedQuestionAndAnswerTags
-    },
-    {
-        title: 'Layouts',
-        items: allowedLayoutTags
-    },
-    {
-        title: 'Elements without Label',
-        items: allowedInputTags
-    }
-];
 
 const GroupHeader = styled('div')(({ theme }) => ({
     position: 'sticky',
@@ -53,14 +40,11 @@ export default function FormBuilderSpotlightModal({ index }: { index?: number })
     const { closeModal, modalProps } = useModal();
 
     const inputRef = useRef<HTMLInputElement>(null);
-
-    const theme = useTheme();
-
     const dispatch = useAppDispatch();
 
     const handleFieldSelected = (selected: IField | null) => {
         if (!selected) return;
-        dispatch(addFieldNewImplementation({ type: selected.type, position: index }));
+        dispatch(setAddNewField({ id: uuidv4(), type: selected.type, position: index }));
         closeModal();
     };
 

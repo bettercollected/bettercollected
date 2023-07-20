@@ -10,7 +10,7 @@ import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setActiveFieldIndex } from '@app/store/form-builder/slice';
 import { useAppDispatch } from '@app/store/hooks';
 
-export default function FormBuilderBlockContent({ type, position, reference, field, id }: any) {
+export default function FormBuilderBlockContent({ type, position, field, id }: any) {
     const dispatch = useAppDispatch();
     const renderBlockContent = () => {
         switch (type) {
@@ -44,7 +44,7 @@ export default function FormBuilderBlockContent({ type, position, reference, fie
 
     return (
         <div className="w-full">
-            <div data-position={position} data-tag={type} ref={reference}>
+            <div data-position={position} data-tag={type}>
                 {renderBlockContent()}
             </div>
         </div>

@@ -1,3 +1,3 @@
 import { builder } from './builderSlice';
 
-export const { setBuilderState, setBuilderMenuState, resetBuilderMenuState, setAddNewField, setFields } = builder.actions;
+export const { setBuilderState, setDeleteField, setUpdateField, setBuilderMenuState, resetBuilderMenuState, setAddNewField, setFields } = builder.actions;

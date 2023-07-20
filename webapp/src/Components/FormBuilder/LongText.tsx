@@ -4,13 +4,14 @@ import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { Notes } from '@mui/icons-material';
 import { useDispatch } from 'react-redux';
 
+import { setUpdateField } from '@app/store/form-builder/actions';
 import { updateField } from '@app/store/form-builder/slice';
 import { IFormFieldState } from '@app/store/form-builder/types';
 
 export default function LongText({ field, id }: { field: IFormFieldState; id: any }) {
     const dispatch = useDispatch();
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
-        dispatch(updateField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
+        dispatch(setUpdateField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
     };
 
     return (

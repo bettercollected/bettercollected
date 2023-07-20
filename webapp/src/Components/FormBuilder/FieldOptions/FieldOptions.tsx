@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import CopyIcon from '@Components/Common/Icons/Copy';
@@ -11,8 +11,10 @@ import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import { FormControlLabel, ListItemIcon, MenuItem } from '@mui/material';
 import { DraggableProvided } from 'react-beautiful-dnd';
+import { batch } from 'react-redux';
 
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { setDeleteField, setUpdateField } from '@app/store/form-builder/actions';
 import { deleteField, selectFormField, updateField } from '@app/store/form-builder/slice';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -26,13 +28,20 @@ export default function FieldOptions({ provided, id }: IFieldOptionsProps) {
     const formField: IFormFieldState = useAppSelector(selectFormField(id));
     const dispatch = useAppDispatch();
 
+    const [open, setOpen] = useState(false);
     const duplicateField = () => {
         const newField: IFormFieldState = { ...formField };
         newField.id = uuidv4();
-        dispatch(updateField(newField));
+        batch(() => {
+            setOpen(false);
+            dispatch(setUpdateField(newField));
+        });
     };
     const deleteFieldWithId = () => {
-        dispatch(deleteField(id));
+        batch(() => {
+            setOpen(false);
+            dispatch(setDeleteField(id));
+        });
     };
 
     const handleBlockVisibilityChange = (event: React.SyntheticEvent<Element, Event>, checked: boolean) => {
@@ -40,16 +49,16 @@ export default function FieldOptions({ provided, id }: IFieldOptionsProps) {
         event.stopPropagation();
         const fieldProperties = { ...formField.properties } || {};
         fieldProperties.hidden = checked;
-        dispatch(updateField({ ...formField, properties: fieldProperties }));
+        dispatch(setUpdateField({ ...formField, properties: fieldProperties }));
     };
 
     const handleFieldRequiredChange = (event: React.SyntheticEvent<Element, Event>, checked: boolean) => {
         event.preventDefault();
         event.stopPropagation();
 
-        const fieldValidations = { ...formField.validations } || {};
+        const fieldValidations = { ...formField.validations };
         fieldValidations.required = checked;
-        dispatch(updateField({ ...formField, validations: fieldValidations }));
+        dispatch(setUpdateField({ ...formField, validations: fieldValidations }));
     };
 
     return (
@@ -58,12 +67,14 @@ export default function FieldOptions({ provided, id }: IFieldOptionsProps) {
             width={280}
             enterDelay={1000}
             leaveDelay={0}
+            open={open}
             closeOnClick={false}
             className="!p-[2px]"
             tabIndex={-1}
             onClick={(event: React.MouseEvent<HTMLElement>) => {
                 event.stopPropagation();
                 event.preventDefault();
+                setOpen(true);
             }}
             PaperProps={{
                 elevation: 0,

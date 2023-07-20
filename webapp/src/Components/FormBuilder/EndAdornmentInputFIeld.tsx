@@ -7,6 +7,7 @@ import { value } from 'dom7';
 import { useDispatch } from 'react-redux';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { setUpdateField } from '@app/store/form-builder/actions';
 import { updateField } from '@app/store/form-builder/slice';
 
 interface IEndAdornmentInputFieldProps {
@@ -36,7 +37,7 @@ function getIcon(type: FormBuilderTagNames) {
 export default function EndAdornmentInputField({ field, id }: IEndAdornmentInputFieldProps) {
     const dispatch = useDispatch();
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
-        dispatch(updateField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
+        dispatch(setUpdateField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
     };
     return (
         <FormBuilderInput
