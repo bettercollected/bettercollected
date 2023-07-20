@@ -3,18 +3,17 @@ import React, { useEffect, useState } from 'react';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 
 import { Close } from '@app/components/icons/close';
+import { selectCreateForm } from '@app/store/form-builder/slice';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { initialIBuilderState } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 
 import { useFullScreenModal } from '../full-screen-modal-context';
 
-interface IFormBuilderPreviewModal {
-    form: IBuilderState;
-}
-
-export default function FormBuilderPreviewModal({ form }: IFormBuilderPreviewModal) {
+export default function FormBuilderPreviewModal() {
     const [formToRender, setFormToRender] = useState(initialIBuilderState);
     const { closeModal } = useFullScreenModal();
+    const form = useAppSelector(selectCreateForm);
 
     useEffect(() => {
         if (form) {
