@@ -157,7 +157,7 @@ class WorkspaceFormService:
             workspace_id=workspace_id, form_id=form_id
         )
         if len(workspace_ids) > 1:
-            return "Form deleted form workspace."
+            return "Form deleted from workspace."
         if workspace_form.settings.provider != "self":
             self.schedular.remove_job(f"{workspace_form.settings.provider}_{form_id}")
         await self.form_service.delete_form(form_id=form_id)
@@ -166,7 +166,7 @@ class WorkspaceFormService:
         await self.responder_groups_service.responder_groups_repo.delete_workspace_form_groups(
             form_id=form_id
         )
-        return "Form deleted form workspace."
+        return "Form deleted from workspace."
 
     async def get_form_ids_in_workspace(self, workspace_id: PydanticObjectId):
         return await self.workspace_form_repository.get_form_ids_in_workspace(
