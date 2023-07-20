@@ -118,7 +118,7 @@ export default function Joyride({
     const getFilteredState = ({ steps, ...rest }: JoyrideState) => rest;
 
     useEffect(() => {
-        setState({ ...state, ...reduxState, run: true });
+        setState({ ...state, ...reduxState, run: !reduxState?.finished ?? true });
         // dispatch(setJoyrideState(getFilteredState(state)));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
