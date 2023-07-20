@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Joyride from '@Components/Joyride';
+import BeaconComponent from '@Components/Joyride/JoyrideBeacon';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
@@ -39,29 +40,14 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
         <div className="my-10 w-full h-fit">
             {forms?.length === 0 ? (
                 <div className="w-full h-full flex flex-col items-center justify-center rounded-lg py-[84px]">
-                    {ref.current && environments.ENABLE_JOYRIDE_TOURS && (
-                        <Joyride
-                            id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_BUTTON}
-                            placement="top"
-                            continuous={false}
-                            showCloseButton={false}
-                            firstStepClicked={isOpen && view === 'IMPORT_PROVIDER_FORMS_VIEW' && firstStepClicked}
-                            steps={[
-                                {
-                                    title: <JoyrideStepTitle text="You are one step closer to importing the forms" />,
-                                    content: <JoyrideStepContent>Import your forms from other providers into Better Collected. Click &quot;Import Forms&quot; button below to import your forms.</JoyrideStepContent>,
-                                    target: ref.current,
-                                    placementBeacon: 'bottom-start',
-                                    hideFooter: true
-                                }
-                            ]}
-                        />
-                    )}
                     <EmptyImportFormIcon className="mb-6" />
                     <p className="sh1 mb-[15px] !leading-none">{t(formConstant.empty.title)}</p>
                     <p className="body4 mb-6 !leading-none">{t(formConstant.empty.description)}</p>
-                    <div ref={ref} onClick={handleOnClick}>
+                    <div ref={ref} onClick={handleOnClick} className="relative">
                         <ImportFormsButton size="medium" />
+                        <div className="absolute bottom-0 right-0">
+                            <BeaconComponent />
+                        </div>
                     </div>
                 </div>
             ) : (
