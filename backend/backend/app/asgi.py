@@ -117,8 +117,7 @@ def get_application(is_test_mode: bool = False):
     include_middlewares(app)
     add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
 
-    if not is_test_mode:
-        add_pagination(app)  # Important for paginating elements
+    add_pagination(app)  # Important for paginating elements
     if settings.apm_settings.service_name and settings.apm_settings.server_url:
         app.add_middleware(ElasticAPM, client=apm)
     return app
