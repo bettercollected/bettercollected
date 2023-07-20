@@ -26,3 +26,13 @@ site
 .github
 result
 .env
+.pytest_cache
+.gitlab-ci.yml
+docker-compose.yml
+Dockerfile
+sonar-project.properties
+.env.example
+docs
+manifests
+charts
+.ci

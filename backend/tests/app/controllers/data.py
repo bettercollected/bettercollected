@@ -34,21 +34,6 @@ formData = {
 }
 
 formResponse = {
-    "responseId": "string",
-    "formId": "string",
-    "provider": "string",
-    "respondentEmail": "string",
-    "answers": {},
-    "createdAt": "2023-07-14T06:53:54.507Z",
-    "updatedAt": "2023-07-14T06:53:54.507Z",
-    "publishedAt": "2023-07-14T06:53:54.507Z",
-    "dataOwnerIdentifierType": "string",
-    "dataOwnerIdentifier": "string",
-    "_id": "string",
-    "formTitle": "string",
-    "status": "string",
-    "formImportedBy": "string",
-    "deletionStatus": "pending"
 }
 
 workspace_settings = {

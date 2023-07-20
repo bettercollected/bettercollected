@@ -59,7 +59,6 @@ async def on_shutdown():
     container.schedular().shutdown()
 
 
-apm = make_apm_client()
 
 
 def get_application(is_test_mode: bool = False):
@@ -74,24 +73,24 @@ def get_application(is_test_mode: bool = False):
     logger.info("Initialize FastAPI application node.")
     api_settings = settings.api_settings
     sentry_settings = settings.sentry_settings
-
-    sentry_sdk.init(
-        dsn=sentry_settings.DSN,
-        max_breadcrumbs=50,
-        debug=sentry_settings.DEBUG,
-        release=api_settings.VERSION,
-        environment=api_settings.ENVIRONMENT,
-        attach_stacktrace=True,
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        # We recommend adjusting this value in production,
-        traces_sample_rate=1.0,
-        integrations=[
-            AsyncioIntegration(),
-            HttpxIntegration(),
-            LoguruIntegration(),
-        ],
-    )
+    if sentry_settings.DSN :
+        sentry_sdk.init(
+            dsn=sentry_settings.DSN,
+            max_breadcrumbs=50,
+            debug=sentry_settings.DEBUG,
+            release=api_settings.VERSION,
+            environment=api_settings.ENVIRONMENT,
+            attach_stacktrace=True,
+            # Set traces_sample_rate to 1.0 to capture 100%
+            # of transactions for performance monitoring.
+            # We recommend adjusting this value in production,
+            traces_sample_rate=1.0,
+            integrations=[
+                AsyncioIntegration(),
+                HttpxIntegration(),
+                LoguruIntegration(),
+            ],
+        )
 
     app = FastAPI(
         title=api_settings.TITLE,
@@ -119,5 +118,6 @@ def get_application(is_test_mode: bool = False):
 
     add_pagination(app)  # Important for paginating elements
     if settings.apm_settings.service_name and settings.apm_settings.server_url:
+        apm = make_apm_client()
         app.add_middleware(ElasticAPM, client=apm)
     return app

@@ -1,0 +1,34 @@
+version: '3.7'
+services:
+    mongodb:
+        image: mongo:7.0-rc
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: root
+        volumes:
+          - ./seed-data.js:/seed-data.js
+        restart: always
+    backend:
+        image: ${PROJECT_BACKEND_IMAGE:-bettercollected/backend}
+        build:
+            context: ..
+            dockerfile: Dockerfile
+        environment:
+            MONGO_DB: bettercollected_backend
+            MONGO_URI: mongodb://root:root@mongodb:27017
+            AUTH_BASE_URL: http://auth:8000/api/v1
+            AUTH_CALLBACK_URI: http://auth:8000/api/v1/auth/callback
+            AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+            AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+    test:
+        image: ${PROJECT_TEST_IMAGE:-bettercollected/backend/test}
+        build:
+            context: ..
+            dockerfile: .ci/Dockerfile
+        environment:
+            MONGO_DB: bettercollected_backend
+            MONGO_URI: mongodb://root:root@mongodb:27017
+            AUTH_BASE_URL: http://auth:8000/api/v1
+            AUTH_CALLBACK_URI: http://auth:8000/api/v1/auth/callback
+            AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+            AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5  
