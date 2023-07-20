@@ -3,6 +3,7 @@ import React, { FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock/BuilderBlock';
+import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
@@ -236,6 +237,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     onDragUpdateHandlerCallback={onDragUpdateHandler}
                     onDragEndHandlerCallback={onDragEndHandler}
                 />
+                <BuilderTips />
             </div>
         </>
     );
