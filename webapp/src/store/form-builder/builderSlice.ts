@@ -127,6 +127,26 @@ export const builder = createSlice({
         },
         setDeleteField: (state, action) => {
             delete state.fields[action.payload];
+        },
+        setEditForm: (state, action) => {
+            const fields: any = {};
+            for (const field of action.payload.fields) {
+                const choices: any = {};
+                for (const choice of field?.properties?.choices || []) {
+                    choices[choice.id] = choice;
+                }
+                fields[field.id] = { ...field, properties: { ...field.properties, choices: choices } };
+            }
+            return {
+                ...state,
+                id: action.payload.formId,
+                title: action.payload.title,
+                description: action.payload.description,
+                fields: fields
+            };
+        },
+        resetForm: (state) => {
+            return initialState;
         }
     }
 });

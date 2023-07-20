@@ -8,7 +8,7 @@ import Layout from '@app/layouts/_layout';
 import { getServerSidePropsForDashboardFormPage } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { resetForm, setEditForm } from '@app/store/form-builder/slice';
+import { resetForm, setEditForm } from '@app/store/form-builder/actions';
 import { useAppDispatch } from '@app/store/hooks';
 
 export default function EditFromPage(props: any) {
