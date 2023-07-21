@@ -8,6 +8,8 @@ import { IBuilderMenuState, IBuilderState, IFormFieldState } from '@app/store/fo
 
 import { getInitialPropertiesForFieldType } from './utils';
 
+const firstFieldId = v4();
+
 const initialState: IBuilderState = {
     id: '',
     title: '',
@@ -19,7 +21,14 @@ const initialState: IBuilderState = {
         pipingFields: { isOpen: false, atFieldUuid: '' },
         pipingFieldSettings: { isOpen: false, uuid: '' }
     },
-    fields: {},
+    fields: {
+        [firstFieldId]: {
+            id: firstFieldId,
+            type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+            isCommandMenuOpen: false,
+            position: 0
+        }
+    },
     versions: [],
     currentVersionIndex: 0,
     isFormDirty: false,
@@ -66,7 +75,9 @@ export const builder = createSlice({
         },
         setAddNewField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             const fieldsToAdd: Array<IFormFieldState> = [];
-
+            // const fields = Object.values(state.fields);
+            // const isFieldPositionExist = fields.filter((field) => field.position === action.payload.position).length > 0;
+            // if (isFieldPositionExist && fields.length == 0) return { ...state };
             const type = action.payload?.type;
             let newType = type;
             if (type.includes('question')) {
@@ -80,15 +91,16 @@ export const builder = createSlice({
             }
             const newField: IFormFieldState = {
                 ...action.payload,
-                type: newType
+                type: newType,
+                position: action.payload.position
             };
             newField.properties = getInitialPropertiesForFieldType(newType);
             fieldsToAdd.push(newField);
             const fieldsArray = Object.values(state.fields);
             fieldsArray.splice((action.payload?.position ?? 0) + 1 || (state.activeFieldIndex || 0) + 1 || fieldsArray.length, 0, ...fieldsToAdd);
             const newFieldsMap: any = {};
-            fieldsArray.forEach((field: any) => {
-                newFieldsMap[field.id] = field;
+            fieldsArray.forEach((field: IFormFieldState, index: number) => {
+                newFieldsMap[field.id] = { ...field, position: index };
             });
 
             return { ...state, fields: newFieldsMap };

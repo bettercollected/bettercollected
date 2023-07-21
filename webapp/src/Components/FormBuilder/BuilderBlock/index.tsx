@@ -16,10 +16,9 @@ import FormBuilderTagSelector from './FormBuilderTagSelector';
 
 interface IBuilderBlockProps {
     item: IFormFieldState;
-    position: number;
 }
 
-export default function FormBuilderBlock({ item, position }: IBuilderBlockProps) {
+export default function FormBuilderBlock({ item }: IBuilderBlockProps) {
     const dispatch = useAppDispatch();
     const builderState = useAppSelector(selectBuilderState);
 
@@ -75,7 +74,7 @@ export default function FormBuilderBlock({ item, position }: IBuilderBlockProps)
     };
 
     return (
-        <Draggable key={item.id} draggableId={position.toString()} index={position}>
+        <Draggable key={item.id} draggableId={item.id} index={item.position}>
             {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                 <div
                     ref={provided.innerRef}
@@ -91,7 +90,15 @@ export default function FormBuilderBlock({ item, position }: IBuilderBlockProps)
                     {...provided.draggableProps}
                 >
                     <div className={`builder-block px-5 min-h-[40px] flex items-center md:px-[89px]`}>
-                        <FormBuilderActionMenu index={position} id={item.id} provided={provided} addBlock={() => {}} duplicateBlock={() => {}} deleteBlock={() => {}} className={builderState.activeFieldIndex === position ? 'visible' : 'invisible'} />
+                        <FormBuilderActionMenu
+                            index={item.position}
+                            id={item.id}
+                            provided={provided}
+                            addBlock={() => {}}
+                            duplicateBlock={() => {}}
+                            deleteBlock={() => {}}
+                            className={builderState.activeFieldIndex === item.position ? 'visible' : 'invisible'}
+                        />
                         {/* {!isContentEditableTag(field.type) ? (
                                                 <FormBuilderBlockContent id={`field-${field.id}`} type={field.type} position={idx} reference={contentEditable} field={field} />
                                             ) : ( */}
@@ -102,7 +109,7 @@ export default function FormBuilderBlock({ item, position }: IBuilderBlockProps)
                                     tagName={item.type}
                                     type={item.type}
                                     value={item?.label ?? ''}
-                                    position={position}
+                                    position={item.position}
                                     activeFieldIndex={builderState.activeFieldIndex}
                                     placeholder={item.properties?.placeholder ?? 'Type / to open the commands menu'}
                                     className="text-base text-black-800"
@@ -112,7 +119,8 @@ export default function FormBuilderBlock({ item, position }: IBuilderBlockProps)
                                     }}
                                     onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
                                         event.preventDefault();
-                                        dispatch(setBuilderState({ activeFieldIndex: position }));
+                                        console.log({ id: item.id, position: item.position });
+                                        dispatch(setBuilderState({ activeFieldIndex: item.position }));
                                     }}
                                 />
                             </div>

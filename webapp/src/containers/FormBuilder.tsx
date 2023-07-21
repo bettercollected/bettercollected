@@ -94,16 +94,17 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     // TODO: Fix insert element into the block mid way as it is giving the same position
     // and not rendering with correct position in below
     useEffect(() => {
-        if (Object.values(builderState.fields).length === 0) {
-            // TODO: Fix two render or duplicate position
-            const newField: IFormFieldState = {
-                id: v4(),
-                type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-                isCommandMenuOpen: false,
-                position: Object.values(builderState.fields).length === 0 ? 0 : Object.values(builderState.fields).length
-            };
-            (async () => await asyncDispatch(setAddNewField(newField)))();
-        }
+        // if (Object.values(builderState.fields).length === 0) {
+        //     // TODO: Fix two render or duplicate position
+        //     const newField: IFormFieldState = {
+        //         id: v4(),
+        //         type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+        //         isCommandMenuOpen: false,
+        //         position: Object.values(builderState.fields).length === 0 ? 0 : Object.values(builderState.fields).length
+        //     };
+        //     dispatch(setAddNewField(newField));
+        //     (async () => await asyncDispatch(setAddNewField(newField)))();
+        // }
 
         const onKeyUpCallback = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
