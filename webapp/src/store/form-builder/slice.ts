@@ -1,12 +1,8 @@
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import ansiRegex from 'ansi-regex';
-import ObjectID from 'bson-objectid';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
-import { QUESTION_TYPE } from '@app/components/form/renderer/form-renderer';
-import { StandardFormQuestionDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames, getFormBuilderTagNameFromString } from '@app/models/enums/formBuilder';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { getInitialPropertiesForFieldType } from '@app/store/form-builder/utils';

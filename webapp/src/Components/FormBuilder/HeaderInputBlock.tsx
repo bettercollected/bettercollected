@@ -1,11 +1,13 @@
 import React, { ChangeEvent, useEffect, useRef } from 'react';
 
+import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
+import { Input } from '@mui/base';
 import { useDispatch } from 'react-redux';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setUpdateField } from '@app/store/form-builder/actions';
+import { setBuilderState, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { updateField } from '@app/store/form-builder/slice';
+import { setActiveFieldIndex, updateField } from '@app/store/form-builder/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 
@@ -34,32 +36,28 @@ const getPlaceholder = (type: FormBuilderTagNames) => {
     }
 };
 export default function HeaderInputBlock({ field, id, position }: IHeaderInputBlockProps) {
-    const inputRef = useRef<HTMLInputElement>(null);
     const dispatch = useDispatch();
     const builderState = useAppSelector(selectBuilderState);
 
     const activeFieldIndex = builderState.activeFieldIndex;
-    useEffect(() => {
-        // Focus on the first contentEditable element (title) when the page loads
-        if (position !== activeFieldIndex) return;
-
-        inputRef?.current?.focus();
-
-        // Set the cursor position to 0 when the page loads
-        const range = document.createRange();
-
-        if (inputRef?.current) {
-            range.selectNodeContents(inputRef.current);
-            range.collapse(true);
-        }
-        const selection = window.getSelection();
-        if (selection) {
-            selection.removeAllRanges();
-            selection.addRange(range);
-        }
-    }, [position, activeFieldIndex]);
-    const onChange = (event: ChangeEvent<HTMLInputElement>) => {
-        dispatch(setUpdateField({ ...field, value: event.target.value }));
+    const onChange = (event: ChangeEvent<any>) => {
+        dispatch(setUpdateField({ ...field, value: event.currentTarget.innerText }));
     };
-    return <input id={id} value={field.value || ''} ref={inputRef} className={'w-full ' + contentEditableClassNames(false, field.type)} onChange={onChange} placeholder={getPlaceholder(field.type)} />;
+    return (
+        <CustomContentEditable
+            type={field?.type}
+            activeFieldIndex={activeFieldIndex}
+            tagName="p"
+            position={position}
+            id={id}
+            value={field.value || ''}
+            className={'w-full ' + contentEditableClassNames(false, field.type)}
+            onChangeCallback={onChange}
+            placeholder={getPlaceholder(field.type)}
+            onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
+                event.preventDefault();
+                dispatch(setBuilderState({ activeFieldIndex: position }));
+            }}
+        />
+    );
 }

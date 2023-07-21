@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 
 import { Close } from '@app/components/icons/close';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { selectCreateForm } from '@app/store/form-builder/slice';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { initialIBuilderState } from '@app/store/forms/slice';
@@ -13,14 +14,14 @@ import { useFullScreenModal } from '../full-screen-modal-context';
 export default function FormBuilderPreviewModal() {
     const [formToRender, setFormToRender] = useState(initialIBuilderState);
     const { closeModal } = useFullScreenModal();
-    const form = useAppSelector(selectCreateForm);
+    const builderState = useAppSelector(selectBuilderState);
 
     useEffect(() => {
-        if (form) {
+        if (builderState) {
             const previewForm: any = {};
-            previewForm.title = form.title;
-            previewForm.description = form.description;
-            let fields: any = Object.values(form.fields);
+            previewForm.title = builderState.title;
+            previewForm.description = builderState.description;
+            let fields: any = Object.values(builderState.fields);
             fields = fields.map((field: IFormFieldState) => {
                 if (field.properties?.choices) {
                     return {
@@ -34,7 +35,7 @@ export default function FormBuilderPreviewModal() {
 
             setFormToRender(previewForm);
         }
-    }, [form]);
+    }, [builderState]);
 
     return (
         <div className="relative h-full w-full overflow-auto pt-10 !bg-white ">

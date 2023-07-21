@@ -11,7 +11,7 @@ import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addFieldNewImplementation, selectFormBuilderFields, setFields } from '@app/store/form-builder/slice';
 import { useAppSelector } from '@app/store/hooks';
 
-const FormBuilderActionMenu = ({ id, provided, addBlock, className = '', index }: any) => {
+const FormBuilderActionMenu = ({ id, provided, className = '', index }: any) => {
     const { openModal } = useModal();
 
     return (
@@ -24,7 +24,7 @@ const FormBuilderActionMenu = ({ id, provided, addBlock, className = '', index }
             >
                 <PlusIcon width={40} height={40} />
             </div>
-            <FieldOptions id={id} provided={provided} />
+            <FieldOptions id={id} provided={provided} position={index} />
         </div>
     );
 };

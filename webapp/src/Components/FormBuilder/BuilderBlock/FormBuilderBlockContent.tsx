@@ -11,7 +11,6 @@ import { setActiveFieldIndex } from '@app/store/form-builder/slice';
 import { useAppDispatch } from '@app/store/hooks';
 
 export default function FormBuilderBlockContent({ type, position, field, id }: any) {
-    const dispatch = useAppDispatch();
     const renderBlockContent = (position: number) => {
         switch (type) {
             case FormBuilderTagNames.LAYOUT_HEADER1:

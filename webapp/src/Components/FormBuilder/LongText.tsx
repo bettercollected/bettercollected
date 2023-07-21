@@ -45,7 +45,7 @@ export default function LongText({ field, id, position }: { field: IFormFieldSta
         <FormBuilderInput
             multiline
             id={id}
-            ref={inputRef}
+            inputRef={inputRef}
             onChange={onChange}
             minRows={5}
             maxRows={10}

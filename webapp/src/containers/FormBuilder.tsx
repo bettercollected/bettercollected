@@ -16,7 +16,7 @@ import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setAddNewField, setBuilderState } from '@app/store/form-builder/actions';
+import { setAddNewField, setBuilderState, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { selectCreateForm, setFields } from '@app/store/form-builder/slice';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
@@ -109,11 +109,16 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         const onKeyUpCallback = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 event.preventDefault();
-                dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
+                dispatch(
+                    setBuilderState({
+                        isFormDirty: true,
+                        menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } }
+                    })
+                );
             }
             if (builderState.menus?.commands?.isOpen) return;
 
-            if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= 0) {
+            if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
                 const newField: IFormFieldState = {
                     id: v4(),
                     type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
@@ -125,7 +130,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     dispatch(setBuilderState({ isFormDirty: true, activeFieldIndex: builderState.activeFieldIndex + 1 }));
                 });
             }
-            if ((event.key === 'ArrowDown' || event.key === 'Tab') && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
+            if ((event.key === 'ArrowDown' || event.key === 'Tab' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
                 // TODO: add support for activeFieldIndex increase if there are no elements
                 // TODO: add support for delete key and backspace key
                 event.preventDefault();
@@ -136,18 +141,39 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                 dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
             }
             if (event.code === 'Slash') {
-                dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: true, atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '' } } }));
+                dispatch(
+                    setBuilderState({
+                        isFormDirty: true,
+                        menus: {
+                            ...builderState.menus,
+                            commands: {
+                                isOpen: true,
+                                atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? ''
+                            }
+                        }
+                    })
+                );
             }
-            if (event.key === 'Backspace') {
+            if (event.key === 'Backspace' && builderState.activeFieldIndex >= 0) {
                 // TODO: remove the label and if clicked the backspace on empty label delete the field
-                dispatch(setBuilderState({ isFormDirty: true }));
+                batch(() => {
+                    const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
+                    dispatch(setDeleteField(fieldId));
+                    dispatch(setBuilderState({ isFormDirty: true }));
+                });
             }
-            if (((event.key.toUpperCase() === 'D' && event.shiftKey) || event.key === 'Delete') && event.ctrlKey) {
-                // TODO: remove the field block
-                dispatch(setBuilderState({ isFormDirty: true }));
+            if (event.key === 'Delete' && event.altKey) {
+                event.preventDefault();
+                batch(() => {
+                    const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
+                    dispatch(setDeleteField(fieldId));
+                    dispatch(setBuilderState({ isFormDirty: true }));
+                });
             }
-            if (event.key.toUpperCase() === 'D' && event.ctrlKey) {
+            if (event.code === 'KeyD' && event.shiftKey && event.altKey) {
+                event.preventDefault();
                 // TODO: duplicate the field block
+                console.log('Halleluigha');
                 dispatch(setBuilderState({ isFormDirty: true }));
             }
         };
@@ -185,7 +211,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             className={b.className}
                             onChangeCallback={(event: FormEvent<HTMLElement>) => {
                                 // @ts-ignore
-                                const value = b.key === 'title' ? event.currentTarget.innerText : event.target.value;
+                                const value = b.key === 'title' ? event.currentTarget.innerText : event.currentTarget.innerText;
                                 dispatch(setBuilderState({ isFormDirty: true, [b.key]: value }));
                             }}
                             onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {

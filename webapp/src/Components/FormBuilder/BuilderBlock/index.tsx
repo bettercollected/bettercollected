@@ -1,21 +1,7 @@
 import React, { FocusEvent, FormEvent } from 'react';
 
 import FormBuilderBlockContent from '@Components/FormBuilder/BuilderBlock/FormBuilderBlockContent';
-import {
-    DragDropContext,
-    DragStart,
-    DragUpdate,
-    Draggable,
-    DraggableProvided,
-    DraggableStateSnapshot,
-    DropResult,
-    DroppableProvided,
-    DroppableStateSnapshot,
-    OnDragEndResponder,
-    OnDragStartResponder,
-    OnDragUpdateResponder,
-    ResponderProvided
-} from 'react-beautiful-dnd';
+import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 import { v4 } from 'uuid';
 
@@ -24,6 +10,7 @@ import { resetBuilderMenuState, setBuilderState } from '@app/store/form-builder/
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
 
 import CustomContentEditable from '../ContentEditable/CustomContentEditable';
 import FormBuilderActionMenu from './FormBuilderActionMenu';

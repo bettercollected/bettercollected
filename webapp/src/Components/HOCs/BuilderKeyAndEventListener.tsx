@@ -29,12 +29,25 @@ export default function BuilderKeyAndEventListener({ children }: IBuilderSpotlig
     };
 
     const spotlightCallback = () => {
-        dispatch(setBuilderMenuState({ spotlightField: { isOpen: true, afterFieldUuid: '' } }));
+        dispatch(
+            setBuilderMenuState({
+                spotlightField: {
+                    isOpen: true,
+                    afterFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? ''
+                }
+            })
+        );
         openModal('FORM_BUILDER_SPOTLIGHT_VIEW', state);
     };
 
     // Define the command listeners and their respective shortcuts
-    const commandListeners: Record<FormBuilderCommands | string, { listener: ICommandListener; callback?: Function }> = {
+    const commandListeners: Record<
+        FormBuilderCommands | string,
+        {
+            listener: ICommandListener;
+            callback?: Function;
+        }
+    > = {
         [FormBuilderCommands.SPOTLIGHT]: {
             listener: new SpotlightCommandListener(),
             callback: spotlightCallback

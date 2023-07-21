@@ -85,7 +85,7 @@ export const builder = createSlice({
                 newType = type.replace('question_', 'input_');
                 fieldsToAdd.push({
                     id: v4(),
-                    type: FormBuilderTagNames.LAYOUT_HEADER3,
+                    type: FormBuilderTagNames.LAYOUT_LABEL,
                     position: action.payload.position
                 });
             }
@@ -105,7 +105,16 @@ export const builder = createSlice({
 
             return { ...state, fields: newFieldsMap };
         },
+        addDuplicateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
+            const fieldsArray = Object.values(state.fields);
+            fieldsArray.splice(action?.payload?.position, 0, { ...action.payload });
+            const newFieldsMap: any = {};
+            fieldsArray.forEach((field: any) => {
+                newFieldsMap[field.id] = field;
+            });
 
+            return { ...state, fields: newFieldsMap };
+        },
         setUpdateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             return {
                 ...state,

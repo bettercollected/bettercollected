@@ -14,7 +14,8 @@ import { DraggableProvided } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setDeleteField, setUpdateField } from '@app/store/form-builder/actions';
+import { addDuplicateField, setDeleteField, setUpdateField } from '@app/store/form-builder/actions';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { deleteField, selectFormField, updateField } from '@app/store/form-builder/slice';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -22,19 +23,22 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 interface IFieldOptionsProps {
     provided: DraggableProvided;
     id: string;
+    position: number;
 }
 
-export default function FieldOptions({ provided, id }: IFieldOptionsProps) {
-    const formField: IFormFieldState = useAppSelector(selectFormField(id));
+export default function FieldOptions({ provided, id, position }: IFieldOptionsProps) {
+    const builderState = useAppSelector(selectBuilderState);
+    const formField = builderState.fields[id];
     const dispatch = useAppDispatch();
 
     const [open, setOpen] = useState(false);
     const duplicateField = () => {
         const newField: IFormFieldState = { ...formField };
         newField.id = uuidv4();
+        newField.position = position;
         batch(() => {
             setOpen(false);
-            dispatch(setUpdateField(newField));
+            dispatch(addDuplicateField(newField));
         });
     };
     const deleteFieldWithId = () => {

@@ -75,7 +75,7 @@ export default function MenuDropdown({
 
     useEffect(() => {
         if (open === false) {
-            // setAnchorEl(null);
+            setAnchorEl(null);
         }
     }, [open]);
     const handleClose = (e: any) => {

@@ -39,7 +39,6 @@ function getIcon(type: FormBuilderTagNames) {
 
 export default function EndAdornmentInputField({ field, id, position }: IEndAdornmentInputFieldProps) {
     const inputRef = useRef<HTMLInputElement>(null);
-
     const dispatch = useDispatch();
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
         dispatch(setUpdateField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
@@ -72,10 +71,13 @@ export default function EndAdornmentInputField({ field, id, position }: IEndAdor
         <FormBuilderInput
             onChange={onChange}
             id={id}
-            ref={inputRef}
             value={field?.properties?.placeholder || ''}
+            inputRef={inputRef}
             InputProps={{
                 endAdornment: getIcon(field.type)
+            }}
+            onFocus={(event) => {
+                inputRef?.current?.setSelectionRange(event.currentTarget.value.length, event.currentTarget.value.length);
             }}
         />
     );

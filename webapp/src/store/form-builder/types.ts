@@ -63,6 +63,7 @@ export interface IFormFieldState {
     cssProperties?: Record<string, string | number>;
     validations?: IFormFieldValidation;
     position: number;
+    replace?: boolean;
 }
 
 // Builder title and description DTO and Array
