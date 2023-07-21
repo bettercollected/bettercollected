@@ -101,34 +101,42 @@ export default function FormBuilderBlock({ item }: IBuilderBlockProps) {
                             deleteBlock={() => {}}
                             className={builderState.activeFieldIndex === item.position ? 'visible' : 'invisible'}
                         />
-                        {/* {!isContentEditableTag(field.type) ? (
-                                                <FormBuilderBlockContent id={`field-${field.id}`} type={field.type} position={idx} reference={contentEditable} field={field} />
-                                            ) : ( */}
-                        <div className="flex flex-col w-full relative">
-                            <div className={`w-full px-0 flex items-center min-h-[40px]`}>
-                                <CustomContentEditable
-                                    id={item.id}
-                                    tagName={item.type}
-                                    type={item.type}
-                                    value={item?.label ?? ''}
-                                    position={item.position}
-                                    activeFieldIndex={builderState.activeFieldIndex}
-                                    placeholder={item.properties?.placeholder ?? 'Type / to open the commands menu'}
-                                    className="text-base text-black-800"
-                                    onChangeCallback={(event: FormEvent<HTMLElement>) => {
-                                        // @ts-ignore
-                                        dispatch(setBuilderState({ isFormDirty: true, fields: { ...builderState.fields, [item.id]: { ...item, label: event.target.value } } }));
-                                    }}
-                                    onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
-                                        event.preventDefault();
-                                        console.log({ id: item.id, position: item.position });
-                                        dispatch(setBuilderState({ activeFieldIndex: item.position }));
-                                    }}
-                                />
+                        {!isContentEditableTag(item.type) ? (
+                            <FormBuilderBlockContent id={`item-${item.id}`} type={item.type} position={item.position} item={item} />
+                        ) : (
+                            <div className="flex flex-col w-full relative">
+                                <div className={`w-full px-0 flex items-center min-h-[40px]`}>
+                                    <CustomContentEditable
+                                        id={item.id}
+                                        tagName={item.type}
+                                        type={item.type}
+                                        value={item?.label ?? ''}
+                                        position={item.position}
+                                        activeFieldIndex={builderState.activeFieldIndex}
+                                        placeholder={item.properties?.placeholder ?? 'Type / to open the commands menu'}
+                                        className="text-base text-black-800"
+                                        onChangeCallback={(event: FormEvent<HTMLElement>) => {
+                                            // @ts-ignore
+                                            dispatch(
+                                                setBuilderState({
+                                                    isFormDirty: true,
+                                                    fields: {
+                                                        ...builderState.fields,
+                                                        [item.id]: { ...item, label: event.currentTarget.innerText }
+                                                    }
+                                                })
+                                            );
+                                        }}
+                                        onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
+                                            event.preventDefault();
+                                            console.log({ id: item.id, position: item.position });
+                                            dispatch(setBuilderState({ activeFieldIndex: item.position }));
+                                        }}
+                                    />
+                                </div>
+                                <FormBuilderTagSelector className={!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id ? 'visible' : 'invisible'} closeMenu={() => {}} handleSelection={handleTagSelection} />
                             </div>
-                            <FormBuilderTagSelector className={!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id ? 'visible' : 'invisible'} closeMenu={() => {}} handleSelection={handleTagSelection} />
-                        </div>
-                        {/* )} */}
+                        )}
                     </div>
                 </div>
             )}
