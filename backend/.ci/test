@@ -6,10 +6,10 @@ function down(){
 
 }
 function executeTest(){
-    docker-compose --project-directory $PROJECT_DIRECTORY --project-name $COMPOSE_PROJECT up -d mongodb
+#    docker-compose --project-directory $PROJECT_DIRECTORY --project-name $COMPOSE_PROJECT up -d mongodb
     # sleep 5
     # docker  exec  ${COMPOSE_PROJECT}_mongodb_1     mongosh "mongodb://root:root@mongodb:27017/bettercollected_backend" --authenticationDatabase admin /seed-data.js
-    docker-compose --project-directory $PROJECT_DIRECTORY --project-name $COMPOSE_PROJECT up -d  --build  backend
+#    docker-compose --project-directory $PROJECT_DIRECTORY --project-name $COMPOSE_PROJECT up -d  --build  backend
     docker-compose --project-directory $PROJECT_DIRECTORY --project-name $COMPOSE_PROJECT up --no-start  --build test
     docker start  -ai  ${COMPOSE_PROJECT}_test_1
 }
