@@ -31,4 +31,7 @@ services:
             AUTH_BASE_URL: http://auth:8000/api/v1
             AUTH_CALLBACK_URI: http://auth:8000/api/v1/auth/callback
             AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
-            AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5  
+            AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+            SCHEDULAR_ENABLED: "False"
+            API_ENABLE_FORM_CREATION: "True"
+
