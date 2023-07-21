@@ -9,7 +9,7 @@ interface IButtonProps {
     children: React.ReactNode;
     size?: 'small' | 'medium' | 'large';
     className?: string;
-    color?: string;
+    color?: 'error' | 'inherit' | 'primary' | 'success' | 'info' | 'warning' | 'secondary';
     centerRipple?: boolean;
     classes?: Partial<ButtonClasses> & Partial<ClassNameMap<never>>;
     disabled?: boolean;
@@ -34,7 +34,7 @@ export default function Button({
     disableTouchRipple = false,
     focusVisibleClassName = '',
     sx = {},
-    color,
+    color = 'primary',
     TouchRippleProps = {},
     variant = 'contained'
 }: IButtonProps) {

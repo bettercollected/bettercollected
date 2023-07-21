@@ -138,7 +138,8 @@ export const slice = createSlice({
             const fields = { ...state.fields };
             fields[id] = {
                 id: id,
-                type: type
+                type: type,
+                position
             };
             if (type === FormBuilderTagNames.INPUT_RATING) {
                 fields[id]['properties'] = {
@@ -171,7 +172,8 @@ export const slice = createSlice({
             const fieldsArray = Object.values(fields);
             fieldsArray.splice(position, 0, {
                 id: uuidv4(),
-                type: FormBuilderTagNames.LAYOUT_HEADER3
+                type: FormBuilderTagNames.LAYOUT_HEADER3,
+                position
             });
             const newFields: any = {};
             fieldsArray.forEach((field: any, index: number) => {
