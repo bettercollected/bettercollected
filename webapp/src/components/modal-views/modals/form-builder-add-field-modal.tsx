@@ -5,9 +5,10 @@ import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setAddNewField } from '@app/store/form-builder/actions';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { addFieldNewImplementation } from '@app/store/form-builder/slice';
 import { IBuilderStateProps } from '@app/store/form-builder/types';
-import { useAppDispatch } from '@app/store/hooks';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 const Fields = [
     {
@@ -26,10 +27,11 @@ const Fields = [
 
 export default function FormBuilderAddFieldModal({ index }: { index?: number }) {
     const { closeModal, modalProps } = useModal();
+    const builderState = useAppSelector(selectBuilderState);
 
     const dispatch = useAppDispatch();
     const handleFieldSelected = (type: FormBuilderTagNames) => {
-        dispatch(setAddNewField({ id: uuidv4(), type, position: index }));
+        dispatch(setAddNewField({ id: uuidv4(), type, position: index || Object.keys(builderState.fields).length - 1 }));
         closeModal();
     };
 

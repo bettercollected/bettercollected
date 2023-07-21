@@ -140,7 +140,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             if ((event.key === 'ArrowUp' || (event.shiftKey && event.key === 'Tab')) && builderState.activeFieldIndex > -2) {
                 dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
             }
-            if (event.code === 'Slash') {
+            if (event.code === 'Slash' && builderState.activeFieldIndex >= 0) {
                 dispatch(
                     setBuilderState({
                         isFormDirty: true,
@@ -173,7 +173,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             if (event.code === 'KeyD' && event.shiftKey && event.altKey) {
                 event.preventDefault();
                 // TODO: duplicate the field block
-                console.log('Halleluigha');
                 dispatch(setBuilderState({ isFormDirty: true }));
             }
         };
