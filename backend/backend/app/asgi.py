@@ -56,7 +56,8 @@ async def on_shutdown():
 
     await AiohttpClient.close_aiohttp_client()
     await container.http_client().aclose()
-    container.schedular().shutdown()
+    if settings.schedular_settings.ENABLED:
+        container.schedular().shutdown()
 
 
 
