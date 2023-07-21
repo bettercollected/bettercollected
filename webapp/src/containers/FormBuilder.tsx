@@ -2,24 +2,23 @@ import React, { FormEvent, useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
-import NewFormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
-import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock/BuilderBlock';
+import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
 import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
-import { DragStart, DragUpdate, DropResult, OnDragEndResponder, OnDragStartResponder, OnDragUpdateResponder, ResponderProvided } from 'react-beautiful-dnd';
+import { DragStart, DragUpdate, DropResult, ResponderProvided } from 'react-beautiful-dnd';
+import { batch } from 'react-redux';
 import { toast } from 'react-toastify';
-import { v4 as uuidV4 } from 'uuid';
+import { v4 } from 'uuid';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import builderConstants from '@app/constants/builder';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setBuilderState } from '@app/store/form-builder/actions';
+import { setAddNewField, setBuilderState } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { deleteField, selectCreateForm, selectFormBuilderFields, setFields, updateField } from '@app/store/form-builder/slice';
+import { selectCreateForm, setFields } from '@app/store/form-builder/slice';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -34,8 +33,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
 
+    // TODO: remove createForm
     const createForm: IBuilderState = useAppSelector(selectCreateForm);
-    const formFields = builderState.fields;
 
     const [postCreateForm] = useCreateFormMutation();
     const [patchForm] = usePatchFormMutation();
@@ -43,41 +42,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const fullScreenModal = useFullScreenModal();
     const modal = useModal();
 
-    const blocks: any = Object.values(formFields || {});
     const locale = _nextI18Next.initialLocale === 'en' ? '' : `${_nextI18Next.initialLocale}/`;
-
-    const addBlockHandler = () => {
-        const newBlock = {
-            id: uuidV4(),
-            type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-            html: builderConstants.BuilderContentPlaceholder,
-            placeholder: true,
-            isTyping: false,
-            imageUrl: ''
-        };
-
-        // Focus on the newly added block
-        const addedBlockIndex = blocks.length;
-        const blockElementId = `field-${addedBlockIndex}`;
-        const blockElement = document.getElementById(blockElementId);
-        if (blockElement) {
-            blockElement.focus();
-        }
-
-        dispatch(updateField(newBlock));
-    };
-
-    const duplicateBlockHandler = () => {};
-
-    const deleteBlockHandler = (id: string) => {
-        if (blocks.length > 1) {
-            dispatch(deleteField(id));
-        }
-    };
-
-    const updateBlockHandler = (block: any) => {
-        dispatch(updateField(block));
-    };
 
     const onInsert = () => {
         modal.openModal('FORM_BUILDER_ADD_FIELD_VIEW');
@@ -90,71 +55,12 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const onAddFormCover = () => {};
 
     const onPreview = () => {
+        // TODO: move this createForm logic into builderState
         fullScreenModal.openModal('FORM_BUILDER_PREVIEW', { form: createForm });
     };
 
-    useEffect(() => {
-        if (blocks.length === 0) {
-            const newBlock = {
-                id: uuidV4(),
-                type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-                html: builderConstants.BuilderContentPlaceholder,
-                placeholder: true,
-                isTyping: false,
-                imageUrl: ''
-            };
-            dispatch(updateField(newBlock));
-        }
-    }, []);
-
-    const onDragStartHandler: OnDragStartResponder = (start: DragStart, provided: ResponderProvided) => {};
-
-    const onDragUpdateHandler: OnDragUpdateResponder = (update: DragUpdate, provided: ResponderProvided) => {};
-
-    const onDragEndHandler: OnDragEndResponder = (result: DropResult, provided: ResponderProvided) => {
-        if (!result.destination) {
-            return;
-        }
-        const items = reorder(blocks, result.source.index, result.destination.index);
-        dispatch(setFields(items));
-    };
-
-    const handleKeyDown = (event: React.KeyboardEvent, isTagSelectorOpen: boolean) => {
-        event.preventDefault();
-        // Add new block on Enter key press
-        if (event.key === 'Enter') {
-            addBlockHandler();
-        }
-
-        if (isTagSelectorOpen) return;
-
-        // Move through the blocks on arrow key press
-        if (event.key === 'ArrowUp') {
-            const focusedBlockIndex = blocks.findIndex((block: any) => block.isFocused);
-            const previousBlockIndex = focusedBlockIndex - 1;
-            if (previousBlockIndex >= 0) {
-                const previousBlockId = `field-${blocks[previousBlockIndex].id}`;
-                const previousBlockElement = document.getElementById(previousBlockId);
-                if (previousBlockElement) {
-                    previousBlockElement.focus();
-                }
-            }
-        }
-
-        if (event.key === 'ArrowDown') {
-            const focusedBlockIndex = blocks.findIndex((block: any) => block.isFocused);
-            const nextBlockIndex = focusedBlockIndex + 1;
-            if (nextBlockIndex < blocks.length) {
-                const nextBlockId = `field-${blocks[nextBlockIndex].id}`;
-                const nextBlockElement = document.getElementById(nextBlockId);
-                if (nextBlockElement) {
-                    nextBlockElement.focus();
-                }
-            }
-        }
-    };
-
     const onFormPublish = async () => {
+        // TODO: Fix the API call with formId if missing
         const apiCall = !isEditMode ? postCreateForm : patchForm;
 
         const redirectUrl = !isEditMode ? `/${workspace?.workspaceName}/dashboard` : `/${locale}${workspace?.workspaceName}/dashboard/forms/${createForm.id}`;
@@ -185,6 +91,81 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         }
     };
 
+    // TODO: Fix insert element into the block mid way as it is giving the same position
+    // and not rendering with correct position in below
+    useEffect(() => {
+        if (Object.values(builderState.fields).length === 0) {
+            // TODO: Fix two render or duplicate position
+            const newField: IFormFieldState = {
+                id: v4(),
+                type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+                isCommandMenuOpen: false,
+                position: Object.values(builderState.fields).length === 0 ? 0 : Object.values(builderState.fields).length
+            };
+            (async () => await asyncDispatch(setAddNewField(newField)))();
+        }
+
+        const onKeyUpCallback = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
+            }
+            if (builderState.menus?.commands?.isOpen) return;
+
+            if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= 0) {
+                const newField: IFormFieldState = {
+                    id: v4(),
+                    type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+                    isCommandMenuOpen: false,
+                    position: builderState.activeFieldIndex
+                };
+                batch(() => {
+                    dispatch(setAddNewField(newField));
+                    dispatch(setBuilderState({ isFormDirty: true, activeFieldIndex: builderState.activeFieldIndex + 1 }));
+                });
+            }
+            if ((event.key === 'ArrowDown' || event.key === 'Tab') && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
+                // TODO: add support for activeFieldIndex increase if there are no elements
+                // TODO: add support for delete key and backspace key
+                event.preventDefault();
+
+                dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
+            }
+            if ((event.key === 'ArrowUp' || (event.shiftKey && event.key === 'Tab')) && builderState.activeFieldIndex > -2) {
+                dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
+            }
+            if (event.code === 'Slash') {
+                dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: true, atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '' } } }));
+            }
+            if (event.key === 'Backspace') {
+                // TODO: remove the label and if clicked the backspace on empty label delete the field
+                dispatch(setBuilderState({ isFormDirty: true }));
+            }
+            if (((event.key.toUpperCase() === 'D' && event.shiftKey) || event.key === 'Delete') && event.ctrlKey) {
+                // TODO: remove the field block
+                dispatch(setBuilderState({ isFormDirty: true }));
+            }
+            if (event.key.toUpperCase() === 'D' && event.ctrlKey) {
+                // TODO: duplicate the field block
+                dispatch(setBuilderState({ isFormDirty: true }));
+            }
+        };
+
+        const onBlurCallback = (event: FocusEvent) => {
+            event.preventDefault();
+            dispatch(setBuilderState({ menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
+        };
+
+        document.addEventListener('keyup', onKeyUpCallback);
+        document.addEventListener('blur', onBlurCallback);
+
+        return () => {
+            document.removeEventListener('keyup', onKeyUpCallback);
+            document.removeEventListener('blur', onBlurCallback);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [builderState]);
+
     return (
         <>
             <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
@@ -206,41 +187,29 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                                 const value = b.key === 'title' ? event.currentTarget.innerText : event.target.value;
                                 dispatch(setBuilderState({ isFormDirty: true, [b.key]: value }));
                             }}
-                            onKeyUpCallback={(event: React.KeyboardEvent<HTMLElement>) => {
-                                if ((event.key === 'Enter' && !event.shiftKey) || event.key === 'ArrowDown') {
-                                    // TODO: add support for activeFieldIndex increase if there are no elements
-                                    // TODO: add support for delete key and backspace key
-                                    event.preventDefault();
-                                    dispatch(setBuilderState({ activeFieldIndex: idx + 1 }));
-                                }
-                                if ((event.key === 'ArrowUp' || (event.shiftKey && event.key === 'Tab')) && idx > 0) {
-                                    dispatch(setBuilderState({ activeFieldIndex: idx - 1 }));
-                                }
-                            }}
                             onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
                                 dispatch(setBuilderState({ activeFieldIndex: b.position }));
                             }}
                         />
                     ))}
                 </div>
-                <NewFormBuilderBlock positionOffset={2} />
-                {/* <BuilderDragDropContext
+                <BuilderDragDropContext
                     Component={FormBuilderBlock}
-                    componentAttrs={{
-                        fields: formFields,
-                        onKeyDown: handleKeyDown,
-                        addBlock: addBlockHandler,
-                        duplicateBlock: duplicateBlockHandler,
-                        deleteBlock: deleteBlockHandler,
-                        updateBlock: updateBlockHandler
-                    }}
+                    componentAttrs={{}}
                     droppableId="form-builder"
-                    droppableItems={blocks}
+                    droppableItems={Object.values(builderState.fields || {})}
                     droppableClassName="py-10"
-                    onDragStartHandlerCallback={onDragStartHandler}
-                    onDragUpdateHandlerCallback={onDragUpdateHandler}
-                    onDragEndHandlerCallback={onDragEndHandler}
-                /> */}
+                    onDragStartHandlerCallback={(start: DragStart, provided: ResponderProvided) => {}}
+                    onDragUpdateHandlerCallback={(update: DragUpdate, provided: ResponderProvided) => {}}
+                    onDragEndHandlerCallback={(result: DropResult, provided: ResponderProvided) => {
+                        if (!result.destination) {
+                            return;
+                        }
+                        const items: Array<IFormFieldState> = reorder(Object.values(builderState.fields), result.source.index, result.destination.index);
+
+                        dispatch(setFields(items));
+                    }}
+                />
                 <BuilderTips />
             </div>
         </>

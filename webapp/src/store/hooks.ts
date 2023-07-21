@@ -7,9 +7,9 @@ export const useAppDispatch = () => useDispatch<AppDispatch>();
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 export const useAppAsyncDispatch = () => {
-    const dispatch = useAppDispatch();
+    const dispatch: AppDispatch = useAppDispatch();
 
-    const asyncDispatch = (action: any) => {
+    const asyncDispatch = async (action: any) => {
         if (typeof action === 'function') {
             return Promise.resolve(action(dispatch));
         }

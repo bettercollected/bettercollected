@@ -10,7 +10,7 @@ export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionOb
         tagName: 'h1',
         type: FormBuilderTagNames.LAYOUT_HEADER1,
         key: 'title',
-        position: 0,
+        position: -2,
         placeholder: 'Form title',
         className: 'font-semibold text-3xl text-black-800'
     },
@@ -19,7 +19,7 @@ export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionOb
         tagName: 'p',
         type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         key: 'description',
-        position: 1,
+        position: -1,
         placeholder: 'Form description',
         className: 'text-base text-black-800 min-h-[40px]'
     }

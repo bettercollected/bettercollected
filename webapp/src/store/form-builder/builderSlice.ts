@@ -23,7 +23,7 @@ const initialState: IBuilderState = {
     versions: [],
     currentVersionIndex: 0,
     isFormDirty: false,
-    activeFieldIndex: 0
+    activeFieldIndex: -2
 };
 
 export const setIsFormDirtyAsync = createAsyncThunk('form/setIsFormDirtyAsync', async (isDirty, { getState }) => {
@@ -74,7 +74,8 @@ export const builder = createSlice({
                 newType = type.replace('question_', 'input_');
                 fieldsToAdd.push({
                     id: v4(),
-                    type: FormBuilderTagNames.LAYOUT_HEADER3
+                    type: FormBuilderTagNames.LAYOUT_HEADER3,
+                    position: action.payload.position
                 });
             }
             const newField: IFormFieldState = {
