@@ -3,7 +3,6 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
-import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
 import { Button } from '@mui/material';
 
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';

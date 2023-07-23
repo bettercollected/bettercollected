@@ -1,4 +1,4 @@
-import React, { FocusEvent, FormEvent } from 'react';
+import React, { FocusEvent, FormEvent, useEffect, useRef } from 'react';
 
 import FormBuilderBlockContent from '@Components/FormBuilder/BuilderBlock/FormBuilderBlockContent';
 import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
@@ -93,13 +93,13 @@ export default function FormBuilderBlock({ item }: IBuilderBlockProps) {
                 >
                     <div className={`builder-block px-5 min-h-[40px] flex items-center md:px-[89px]`}>
                         <FormBuilderActionMenu
-                            index={item.position}
+                            // index={item.position}
                             id={item.id}
                             provided={provided}
                             addBlock={() => {}}
                             duplicateBlock={() => {}}
                             deleteBlock={() => {}}
-                            className={builderState.activeFieldIndex === item.position ? 'visible' : 'invisible'}
+                            // className={builderState.activeFieldIndex === item.position ? 'visible' : 'invisible'}
                         />
                         {!isContentEditableTag(item.type) ? (
                             <FormBuilderBlockContent id={`item-${item.id}`} type={item.type} position={item.position} item={item} />

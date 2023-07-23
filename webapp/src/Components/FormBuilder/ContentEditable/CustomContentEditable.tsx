@@ -1,4 +1,4 @@
-import React, { FocusEvent, FormEvent, KeyboardEvent, useEffect, useRef } from 'react';
+import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback, useEffect, useRef } from 'react';
 
 import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
 
@@ -55,7 +55,6 @@ interface ICustomContentEditableProps {
     security?: string;
     unselectable?: 'on' | 'off';
     is?: string;
-
     onCopyCallback?: React.ClipboardEventHandler<HTMLDivElement>;
     onCopyCaptureCallback?: React.ClipboardEventHandler<HTMLDivElement>;
     onCutCallback?: React.ClipboardEventHandler<HTMLDivElement>;
@@ -247,6 +246,7 @@ function CustomContentEditable({ id, tagName, type, placeholder, value, position
         // Focus on the first contentEditable element (title) when the page loads
         if (position !== activeFieldIndex || isOpen) return;
 
+        //@ts-ignore
         contentEditableRef.current?.focus();
 
         // Set the cursor position to 0 when the page loads
