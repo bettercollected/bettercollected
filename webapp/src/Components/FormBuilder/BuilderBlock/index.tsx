@@ -18,9 +18,10 @@ import FormBuilderTagSelector from './FormBuilderTagSelector';
 
 interface IBuilderBlockProps {
     item: IFormFieldState;
+    draggableId: string | number;
 }
 
-export default function FormBuilderBlock({ item }: IBuilderBlockProps) {
+export default function FormBuilderBlock({ item, draggableId }: IBuilderBlockProps) {
     const dispatch = useAppDispatch();
     const builderState = useAppSelector(selectBuilderState);
 
@@ -76,7 +77,7 @@ export default function FormBuilderBlock({ item }: IBuilderBlockProps) {
     };
 
     return (
-        <Draggable key={item.id} draggableId={item.id} index={item.position}>
+        <Draggable key={item.position} draggableId={draggableId.toString()} index={item.position}>
             {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                 <div
                     ref={provided.innerRef}
@@ -93,13 +94,13 @@ export default function FormBuilderBlock({ item }: IBuilderBlockProps) {
                 >
                     <div className={`builder-block px-5 min-h-[40px] flex items-center md:px-[89px]`}>
                         <FormBuilderActionMenu
-                            // index={item.position}
+                            index={item.position}
                             id={item.id}
                             provided={provided}
                             addBlock={() => {}}
                             duplicateBlock={() => {}}
                             deleteBlock={() => {}}
-                            // className={builderState.activeFieldIndex === item.position ? 'visible' : 'invisible'}
+                            className={builderState.activeFieldIndex === item.position ? 'visible' : 'invisible'}
                         />
                         {!isContentEditableTag(item.type) ? (
                             <FormBuilderBlockContent id={`item-${item.id}`} type={item.type} position={item.position} item={item} />
@@ -129,7 +130,6 @@ export default function FormBuilderBlock({ item }: IBuilderBlockProps) {
                                         }}
                                         onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
                                             event.preventDefault();
-                                            console.log({ id: item.id, position: item.position });
                                             dispatch(setBuilderState({ activeFieldIndex: item.position }));
                                         }}
                                     />

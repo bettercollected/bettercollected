@@ -16,9 +16,9 @@ import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setAddNewField, setBuilderState, setDeleteField } from '@app/store/form-builder/actions';
+import { setAddNewField, setBuilderState, setDeleteField, setFields } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { selectCreateForm, setFields } from '@app/store/form-builder/slice';
+import { selectCreateForm } from '@app/store/form-builder/slice';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -196,7 +196,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         <>
             <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
             <div className="h-full w-full max-w-4xl mx-auto py-10">
-                {/* <div className="flex flex-col gap-4 px-5 md:px-[89px]">
+                <div className="flex flex-col gap-4 px-5 md:px-[89px]">
                     {builderTitleAndDescriptionList.map((b: IBuilderTitleAndDescriptionObj, idx: number) => (
                         <CustomContentEditable
                             key={b.id}
@@ -209,16 +209,14 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             placeholder={b.placeholder}
                             className={b.className}
                             onChangeCallback={(event: FormEvent<HTMLElement>) => {
-                                // @ts-ignore
-                                const value = b.key === 'title' ? event.currentTarget.innerText : event.currentTarget.innerText;
-                                dispatch(setBuilderState({ isFormDirty: true, [b.key]: value }));
+                                dispatch(setBuilderState({ isFormDirty: true, [b.key]: event.currentTarget.innerText }));
                             }}
                             onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
                                 dispatch(setBuilderState({ activeFieldIndex: b.position }));
                             }}
                         />
                     ))}
-                </div> */}
+                </div>
                 <BuilderDragDropContext
                     Component={FormBuilderBlock}
                     componentAttrs={{}}
@@ -228,11 +226,14 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     onDragStartHandlerCallback={(start: DragStart, provided: ResponderProvided) => {}}
                     onDragUpdateHandlerCallback={(update: DragUpdate, provided: ResponderProvided) => {}}
                     onDragEndHandlerCallback={(result: DropResult, provided: ResponderProvided) => {
-                        if (!result.destination) {
+                        if (!result.destination?.index) {
                             return;
                         }
                         const items: Array<IFormFieldState> = reorder(Object.values(builderState.fields), result.source.index, result.destination.index);
-                        dispatch(setFields(items));
+                        batch(() => {
+                            dispatch(setFields(items));
+                            dispatch(setBuilderState({ activeFieldIndex: result.destination?.index ?? builderState.activeFieldIndex }));
+                        });
                     }}
                 />
                 <BuilderTips />

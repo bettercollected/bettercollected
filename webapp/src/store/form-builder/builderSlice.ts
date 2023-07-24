@@ -126,8 +126,8 @@ export const builder = createSlice({
         },
         setFields: (state: IBuilderState, action: { payload: Array<IFormFieldState>; type: string }) => {
             const fields: Record<string, IFormFieldState> = {};
-            action.payload.forEach((field: IFormFieldState) => {
-                fields[field.id] = { ...field };
+            action.payload.forEach((field: IFormFieldState, position: number) => {
+                fields[field.id] = { ...field, position };
             });
             return {
                 ...state,
