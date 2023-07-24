@@ -3,6 +3,11 @@ import logging
 from http import HTTPStatus
 from typing import Optional
 
+from classy_fastapi import Routable, get, post, delete
+from fastapi import Depends
+from starlette.requests import Request
+from starlette.responses import RedirectResponse, Response
+
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.user_status_dto import UserStatusDto
@@ -14,17 +19,12 @@ from backend.app.services.auth_cookie_service import (
 )
 from backend.app.services.user_service import (
     get_logged_user,
-    get_user_if_logged_in,
     add_refresh_token_to_blacklist,
     get_access_token,
     get_refresh_token,
 )
 from backend.config import settings
-from classy_fastapi import Routable, get, post, delete
 from common.models.user import User, UserLoginWithOTP
-from fastapi import Depends
-from starlette.requests import Request
-from starlette.responses import RedirectResponse, Response
 
 log = logging.getLogger(__name__)
 
@@ -136,10 +136,13 @@ class AuthRoutes(Routable):
     @post("/user/delete/workflow")
     async def add_workflow_to_delete_user(
         self,
+        response: Response,
         access_token=Depends(get_access_token),
         refresh_token=Depends(get_refresh_token),
         user: User = Depends(get_logged_user),
     ):
-        return await self.auth_service.add_workflow_to_delete_user(
+        resp = await self.auth_service.add_workflow_to_delete_user(
             access_token=access_token, refresh_token=refresh_token, user=user
         )
+        delete_token_cookie(response)
+        return resp
