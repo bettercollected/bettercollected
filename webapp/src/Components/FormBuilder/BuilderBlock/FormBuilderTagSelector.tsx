@@ -152,84 +152,84 @@ export const allowedQuestionAndAnswerTags = [
     {
         id: FormBuilderTagNames.QUESTION_SHORT_TEXT,
         type: FormBuilderTagNames.QUESTION_SHORT_TEXT,
-        label: 'Header + Short Input Text',
+        label: 'Label + Short Input Text',
         icon: <ShortText width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_LONG_TEXT,
         type: FormBuilderTagNames.QUESTION_LONG_TEXT,
-        label: 'Header + Long Text Input',
+        label: 'Label + Long Text Input',
         icon: <Notes width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_EMAIL,
         type: FormBuilderTagNames.QUESTION_EMAIL,
-        label: 'Header + Email',
+        label: 'Label + Email',
         icon: <AlternateEmail width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_NUMBER,
         type: FormBuilderTagNames.QUESTION_NUMBER,
-        label: 'Header + Number',
+        label: 'Label + Number',
         icon: <TagIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_LINK,
         type: FormBuilderTagNames.QUESTION_LINK,
-        label: 'Header + Link',
+        label: 'Label + Link',
         icon: <LinkIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_DATE,
         type: FormBuilderTagNames.QUESTION_DATE,
-        label: 'Header + Date',
+        label: 'Label + Date',
         icon: <DateRange width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_PHONE_NUMBER,
         type: FormBuilderTagNames.QUESTION_PHONE_NUMBER,
-        label: 'Header + Phone Number',
+        label: 'Label + Phone Number',
         icon: <Phone width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_CHECKBOXES,
         type: FormBuilderTagNames.QUESTION_CHECKBOXES,
-        label: 'Header + Checkboxes',
+        label: 'Label + Checkboxes',
         icon: <CheckBoxOutlineBlankIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
         type: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
-        label: 'Header + Multiple Choice',
+        label: 'Label + Multiple Choice',
         icon: <RadioButtonUncheckedIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_DROPDOWN,
         type: FormBuilderTagNames.QUESTION_DROPDOWN,
-        label: 'Header + Dropdown',
+        label: 'Label + Dropdown',
         icon: <ArrowDropDown width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_RATING,
         type: FormBuilderTagNames.QUESTION_RATING,
-        label: 'Header + Rating',
+        label: 'Label + Rating',
         icon: <Star width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_RANKING,
         type: FormBuilderTagNames.QUESTION_RANKING,
-        label: 'Header + Ranking',
+        label: 'Label + Ranking',
         icon: <TrendingUpSharp width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     }

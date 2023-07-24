@@ -18,11 +18,11 @@ const Fields = [
     {
         title: 'Layouts',
         items: allowedLayoutTags
-    },
-    {
-        title: 'Elements without Label',
-        items: allowedInputTags
     }
+    // {
+    //     title: 'Elements without Label',
+    //     items: allowedInputTags
+    // }
 ];
 
 export default function FormBuilderAddFieldModal({ index }: { index?: number }) {

@@ -103,7 +103,7 @@ export default function FormBuilderBlock({ item, draggableId }: IBuilderBlockPro
                             className={builderState.activeFieldIndex === item.position ? 'visible' : 'invisible'}
                         />
                         {!isContentEditableTag(item.type) ? (
-                            <FormBuilderBlockContent id={`item-${item.id}`} type={item.type} position={item.position} item={item} />
+                            <FormBuilderBlockContent id={`item-${item.id}`} type={item.type} position={item.position} field={item} />
                         ) : (
                             <div className="flex flex-col w-full relative">
                                 <div className={`w-full px-0 flex items-center min-h-[40px]`}>
