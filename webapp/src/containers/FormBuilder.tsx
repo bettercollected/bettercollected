@@ -196,7 +196,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         <>
             <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
             <div className="h-full w-full max-w-4xl mx-auto py-10">
-                <div className="flex flex-col gap-4 px-5 md:px-[89px]">
+                {/* <div className="flex flex-col gap-4 px-5 md:px-[89px]">
                     {builderTitleAndDescriptionList.map((b: IBuilderTitleAndDescriptionObj, idx: number) => (
                         <CustomContentEditable
                             key={b.id}
@@ -218,7 +218,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             }}
                         />
                     ))}
-                </div>
+                </div> */}
                 <BuilderDragDropContext
                     Component={FormBuilderBlock}
                     componentAttrs={{}}
@@ -232,7 +232,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             return;
                         }
                         const items: Array<IFormFieldState> = reorder(Object.values(builderState.fields), result.source.index, result.destination.index);
-
                         dispatch(setFields(items));
                     }}
                 />
