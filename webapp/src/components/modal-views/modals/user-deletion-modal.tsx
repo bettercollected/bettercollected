@@ -27,7 +27,7 @@ export default function UserDeletionModal() {
 
     const handleDeleteAccount = async () => {
         try {
-            if (confirm === 'CONFIRM') {
+            if (confirm.toUpperCase() === 'CONFIRM') {
                 await deleteAccount().then((response) => {
                     if ('data' in response) {
                         router.push(`/${locale}login`);
@@ -87,9 +87,9 @@ export default function UserDeletionModal() {
                     onCopy={handleCopyPaste}
                 />
                 <Button
-                    disabled={confirm !== 'CONFIRM'}
+                    disabled={confirm.toUpperCase() !== 'CONFIRM'}
                     isLoading={isLoading || isSuccess}
-                    className={cn('body4 !text-brand-100 py-4 px-6 !leading-none !h-[42px] bg-red-500 ', confirm !== 'CONFIRM' ? 'opacity-30 cursor-not-allowed' : 'hover:!bg-red-600')}
+                    className={cn('body4 !text-brand-100 py-4 px-6 !leading-none !h-[42px] bg-red-500 ', confirm.toUpperCase() !== 'CONFIRM' ? 'opacity-60 bg-red-400 cursor-not-allowed' : 'hover:!bg-red-600')}
                 >
                     {t(buttonConstant.deleteNow)}
                 </Button>
