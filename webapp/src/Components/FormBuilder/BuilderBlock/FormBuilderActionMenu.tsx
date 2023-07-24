@@ -1,15 +1,9 @@
 import React from 'react';
 
 import PlusIcon from '@Components/Common/Icons/Plus';
-import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import FieldOptions from '@Components/FormBuilder/FieldOptions/FieldOptions';
-import { useDispatch } from 'react-redux';
-import { v4 as uuidv4 } from 'uuid';
 
 import { useModal } from '@app/components/modal-views/context';
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addFieldNewImplementation, selectFormBuilderFields, setFields } from '@app/store/form-builder/slice';
-import { useAppSelector } from '@app/store/hooks';
 
 const FormBuilderActionMenu = ({ id, provided, className = '', index }: any) => {
     const { openModal } = useModal();

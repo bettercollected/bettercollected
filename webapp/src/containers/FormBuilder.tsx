@@ -1,4 +1,4 @@
-import React, { FormEvent, useEffect } from 'react';
+import React, { FormEvent, useCallback, useEffect, useRef } from 'react';
 
 import { useRouter } from 'next/router';
 
@@ -16,9 +16,8 @@ import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setAddNewField, setBuilderState, setDeleteField, setFields } from '@app/store/form-builder/actions';
+import { addDuplicateField, setAddNewField, setBuilderState, setDeleteField, setFields } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { selectCreateForm } from '@app/store/form-builder/slice';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -32,9 +31,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const router = useRouter();
 
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
-
-    // TODO: remove createForm
-    const createForm: IBuilderState = useAppSelector(selectCreateForm);
+    const onKeyUpCallbackRef = useRef<any>(null);
+    const onBlurCallbackRef = useRef<any>(null);
 
     const [postCreateForm] = useCreateFormMutation();
     const [patchForm] = usePatchFormMutation();
@@ -55,20 +53,18 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const onAddFormCover = () => {};
 
     const onPreview = () => {
-        // TODO: move this createForm logic into builderState
-        fullScreenModal.openModal('FORM_BUILDER_PREVIEW', { form: createForm });
+        fullScreenModal.openModal('FORM_BUILDER_PREVIEW');
     };
 
     const onFormPublish = async () => {
-        // TODO: Fix the API call with formId if missing
         const apiCall = !isEditMode ? postCreateForm : patchForm;
 
-        const redirectUrl = !isEditMode ? `/${workspace?.workspaceName}/dashboard` : `/${locale}${workspace?.workspaceName}/dashboard/forms/${createForm.id}`;
+        const redirectUrl = !isEditMode ? `/${workspace?.workspaceName}/dashboard` : `/${locale}${workspace?.workspaceName}/dashboard/forms/${builderState.id}`;
         const createUpdateText = !isEditMode ? 'creat' : 'updat';
         const publishRequest: any = {};
-        publishRequest.title = createForm.title;
-        publishRequest.description = createForm.description;
-        let fields: any = Object.values(createForm.fields || {});
+        publishRequest.title = builderState.title;
+        publishRequest.description = builderState.description;
+        let fields: any = Object.values(builderState.fields || {});
         fields = fields.map((field: IFormFieldState) => {
             if (field.properties?.choices) {
                 return { ...field, properties: { ...field.properties, choices: Object.values(field.properties?.choices) } };
@@ -78,7 +74,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         publishRequest.fields = fields;
 
         const apiObj: any = { workspaceId: workspace.id, body: publishRequest };
-        if (isEditMode) apiObj['formId'] = createForm?.id;
+        if (isEditMode) apiObj['formId'] = builderState?.id;
 
         const response: any = await apiCall(apiObj);
         if (response?.data) {
@@ -91,96 +87,123 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         }
     };
 
-    // TODO: Fix insert element into the block mid way as it is giving the same position
-    // and not rendering with correct position in below
-    useEffect(() => {
-        // if (Object.values(builderState.fields).length === 0) {
-        //     // TODO: Fix two render or duplicate position
-        //     const newField: IFormFieldState = {
-        //         id: v4(),
-        //         type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-        //         isCommandMenuOpen: false,
-        //         position: Object.values(builderState.fields).length === 0 ? 0 : Object.values(builderState.fields).length
-        //     };
-        //     dispatch(setAddNewField(newField));
-        //     (async () => await asyncDispatch(setAddNewField(newField)))();
-        // }
-
-        const onKeyUpCallback = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                dispatch(
-                    setBuilderState({
-                        isFormDirty: true,
-                        menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } }
-                    })
-                );
+    const throttle = (func: Function, delay: number) => {
+        let timeoutId: any;
+        return (...args: any[]) => {
+            if (!timeoutId) {
+                timeoutId = setTimeout(() => {
+                    // @ts-ignore
+                    func.apply(this, args);
+                    timeoutId = null;
+                }, delay);
             }
-            if (builderState.menus?.commands?.isOpen) return;
+        };
+    };
 
-            if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
-                const newField: IFormFieldState = {
-                    id: v4(),
-                    type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-                    isCommandMenuOpen: false,
-                    position: builderState.activeFieldIndex
-                };
-                batch(() => {
+    const onKeyUpCallback = useCallback(
+        (event: KeyboardEvent) => {
+            batch(() => {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    dispatch(
+                        setBuilderState({
+                            isFormDirty: true,
+                            menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } }
+                        })
+                    );
+                }
+                if (builderState.menus?.commands?.isOpen || builderState.menus?.spotlightField?.isOpen) return;
+
+                if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
+                    const newField: IFormFieldState = {
+                        id: v4(),
+                        type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+                        isCommandMenuOpen: false,
+                        position: builderState.activeFieldIndex
+                    };
                     dispatch(setAddNewField(newField));
                     dispatch(setBuilderState({ isFormDirty: true, activeFieldIndex: builderState.activeFieldIndex + 1 }));
-                });
-            }
-            if ((event.key === 'ArrowDown' || event.key === 'Tab' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
-                // TODO: add support for activeFieldIndex increase if there are no elements
-                // TODO: add support for delete key and backspace key
-                event.preventDefault();
+                }
+                if ((event.key === 'ArrowDown' || event.key === 'Tab' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
+                    // TODO: add support for activeFieldIndex increase if there are no elements
+                    // TODO: add support for delete key and backspace key
+                    event.preventDefault();
 
-                dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
-            }
-            if ((event.key === 'ArrowUp' || (event.shiftKey && event.key === 'Tab')) && builderState.activeFieldIndex > -2) {
-                dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
-            }
-            if (event.code === 'Slash' && builderState.activeFieldIndex >= 0) {
-                dispatch(
-                    setBuilderState({
-                        isFormDirty: true,
-                        menus: {
-                            ...builderState.menus,
-                            commands: {
-                                isOpen: true,
-                                atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? ''
+                    dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
+                }
+                if ((event.key === 'ArrowUp' || (event.shiftKey && event.key === 'Tab')) && builderState.activeFieldIndex > -2) {
+                    dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
+                }
+                if (event.code === 'Slash' && builderState.activeFieldIndex >= 0) {
+                    dispatch(
+                        setBuilderState({
+                            isFormDirty: true,
+                            menus: {
+                                ...builderState.menus,
+                                commands: {
+                                    isOpen: true,
+                                    atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? ''
+                                }
                             }
-                        }
-                    })
-                );
-            }
-            if (event.key === 'Backspace' && builderState.activeFieldIndex >= 0) {
-                // TODO: remove the label and if clicked the backspace on empty label delete the field
-                batch(() => {
+                        })
+                    );
+                }
+                if (event.key === 'Backspace' && builderState.activeFieldIndex >= 0) {
                     const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
-                    dispatch(setDeleteField(fieldId));
+                    // TODO: remove the label and if clicked the backspace on empty label delete the field
+                    // if (fieldId) dispatch(setDeleteField(fieldId));
                     dispatch(setBuilderState({ isFormDirty: true }));
-                });
-            }
-            if (event.key === 'Delete' && event.altKey) {
-                event.preventDefault();
-                batch(() => {
-                    const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
-                    dispatch(setDeleteField(fieldId));
-                    dispatch(setBuilderState({ isFormDirty: true }));
-                });
-            }
-            if (event.code === 'KeyD' && event.shiftKey && event.altKey) {
-                event.preventDefault();
-                // TODO: duplicate the field block
-                dispatch(setBuilderState({ isFormDirty: true }));
-            }
-        };
+                }
+                if (event.key === 'Delete' && event.altKey) {
+                    // TODO: fix delete proxy issue
+                    event.preventDefault();
 
-        const onBlurCallback = (event: FocusEvent) => {
+                    const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
+                    if (fieldId) dispatch(setDeleteField(fieldId));
+                    dispatch(setBuilderState({ isFormDirty: true, activeFieldIndex: builderState.activeFieldIndex > 0 ? builderState.activeFieldIndex - 1 : 0 }));
+                }
+                if (event.code === 'KeyD' && event.shiftKey && event.altKey) {
+                    event.preventDefault();
+                    const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
+                    if (fieldId) {
+                        const formField = builderState.fields[fieldId];
+                        const newField: IFormFieldState = { ...formField };
+                        newField.id = v4();
+                        newField.position = builderState.activeFieldIndex + 1;
+                        dispatch(addDuplicateField(newField));
+                    }
+                    dispatch(setBuilderState({ isFormDirty: true }));
+                }
+            });
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [builderState]
+    );
+
+    const onBlurCallback = useCallback(
+        (event: FocusEvent) => {
             event.preventDefault();
             dispatch(setBuilderState({ menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
-        };
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [builderState]
+    );
+
+    useEffect(() => {
+        if (Object.values(builderState.fields).length === 0) {
+            const newField: IFormFieldState = {
+                id: v4(),
+                type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+                isCommandMenuOpen: false,
+                position: Object.values(builderState.fields).length === 0 ? 0 : Object.values(builderState.fields).length
+            };
+            dispatch(setAddNewField(newField));
+            (async () => await asyncDispatch(setAddNewField(newField)))();
+        }
+
+        onKeyUpCallbackRef.current = throttle(onKeyUpCallback, 100);
+
+        onBlurCallbackRef.current = onBlurCallback;
 
         document.addEventListener('keyup', onKeyUpCallback);
         document.addEventListener('blur', onBlurCallback);
@@ -190,14 +213,14 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             document.removeEventListener('blur', onBlurCallback);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [builderState]);
+    }, [builderState, onKeyUpCallback, onBlurCallback]);
 
     return (
         <>
             <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
             <div className="h-full w-full max-w-4xl mx-auto py-10">
                 <div className="flex flex-col gap-4 px-5 md:px-[89px]">
-                    {builderTitleAndDescriptionList.map((b: IBuilderTitleAndDescriptionObj, idx: number) => (
+                    {builderTitleAndDescriptionList.map((b: IBuilderTitleAndDescriptionObj) => (
                         <CustomContentEditable
                             key={b.id}
                             id={b.id}
