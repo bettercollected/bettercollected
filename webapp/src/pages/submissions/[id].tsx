@@ -6,6 +6,8 @@ import { useRouter } from 'next/router';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import Button from '@Components/Common/Input/Button';
+import Joyride from '@Components/Joyride';
+import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { ChevronLeft } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 
@@ -24,6 +26,7 @@ import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
+import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
 import { useGetWorkspaceSubmissionQuery, useRequestWorkspaceSubmissionDeletionMutation } from '@app/store/workspaces/api';
 import { parseDateStrToDate, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
@@ -99,6 +102,24 @@ export default function Submission(props: any) {
                 <FullScreenLoader />
             ) : (
                 <div className="container mx-auto mt-5 flex flex-col  items-center px-6  pb-6">
+                    {environments.ENABLE_JOYRIDE_TOURS && (
+                        <Joyride
+                            id={JOYRIDE_ID.RESPONDERS_PORTAL}
+                            scrollOffset={68}
+                            placement="bottom-end"
+                            floaterProps={{ autoOpen: true }}
+                            steps={[
+                                {
+                                    title: <JoyrideStepTitle text="Deletion Request" />,
+                                    content: <JoyrideStepContent>You can request for submission deletion.</JoyrideStepContent>,
+                                    target: `.${JOYRIDE_CLASS.RESPONDERS_SUBMISSION_DELETE}`,
+                                    placementBeacon: 'bottom-end',
+                                    disableBeacon: false
+                                }
+                            ]}
+                        />
+                    )}
+
                     <div className="w-full mb-8 absolute left-0 right-0 lg:px-20 px-5">
                         <div className="flex items-center justify-start gap-2 w-fit cursor-pointer" onClick={goToSubmissions}>
                             <ChevronLeft width={24} height={24} />
@@ -114,7 +135,7 @@ export default function Submission(props: any) {
                                 <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
                                     <Button
                                         color="error"
-                                        className={`w-auto min-w-[196px] z-10 capitalize !h-10 mt-0 body-6 !border-yellow-600  text-red rounded ${deletionStatus ? '!text-yellow-600' : ''} `}
+                                        className={` ${JOYRIDE_CLASS.RESPONDERS_SUBMISSION_DELETE} w-auto min-w-[196px] z-10 capitalize !h-10 mt-0 body-6 !border-yellow-600  text-red rounded ${deletionStatus ? '!text-yellow-600' : ''} `}
                                         variant="outlined"
                                         onClick={handleRequestForDeletionModal}
                                         disabled={!!form?.response?.deletionStatus}
