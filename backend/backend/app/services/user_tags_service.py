@@ -1,22 +1,9 @@
-import requests
-
 from backend.app.models.dtos.user_info_dto import UserInfoDto
 from backend.app.models.dtos.user_tags_dto import UserTagsDetailsDto
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.repositories.user_tags_repository import UserTagsRepository
+from backend.app.utils import AiohttpClient
 from backend.config import settings
-
-
-def _make_request(url: str, params=None):
-    headers = {"accept": "application/json"}
-    try:
-        response = requests.get(url, params=params, headers=headers)
-        response.raise_for_status()
-        return response.json()
-
-    except requests.exceptions.RequestException as e:
-        print(f"An error occurred: {e}")
-        return None
 
 
 class UserTagsService:
@@ -31,12 +18,15 @@ class UserTagsService:
 
     async def get_user_tags_details(self):
         user_tags_list = await self.get_user_tags()
-        user_ids = [item.user_id for item in user_tags_list]
-        auth_users_url = f"{settings.auth_settings.BASE_URL}/users"
+        user_ids = [str(item.user_id) for item in user_tags_list]
         query_params = {"user_ids": user_ids}
-        response_data = _make_request(auth_users_url, params=query_params)
+        response = await AiohttpClient.get_aiohttp_client().get(
+            f"{settings.auth_settings.BASE_URL}/users", params=query_params
+        )
+
+        json_response = await response.json()
         user_info_list = [
-            UserInfoDto(**user_info) for user_info in response_data["users_info"]
+            UserInfoDto(**user_info) for user_info in json_response["users_info"]
         ]
         zipped_users = [
             (user_tag, user_info)
