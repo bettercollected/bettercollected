@@ -41,7 +41,13 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
 
     const activeFieldIndex = builderState.activeFieldIndex;
     const onChange = (event: ChangeEvent<any>) => {
-        dispatch(setUpdateField({ ...field, value: event.currentTarget.innerText }));
+        if (event?.currentTarget?.innerText)
+            dispatch(
+                setUpdateField({
+                    ...field,
+                    value: event.currentTarget.innerText
+                })
+            );
     };
     return (
         <CustomContentEditable

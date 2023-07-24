@@ -112,6 +112,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         })
                     );
                 }
+                console.log(builderState.menus?.commands?.isOpen || builderState.menus?.spotlightField?.isOpen);
                 if (builderState.menus?.commands?.isOpen || builderState.menus?.spotlightField?.isOpen) return;
 
                 if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
@@ -160,7 +161,12 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
                     const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
                     if (fieldId) dispatch(setDeleteField(fieldId));
-                    dispatch(setBuilderState({ isFormDirty: true, activeFieldIndex: builderState.activeFieldIndex > 0 ? builderState.activeFieldIndex - 1 : 0 }));
+                    dispatch(
+                        setBuilderState({
+                            isFormDirty: true,
+                            activeFieldIndex: builderState.activeFieldIndex > 0 ? builderState.activeFieldIndex - 1 : 0
+                        })
+                    );
                 }
                 if (event.code === 'KeyD' && event.shiftKey && event.altKey) {
                     event.preventDefault();

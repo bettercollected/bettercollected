@@ -1,12 +1,13 @@
 import React, { FocusEvent, FormEvent, useEffect, useRef } from 'react';
 
 import FormBuilderBlockContent from '@Components/FormBuilder/BuilderBlock/FormBuilderBlockContent';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 import { v4 } from 'uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetBuilderMenuState, setBuilderState } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setAddNewField, setBuilderState } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -26,54 +27,16 @@ export default function FormBuilderBlock({ item, draggableId }: IBuilderBlockPro
     const builderState = useAppSelector(selectBuilderState);
 
     const handleTagSelection = (type: FormBuilderTagNames) => {
-        if (type !== FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
-            if (type.includes('question')) {
-                // TODO: Add this implementation
-                // dispatch(
-                //     addQuestionAndAnswerField({
-                //         position: position,
-                //         id: item.id,
-                //         type
-                //     })
-                // );
-                return;
-            }
-            const newBlock: any = {
-                id: item.id,
-                type: type
+        batch(() => {
+            const field = {
+                id: uuidv4(),
+                type,
+                position: item.position,
+                replace: true
             };
-            if (type === FormBuilderTagNames.INPUT_RATING) {
-                newBlock['properties'] = {
-                    steps: 5
-                };
-            }
-            if (
-                type === FormBuilderTagNames.INPUT_MULTIPLE_CHOICE ||
-                type === FormBuilderTagNames.INPUT_CHECKBOXES ||
-                type === FormBuilderTagNames.INPUT_RANKING ||
-                type === FormBuilderTagNames.INPUT_DROPDOWN ||
-                type === FormBuilderTagNames.INPUT_MULTISELECT
-            ) {
-                const id = v4();
-                newBlock['properties'] = {};
-                newBlock['properties']['choices'] = {
-                    [id]: {
-                        id: id,
-                        value: ''
-                    }
-                };
-                if (type === FormBuilderTagNames.INPUT_CHECKBOXES || type === FormBuilderTagNames.INPUT_MULTISELECT) {
-                    newBlock['properties'] = {
-                        ...(newBlock['properties'] || {}),
-                        allowMultipleSelection: true
-                    };
-                }
-            }
-            batch(() => {
-                // TODO: Update the block
-                dispatch(resetBuilderMenuState());
-            });
-        }
+            dispatch(setAddNewField(field));
+            dispatch(resetBuilderMenuState());
+        });
     };
 
     return (

@@ -36,6 +36,7 @@ export default function StartAdornmentInputField({ type, value, id, onChange }: 
             id={id}
             className="!w-fit !mb-0"
             value={value}
+            variant="standard"
             onChange={onChange}
             inputProps={{
                 style: {
@@ -46,7 +47,9 @@ export default function StartAdornmentInputField({ type, value, id, onChange }: 
                     fontWeight: 400,
                     color: 'black',
                     content: 'none',
-                    letterSpacing: 1
+                    letterSpacing: 1,
+                    outline: 'none',
+                    border: 'none'
                 }
             }}
             placeholder="Option"

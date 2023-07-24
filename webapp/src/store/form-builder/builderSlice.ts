@@ -93,8 +93,9 @@ export const builder = createSlice({
             };
             newField.properties = getInitialPropertiesForFieldType(newType);
             fieldsToAdd.push(newField);
-            const fieldsArray = Object.values(state.fields);
-            fieldsArray.splice((action.payload?.position ?? 0) + 1 || (state.activeFieldIndex || 0) + 1 || fieldsArray.length, 0, ...fieldsToAdd);
+            const fieldsArray = [...Object.values(state.fields)];
+
+            fieldsArray.splice(action?.payload?.position + (action?.payload?.replace ? 0 : 1), action?.payload?.replace ? 1 : 0, ...fieldsToAdd);
             const newFieldsMap: any = {};
             fieldsArray.forEach((field: IFormFieldState, index: number) => {
                 newFieldsMap[field.id] = { ...field, position: index };
@@ -104,15 +105,17 @@ export const builder = createSlice({
         },
         addDuplicateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             // TODO: fix duplicate for shortcut keys
-            const fieldsArray = Array.from(Object.values(state.fields));
+            const fieldsArray = [...Object.values(state.fields)];
             fieldsArray.splice(action?.payload?.position, 0, { ...action.payload });
             const newFieldsMap: any = {};
             fieldsArray.forEach((field: IFormFieldState, index: number) => {
                 newFieldsMap[field.id] = field;
                 newFieldsMap[field.id].position = index;
             });
+            state.fields = newFieldsMap;
+            state.activeFieldIndex = action?.payload?.position;
 
-            return { ...state, fields: { ...newFieldsMap }, activeFieldIndex: action?.payload?.position };
+            // return { ...state, fields: { ...newFieldsMap }, activeFieldIndex: action?.payload?.position };
         },
         setUpdateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             return {
@@ -137,14 +140,15 @@ export const builder = createSlice({
             // TODO: fix delete for shortcut keys
             const fields = { ...state.fields };
             delete fields[action.payload];
-            const fieldsArray = Array.from(Object.values(fields));
+            const fieldsArray = [...Object.values(fields)];
             const newFieldsMap: any = {};
             fieldsArray.forEach((field: IFormFieldState, index: number) => {
                 newFieldsMap[field.id] = field;
                 newFieldsMap[field.id].position = index;
             });
 
-            return { ...state, fields: { ...newFieldsMap } };
+            state.fields = newFieldsMap;
+            // return { ...state, fields: { ...newFieldsMap } };
         },
         setEditForm: (state, action) => {
             const fields: any = {};
