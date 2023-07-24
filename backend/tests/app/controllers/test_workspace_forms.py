@@ -10,9 +10,11 @@ from backend.app.schemas.standard_form_response import FormResponseDocument, For
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services import workspace_service
+from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponse
 from common.models.user import User
-from tests.app.controllers.data import formData, formResponse, workspace_settings, user_info, formData_2
+from tests.app.controllers.data import formData, formResponse, workspace_settings, user_info, formData_2, \
+    test_form_import_data
 
 testUser = User(id=str(PydanticObjectId()), sub="test@email.com")
 testUser1 = User(id=str(PydanticObjectId()), sub="test1@email.com")
@@ -80,7 +82,7 @@ def test_user_cookies_1():
 
 
 @pytest.fixture()
-def mock_aiohttp_request():
+def mock_aiohttp_get_request():
     async def mock_get(*args, **kwargs):
         class MockResponse:
             async def json(self):
@@ -91,10 +93,24 @@ def mock_aiohttp_request():
     yield patch('aiohttp.ClientSession.get', side_effect=mock_get)
 
 
+@pytest.fixture()
+def mock_aiohttp_post_request(workspace_form, workspace_form_response):
+    async def mock_post(*args, **kwargs):
+        # class MockResponse:
+        #     async def json(self):
+        #         return StandardForm(**formData)
+        responses = StandardFormResponse(**workspace_form_response)
+        form = StandardForm(**dict(workspace_form))
+        return FormImportResponse(form=form, responses=[responses])
+
+    yield patch('backend.app.services.workspace_form_service.WorkspaceFormService.convert_form', side_effect=mock_post)
+
+
 @pytest.mark.asyncio
 class TestWorkspaceForm:
-    def test_get_workspace_forms(self, client, workspace_api, test_user_cookies, workspace_form, mock_aiohttp_request):
-        with mock_aiohttp_request:
+    def test_get_workspace_forms(self, client, workspace_api, test_user_cookies, workspace_form,
+                                 mock_aiohttp_get_request):
+        with mock_aiohttp_get_request:
             form = workspace_form
             forms = client.get(workspace_api, cookies=test_user_cookies)
             assert forms.json()["items"][0]["formId"] == workspace_form.form_id
@@ -119,8 +135,8 @@ class TestWorkspaceForm:
         assert response.status_code == 403
 
     def test_get_workspace_form_by_id(self, client, workspace_api, test_user_cookies, workspace_form,
-                                      mock_aiohttp_request):
-        with mock_aiohttp_request:
+                                      mock_aiohttp_get_request):
+        with mock_aiohttp_get_request:
             form = client.get(workspace_api + '/' + str(workspace_form.form_id),
                               cookies=test_user_cookies)
             assert form.status_code == 200
@@ -202,8 +218,8 @@ class TestWorkspaceForm:
         assert form_response_deletion_request is None
 
     async def test_search_form_in_workspace(self, client, test_user_cookies,
-                                            workspace_api, workspace, mock_aiohttp_request):
-        with mock_aiohttp_request:
+                                            workspace_api, workspace, mock_aiohttp_get_request):
+        with mock_aiohttp_get_request:
             form = await container.workspace_form_service().create_form(workspace.id,
                                                                         StandardForm(**formData_2), testUser)
             search_form = client.post(workspace_api + '/search?query=search_form', cookies=test_user_cookies)
@@ -258,7 +274,7 @@ class TestWorkspaceForm:
                                    cookies=test_user_cookies)
         assert group_form.status_code == 200
         form = await ResponderGroupFormDocument.find_one({"form_id": workspace_form.form_id,
-                                                           "group_id": workspace_group.id})
+                                                          "group_id": workspace_group.id})
         f = (await WorkspaceFormDocument.find_one({
             "form_id": workspace_form.form_id
         }))
@@ -301,3 +317,11 @@ class TestWorkspaceForm:
                                                   cookies=test_user_cookies_1)
         assert request_response_deletion.status_code == 403
         assert request_response_deletion.json() == "You are not authorized to perform this action."
+
+    def test_import_form_to_workspace(self, client, workspace, test_user_cookies, workspace_form,
+                                      workspace_api, mock_aiohttp_post_request, workspace_form_response):
+        with mock_aiohttp_post_request:
+            import_form = client.post(workspace_api + '/import/google', cookies=test_user_cookies,
+                                      json=test_form_import_data)
+            assert import_form.status_code == 200
+            assert import_form.json() == {'message': 'Import successful.'}
