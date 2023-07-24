@@ -461,7 +461,14 @@
       "FEATURE_4": "You can share your workspace publicly with your form responders",
       "FEATURE_5": "Your form responders can easily find all your public forms",
       "FEATURE_6": "Your form responders can securely view their response"
-    }
+    },
+    "CONTINUE": "Continue",
+    "OR_SIGN_IN_USING": "Or sign in using",
+    "VERIFICATION": "Verification",
+    "ENTER_OTP_CODE": "Enter OTP Code",
+    "ENTER_CODE_SENT_IN_EMAIL": "Enter code sent in your email",
+    "BACK_BUTTON_TITLE": "Back",
+    "DIDNOT_RECEIVE_CODE": "Did not receive code?"
   },
   "SLUG": {
     "DEFAULT": "Slug",
@@ -623,7 +630,7 @@
     "PROFILE_IMAGE": "Workspace Profile Image",
     "TITLE": "Workspace Title",
     "TITLE_VALIDATION_MESSAGE": "Workspace title is required",
-    "WORKSPACE_NAME_VALIDATION_MESSAGE": "Workspace Handle is required",
-    "URL": "Worksapce URL"
+    "WORKSPACE_NAME_VALIDATION_MESSAGE":"Workspace Handle is required",
+    "URL": "Workspace URL"
   }
 }

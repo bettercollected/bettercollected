@@ -454,7 +454,14 @@
       "FEATURE_4": "U kunt uw werkruimte openbaar delen met uw formulierbeantwoorders",
       "FEATURE_5": "Uw formulierbeantwoorders kunnen gemakkelijk al uw openbare formulieren vinden",
       "FEATURE_6": "Uw formulierresponders kunnen hun antwoord veilig bekijken"
-    }
+    },
+    "CONTINUE": "Doorgaan",
+    "OR_SIGN_IN_USING": "Of log in met",
+    "VERIFICATION": "Verificatie",
+    "ENTER_OTP_CODE": "Voer de OTP-code in",
+    "ENTER_CODE_SENT_IN_EMAIL": "Voer de code in die in uw e-mail is verzonden",
+    "BACK_BUTTON_TITLE": "Rug",
+    "DIDNOT_RECEIVE_CODE": "Geen code ontvangen?"
   },
   "SLUG": {
     "DEFAULT": "Slak",
