@@ -60,8 +60,6 @@ async def on_shutdown():
         container.schedular().shutdown()
 
 
-
-
 def get_application(is_test_mode: bool = False):
     """Initialize FastAPI application.
 
@@ -74,7 +72,7 @@ def get_application(is_test_mode: bool = False):
     logger.info("Initialize FastAPI application node.")
     api_settings = settings.api_settings
     sentry_settings = settings.sentry_settings
-    if sentry_settings.DSN :
+    if sentry_settings.DSN:
         sentry_sdk.init(
             dsn=sentry_settings.DSN,
             max_breadcrumbs=50,
