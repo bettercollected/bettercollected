@@ -31,7 +31,7 @@ class UserTagsService:
         zipped_users = [
             (user_tag, user_info)
             for user_tag, user_info in zip(user_tags_list, user_info_list)
-            if user_tag.user_id == user_info.id
+            if str(user_tag.user_id) == str(user_info.id)
         ]
         user_details_lists = [
             UserTagsDetailsDto(
