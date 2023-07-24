@@ -82,12 +82,9 @@ export default function FormBuilderBlock({ item, draggableId }: IBuilderBlockPro
                 <div
                     ref={provided.innerRef}
                     className={`relative flex w-full flex-col ${snapshot.isDragging ? 'bg-brand-100' : 'bg-transparent'}`}
-                    onFocus={(event: FocusEvent<HTMLElement>) => {
-                        // console.log(event);
-                    }}
+                    onFocus={(event: FocusEvent<HTMLElement>) => {}}
                     onBlur={(event: FocusEvent<HTMLElement>) => {
                         if (!event.currentTarget.contains(event.relatedTarget)) {
-                            // console.log(event);
                         }
                     }}
                     {...provided.draggableProps}
@@ -134,7 +131,9 @@ export default function FormBuilderBlock({ item, draggableId }: IBuilderBlockPro
                                         }}
                                     />
                                 </div>
-                                <FormBuilderTagSelector className={!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id ? 'visible' : 'invisible'} closeMenu={() => {}} handleSelection={handleTagSelection} />
+                                {!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id && (
+                                    <FormBuilderTagSelector className={!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id ? 'visible' : 'invisible'} closeMenu={() => {}} handleSelection={handleTagSelection} />
+                                )}
                             </div>
                         )}
                     </div>
