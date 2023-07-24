@@ -315,9 +315,9 @@
   "IMPORT_FORM": {
     "DEFAULT": "Import form",
     "CHOICE": "Which form do you want to import ?",
-    "RESPONSE_OWNER_TAG_DESCRIPTION": "Select field from where response owner can be identified",
-    "RESPONSE_OWNER_TAG_LABEL": "Choose a data owner field for this form",
-    "RESPONSE_OWNER_TAG_TITLE": "Response-owner tag",
+    "RESPONSE_OWNER_TAG_DESCRIPTION": "You do not have to select the field if you have “collect emails” enabled in your google forms.",
+    "RESPONSE_OWNER_TAG_LABEL": "Select email field",
+    "RESPONSE_OWNER_TAG_TITLE": "Select responder’s email field",
     "TEXT_LABEL": {
       "GOOGLE_FORM": "Choose your google form",
       "TYPEFORM": "Choose your Typeform"
