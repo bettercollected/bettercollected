@@ -17,8 +17,8 @@ formData = {
                 "href": "string",
                 "scale": 0,
                 "properties": {},
-                "embed_provider": "youtube"
-            }
+                "embed_provider": "youtube",
+            },
         }
     ],
     "settings": {
@@ -27,10 +27,10 @@ formData = {
         "customUrl": "string",
         "private": False,
         "responseDataOwnerField": "string",
-        "provider": "string"
+        "provider": "string",
     },
     "publishedAt": "2023-07-12T15:01:24.352Z",
-    "responses": 0
+    "responses": 0,
 }
 
 formResponse = {
@@ -48,12 +48,12 @@ formResponse = {
     "formTitle": "string",
     "status": "string",
     "formImportedBy": "string",
-    "deletionStatus": "pending"
+    "deletionStatus": "pending",
 }
 
 workspace_settings = {
-  "pinned": True,
-  "customUrl": "custom_url",
-  "private": True,
-  "responseDataOwnerField": "customUser"
+    "pinned": True,
+    "customUrl": "custom_url",
+    "private": True,
+    "responseDataOwnerField": "customUser",
 }

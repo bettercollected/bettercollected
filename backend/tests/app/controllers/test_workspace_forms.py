@@ -7,7 +7,10 @@ from aiohttp.test_utils import TestClient, TestServer
 from backend.app.container import container
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.models.workspace import WorkspaceFormSettings
-from backend.app.schemas.standard_form_response import FormResponseDocument, FormResponseDeletionRequest
+from backend.app.schemas.standard_form_response import (
+    FormResponseDocument,
+    FormResponseDeletionRequest,
+)
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services import workspace_service
@@ -34,191 +37,285 @@ def workspace():
 
 @pytest.fixture()
 def workspace_api(workspace):
-    yield '/api/v1/workspaces/' + str(workspace.id) + '/forms'
+    yield "/api/v1/workspaces/" + str(workspace.id) + "/forms"
 
 
 @pytest.fixture()
 def workspace_form(workspace):
-    form = asyncio.run(container.workspace_form_service().create_form
-                       (workspace.id, StandardForm(**formData), testUser))
+    form = asyncio.run(
+        container.workspace_form_service().create_form(
+            workspace.id, StandardForm(**formData), testUser
+        )
+    )
     yield form
 
 
 @pytest.fixture()
 def workspace_form_response(workspace, workspace_form):
-    response = dict(asyncio.run(container.workspace_form_service().submit_response(workspace.id,
-                                workspace_form.form_id, StandardFormResponse(**formResponse), testUser)))
+    response = dict(
+        asyncio.run(
+            container.workspace_form_service().submit_response(
+                workspace.id,
+                workspace_form.form_id,
+                StandardFormResponse(**formResponse),
+                testUser,
+            )
+        )
+    )
     yield response
 
 
 @pytest.fixture()
 def test_user_cookies():
     token = container.jwt_service().encode(testUser)
-    return {
-        "Authorization": token,
-        "RefreshToken": token
-    }
+    return {"Authorization": token, "RefreshToken": token}
 
 
 @pytest.fixture()
 def test_user_cookies_1():
     token = container.jwt_service().encode(testUser1)
-    return {
-        "Authorization": token,
-        "RefreshToken": token
-    }
+    return {"Authorization": token, "RefreshToken": token}
 
 
 @pytest.mark.asyncio
 class TestWorkspaceForm:
-
-    async def test_create_form(self, client, test_user_cookies, workspace_api, workspace):
-        response = client.post(
-            workspace_api,
-            cookies=test_user_cookies,
-            json=formData)
+    async def test_create_form(
+        self, client, test_user_cookies, workspace_api, workspace
+    ):
+        response = client.post(workspace_api, cookies=test_user_cookies, json=formData)
         assert response.status_code == 200
         # db_form = (await FormDocument.find().to_list())
-        form_ids = await container.workspace_form_service().get_form_ids_in_workspace(workspace.id)
+        form_ids = await container.workspace_form_service().get_form_ids_in_workspace(
+            workspace.id
+        )
         response_form = dict(response.json())
-        assert response_form['formId'] in form_ids
+        assert response_form["formId"] in form_ids
 
-    def test_unauthorized_user_create_form_fails(self, client, workspace_api, test_user_cookies_1):
+    def test_unauthorized_user_create_form_fails(
+        self, client, workspace_api, test_user_cookies_1
+    ):
         response = client.post(
-            workspace_api,
-            cookies=test_user_cookies_1,
-            json=formData
+            workspace_api, cookies=test_user_cookies_1, json=formData
         )
         assert response.status_code == 403
 
-    async def test_submit_workspace_form_response(self, client, test_user_cookies, workspace_api, workspace_form):
+    async def test_submit_workspace_form_response(
+        self, client, test_user_cookies, workspace_api, workspace_form
+    ):
         response = client.post(
-            workspace_api + '/' + str(workspace_form.form_id) + '/response',
-            cookies=test_user_cookies
-            , json=formResponse)
-        assert response.json()['dataOwnerIdentifier'] == testUser.sub
+            workspace_api + "/" + str(workspace_form.form_id) + "/response",
+            cookies=test_user_cookies,
+            json=formResponse,
+        )
+        assert response.json()["dataOwnerIdentifier"] == testUser.sub
         form_response = (await FormResponseDocument.find().to_list())[0]
-        assert response.json()['response_id'] in form_response.response_id
+        assert response.json()["response_id"] in form_response.response_id
 
-    async def test_submit_non_workspace_form_response(self, client, test_user_cookies, workspace_api):
+    async def test_submit_non_workspace_form_response(
+        self, client, test_user_cookies, workspace_api
+    ):
         form = await container.form_service().create_form(StandardForm(**formData))
         response = client.post(
-            workspace_api + '/' + str(form.id) + '/response',
-            cookies=test_user_cookies
-            , json=formResponse)
+            workspace_api + "/" + str(form.id) + "/response",
+            cookies=test_user_cookies,
+            json=formResponse,
+        )
         assert response.status_code == 404
         assert response.json() == "Form not found"
 
-    async def test_delete_workspace_form(self, client, test_user_cookies, workspace, workspace_form, workspace_api):
-        form_response = dict(await container.workspace_form_service().submit_response(workspace.id,
-                                            workspace_form.form_id, StandardFormResponse(**formResponse), testUser))
+    async def test_delete_workspace_form(
+        self, client, test_user_cookies, workspace, workspace_form, workspace_api
+    ):
+        form_response = dict(
+            await container.workspace_form_service().submit_response(
+                workspace.id,
+                workspace_form.form_id,
+                StandardFormResponse(**formResponse),
+                testUser,
+            )
+        )
         await container.form_response_service().request_for_response_deletion(
             workspace.id, form_response["response_id"], testUser
         )
-        delete_form = client.delete(workspace_api + '/' + str(workspace_form.form_id),
-                                    cookies=test_user_cookies)
+        delete_form = client.delete(
+            workspace_api + "/" + str(workspace_form.form_id), cookies=test_user_cookies
+        )
         assert delete_form.status_code == 200
         assert delete_form.json() == "Form deleted from workspace."
-        form = await WorkspaceFormDocument.find_one({
-            "id": workspace.id
-        })
+        form = await WorkspaceFormDocument.find_one({"id": workspace.id})
         assert form is None
-        response = (await FormResponseDocument.find_one(
+        response = await FormResponseDocument.find_one(
             {"form_id": workspace_form.form_id}
-        ))
+        )
         assert response is None
         request_response_deletion = await FormResponseDeletionRequest.find_one(
             {"response_id": form_response["response_id"]}
         )
         assert request_response_deletion is None
 
-    async def test_unauthorized_user_delete_workspace_form(self, client, test_user_cookies_1,
-                                                           workspace_form, workspace_api):
-        delete_form = client.delete(workspace_api + '/' + str(workspace_form.form_id),
-                                    cookies=test_user_cookies_1)
+    async def test_unauthorized_user_delete_workspace_form(
+        self, client, test_user_cookies_1, workspace_form, workspace_api
+    ):
+        delete_form = client.delete(
+            workspace_api + "/" + str(workspace_form.form_id),
+            cookies=test_user_cookies_1,
+        )
         assert delete_form.status_code == 403
 
-    async def test_delete_form_response(self, client, test_user_cookies, workspace_api,
-                                        workspace_form, workspace_form_response):
-        deleted_response = client.delete(workspace_api + '/' +
-                                         str(workspace_form.form_id) + '/response/' +
-                                         str(workspace_form_response['response_id']),
-                                         cookies=test_user_cookies)
+    async def test_delete_form_response(
+        self,
+        client,
+        test_user_cookies,
+        workspace_api,
+        workspace_form,
+        workspace_form_response,
+    ):
+        deleted_response = client.delete(
+            workspace_api
+            + "/"
+            + str(workspace_form.form_id)
+            + "/response/"
+            + str(workspace_form_response["response_id"]),
+            cookies=test_user_cookies,
+        )
         assert deleted_response.status_code == 200
-        assert deleted_response.json() == workspace_form_response['response_id']
-        form_response_deletion_request = await FormResponseDeletionRequest.find_one({
-            "response_id": workspace_form_response['response_id']
-        })
+        assert deleted_response.json() == workspace_form_response["response_id"]
+        form_response_deletion_request = await FormResponseDeletionRequest.find_one(
+            {"response_id": workspace_form_response["response_id"]}
+        )
         assert form_response_deletion_request is None
 
-    async def test_request_for_delete_form_response(self, client, test_user_cookies, workspace,
-                                                    workspace_form, workspace_form_response):
-        request_response_deletion = client.delete('/api/v1/workspaces/' + str(workspace.id) + '/submissions/' +
-                                                  str(workspace_form_response['response_id']),
-                                                  cookies=test_user_cookies)
+    async def test_request_for_delete_form_response(
+        self,
+        client,
+        test_user_cookies,
+        workspace,
+        workspace_form,
+        workspace_form_response,
+    ):
+        request_response_deletion = client.delete(
+            "/api/v1/workspaces/"
+            + str(workspace.id)
+            + "/submissions/"
+            + str(workspace_form_response["response_id"]),
+            cookies=test_user_cookies,
+        )
         assert request_response_deletion.status_code == 200
-        assert request_response_deletion.json() == {'message': 'Request for deletion created successfully.'}
-        form_response_deletion_request = await FormResponseDeletionRequest.find().to_list()
-        assert form_response_deletion_request[0].response_id == workspace_form_response['response_id']
-        request_response_deletion_2 = client.delete('/api/v1/workspaces/' + str(workspace.id) + '/submissions/' +
-                                                    str(workspace_form_response['response_id']),
-                                                    cookies=test_user_cookies)
-        assert request_response_deletion_2.json() == 'Error: Deletion request already exists for the response : ' \
-            + str(workspace_form_response['response_id'])
-        deleted_requested_form = client.delete('/api/v1/workspaces/' + str(workspace.id) + '/forms/'
-                                               + str(workspace_form.form_id) + '/response/' +
-                                               str(workspace_form_response['response_id']),
-                                               cookies=test_user_cookies)
+        assert request_response_deletion.json() == {
+            "message": "Request for deletion created successfully."
+        }
+        form_response_deletion_request = (
+            await FormResponseDeletionRequest.find().to_list()
+        )
+        assert (
+            form_response_deletion_request[0].response_id
+            == workspace_form_response["response_id"]
+        )
+        request_response_deletion_2 = client.delete(
+            "/api/v1/workspaces/"
+            + str(workspace.id)
+            + "/submissions/"
+            + str(workspace_form_response["response_id"]),
+            cookies=test_user_cookies,
+        )
+        assert (
+            request_response_deletion_2.json()
+            == "Error: Deletion request already exists for the response : "
+            + str(workspace_form_response["response_id"])
+        )
+        deleted_requested_form = client.delete(
+            "/api/v1/workspaces/"
+            + str(workspace.id)
+            + "/forms/"
+            + str(workspace_form.form_id)
+            + "/response/"
+            + str(workspace_form_response["response_id"]),
+            cookies=test_user_cookies,
+        )
         assert deleted_requested_form.status_code == 200
-        assert deleted_requested_form.json() == workspace_form_response['response_id']
+        assert deleted_requested_form.json() == workspace_form_response["response_id"]
 
-    def test_unauthorized_user_request_for_delete_form_response(self, client, test_user_cookies_1,
-                                                            workspace, workspace_form_response):
-        request_response_deletion = client.delete('/api/v1/workspaces/' + str(workspace.id) + '/submissions/' +
-                                                  str(workspace_form_response['response_id']),
-                                                  cookies=test_user_cookies_1)
+    def test_unauthorized_user_request_for_delete_form_response(
+        self, client, test_user_cookies_1, workspace, workspace_form_response
+    ):
+        request_response_deletion = client.delete(
+            "/api/v1/workspaces/"
+            + str(workspace.id)
+            + "/submissions/"
+            + str(workspace_form_response["response_id"]),
+            cookies=test_user_cookies_1,
+        )
         assert request_response_deletion.status_code == 403
-        assert request_response_deletion.json() == "You are not authorized to perform this action."
+        assert (
+            request_response_deletion.json()
+            == "You are not authorized to perform this action."
+        )
 
     # not working
 
-    def test_get_workspace_form_by_id(self, client, workspace_api, test_user_cookies, workspace_form):
-        forms = client.get(workspace_api + '/' + str(workspace_form.form_id),
-                           cookies=test_user_cookies)
+    def test_get_workspace_form_by_id(
+        self, client, workspace_api, test_user_cookies, workspace_form
+    ):
+        forms = client.get(
+            workspace_api + "/" + str(workspace_form.form_id), cookies=test_user_cookies
+        )
         assert forms == workspace_form
 
-    def test_update_workspace_form(self, client, test_user_cookies, workspace_api, workspace_form):
-        update_form = client.patch(workspace_api + '/' + str(workspace_form.form_id) ,
-                                   cookies=test_user_cookies,
-                                   json={"description": "updated_form"})
+    def test_update_workspace_form(
+        self, client, test_user_cookies, workspace_api, workspace_form
+    ):
+        update_form = client.patch(
+            workspace_api + "/" + str(workspace_form.form_id),
+            cookies=test_user_cookies,
+            json={"description": "updated_form"},
+        )
         assert update_form.json()["description"] == "updated_form"
 
-    def test_unauthorized_user_update_workspace_form(self, client, test_user_cookies_1, workspace_api
-                                                     , workspace_form):
-        update_form = client.patch(workspace_api + '/' + str(workspace_form.form_id),
-                                   cookies=test_user_cookies_1,
-                                   json={"description": "updated_form"})
+    def test_unauthorized_user_update_workspace_form(
+        self, client, test_user_cookies_1, workspace_api, workspace_form
+    ):
+        update_form = client.patch(
+            workspace_api + "/" + str(workspace_form.form_id),
+            cookies=test_user_cookies_1,
+            json={"description": "updated_form"},
+        )
         assert update_form.status_code == 403
 
-    def test_patch_setting_in_workspace(self, client, workspace, workspace_api, workspace_form, test_user_cookies):
-        patch_settings = client.patch(workspace_api + '/' + str(workspace_form.form_id) + '/settings',
-                                      cookies=test_user_cookies,
-                                      json=workspace_settings)
+    def test_patch_setting_in_workspace(
+        self, client, workspace, workspace_api, workspace_form, test_user_cookies
+    ):
+        patch_settings = client.patch(
+            workspace_api + "/" + str(workspace_form.form_id) + "/settings",
+            cookies=test_user_cookies,
+            json=workspace_settings,
+        )
         assert patch_settings.status_code == 200
-        assert patch_settings.json() == {'settings': {**workspace_settings, 'embedUrl': None, 'provider': 'self'}}
+        assert patch_settings.json() == {
+            "settings": {**workspace_settings, "embedUrl": None, "provider": "self"}
+        }
 
-    async def test_failure_case_for_patch_setting_in_workspace(self, client, workspace, workspace_api,
-                                                         workspace_form, test_user_cookies):
-        patch_settings = client.patch(workspace_api + '/' + str(workspace_form.form_id) + '/settings',
-                                      cookies=test_user_cookies,
-                                      json=workspace_settings)
-        same_patch_settings = client.patch(workspace_api + '/' + str(workspace_form.form_id) + '/settings',
-                                        cookies=test_user_cookies,
-                                        json=workspace_settings)
+    async def test_failure_case_for_patch_setting_in_workspace(
+        self, client, workspace, workspace_api, workspace_form, test_user_cookies
+    ):
+        patch_settings = client.patch(
+            workspace_api + "/" + str(workspace_form.form_id) + "/settings",
+            cookies=test_user_cookies,
+            json=workspace_settings,
+        )
+        same_patch_settings = client.patch(
+            workspace_api + "/" + str(workspace_form.form_id) + "/settings",
+            cookies=test_user_cookies,
+            json=workspace_settings,
+        )
         assert same_patch_settings.status_code == 409
-        assert same_patch_settings.json() == "Form with given custom slug already exists in the workspace!!"
+        assert (
+            same_patch_settings.json()
+            == "Form with given custom slug already exists in the workspace!!"
+        )
         form = await container.form_service().create_form(StandardForm(**formData))
-        non_workspace_form_setting = client.patch(workspace_api + '/' + str(form.form_id) + '/settings',
-                                      cookies=test_user_cookies,
-                                      json=workspace_settings)
+        non_workspace_form_setting = client.patch(
+            workspace_api + "/" + str(form.form_id) + "/settings",
+            cookies=test_user_cookies,
+            json=workspace_settings,
+        )
         assert non_workspace_form_setting.status_code == 404
