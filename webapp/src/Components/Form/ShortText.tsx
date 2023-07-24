@@ -57,17 +57,15 @@ export default function ShortText({ ans, enabled, field }: IShortTextProps) {
             disabled={!enabled}
             inputProps={{
                 style: {
-                    paddingTop: 0,
-                    paddingBottom: 0,
-                    height: 40,
+                    padding: 16,
                     fontSize: 14,
                     fontWeight: 400,
                     color: 'black',
                     content: 'none',
-                    letterSpacing: 1
+                    outline: 'gray'
                 }
             }}
-            className={`!mt-2 `}
+            className={`!mb-7 `}
             fullWidth
             onChange={onChange}
         />

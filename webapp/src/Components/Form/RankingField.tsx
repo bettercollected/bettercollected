@@ -29,7 +29,7 @@ export default function RankingField({ field, enabled, ans }: FormFieldProps) {
         <DragDropContext onDragEnd={onDragEnd}>
             <StrictModeDroppable droppableId="ranking">
                 {(provided: DroppableProvided) => (
-                    <div {...provided.droppableProps} ref={provided.innerRef} className="w-fit min-w-[200px] mt-3  flex flex-col gap-3">
+                    <div {...provided.droppableProps} ref={provided.innerRef} className="w-fit min-w-[200px] !mb-7  flex flex-col gap-3">
                         {(ans?.choices?.values || rankAnswer?.choices?.values || field?.properties?.choices)?.map((choice: any, index: number) => (
                             <Draggable key={choice.id} draggableId={choice.id} index={index} isDragDisabled={!enabled}>
                                 {(provided: DraggableProvided) => (

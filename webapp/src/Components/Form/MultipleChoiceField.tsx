@@ -18,13 +18,13 @@ export default function MultipleChoiceField({ field, ans, enabled }: FormFieldPr
         }
     };
     return (
-        <>
+        <div className="!mb-7">
             {(field?.properties?.choices || []).map((choice: any) => (
                 <div key={choice?.id} className={`flex items-center ${enabled ? 'cursor-pointer' : ''} ${!enableES5}`} onClick={() => handleSelectChoice(choice)}>
-                    <Radio disabled={!enabled} checked={ans?.choice?.value === choice?.value || answer?.choice?.value === choice?.value} />
-                    <div>{choice?.value}</div>
+                    <Radio className="!p-0 !rounded-full" size="medium" disabled={!enabled} checked={ans?.choice?.value === choice?.value || answer?.choice?.value === choice?.value} />
+                    <div className="!ml-2">{choice?.value}</div>
                 </div>
             ))}
-        </>
+        </div>
     );
 }

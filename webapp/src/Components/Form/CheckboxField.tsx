@@ -26,13 +26,13 @@ export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
     };
 
     return (
-        <>
+        <div className="!mb-7">
             {(field?.properties?.choices || []).map((choice: any) => (
                 <div key={choice?.id} className="flex items-center ">
-                    <Checkbox disabled={!enabled} checked={!!ans?.choices?.values?.includes(choice?.value) || !!answerChoices?.includes(choice?.value)} onClick={() => handleSelectChoice(choice)} />
-                    <div>{choice?.value}</div>
+                    <Checkbox className="!p-0" size="medium" disabled={!enabled} checked={!!ans?.choices?.values?.includes(choice?.value) || !!answerChoices?.includes(choice?.value)} onClick={() => handleSelectChoice(choice)} />
+                    <div className="!ml-2">{choice?.value}</div>
                 </div>
             ))}
-        </>
+        </div>
     );
 }

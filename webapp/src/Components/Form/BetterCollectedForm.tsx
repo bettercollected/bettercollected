@@ -35,7 +35,7 @@ const renderFormField = (field: StandardFormQuestionDto, enabled?: boolean, answ
         case FormBuilderTagNames.LAYOUT_HEADER2:
         case FormBuilderTagNames.LAYOUT_HEADER5:
         case FormBuilderTagNames.LAYOUT_LABEL:
-            return <div className={'mt-5 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
+            return <div className={'mb-4 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
         case FormBuilderTagNames.INPUT_EMAIL:
         case FormBuilderTagNames.INPUT_NUMBER:
@@ -134,27 +134,32 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             }}
             onSubmit={onSubmitForm}
         >
-            <div>
-                <div className="text-[36px] font-bold">{form?.title}</div>
+            <div className="mb-10">
+                <div className="text-[36px] mb-5 font-bold">{form?.title}</div>
+                <div>{form?.description}</div>
             </div>
-            {form?.fields.map((field: StandardFormQuestionDto) => (
-                <div key={field?.id} className="relative w-full">
-                    {renderFormField(field, enabled, response?.answers[field.id])}
-                    {invalidFields?.includes(field?.id) && <div className="text-red-500 mt-2">Field Required*</div>}
-                    {field?.validations?.required && (
-                        <>
-                            <div className="absolute top-1  cursor-pointer  rounded-full">
-                                <span className="!w-4 text-center flex items-center justify-center pt-1.5 text-xl font-bold rounded-full !h-4 relative -left-2  bg-gray-300 px-0.5  z-[35003]">*</span>
-                            </div>
-                        </>
-                    )}
-                </div>
-            ))}
-            {enabled && (
-                <Button className="mt-10" type="submit" disabled={!enabled}>
-                    Submit
-                </Button>
-            )}
+            <div className="flex flex-col w-full">
+                {form?.fields.map((field: StandardFormQuestionDto) => (
+                    <div key={field?.id} className="relative w-full">
+                        {renderFormField(field, enabled, response?.answers[field.id])}
+                        {invalidFields?.includes(field?.id) && <div className="text-red-500 mt-2">Field Required*</div>}
+                        {field?.validations?.required && (
+                            <>
+                                <div className="absolute top-1  cursor-pointer  rounded-full">
+                                    <span className="!w-4 text-center flex items-center justify-center pt-1.5 text-xl font-bold rounded-full !h-4 relative -left-2  bg-gray-300 px-0.5  z-[35003]">*</span>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                ))}
+                {enabled && (
+                    <div>
+                        <Button className="mt-10 bg-black-900 hover:bg-black-800" type="submit" disabled={!enabled}>
+                            Submit
+                        </Button>
+                    </div>
+                )}
+            </div>
         </form>
     );
 }
