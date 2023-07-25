@@ -95,7 +95,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
                                             event.preventDefault();
                                             setBackspaceCount(0);
-                                            dispatch(setBuilderState({ activeFieldIndex: item.position }));
+                                            dispatch(setBuilderState({ activeFieldIndex: item.position, activeFieldId: item.id }));
                                         }}
                                     />
                                 </div>
