@@ -1,9 +1,8 @@
 /// <reference types="cypress" />
-import { equal } from 'assert';
 
-describe('example to-do app', () => {
+describe('BetterCollected', () => {
     beforeEach(() => {
-        cy.visit('https://admin.bettercollected.com/login');
+        cy.visit(Cypress.env('baseUrl'));
     });
 
     it('displays two login buttons by default', () => {

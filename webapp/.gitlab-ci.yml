@@ -110,3 +110,6 @@ cypress-tests:
   script:
     - yarn install 
     - yarn run runHeadless
+
+  variables:
+    CYPRESS_baseUrl: "https://admin.bettercollected.com/login"
