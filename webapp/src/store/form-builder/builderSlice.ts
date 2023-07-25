@@ -32,7 +32,8 @@ const initialState: IBuilderState = {
     versions: [],
     currentVersionIndex: 0,
     isFormDirty: false,
-    activeFieldIndex: -2
+    activeFieldIndex: -2,
+    activeFieldId: ''
 };
 
 export const setIsFormDirtyAsync = createAsyncThunk('form/setIsFormDirtyAsync', async (isDirty, { getState }) => {

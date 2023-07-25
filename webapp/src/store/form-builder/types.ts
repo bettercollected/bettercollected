@@ -30,6 +30,7 @@ export interface IBuilderState {
     currentVersionIndex?: number;
     isFormDirty?: boolean;
     activeFieldIndex: number;
+    activeFieldId: string;
 }
 
 export interface IBuilderStateProps {

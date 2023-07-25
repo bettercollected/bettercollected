@@ -23,6 +23,7 @@ import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateFormMutation, usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
+import { getLastItem } from '@app/utils/stringUtils';
 
 export default function FormBuilder({ workspace, _nextI18Next, isEditMode = false }: { isEditMode?: boolean; workspace: WorkspaceDto; _nextI18Next: any }) {
     const dispatch = useAppDispatch();
@@ -105,7 +106,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const onKeyDownCallback = useCallback(
         (event: KeyboardEvent) => {
             batch(() => {
-                const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
+                const fieldId = builderState.activeFieldId;
                 const formField = builderState.fields[fieldId];
 
                 if (event.key === 'Escape') {
@@ -160,6 +161,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     }
                     dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
                 }
+
                 if (((event.key === 'Delete' && event.ctrlKey) || (event.key === 'Backspace' && event.metaKey)) && fieldId) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -206,6 +208,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
         onBlurCallbackRef.current = throttle(onBlurCallback, 100);
 
+        onBlurCallbackRef.current = onBlurCallback;
         document.addEventListener('keydown', onKeyDownCallback);
         document.addEventListener('blur', onBlurCallback);
 

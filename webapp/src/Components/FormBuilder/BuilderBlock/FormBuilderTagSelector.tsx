@@ -264,10 +264,10 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '' }: 
                 [KeyType.ArrowDown]: () => selectNextTag(e),
                 [KeyType.ArrowUp]: () => selectPreviousTag(e),
                 [KeyType.Backspace]: () => {
-                    setCommand((prevCommand) => {
-                        closeMenu();
-                        return command.slice(0, -1);
-                    });
+                    // setCommand((prevCommand) => {
+                    //     // closeMenu();
+                    //     return command.slice(0, -1);
+                    // });
                 },
                 [KeyType.Escape]: () => closeMenu(),
                 default: () => {}
