@@ -1,6 +1,7 @@
 stages:
     - build
     - deploy
+    - test
 
 build develop:
     stage: build
@@ -97,3 +98,11 @@ deploy release:
         - docker service update --force --with-registry-auth --image  $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA bettercollected_webapp
     only:
         - release
+
+test :
+    image: cypress/base:latest
+
+    stage: test
+    script:
+        - npm install
+        - npm run runHeadless
