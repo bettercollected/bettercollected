@@ -10,7 +10,6 @@ import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react
 import { useDispatch } from 'react-redux';
 
 import { setUpdateField } from '@app/store/form-builder/actions';
-import { updateField } from '@app/store/form-builder/slice';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { reorder } from '@app/utils/arrayUtils';
 
@@ -39,13 +38,13 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
         newChoices.forEach((choice: any) => {
             choices[choice.id] = choice;
         });
-        dispatch(updateField({ ...field, properties: { ...field.properties, choices: choices } }));
+        dispatch(setUpdateField({ ...field, properties: { ...field.properties, choices: choices } }));
     };
 
     const deleteChoice = (id: string) => {
         const choices = { ...field.properties?.choices };
         delete choices[id];
-        dispatch(updateField({ ...field, properties: { ...field.properties, choices: { ...choices } } }));
+        dispatch(setUpdateField({ ...field, properties: { ...field.properties, choices: { ...choices } } }));
     };
 
     const onDragEnd = (result: DropResult) => {
@@ -59,7 +58,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
             choices[item.id] = item;
         });
         dispatch(
-            updateField({
+            setUpdateField({
                 ...field,
                 properties: { ...field.properties, choices: { ...choices } }
             })
