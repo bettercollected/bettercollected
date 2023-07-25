@@ -236,7 +236,8 @@ export const allowedQuestionAndAnswerTags = [
 ];
 
 export const allowedTags = [...allowedQuestionAndAnswerTags, ...allowedLayoutTags, ...allowedInputTags];
-const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '' }: any) => {
+
+const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '', searchQuery = null }: any) => {
     const [tagList, setTagList] = useState(allowedTags);
     const [selectedTag, setSelectedTag] = useState({ blockType: BlockTypes.INPUT_BLOCKS, index: 0 });
     const [command, setCommand] = useState('');
@@ -246,8 +247,10 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '' }: 
     const listRef: any = useRef(null);
 
     useEffect(() => {
-        setTagList(allowedTags);
-    }, []);
+        console.log(searchQuery);
+        const filteredAllowedTags = searchQuery === null ? allowedTags : allowedTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
+        setTagList(filteredAllowedTags);
+    }, [searchQuery]);
 
     useEffect(() => {
         const handleKeyDown = (e: any) => {
@@ -333,37 +336,37 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '' }: 
         }
     };
 
-    const renderSingleTypeTagElements = (blockType: string, typeTagList: Array<any>) => (
-        <li key={blockType}>
-            <ul>
-                <ListSubheader className="font-bold tracking-widest shadow-sm">{blockType.toUpperCase()}</ListSubheader>
-                {typeTagList.length === 0 && <p className="m-0 px-4 py-2 text-sm text-neutral-300">No items</p>}
-                {typeTagList.map((tag: any, index: number) => {
-                    const isSelected = selectedTag.blockType === blockType && selectedTag.index === index;
-                    const listItemClass = isSelected ? 'bg-indigo-500 text-white selected' : 'text-neutral-700 hover:bg-indigo-400 hover:text-white';
+    const renderSingleTypeTagElements = (blockType: string, typeTagList: Array<any>) =>
+        typeTagList.length != 0 && (
+            <li key={blockType}>
+                <ul>
+                    <ListSubheader className="font-bold tracking-widest shadow-sm">{blockType.toUpperCase()}</ListSubheader>
 
-                    return (
-                        <ListItem
-                            key={index}
-                            data-id={`${blockType}-${index}`}
-                            data-tag={tag.type}
-                            className={`flex items-center px-3 py-2 gap-3 last:border-b-0 ${listItemClass}`}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                                console.log('Item Clicked');
-                                handleSelection(tag.type);
-                            }}
-                        >
-                            {tag.icon}
-                            <span className="ml-2">{tag.label}</span>
-                        </ListItem>
-                    );
-                })}
-            </ul>
-        </li>
-    );
+                    {typeTagList.map((tag: any, index: number) => {
+                        const isSelected = selectedTag.blockType === blockType && selectedTag.index === index;
+                        const listItemClass = isSelected ? 'bg-indigo-500 text-white selected' : 'text-neutral-700 hover:bg-indigo-400 hover:text-white';
 
+                        return (
+                            <ListItem
+                                key={index}
+                                data-id={`${blockType}-${index}`}
+                                data-tag={tag.type}
+                                className={`flex items-center px-3 py-2 gap-3 last:border-b-0 ${listItemClass}`}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => {
+                                    console.log('Item Clicked');
+                                    handleSelection(tag.type);
+                                }}
+                            >
+                                {tag.icon}
+                                <span className="ml-2">{tag.label}</span>
+                            </ListItem>
+                        );
+                    })}
+                </ul>
+            </li>
+        );
     return (
         <div className={`absolute top-full left-0 right-0 z-[9999] overflow-hidden rounded bg-white drop-shadow-main ${className}`}>
             <Paper style={{ maxHeight: 320, overflowY: 'auto' }}>

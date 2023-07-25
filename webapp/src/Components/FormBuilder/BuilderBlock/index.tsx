@@ -112,7 +112,12 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                     />
                                 </div>
                                 {!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id && (
-                                    <FormBuilderTagSelector className={!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id ? 'visible' : 'invisible'} closeMenu={() => {}} handleSelection={handleTagSelection} />
+                                    <FormBuilderTagSelector
+                                        className={!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id ? 'visible' : 'invisible'}
+                                        closeMenu={() => {}}
+                                        handleSelection={handleTagSelection}
+                                        searchQuery={builderState.fields[builderState.activeFieldId].label?.split('/').slice(-1)[0]}
+                                    />
                                 )}
                             </div>
                         )}
