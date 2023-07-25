@@ -107,6 +107,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         (event: KeyboardEvent) => {
             batch(() => {
                 const fieldId = builderState.activeFieldId;
+                const formField = builderState.fields[fieldId];
 
                 if (event.key === 'Escape') {
                     dispatch(resetBuilderMenuState());
@@ -150,16 +151,16 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         })
                     );
                 }
-                // if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
-                //     // TODO: Add support for other input types or form field type as well
-                //     if (!formField?.label && backspaceCount === 1 && formField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
-                //         asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
-                //         dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
-                //     } else {
-                //         setBackspaceCount(1);
-                //     }
-                //     dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
-                // }
+                if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
+                    // TODO: Add support for other input types or form field type as well
+                    if (!formField?.label && backspaceCount === 1 && formField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
+                        asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
+                        dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
+                    } else {
+                        setBackspaceCount(1);
+                    }
+                    dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
+                }
 
                 if (((event.key === 'Delete' && event.ctrlKey) || (event.key === 'Backspace' && event.metaKey)) && fieldId) {
                     event.preventDefault();
@@ -185,21 +186,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         dispatch(addDuplicateField(newField));
                     }
                     dispatch(setBuilderState({ isFormDirty: true }));
-                }
-
-                if (event.code === 'Backspace' && builderState.menus?.commands?.isOpen && getLastItem(builderState.fields[builderState.activeFieldId].label ?? '') === '/') {
-                    dispatch(
-                        setBuilderState({
-                            isFormDirty: true,
-                            menus: {
-                                ...builderState.menus,
-                                commands: {
-                                    isOpen: false,
-                                    atFieldUuid: ''
-                                }
-                            }
-                        })
-                    );
                 }
             });
         },

@@ -12,6 +12,7 @@ import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
+import { getLastItem } from '@app/utils/stringUtils';
 
 import CustomContentEditable from '../ContentEditable/CustomContentEditable';
 import FormBuilderActionMenu from './FormBuilderActionMenu';
@@ -78,8 +79,19 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                             setBackspaceCount(0);
                                             batch(() => {
                                                 // @ts-ignore
-                                                if (event.nativeEvent.inputType === 'deleteContentBackward' && builderState.activeFieldIndex >= 0) {
-                                                    dispatch(resetBuilderMenuState());
+                                                if (event.nativeEvent.inputType === 'deleteContentBackward' && getLastItem(builderState.fields[builderState.activeFieldId].label ?? '') === '/') {
+                                                    dispatch(
+                                                        setBuilderState({
+                                                            isFormDirty: true,
+                                                            menus: {
+                                                                ...builderState.menus,
+                                                                commands: {
+                                                                    isOpen: false,
+                                                                    atFieldUuid: ''
+                                                                }
+                                                            }
+                                                        })
+                                                    );
                                                 }
                                                 dispatch(
                                                     setBuilderState({
