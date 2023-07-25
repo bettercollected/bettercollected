@@ -18,6 +18,7 @@ class UserTagsService:
 
     async def get_user_tags_details(self):
         user_tags_list = await self.get_user_tags()
+        user_tags_list.sort(key=lambda user_tags: user_tags.user_id)
         user_ids = [str(item.user_id) for item in user_tags_list]
         query_params = {"user_ids": user_ids}
         response = await AiohttpClient.get_aiohttp_client().get(
@@ -28,10 +29,10 @@ class UserTagsService:
         user_info_list = [
             UserInfoDto(**user_info) for user_info in json_response["users_info"]
         ]
+        user_info_list.sort(key=lambda user_info: user_info.id)
         zipped_users = [
             (user_tag, user_info)
             for user_tag, user_info in zip(user_tags_list, user_info_list)
-            if str(user_tag.user_id) == str(user_info.id)
         ]
         user_details_lists = [
             UserTagsDetailsDto(
