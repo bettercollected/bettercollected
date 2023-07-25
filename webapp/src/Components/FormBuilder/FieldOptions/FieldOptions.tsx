@@ -156,7 +156,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                 </ListItemIcon>
                 <span className="leading-none flex items-center justify-between w-full">
                     <span>Delete</span>
-                    <span className="italic text-xs text-black-500">Ctrl/Cmd + Shift + D</span>
+                    <span className="italic text-xs text-black-500">Ctrl/Cmd + Del</span>
                 </span>
             </MenuItem>
         </MenuDropdown>

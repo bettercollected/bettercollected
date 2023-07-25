@@ -16,7 +16,7 @@ import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addDuplicateField, setAddNewField, setBuilderState, setDeleteField, setFields } from '@app/store/form-builder/actions';
+import { addDuplicateField, resetBuilderMenuState, setAddNewField, setBuilderState, setDeleteField, setFields } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
@@ -31,7 +31,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const router = useRouter();
 
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
-    const onKeyUpCallbackRef = useRef<any>(null);
+    const onKeyDownCallbackRef = useRef<any>(null);
     const onBlurCallbackRef = useRef<any>(null);
 
     const [backspaceCount, setBackspaceCount] = useState(0);
@@ -102,38 +102,35 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         };
     };
 
-    const onKeyUpCallback = useCallback(
+    const onKeyDownCallback = useCallback(
         (event: KeyboardEvent) => {
             batch(() => {
                 const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
                 const formField = builderState.fields[fieldId];
 
                 if (event.key === 'Escape') {
-                    event.preventDefault();
-                    dispatch(
-                        setBuilderState({
-                            isFormDirty: true,
-                            menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } }
-                        })
-                    );
+                    dispatch(resetBuilderMenuState());
                 }
 
                 if (builderState.menus?.commands?.isOpen || builderState.menus?.spotlightField?.isOpen) return;
 
-                if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
-                    const newField: IFormFieldState = {
-                        id: v4(),
-                        type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-                        isCommandMenuOpen: false,
-                        position: builderState.activeFieldIndex
-                    };
-                    dispatch(setAddNewField(newField));
-                    dispatch(setBuilderState({ isFormDirty: true, activeFieldIndex: builderState.activeFieldIndex + 1 }));
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (builderState.activeFieldIndex >= -1) {
+                        const newField: IFormFieldState = {
+                            id: v4(),
+                            type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+                            isCommandMenuOpen: false,
+                            position: builderState.activeFieldIndex
+                        };
+                        dispatch(setAddNewField(newField));
+                        dispatch(setBuilderState({ isFormDirty: true, activeFieldIndex: builderState.activeFieldIndex + 1 }));
+                    }
                 }
+
                 if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
                 if ((event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
-                    event.preventDefault();
-
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
                 }
                 if (event.key === 'ArrowUp' && builderState.activeFieldIndex > -2) {
@@ -162,9 +159,9 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     }
                     dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
                 }
-                if (event.key === 'Delete' && event.altKey && fieldId) {
-                    // TODO: fix delete proxy issue
+                if (event.key === 'Delete' && (event.ctrlKey || event.metaKey) && fieldId) {
                     event.preventDefault();
+                    event.stopPropagation();
 
                     const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
                     if (fieldId) dispatch(setDeleteField(fieldId));
@@ -175,8 +172,9 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         })
                     );
                 }
-                if (event.code === 'KeyD' && event.shiftKey && event.altKey) {
+                if ((event.key === 'D' || event.key === 'd') && (event.ctrlKey || event.metaKey)) {
                     event.preventDefault();
+                    event.stopPropagation();
                     if (fieldId) {
                         const formField = builderState.fields[fieldId];
                         const newField: IFormFieldState = { ...formField };
@@ -203,19 +201,19 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     );
 
     useEffect(() => {
-        onKeyUpCallbackRef.current = throttle(onKeyUpCallback, 100);
+        onKeyDownCallbackRef.current = throttle(onKeyDownCallback, 100);
 
         onBlurCallbackRef.current = throttle(onBlurCallback, 100);
 
-        document.addEventListener('keyup', onKeyUpCallback);
+        document.addEventListener('keydown', onKeyDownCallback);
         document.addEventListener('blur', onBlurCallback);
 
         return () => {
-            document.removeEventListener('keyup', onKeyUpCallback);
+            document.removeEventListener('keydown', onKeyDownCallback);
             document.removeEventListener('blur', onBlurCallback);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [builderState, onKeyUpCallback, onBlurCallback]);
+    }, [builderState, onKeyDownCallback, onBlurCallback]);
 
     return (
         <>

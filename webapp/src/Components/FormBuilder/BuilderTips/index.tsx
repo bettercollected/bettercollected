@@ -64,7 +64,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderBackspaceIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">Backspace</strong> key <strong>twice</strong> when the field is empty to remove the field
+                    Hit <strong className="text-brand">Backspace</strong> key <strong>twice</strong> when the field is empty to focused the field
                 </>
             )
         },
@@ -72,7 +72,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderDuplicateIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">Alt + Shift + D</strong> key to duplicate the selected field
+                    Hit <strong className="text-brand">Ctrl/Cmd + D</strong> key to duplicate the focused field
                 </>
             )
         },
@@ -80,7 +80,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderDeleteIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">Alt + Delete</strong> key to remove the selected field
+                    Hit <strong className="text-brand">Ctrl/Cmd + Delete</strong> key to remove the focused field
                 </>
             )
         }
