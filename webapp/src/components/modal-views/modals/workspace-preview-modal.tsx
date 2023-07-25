@@ -1,11 +1,24 @@
 import React from 'react';
 
+import Link from 'next/link';
+
 import { Close } from '@app/components/icons/close';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import environments from '@app/configs/environments';
 import WorkspaceHomeContainer from '@app/containers/dashboard/WorkspaceHomeContainer';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function WorkspacePreviewModal() {
     const { closeModal } = useFullScreenModal();
+    const workspace = useAppSelector(selectWorkspace);
+
+    const getWorkspaceUrl = () => {
+        const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
+        const domain = !!workspace.customDomain ? workspace.customDomain : environments.CLIENT_DOMAIN;
+        const w_name = !!workspace.customDomain ? '' : workspace.workspaceName;
+        return `${protocol}${domain}/${w_name}`;
+    };
 
     return (
         <div
@@ -17,12 +30,18 @@ export default function WorkspacePreviewModal() {
             <div>
                 <div className="bg-white relative overflow-hidden pointer-events-none h-full rounded-lg ">
                     <div
-                        className="absolute top-5 rounded-full bg-brand-100 p-2 right-5 cursor-pointer z-20 !pointer-events-auto"
+                        className="absolute top-5 rounded-full  p-2 right-5 cursor-pointer z-20 !pointer-events-auto"
                         onClick={() => {
                             closeModal();
                         }}
                     >
                         <Close />
+                    </div>
+                    <div className="bg-white z-[5000] body-4 !pointer-events-auto h-fit py-6 flex justify-center gap-1  w-full">
+                        <span>This is just a preview of your workspace. To visit the real workspace</span>
+                        <a href={getWorkspaceUrl()} rel="noopener noreferrer" referrerPolicy="no-referrer" target="_blank">
+                            <span className="!text-brand-500 cursor-pointer hover:underline">{' click here.'}</span>
+                        </a>
                     </div>
                     <WorkspaceHomeContainer isCustomDomain={false} isWorkspacePreview={true} />
                 </div>
