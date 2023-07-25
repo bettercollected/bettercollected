@@ -283,6 +283,7 @@ class WorkspaceService:
                 "receiver_email": receiver_email,
                 "workspace_title": workspace.title,
                 "workspace_profile_image": workspace.profile_image,
+                "creator": False,
             },
             timeout=180,
         )
