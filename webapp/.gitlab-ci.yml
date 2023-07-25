@@ -102,14 +102,11 @@ deploy release:
 cypress-tests:
   stage: test
 
-  image: node:16
+  image: node:18
+
+  tags:
+    - docker
 
   script:
     - npm install 
     - npm run runHeadless
-
-  artifacts:
-    when: always
-    paths:
-      - cypress/videos/ 
-      - cypress/screenshots/ 
