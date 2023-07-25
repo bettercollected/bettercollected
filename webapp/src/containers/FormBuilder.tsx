@@ -150,7 +150,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         })
                     );
                 }
-                if (event.key === 'Backspace' && builderState.activeFieldIndex >= 0) {
+                if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
                     if (!formField?.label && backspaceCount === 1) {
                         asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
                         dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
@@ -159,7 +159,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     }
                     dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
                 }
-                if (event.key === 'Delete' && (event.ctrlKey || event.metaKey) && fieldId) {
+                if (((event.key === 'Delete' && event.ctrlKey) || (event.key === 'Backspace' && event.metaKey)) && fieldId) {
                     event.preventDefault();
                     event.stopPropagation();
 
