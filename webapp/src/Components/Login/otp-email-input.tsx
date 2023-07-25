@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Dispatch, SetStateAction, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -16,7 +16,13 @@ import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation } from '@app/s
 import { useAppSelector } from '@app/store/hooks';
 import { capitalize } from '@app/utils/stringUtils';
 
-export default function OtpEmailInput(props: any) {
+interface OtpEmailInputPropType {
+    isCreator: boolean;
+    setStepCount: Dispatch<SetStateAction<number>>;
+    setEmail: Dispatch<SetStateAction<string>>;
+}
+
+export default function OtpEmailInput(props: OtpEmailInputPropType) {
     const isCreator = props.isCreator;
 
     const workspace = useAppSelector((state) => state.workspace);
@@ -51,7 +57,7 @@ export default function OtpEmailInput(props: any) {
     const handleResponseToast = (res: any) => {
         if (!!res?.data) {
             toast(res.data.message, { type: 'success' });
-            props.setStepCount(stepCount + 1);
+            props.setEmail(email);
         } else {
             toast('Failed to send otp!', { type: 'error' });
         }

@@ -29,6 +29,14 @@ export default function LoginLayout(props: MyLoginProps) {
 
     const [stepCount, setStepCount] = useState(0);
 
+    const [email, setEmail] = useState('');
+
+    useEffect(() => {
+        if (!email) return;
+        setStepCount(stepCount + 1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [email]);
+
     const TermsAndCondition = () => (
         <div className="body4">
             {t(signInScreen.signinAgreementDescription)}
@@ -64,8 +72,8 @@ export default function LoginLayout(props: MyLoginProps) {
                 </div>
                 <div className="flex flex-col order-1 md:order-2 items-start justify-start md:justify-center px-8 py-7 md:py-8 md:px-[110px] h-fit md:h-full w-full md:max-w-[716px]">
                     <Logo isLink={false} />
-                    {stepCount === 0 && <OtpEmailInput isCreator={props.isCreator} setStepCount={setStepCount} />}
-                    {stepCount === 1 && <OtpCodeComponent stepCount={stepCount} setStepCount={setStepCount} />}
+                    {stepCount === 0 && <OtpEmailInput isCreator={props.isCreator} setStepCount={setStepCount} setEmail={setEmail} />}
+                    {stepCount === 1 && <OtpCodeComponent stepCount={stepCount} setStepCount={setStepCount} email={email} />}
                     <TermsAndCondition />
                 </div>
             </div>

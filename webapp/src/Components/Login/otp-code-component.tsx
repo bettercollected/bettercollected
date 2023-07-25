@@ -1,18 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
+
+import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
 import Back from '@app/components/icons/back';
 import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { signInScreen } from '@app/constants/locales/signin-screen';
+import { usePostVerifyOtpMutation } from '@app/store/auth/api';
 
-export default function OtpCodeComponent(props: any) {
+interface OtpCodePropType {
+    stepCount: number;
+    setStepCount: Dispatch<SetStateAction<number>>;
+    email: string;
+}
+
+export default function OtpCodeComponent(props: OtpCodePropType) {
     const { t } = useTranslation();
 
     const [otp, setOtp] = useState('');
     const [counter, setCounter] = useState(60);
+    const router = useRouter();
+
+    const [postVerifyOtp, { isLoading }] = usePostVerifyOtpMutation();
 
     const constants = {
         subHeading2: t(signInScreen.continueWIth),
@@ -34,6 +47,25 @@ export default function OtpCodeComponent(props: any) {
         props.setStepCount(props.stepCount - 1);
     };
 
+    const handleResponseToast = (res: any) => {
+        if (!!res?.data) {
+            toast(res.data.message, { type: 'success' });
+            router.push('/login');
+        } else {
+            toast(!!res.error.data ? res.error.data : 'Failed to verify code', { type: 'error' });
+        }
+    };
+
+    const handleOtpPost = async () => {
+        if (!otp) return;
+        const req = {
+            email: props.email,
+            otp_code: otp
+        };
+        const res = await postVerifyOtp(req);
+        handleResponseToast(res);
+    };
+
     return (
         <>
             <div className={'flex items-center mt-[48px] cursor-pointer gap-1 hover:text-brand'} onClick={handleGoBackOnStepOne}>
@@ -48,7 +80,7 @@ export default function OtpCodeComponent(props: any) {
 
             <p className=" mb-[8px] mt-[44px] text-black-900">{constants.enterOtpCode}</p>
             <BetterInput placeholder={constants.enterOtpCode} value={otp} onChange={handleOtpChange} />
-            <Button variant="solid" className={'w-full mt-[32px] mb-[40px]'} size={'large'}>
+            <Button variant="solid" isLoading={isLoading} className={'w-full mt-[32px] mb-[40px]'} size={'large'} onClick={handleOtpPost}>
                 {constants.continue}
             </Button>
             <div className={'flex items-center gap-2 mb-[60px] text-black-900'}>
