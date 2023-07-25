@@ -23,6 +23,7 @@ import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateFormMutation, usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
+import { getLastItem } from '@app/utils/stringUtils';
 
 export default function FormBuilder({ workspace, _nextI18Next, isEditMode = false }: { isEditMode?: boolean; workspace: WorkspaceDto; _nextI18Next: any }) {
     const dispatch = useAppDispatch();
@@ -105,8 +106,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const onKeyDownCallback = useCallback(
         (event: KeyboardEvent) => {
             batch(() => {
-                const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
-                const formField = builderState.fields[fieldId];
+                const fieldId = builderState.activeFieldId;
 
                 if (event.key === 'Escape') {
                     dispatch(resetBuilderMenuState());
@@ -150,16 +150,17 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         })
                     );
                 }
-                if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
-                    // TODO: Add support for other input types or form field type as well
-                    if (!formField?.label && backspaceCount === 1 && formField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
-                        asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
-                        dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
-                    } else {
-                        setBackspaceCount(1);
-                    }
-                    dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
-                }
+                // if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
+                //     // TODO: Add support for other input types or form field type as well
+                //     if (!formField?.label && backspaceCount === 1 && formField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
+                //         asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
+                //         dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
+                //     } else {
+                //         setBackspaceCount(1);
+                //     }
+                //     dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
+                // }
+
                 if (((event.key === 'Delete' && event.ctrlKey) || (event.key === 'Backspace' && event.metaKey)) && fieldId) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -185,6 +186,21 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     }
                     dispatch(setBuilderState({ isFormDirty: true }));
                 }
+
+                if (event.code === 'Backspace' && builderState.menus?.commands?.isOpen && getLastItem(builderState.fields[builderState.activeFieldId].label ?? '') === '/') {
+                    dispatch(
+                        setBuilderState({
+                            isFormDirty: true,
+                            menus: {
+                                ...builderState.menus,
+                                commands: {
+                                    isOpen: false,
+                                    atFieldUuid: ''
+                                }
+                            }
+                        })
+                    );
+                }
             });
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -206,6 +222,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
         onBlurCallbackRef.current = throttle(onBlurCallback, 100);
 
+        onBlurCallbackRef.current = onBlurCallback;
         document.addEventListener('keydown', onKeyDownCallback);
         document.addEventListener('blur', onBlurCallback);
 
