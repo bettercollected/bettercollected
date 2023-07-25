@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { isEmpty } from 'lodash';
+
 import { AlternateEmail, ArrowDropDown, DateRange, Grid4x4, Notes, Phone, ShortText, Star, TrendingUpSharp } from '@mui/icons-material';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import LinkIcon from '@mui/icons-material/Link';
@@ -367,6 +369,12 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '', se
                 </ul>
             </li>
         );
+
+    const renderAllFields = () => {
+        const fields = blockListTypes.map((type) => renderSingleTypeTagElements(type, getFilteredList(type)));
+        return fields.every((field) => field === false) ? <ListSubheader className="font-bold tracking-widest shadow-sm">No Results found</ListSubheader> : fields;
+    };
+
     return (
         <div className={`absolute top-full left-0 right-0 z-[9999] overflow-hidden rounded bg-white drop-shadow-main ${className}`}>
             <Paper style={{ maxHeight: 320, overflowY: 'auto' }}>
@@ -382,7 +390,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '', se
                     }}
                     subheader={<li />}
                 >
-                    {blockListTypes.map((type) => renderSingleTypeTagElements(type, getFilteredList(type)))}
+                    {renderAllFields()}
                 </List>
             </Paper>
         </div>
