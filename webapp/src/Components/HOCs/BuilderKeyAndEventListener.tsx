@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 
+import { batch } from 'react-redux';
+
 import { useModal } from '@app/components/modal-views/context';
 import ArrowCommandListener from '@app/lib/builders/listeners/implementations/ArrowCommandListener';
 import EnterCommandListener from '@app/lib/builders/listeners/implementations/EnterCommandListener';
@@ -7,7 +9,7 @@ import SpotlightCommandListener from '@app/lib/builders/listeners/implementation
 import ICommandListener from '@app/lib/builders/listeners/interfaces/ICommandListener';
 import CommandManager from '@app/lib/builders/managers/CommandManager';
 import { FormBuilderCommands } from '@app/models/enums/FormBuilderCommands';
-import { setBuilderMenuState, setBuilderState } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setBuilderMenuState, setBuilderState } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderStateProps } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -29,14 +31,17 @@ export default function BuilderKeyAndEventListener({ children }: IBuilderSpotlig
     };
 
     const spotlightCallback = () => {
-        dispatch(
-            setBuilderMenuState({
-                spotlightField: {
-                    isOpen: true,
-                    afterFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? ''
-                }
-            })
-        );
+        batch(() => {
+            dispatch(resetBuilderMenuState());
+            dispatch(
+                setBuilderMenuState({
+                    spotlightField: {
+                        isOpen: true,
+                        afterFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? ''
+                    }
+                })
+            );
+        });
         openModal('FORM_BUILDER_SPOTLIGHT_VIEW', state);
     };
 

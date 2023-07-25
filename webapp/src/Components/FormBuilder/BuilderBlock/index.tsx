@@ -1,4 +1,4 @@
-import React, { FocusEvent, FormEvent, useEffect, useRef } from 'react';
+import React, { FocusEvent, FormEvent } from 'react';
 
 import FormBuilderBlockContent from '@Components/FormBuilder/BuilderBlock/FormBuilderBlockContent';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
@@ -20,9 +20,10 @@ import FormBuilderTagSelector from './FormBuilderTagSelector';
 interface IBuilderBlockProps {
     item: IFormFieldState;
     draggableId: string | number;
+    setBackspaceCount: React.Dispatch<React.SetStateAction<number>>;
 }
 
-export default function FormBuilderBlock({ item, draggableId }: IBuilderBlockProps) {
+export default function FormBuilderBlock({ item, draggableId, setBackspaceCount }: IBuilderBlockProps) {
     const dispatch = useAppDispatch();
     const builderState = useAppSelector(selectBuilderState);
 
@@ -46,10 +47,7 @@ export default function FormBuilderBlock({ item, draggableId }: IBuilderBlockPro
                     ref={provided.innerRef}
                     className={`relative flex w-full flex-col ${snapshot.isDragging ? 'bg-brand-100' : 'bg-transparent'}`}
                     onFocus={(event: FocusEvent<HTMLElement>) => {}}
-                    onBlur={(event: FocusEvent<HTMLElement>) => {
-                        if (!event.currentTarget.contains(event.relatedTarget)) {
-                        }
-                    }}
+                    onBlur={(event: FocusEvent<HTMLElement>) => {}}
                     {...provided.draggableProps}
                 >
                     <div className={`builder-block px-5 min-h-[40px] flex items-center md:px-[89px]`}>
@@ -77,19 +75,26 @@ export default function FormBuilderBlock({ item, draggableId }: IBuilderBlockPro
                                         placeholder={item.properties?.placeholder ?? 'Type / to open the commands menu'}
                                         className="text-base text-black-800"
                                         onChangeCallback={(event: FormEvent<HTMLElement>) => {
-                                            // @ts-ignore
-                                            dispatch(
-                                                setBuilderState({
-                                                    isFormDirty: true,
-                                                    fields: {
-                                                        ...builderState.fields,
-                                                        [item.id]: { ...item, label: event.currentTarget.innerText }
-                                                    }
-                                                })
-                                            );
+                                            setBackspaceCount(0);
+                                            batch(() => {
+                                                // @ts-ignore
+                                                if (event.nativeEvent.inputType === 'deleteContentBackward' && builderState.activeFieldIndex >= 0) {
+                                                    dispatch(resetBuilderMenuState());
+                                                }
+                                                dispatch(
+                                                    setBuilderState({
+                                                        isFormDirty: true,
+                                                        fields: {
+                                                            ...builderState.fields,
+                                                            [item.id]: { ...item, label: event.currentTarget.innerText }
+                                                        }
+                                                    })
+                                                );
+                                            });
                                         }}
                                         onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
                                             event.preventDefault();
+                                            setBackspaceCount(0);
                                             dispatch(setBuilderState({ activeFieldIndex: item.position }));
                                         }}
                                     />

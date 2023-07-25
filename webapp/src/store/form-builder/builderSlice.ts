@@ -114,8 +114,6 @@ export const builder = createSlice({
             });
             state.fields = newFieldsMap;
             state.activeFieldIndex = action?.payload?.position;
-
-            // return { ...state, fields: { ...newFieldsMap }, activeFieldIndex: action?.payload?.position };
         },
         setUpdateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             return {
@@ -137,7 +135,6 @@ export const builder = createSlice({
             };
         },
         setDeleteField: (state: IBuilderState, action: { payload: string; type: string }) => {
-            // TODO: fix delete for shortcut keys
             const fields = { ...state.fields };
             delete fields[action.payload];
             const fieldsArray = [...Object.values(fields)];
@@ -148,7 +145,7 @@ export const builder = createSlice({
             });
 
             state.fields = newFieldsMap;
-            // return { ...state, fields: { ...newFieldsMap } };
+            state.isFormDirty = true;
         },
         setEditForm: (state, action) => {
             const fields: any = {};

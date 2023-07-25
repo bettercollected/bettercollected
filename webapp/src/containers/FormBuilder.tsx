@@ -1,4 +1,4 @@
-import React, { FormEvent, useCallback, useEffect, useRef } from 'react';
+import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
@@ -33,6 +33,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
     const onKeyUpCallbackRef = useRef<any>(null);
     const onBlurCallbackRef = useRef<any>(null);
+
+    const [backspaceCount, setBackspaceCount] = useState(0);
 
     const [postCreateForm] = useCreateFormMutation();
     const [patchForm] = usePatchFormMutation();
@@ -103,6 +105,9 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const onKeyUpCallback = useCallback(
         (event: KeyboardEvent) => {
             batch(() => {
+                const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
+                const formField = builderState.fields[fieldId];
+
                 if (event.key === 'Escape') {
                     event.preventDefault();
                     dispatch(
@@ -112,6 +117,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         })
                     );
                 }
+
                 if (builderState.menus?.commands?.isOpen || builderState.menus?.spotlightField?.isOpen) return;
 
                 if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
@@ -124,14 +130,13 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     dispatch(setAddNewField(newField));
                     dispatch(setBuilderState({ isFormDirty: true, activeFieldIndex: builderState.activeFieldIndex + 1 }));
                 }
-                if ((event.key === 'ArrowDown' || event.key === 'Tab' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
-                    // TODO: add support for activeFieldIndex increase if there are no elements
-                    // TODO: add support for delete key and backspace key
+                if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
+                if ((event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
                     event.preventDefault();
 
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
                 }
-                if ((event.key === 'ArrowUp' || (event.shiftKey && event.key === 'Tab')) && builderState.activeFieldIndex > -2) {
+                if (event.key === 'ArrowUp' && builderState.activeFieldIndex > -2) {
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                 }
                 if (event.code === 'Slash' && builderState.activeFieldIndex >= 0) {
@@ -149,12 +154,15 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     );
                 }
                 if (event.key === 'Backspace' && builderState.activeFieldIndex >= 0) {
-                    const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
-                    // TODO: remove the label and if clicked the backspace on empty label delete the field
-                    // if (fieldId) dispatch(setDeleteField(fieldId));
-                    dispatch(setBuilderState({ isFormDirty: true }));
+                    if (!formField?.label && backspaceCount === 1) {
+                        asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
+                        dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
+                    } else {
+                        setBackspaceCount(1);
+                    }
+                    dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
                 }
-                if (event.key === 'Delete' && event.altKey) {
+                if (event.key === 'Delete' && event.altKey && fieldId) {
                     // TODO: fix delete proxy issue
                     event.preventDefault();
 
@@ -169,7 +177,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                 }
                 if (event.code === 'KeyD' && event.shiftKey && event.altKey) {
                     event.preventDefault();
-                    const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
                     if (fieldId) {
                         const formField = builderState.fields[fieldId];
                         const newField: IFormFieldState = { ...formField };
@@ -182,33 +189,23 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             });
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [builderState]
+        [builderState, backspaceCount]
     );
 
     const onBlurCallback = useCallback(
         (event: FocusEvent) => {
             event.preventDefault();
+            setBackspaceCount(0);
             dispatch(setBuilderState({ menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [builderState]
+        [builderState, backspaceCount]
     );
 
     useEffect(() => {
-        if (Object.values(builderState.fields).length === 0) {
-            const newField: IFormFieldState = {
-                id: v4(),
-                type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-                isCommandMenuOpen: false,
-                position: Object.values(builderState.fields).length === 0 ? 0 : Object.values(builderState.fields).length
-            };
-            dispatch(setAddNewField(newField));
-            (async () => await asyncDispatch(setAddNewField(newField)))();
-        }
-
         onKeyUpCallbackRef.current = throttle(onKeyUpCallback, 100);
 
-        onBlurCallbackRef.current = onBlurCallback;
+        onBlurCallbackRef.current = throttle(onBlurCallback, 100);
 
         document.addEventListener('keyup', onKeyUpCallback);
         document.addEventListener('blur', onBlurCallback);
@@ -237,9 +234,12 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             placeholder={b.placeholder}
                             className={b.className}
                             onChangeCallback={(event: FormEvent<HTMLElement>) => {
+                                setBackspaceCount(0);
                                 dispatch(setBuilderState({ isFormDirty: true, [b.key]: event.currentTarget.innerText }));
                             }}
                             onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
+                                event.preventDefault();
+                                setBackspaceCount(0);
                                 dispatch(setBuilderState({ activeFieldIndex: b.position }));
                             }}
                         />
@@ -247,7 +247,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                 </div>
                 <BuilderDragDropContext
                     Component={FormBuilderBlock}
-                    componentAttrs={{}}
+                    componentAttrs={{ setBackspaceCount }}
                     droppableId="form-builder"
                     droppableItems={Object.values(builderState.fields || {})}
                     droppableClassName="py-10"
