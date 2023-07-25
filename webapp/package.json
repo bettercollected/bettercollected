@@ -12,7 +12,7 @@
     "start": "next start",
     "prepare": "husky install",
     "test": "jest --watch",
-    "runHeadless": "./node_modules/.bin/cypress run --browser chrome"
+    "runHeadless": "./node_modules/.bin/cypress run "
   },
   "dependencies": {
     "@calcom/embed-react": "^1.0.9",
