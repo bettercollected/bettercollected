@@ -3,10 +3,11 @@ import { useEffect, useRef } from 'react';
 import { allowedInputTags, allowedLayoutTags, allowedQuestionAndAnswerTags } from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { Autocomplete, Paper, TextField, darken, lighten, styled, useTheme } from '@mui/material';
+import { batch } from 'react-redux';
 
 import { useModal } from '@app/components/modal-views/context';
 import { BlockTypes, FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setAddNewField } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setAddNewField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { addFieldNewImplementation } from '@app/store/form-builder/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -46,13 +47,17 @@ export default function FormBuilderSpotlightModal({ index }: { index?: number })
     const builderState = useAppSelector(selectBuilderState);
     const handleFieldSelected = (selected: IField | null) => {
         if (!selected) return;
-        dispatch(
-            setAddNewField({
-                id: uuidv4(),
-                type: selected.type,
-                position: index || Object.keys(builderState.fields).length - 1
-            })
-        );
+        batch(() => {
+            dispatch(
+                setAddNewField({
+                    id: uuidv4(),
+                    type: selected.type,
+                    position: index || Object.keys(builderState.fields).length - 1
+                })
+            );
+            dispatch(resetBuilderMenuState());
+        });
+
         closeModal();
     };
 
