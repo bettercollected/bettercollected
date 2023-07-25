@@ -4,6 +4,7 @@ import { MenuItem } from '@mui/material';
 import { useDispatch } from 'react-redux';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { setUpdateField } from '@app/store/form-builder/actions';
 import { updateField } from '@app/store/form-builder/slice';
 import { IFormFieldState } from '@app/store/form-builder/types';
 
@@ -11,11 +12,11 @@ export default function StepsOption({ field }: { field: IFormFieldState }) {
     const dispatch = useDispatch();
     const onStepsChange = (event: ChangeEvent<HTMLInputElement>) => {
         if (parseInt(event.target.value) > 25) return;
-        dispatch(updateField({ ...field, properties: { ...field.properties, steps: event.target.value } }));
+        dispatch(setUpdateField({ ...field, properties: { ...field.properties, steps: parseInt(event.target.value) } }));
     };
 
     const onBlur = (event: ChangeEvent<HTMLInputElement>) => {
-        if (!event.target.value) dispatch(updateField({ ...field, properties: { ...field.properties, steps: 5 } }));
+        if (!event.target.value) dispatch(setUpdateField({ ...field, properties: { ...field.properties, steps: 5 } }));
     };
 
     return (

@@ -26,7 +26,7 @@ export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
     };
 
     return (
-        <div className="!mb-7">
+        <div className="!mb-7 flex flex-col gap-3">
             {(field?.properties?.choices || []).map((choice: any) => (
                 <div key={choice?.id} className="flex items-center ">
                     <Checkbox className="!p-0" size="medium" disabled={!enabled} checked={!!ans?.choices?.values?.includes(choice?.value) || !!answerChoices?.includes(choice?.value)} onClick={() => handleSelectChoice(choice)} />
