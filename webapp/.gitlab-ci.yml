@@ -99,10 +99,17 @@ deploy release:
     only:
         - release
 
-test :
-    image: cypress/base:latest
+cypress-tests:
+  stage: test
 
-    stage: test
-    script:
-        - yarn install
-        - yarn run runHeadless
+  image: node:16
+
+  script:
+    - npm install 
+    - npm run runHeadless
+
+  artifacts:
+    when: always
+    paths:
+      - cypress/videos/ 
+      - cypress/screenshots/ 
