@@ -254,6 +254,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '' }: 
             const keyActions: any = {
                 [KeyType.Enter]: () => {
                     e.preventDefault();
+                    e.stopPropagation();
                     const selectedListItem: any = listRef.current?.querySelector('.selected');
                     if (selectedListItem) {
                         const tag = selectedListItem.dataset.tag;
@@ -312,9 +313,9 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '' }: 
             });
         };
 
-        document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('keyup', handleKeyDown);
         return () => {
-            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keyup', handleKeyDown);
         };
     }, [handleSelection, selectedTag, command, closeMenu]);
 

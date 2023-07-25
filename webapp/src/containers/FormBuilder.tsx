@@ -112,7 +112,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         })
                     );
                 }
-                console.log(builderState.menus?.commands?.isOpen || builderState.menus?.spotlightField?.isOpen);
                 if (builderState.menus?.commands?.isOpen || builderState.menus?.spotlightField?.isOpen) return;
 
                 if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {

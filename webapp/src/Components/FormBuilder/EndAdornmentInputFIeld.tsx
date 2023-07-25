@@ -9,7 +9,7 @@ import { useDispatch } from 'react-redux';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { updateField } from '@app/store/form-builder/slice';
+import { setActiveFieldIndex, updateField } from '@app/store/form-builder/slice';
 import { useAppSelector } from '@app/store/hooks';
 
 interface IEndAdornmentInputFieldProps {
@@ -77,6 +77,7 @@ export default function EndAdornmentInputField({ field, id, position }: IEndAdor
                 endAdornment: getIcon(field.type)
             }}
             onFocus={(event) => {
+                dispatch(setActiveFieldIndex(field?.position));
                 inputRef?.current?.setSelectionRange(event.currentTarget.value.length, event.currentTarget.value.length);
             }}
         />
