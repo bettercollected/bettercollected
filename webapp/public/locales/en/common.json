@@ -430,6 +430,12 @@
   "REMOVE": "Remove",
   "REMOVE_INVITATION_FOR": "Remove invitation for",
   "REMOVE_WARNING_MESSAGE": "Removing a member will also remove all forms imported by the user",
+  "RESPONDER_SECTION": {
+    "FEATURES_HEADING": "Once you sign in you will be able to:",
+    "FEATURE_1": "See all forms of workspace",
+    "FEATURE_2": "See all your submitted forms of that particular workspace.",
+    "FEATURE_3": "Delete your submitted form responses"
+  },
   "RESPONDERS_AND_GROUPS": "Responders and Groups",
   "SAVE": "Save",
   "SEND_CODE": {

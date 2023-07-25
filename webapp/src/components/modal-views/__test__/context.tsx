@@ -9,7 +9,7 @@ describe('useDrawer hook', () => {
         expect(result.current.view).toBe('');
 
         act(() => {
-            result.current.openModal('LOGIN_VIEW');
+            result.current.openModal('ADD_MEMBERS');
         });
 
         expect(result.current.isOpen).toBe(true);

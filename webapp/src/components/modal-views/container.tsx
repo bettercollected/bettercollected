@@ -37,8 +37,6 @@ import UserDeletionModal from './modals/user-deletion-modal';
 
 function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
     switch (view) {
-        case 'LOGIN_VIEW':
-            return <LoginView {...modalProps} />; // Done
         case 'REQUEST_FOR_DELETION_VIEW':
             return <RequestForDeletionView {...modalProps} />;
         case 'IMPORT_PROVIDER_FORMS_VIEW':

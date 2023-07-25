@@ -3,6 +3,7 @@ import { Fragment, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 import { Close } from '@app/components/icons/close';
+import LoginView from '@app/components/login/login-view';
 import { UPGRADE_MODAL_VIEW, useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
 import WorkspacePreviewModal from '@app/components/modal-views/modals/workspace-preview-modal';
@@ -15,6 +16,8 @@ import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
 
 function renderModalContent(view: UPGRADE_MODAL_VIEW | string, modalProps: any) {
     switch (view) {
+        case 'LOGIN_VIEW':
+            return <LoginView {...modalProps} />; // Done
         case 'FORM_BUILDER_PREVIEW':
             return <FormBuilderPreviewModal {...modalProps} />;
         case 'CROP_IMAGE':
