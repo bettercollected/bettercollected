@@ -14,7 +14,8 @@ const initialState: IBuilderState = {
     description: '',
     fields: {},
     isFormDirty: false,
-    activeFieldIndex: -1
+    activeFieldIndex: -1,
+    activeFieldId: ''
 };
 
 export const setIsFormDirtyAsync = createAsyncThunk('form/setIsFormDirtyAsync', async (isDirty, { getState }) => {
