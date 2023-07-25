@@ -49,6 +49,13 @@ export interface IFormFieldProperties {
 
 export interface IFormFieldValidation {
     required?: boolean;
+    maxCharacters?: number;
+    maxValue?: number;
+    maxSelection?: number;
+    minCharacters?: number;
+    minValue?: number;
+    minSelection?: number;
+    regex?: string;
 }
 
 export interface IFormFieldState {

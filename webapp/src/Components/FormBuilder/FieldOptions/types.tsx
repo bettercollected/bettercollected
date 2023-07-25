@@ -1,7 +1,9 @@
 export enum ValidationType {
-    MIN_VALUE = 'MIN_VALUE',
-    MAX_VALUE = 'MAX_VALUE',
-    MIN_CHARS = 'MIN_CHARS',
-    MAX_CHARS = 'MAX_CHARS',
-    STEPS = 'STEPS'
+    MIN_VALUE = 'minValue',
+    MAX_VALUE = 'maxValue',
+    MIN_CHARS = 'minCharacters',
+    MAX_CHARS = 'maxCharacters',
+    MAX_SELECTION = 'maxSelection',
+    MIN_SELECTION = 'minSelection',
+    REGEX = 'regex'
 }

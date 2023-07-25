@@ -6,7 +6,8 @@ import DeleteIcon from '@Components/Common/Icons/Delete';
 import DragHandleIcon from '@Components/Common/Icons/DragHandle';
 import MuiSwitch from '@Components/Common/Input/Switch';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import IndividualFieldOptions from '@Components/FormBuilder/FieldOptions/IndividualFieldOptions';
+import FormValidations from '@Components/FormBuilder/FieldOptions/FormValidations';
+import StepsOption from '@Components/FormBuilder/FieldOptions/StepsOption';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import { FormControlLabel, ListItemIcon, MenuItem } from '@mui/material';
@@ -56,15 +57,6 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
         dispatch(setUpdateField({ ...formField, properties: fieldProperties }));
     };
 
-    const handleFieldRequiredChange = (event: React.SyntheticEvent<Element, Event>, checked: boolean) => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        const fieldValidations = { ...formField.validations };
-        fieldValidations.required = checked;
-        dispatch(setUpdateField({ ...formField, validations: fieldValidations }));
-    };
-
     return (
         <MenuDropdown
             showExpandMore={false}
@@ -103,7 +95,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                 <p className="px-5 text-xs font-semibold tracking-widest leading-none uppercase text-black-700">Options</p>
             </div>
 
-            <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
+            <MenuItem sx={{ paddingX: '20px', paddingY: '10px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
                 <FormControlLabel
                     slotProps={{
                         typography: {
@@ -116,31 +108,11 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                     control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!formField?.properties?.hidden} />}
                 />
             </MenuItem>
-            {!NonInputFormBuilderTagNames.includes(formField?.type || FormBuilderTagNames.LAYOUT_SHORT_TEXT) && (
-                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
-                    <FormControlLabel
-                        slotProps={{
-                            typography: {
-                                fontSize: 14
-                            }
-                        }}
-                        label="Required"
-                        labelPlacement="start"
-                        className="m-0 text-xs flex items-center justify-between w-full"
-                        control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleFieldRequiredChange} checked={!!formField.validations?.required} />}
-                    />
-                </MenuItem>
-            )}
 
-            <IndividualFieldOptions field={formField} />
+            <StepsOption field={formField} />
 
+            <FormValidations field={formField} />
             <Divider className="my-2" />
-            <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={duplicateField}>
-                <ListItemIcon className="text-black-900">
-                    <AltRouteIcon width={20} height={20} />
-                </ListItemIcon>
-                <span className="leading-none flex items-center">Add conditional logic</span>
-            </MenuItem>
             <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={duplicateField}>
                 <ListItemIcon className="text-black-900">
                     <CopyIcon width={20} height={20} />
