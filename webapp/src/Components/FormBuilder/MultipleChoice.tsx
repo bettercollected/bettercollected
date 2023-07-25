@@ -78,8 +78,9 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
                                         <Draggable key={choice.id} draggableId={choice.id} index={index}>
                                             {(provided) => (
                                                 <div className="flex gap-5 mb-3 items-start justify-start" {...provided.draggableProps} ref={provided.innerRef}>
-                                                    <div className="relative">
-                                                        <div className="absolute flex items-center gap-2 justify-center -top-2 -right-2">
+                                                    <div className="relative flex flex-row-reverse items-center gap-2">
+                                                        {index === 0 && field?.validations?.required && <div className="top-2 -right-5">*</div>}
+                                                        <div className="flex items-center gap-2 justify-center">
                                                             {Object.values(field.properties?.choices || {}).length > 1 && (
                                                                 <div
                                                                     onClick={() => {
@@ -102,7 +103,6 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
                                                                 <PlusIcon className="h-3 w-3" />
                                                             </div>
                                                         </div>
-
                                                         <StartAdornmentInputField
                                                             type={field.type}
                                                             id={id}

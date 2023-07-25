@@ -42,23 +42,26 @@ export default function LongText({ field, id, position }: { field: IFormFieldSta
     }, [position, activeFieldIndex]);
 
     return (
-        <FormBuilderInput
-            multiline
-            id={id}
-            inputRef={inputRef}
-            onChange={onChange}
-            minRows={5}
-            maxRows={10}
-            InputProps={{
-                endAdornment: <Notes />,
-                sx: {
-                    '& .css-3fezr7-MuiInputBase-root-MuiOutlinedInput-root': {
-                        padding: '4px 8px 4px 8px'
-                    },
-                    fontSize: '.875rem;',
-                    alignItems: 'flex-start'
-                }
-            }}
-        />
+        <div className="relative w-full h-full">
+            {field?.validations?.required && <div className="absolute z-[1000] text-xl font-bold top-0.5 right-[4px]">*</div>}
+            <FormBuilderInput
+                multiline
+                id={id}
+                inputRef={inputRef}
+                onChange={onChange}
+                minRows={5}
+                maxRows={10}
+                InputProps={{
+                    endAdornment: <Notes />,
+                    sx: {
+                        '& .css-3fezr7-MuiInputBase-root-MuiOutlinedInput-root': {
+                            padding: '4px 8px 4px 8px'
+                        },
+                        fontSize: '.875rem;',
+                        alignItems: 'flex-start'
+                    }
+                }}
+            />
+        </div>
     );
 }

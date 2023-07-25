@@ -14,11 +14,12 @@ export default function RatingField({ field, id }: IRatingFieldProps) {
 
     return (
         <div
-            className="flex gap-3 w-fit flex-wrap"
+            className="flex relative gap-3 w-fit flex-wrap"
             onMouseLeave={() => {
                 setHovered(-1);
             }}
         >
+            {field?.validations?.required && <div className="absolute z-[1000] text-xl font-bold top-0.5 -right-5">*</div>}
             {_.range(field.properties?.steps || 5).map((index) => {
                 const Component = index <= hovered ? Star : StarBorder;
 

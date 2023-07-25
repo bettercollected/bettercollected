@@ -10,11 +10,12 @@ import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { setActiveFieldIndex, updateField } from '@app/store/form-builder/slice';
+import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 
 interface IEndAdornmentInputFieldProps {
-    field: any;
-    id: any;
+    field: IFormFieldState;
+    id: string;
     position: number;
 }
 
@@ -68,18 +69,21 @@ export default function EndAdornmentInputField({ field, id, position }: IEndAdor
     }, [position, activeFieldIndex]);
 
     return (
-        <FormBuilderInput
-            onChange={onChange}
-            id={id}
-            value={field?.properties?.placeholder || ''}
-            inputRef={inputRef}
-            InputProps={{
-                endAdornment: getIcon(field.type)
-            }}
-            onFocus={(event) => {
-                dispatch(setActiveFieldIndex(field?.position));
-                inputRef?.current?.setSelectionRange(event.currentTarget.value.length, event.currentTarget.value.length);
-            }}
-        />
+        <div className="relative w-full h-full">
+            {field?.validations?.required && <div className="absolute z-[1000] text-xl font-bold top-0.5 right-[4px]">*</div>}
+            <FormBuilderInput
+                onChange={onChange}
+                id={id}
+                value={field?.properties?.placeholder || ''}
+                inputRef={inputRef}
+                InputProps={{
+                    endAdornment: getIcon(field.type)
+                }}
+                onFocus={(event) => {
+                    dispatch(setActiveFieldIndex(field?.position));
+                    inputRef?.current?.setSelectionRange(event.currentTarget.value.length, event.currentTarget.value.length);
+                }}
+            />
+        </div>
     );
 }
