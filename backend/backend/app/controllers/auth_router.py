@@ -5,6 +5,7 @@ from typing import Optional
 
 from classy_fastapi import Routable, get, post, delete
 from fastapi import Depends
+from pydantic import EmailStr
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 
@@ -39,6 +40,10 @@ class AuthRoutes(Routable):
     @get("/status", response_model=UserStatusDto)
     async def status(self, user: User = Depends(get_logged_user)):
         return await self.auth_service.get_user_status(user)
+
+    @post("/creator/otp/send")
+    async def send_otp_for_creator(self, receiver_email: EmailStr):
+        return await self.auth_service.send_otp_for_creator(receiver_email)
 
     @post("/otp/validate")
     async def _validate_otp(self, login_details: UserLoginWithOTP, response: Response):
