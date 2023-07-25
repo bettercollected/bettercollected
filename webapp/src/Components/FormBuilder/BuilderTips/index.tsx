@@ -64,7 +64,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderBackspaceIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">Backspace</strong> key <strong>twice</strong> when the field is empty to focused the field
+                    Hit <strong className="text-brand">Backspace</strong> key <strong>twice</strong> when the field is empty to remove the field
                 </>
             )
         },

@@ -151,7 +151,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     );
                 }
                 if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
-                    if (!formField?.label && backspaceCount === 1) {
+                    // TODO: Add support for other input types or form field type as well
+                    if (!formField?.label && backspaceCount === 1 && formField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
                         asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
                         dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                     } else {
