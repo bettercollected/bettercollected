@@ -102,7 +102,7 @@ deploy release:
 cypress-tests:
   stage: test
 
-  image: node:18
+  image: cypress/base
 
   tags:
     - docker
