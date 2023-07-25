@@ -104,5 +104,5 @@ test :
 
     stage: test
     script:
-        - npm install
-        - npm run runHeadless
+        - yarn install
+        - yarn run runHeadless
