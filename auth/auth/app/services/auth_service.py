@@ -124,12 +124,14 @@ class AuthService:
         receiver_mail: EmailStr,
         workspace_title: str,
         workspace_profile_image: str,
+        creator: bool,
     ):
         asyncio_run(
             self.send_otp_to_mail(
                 receiver_mail=receiver_mail,
                 workspace_title=workspace_title,
                 workspace_profile_image=workspace_profile_image,
+                creator=creator,
             )
         )
 
@@ -138,6 +140,7 @@ class AuthService:
         receiver_mail: EmailStr,
         workspace_title: str,
         workspace_profile_image: str,
+        creator: bool,
     ):
         otp = self.generate_otp()
         otp_expiry = self.get_expiry_epoch_after(timedelta(minutes=5))
@@ -149,7 +152,10 @@ class AuthService:
             await existing_user.save()
         else:
             await self.user_repository.save_user(
-                email=receiver_mail, otp_code=otp, otp_expiry=otp_expiry
+                email=receiver_mail,
+                otp_code=otp,
+                otp_expiry=otp_expiry,
+                creator=creator,
             )
 
         template_body = {

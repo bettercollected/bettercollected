@@ -39,6 +39,7 @@ class AuthRoutes(Routable):
         receiver_email: EmailStr,
         workspace_title: str,
         workspace_profile_image: str,
+        creator: bool,
         background_tasks: BackgroundTasks,
     ):
         background_tasks.add_task(
@@ -46,6 +47,7 @@ class AuthRoutes(Routable):
             receiver_email,
             workspace_title,
             workspace_profile_image,
+            creator,
         )
         return "Email set to be sent"
 
