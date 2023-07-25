@@ -95,6 +95,12 @@ export default function ImportProviderForms(props: any) {
         if (stepCount < 2) setStepCount(stepCount + 1);
     };
 
+    const responseOwnerTag = {
+        title: t(provider === Provider.google ? importFormConstant.responseOwnerTagTitleGoogle : importFormConstant.responseOwnerTagTitleTypeform),
+        description: t(provider === Provider.google ? importFormConstant.responseOwnerTagDescriptionGoogle : importFormConstant.responseOwnerTagDescriptionTypeform),
+        label: t(provider === Provider.google ? importFormConstant.responseOwnerTagLabelGoogle : importFormConstant.responseOwnerTagLabelTypeform)
+    };
+
     useEffect(() => {
         if (provider) {
             (async () => await minifiedFormsTrigger({ provider }))().then(() => handleNext(provider));
@@ -256,9 +262,9 @@ export default function ImportProviderForms(props: any) {
                     ]}
                 />
             )}
-            <h4 className="h4 w-full text-start">{t(importFormConstant.responseOwnerTagTitle)}</h4>
+            <h4 className="h4 w-full text-start">{responseOwnerTag.title}</h4>
             <div className="flex flex-col gap-5 w-full">
-                <p className="body1">{t(importFormConstant.responseOwnerTagDescription)}</p>
+                <p className="body1">{responseOwnerTag.description}</p>
                 <div className="flex flex-col w-full h-full gap-6 items-end">
                     <Autocomplete
                         loading={!!singleFormFromProviderResult?.isFetching}
@@ -283,7 +289,7 @@ export default function ImportProviderForms(props: any) {
                                 </Box>
                             );
                         }}
-                        renderInput={(params) => <TextField {...params} label={t(importFormConstant.responseOwnerTagLabel)} />}
+                        renderInput={(params) => <TextField {...params} label={responseOwnerTag.label} />}
                     />
                     <Button className="!font-medium" isLoading={!!importFormResult?.isLoading || !!singleFormFromProviderResult?.isLoading} onClick={handleImportForm} disabled={!selectedForm || !!singleFormFromProviderResult?.isLoading} size="medium">
                         {t(buttonConstant.importNow)}

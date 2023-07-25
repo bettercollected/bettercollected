@@ -315,9 +315,16 @@
   "IMPORT_FORM": {
     "DEFAULT": "Import form",
     "CHOICE": "Which form do you want to import ?",
-    "RESPONSE_OWNER_TAG_DESCRIPTION": "You do not have to select the field if you have “collect emails” enabled in your google forms.",
-    "RESPONSE_OWNER_TAG_LABEL": "Select email field",
-    "RESPONSE_OWNER_TAG_TITLE": "Select responder’s email field",
+    "GOOGLE":{
+      "RESPONSE_OWNER_TAG_DESCRIPTION": "You do not have to select the field if you have “collect emails” enabled in your google forms.",
+      "RESPONSE_OWNER_TAG_LABEL": "Select email field",
+      "RESPONSE_OWNER_TAG_TITLE": "Select responder’s email field"
+    },
+    "TYPEFORM":{
+      "RESPONSE_OWNER_TAG_DESCRIPTION": "",
+      "RESPONSE_OWNER_TAG_LABEL": "Select field",
+      "RESPONSE_OWNER_TAG_TITLE": "Select responder’s field"
+    },
     "TEXT_LABEL": {
       "GOOGLE_FORM": "Choose your google form",
       "TYPEFORM": "Choose your Typeform"
