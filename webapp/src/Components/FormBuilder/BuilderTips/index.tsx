@@ -1,7 +1,12 @@
 import React from 'react';
 
+import FormBuilderBackspaceIcon from '@Components/Common/Icons/FormBuilderBackspaceIcon';
+import FormBuilderDeleteIcon from '@Components/Common/Icons/FormBuilderDeleteIcon';
+import FormBuilderDuplicateIcon from '@Components/Common/Icons/FormBuilderDuplicateIcon';
 import FormBuilderEnterIcon from '@Components/Common/Icons/FormBuilderEnterIcon';
+import FormBuilderEscapeIcon from '@Components/Common/Icons/FormBuilderEscapeIcon';
 import FormBuilderSlashIcon from '@Components/Common/Icons/FormBuilderSlashIcon';
+import FormBuilderSpotlightIcon from '@Components/Common/Icons/FormBuilderSpotlightIcon';
 import KeyboardArrowDownIcon from '@Components/Common/Icons/KeyboardArrowDownIcon';
 import KeyboardArrowUpIcon from '@Components/Common/Icons/KeyboardArrowUpIcon';
 
@@ -12,14 +17,6 @@ export default function BuilderTips() {
             TextComponent: (
                 <>
                     Hit <strong className="text-brand">/</strong> key to open the command in the field selection
-                </>
-            )
-        },
-        {
-            Icon: <FormBuilderEnterIcon />,
-            TextComponent: (
-                <>
-                    Hit <strong className="text-brand">Enter</strong> key to add a new field
                 </>
             )
         },
@@ -36,6 +33,54 @@ export default function BuilderTips() {
             TextComponent: (
                 <>
                     Hit <strong className="text-brand">&darr;</strong> arrow key to move down into different fields
+                </>
+            )
+        },
+        {
+            Icon: <FormBuilderEnterIcon />,
+            TextComponent: (
+                <>
+                    Hit <strong className="text-brand">Enter</strong> key to add a new field
+                </>
+            )
+        },
+        {
+            Icon: <FormBuilderEscapeIcon />,
+            TextComponent: (
+                <>
+                    Hit <strong className="text-brand">Escape</strong> key to close spotlight, field selector, and field options
+                </>
+            )
+        },
+        {
+            Icon: <FormBuilderSpotlightIcon />,
+            TextComponent: (
+                <>
+                    Hit <strong className="text-brand">Ctrl/Cmd + K</strong> key to open the builder spotlight
+                </>
+            )
+        },
+        {
+            Icon: <FormBuilderBackspaceIcon />,
+            TextComponent: (
+                <>
+                    Hit <strong className="text-brand">Backspace</strong> key when the field is empty to remove the field
+                </>
+            )
+        },
+        {
+            Icon: <FormBuilderDuplicateIcon />,
+            TextComponent: (
+                <>
+                    Hit <strong className="text-brand">Alt + Shift + D</strong> key to duplicate the selected field
+                </>
+            )
+        },
+        {
+            Icon: <FormBuilderDeleteIcon />,
+            TextComponent: (
+                <>
+                    Hit <strong className="text-brand">Alt + Delete</strong> key to remove the selected field
                 </>
             )
         }
