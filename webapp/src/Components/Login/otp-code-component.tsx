@@ -12,9 +12,8 @@ import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
-import { useLazyGetStatusQuery, usePostSendOtpForCreatorMutation, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
-import { setAuth } from '@app/store/auth/slice';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
+import { useAppSelector } from '@app/store/hooks';
 
 interface OtpCodePropType {
     email: string;
@@ -28,10 +27,6 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
     const { closeModal } = useFullScreenModal();
 
     const workspace = useAppSelector((state) => state.workspace);
-
-    const [trigger] = useLazyGetStatusQuery();
-
-    const dispatch = useAppDispatch();
 
     const router = useRouter();
 
