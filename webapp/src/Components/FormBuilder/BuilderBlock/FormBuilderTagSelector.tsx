@@ -249,7 +249,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '', se
     const listRef: any = useRef(null);
 
     useEffect(() => {
-        console.log(searchQuery);
+        if (searchQuery?.includes('\n')) return; // Discard enter character in search query
         const filteredAllowedTags = searchQuery === null ? allowedTags : allowedTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
         setTagList(filteredAllowedTags);
     }, [searchQuery]);
@@ -269,10 +269,10 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '', se
                 [KeyType.ArrowDown]: () => selectNextTag(e),
                 [KeyType.ArrowUp]: () => selectPreviousTag(e),
                 [KeyType.Backspace]: () => {
-                    // setCommand((prevCommand) => {
-                    //     // closeMenu();
-                    //     return command.slice(0, -1);
-                    // });
+                    setCommand((prevCommand) => {
+                        // closeMenu();
+                        return command.slice(0, -1);
+                    });
                 },
                 [KeyType.Escape]: () => closeMenu(),
                 default: () => {}
