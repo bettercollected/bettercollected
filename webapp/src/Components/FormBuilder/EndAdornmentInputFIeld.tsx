@@ -1,6 +1,7 @@
 import { ChangeEvent, useEffect, useRef } from 'react';
 
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
+import { FieldRequired } from '@Components/UI/FieldRequired';
 import { AlternateEmail, DateRange, LocalPhone, Numbers, ShortText } from '@mui/icons-material';
 import LinkIcon from '@mui/icons-material/Link';
 import { value } from 'dom7';
@@ -57,7 +58,7 @@ export default function EndAdornmentInputField({ field, id, position }: IEndAdor
 
     return (
         <div className="relative w-full h-full">
-            {field?.validations?.required && <div className="absolute z-[1000] text-xl font-bold top-0.5 right-[4px]">*</div>}
+            {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
             <FormBuilderInput
                 onChange={onChange}
                 id={id}

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 import _ from 'lodash';
 
+import { FieldRequired } from '@Components/UI/FieldRequired';
 import { Star, StarBorder } from '@mui/icons-material';
 
 interface IRatingFieldProps {
@@ -19,10 +20,9 @@ export default function RatingField({ field, id }: IRatingFieldProps) {
                 setHovered(-1);
             }}
         >
-            {field?.validations?.required && <div className="absolute z-[1000] text-xl font-bold top-0.5 -right-5">*</div>}
+            {field?.validations?.required && <FieldRequired className="top-2 -right-5" />}{' '}
             {_.range(field.properties?.steps || 5).map((index) => {
                 const Component = index <= hovered ? Star : StarBorder;
-
                 return (
                     <Component
                         fontSize="large"

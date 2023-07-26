@@ -1,6 +1,7 @@
 import { ChangeEvent, useEffect, useRef } from 'react';
 
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
+import { FieldRequired } from '@Components/UI/FieldRequired';
 import { Notes } from '@mui/icons-material';
 import { useDispatch } from 'react-redux';
 
@@ -43,7 +44,7 @@ export default function LongText({ field, id, position }: { field: IFormFieldSta
 
     return (
         <div className="relative w-full h-full">
-            {field?.validations?.required && <div className="absolute z-[1000] text-xl font-bold top-0.5 right-[4px]">*</div>}
+            {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
             <FormBuilderInput
                 multiline
                 id={id}

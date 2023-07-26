@@ -70,7 +70,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         id={item.id}
                                         tagName={item.type}
                                         type={item.type}
-                                        value={item?.label ?? ''}
+                                        value={item?.value ?? ''}
                                         position={item.position}
                                         activeFieldIndex={builderState.activeFieldIndex}
                                         placeholder={item.properties?.placeholder ?? 'Type / to open the commands menu'}
@@ -98,7 +98,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                                         isFormDirty: true,
                                                         fields: {
                                                             ...builderState.fields,
-                                                            [item.id]: { ...item, label: event.currentTarget.innerText }
+                                                            [item.id]: { ...item, value: event.currentTarget.innerText }
                                                         }
                                                     })
                                                 );
@@ -116,7 +116,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         className={!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id ? 'visible' : 'invisible'}
                                         closeMenu={() => {}}
                                         handleSelection={handleTagSelection}
-                                        searchQuery={builderState.fields[builderState.activeFieldId].label?.split('/').slice(-1)[0]}
+                                        searchQuery={builderState.fields[builderState.activeFieldId].value?.split('/').slice(-1)[0]}
                                     />
                                 )}
                             </div>

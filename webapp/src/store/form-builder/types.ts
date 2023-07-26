@@ -61,7 +61,7 @@ export interface IFormFieldValidation {
 export interface IFormFieldState {
     id: string;
     type: FormBuilderTagNames;
-    label?: string;
+    value?: string;
     groupUuid?: string;
     hasPlaceholder?: boolean;
     isFocused?: boolean;

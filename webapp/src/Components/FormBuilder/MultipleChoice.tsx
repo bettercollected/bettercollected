@@ -4,6 +4,7 @@ import DragHandleIcon from '@Components/Common/Icons/DragHandle';
 import PlusIcon from '@Components/Common/Icons/Plus';
 import StartAdornmentInputField from '@Components/FormBuilder/StartAdornmentInputField';
 import { StrictModeDroppable } from '@Components/FormBuilder/StrictModeDroppable';
+import { FieldRequired } from '@Components/UI/FieldRequired';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { GridCloseIcon } from '@mui/x-data-grid';
 import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react-beautiful-dnd';
@@ -79,7 +80,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
                                             {(provided) => (
                                                 <div className="flex gap-5 mb-3 items-start justify-start" {...provided.draggableProps} ref={provided.innerRef}>
                                                     <div className="relative flex flex-row-reverse items-center gap-2">
-                                                        {index === 0 && field?.validations?.required && <div className="top-2 -right-5">*</div>}
+                                                        {index === 0 && field?.validations?.required && <FieldRequired className="top-2 -right-5" />}
                                                         <div className="flex items-center gap-2 justify-center">
                                                             {Object.values(field.properties?.choices || {}).length > 1 && (
                                                                 <div

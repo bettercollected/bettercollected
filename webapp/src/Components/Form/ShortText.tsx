@@ -1,5 +1,6 @@
 import React, { ChangeEvent } from 'react';
 
+import { FieldRequired } from '@Components/UI/FieldRequired';
 import { useDispatch } from 'react-redux';
 
 import BetterInput from '@app/components/Common/input';
@@ -49,26 +50,27 @@ export default function ShortText({ ans, enabled, field }: IShortTextProps) {
     };
 
     return (
-        // <StyledTextField>
-        <BetterInput
-            type={field?.type === 'email' ? 'email' : 'text'}
-            value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name || ans?.date || ans?.phone_number}
-            placeholder={field?.properties?.placeholder}
-            disabled={!enabled}
-            inputProps={{
-                style: {
-                    padding: 16,
-                    fontSize: 14,
-                    fontWeight: 400,
-                    color: 'black',
-                    content: 'none',
-                    outline: 'gray'
-                }
-            }}
-            className={`!mb-7 `}
-            fullWidth
-            onChange={onChange}
-        />
-        // </StyledTextField>
+        <div className="relative">
+            <BetterInput
+                type={field?.type === 'email' ? 'email' : 'text'}
+                value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name || ans?.date || ans?.phone_number}
+                placeholder={field?.properties?.placeholder}
+                disabled={!enabled}
+                inputProps={{
+                    style: {
+                        padding: 16,
+                        fontSize: 14,
+                        fontWeight: 400,
+                        color: 'black',
+                        content: 'none',
+                        outline: 'gray'
+                    }
+                }}
+                className={`!mb-7 `}
+                fullWidth
+                onChange={onChange}
+            />
+            {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
+        </div>
     );
 }

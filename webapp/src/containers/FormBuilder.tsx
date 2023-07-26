@@ -126,7 +126,12 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             position: builderState.activeFieldIndex
                         };
                         dispatch(setAddNewField(newField));
-                        dispatch(setBuilderState({ isFormDirty: true, activeFieldIndex: builderState.activeFieldIndex + 1 }));
+                        dispatch(
+                            setBuilderState({
+                                isFormDirty: true,
+                                activeFieldIndex: builderState.activeFieldIndex + 1
+                            })
+                        );
                     }
                 }
 
@@ -153,13 +158,18 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                 }
                 if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
                     // TODO: Add support for other input types or form field type as well
-                    if (!formField?.label && backspaceCount === 1 && formField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
+                    if (!formField?.value && backspaceCount === 1 && formField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
                         asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
                         dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                     } else {
                         setBackspaceCount(1);
                     }
-                    dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
+                    dispatch(
+                        setBuilderState({
+                            isFormDirty: true,
+                            menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } }
+                        })
+                    );
                 }
 
                 if (((event.key === 'Delete' && event.ctrlKey) || (event.key === 'Backspace' && event.metaKey)) && fieldId) {

@@ -142,14 +142,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 {form?.fields.map((field: StandardFormQuestionDto) => (
                     <div key={field?.id} className="relative w-full">
                         {renderFormField(field, enabled, response?.answers[field.id])}
-                        {invalidFields?.includes(field?.id) && <div className="text-red-500 mt-2">Field Required*</div>}
-                        {field?.validations?.required && (
-                            <>
-                                <div className="absolute top-1  cursor-pointer  rounded-full">
-                                    <span className="!w-4 text-center flex items-center justify-center pt-1.5 text-xl font-bold rounded-full !h-4 relative -left-2  bg-gray-300 px-0.5  z-[35003]">*</span>
-                                </div>
-                            </>
-                        )}
+                        {invalidFields?.includes(field?.id) && <div className=" body5 !mb-7 !text-red-500 ">Field Required*</div>}
                     </div>
                 ))}
                 {enabled && (
