@@ -312,14 +312,14 @@
     "DEFAULT": "Formulier importeren",
     "CHOICE": "Welk formulier wilt u importeren?",
     "GOOGLE":{
-      "RESPONSE_OWNER_TAG_DESCRIPTION": "U hoeft het veld niet te selecteren als u ”e-mails verzamelen” hebt ingeschakeld in uw google-formulieren.",
+      "RESPONSE_OWNER_TAG_DESCRIPTION": "U hoeft het veld niet te selecteren als u ”e-mails verzamelen” hebt ingeschakeld in uw Google-formulieren.",
       "RESPONSE_OWNER_TAG_LABEL": "Selecteer e-mailveld",
       "RESPONSE_OWNER_TAG_TITLE": "Selecteer het e-mailadres van de responder"
     },
     "TYPEFORM":{
       "RESPONSE_OWNER_TAG_DESCRIPTION": "",
-      "RESPONSE_OWNER_TAG_LABEL": "Selecteer veld",
-      "RESPONSE_OWNER_TAG_TITLE": "Selecteer het veld van de respondent"
+      "RESPONSE_OWNER_TAG_LABEL": "Select email field",
+      "RESPONSE_OWNER_TAG_TITLE": "Selecteer het e-mailadres van de responder"
     },
     "TEXT_LABEL": "Kies uw Google-formulier",
     "TITLE": "Selecteer een formulier om te importeren"
