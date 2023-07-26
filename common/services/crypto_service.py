@@ -40,7 +40,7 @@ class CryptoService:
     ):
         if isinstance(data, str) or not data.startswith(self.ciphertext_prefix):
             return data
-        ciphertext = data[len(self.ciphertext_prefix):]
+        ciphertext = data[len(self.ciphertext_prefix) :]
         full_context = self.compose_full_context(workspace_id, form_id, context)
         plaintext = self.crypto.decrypt(ciphertext, full_context)
         return plaintext
