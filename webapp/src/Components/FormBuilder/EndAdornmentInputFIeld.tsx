@@ -7,10 +7,10 @@ import LinkIcon from '@mui/icons-material/Link';
 import { value } from 'dom7';
 import { useDispatch } from 'react-redux';
 
+import useFormBuilderState from '@app/containers/form-builder/context';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setUpdateField } from '@app/store/form-builder/actions';
+import { setActiveField, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { setActiveFieldIndex, updateField } from '@app/store/form-builder/slice';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -42,7 +42,10 @@ function getIcon(type: FormBuilderTagNames) {
 export default function EndAdornmentInputField({ field, id, position }: IEndAdornmentInputFieldProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const dispatch = useDispatch();
+    const { setBackspaceCount } = useFormBuilderState();
+
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setBackspaceCount(0);
         dispatch(setUpdateField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
     };
 
@@ -52,7 +55,6 @@ export default function EndAdornmentInputField({ field, id, position }: IEndAdor
     useEffect(() => {
         // Focus on the first contentEditable element (title) when the page loads
         if (position !== activeFieldIndex) return;
-
         inputRef?.current?.focus();
     }, [position, activeFieldIndex]);
 
@@ -68,7 +70,6 @@ export default function EndAdornmentInputField({ field, id, position }: IEndAdor
                     endAdornment: getIcon(field.type)
                 }}
                 onFocus={(event) => {
-                    dispatch(setActiveFieldIndex(field?.position));
                     inputRef?.current?.setSelectionRange(event.currentTarget.value.length, event.currentTarget.value.length);
                 }}
             />

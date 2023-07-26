@@ -25,6 +25,8 @@ import { useCreateFormMutation, usePatchFormMutation } from '@app/store/workspac
 import { reorder } from '@app/utils/arrayUtils';
 import { getLastItem } from '@app/utils/stringUtils';
 
+import useFormBuilderState from './context';
+
 export default function FormBuilder({ workspace, _nextI18Next, isEditMode = false }: { isEditMode?: boolean; workspace: WorkspaceDto; _nextI18Next: any }) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
@@ -35,14 +37,14 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const onKeyDownCallbackRef = useRef<any>(null);
     const onBlurCallbackRef = useRef<any>(null);
 
-    const [backspaceCount, setBackspaceCount] = useState(0);
+    const { backspaceCount, setBackspaceCount } = useFormBuilderState();
 
     const [postCreateForm] = useCreateFormMutation();
     const [patchForm] = usePatchFormMutation();
 
     const fullScreenModal = useFullScreenModal();
     const modal = useModal();
-
+    //
     const locale = _nextI18Next.initialLocale === 'en' ? '' : `${_nextI18Next.initialLocale}/`;
 
     const onInsert = () => {
@@ -126,12 +128,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             position: builderState.activeFieldIndex
                         };
                         dispatch(setAddNewField(newField));
-                        dispatch(
-                            setBuilderState({
-                                isFormDirty: true,
-                                activeFieldIndex: builderState.activeFieldIndex + 1
-                            })
-                        );
+                        dispatch(setBuilderState({ isFormDirty: true, activeFieldIndex: builderState.activeFieldIndex + 1 }));
                     }
                 }
 
@@ -157,19 +154,16 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     );
                 }
                 if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
+                    console.log({ 'backspace count': backspaceCount });
+                    console.log('backspace pressed');
                     // TODO: Add support for other input types or form field type as well
-                    if (!formField?.value && backspaceCount === 1 && formField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
+                    if (!formField?.value && backspaceCount === 1) {
                         asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
                         dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                     } else {
                         setBackspaceCount(1);
                     }
-                    dispatch(
-                        setBuilderState({
-                            isFormDirty: true,
-                            menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } }
-                        })
-                    );
+                    dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
                 }
 
                 if (((event.key === 'Delete' && event.ctrlKey) || (event.key === 'Backspace' && event.metaKey)) && fieldId) {
