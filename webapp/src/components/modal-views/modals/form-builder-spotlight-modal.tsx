@@ -2,14 +2,13 @@ import { useEffect, useRef } from 'react';
 
 import { allowedInputTags, allowedLayoutTags, allowedQuestionAndAnswerTags } from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import { Autocomplete, Paper, TextField, darken, lighten, styled, useTheme } from '@mui/material';
+import { Autocomplete, Paper, TextField, styled } from '@mui/material';
 import { batch } from 'react-redux';
 
 import { useModal } from '@app/components/modal-views/context';
 import { BlockTypes, FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { resetBuilderMenuState, setAddNewField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { addFieldNewImplementation } from '@app/store/form-builder/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 const GroupHeader = styled('div')(({ theme }) => ({

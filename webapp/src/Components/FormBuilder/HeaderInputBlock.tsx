@@ -1,14 +1,12 @@
-import React, { ChangeEvent, useEffect, useRef } from 'react';
+import React, { ChangeEvent } from 'react';
 
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
-import { Input } from '@mui/base';
 import { useDispatch } from 'react-redux';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setBuilderState, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { updateField } from '@app/store/form-builder/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 

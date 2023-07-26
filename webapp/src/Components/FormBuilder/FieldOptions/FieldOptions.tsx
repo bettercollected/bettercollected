@@ -9,15 +9,12 @@ import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdow
 import FormValidations from '@Components/FormBuilder/FieldOptions/FormValidations';
 import StepsOption from '@Components/FormBuilder/FieldOptions/StepsOption';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import AltRouteIcon from '@mui/icons-material/AltRoute';
 import { FormControlLabel, ListItemIcon, MenuItem } from '@mui/material';
 import { DraggableProvided } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 
-import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addDuplicateField, setDeleteField, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { deleteField, selectFormField, updateField } from '@app/store/form-builder/slice';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 

@@ -1,11 +1,10 @@
-import React, { ChangeEvent, useState } from 'react';
+import React, { ChangeEvent } from 'react';
 
 import { MenuItem } from '@mui/material';
 import { useDispatch } from 'react-redux';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setUpdateField } from '@app/store/form-builder/actions';
-import { updateField } from '@app/store/form-builder/slice';
 import { IFormFieldState } from '@app/store/form-builder/types';
 
 export default function StepsOption({ field }: { field: IFormFieldState }) {

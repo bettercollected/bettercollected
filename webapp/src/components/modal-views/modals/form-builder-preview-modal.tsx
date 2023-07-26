@@ -2,10 +2,8 @@ import React, { useEffect, useState } from 'react';
 
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 
-import { Close } from '@app/components/icons/close';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { selectCreateForm } from '@app/store/form-builder/slice';
-import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
+import { IFormFieldState } from '@app/store/form-builder/types';
 import { initialIBuilderState } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 

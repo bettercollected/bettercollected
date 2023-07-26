@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 import EndAdornmentInputField from '@Components/FormBuilder/EndAdornmentInputFIeld';
 import HeaderInputBlock from '@Components/FormBuilder/HeaderInputBlock';
@@ -7,8 +7,7 @@ import MultipleChoice from '@Components/FormBuilder/MultipleChoice';
 import RatingField from '@Components/FormBuilder/RatingField';
 import { useDispatch } from 'react-redux';
 
-import useFormBuilderState from '@app/containers/form-builder/context';
-import { FormBuilderTagNames, KeyType } from '@app/models/enums/formBuilder';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setActiveField } from '@app/store/form-builder/actions';
 
 interface IFormBuilderBlockContent {

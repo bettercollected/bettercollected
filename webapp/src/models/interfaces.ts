@@ -1,3 +1,3 @@
-interface OnlyClassNameInterface {
+export interface OnlyClassNameInterface {
     className?: string;
 }

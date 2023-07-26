@@ -8,7 +8,6 @@ import { useDispatch } from 'react-redux';
 import useFormBuilderState from '@app/containers/form-builder/context';
 import { setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { updateField } from '@app/store/form-builder/slice';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 

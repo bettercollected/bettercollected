@@ -7,7 +7,7 @@ import FormBuilder from '@app/containers/form-builder/FormBuilder';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { resetForm } from '@app/store/form-builder/slice';
+import { resetForm } from '@app/store/form-builder/actions';
 import { useAppDispatch } from '@app/store/hooks';
 
 interface ICreateFormProps {
