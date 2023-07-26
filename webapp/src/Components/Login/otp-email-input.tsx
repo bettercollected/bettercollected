@@ -6,10 +6,10 @@ import Divider from '@mui/material/Divider';
 import { toast } from 'react-toastify';
 
 import FormProviderContext from '@app/Contexts/FormProviderContext';
-import BetterInput from '@app/components/Common/input';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
 import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
+import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { IntegrationFormProviders } from '@app/models/dtos/provider';
 import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation } from '@app/store/auth/api';
@@ -18,7 +18,6 @@ import { capitalize } from '@app/utils/stringUtils';
 
 interface OtpEmailInputPropType {
     isCreator: boolean;
-    setStepCount: Dispatch<SetStateAction<number>>;
     setEmail: Dispatch<SetStateAction<string>>;
 }
 
@@ -35,8 +34,6 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
 
     const [email, setEmail] = useState('');
 
-    const [stepCount, setStepCount] = useState(0);
-
     const constants = {
         heading3: t(signInScreen.signIn),
         subHeading2: t(signInScreen.continueWIth),
@@ -47,7 +44,9 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
         verificationTitle: t(signInScreen.verificationTitle),
         enterOtpCode: t(signInScreen.enterOtpCode),
         backButtonTitle: t(signInScreen.backButtonTitle),
-        didnotReceiveCode: t(signInScreen.didNotReceiveCode)
+        didnotReceiveCode: t(signInScreen.didNotReceiveCode),
+        otpSuccessMessage: t(formResponderLogin.otpSuccessMessage),
+        otpFailureMessage: t(formResponderLogin.otpFailureMessage)
     };
 
     const handleEmailInput = (e: any) => {
@@ -56,14 +55,15 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
 
     const handleResponseToast = (res: any) => {
         if (!!res?.data) {
-            toast(res.data.message, { type: 'success' });
+            toast(constants.otpSuccessMessage, { type: 'success' });
             props.setEmail(email);
         } else {
-            toast('Failed to send otp!', { type: 'error' });
+            toast(constants.otpFailureMessage, { type: 'error' });
         }
     };
 
-    const handleEmailInputForResponder = async () => {
+    const handleEmailInputForResponder = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
         if (!email) return;
         const req = {
             workspace_id: workspace.id,
@@ -73,7 +73,8 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
         handleResponseToast(res);
     };
 
-    const handleEmailInputForCreator = async () => {
+    const handleEmailInputForCreator = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
         if (!email) return;
         const req = {
             receiver_email: email
@@ -83,12 +84,19 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
     };
 
     return (
-        <div className="mt-[96px]">
+        <form className="mt-[96px]" onSubmit={isCreator ? handleEmailInputForCreator : handleEmailInputForResponder}>
             <h3 className="h3 mb-[16px]">{constants.heading3}</h3>
 
             <p className=" mb-[8px] mt-[44px] text-black-900">{constants.enterYourEmail}</p>
-            <BetterInput placeholder={constants.enterYourEmail} value={email} onChange={handleEmailInput} />
-            <Button variant="solid" isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={'w-full mt-[32px] mb-[40px]'} size={'large'} onClick={isCreator ? handleEmailInputForCreator : handleEmailInputForResponder}>
+            <input
+                type={'email'}
+                required={true}
+                className={`flex-1 w-full placeholder:font-normal placeholder:text-sm placeholder:tracking-normal !mb-4 !rounded-[1px] text-black-900 bg-white border-gray-400`}
+                placeholder={constants.enterYourEmail}
+                value={email}
+                onChange={handleEmailInput}
+            />
+            <Button type={'submit'} variant="solid" isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={'w-full mt-[32px] mb-[40px]'} size={'large'}>
                 {constants.continue}
             </Button>
 
@@ -113,6 +121,6 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                     )}
                 </FormProviderContext.Consumer>
             </div>
-        </div>
+        </form>
     );
 }

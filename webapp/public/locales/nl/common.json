@@ -427,7 +427,11 @@
     "FEATURES_HEADING": "Zodra je bent ingelogd, kun je het volgende doen:",
     "FEATURE_1": "Alle vormen van werkruimte bekijken",
     "FEATURE_2": "Al je ingediende formulieren van die specifieke werkruimte bekijken",
-    "FEATURE_3": "Je ingediende formulierreacties verwijderen"
+    "FEATURE_3": "Je ingediende formulierreacties verwijderen",
+    "OTP_FAILURE_TOAST": "Kan OTP niet verzenden",
+    "OTP_SUCCESS_TOAST": "OTP succesvol verzonden",
+    "OTP_VERIFICATION_SUCCESS_TOAST": "Met succes geverifieerd",
+    "OTP_VERIFICATION_FAILURE_TOAST": "Verificatie mislukt"
   },
   "RESPONDERS_AND_GROUPS": "Responders en groepen",
   "SAVE": "Opslaan",

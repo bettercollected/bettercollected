@@ -7,25 +7,42 @@ import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
 import Back from '@app/components/icons/back';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
+import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
-import { usePostVerifyOtpMutation } from '@app/store/auth/api';
+import { useGetStatusQuery, useLazyGetStatusQuery, usePostSendOtpForCreatorMutation, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
+import { setAuth } from '@app/store/auth/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 interface OtpCodePropType {
-    stepCount: number;
-    setStepCount: Dispatch<SetStateAction<number>>;
     email: string;
+    isCreator: boolean;
+    setEmail: Dispatch<SetStateAction<string>>;
 }
 
 export default function OtpCodeComponent(props: OtpCodePropType) {
     const { t } = useTranslation();
 
+    const { closeModal } = useFullScreenModal();
+
+    const workspace = useAppSelector((state) => state.workspace);
+
+    const [trigger] = useLazyGetStatusQuery();
+
+    const dispatch = useAppDispatch();
+
     const [otp, setOtp] = useState('');
     const [counter, setCounter] = useState(60);
-    const router = useRouter();
+
+    useEffect(() => {
+        counter > 0 && setTimeout(() => setCounter(counter - 1), 1000);
+    }, [counter]);
 
     const [postVerifyOtp, { isLoading }] = usePostVerifyOtpMutation();
+    const [postSendOtp] = usePostSendOtpMutation();
+    const [postSendOtpForCreator, creatorResponse] = usePostSendOtpForCreatorMutation();
 
     const constants = {
         subHeading2: t(signInScreen.continueWIth),
@@ -36,7 +53,9 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
         verificationTitle: t(signInScreen.verificationTitle),
         enterOtpCode: t(signInScreen.enterOtpCode),
         backButtonTitle: t(signInScreen.backButtonTitle),
-        didnotReceiveCode: t(signInScreen.didNotReceiveCode)
+        didnotReceiveCode: t(signInScreen.didNotReceiveCode),
+        otpVerificationSuccess: t(formResponderLogin.verificationSuccessMessage),
+        otpVerificationFailure: t(formResponderLogin.verificationFailureMessage)
     };
 
     const handleOtpChange = (e: any) => {
@@ -44,19 +63,42 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
     };
 
     const handleGoBackOnStepOne = () => {
-        props.setStepCount(props.stepCount - 1);
+        props.setEmail('');
     };
 
-    const handleResponseToast = (res: any) => {
+    const handleResponseToast = async (res: any) => {
         if (!!res?.data) {
-            toast(res.data.message, { type: 'success' });
-            router.push('/login');
+            toast(constants.otpVerificationSuccess, { type: 'success' });
+            closeModal();
+            const res = await trigger();
+            dispatch(setAuth(res.data));
         } else {
-            toast(!!res.error.data ? res.error.data : 'Failed to verify code', { type: 'error' });
+            toast(constants.otpVerificationFailure, { type: 'error' });
         }
     };
 
-    const handleOtpPost = async () => {
+    const resendOtpCode = async () => {
+        let res;
+        if (props.isCreator) {
+            const req = {
+                receiver_email: props.email
+            };
+            res = await postSendOtpForCreator(req);
+        } else {
+            const req = {
+                receiver_email: props.email,
+                workspace_id: workspace.id
+            };
+            res = await postSendOtp(req);
+        }
+        // @ts-ignore
+        if (!!res?.data) {
+            setCounter(60);
+        }
+    };
+
+    const handleOtpPost = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
         if (!otp) return;
         const req = {
             email: props.email,
@@ -73,16 +115,14 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
                 <p className={'hover:text-brand'}>{constants.backButtonTitle}</p>
             </div>
             <h3 className="h3 mt-[44px] mb-[16px]">{constants.verificationTitle}</h3>
-            <div className={'flex items-center sh2 text-brand-500'}>
-                <p className="!text-black-700">{constants.subHeading2}</p>
-                <div className={'!text-brand-500'}>{constants.button}</div>
-            </div>
 
-            <p className=" mb-[8px] mt-[44px] text-black-900">{constants.enterOtpCode}</p>
-            <BetterInput placeholder={constants.enterOtpCode} value={otp} onChange={handleOtpChange} />
-            <Button variant="solid" isLoading={isLoading} className={'w-full mt-[32px] mb-[40px]'} size={'large'} onClick={handleOtpPost}>
-                {constants.continue}
-            </Button>
+            <form onSubmit={handleOtpPost}>
+                <p className=" mb-[8px] mt-[44px] text-black-900">{constants.enterOtpCode}</p>
+                <BetterInput placeholder={constants.enterOtpCode} value={otp} onChange={handleOtpChange} />
+                <Button type={'submit'} variant="solid" isLoading={isLoading} className={'w-full mt-[32px] mb-[40px]'} size={'large'}>
+                    {constants.continue}
+                </Button>
+            </form>
             <div className={'flex items-center gap-2 mb-[60px] text-black-900'}>
                 <p>{constants.didnotReceiveCode}</p>
                 <>
@@ -93,9 +133,9 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
                     )}
                     {counter === 0 && (
                         <p
-                            className="cursor-pointer"
-                            onClick={() => {
-                                setCounter(60);
+                            className="cursor-pointer underline text-brand-500"
+                            onClick={async () => {
+                                await resendOtpCode();
                             }}
                         >
                             {t(buttonConstant.resendCode)}

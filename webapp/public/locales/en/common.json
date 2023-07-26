@@ -434,7 +434,11 @@
     "FEATURES_HEADING": "Once you sign in you will be able to:",
     "FEATURE_1": "See all forms of workspace",
     "FEATURE_2": "See all your submitted forms of that particular workspace.",
-    "FEATURE_3": "Delete your submitted form responses"
+    "FEATURE_3": "Delete your submitted form responses",
+    "OTP_FAILURE_TOAST": "Failed to send OTP",
+    "OTP_SUCCESS_TOAST": "OTP sent successfully",
+    "OTP_VERIFICATION_SUCCESS_TOAST": "Verified successfully",
+    "OTP_VERIFICATION_FAILURE_TOAST": "Verification failed"
   },
   "RESPONDERS_AND_GROUPS": "Responders and Groups",
   "SAVE": "Save",

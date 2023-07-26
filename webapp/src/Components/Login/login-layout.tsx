@@ -31,12 +31,6 @@ export default function LoginLayout(props: MyLoginProps) {
 
     const [email, setEmail] = useState('');
 
-    useEffect(() => {
-        if (!email) return;
-        setStepCount(stepCount + 1);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [email]);
-
     const TermsAndCondition = () => (
         <div className="body4">
             {t(signInScreen.signinAgreementDescription)}
@@ -52,7 +46,7 @@ export default function LoginLayout(props: MyLoginProps) {
     );
 
     return (
-        <Layout className="min-h-screen  ">
+        <Layout className="min-h-screen">
             <div className="absolute h-fit top-0 left-0 w-full flex flex-col md:flex-row">
                 <div className={`bg-brand-500 relative order-2 md:order-1 min-h-screen md:max-h-screen overflow-hidden h-fit md:h-full w-full md:w-[50%] flex flex-col justify-center`}>
                     <div className="flex flex-col px-8 md:max-h-[300px] my-10 md:px-[94px] ">
@@ -72,8 +66,7 @@ export default function LoginLayout(props: MyLoginProps) {
                 </div>
                 <div className="flex flex-col order-1 md:order-2 items-start justify-start md:justify-center px-8 py-7 md:py-8 md:px-[110px] h-fit md:h-full w-full md:max-w-[716px]">
                     <Logo isLink={false} />
-                    {stepCount === 0 && <OtpEmailInput isCreator={props.isCreator} setStepCount={setStepCount} setEmail={setEmail} />}
-                    {stepCount === 1 && <OtpCodeComponent stepCount={stepCount} setStepCount={setStepCount} email={email} />}
+                    {!email ? <OtpEmailInput isCreator={props.isCreator} setEmail={setEmail} /> : <OtpCodeComponent email={email} setEmail={setEmail} isCreator={props.isCreator} />}
                     <TermsAndCondition />
                 </div>
             </div>
