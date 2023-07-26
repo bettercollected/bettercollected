@@ -3,7 +3,8 @@ import enum
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from beanie import PydanticObjectId
+from pydantic import BaseModel, Field
 
 
 class EmbedProvider(str, enum.Enum):
@@ -282,12 +283,33 @@ StandardFieldProperty.update_forward_refs()
 Conditional.update_forward_refs()
 
 
+class State(BaseModel):
+    global_state: Optional[Dict[str, Any]] = Field(
+        None,
+        example={
+            "global_var1": "default value",
+            "global_var2": 0,
+            "global_var3": True,
+        })
+    processor_state: Optional[Dict[str, Any]] = Field(
+        None,
+        example={
+            "processor_var1": "default value",
+            "processor_var2": 0,
+            "processor_var3": True,
+        })
+    # Is form response locked at submission by default can be set otherwise
+    # by default it will be in locked state
+    is_locked: Optional[bool] = Field(None)
+
+
 class StandardForm(BaseModel):
     form_id: Optional[str]
     type: Optional[str]
     title: Optional[str]
     description: Optional[str]
     fields: Optional[List[StandardFormField]]
+    state: Optional[State] = Field(State())
     settings: Optional[StandardFormSettings] = StandardFormSettings()
     published_at: Optional[dt.datetime]
 
@@ -308,11 +330,17 @@ class StandardFormResponseAnswer(BaseModel):
     phone_number: Optional[str]
 
 
+class ResponseState(BaseModel):
+    global_state: Optional[Dict[str, Any]] = Field({})
+    processor_state: Optional[Dict[PydanticObjectId, Dict[str, Any]]] = Field({})
+    is_locked: Optional[bool] = Field(True)
+    choices_total_point: Optional[float] = Field(None)
+
+
 class StandardFormResponse(BaseModel):
     """
     Data transfer object for a standard form response.
     """
-
     response_id: Optional[str]
     form_id: Optional[str]
     provider: Optional[str]
@@ -323,6 +351,6 @@ class StandardFormResponse(BaseModel):
     created_at: Optional[dt.datetime]
     updated_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
-
+    state: Optional[ResponseState] = Field(None)
     dataOwnerIdentifierType: Optional[str]
     dataOwnerIdentifier: Optional[str]
