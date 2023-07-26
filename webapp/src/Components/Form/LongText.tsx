@@ -4,11 +4,11 @@ import { FieldRequired } from '@Components/UI/FieldRequired';
 import { useDispatch } from 'react-redux';
 
 import BetterInput from '@app/components/Common/input';
-import { AnswerDto, StandardFormQuestionDto } from '@app/models/dtos/form';
+import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { addAnswer, deleteAnswer } from '@app/store/fill-form/slice';
 
 interface ILongTextProps {
-    field: StandardFormQuestionDto;
+    field: StandardFormFieldDto;
     ans?: any;
     enabled?: boolean;
 }

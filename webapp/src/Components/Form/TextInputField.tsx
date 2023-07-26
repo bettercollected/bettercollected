@@ -1,5 +1,5 @@
 import BetterInput from '@app/components/Common/input';
-import { StandardFormQuestionDto } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 
 const getInputType = (tag?: FormBuilderTagNames) => {
@@ -16,7 +16,7 @@ const getInputType = (tag?: FormBuilderTagNames) => {
             return 'text';
     }
 };
-export default function TextInputField({ field }: { field: StandardFormQuestionDto }) {
+export default function TextInputField({ field }: { field: StandardFormFieldDto }) {
     return (
         <div>
             <BetterInput type={getInputType(field?.tag)} required={field?.validations?.required} placeholder={field?.properties?.placeholder || ''} />

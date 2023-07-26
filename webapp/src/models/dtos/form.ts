@@ -1,18 +1,18 @@
+import { ValidationType } from '@Components/FormBuilder/FieldOptions/types';
+
 import { UserDto } from '@app/models/dtos/UserDto';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { IFormFieldValidation } from '@app/store/form-builder/types';
 
 import { ResponderGroupDto } from './groups';
 
-export interface StandardFormQuestionDto {
+export interface StandardFormFieldDto {
     id: string;
     questionId?: string;
     formId?: string;
-    validations?: {
-        required?: boolean;
-    };
+    validations?: IFormFieldValidation;
     properties?: any;
-    tag?: FormBuilderTagNames;
     value?: string;
     attachment?: any;
     title: string;
@@ -23,7 +23,6 @@ export interface StandardFormQuestionDto {
               options: Array<any>;
           }
         | any;
-    required?: boolean | null | undefined;
     isMediaContent?: boolean;
     mediaContent?: boolean;
     isGroupQuestion?: boolean;
@@ -32,13 +31,11 @@ export interface StandardFormQuestionDto {
 }
 
 export interface StandardFormDto {
-    items?: Array<any>;
     formId: string;
     title: string;
     description?: string | null | undefined;
     provider?: string;
     createdAt?: string | Date;
-    dataOwnerIdentifier?: string;
     responses?: number;
     deletionRequests?: number;
     groups: Array<ResponderGroupDto>;
@@ -52,12 +49,9 @@ export interface StandardFormDto {
         roles?: Array<string>;
     };
     importerDetails: UserStatus;
-    fields: Array<StandardFormQuestionDto>;
+    fields: Array<StandardFormFieldDto>;
     createdTime?: string | Date;
     modifiedTime?: string | Date;
-    responseId?: string;
-    responseCreatedAt?: string;
-    responseUpdatedAt?: string;
 }
 
 export interface StandardFormResponseDto {

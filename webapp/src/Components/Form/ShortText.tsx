@@ -4,12 +4,12 @@ import { FieldRequired } from '@Components/UI/FieldRequired';
 import { useDispatch } from 'react-redux';
 
 import BetterInput from '@app/components/Common/input';
-import { AnswerDto, StandardFormQuestionDto } from '@app/models/dtos/form';
+import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addAnswer, deleteAnswer } from '@app/store/fill-form/slice';
 
 interface IShortTextProps {
-    field: StandardFormQuestionDto;
+    field: StandardFormFieldDto;
     ans?: any;
     enabled?: boolean;
 }
@@ -49,10 +49,23 @@ export default function ShortText({ ans, enabled, field }: IShortTextProps) {
         }
     };
 
+    const getInputType = () => {
+        switch (field?.type) {
+            case FormBuilderTagNames.INPUT_EMAIL:
+                return 'email';
+            case FormBuilderTagNames.INPUT_NUMBER:
+                return 'number';
+            case FormBuilderTagNames.INPUT_DATE:
+                return 'date';
+            default:
+                return 'text';
+        }
+    };
+
     return (
         <div className="relative">
             <BetterInput
-                type={field?.type === 'email' ? 'email' : 'text'}
+                type={getInputType()}
                 value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name || ans?.date || ans?.phone_number}
                 placeholder={field?.properties?.placeholder}
                 disabled={!enabled}

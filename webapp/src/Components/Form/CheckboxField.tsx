@@ -4,7 +4,7 @@ import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import Checkbox from '@mui/material/Checkbox';
 
-import { StandardFormQuestionDto } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { addAnswer, selectAnswer, selectAnswers } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 

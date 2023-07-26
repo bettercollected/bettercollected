@@ -12,21 +12,22 @@ import ShortText from '@Components/Form/ShortText';
 import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';
-import { StandardFormDto, StandardFormQuestionDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { AnswerDto, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetFillForm, selectAnswers, selectInvalidFields, selectRequiredFields, setInvalidFields, setRequiredFields } from '@app/store/fill-form/slice';
+import { resetFillForm, selectAnswers, selectInvalidFields, setInvalidFields } from '@app/store/fill-form/slice';
+import { FormValidationError } from '@app/store/fill-form/type';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 
 export interface FormFieldProps {
-    field: StandardFormQuestionDto;
+    field: StandardFormFieldDto;
     ans?: any;
     enabled?: boolean;
 }
 
-const renderFormField = (field: StandardFormQuestionDto, enabled?: boolean, answer?: any) => {
+const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?: any) => {
     switch (field?.type) {
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
         case FormBuilderTagNames.LAYOUT_HEADER3:
@@ -72,35 +73,69 @@ interface IBetterCollectedFormProps {
 export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, preview = false, closeModal }: IBetterCollectedFormProps) {
     const dispatch = useAppDispatch();
     const invalidFields = useAppSelector(selectInvalidFields);
-    const requiredFields = useAppSelector(selectRequiredFields);
     const [submitResponse] = useSubmitResponseMutation();
     const answers = useAppSelector(selectAnswers);
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
 
     useEffect(() => {
-        const requiredFields: Array<string> = [];
-        for (const field of form?.fields || []) {
-            if (field?.validations?.required) {
-                requiredFields.push(field.id);
-            }
-        }
-        dispatch(setRequiredFields(requiredFields));
-    }, [form]);
-
-    useEffect(() => {
         dispatch(resetFillForm());
     }, []);
 
-    const onSubmitForm = async (event: any) => {
-        event.preventDefault();
-        const invalidFields: Array<string> = [];
-        for (const requiredField of requiredFields) {
-            if (!answers[requiredField]) {
-                invalidFields.push(requiredField);
+    const validateFormFieldAnswer = (field: StandardFormFieldDto, answer: AnswerDto) => {
+        const errors: Array<FormValidationError> = [];
+        if (!field?.properties?.hidden) {
+            if (answer) {
+                if (field?.type === FormBuilderTagNames.INPUT_SHORT_TEXT || field?.type === FormBuilderTagNames.INPUT_LONG_TEXT) {
+                    if (field?.validations?.minLength && (answer?.text || '').length < field?.validations?.minLength) {
+                        errors.push(FormValidationError.INSUFFICIENT_LENGTH);
+                    }
+                    if (field?.validations?.maxLength && (answer?.text || '').length > field?.validations?.maxLength) {
+                        errors.push(FormValidationError.EXCEEDS_MAX_LENGTH);
+                    }
+                    if (field?.validations?.regex && answer?.text?.match(field?.validations?.regex || '')) {
+                        errors.push(FormValidationError.REGEX_PATTERN);
+                    }
+                }
+                if (field?.type === FormBuilderTagNames.INPUT_NUMBER) {
+                    if (field?.validations?.minValue && (answer?.number || 0) < field?.validations?.minValue) {
+                        errors.push(FormValidationError.INSUFFICIENT_VALUE);
+                    }
+                    if (field?.validations?.maxValue && (answer?.number || 0) > field?.validations?.maxValue) {
+                        errors.push(FormValidationError.EXCEEDS_MAX_VALUE);
+                    }
+                }
+
+                if (field?.type === FormBuilderTagNames.INPUT_CHECKBOXES || field?.type === FormBuilderTagNames.INPUT_MULTISELECT) {
+                    if (field?.validations?.minChoices && (answer?.choices?.values?.length || 0) < field?.validations?.minChoices) {
+                        errors.push(FormValidationError.INSUFFICIENT_CHOICES);
+                    }
+                    if (field?.validations?.maxChoices && (answer?.choices?.values?.length || 0) > field?.validations?.maxChoices) {
+                        errors.push(FormValidationError.INSUFFICIENT_CHOICES);
+                    }
+                }
+            } else {
+                if (field?.validations?.required) {
+                    errors.push(FormValidationError.REQUIRED);
+                }
             }
         }
-        if (invalidFields.length > 0) {
+        return errors;
+    };
+
+    const onSubmitForm = async (event: any) => {
+        event.preventDefault();
+        const invalidFields: Record<string, Array<FormValidationError>> = {};
+        let isResponseValid = true;
+        form?.fields.forEach((field: StandardFormFieldDto, index: number) => {
+            const validationErrors = validateFormFieldAnswer(field, answers[field.id]);
+            if (validationErrors.length > 0) {
+                isResponseValid = false;
+            }
+            invalidFields[field.id] = validationErrors;
+        });
+
+        if (!isResponseValid) {
             dispatch(setInvalidFields(invalidFields));
             // toast('All required fields are not filled yet.', { type: 'error' });
             return;
@@ -139,10 +174,11 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 <div>{form?.description}</div>
             </div>
             <div className="flex flex-col w-full">
-                {form?.fields.map((field: StandardFormQuestionDto) => (
+                {form?.fields.map((field: StandardFormFieldDto) => (
                     <div key={field?.id} className="relative w-full">
                         {renderFormField(field, enabled, response?.answers[field.id])}
-                        {invalidFields?.includes(field?.id) && <div className=" body5 !mb-7 !text-red-500 ">Field Required*</div>}
+                        {/*{invalidFields?.includes(field?.id) &&*/}
+                        {/*    <div className=" body5 !mb-7 !text-red-500 ">Field Required*</div>}*/}
                     </div>
                 ))}
                 {enabled && (
