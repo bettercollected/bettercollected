@@ -207,8 +207,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         onKeyDownCallbackRef.current = throttle(onKeyDownCallback, 100);
 
         onBlurCallbackRef.current = throttle(onBlurCallback, 100);
-
-        onBlurCallbackRef.current = onBlurCallback;
         document.addEventListener('keydown', onKeyDownCallback);
         document.addEventListener('blur', onBlurCallback);
 
