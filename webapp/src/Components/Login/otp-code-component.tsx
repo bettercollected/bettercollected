@@ -1,6 +1,7 @@
 import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import { toast } from 'react-toastify';
 
@@ -31,6 +32,8 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
     const [trigger] = useLazyGetStatusQuery();
 
     const dispatch = useAppDispatch();
+
+    const router = useRouter();
 
     const [otp, setOtp] = useState('');
     const [counter, setCounter] = useState(60);
@@ -68,9 +71,8 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
     const handleResponseToast = async (res: any) => {
         if (!!res?.data) {
             toast(constants.otpVerificationSuccess, { type: 'success' });
-            closeModal();
-            const res = await trigger();
-            dispatch(setAuth(res.data));
+            props.isCreator && closeModal();
+            await router.reload();
         } else {
             toast(constants.otpVerificationFailure, { type: 'error' });
         }
@@ -104,7 +106,7 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
             otp_code: otp
         };
         const res = await postVerifyOtp(req);
-        handleResponseToast(res);
+        await handleResponseToast(res);
     };
 
     return (
