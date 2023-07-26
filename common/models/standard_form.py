@@ -259,7 +259,7 @@ class StandardFieldValidations(BaseModel):
     max_value: Optional[float]
     regex: Optional[str]
     min_choices: Optional[int]
-    max_choices: Optional[str]
+    max_choices: Optional[int]
 
 
 class StandardFormField(BaseModel):
