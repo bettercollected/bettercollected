@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import FormBuilderContainerWrapper from '@Components/HOCs/FormBuilderContainerWrapper';
 
 import environments from '@app/configs/environments';
-import FormBuilder from '@app/containers/FormBuilder';
+import FormBuilder from '@app/containers/form-builder/FormBuilder';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
