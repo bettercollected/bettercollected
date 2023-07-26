@@ -107,7 +107,7 @@ export default function SingleFormPage(props: any) {
     }
 
     return (
-        <Layout showNavbar={form?.settings?.provider === 'self' && !hasCustomDomain} showAuthAccount={true} className="relative !bg-white !min-h-screen">
+        <Layout showNavbar={form?.settings?.provider === 'self' && !hasCustomDomain} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showAuthAccount={true} className="relative !bg-white !min-h-screen">
             {back && (
                 <div className=" absolute  mt-5   px-5 lg:px-20 w-auto z-10 hover:!-translate-y-0 focus:-translate-y-0">
                     <div className="flex items-center gap-2  cursor-pointer" onClick={() => goToForms()}>
