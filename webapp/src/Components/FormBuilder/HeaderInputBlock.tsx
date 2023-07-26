@@ -4,10 +4,11 @@ import CustomContentEditable from '@Components/FormBuilder/ContentEditable/Custo
 import { Input } from '@mui/base';
 import { useDispatch } from 'react-redux';
 
+import useFormBuilderState from '@app/containers/form-builder/context';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setBuilderState, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { setActiveFieldIndex, updateField } from '@app/store/form-builder/slice';
+import { updateField } from '@app/store/form-builder/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 
@@ -38,9 +39,11 @@ const getPlaceholder = (type: FormBuilderTagNames) => {
 export default function HeaderInputBlock({ field, id, position }: IHeaderInputBlockProps) {
     const dispatch = useDispatch();
     const builderState = useAppSelector(selectBuilderState);
+    const { setBackspaceCount } = useFormBuilderState();
 
     const activeFieldIndex = builderState.activeFieldIndex;
     const onChange = (event: ChangeEvent<any>) => {
+        setBackspaceCount(0);
         if (event?.currentTarget?.innerText)
             dispatch(
                 setUpdateField({
@@ -61,7 +64,6 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
             onChangeCallback={onChange}
             placeholder={getPlaceholder(field?.type)}
             onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
-                event.preventDefault();
                 dispatch(setBuilderState({ activeFieldIndex: position }));
             }}
         />

@@ -1,16 +1,26 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import EndAdornmentInputField from '@Components/FormBuilder/EndAdornmentInputFIeld';
 import HeaderInputBlock from '@Components/FormBuilder/HeaderInputBlock';
 import LongText from '@Components/FormBuilder/LongText';
 import MultipleChoice from '@Components/FormBuilder/MultipleChoice';
 import RatingField from '@Components/FormBuilder/RatingField';
+import { useDispatch } from 'react-redux';
 
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setActiveFieldIndex } from '@app/store/form-builder/slice';
-import { useAppDispatch } from '@app/store/hooks';
+import useFormBuilderState from '@app/containers/form-builder/context';
+import { FormBuilderTagNames, KeyType } from '@app/models/enums/formBuilder';
+import { setActiveField } from '@app/store/form-builder/actions';
 
-export default function FormBuilderBlockContent({ type, position, field, id }: any) {
+interface IFormBuilderBlockContent {
+    type: string;
+    position: number;
+    id: string;
+    field: any;
+}
+
+export default function FormBuilderBlockContent({ type, position, field, id }: IFormBuilderBlockContent) {
+    const dispatch = useDispatch();
+
     const renderBlockContent = (position: number) => {
         switch (type) {
             case FormBuilderTagNames.LAYOUT_HEADER1:
@@ -43,7 +53,13 @@ export default function FormBuilderBlockContent({ type, position, field, id }: a
 
     return (
         <div className="w-full">
-            <div data-position={position} data-tag={type}>
+            <div
+                data-position={position}
+                data-tag={type}
+                onFocus={() => {
+                    dispatch(setActiveField({ position: field?.position, id: field?.id }));
+                }}
+            >
                 {renderBlockContent(position)}
             </div>
         </div>

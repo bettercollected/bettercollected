@@ -1,4 +1,4 @@
-import { ChangeEvent } from 'react';
+import { ChangeEvent, FocusEventHandler } from 'react';
 
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { ArrowDropDown, TrendingUpSharp } from '@mui/icons-material';
@@ -12,6 +12,7 @@ interface IStartAdornmentInputFieldProps {
     value: string;
     id: any;
     onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+    onFocus?: FocusEventHandler<HTMLInputElement | HTMLTextAreaElement>;
 }
 
 function getIcon(type: FormBuilderTagNames) {
@@ -29,7 +30,7 @@ function getIcon(type: FormBuilderTagNames) {
     }
 }
 
-export default function StartAdornmentInputField({ type, value, id, onChange }: IStartAdornmentInputFieldProps) {
+export default function StartAdornmentInputField({ type, value, id, onChange, onFocus }: IStartAdornmentInputFieldProps) {
     return (
         <FormBuilderInput
             autoFocus={false}
@@ -38,6 +39,7 @@ export default function StartAdornmentInputField({ type, value, id, onChange }: 
             value={value}
             variant="standard"
             onChange={onChange}
+            onFocus={onFocus}
             inputProps={{
                 style: {
                     paddingTop: 0,

@@ -157,7 +157,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     console.log({ 'backspace count': backspaceCount });
                     console.log('backspace pressed');
                     // TODO: Add support for other input types or form field type as well
-                    if (!formField?.label && backspaceCount === 1) {
+                    if (!formField?.value && backspaceCount === 1) {
                         asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
                         dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                     } else {

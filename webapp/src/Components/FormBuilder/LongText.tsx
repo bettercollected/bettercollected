@@ -5,6 +5,7 @@ import { FieldRequired } from '@Components/UI/FieldRequired';
 import { Notes } from '@mui/icons-material';
 import { useDispatch } from 'react-redux';
 
+import useFormBuilderState from '@app/containers/form-builder/context';
 import { setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { updateField } from '@app/store/form-builder/slice';
@@ -13,7 +14,10 @@ import { useAppSelector } from '@app/store/hooks';
 
 export default function LongText({ field, id, position }: { field: IFormFieldState; id: any; position: number }) {
     const dispatch = useDispatch();
+    const { setBackspaceCount } = useFormBuilderState();
+
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setBackspaceCount(0);
         dispatch(setUpdateField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
     };
 
