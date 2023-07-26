@@ -1,7 +1,6 @@
 import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import { toast } from 'react-toastify';
 
@@ -12,7 +11,7 @@ import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
-import { useGetStatusQuery, useLazyGetStatusQuery, usePostSendOtpForCreatorMutation, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
+import { useLazyGetStatusQuery, usePostSendOtpForCreatorMutation, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
 import { setAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
@@ -42,7 +41,7 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
 
     const [postVerifyOtp, { isLoading }] = usePostVerifyOtpMutation();
     const [postSendOtp] = usePostSendOtpMutation();
-    const [postSendOtpForCreator, creatorResponse] = usePostSendOtpForCreatorMutation();
+    const [postSendOtpForCreator] = usePostSendOtpForCreatorMutation();
 
     const constants = {
         subHeading2: t(signInScreen.continueWIth),

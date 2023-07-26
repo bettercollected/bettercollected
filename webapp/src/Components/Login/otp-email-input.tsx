@@ -28,7 +28,7 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
 
     const { t } = useTranslation();
 
-    const [postSendOtp, { isLoading, isSuccess, isError }] = usePostSendOtpMutation();
+    const [postSendOtp, { isLoading }] = usePostSendOtpMutation();
 
     const [postSendOtpForCreator, creatorResponse] = usePostSendOtpForCreatorMutation();
 

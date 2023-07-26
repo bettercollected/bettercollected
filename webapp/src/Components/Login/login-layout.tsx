@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
@@ -26,8 +26,6 @@ interface MyLoginProps {
 export default function LoginLayout(props: MyLoginProps) {
     const features = props.features;
     const { t } = useTranslation();
-
-    const [stepCount, setStepCount] = useState(0);
 
     const [email, setEmail] = useState('');
 
