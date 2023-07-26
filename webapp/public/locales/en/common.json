@@ -37,7 +37,7 @@
     "CONTINUE_WITH_GOOGLE": "Continue with Google",
     "COPY_LINK": "Copy link",
     "CREATE_FORM": "Create Form",
-    "CREATE_WORKSPACE": "Create A workspace",
+    "CREATE_WORKSPACE": "Create a workspace",
     "CUSTOMIZE_LINK": "Customize your link",
     "DELETE": "Delete",
     "DELETE_ACCOUNT": " Delete Account",
@@ -430,6 +430,16 @@
   "REMOVE": "Remove",
   "REMOVE_INVITATION_FOR": "Remove invitation for",
   "REMOVE_WARNING_MESSAGE": "Removing a member will also remove all forms imported by the user",
+  "RESPONDER_SECTION": {
+    "FEATURES_HEADING": "Once you sign in you will be able to:",
+    "FEATURE_1": "See all forms of workspace",
+    "FEATURE_2": "See all your submitted forms of that particular workspace.",
+    "FEATURE_3": "Delete your submitted form responses",
+    "OTP_FAILURE_TOAST": "Failed to send OTP",
+    "OTP_SUCCESS_TOAST": "OTP sent successfully",
+    "OTP_VERIFICATION_SUCCESS_TOAST": "Verified successfully",
+    "OTP_VERIFICATION_FAILURE_TOAST": "Verification failed"
+  },
   "RESPONDERS_AND_GROUPS": "Responders and Groups",
   "SAVE": "Save",
   "SEND_CODE": {
@@ -445,7 +455,7 @@
   "SIGNIN_SCREEN": {
     "COLLECT_FORMS": "Collect your forms",
     "SIGN_IN": "Sign in",
-    "CONTINUE_WITH": "continue with:",
+    "CONTINUE_WITH": "Don't have an account?",
     "DELETE_RESPONSES": "Delete responses",
     "EASY_TO_MANAGE_FORMS": "Easy to manage forms",
     "LOGIN_TITLE_SLOGAN": "Be a part of the greater community by signing in.",
@@ -461,7 +471,14 @@
       "FEATURE_4": "You can share your workspace publicly with your form responders",
       "FEATURE_5": "Your form responders can easily find all your public forms",
       "FEATURE_6": "Your form responders can securely view their response"
-    }
+    },
+    "CONTINUE": "Continue",
+    "OR_SIGN_IN_USING": "Or sign in using",
+    "VERIFICATION": "Verification",
+    "ENTER_OTP_CODE": "Enter OTP Code",
+    "ENTER_CODE_SENT_IN_EMAIL": "Enter code sent in your email",
+    "BACK_BUTTON_TITLE": "Back",
+    "DIDNOT_RECEIVE_CODE": "Did not receive code?"
   },
   "SLUG": {
     "DEFAULT": "Slug",
@@ -623,7 +640,7 @@
     "PROFILE_IMAGE": "Workspace Profile Image",
     "TITLE": "Workspace Title",
     "TITLE_VALIDATION_MESSAGE": "Workspace title is required",
-    "WORKSPACE_NAME_VALIDATION_MESSAGE": "Workspace Handle is required",
-    "URL": "Worksapce URL"
+    "WORKSPACE_NAME_VALIDATION_MESSAGE":"Workspace Handle is required",
+    "URL": "Workspace URL"
   }
 }

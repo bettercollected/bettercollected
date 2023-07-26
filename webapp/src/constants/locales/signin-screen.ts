@@ -8,6 +8,7 @@ export const signInScreen = {
     welcomeMessage: 'SIGNIN_SCREEN.WELCOME_MESSAGE',
     continueWIth: 'SIGNIN_SCREEN.CONTINUE_WITH',
     signinAgreementDescription: 'SIGNIN_SCREEN.SIGNIN_AGREEMENT_DESCRIPTION',
+    signUp: 'GET_STARTED.USER_IS_FIT.BUTTON_TEXT',
     features: {
         title: 'SIGNIN_SCREEN.FEATURES.TITLE',
         feature1: 'SIGNIN_SCREEN.FEATURES.FEATURE_1',
@@ -17,5 +18,12 @@ export const signInScreen = {
         feature5: 'SIGNIN_SCREEN.FEATURES.FEATURE_5',
         feature6: 'SIGNIN_SCREEN.FEATURES.FEATURE_6'
     },
-    signIn: 'SIGNIN_SCREEN.SIGN_IN'
+    signIn: 'SIGNIN_SCREEN.SIGN_IN',
+    enterYourEmail: 'SEND_CODE.TITLE',
+    continue: 'SIGNIN_SCREEN.CONTINUE',
+    orSignInUsing: 'SIGNIN_SCREEN.OR_SIGN_IN_USING',
+    verificationTitle: 'SIGNIN_SCREEN.VERIFICATION',
+    enterOtpCode: 'SIGNIN_SCREEN.ENTER_CODE_SENT_IN_EMAIL',
+    backButtonTitle: 'SIGNIN_SCREEN.BACK_BUTTON_TITLE',
+    didNotReceiveCode: 'SIGNIN_SCREEN.DIDNOT_RECEIVE_CODE'
 };

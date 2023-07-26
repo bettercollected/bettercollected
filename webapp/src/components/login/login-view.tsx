@@ -1,29 +1,27 @@
-import { useRef, useState } from 'react';
+import React, { useRef } from 'react';
+
+import { useTranslation } from 'next-i18next';
+
+import LoginLayout from '@Components/Login/login-layout';
 
 import { Close } from '@app/components/icons/close';
-import OtpRenderer from '@app/components/login/otp-renderer';
-import SendCode from '@app/components/login/sendcode-renderer';
-import { useModal } from '@app/components/modal-views/context';
-import { usePostSendOtpMutation } from '@app/store/auth/api';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 
 export default function LoginView(props: any) {
-    const { closeModal } = useModal();
-    const { isCustomDomain } = props;
-    const [postSendOtp, { isLoading, isSuccess }] = usePostSendOtpMutation();
-
-    const [email, setEmail] = useState('');
-
-    function updateEmail(email: string) {
-        setEmail(email);
-    }
+    const { closeModal } = useFullScreenModal();
+    const { t } = useTranslation();
 
     const ref = useRef<HTMLDivElement>(null);
 
+    const features = {
+        heading: t(formResponderLogin.featureHeading),
+        paragraphs: [t(formResponderLogin.feature1), t(formResponderLogin.feature2), t(formResponderLogin.feature3)]
+    };
+
     return (
-        <div ref={ref} className="relative z-50 mx-auto max-w-full min-w-full md:max-w-[470px] lg:max-w-[470px]" {...props}>
-            <div className="rounded-[4px] relative m-auto max-w-[500px] items-start justify-between bg-white">
-                {isSuccess ? <OtpRenderer email={email} isCustomDomain={isCustomDomain} /> : <SendCode updateEmail={updateEmail} isCustomDomain={isCustomDomain} isLoading={isLoading} postSendOtp={postSendOtp} />}
-            </div>
+        <div ref={ref} className="relative z-50 mx-auto max-w-full w-full" {...props}>
+            <LoginLayout isCreator={false} features={features} />
             <Close onClick={() => closeModal()} className="cursor-pointer absolute top-5 right-5 hover:text-black dark:text-white" />
         </div>
     );

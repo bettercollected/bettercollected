@@ -423,6 +423,16 @@
   "REMOVE": "Verwijderen",
   "REMOVE_INVITATION_FOR": "Uitnodiging verwijderen voor",
   "REMOVE_WARNING_MESSAGE": "Het verwijderen van een lid zal ook alle door de gebruiker geïmporteerde formulieren verwijderen",
+  "RESPONDER_SECTION": {
+    "FEATURES_HEADING": "Zodra je bent ingelogd, kun je het volgende doen:",
+    "FEATURE_1": "Alle vormen van werkruimte bekijken",
+    "FEATURE_2": "Al je ingediende formulieren van die specifieke werkruimte bekijken",
+    "FEATURE_3": "Je ingediende formulierreacties verwijderen",
+    "OTP_FAILURE_TOAST": "Kan OTP niet verzenden",
+    "OTP_SUCCESS_TOAST": "OTP succesvol verzonden",
+    "OTP_VERIFICATION_SUCCESS_TOAST": "Met succes geverifieerd",
+    "OTP_VERIFICATION_FAILURE_TOAST": "Verificatie mislukt"
+  },
   "RESPONDERS_AND_GROUPS": "Responders en groepen",
   "SAVE": "Opslaan",
   "SEND_CODE": {
@@ -438,7 +448,7 @@
   "SIGNIN_SCREEN": {
     "COLLECT_FORMS": "Verzamel uw formulieren",
     "SIGN_IN": "Aanmelden",
-    "CONTINUE_WITH": "ga verder met:",
+    "CONTINUE_WITH": "Heb je geen account?",
     "DELETE_RESPONSES": "Antwoorden verwijderen",
     "EASY_TO_MANAGE_FORMS": "Eenvoudig te beheren formulieren",
     "LOGIN_TITLE_SLOGAN": "Maak deel uit van de grotere gemeenschap door in te loggen.",
@@ -454,7 +464,14 @@
       "FEATURE_4": "U kunt uw werkruimte openbaar delen met uw formulierbeantwoorders",
       "FEATURE_5": "Uw formulierbeantwoorders kunnen gemakkelijk al uw openbare formulieren vinden",
       "FEATURE_6": "Uw formulierresponders kunnen hun antwoord veilig bekijken"
-    }
+    },
+    "CONTINUE": "Doorgaan",
+    "OR_SIGN_IN_USING": "Of log in met",
+    "VERIFICATION": "Verificatie",
+    "ENTER_OTP_CODE": "Voer de OTP-code in",
+    "ENTER_CODE_SENT_IN_EMAIL": "Voer de code in die in uw e-mail is verzonden",
+    "BACK_BUTTON_TITLE": "Rug",
+    "DIDNOT_RECEIVE_CODE": "Geen code ontvangen?"
   },
   "SLUG": {
     "DEFAULT": "Slak",
