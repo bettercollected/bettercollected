@@ -76,6 +76,11 @@ class AuthService:
             )
             await workspaces_service.create_workspace(User(**user))
             return User(**user)
+        elif user and Roles.FORM_RESPONDER in user.get("roles"):
+            await self.user_tags_service.add_user_tag(
+                user_id=User(**user).id, tag=UserTagType.NEW_USER
+            )
+            return User(**user)
         else:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, content="Invalid Otp Code")
 
