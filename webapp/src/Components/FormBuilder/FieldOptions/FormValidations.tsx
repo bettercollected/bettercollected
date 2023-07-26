@@ -50,14 +50,13 @@ export default function FormValidations({ field }: IIndividualFieldOptionsProps)
                     </MenuItem>
                 </>
             )}
-            {field?.type === FormBuilderTagNames.INPUT_SHORT_TEXT ||
-                (field?.type === FormBuilderTagNames.INPUT_LONG_TEXT && (
-                    <>
-                        <Validation field={field} type={ValidationType.MAX_CHARS} />
-                        <Validation field={field} type={ValidationType.MIN_CHARS} />
-                        <Validation field={field} type={ValidationType.REGEX} />
-                    </>
-                ))}
+            {(field?.type === FormBuilderTagNames.INPUT_SHORT_TEXT || field?.type === FormBuilderTagNames.INPUT_LONG_TEXT) && (
+                <>
+                    <Validation field={field} type={ValidationType.MAX_LENGTH} />
+                    <Validation field={field} type={ValidationType.MIN_LENGTH} />
+                    <Validation field={field} type={ValidationType.REGEX} />
+                </>
+            )}
             {field?.type === FormBuilderTagNames.INPUT_NUMBER && (
                 <>
                     <Validation field={field} type={ValidationType.MIN_VALUE} />
@@ -68,8 +67,8 @@ export default function FormValidations({ field }: IIndividualFieldOptionsProps)
                 field?.type === FormBuilderTagNames.INPUT_DROPDOWN ||
                 (field?.type === FormBuilderTagNames.INPUT_CHECKBOXES && (
                     <>
-                        <Validation field={field} type={ValidationType.MAX_SELECTION} />
-                        <Validation field={field} type={ValidationType.MIN_SELECTION} />
+                        <Validation field={field} type={ValidationType.MAX_CHOICES} />
+                        <Validation field={field} type={ValidationType.MIN_CHOICES} />
                     </>
                 ))}
         </>

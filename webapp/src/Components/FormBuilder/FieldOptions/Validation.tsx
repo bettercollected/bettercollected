@@ -14,18 +14,18 @@ interface IValidationProps {
 
 const getValidationLabel = (type: ValidationType) => {
     switch (type) {
-        case ValidationType.MIN_CHARS:
-            return 'Min Characters';
-        case ValidationType.MAX_CHARS:
-            return 'Max characters';
+        case ValidationType.MIN_LENGTH:
+            return 'Min length';
+        case ValidationType.MAX_LENGTH:
+            return 'Max length';
         case ValidationType.MAX_VALUE:
             return 'Mav value';
         case ValidationType.MIN_VALUE:
             return 'Min value';
-        case ValidationType.MAX_SELECTION:
-            return 'Max selection';
-        case ValidationType.MIN_SELECTION:
-            return 'Min Selection';
+        case ValidationType.MAX_CHOICES:
+            return 'Max choices';
+        case ValidationType.MIN_CHOICES:
+            return 'Min choices';
         case ValidationType.REGEX:
             return 'Regex';
         default:
