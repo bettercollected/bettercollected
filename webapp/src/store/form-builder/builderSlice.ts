@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import { v4 } from 'uuid';
@@ -64,6 +64,14 @@ export const builder = createSlice({
             return {
                 ...state,
                 ...action.payload
+            };
+        },
+        // current active/focused field
+        setActiveField: (state, action: PayloadAction<{ id: string; position: number }>) => {
+            return {
+                ...state,
+                activeFieldIndex: action.payload.position,
+                activeFieldId: action.payload.id
             };
         },
         setBuilderMenuState: (state: IBuilderState, action: { payload: Partial<IBuilderMenuState>; type: string }) => {
