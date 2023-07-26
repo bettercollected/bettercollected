@@ -100,6 +100,7 @@ class AuthService:
                         + "Please request for new code.",
                     )
                 await UserRepository.clear_user_otp(user)
+                user = await self.user_repository.get_user_by_email(email)
                 return User(
                     id=str(user.id),
                     sub=user.email,
@@ -149,9 +150,13 @@ class AuthService:
         if existing_user:
             existing_user.otp_code = otp
             existing_user.otp_expiry = otp_expiry
+            if creator:
+                existing_user.otp_code_for = Roles.FORM_CREATOR
+            else:
+                existing_user.otp_code_for = Roles.FORM_RESPONDER
             await existing_user.save()
         else:
-            await self.user_repository.save_user(
+            await self.user_repository.save_otp_user(
                 email=receiver_mail,
                 otp_code=otp,
                 otp_expiry=otp_expiry,
