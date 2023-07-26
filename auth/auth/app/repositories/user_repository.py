@@ -37,6 +37,30 @@ class UserRepository:
         return await UserDocument.find({"_id": {"$in": user_ids}}).to_list()
 
     @staticmethod
+    async def save_otp_user(
+        email: str,
+        otp_code: Optional[str] = None,
+        otp_expiry: Optional[int] = None,
+        creator: bool = True,
+    ) -> UserDocument:
+        user_document = await UserRepository.get_user_by_email(email)
+        if not user_document:
+            otp_code_for = Roles.FORM_RESPONDER
+            if creator:
+                otp_code_for = Roles.FORM_CREATOR
+            user_document = UserDocument(
+                email=email,
+                otp_code=otp_code,
+                otp_expiry=otp_expiry,
+                otp_code_for=otp_code_for,
+            )
+            user_document = await user_document.save()
+        if creator and Roles.FORM_CREATOR not in user_document.otp_code_for:
+            user_document.otp_code_for = Roles.FORM_CREATOR
+            await user_document.save()
+        return user_document
+
+    @staticmethod
     async def save_user(
         email: str,
         first_name: str = None,
@@ -80,9 +104,15 @@ class UserRepository:
 
     @staticmethod
     async def clear_user_otp(user: UserDocument):
-        user.otp_code = None
-        user.otp_expiry = None
-        await user.save()
+        user_roles = [Roles.FORM_RESPONDER]
+        if user.otp_code_for == Roles.FORM_CREATOR:
+            user_roles.append(Roles.FORM_CREATOR)
+        await UserDocument.find_one(UserDocument.id == user.id).update(
+            {
+                "$addToSet": {"roles": {"$each": user_roles}},
+                "$unset": {"otp_code": "", "otp_expiry": "", "otp_code_for": ""},
+            }
+        )
 
     @staticmethod
     async def delete_user(user_id: PydanticObjectId):

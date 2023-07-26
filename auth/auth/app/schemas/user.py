@@ -13,9 +13,10 @@ class UserDocument(MongoDocument):
     last_name: Optional[str]
     profile_image: Optional[str]
     email: Indexed(str, unique=True)
-    roles: List[str] = [Roles.FORM_RESPONDER]
+    roles: Optional[List[str]]
     otp_code: Optional[str]
     otp_expiry: Optional[int]
+    otp_code_for: Optional[str]
     plan: Optional[Plans] = Plans.FREE
     stripe_customer_id: Optional[str]
     stripe_payment_id: Optional[str]
