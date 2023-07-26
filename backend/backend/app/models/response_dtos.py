@@ -39,7 +39,7 @@ class StandardFieldValidationsCamelModal(CamelModel):
     min_value: Optional[float]
     max_value: Optional[float]
     min_choices: Optional[int]
-    max_choices: Optional[str]
+    max_choices: Optional[int]
     regex: Optional[str]
 
 
