@@ -53,19 +53,6 @@ export default function EndAdornmentInputField({ field, id, position }: IEndAdor
         if (position !== activeFieldIndex) return;
 
         inputRef?.current?.focus();
-
-        // Set the cursor position to 0 when the page loads
-        const range = document.createRange();
-
-        if (inputRef?.current) {
-            range.selectNodeContents(inputRef.current);
-            range.collapse(true);
-        }
-        const selection = window.getSelection();
-        if (selection) {
-            selection.removeAllRanges();
-            selection.addRange(range);
-        }
     }, [position, activeFieldIndex]);
 
     return (
