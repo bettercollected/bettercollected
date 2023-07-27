@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
+import FieldValidations from '@Components/Form/FieldValidations';
 import LongText from '@Components/Form/LongText';
 import MultipleChoiceField from '@Components/Form/MultipleChoiceField';
 import RankingField from '@Components/Form/RankingField';
@@ -20,6 +21,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
+import { validateFormFieldAnswer } from '@app/utils/validationUtils';
 
 export interface FormFieldProps {
     field: StandardFormFieldDto;
@@ -72,56 +74,15 @@ interface IBetterCollectedFormProps {
 
 export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, preview = false, closeModal }: IBetterCollectedFormProps) {
     const dispatch = useAppDispatch();
-    const invalidFields = useAppSelector(selectInvalidFields);
     const [submitResponse] = useSubmitResponseMutation();
     const answers = useAppSelector(selectAnswers);
+    const invalidFields = useAppSelector(selectInvalidFields);
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
 
     useEffect(() => {
         dispatch(resetFillForm());
     }, []);
-
-    const validateFormFieldAnswer = (field: StandardFormFieldDto, answer: AnswerDto) => {
-        const errors: Array<FormValidationError> = [];
-        if (!field?.properties?.hidden) {
-            if (answer) {
-                if (field?.type === FormBuilderTagNames.INPUT_SHORT_TEXT || field?.type === FormBuilderTagNames.INPUT_LONG_TEXT) {
-                    if (field?.validations?.minLength && (answer?.text || '').length < field?.validations?.minLength) {
-                        errors.push(FormValidationError.INSUFFICIENT_LENGTH);
-                    }
-                    if (field?.validations?.maxLength && (answer?.text || '').length > field?.validations?.maxLength) {
-                        errors.push(FormValidationError.EXCEEDS_MAX_LENGTH);
-                    }
-                    if (field?.validations?.regex && answer?.text?.match(field?.validations?.regex || '')) {
-                        errors.push(FormValidationError.REGEX_PATTERN);
-                    }
-                }
-                if (field?.type === FormBuilderTagNames.INPUT_NUMBER) {
-                    if (field?.validations?.minValue && (answer?.number || 0) < field?.validations?.minValue) {
-                        errors.push(FormValidationError.INSUFFICIENT_VALUE);
-                    }
-                    if (field?.validations?.maxValue && (answer?.number || 0) > field?.validations?.maxValue) {
-                        errors.push(FormValidationError.EXCEEDS_MAX_VALUE);
-                    }
-                }
-
-                if (field?.type === FormBuilderTagNames.INPUT_CHECKBOXES || field?.type === FormBuilderTagNames.INPUT_MULTISELECT) {
-                    if (field?.validations?.minChoices && (answer?.choices?.values?.length || 0) < field?.validations?.minChoices) {
-                        errors.push(FormValidationError.INSUFFICIENT_CHOICES);
-                    }
-                    if (field?.validations?.maxChoices && (answer?.choices?.values?.length || 0) > field?.validations?.maxChoices) {
-                        errors.push(FormValidationError.INSUFFICIENT_CHOICES);
-                    }
-                }
-            } else {
-                if (field?.validations?.required) {
-                    errors.push(FormValidationError.REQUIRED);
-                }
-            }
-        }
-        return errors;
-    };
 
     const onSubmitForm = async (event: any) => {
         event.preventDefault();
@@ -177,6 +138,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 {form?.fields.map((field: StandardFormFieldDto) => (
                     <div key={field?.id} className="relative w-full">
                         {renderFormField(field, enabled, response?.answers[field.id])}
+                        <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
                         {/*{invalidFields?.includes(field?.id) &&*/}
                         {/*    <div className=" body5 !mb-7 !text-red-500 ">Field Required*</div>}*/}
                     </div>

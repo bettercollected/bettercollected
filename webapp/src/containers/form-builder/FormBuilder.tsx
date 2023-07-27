@@ -1,4 +1,4 @@
-import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import React, { FormEvent, useCallback, useEffect, useRef } from 'react';
 
 import { useRouter } from 'next/router';
 
