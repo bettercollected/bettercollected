@@ -621,6 +621,7 @@
     "TITLE": "Werkruimtetitel",
     "TITLE_VALIDATION_MESSAGE": "Werkruimtetitel is vereist",
     "WORKSPACE_NAME_VALIDATION_MESSAGE": "Werkruimtehandle is vereist",
+    "WORKSPACE_NAME_INVALID_CHARACTER": "workspace handle mag alleen kleine letters, cijfers en een lage streep bevatten",
     "URL": "Workspace-URL"
   }
 }
