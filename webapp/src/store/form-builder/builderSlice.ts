@@ -172,6 +172,9 @@ export const builder = createSlice({
                 description: action.payload.description,
                 activeFieldIndex: -2,
                 activeFieldId: 'field-title',
+                settings: {
+                    responseDataOwnerField: action.payload.settings?.responseDataOwnerField || ''
+                },
                 fields: fields
             };
         },

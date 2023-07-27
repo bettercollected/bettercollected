@@ -76,7 +76,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             return field;
         });
         publishRequest.fields = fields;
-
+        publishRequest.settings = builderState.settings;
         const apiObj: any = { workspaceId: workspace.id, body: publishRequest };
         if (isEditMode) apiObj['formId'] = builderState?.id;
 
@@ -127,7 +127,12 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             position: builderState.activeFieldIndex
                         };
                         dispatch(setAddNewField(newField));
-                        dispatch(setBuilderState({ isFormDirty: true, activeFieldIndex: builderState.activeFieldIndex + 1 }));
+                        dispatch(
+                            setBuilderState({
+                                isFormDirty: true,
+                                activeFieldIndex: builderState.activeFieldIndex + 1
+                            })
+                        );
                     }
                 }
 
@@ -162,7 +167,12 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     } else {
                         setBackspaceCount(1);
                     }
-                    dispatch(setBuilderState({ isFormDirty: true, menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
+                    dispatch(
+                        setBuilderState({
+                            isFormDirty: true,
+                            menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } }
+                        })
+                    );
                 }
 
                 if (((event.key === 'Delete' && event.ctrlKey) || (event.key === 'Backspace' && event.metaKey)) && fieldId) {

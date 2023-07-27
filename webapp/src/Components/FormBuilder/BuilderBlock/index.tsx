@@ -98,7 +98,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                             setBackspaceCount(0);
                                             batch(() => {
                                                 // @ts-ignore
-                                                if (event.nativeEvent.inputType === 'deleteContentBackward' && getLastItem(builderState.fields[builderState.activeFieldId].label ?? '') === '/') {
+                                                if (event.nativeEvent.inputType === 'deleteContentBackward' && getLastItem(builderState.fields[builderState.activeFieldId].value ?? '') === '/') {
                                                     dispatch(
                                                         setBuilderState({
                                                             isFormDirty: true,
@@ -126,7 +126,12 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
                                             event.preventDefault();
                                             setBackspaceCount(0);
-                                            dispatch(setBuilderState({ activeFieldIndex: item.position, activeFieldId: item.id }));
+                                            dispatch(
+                                                setBuilderState({
+                                                    activeFieldIndex: item.position,
+                                                    activeFieldId: item.id
+                                                })
+                                            );
                                         }}
                                     />
                                 </div>
