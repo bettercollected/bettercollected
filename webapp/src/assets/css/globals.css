@@ -92,17 +92,17 @@ body {
     border: 1px solid #cacaca;
     border-radius: 4px;
     line-height: 25px;
-    height: 52px;
-    width: 100%;
+    height: 52px !important;
+    width: 100% !important;
     outline: none;
-    padding: 16px 16px 16px 64px;
+    padding: 16px 16px 16px 64px !important;
 }
 
 .react-tel-input .selected-flag {
     outline: none;
     position: relative;
-    width: 52px;
-    height: 100%;
+    width: 52px !important;
+    height: 100% !important;
     padding: 0 0 0 14px;
     border-radius: 3px 0 0 3px;
 }
