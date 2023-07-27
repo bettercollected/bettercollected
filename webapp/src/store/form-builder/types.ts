@@ -6,7 +6,7 @@ import { AppDispatch } from '../store';
 
 export interface IBuilderMenuState {
     spotlightField?: { isOpen: boolean; afterFieldUuid: string };
-    commands?: { isOpen: boolean; atFieldUuid: string };
+    commands?: { isOpen: boolean; atFieldUuid: string; position: 'up' | 'down' };
     fieldSettings?: { isOpen: boolean; atFieldUuid: string };
     pipingFields?: { isOpen: boolean; atFieldUuid: string };
     pipingFieldSettings?: { isOpen: boolean; uuid: string };
