@@ -93,7 +93,7 @@ class WorkspaceFormsRouter(Routable):
         workspace_id: PydanticObjectId,
         form_id: PydanticObjectId,
         response: StandardFormResponseCamelModel,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_user_if_logged_in),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
