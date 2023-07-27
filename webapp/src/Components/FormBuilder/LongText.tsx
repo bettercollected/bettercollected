@@ -51,6 +51,7 @@ export default function LongText({ field, id, position }: { field: IFormFieldSta
             <FormBuilderInput
                 multiline
                 id={id}
+                value={field?.properties?.placeholder || ''}
                 inputRef={inputRef}
                 onChange={onChange}
                 minRows={5}
