@@ -175,6 +175,14 @@ export const builder = createSlice({
                 fields: fields
             };
         },
+        setIdentifierField: (state, action) => {
+            return {
+                ...state,
+                settings: {
+                    responseDataOwnerField: action.payload
+                }
+            };
+        },
         setMoveField: (state: IBuilderState, action: PayloadAction<{ oldIndex: number; newIndex: number }>) => {
             const { oldIndex, newIndex } = action.payload;
             const fields = { ...state.fields };

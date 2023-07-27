@@ -340,7 +340,7 @@ export default function FormRenderer({ form, response, enabled }: FormRendererPr
                     </div>
                     {form?.fields?.map((question: StandardFormFieldDto, idx: number) => {
                         return (
-                            <div key={question?.id + idx} className={`p-6 bg-white relative rounded-lg border border-solid ${invalidFields.includes(question?.id) ? 'border-red-500' : 'border-white'}`}>
+                            <div key={question?.id + idx} className={`p-6 bg-white relative rounded-lg border border-solid`}>
                                 {question?.validations?.required && <div className="absolute top-5 right-5 text-red-500">*</div>}
                                 {renderQuestionField(question, response?.answers)}
                             </div>

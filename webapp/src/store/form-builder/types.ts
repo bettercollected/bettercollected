@@ -19,6 +19,10 @@ export interface IBuilderStateVersion {
     fields: Record<string, IFormFieldState>;
 }
 
+export interface IFormBuilderSettingsState {
+    responseDataOwnerField?: string;
+}
+
 export interface IBuilderState {
     id?: string;
     title: string;
@@ -28,6 +32,7 @@ export interface IBuilderState {
     fields: Record<string, IFormFieldState>;
     versions?: Array<IBuilderStateVersion>;
     currentVersionIndex?: number;
+    settings?: IFormBuilderSettingsState;
     isFormDirty?: boolean;
     activeFieldIndex: number;
     activeFieldId: string;

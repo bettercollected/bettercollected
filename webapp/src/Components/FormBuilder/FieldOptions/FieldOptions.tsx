@@ -13,8 +13,9 @@ import { FormControlLabel, ListItemIcon, MenuItem } from '@mui/material';
 import { DraggableProvided } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 
-import { addDuplicateField, setDeleteField, setUpdateField } from '@app/store/form-builder/actions';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { addDuplicateField, setDeleteField, setIdentifierField, setUpdateField } from '@app/store/form-builder/actions';
+import { selectFormField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
@@ -25,13 +26,12 @@ interface IFieldOptionsProps {
 }
 
 export default function FieldOptions({ provided, id, position }: IFieldOptionsProps) {
-    const builderState = useAppSelector(selectBuilderState);
-    const formField = builderState.fields[id];
+    const field: IFormFieldState = useAppSelector(selectFormField(id));
     const dispatch = useAppDispatch();
-
+    const responseOwnerField = useAppSelector(selectResponseOwnerField);
     const [open, setOpen] = useState(false);
     const duplicateField = () => {
-        const newField: IFormFieldState = { ...formField };
+        const newField: IFormFieldState = { ...field };
         newField.id = uuidv4();
         newField.position = position;
         batch(() => {
@@ -49,9 +49,14 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
     const handleBlockVisibilityChange = (event: React.SyntheticEvent<Element, Event>, checked: boolean) => {
         event.preventDefault();
         event.stopPropagation();
-        const fieldProperties = { ...formField.properties } || {};
+        const fieldProperties = { ...field.properties } || {};
         fieldProperties.hidden = checked;
-        dispatch(setUpdateField({ ...formField, properties: fieldProperties }));
+        dispatch(setUpdateField({ ...field, properties: fieldProperties }));
+    };
+
+    const handleSetEmailIdentifier = (event: any, checked: boolean) => {
+        if (checked) dispatch(setIdentifierField(field?.id));
+        else dispatch(setIdentifierField(''));
     };
 
     return (
@@ -92,6 +97,22 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                 <p className="px-5 text-xs font-semibold tracking-widest leading-none uppercase text-black-700">Options</p>
             </div>
 
+            {field?.type == FormBuilderTagNames.INPUT_EMAIL && (
+                <MenuItem sx={{ paddingX: '20px', paddingY: '10px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
+                    <FormControlLabel
+                        slotProps={{
+                            typography: {
+                                fontSize: 14
+                            }
+                        }}
+                        label="Identifier Field"
+                        labelPlacement="start"
+                        className="m-0 text-xs flex items-center justify-between w-full"
+                        control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleSetEmailIdentifier} checked={responseOwnerField === field?.id} />}
+                    />
+                </MenuItem>
+            )}
+
             <MenuItem sx={{ paddingX: '20px', paddingY: '10px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
                 <FormControlLabel
                     slotProps={{
@@ -102,13 +123,13 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                     label="Hide field"
                     labelPlacement="start"
                     className="m-0 text-xs flex items-center justify-between w-full"
-                    control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!formField?.properties?.hidden} />}
+                    control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!field?.properties?.hidden} />}
                 />
             </MenuItem>
 
-            <StepsOption field={formField} />
+            <StepsOption field={field} />
 
-            <FormValidations field={formField} />
+            <FormValidations field={field} />
             <Divider className="my-2" />
             <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={duplicateField}>
                 <ListItemIcon className="text-black-900">
