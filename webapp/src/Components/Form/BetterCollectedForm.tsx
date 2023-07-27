@@ -13,9 +13,9 @@ import ShortText from '@Components/Form/ShortText';
 import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';
-import { AnswerDto, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetFillForm, selectAnswers, selectInvalidFields, setInvalidFields } from '@app/store/fill-form/slice';
+import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setInvalidFields } from '@app/store/fill-form/slice';
 import { FormValidationError } from '@app/store/fill-form/type';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
@@ -76,13 +76,22 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const dispatch = useAppDispatch();
     const [submitResponse] = useSubmitResponseMutation();
     const answers = useAppSelector(selectAnswers);
+    const responseDataOwnerField = useAppSelector(selectFormResponderOwnerField);
     const invalidFields = useAppSelector(selectInvalidFields);
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
 
     useEffect(() => {
         dispatch(resetFillForm());
+
+        return () => {
+            dispatch(resetFillForm());
+        };
     }, []);
+
+    useEffect(() => {
+        dispatch(setDataResponseOwnerField(form?.settings?.responseDataOwnerField || ''));
+    }, [form]);
 
     const onSubmitForm = async (event: any) => {
         event.preventDefault();
@@ -108,7 +117,8 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         }
         const postBody = {
             form_id: form?.formId,
-            answers: answers
+            answers: answers,
+            dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
         };
         const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: postBody });
         if (response?.data) {
@@ -137,7 +147,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             <div className="flex flex-col w-full">
                 {form?.fields.map((field: StandardFormFieldDto) => (
                     <div key={field?.id} className="relative w-full">
-                        {renderFormField(field, enabled, response?.answers[field.id])}
+                        {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
                         <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
                         {/*{invalidFields?.includes(field?.id) &&*/}
                         {/*    <div className=" body5 !mb-7 !text-red-500 ">Field Required*</div>}*/}

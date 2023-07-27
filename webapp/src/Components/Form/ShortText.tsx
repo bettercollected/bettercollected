@@ -1,4 +1,4 @@
-import React, { ChangeEvent } from 'react';
+import React, { ChangeEvent, useEffect } from 'react';
 
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { useDispatch } from 'react-redux';
@@ -6,7 +6,9 @@ import { useDispatch } from 'react-redux';
 import BetterInput from '@app/components/Common/input';
 import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addAnswer, deleteAnswer } from '@app/store/fill-form/slice';
+import { selectAuth } from '@app/store/auth/slice';
+import { addAnswer, deleteAnswer, selectFormResponderOwnerField } from '@app/store/fill-form/slice';
+import { useAppSelector } from '@app/store/hooks';
 
 interface IShortTextProps {
     field: StandardFormFieldDto;
@@ -20,6 +22,10 @@ ShortText.defaultProps = {
 
 export default function ShortText({ ans, enabled, field }: IShortTextProps) {
     const dispatch = useDispatch();
+
+    const responseDataOwnerField = useAppSelector(selectFormResponderOwnerField);
+
+    const auth = useAppSelector(selectAuth);
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
         const answer = {} as AnswerDto;
         answer.field = { id: field.id };
@@ -48,6 +54,16 @@ export default function ShortText({ ans, enabled, field }: IShortTextProps) {
             dispatch(deleteAnswer(answer));
         }
     };
+
+    useEffect(() => {
+        if (responseDataOwnerField === field?.id && auth) {
+            console.log(auth, responseDataOwnerField, field.id);
+            const answer = {} as AnswerDto;
+            answer.field = { id: field.id };
+            answer.email = auth.email;
+            dispatch(addAnswer(answer));
+        }
+    }, [responseDataOwnerField, auth]);
 
     const getInputType = () => {
         switch (field?.type) {

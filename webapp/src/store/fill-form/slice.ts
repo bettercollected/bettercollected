@@ -12,12 +12,14 @@ interface FillIBuilderState {
         [fieldId: string]: AnswerDto;
     };
     invalidFields: Record<string, Array<FormValidationError>>;
+    responseDataOwnerField: string;
 }
 
 const initialState: FillIBuilderState = {
     id: '',
     answers: {},
-    invalidFields: {}
+    invalidFields: {},
+    responseDataOwnerField: ''
 };
 
 const slice = createSlice({
@@ -44,6 +46,12 @@ const slice = createSlice({
                 ...state,
                 invalidFields: action.payload
             };
+        },
+        setDataResponseOwnerField: (state, action) => {
+            return {
+                ...state,
+                responseDataOwnerField: action.payload
+            };
         }
     }
 });
@@ -57,7 +65,7 @@ const fillFormReducer = persistReducer(
     slice.reducer
 );
 
-export const { resetFillForm, setInvalidFields, deleteAnswer, addAnswer } = slice.actions;
+export const { setDataResponseOwnerField, resetFillForm, setInvalidFields, deleteAnswer, addAnswer } = slice.actions;
 
 const reducerObj = { reducerPath: slice.name, reducer: fillFormReducer };
 
@@ -66,5 +74,7 @@ export const selectAnswers = (state: RootState) => state.fillForm.answers;
 export const selectAnswer = (fieldId: string) => (state: RootState) => state.fillForm.answers[fieldId];
 
 export const selectInvalidFields = (state: RootState) => state.fillForm.invalidFields;
+
+export const selectFormResponderOwnerField = (state: RootState) => state.fillForm.responseDataOwnerField;
 
 export default reducerObj;

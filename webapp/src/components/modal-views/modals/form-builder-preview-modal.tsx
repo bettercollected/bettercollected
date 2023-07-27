@@ -30,7 +30,9 @@ export default function FormBuilderPreviewModal() {
                 return field;
             });
             previewForm.fields = fields;
-
+            previewForm.settings = {
+                responseDataOwnerField: builderState.settings?.responseDataOwnerField || ''
+            };
             setFormToRender(previewForm);
         }
     }, [builderState]);
