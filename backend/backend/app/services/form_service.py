@@ -113,8 +113,16 @@ class FormService:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        # TODO : Refactor confusing function get but it instead throws inside
-        #  and it also check if the user can access the form
+        if not user:
+            workspace_form = await self._workspace_form_repo.get_workspace_form_with_custom_slug_form_id(
+                workspace_id=workspace_id, custom_url=form_id
+            )
+            if workspace_form.settings.private:
+                raise HTTPException(
+                    status_code=HTTPStatus.UNAUTHORIZED,
+                    content="Private Form Login to continue",
+                )
+
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id,
             is_not_admin=not is_admin,
@@ -183,10 +191,8 @@ class FormService:
             await self.user_tags_service.add_user_tag(
                 user_id=user.id, tag=UserTagType.CUSTOM_SLUG
             )
-            workspace_form_with_custom_slug = (
-                await self._workspace_form_repo.get_workspace_form_with_custom_slug(
-                    workspace_id, settings.customUrl
-                )
+            workspace_form_with_custom_slug = await self._workspace_form_repo.get_workspace_form_with_custom_slug_form_id(
+                workspace_id, settings.customUrl
             )
             if workspace_form_with_custom_slug:
                 raise HTTPException(
