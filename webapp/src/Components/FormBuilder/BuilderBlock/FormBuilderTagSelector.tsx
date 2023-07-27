@@ -244,10 +244,10 @@ interface IFormBuilderTagSelector extends OnlyClassNameInterface {
     closeMenu: any;
     handleSelection: any;
     position?: 'up' | 'down';
-    searchQuery: string | null;
+    searchQuery?: string;
 }
 
-const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, position = 'down', searchQuery }: IFormBuilderTagSelector) => {
+const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, position = 'down', searchQuery = '' }: IFormBuilderTagSelector) => {
     const [tagList, setTagList] = useState(allowedTags);
     const [selectedTag, setSelectedTag] = useState({ blockType: BlockTypes.INPUT_BLOCKS, index: 0 });
     const [command, setCommand] = useState('');
@@ -258,8 +258,21 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
 
     useEffect(() => {
         if (searchQuery?.includes('\n')) return; // Discard enter character in search query
-        const filteredAllowedTags = searchQuery === null ? allowedTags : allowedTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
-        setTagList(filteredAllowedTags);
+
+        const filteredAllowedQuestionAnswerTags = allowedQuestionAndAnswerTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
+        const filteredAllowedInputTags = allowedInputTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
+        const filteredAllowedLayoutTags = allowedLayoutTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
+        let selectedBlockType = BlockTypes.INPUT_BLOCKS;
+
+        if (filteredAllowedInputTags.length > 0) {
+            selectedBlockType = filteredAllowedInputTags[0].blockType;
+        } else if (filteredAllowedLayoutTags.length > 0) {
+            selectedBlockType = filteredAllowedLayoutTags[0].blockType;
+        } else if (filteredAllowedQuestionAnswerTags.length > 0) {
+            selectedBlockType = filteredAllowedQuestionAnswerTags[0].blockType;
+        }
+        setSelectedTag({ blockType: selectedBlockType, index: 0 });
+        setTagList([...filteredAllowedQuestionAnswerTags, ...filteredAllowedInputTags, ...filteredAllowedLayoutTags]);
     }, [searchQuery]);
 
     useEffect(() => {

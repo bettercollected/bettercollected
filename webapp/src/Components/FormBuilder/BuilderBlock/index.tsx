@@ -145,7 +145,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         position={builderState.menus?.commands?.position}
                                         closeMenu={() => {}}
                                         handleSelection={handleTagSelection}
-                                        searchQuery={builderState.fields[builderState.activeFieldId].value?.split('/').slice(-1)[0] || null}
+                                        searchQuery={builderState.fields[builderState.activeFieldId].value?.split('/').slice(-1)[0]}
                                     />
                                 )}
                             </div>
