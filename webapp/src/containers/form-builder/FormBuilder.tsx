@@ -23,7 +23,6 @@ import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateFormMutation, usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
-import { getLastItem } from '@app/utils/stringUtils';
 
 import useFormBuilderState from './context';
 

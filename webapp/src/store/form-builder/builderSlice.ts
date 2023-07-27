@@ -158,18 +158,20 @@ export const builder = createSlice({
         },
         setEditForm: (state, action) => {
             const fields: any = {};
-            for (const field of action.payload.fields) {
+            action.payload.fields.forEach((field: any, index: number) => {
                 const choices: any = {};
                 for (const choice of field?.properties?.choices || []) {
                     choices[choice.id] = choice;
                 }
-                fields[field.id] = { ...field, properties: { ...field.properties, choices: choices } };
-            }
+                fields[field.id] = { ...field, position: index, properties: { ...field.properties, choices: choices } };
+            });
             return {
                 ...state,
                 id: action.payload.formId,
                 title: action.payload.title,
                 description: action.payload.description,
+                activeFieldIndex: -2,
+                activeFieldId: 'field-title',
                 fields: fields
             };
         },
