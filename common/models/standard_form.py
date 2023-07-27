@@ -217,6 +217,7 @@ class StandardFormSettings(BaseModel):
     language: Optional[str]
     is_public: Optional[bool]
     is_trial: Optional[bool]
+    response_data_owner_field: Optional[str]
     response_data_owner_fields: Optional[List[str]]
     screens: Optional[Dict[str, List[Dict[str, Any]]]]
     # If responses are set to editable then it can be used for tracking responses
