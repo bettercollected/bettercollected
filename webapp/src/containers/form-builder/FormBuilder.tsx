@@ -29,6 +29,7 @@ import useFormBuilderState from './context';
 export default function FormBuilder({ workspace, _nextI18Next, isEditMode = false }: { isEditMode?: boolean; workspace: WorkspaceDto; _nextI18Next: any }) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
+    const builderDragDropRef = useRef<HTMLDivElement | null>(null);
 
     const router = useRouter();
 
@@ -144,6 +145,10 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                 }
                 if (event.code === 'Slash' && builderState.activeFieldIndex >= 0) {
+                    const viewportHeight = window.innerHeight;
+                    const bottomPosition = builderDragDropRef.current?.getBoundingClientRect().bottom ?? 0;
+                    console.log({ viewportHeight, bottomPosition, position: bottomPosition + 300 > viewportHeight ? 'up' : 'down' });
+                    // 300 is the height of the FormBuilderTagSelector
                     dispatch(
                         setBuilderState({
                             isFormDirty: true,
@@ -151,7 +156,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                                 ...builderState.menus,
                                 commands: {
                                     isOpen: true,
-                                    atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? ''
+                                    atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '',
+                                    position: bottomPosition + 300 > viewportHeight ? 'up' : 'down'
                                 }
                             }
                         })
@@ -170,7 +176,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     dispatch(
                         setBuilderState({
                             isFormDirty: true,
-                            menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } }
+                            menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '', position: 'down' } }
                         })
                     );
                 }
@@ -210,7 +216,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         (event: FocusEvent) => {
             event.preventDefault();
             setBackspaceCount(0);
-            dispatch(setBuilderState({ menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '' } } }));
+            dispatch(setBuilderState({ menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '', position: 'down' } } }));
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [builderState, backspaceCount]
@@ -231,7 +237,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     }, [builderState, onKeyDownCallback, onBlurCallback]);
 
     return (
-        <>
+        <div>
             <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
             <div className="h-full w-full max-w-4xl mx-auto py-10">
                 <div className="flex flex-col gap-4 px-5 md:px-[89px]">
@@ -258,27 +264,29 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         />
                     ))}
                 </div>
-                <BuilderDragDropContext
-                    Component={FormBuilderBlock}
-                    componentAttrs={{ setBackspaceCount }}
-                    droppableId="form-builder"
-                    droppableItems={Object.values(builderState.fields || {})}
-                    droppableClassName="py-10"
-                    onDragStartHandlerCallback={(start: DragStart, provided: ResponderProvided) => {}}
-                    onDragUpdateHandlerCallback={(update: DragUpdate, provided: ResponderProvided) => {}}
-                    onDragEndHandlerCallback={(result: DropResult, provided: ResponderProvided) => {
-                        if (!result.destination?.index) {
-                            return;
-                        }
-                        const items: Array<IFormFieldState> = reorder(Object.values(builderState.fields), result.source.index, result.destination.index);
-                        batch(() => {
-                            dispatch(setFields(items));
-                            dispatch(setBuilderState({ activeFieldIndex: result.destination?.index ?? builderState.activeFieldIndex }));
-                        });
-                    }}
-                />
+                <div ref={builderDragDropRef}>
+                    <BuilderDragDropContext
+                        Component={FormBuilderBlock}
+                        componentAttrs={{ setBackspaceCount }}
+                        droppableId="form-builder"
+                        droppableItems={Object.values(builderState.fields || {})}
+                        droppableClassName="py-10"
+                        onDragStartHandlerCallback={(start: DragStart, provided: ResponderProvided) => {}}
+                        onDragUpdateHandlerCallback={(update: DragUpdate, provided: ResponderProvided) => {}}
+                        onDragEndHandlerCallback={(result: DropResult, provided: ResponderProvided) => {
+                            if (!result.destination?.index) {
+                                return;
+                            }
+                            const items: Array<IFormFieldState> = reorder(Object.values(builderState.fields), result.source.index, result.destination.index);
+                            batch(() => {
+                                dispatch(setFields(items));
+                                dispatch(setBuilderState({ activeFieldIndex: result.destination?.index ?? builderState.activeFieldIndex }));
+                            });
+                        }}
+                    />
+                </div>
                 <BuilderTips />
             </div>
-        </>
+        </div>
     );
 }

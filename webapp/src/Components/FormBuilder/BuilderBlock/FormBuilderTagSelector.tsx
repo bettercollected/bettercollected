@@ -239,7 +239,14 @@ export const allowedQuestionAndAnswerTags = [
 
 export const allowedTags = [...allowedQuestionAndAnswerTags, ...allowedLayoutTags, ...allowedInputTags];
 
-const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '', searchQuery = null }: any) => {
+interface IFormBuilderTagSelector extends OnlyClassNameInterface {
+    closeMenu: any;
+    handleSelection: any;
+    position?: 'up' | 'down';
+    searchQuery: string | null;
+}
+
+const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, position = 'down', searchQuery }: IFormBuilderTagSelector) => {
     const [tagList, setTagList] = useState(allowedTags);
     const [selectedTag, setSelectedTag] = useState({ blockType: BlockTypes.INPUT_BLOCKS, index: 0 });
     const [command, setCommand] = useState('');
@@ -376,8 +383,8 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '', se
     };
 
     return (
-        <div className={`absolute top-full left-0 right-0 z-[9999] overflow-hidden rounded bg-white drop-shadow-main ${className}`}>
-            <Paper style={{ maxHeight: 320, overflowY: 'auto' }}>
+        <div className={`absolute ${position === 'down' ? 'top-full' : '-top-[300px]'} shadow-2xl left-0 right-0 z-[9999] overflow-hidden rounded bg-white drop-shadow-main ${className}`}>
+            <Paper style={{ height: 300, overflowY: 'auto' }}>
                 <List
                     ref={listRef}
                     sx={{

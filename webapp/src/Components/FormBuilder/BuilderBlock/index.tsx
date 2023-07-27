@@ -1,12 +1,14 @@
-import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback, useRef } from 'react';
+import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback, useRef, useEffect, useRef, useState } from 'react';
 
 import FormBuilderBlockContent from '@Components/FormBuilder/BuilderBlock/FormBuilderBlockContent';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { Popover } from '@mui/material';
 import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 import { v4 } from 'uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetBuilderMenuState, setAddNewField, setBuilderState, setMoveField } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setAddNewField, setBuilderState, setMoveField, setCommandMenuPosition } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -106,7 +108,8 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                                                 ...builderState.menus,
                                                                 commands: {
                                                                     isOpen: false,
-                                                                    atFieldUuid: ''
+                                                                    atFieldUuid: '',
+                                                                    position: 'down'
                                                                 }
                                                             }
                                                         })
@@ -135,12 +138,14 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         }}
                                     />
                                 </div>
+
                                 {!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id && (
                                     <FormBuilderTagSelector
                                         className={!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id ? 'visible' : 'invisible'}
+                                        position={builderState.menus?.commands?.position}
                                         closeMenu={() => {}}
                                         handleSelection={handleTagSelection}
-                                        searchQuery={builderState.fields[builderState.activeFieldId].value?.split('/').slice(-1)[0]}
+                                        searchQuery={builderState.fields[builderState.activeFieldId].value?.split('/').slice(-1)[0] || null}
                                     />
                                 )}
                             </div>
