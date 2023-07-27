@@ -52,13 +52,13 @@ export default function FormBuilderAddFieldModal({ index }: { index?: number }) 
                         {fieldType.items.map((tag, index) => (
                             <div
                                 key={tag.id}
-                                className="flex cursor-pointer hover:bg-gray-100 p-2 items-center rounded gap-2"
+                                className="flex cursor-pointer hover:bg-gray-100 h-12 p-2 items-center rounded gap-2"
                                 onClick={() => {
                                     handleFieldSelected(tag.type);
                                 }}
                             >
-                                {tag.icon}
-                                {tag.label}
+                                <div className="w-7">{tag.icon}</div>
+                                <span>{tag.label}</span>
                             </div>
                         ))}
                     </div>

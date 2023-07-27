@@ -15,10 +15,10 @@ const GroupHeader = styled('div')(({ theme }) => ({
     position: 'sticky',
     top: '-8px',
     padding: '8px 16px',
-    color: 'white',
+    color: '#000000',
     fontWeight: 600,
     textTransform: 'uppercase',
-    backgroundColor: '#0764EB'
+    backgroundColor: '#ffffff'
 }));
 
 const GroupItems = styled('ul')(({ theme }) => ({
@@ -120,7 +120,7 @@ export default function FormBuilderSpotlightModal({ index }: { index?: number })
                 )}
                 renderGroup={(params) => (
                     <li key={params.key} className="">
-                        <GroupHeader>{params.group}</GroupHeader>
+                        <GroupHeader className="font-bold tracking-widest shadow-sm border-b-[1px] border-b-black-400">{params.group}</GroupHeader>
                         <GroupItems>{params.children}</GroupItems>
                     </li>
                 )}
