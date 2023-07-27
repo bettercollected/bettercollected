@@ -36,7 +36,7 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
     const isProPlan = useAppSelector(selectIsProPlan);
     const [_, copyToClipboard] = useCopyToClipboard();
 
-    const urlText = environments.HTTP_SCHEME + (updateDomain ? workspace.customDomain : environments.CLIENT_DOMAIN + '/' + workspace.workspaceName);
+    const urlText = environments.HTTP_SCHEME + (updateDomain && isProPlan && workspace.customDomain ? workspace.customDomain : environments.CLIENT_DOMAIN + '/' + workspace.workspaceName);
 
     const handleClick = () => {
         if (type === 'DOMAIN' && isProPlan) {
@@ -63,11 +63,11 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                             <div className="flex items-center gap-4 max-w-full flex-1">
                                 <BetterInput
                                     inputProps={{ className: '!py-3' }}
-                                    className="!mb-0"
+                                    className="!m-0"
                                     disabled
                                     value={environments.HTTP_SCHEME + (updateDomain && isProPlan && workspace.customDomain ? workspace.customDomain : environments.CLIENT_DOMAIN + '/' + workspace.workspaceName)}
                                 />
-                                <Tooltip title={t(toolTipConstant.copyLink)}>
+                                <Tooltip title={t(toolTipConstant.copyLink)} className="mb-4">
                                     <CopyIcon
                                         className={isProPlan || type === 'HANDLE' ? 'cursor-pointer' : 'cursor-not-allowed pointer-events-none'}
                                         onClick={() => {
@@ -80,7 +80,7 @@ export default function UpdateURL({ type }: IUpdateURLProps) {
                                 </Tooltip>
                             </div>
                             <div>
-                                <Button size="medium" disabled={!isProPlan && updateDomain} onClick={handleClick}>
+                                <Button size="medium" className="mb-4" disabled={!isProPlan && updateDomain} onClick={handleClick}>
                                     {t(updateWorkspace.common.change)}
                                 </Button>
                             </div>
