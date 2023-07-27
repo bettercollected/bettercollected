@@ -198,7 +198,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         })
                     );
                 }
-                if ((event.key === 'D' || event.key === 'd') && (event.ctrlKey || event.metaKey)) {
+                if ((event.key === 'D' || event.key === 'd') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
                     event.preventDefault();
                     event.stopPropagation();
                     if (fieldId) {
@@ -210,7 +210,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     }
                     dispatch(setBuilderState({ isFormDirty: true }));
                 }
-                if ((event.key === 'I' || event.key === 'i') && (event.ctrlKey || event.metaKey)) {
+                if ((event.key === 'I' || event.key === 'i') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
                     event.preventDefault();
                     event.stopPropagation();
                     onInsert();
