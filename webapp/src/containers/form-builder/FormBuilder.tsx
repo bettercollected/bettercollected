@@ -134,8 +134,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                 }
 
                 if (builderState.menus?.commands?.isOpen || fullScreenModal.isOpen || modal.isOpen || builderState.menus?.spotlightField?.isOpen) {
-                    event.preventDefault();
-                    event.stopPropagation();
+                    // event.preventDefault();
+                    // event.stopPropagation();
                     return;
                 }
 

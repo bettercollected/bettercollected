@@ -1,4 +1,4 @@
-import React, { ChangeEvent } from 'react';
+import React, { ChangeEvent, FormEvent } from 'react';
 
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import { useDispatch } from 'react-redux';
@@ -40,15 +40,14 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
     const { setBackspaceCount } = useFormBuilderState();
 
     const activeFieldIndex = builderState.activeFieldIndex;
-    const onChange = (event: ChangeEvent<any>) => {
+    const onChange = (event: FormEvent<HTMLElement>) => {
         setBackspaceCount(0);
-        if (event?.currentTarget?.innerText)
-            dispatch(
-                setUpdateField({
-                    ...field,
-                    value: event.currentTarget.innerText
-                })
-            );
+        dispatch(
+            setUpdateField({
+                ...field,
+                value: event.currentTarget.innerText
+            })
+        );
     };
     return (
         <CustomContentEditable

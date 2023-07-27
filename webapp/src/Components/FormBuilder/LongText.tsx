@@ -52,16 +52,18 @@ export default function LongText({ field, id, position }: { field: IFormFieldSta
                 multiline
                 id={id}
                 value={field?.properties?.placeholder || ''}
+                placeholder={field?.properties?.placeholder || ''}
                 inputRef={inputRef}
                 onChange={onChange}
-                minRows={5}
-                maxRows={10}
+                inputMode="text"
+                minRows={10}
+                maxRows={20}
                 InputProps={{
                     endAdornment: <Notes />,
                     sx: {
-                        '& .css-3fezr7-MuiInputBase-root-MuiOutlinedInput-root': {
-                            padding: '4px 8px 4px 8px'
-                        },
+                        // '& .css-3fezr7-MuiInputBase-root-MuiOutlinedInput-root': {
+                        //     padding: '4px 8px 4px 8px'
+                        // },
                         fontSize: '.875rem;',
                         alignItems: 'flex-start'
                     }
