@@ -641,6 +641,7 @@
     "TITLE": "Workspace Title",
     "TITLE_VALIDATION_MESSAGE": "Workspace title is required",
     "WORKSPACE_NAME_VALIDATION_MESSAGE":"Workspace Handle is required",
+    "WORKSPACE_NAME_INVALID_CHARACTER": "Workspace handle must only contain lowercase letters, numbers and underscore",
     "URL": "Workspace URL"
   }
 }
