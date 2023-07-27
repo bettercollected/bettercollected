@@ -7,6 +7,7 @@ import DropdownField from '@Components/Form/DropdownField';
 import FieldValidations from '@Components/Form/FieldValidations';
 import LongText from '@Components/Form/LongText';
 import MultipleChoiceField from '@Components/Form/MultipleChoiceField';
+import PhoneNumber from '@Components/Form/PhoneNumber';
 import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
@@ -44,8 +45,9 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
         case FormBuilderTagNames.INPUT_NUMBER:
         case FormBuilderTagNames.INPUT_LINK:
         case FormBuilderTagNames.INPUT_DATE:
-        case FormBuilderTagNames.INPUT_PHONE_NUMBER:
             return <ShortText enabled={enabled} field={field} ans={answer} />;
+        case FormBuilderTagNames.INPUT_PHONE_NUMBER:
+            return <PhoneNumber enabled={enabled} field={field} ans={answer} />;
         case FormBuilderTagNames.INPUT_LONG_TEXT:
             return <LongText field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:

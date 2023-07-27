@@ -15,6 +15,7 @@ import '@uiw/react-markdown-preview/dist/markdown.min.css';
 import '@uiw/react-md-editor/dist/mdeditor.min.css';
 import 'katex/dist/katex.min.css';
 import ReactGA from 'react-ga4';
+import 'react-phone-input-2/lib/style.css';
 import { Provider } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
