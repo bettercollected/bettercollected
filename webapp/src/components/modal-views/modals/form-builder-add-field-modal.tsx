@@ -1,6 +1,6 @@
 import { allowedLayoutTags, allowedQuestionAndAnswerTags } from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { batch } from 'react-redux';
+import { v4 } from 'uuid';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
@@ -31,7 +31,7 @@ export default function FormBuilderAddFieldModal({ index }: { index?: number }) 
     const dispatch = useAppDispatch();
     const handleFieldSelected = (type: FormBuilderTagNames) => {
         batch(() => {
-            dispatch(setAddNewField({ id: uuidv4(), type, position: index || Object.keys(builderState.fields).length - 1 }));
+            dispatch(setAddNewField({ id: v4(), type, position: builderState.activeFieldIndex >= 0 ? builderState.activeFieldIndex : Object.keys(builderState.fields).length - 1 }));
             dispatch(resetBuilderMenuState());
         });
         closeModal();

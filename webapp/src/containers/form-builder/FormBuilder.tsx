@@ -210,6 +210,11 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     }
                     dispatch(setBuilderState({ isFormDirty: true }));
                 }
+                if ((event.key === 'I' || event.key === 'i') && (event.ctrlKey || event.metaKey)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onInsert();
+                }
             });
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps

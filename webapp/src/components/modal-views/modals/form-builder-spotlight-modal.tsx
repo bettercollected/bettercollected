@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 
 import { allowedInputTags, allowedLayoutTags, allowedQuestionAndAnswerTags } from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { Autocomplete, Paper, TextField, styled } from '@mui/material';
 import { batch } from 'react-redux';
+import { v4 } from 'uuid';
 
 import { useModal } from '@app/components/modal-views/context';
 import { BlockTypes, FormBuilderTagNames } from '@app/models/enums/formBuilder';
@@ -49,7 +49,7 @@ export default function FormBuilderSpotlightModal({ index }: { index?: number })
         batch(() => {
             dispatch(
                 setAddNewField({
-                    id: uuidv4(),
+                    id: v4(),
                     type: selected.type,
                     position: builderState.activeFieldIndex >= 0 ? builderState.activeFieldIndex : Object.keys(builderState.fields).length - 1
                 })

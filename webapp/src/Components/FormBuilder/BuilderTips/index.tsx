@@ -28,7 +28,7 @@ export default function BuilderTips() {
             TextComponent: (
                 <div className="flex flex-col gap-2">
                     <div className="flex justify-start items-center gap-1">
-                        Hit <strong className="text-brand">&uarr;</strong> arrow key to move up into different fields
+                        Hit <strong className="text-brand">&uarr;</strong> arrow key to move up into different fields, <strong>and,</strong>
                     </div>
                     <div className="flex justify-start items-center gap-1">
                         Hit <strong className="text-brand">{commandKeyString} + &uarr;</strong> arrow key to drag the field upwards
@@ -41,7 +41,7 @@ export default function BuilderTips() {
             TextComponent: (
                 <div className="flex flex-col gap-2">
                     <div className="flex justify-start items-center gap-1">
-                        Hit <strong className="text-brand">&darr;</strong> arrow key to move down into different fields
+                        Hit <strong className="text-brand">&darr;</strong> arrow key to move down into different fields, <strong>and,</strong>
                     </div>
                     <div className="flex justify-start items-center gap-1">
                         Hit <strong className="text-brand">{commandKeyString} + &darr;</strong> arrow key to drag the field downwards
@@ -52,9 +52,14 @@ export default function BuilderTips() {
         {
             Icon: <FormBuilderEnterIcon />,
             TextComponent: (
-                <>
-                    Hit <strong className="text-brand">Enter</strong> key to add a new field
-                </>
+                <div className="flex flex-col gap-2">
+                    <div className="flex justify-start items-center gap-1">
+                        Hit <strong className="text-brand">Enter</strong> key to add a new field, <strong>or,</strong>
+                    </div>
+                    <div className="flex justify-start items-center gap-1">
+                        Hit <strong className="text-brand">{commandKeyString} + I</strong> key to open the insert field menu
+                    </div>
+                </div>
             )
         },
         {
@@ -109,7 +114,7 @@ export default function BuilderTips() {
             {tips.map((tip, index) => (
                 <div key={index} className="flex items-start gap-4">
                     {tip.Icon}
-                    <p className="flex gap-1 items-center body4">{tip.TextComponent}</p>
+                    <div className="flex gap-1 items-center body4">{tip.TextComponent}</div>
                 </div>
             ))}
         </div>
