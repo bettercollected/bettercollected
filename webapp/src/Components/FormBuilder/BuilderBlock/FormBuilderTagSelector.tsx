@@ -10,6 +10,7 @@ import { List, ListItem, ListSubheader, Paper } from '@mui/material';
 
 import { TagIcon } from '@app/components/icons/tag-icon';
 import { BlockTypes, FormBuilderTagNames, KeyType } from '@app/models/enums/formBuilder';
+import { OnlyClassNameInterface } from '@app/models/interfaces';
 
 export const allowedInputTags = [
     {

@@ -1,4 +1,4 @@
-import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback, useRef, useEffect, useRef, useState } from 'react';
+import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback } from 'react';
 
 import FormBuilderBlockContent from '@Components/FormBuilder/BuilderBlock/FormBuilderBlockContent';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
@@ -8,7 +8,7 @@ import { batch } from 'react-redux';
 import { v4 } from 'uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetBuilderMenuState, setAddNewField, setBuilderState, setMoveField, setCommandMenuPosition } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setAddNewField, setBuilderState, setCommandMenuPosition, setMoveField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
