@@ -86,7 +86,7 @@ export default function FormBuilderMenuBar({ onInsert, onAddNewPage, onAddFormLo
                         <span className="hidden text-black-700 lg:flex">Insert</span>
                     </IconButton>
                 </Tooltip>
-                <Divider orientation="vertical" flexItem />
+                {/* <Divider orientation="vertical" flexItem />
 
                 <Tooltip title="Add a new page">
                     <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onAddNewPage}>
@@ -116,7 +116,7 @@ export default function FormBuilderMenuBar({ onInsert, onAddNewPage, onAddFormLo
                         <SettingsIcon />
                         <span className="hidden text-black-700 lg:flex">Settings</span>
                     </IconButton>
-                </Tooltip>
+                </Tooltip> */}
                 <Divider orientation="vertical" flexItem />
 
                 <Tooltip title="Preview">
