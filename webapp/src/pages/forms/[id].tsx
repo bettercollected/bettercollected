@@ -1,19 +1,18 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import { ChevronLeft } from '@mui/icons-material';
+import { Button } from '@mui/material';
 import { Widget } from '@typeform/embed-react';
 
-import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
-import Button from '@app/components/ui/button';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import { localesCommon } from '@app/constants/locales/common';
-import { formConstant } from '@app/constants/locales/form';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -29,12 +28,34 @@ export default function SingleFormPage(props: any) {
     const form: StandardFormDto | undefined = data;
 
     const iframeRef = useRef(null);
+    const { openModal } = useFullScreenModal();
 
     const responderUri = form?.settings?.embedUrl || '';
     const { t } = useTranslation();
 
+    // @ts-ignore
+    if (error && error?.status === 401) {
+        return (
+            <div className="min-h-screen min-w-screen  flex flex-col items-center justify-center">
+                <span>You are trying to access a private form. Please login to continue.</span>
+                <Button
+                    onClick={() => {
+                        openModal('LOGIN_VIEW');
+                    }}
+                >
+                    Login
+                </Button>
+            </div>
+        );
+    }
+
     if (error) {
-        return <div className="min-h-screen min-w-screen  flex items-center justify-center">Error: Could not fetch form!!</div>;
+        return (
+            <div className="min-h-screen min-w-screen text-center flex items-center justify-center">
+                Error loading form!! <br />
+                Either the form does not exist or you do not have access to this form.
+            </div>
+        );
     }
     if (isLoading) return <FullScreenLoader />;
     const hasFileUpload = (fields: Array<any>) => {
