@@ -48,7 +48,9 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const locale = _nextI18Next.initialLocale === 'en' ? '' : `${_nextI18Next.initialLocale}/`;
 
     const onInsert = () => {
-        modal.openModal('FORM_BUILDER_ADD_FIELD_VIEW');
+        asyncDispatch(resetBuilderMenuState()).then(() => {
+            modal.openModal('FORM_BUILDER_ADD_FIELD_VIEW');
+        });
     };
 
     const onAddNewPage = () => {};
@@ -58,7 +60,9 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const onAddFormCover = () => {};
 
     const onPreview = () => {
-        fullScreenModal.openModal('FORM_BUILDER_PREVIEW');
+        asyncDispatch(resetBuilderMenuState()).then(() => {
+            fullScreenModal.openModal('FORM_BUILDER_PREVIEW');
+        });
     };
 
     const onFormPublish = async () => {
