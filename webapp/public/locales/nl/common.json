@@ -457,13 +457,12 @@
     "SIGNIN_AGREEMENT_DESCRIPTION": "Door in te loggen, gaat u akkoord met onze",
     "WELCOME_MESSAGE": "Welkom terug!",
     "FEATURES": {
-      "TITLE": "Creëer een persoonlijke merkwerkruimte waar",
-      "FEATURE_1": "U kunt al uw formulieren importeren.",
-      "FEATURE_2": "U kunt uw formulier-URL's aanpassen.",
-      "FEATURE_3": "U kunt uw collega's uitnodigen voor samenwerking.",
-      "FEATURE_4": "U kunt uw werkruimte openbaar delen met uw formulierbeantwoorders",
-      "FEATURE_5": "Uw formulierbeantwoorders kunnen gemakkelijk al uw openbare formulieren vinden",
-      "FEATURE_6": "Uw formulierresponders kunnen hun antwoord veilig bekijken"
+      "TITLE": "Zodra je bent ingelogd, kun je:",
+      "FEATURE_1": "Formulieren importeren (Google Forms of Typeform)",
+      "FEATURE_2": "Formulier-URL's aanpassen.",
+      "FEATURE_3": "Je collega's uitnodigen voor samenwerking.",
+      "FEATURE_4": "Meerdere werkruimtes aanmaken.",
+      "FEATURE_5": "Je werkruimte delen met je publiek."
     },
     "CONTINUE": "Doorgaan",
     "OR_SIGN_IN_USING": "Of log in met",

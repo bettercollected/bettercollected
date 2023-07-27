@@ -464,13 +464,12 @@
     "SIGNIN_AGREEMENT_DESCRIPTION": "By signing in, you agree to our",
     "WELCOME_MESSAGE": "Welcome back!",
     "FEATURES": {
-      "TITLE": "Create you a personal branded workspace where",
-      "FEATURE_1": "You can import all your forms.",
-      "FEATURE_2": "You can customize your form URLs.",
-      "FEATURE_3": "You can invite your colleagues for collaboration.",
-      "FEATURE_4": "You can share your workspace publicly with your form responders",
-      "FEATURE_5": "Your form responders can easily find all your public forms",
-      "FEATURE_6": "Your form responders can securely view their response"
+      "TITLE": "Once you sign in you will be able to:",
+      "FEATURE_1": "Import forms (Google Forms or Typeform)",
+      "FEATURE_2": "Customize form URLs.",
+      "FEATURE_3": "Invite your colleagues for collaboration.",
+      "FEATURE_4": "Create multiple workspace",
+      "FEATURE_5": "Share your workspace with your audience"
     },
     "CONTINUE": "Continue",
     "OR_SIGN_IN_USING": "Or sign in using",

@@ -15,8 +15,7 @@ export const signInScreen = {
         feature2: 'SIGNIN_SCREEN.FEATURES.FEATURE_2',
         feature3: 'SIGNIN_SCREEN.FEATURES.FEATURE_3',
         feature4: 'SIGNIN_SCREEN.FEATURES.FEATURE_4',
-        feature5: 'SIGNIN_SCREEN.FEATURES.FEATURE_5',
-        feature6: 'SIGNIN_SCREEN.FEATURES.FEATURE_6'
+        feature5: 'SIGNIN_SCREEN.FEATURES.FEATURE_5'
     },
     signIn: 'SIGNIN_SCREEN.SIGN_IN',
     enterYourEmail: 'SEND_CODE.TITLE',
