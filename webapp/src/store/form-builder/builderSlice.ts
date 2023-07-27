@@ -16,7 +16,7 @@ const initialState: IBuilderState = {
     description: '',
     menus: {
         spotlightField: { isOpen: false, afterFieldUuid: '' },
-        commands: { isOpen: false, atFieldUuid: '' },
+        commands: { isOpen: false, atFieldUuid: '', position: 'down' },
         fieldSettings: { isOpen: false, atFieldUuid: '' },
         pipingFields: { isOpen: false, atFieldUuid: '' },
         pipingFieldSettings: { isOpen: false, uuid: '' }
@@ -73,6 +73,9 @@ export const builder = createSlice({
                 activeFieldIndex: action.payload.position,
                 activeFieldId: action.payload.id
             };
+        },
+        setCommandMenuPosition: (state, action: { payload: 'up' | 'down' }) => {
+            if (state.menus?.commands) return { ...state, menus: { ...state.menus, commands: { ...state.menus?.commands, position: action.payload } } };
         },
         setBuilderMenuState: (state: IBuilderState, action: { payload: Partial<IBuilderMenuState>; type: string }) => {
             const menus = { ...state.menus, ...action.payload };
