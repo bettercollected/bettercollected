@@ -65,11 +65,9 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         });
     };
 
-    const onFormPublish = async () => {
+    const onFormSave = async (isPublishClicked = false) => {
         const apiCall = !isEditMode ? postCreateForm : patchForm;
 
-        const redirectUrl = !isEditMode ? `/${workspace?.workspaceName}/dashboard` : `/${locale}${workspace?.workspaceName}/dashboard/forms/${builderState.id}`;
-        const createUpdateText = !isEditMode ? 'creat' : 'updat';
         const publishRequest: any = {};
         publishRequest.title = builderState.title;
         publishRequest.description = builderState.description;
@@ -86,6 +84,17 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         if (isEditMode) apiObj['formId'] = builderState?.id;
 
         const response: any = await apiCall(apiObj);
+        if (response?.data && !isPublishClicked) {
+            toast('Form saved!', { type: 'success' });
+            dispatch(setBuilderState({ isFormDirty: false }));
+        }
+        return response;
+    };
+
+    const onFormPublishRedirect = (response: any) => {
+        const redirectUrl = !isEditMode ? `/${workspace?.workspaceName}/dashboard` : `/${locale}${workspace?.workspaceName}/dashboard/forms/${builderState.id}`;
+        const createUpdateText = !isEditMode ? 'creat' : 'updat';
+
         if (response?.data) {
             toast(`Form ${createUpdateText}ed!!`, { type: 'success' });
             asyncDispatch(setBuilderState({ isFormDirty: false })).then(async () => {
@@ -94,6 +103,11 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         } else {
             toast(`Error ${createUpdateText}ing form`, { type: 'error' });
         }
+    };
+
+    const onFormPublish = async () => {
+        const response = await onFormSave(true);
+        onFormPublishRedirect(response);
     };
 
     const throttle = (func: Function, delay: number) => {
@@ -111,7 +125,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const onKeyDownCallback = useCallback(
         (event: KeyboardEvent) => {
-            batch(() => {
+            batch(async () => {
                 const fieldId = builderState.activeFieldId;
                 const formField = builderState.fields[fieldId];
 
@@ -119,7 +133,11 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     dispatch(resetBuilderMenuState());
                 }
 
-                if (builderState.menus?.commands?.isOpen || builderState.menus?.spotlightField?.isOpen) return;
+                if (builderState.menus?.commands?.isOpen || fullScreenModal.isOpen || modal.isOpen || builderState.menus?.spotlightField?.isOpen) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return;
+                }
 
                 if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault();
@@ -189,8 +207,9 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     event.preventDefault();
                     event.stopPropagation();
 
-                    const fieldId = Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '';
-                    if (fieldId) dispatch(setDeleteField(fieldId));
+                    if (builderState.activeFieldIndex < 0) {
+                        toast("Can't delete the form title and description", { type: 'warning' });
+                    } else dispatch(setDeleteField(fieldId));
                     dispatch(
                         setBuilderState({
                             isFormDirty: true,
@@ -198,22 +217,34 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         })
                     );
                 }
-                if ((event.key === 'D' || event.key === 'd') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
+                if ((event.key === 'D' || event.key === 'd') && !event.shiftKey && (event.ctrlKey || event.metaKey) && fieldId) {
                     event.preventDefault();
                     event.stopPropagation();
-                    if (fieldId) {
+                    if (builderState.activeFieldIndex < 0) {
+                        toast("Can't duplicate the form title and description", { type: 'warning' });
+                    } else {
                         const formField = builderState.fields[fieldId];
                         const newField: IFormFieldState = { ...formField };
                         newField.id = v4();
                         newField.position = builderState.activeFieldIndex + 1;
                         dispatch(addDuplicateField(newField));
+                        dispatch(setBuilderState({ isFormDirty: true }));
                     }
-                    dispatch(setBuilderState({ isFormDirty: true }));
                 }
                 if ((event.key === 'I' || event.key === 'i') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
                     event.preventDefault();
                     event.stopPropagation();
                     onInsert();
+                }
+                if ((event.key === 'S' || event.key === 's') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    await onFormSave();
+                }
+                if ((event.key === 'P' || event.key === 'p') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onPreview();
                 }
             });
         },
