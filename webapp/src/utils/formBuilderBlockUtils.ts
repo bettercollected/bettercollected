@@ -18,8 +18,8 @@ export function isContentEditableTag(tag: string): boolean {
  */
 export function contentEditableClassNames(isPlaceholder: boolean, tag: string = FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
     let className = 'outline-none placeholder-gray-400 ';
-    if (isPlaceholder) className += 'text-neutral-200';
-    else className += 'text-neutral-800';
+    if (isPlaceholder) className += 'text-neutral-200 ';
+    else className += 'text-neutral-800 ';
 
     switch (tag) {
         case FormBuilderTagNames.LAYOUT_HEADER1:
