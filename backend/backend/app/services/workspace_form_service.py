@@ -247,7 +247,9 @@ class WorkspaceFormService:
         workspace_form_settings = WorkspaceFormSettings(
             custom_url=form.form_id,
             provider="self",
-            response_data_owner_field=form.settings.response_data_owner_field,
+            response_data_owner_field=form.settings.response_data_owner_field
+            if form.settings
+            else "",
         )
         await self.workspace_form_repository.save_workspace_form(
             workspace_id=workspace_id,
