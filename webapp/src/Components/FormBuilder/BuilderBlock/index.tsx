@@ -1,13 +1,12 @@
-import React, { FocusEvent, FormEvent } from 'react';
+import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback, useRef } from 'react';
 
 import FormBuilderBlockContent from '@Components/FormBuilder/BuilderBlock/FormBuilderBlockContent';
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 import { v4 } from 'uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetBuilderMenuState, setAddNewField, setBuilderState } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setAddNewField, setBuilderState, setMoveField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -31,7 +30,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
     const handleTagSelection = (type: FormBuilderTagNames) => {
         batch(() => {
             const field = {
-                id: uuidv4(),
+                id: v4(),
                 type,
                 position: item.position,
                 replace: true
@@ -41,6 +40,25 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
         });
     };
 
+    const onKeyDownCallback = useCallback(
+        (event: KeyboardEvent<HTMLDivElement>, provided: DraggableProvided) => {
+            batch(() => {
+                if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && (event.ctrlKey || event.metaKey)) {
+                    event.preventDefault();
+
+                    const direction = event.key === 'ArrowDown' ? 1 : -1;
+                    const newIndex = item.position + direction;
+
+                    if (newIndex >= 0 && newIndex < Object.keys(builderState.fields).length) {
+                        dispatch(setMoveField({ oldIndex: item.position, newIndex }));
+                    }
+                }
+            });
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [builderState, item.position]
+    );
+
     return (
         <Draggable key={item.position} draggableId={draggableId.toString()} index={item.position}>
             {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
@@ -49,6 +67,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                     className={`relative flex w-full flex-col ${snapshot.isDragging ? 'bg-brand-100' : 'bg-transparent'}`}
                     onFocus={(event: FocusEvent<HTMLElement>) => {}}
                     onBlur={(event: FocusEvent<HTMLElement>) => {}}
+                    onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => onKeyDownCallback(event, provided)}
                     {...provided.draggableProps}
                 >
                     <div className={`builder-block px-5 min-h-[40px] flex items-center md:px-[89px]`}>

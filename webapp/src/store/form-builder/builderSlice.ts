@@ -175,6 +175,25 @@ export const builder = createSlice({
                 fields: fields
             };
         },
+        setMoveField: (state: IBuilderState, action: PayloadAction<{ oldIndex: number; newIndex: number }>) => {
+            const { oldIndex, newIndex } = action.payload;
+            const fields = { ...state.fields };
+            const fieldsArray = [...Object.values(fields)];
+            const movedField = fieldsArray.splice(oldIndex, 1)[0];
+            fieldsArray.splice(newIndex, 0, movedField);
+            const newFieldsMap: any = {};
+            fieldsArray.forEach((field: IFormFieldState, index: number) => {
+                newFieldsMap[field.id] = field;
+                newFieldsMap[field.id].position = index;
+            });
+
+            state.fields = newFieldsMap;
+            state.isFormDirty = true;
+            state.activeFieldIndex = newIndex;
+
+            state.activeFieldId = Object.keys(fieldsArray).at(newIndex) ?? '';
+        },
+
         resetForm: (state) => {
             return initialState;
         }

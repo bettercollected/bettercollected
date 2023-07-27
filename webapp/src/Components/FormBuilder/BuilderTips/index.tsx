@@ -11,6 +11,9 @@ import KeyboardArrowDownIcon from '@Components/Common/Icons/KeyboardArrowDownIco
 import KeyboardArrowUpIcon from '@Components/Common/Icons/KeyboardArrowUpIcon';
 
 export default function BuilderTips() {
+    const isMac = typeof window !== 'undefined' ? navigator.userAgent.toUpperCase().indexOf('MAC') >= 0 : false;
+    const commandKeyString = isMac ? 'Command' : 'Ctrl';
+
     const tips = [
         {
             Icon: <FormBuilderSlashIcon />,
@@ -23,17 +26,27 @@ export default function BuilderTips() {
         {
             Icon: <KeyboardArrowUpIcon />,
             TextComponent: (
-                <>
-                    Hit <strong className="text-brand">&uarr;</strong> arrow key to move up into different fields
-                </>
+                <div className="flex flex-col gap-2">
+                    <div className="flex justify-start items-center gap-1">
+                        Hit <strong className="text-brand">&uarr;</strong> arrow key to move up into different fields
+                    </div>
+                    <div className="flex justify-start items-center gap-1">
+                        Hit <strong className="text-brand">{commandKeyString} + &uarr;</strong> arrow key to drag the field upwards
+                    </div>
+                </div>
             )
         },
         {
             Icon: <KeyboardArrowDownIcon />,
             TextComponent: (
-                <>
-                    Hit <strong className="text-brand">&darr;</strong> arrow key to move down into different fields
-                </>
+                <div className="flex flex-col gap-2">
+                    <div className="flex justify-start items-center gap-1">
+                        Hit <strong className="text-brand">&darr;</strong> arrow key to move down into different fields
+                    </div>
+                    <div className="flex justify-start items-center gap-1">
+                        Hit <strong className="text-brand">{commandKeyString} + &darr;</strong> arrow key to drag the field downwards
+                    </div>
+                </div>
             )
         },
         {
@@ -56,7 +69,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderSpotlightIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">Ctrl/Cmd + K</strong> key to open the builder spotlight
+                    Hit <strong className="text-brand">{commandKeyString} + K</strong> key to open the builder spotlight
                 </>
             )
         },
@@ -72,7 +85,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderDuplicateIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">Ctrl/Cmd + D</strong> key to duplicate the focused field
+                    Hit <strong className="text-brand">{commandKeyString} + D</strong> key to duplicate the focused field
                 </>
             )
         },
@@ -80,7 +93,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderDeleteIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">Ctrl/Cmd + Delete</strong> key to remove the focused field
+                    Hit <strong className="text-brand">{commandKeyString} + Delete</strong> key to remove the focused field
                 </>
             )
         }
@@ -89,15 +102,12 @@ export default function BuilderTips() {
     return (
         <div className="flex flex-col gap-4 mt-5 px-5 md:px-[89px]">
             {/* <p className="bg-black-300 rounded-[4px] body4 p-4 h-[42px] flex gap-1 items-center">
-                Press
-                <strong className="text-brand">
-                    <i>Enter</i>
-                </strong>
-                key to add a new field or move downward into another field
+                <strong className="text-brand uppercase mr-2">Note:</strong>
+                If you are on macOS, use <strong>Command (Cmd)</strong> key instead of <strong>Control (Ctrl)</strong> key.
             </p> */}
             <h1 className="uppercase font-bold tracking-wide text-brand">TIPS</h1>
             {tips.map((tip, index) => (
-                <div key={index} className="flex items-center gap-4">
+                <div key={index} className="flex items-start gap-4">
                     {tip.Icon}
                     <p className="flex gap-1 items-center body4">{tip.TextComponent}</p>
                 </div>
