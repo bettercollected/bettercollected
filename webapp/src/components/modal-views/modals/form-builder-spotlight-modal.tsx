@@ -51,7 +51,7 @@ export default function FormBuilderSpotlightModal({ index }: { index?: number })
                 setAddNewField({
                     id: uuidv4(),
                     type: selected.type,
-                    position: index || Object.keys(builderState.fields).length - 1
+                    position: builderState.activeFieldIndex >= 0 ? builderState.activeFieldIndex : Object.keys(builderState.fields).length - 1
                 })
             );
             dispatch(resetBuilderMenuState());
