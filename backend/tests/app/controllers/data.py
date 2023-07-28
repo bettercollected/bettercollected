@@ -60,6 +60,8 @@ workspace_settings = {
     "responseDataOwnerField": "customUser",
 }
 
+workspace_tag = {"title": "BetterCollected-Team"}
+
 user_info = {
     "users_info": [
         {

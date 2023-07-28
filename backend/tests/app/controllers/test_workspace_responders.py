@@ -1,7 +1,7 @@
 import pytest
 
 from backend.app.container import container
-from tests.app.controllers.data import testUser, workspace_tag, workspace_responder_tag
+from tests.app.controllers.data import testUser, workspace_tag
 
 
 @pytest.fixture()
