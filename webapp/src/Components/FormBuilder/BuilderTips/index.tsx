@@ -24,32 +24,6 @@ export default function BuilderTips() {
             )
         },
         {
-            Icon: <KeyboardArrowUpIcon />,
-            TextComponent: (
-                <div className="flex flex-col gap-2">
-                    <div className="flex justify-start items-center gap-1">
-                        Hit <strong className="text-brand">&uarr;</strong> arrow key to move up into different fields, <strong>and,</strong>
-                    </div>
-                    <div className="flex justify-start items-center gap-1">
-                        Hit <strong className="text-brand">{commandKeyString} + &uarr;</strong> arrow key to drag the field upwards
-                    </div>
-                </div>
-            )
-        },
-        {
-            Icon: <KeyboardArrowDownIcon />,
-            TextComponent: (
-                <div className="flex flex-col gap-2">
-                    <div className="flex justify-start items-center gap-1">
-                        Hit <strong className="text-brand">&darr;</strong> arrow key to move down into different fields, <strong>and,</strong>
-                    </div>
-                    <div className="flex justify-start items-center gap-1">
-                        Hit <strong className="text-brand">{commandKeyString} + &darr;</strong> arrow key to drag the field downwards
-                    </div>
-                </div>
-            )
-        },
-        {
             Icon: <FormBuilderEnterIcon />,
             TextComponent: (
                 <div className="flex flex-col gap-2">
@@ -78,6 +52,33 @@ export default function BuilderTips() {
                 </>
             )
         },
+        {
+            Icon: <KeyboardArrowUpIcon />,
+            TextComponent: (
+                <div className="flex flex-col gap-2">
+                    <div className="flex justify-start items-center gap-1">
+                        Hit <strong className="text-brand">&uarr;</strong> arrow key to move up into different fields, <strong>and,</strong>
+                    </div>
+                    <div className="flex justify-start items-center gap-1">
+                        Hit <strong className="text-brand">{commandKeyString} + &uarr;</strong> arrow key to drag the field upwards
+                    </div>
+                </div>
+            )
+        },
+        {
+            Icon: <KeyboardArrowDownIcon />,
+            TextComponent: (
+                <div className="flex flex-col gap-2">
+                    <div className="flex justify-start items-center gap-1">
+                        Hit <strong className="text-brand">&darr;</strong> arrow key to move down into different fields, <strong>and,</strong>
+                    </div>
+                    <div className="flex justify-start items-center gap-1">
+                        Hit <strong className="text-brand">{commandKeyString} + &darr;</strong> arrow key to drag the field downwards
+                    </div>
+                </div>
+            )
+        },
+
         {
             Icon: <FormBuilderSpotlightIcon />,
             TextComponent: (
