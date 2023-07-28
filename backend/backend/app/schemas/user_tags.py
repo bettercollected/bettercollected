@@ -1,4 +1,5 @@
 from backend.app.handlers.database import entity
+from backend.app.models.dtos.user_tags_dto import UserTagsDto
 from backend.app.models.user_tags import UserTags
 from common.configs.mongo_document import MongoDocument
 

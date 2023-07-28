@@ -153,11 +153,14 @@ class WorkspaceFormRepository:
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
 
-    async def get_workspace_form_with_custom_slug(
+    async def get_workspace_form_with_custom_slug_form_id(
         self, workspace_id: PydanticObjectId, custom_url: str
     ):
         return await WorkspaceFormDocument.find_one(
-            {"workspace_id": workspace_id, "settings.custom_url": custom_url}
+            {
+                "workspace_id": workspace_id,
+                "$or": [{"form_id": custom_url}, {"settings.custom_url": custom_url}],
+            }
         )
 
     async def get_workspace_ids_for_form_id(self, form_id):

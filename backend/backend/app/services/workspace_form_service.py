@@ -245,7 +245,11 @@ class WorkspaceFormService:
         form.form_id = str(PydanticObjectId())
         saved_form = await self.form_service.create_form(form=form)
         workspace_form_settings = WorkspaceFormSettings(
-            custom_url=form.form_id, provider="self"
+            custom_url=form.form_id,
+            provider="self",
+            response_data_owner_field=form.settings.response_data_owner_field
+            if form.settings
+            else "",
         )
         await self.workspace_form_repository.save_workspace_form(
             workspace_id=workspace_id,
@@ -266,6 +270,21 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        workspace_forms = (
+            await self.workspace_form_repository.get_workspace_forms_form_ids(
+                [str(form_id)]
+            )
+        )
+        if (len(workspace_forms)) == 0:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found in workspace"
+            )
+        workspace_form = workspace_forms[0]
+        if form.settings and form.settings.response_data_owner_field is not None:
+            workspace_form.settings.response_data_owner_field = (
+                form.settings.response_data_owner_field
+            )
+            await workspace_form.save()
         return await self.form_service.update_form(form_id=form_id, form=form)
 
     async def submit_response(
@@ -292,7 +311,7 @@ class WorkspaceFormService:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found"
             )
-        if user:
+        if not response.dataOwnerIdentifier and user:
             response.dataOwnerIdentifier = user.sub
         return await self.form_response_service.submit_form_response(
             form_id=form_id, response=response

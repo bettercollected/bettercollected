@@ -2,6 +2,7 @@ import json
 from http import HTTPStatus
 from typing import Tuple
 
+from pydantic import EmailStr
 from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
@@ -50,15 +51,38 @@ class AuthService:
         )
         return response_data
 
+    async def send_otp_for_creator(self, receiver_email: EmailStr):
+        await self.http_client.get(
+            settings.auth_settings.BASE_URL + "/auth/otp/send",
+            params={
+                "receiver_email": receiver_email,
+                "workspace_title": "BetterCollected",
+                "workspace_profile_image": "",
+                "creator": True,
+            },
+            timeout=180,
+        )
+        return {"message": "Otp sent successfully"}
+
     async def validate_otp(self, login_details: UserLoginWithOTP):
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + "/auth/otp/validate",
             params={"email": login_details.email, "otp_code": login_details.otp_code},
         )
         user = response_data.get("user", None)
-        if not user:
+        if user and Roles.FORM_CREATOR in user.get("roles"):
+            await self.user_tags_service.add_user_tag(
+                user_id=User(**user).id, tag=UserTagType.NEW_USER
+            )
+            await workspaces_service.create_workspace(User(**user))
+            return User(**user)
+        elif user and Roles.FORM_RESPONDER in user.get("roles"):
+            await self.user_tags_service.add_user_tag(
+                user_id=User(**user).id, tag=UserTagType.NEW_USER
+            )
+            return User(**user)
+        else:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, content="Invalid Otp Code")
-        return User(**user)
 
     async def get_oauth_url(
         self, provider_name: str, client_referer_url: str, user: User

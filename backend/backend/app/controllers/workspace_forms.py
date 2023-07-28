@@ -53,11 +53,11 @@ class WorkspaceFormsRouter(Routable):
         )
         return forms
 
-    @post("", response_model=StandardFormCamelModel)
+    @post("", response_model=MinifiedForm)
     async def create_form(
         self,
         workspace_id: PydanticObjectId,
-        form: StandardFormCamelModel,
+        form: MinifiedForm,
         user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
@@ -66,14 +66,14 @@ class WorkspaceFormsRouter(Routable):
         response = await self.workspace_form_service.create_form(
             workspace_id=workspace_id, form=StandardForm(**form.dict()), user=user
         )
-        return StandardFormCamelModel(**response.dict())
+        return MinifiedForm(**response.dict())
 
-    @patch("/{form_id}", response_model=StandardFormCamelModel)
+    @patch("/{form_id}", response_model=MinifiedForm)
     async def patch_form(
         self,
         workspace_id: PydanticObjectId,
         form_id: PydanticObjectId,
-        form: StandardFormCamelModel,
+        form: MinifiedForm,
         user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
@@ -93,7 +93,7 @@ class WorkspaceFormsRouter(Routable):
         workspace_id: PydanticObjectId,
         form_id: PydanticObjectId,
         response: StandardFormResponseCamelModel,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_user_if_logged_in),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
@@ -130,7 +130,7 @@ class WorkspaceFormsRouter(Routable):
         )
         return forms
 
-    @get("/{form_id}")
+    @get("/{form_id}", response_model=MinifiedForm)
     async def _get_form_by_id(
         self,
         workspace_id: PydanticObjectId,
