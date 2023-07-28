@@ -1,3 +1,7 @@
+from beanie import PydanticObjectId
+
+from common.models.user import User
+
 formData = {
     # "formId": "string",
     "type": "string",
@@ -36,8 +40,6 @@ formData = {
 formData_2 = {"title": "search_form"}
 
 formResponse = {
-    # "responseId": "string",
-    # "formId": "string",
     "provider": "string",
     "respondentEmail": "string",
     "answers": {},
@@ -46,7 +48,6 @@ formResponse = {
     "publishedAt": "2023-07-20T06:30:47.497Z",
     "dataOwnerIdentifierType": "string",
     "dataOwnerIdentifier": "string",
-    # "_id": "string",
     "formTitle": "string",
     "status": "string",
     "formImportedBy": "string",
@@ -81,3 +82,8 @@ user_info = {
 }
 
 test_form_import_data = {"form": {}, "response_data_owner": "string"}
+
+
+testUser = User(id=str(PydanticObjectId()), sub="test@email.com")
+testUser1 = User(id=str(PydanticObjectId()), sub="bettercollected@email.com")
+testUser2 = User(id=str(PydanticObjectId()), sub="random@email.com")
