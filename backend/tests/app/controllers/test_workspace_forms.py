@@ -1,8 +1,4 @@
-import asyncio
-
 import pytest
-from beanie import PydanticObjectId
-from unittest.mock import patch
 
 from backend.app.container import container
 from backend.app.schemas.responder_group import ResponderGroupFormDocument
@@ -10,23 +6,16 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
     FormResponseDeletionRequest,
 )
-from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from backend.app.services import workspace_service
-from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponse
-from common.models.user import User
 from tests.app.controllers.data import (
     formData,
     formResponse,
     workspace_settings,
-    user_info,
     formData_2,
     test_form_import_data,
+    testUser,
 )
-
-testUser = User(id=str(PydanticObjectId()), sub="test@email.com")
-testUser1 = User(id=str(PydanticObjectId()), sub="test1@email.com")
 
 
 @pytest.fixture()
@@ -36,96 +25,8 @@ def client(client_test):
 
 
 @pytest.fixture()
-def workspace():
-    asyncio.run(workspace_service.create_workspace(testUser))
-    workspace = (asyncio.run(WorkspaceDocument.find().to_list()))[0]
-    yield workspace
-
-
-@pytest.fixture()
 def workspace_api(workspace):
     yield "/api/v1/workspaces/" + str(workspace.id) + "/forms"
-
-
-@pytest.fixture()
-def workspace_form(workspace):
-    form = asyncio.run(
-        container.workspace_form_service().create_form(
-            workspace.id, StandardForm(**formData), testUser
-        )
-    )
-    yield form
-
-
-@pytest.fixture()
-def workspace_form_response(workspace, workspace_form):
-    response = dict(
-        asyncio.run(
-            container.workspace_form_service().submit_response(
-                workspace.id,
-                workspace_form.form_id,
-                StandardFormResponse(**formResponse),
-                testUser,
-            )
-        )
-    )
-    yield response
-
-
-@pytest.fixture()
-def workspace_group(workspace, workspace_form):
-    group = asyncio.run(
-        container.responder_groups_service().create_group(
-            workspace.id,
-            "Testing_Group",
-            "testing_group@gmail.com",
-            testUser,
-            workspace_form.form_id,
-            "testing_Description",
-            "@gmail.com",
-        )
-    )
-    yield group
-
-
-@pytest.fixture()
-def test_user_cookies():
-    token = container.jwt_service().encode(testUser)
-    return {"Authorization": token, "RefreshToken": token}
-
-
-@pytest.fixture()
-def test_user_cookies_1():
-    token = container.jwt_service().encode(testUser1)
-    return {"Authorization": token, "RefreshToken": token}
-
-
-@pytest.fixture()
-def mock_aiohttp_get_request():
-    async def mock_get(*args, **kwargs):
-        class MockResponse:
-            async def json(self):
-                return user_info
-
-        return MockResponse()
-
-    yield patch("aiohttp.ClientSession.get", side_effect=mock_get)
-
-
-@pytest.fixture()
-def mock_aiohttp_post_request(workspace_form, workspace_form_response):
-    async def mock_post(*args, **kwargs):
-        # class MockResponse:
-        #     async def json(self):
-        #         return StandardForm(**formData)
-        responses = StandardFormResponse(**workspace_form_response)
-        form = StandardForm(**dict(workspace_form))
-        return FormImportResponse(form=form, responses=[responses])
-
-    yield patch(
-        "backend.app.services.workspace_form_service.WorkspaceFormService.convert_form",
-        side_effect=mock_post,
-    )
 
 
 @pytest.mark.asyncio
@@ -428,72 +329,6 @@ class TestWorkspaceForm:
             cookies=test_user_cookies_1,
         )
         assert group_form.status_code == 403
-
-    async def test_request_for_delete_form_response(
-        self,
-        client,
-        test_user_cookies,
-        workspace,
-        workspace_form,
-        workspace_form_response,
-    ):
-        request_response_deletion = client.delete(
-            "/api/v1/workspaces/"
-            + str(workspace.id)
-            + "/submissions/"
-            + str(workspace_form_response["response_id"]),
-            cookies=test_user_cookies,
-        )
-        assert request_response_deletion.status_code == 200
-        assert request_response_deletion.json() == {
-            "message": "Request for deletion created successfully."
-        }
-        form_response_deletion_request = (
-            await FormResponseDeletionRequest.find().to_list()
-        )
-        assert (
-            form_response_deletion_request[0].response_id
-            == workspace_form_response["response_id"]
-        )
-        request_response_deletion_2 = client.delete(
-            "/api/v1/workspaces/"
-            + str(workspace.id)
-            + "/submissions/"
-            + str(workspace_form_response["response_id"]),
-            cookies=test_user_cookies,
-        )
-        assert (
-            request_response_deletion_2.json()
-            == "Error: Deletion request already exists for the response : "
-            + str(workspace_form_response["response_id"])
-        )
-        deleted_requested_form = client.delete(
-            "/api/v1/workspaces/"
-            + str(workspace.id)
-            + "/forms/"
-            + str(workspace_form.form_id)
-            + "/response/"
-            + str(workspace_form_response["response_id"]),
-            cookies=test_user_cookies,
-        )
-        assert deleted_requested_form.status_code == 200
-        assert deleted_requested_form.json() == workspace_form_response["response_id"]
-
-    def test_unauthorized_user_request_for_delete_form_response(
-        self, client, test_user_cookies_1, workspace, workspace_form_response
-    ):
-        request_response_deletion = client.delete(
-            "/api/v1/workspaces/"
-            + str(workspace.id)
-            + "/submissions/"
-            + str(workspace_form_response["response_id"]),
-            cookies=test_user_cookies_1,
-        )
-        assert request_response_deletion.status_code == 403
-        assert (
-            request_response_deletion.json()
-            == "You are not authorized to perform this action."
-        )
 
     def test_import_form_to_workspace(
         self,
