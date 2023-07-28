@@ -47,7 +47,6 @@ formResponse = {
     "updatedAt": "2023-07-20T06:30:47.497Z",
     "publishedAt": "2023-07-20T06:30:47.497Z",
     "dataOwnerIdentifierType": "string",
-    "dataOwnerIdentifier": "string",
     "formTitle": "string",
     "status": "string",
     "formImportedBy": "string",
