@@ -21,7 +21,7 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from common.constants import MESSAGE_UNAUTHORIZED
+from common.constants import MESSAGE_UNAUTHORIZED, MESSAGE_FORBIDDEN
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from common.services.crypto_service import crypto_service
@@ -51,7 +51,7 @@ class FormResponseService:
             workspace_id=workspace_id, user=user
         ):
             raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_UNAUTHORIZED
+                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id
@@ -100,7 +100,7 @@ class FormResponseService:
             workspace_id, user
         ):
             raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_UNAUTHORIZED
+                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
         workspace_form = (
             await self._workspace_form_repo.get_workspace_form_in_workspace(
