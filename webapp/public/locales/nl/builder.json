@@ -1,0 +1,63 @@
+{
+  "CREATE_FORM": "Formulier maken",
+  "INSERT": {
+    "DEFAULT": "Invoegen",
+    "A_FIELD": "Veld invoegen"
+  },
+  "PREVIEW": {
+    "DEFAULT": "Voorbeeld"
+  },
+  "PUBLISH": {
+    "DEFAULT": "Publiceren"
+  },
+  "FORM_TITLE": {
+    "PLACEHOLDER": "Formulier Titel"
+  },
+  "FORM_DESCRIPTION": {
+    "PLACEHOLDER": "Formulier Beschrijving"
+  },
+  "COMPONENTS": {
+    "COMMON": {
+      "PLACEHOLDER": "Typ / om het opdrachtenmenu te openen"
+    },
+    "OPTIONS": {
+      "DEFAULT": "Opties",
+      "HIDE_FIELD": "Veld verbergen",
+      "IDENTIFIER_FIELD": "Identificatieveld",
+      "TOOLTIP_TITLE": "Sleep of klik om opties voor dit blok te openen",
+      "STEPS": "Stappen",
+      "MAX": "Max"
+    },
+    "VALIDATIONS": {
+      "DEFAULT": "Validaties",
+      "REQUIRED": "Verplicht",
+      "MAX_VALUE": "Max. Waarde",
+      "MAX_CHOICES": "Max. Keuzes",
+      "MAX_LENGTH": "Max. Lengte",
+      "MIN_VALUE": "Min. Waarde",
+      "MIN_CHOICES": "Min. Keuzes",
+      "MIN_LENGTH": "Min. Lengte",
+      "REGEX": "Regex",
+      "ENTER_NUMBER": "Voer een nummer in",
+      "ENTER_REGEX": "Voer een regex in"
+    },
+    "ACTIONS": {
+      "DUPLICATE": "Dupliceren",
+      "DELETE": "Verwijderen"
+    },
+    "END_ADORNMENT_INPUT_FIELD": {
+      "PLACEHOLDER": "Plaatsaanduiding voor invoer"
+    },
+    "CHOICES_FIELD": {
+      "OPTION": "Optie"
+    },
+    "HEADER": {
+      "1": "Kop 1",
+      "2": "Kop 2",
+      "3": "Kop 3",
+      "4": "Kop 4",
+      "5": "Kop 5",
+      "LABEL": "Label"
+    }
+  }
+}

@@ -4,6 +4,7 @@ import MuiSwitch from '@Components/Common/Input/Switch';
 import { ValidationType } from '@Components/FormBuilder/FieldOptions/types';
 import { useDispatch } from 'react-redux';
 
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { setUpdateField } from '@app/store/form-builder/actions';
 import { IFormFieldState } from '@app/store/form-builder/types';
 
@@ -15,19 +16,19 @@ interface IValidationProps {
 const getValidationLabel = (type: ValidationType) => {
     switch (type) {
         case ValidationType.MIN_LENGTH:
-            return 'Min length';
+            return 'MIN_LENGTH';
         case ValidationType.MAX_LENGTH:
-            return 'Max length';
+            return 'MAX_LENGTH';
         case ValidationType.MAX_VALUE:
-            return 'Mav value';
+            return 'MAX_VALUE';
         case ValidationType.MIN_VALUE:
-            return 'Min value';
+            return 'MIN_VALUE';
         case ValidationType.MAX_CHOICES:
-            return 'Max choices';
+            return 'MAX_CHOICES';
         case ValidationType.MIN_CHOICES:
-            return 'Min choices';
+            return 'MIN_CHOICES';
         case ValidationType.REGEX:
-            return 'Regex';
+            return 'REGEX';
         default:
             return '';
     }
@@ -36,6 +37,7 @@ const getValidationLabel = (type: ValidationType) => {
 export default function Validation({ field, type }: IValidationProps) {
     const [checked, setChecked] = useState(!!field?.validations && !!field?.validations[type]);
     const dispatch = useDispatch();
+    const { t } = useBuilderTranslation();
     const handleValidationValueChange = (event: ChangeEvent<HTMLInputElement>) => {
         const fieldValidations: any = { ...field.validations };
         let value;
@@ -51,7 +53,7 @@ export default function Validation({ field, type }: IValidationProps) {
     return (
         <div className="flex px-5 py-2  flex-col">
             <div className="flex body4 w-full justify-between">
-                <span className="!text-gray">{getValidationLabel(type)}</span>
+                <span className="!text-gray">{t('COMPONENTS.VALIDATIONS.' + getValidationLabel(type))}</span>
                 <MuiSwitch
                     checked={checked}
                     onChange={() => {
@@ -64,7 +66,7 @@ export default function Validation({ field, type }: IValidationProps) {
                     onChange={handleValidationValueChange}
                     value={!!field?.validations && !!field?.validations[type] ? field?.validations[type] : ''}
                     type={type === ValidationType.REGEX ? 'text' : 'number'}
-                    placeholder={type === ValidationType.REGEX ? 'Enter regex' : 'Enter a number'}
+                    placeholder={t(type === ValidationType.REGEX ? 'ENTER_REGEX' : 'ENTER_NUMBER')}
                     className="rounded-md mt-2 py-2 px-4 outline:none border border-black-600 !text-black-900"
                 />
             )}

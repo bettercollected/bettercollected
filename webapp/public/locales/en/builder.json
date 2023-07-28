@@ -1,0 +1,63 @@
+{
+  "CREATE_FORM": "Create form",
+  "INSERT": {
+    "DEFAULT": "Insert",
+    "A_FIELD": "Insert a Field"
+  },
+  "PREVIEW": {
+    "DEFAULT": "Preview"
+  },
+  "PUBLISH": {
+    "DEFAULT": "Publish"
+  },
+  "FORM_TITLE": {
+    "PLACEHOLDER": "Form Title"
+  },
+  "FORM_DESCRIPTION": {
+    "PLACEHOLDER": "Form Description"
+  },
+  "COMPONENTS": {
+    "COMMON": {
+      "PLACEHOLDER": "Type / to open the commands menu"
+    },
+    "OPTIONS": {
+      "DEFAULT": "Options",
+      "HIDE_FIELD": "Hide Field",
+      "IDENTIFIER_FIELD": "Identifier Field",
+      "TOOLTIP_TITLE": "Drag or click to open options for this block",
+      "STEPS": "Steps",
+      "MAX": "Max"
+    },
+    "VALIDATIONS": {
+      "DEFAULT": "Validations",
+      "REQUIRED": "Required",
+      "MAX_VALUE": "Max Value",
+      "MAX_CHOICES": "Max Choices",
+      "MAX_LENGTH": "Max Length",
+      "MIN_VALUE": "Min Value",
+      "MIN_CHOICES": "Min Choices",
+      "MIN_LENGTH": "Min Length",
+      "REGEX": "Regex",
+      "ENTER_NUMBER": "Enter a number",
+      "ENTER_REGEX": "Enter regex"
+    },
+    "ACTIONS": {
+      "DUPLICATE": "Duplicate",
+      "DELETE": "Delete"
+    },
+    "END_ADORNMENT_INPUT_FIELD": {
+      "PLACEHOLDER": "Placeholder for input"
+    },
+    "CHOICES_FIELD": {
+      "OPTION": "Option"
+    },
+    "HEADER": {
+      "1": "Header 1",
+      "2": "Header 2",
+      "3": "Header 3",
+      "4": "Header 4",
+      "5": "Header 5",
+      "LABEL": "Label"
+    }
+  }
+}

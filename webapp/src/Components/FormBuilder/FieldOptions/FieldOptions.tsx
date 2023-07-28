@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Divider from '@Components/Common/DataDisplay/Divider';
 import CopyIcon from '@Components/Common/Icons/Copy';
 import DeleteIcon from '@Components/Common/Icons/Delete';
@@ -13,6 +15,7 @@ import { FormControlLabel, ListItemIcon, MenuItem } from '@mui/material';
 import { DraggableProvided } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addDuplicateField, setDeleteField, setIdentifierField, setUpdateField } from '@app/store/form-builder/actions';
 import { selectFormField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
@@ -30,6 +33,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
     const dispatch = useAppDispatch();
     const responseOwnerField = useAppSelector(selectResponseOwnerField);
     const [open, setOpen] = useState(false);
+    const { t } = useBuilderTranslation();
     const duplicateField = () => {
         const newField: IFormFieldState = { ...field };
         newField.id = uuidv4();
@@ -86,7 +90,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                 }
             }}
             id="block-options-menu"
-            menuTitle="Drag or click to open options for this block"
+            menuTitle={t('COMPONENTS.OPTIONS.TOOLTIP_TITLE')}
             menuContent={
                 <div className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400" {...provided.dragHandleProps} tabIndex={-1}>
                     <DragHandleIcon tabIndex={-1} width={40} height={40} />
@@ -94,7 +98,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
             }
         >
             <div className="flex flex-col gap-2 py-3">
-                <p className="px-5 text-xs font-semibold tracking-widest leading-none uppercase text-black-700">Options</p>
+                <p className="px-5 text-xs font-semibold tracking-widest leading-none uppercase text-black-700">{t('COMPONENTS.OPTIONS.DEFAULT')}</p>
             </div>
 
             {field?.type == FormBuilderTagNames.INPUT_EMAIL && (
@@ -105,7 +109,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                                 fontSize: 14
                             }
                         }}
-                        label="Identifier Field"
+                        label={t('COMPONENTS.OPTIONS.IDENTIFIER_FIELD')}
                         labelPlacement="start"
                         className="m-0 text-xs flex items-center justify-between w-full"
                         control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleSetEmailIdentifier} checked={responseOwnerField === field?.id} />}
@@ -120,7 +124,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                             fontSize: 14
                         }
                     }}
-                    label="Hide field"
+                    label={t('COMPONENTS.OPTIONS.HIDE_FIELD')}
                     labelPlacement="start"
                     className="m-0 text-xs flex items-center justify-between w-full"
                     control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!field?.properties?.hidden} />}
@@ -136,7 +140,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                     <CopyIcon width={20} height={20} />
                 </ListItemIcon>
                 <span className="leading-none flex items-center justify-between w-full">
-                    <span>Duplicate</span>
+                    <span>{t('COMPONENTS.ACTIONS.DUPLICATE')}</span>
                     <span className="italic text-xs text-black-500">Ctrl/Cmd + D</span>
                 </span>
             </MenuItem>
@@ -145,7 +149,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                     <DeleteIcon width={20} height={20} />
                 </ListItemIcon>
                 <span className="leading-none flex items-center justify-between w-full">
-                    <span>Delete</span>
+                    <span>{t('COMPONENTS.ACTIONS.DELETE')}</span>
                     <span className="italic text-xs text-black-500">Ctrl/Cmd + Del</span>
                 </span>
             </MenuItem>

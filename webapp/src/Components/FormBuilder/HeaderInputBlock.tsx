@@ -1,9 +1,12 @@
 import React, { ChangeEvent, FormEvent } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import { useDispatch } from 'react-redux';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setBuilderState, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
@@ -38,6 +41,7 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
     const dispatch = useDispatch();
     const builderState = useAppSelector(selectBuilderState);
     const { setBackspaceCount } = useFormBuilderState();
+    const { t } = useBuilderTranslation();
 
     const activeFieldIndex = builderState.activeFieldIndex;
     const onChange = (event: FormEvent<HTMLElement>) => {
@@ -59,7 +63,7 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
             value={field?.value || ''}
             className={'w-full  ' + contentEditableClassNames(false, field?.type)}
             onChangeCallback={onChange}
-            placeholder={getPlaceholder(field?.type)}
+            placeholder={t(getPlaceholder(field?.type))}
             onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
                 dispatch(setBuilderState({ activeFieldIndex: position }));
             }}

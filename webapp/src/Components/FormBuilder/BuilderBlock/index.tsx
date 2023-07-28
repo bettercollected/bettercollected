@@ -7,6 +7,7 @@ import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beau
 import { batch } from 'react-redux';
 import { v4 } from 'uuid';
 
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { resetBuilderMenuState, setAddNewField, setBuilderState, setCommandMenuPosition, setMoveField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
@@ -28,6 +29,7 @@ interface IBuilderBlockProps {
 export default function FormBuilderBlock({ item, draggableId, setBackspaceCount }: IBuilderBlockProps) {
     const dispatch = useAppDispatch();
     const builderState = useAppSelector(selectBuilderState);
+    const { t } = useBuilderTranslation();
 
     const handleTagSelection = (type: FormBuilderTagNames) => {
         batch(() => {
@@ -94,7 +96,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         value={item?.value ?? ''}
                                         position={item.position}
                                         activeFieldIndex={builderState.activeFieldIndex}
-                                        placeholder={item.properties?.placeholder ?? 'Type / to open the commands menu'}
+                                        placeholder={item.properties?.placeholder ?? t('COMPONENTS.COMMON.PLACEHOLDER')}
                                         className="text-base text-black-800"
                                         onChangeCallback={(event: FormEvent<HTMLElement>) => {
                                             setBackspaceCount(0);

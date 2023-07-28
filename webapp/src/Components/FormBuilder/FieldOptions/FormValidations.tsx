@@ -7,6 +7,7 @@ import { ValidationType } from '@Components/FormBuilder/FieldOptions/types';
 import { FormControlLabel, MenuItem } from '@mui/material';
 import { useDispatch } from 'react-redux';
 
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setUpdateField } from '@app/store/form-builder/actions';
 import { IFormFieldState } from '@app/store/form-builder/types';
@@ -17,6 +18,7 @@ interface IIndividualFieldOptionsProps {
 
 export default function FormValidations({ field }: IIndividualFieldOptionsProps) {
     const dispatch = useDispatch();
+    const { t } = useBuilderTranslation();
 
     const handleFieldRequiredChange = (event: React.SyntheticEvent<Element, Event>, checked: boolean) => {
         event.preventDefault();
@@ -33,7 +35,7 @@ export default function FormValidations({ field }: IIndividualFieldOptionsProps)
                     <Divider />
 
                     <div className="flex flex-col gap-2 py-3">
-                        <p className="px-5 text-xs font-semibold tracking-widest leading-none uppercase text-black-700">Validations</p>
+                        <p className="px-5 text-xs font-semibold tracking-widest leading-none uppercase text-black-700">{t('COMPONENTS.VALIDATIONS.DEFAULT')}</p>
                     </div>
                     <MenuItem sx={{ paddingX: '20px', paddingY: '10px' }} className="flex items-center body4 !text-black-900">
                         <FormControlLabel
@@ -42,7 +44,7 @@ export default function FormValidations({ field }: IIndividualFieldOptionsProps)
                                     fontSize: 14
                                 }
                             }}
-                            label="Required"
+                            label={t('COMPONENTS.VALIDATIONS.REQUIRED')}
                             labelPlacement="start"
                             className="m-0 text-xs flex items-center justify-between w-full"
                             control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleFieldRequiredChange} checked={!!field.validations?.required} />}

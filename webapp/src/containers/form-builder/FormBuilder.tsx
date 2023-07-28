@@ -14,6 +14,7 @@ import { v4 } from 'uuid';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addDuplicateField, resetBuilderMenuState, setAddNewField, setBuilderState, setDeleteField, setFields } from '@app/store/form-builder/actions';
@@ -29,6 +30,7 @@ import useFormBuilderState from './context';
 export default function FormBuilder({ workspace, _nextI18Next, isEditMode = false }: { isEditMode?: boolean; workspace: WorkspaceDto; _nextI18Next: any }) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
+    const { t } = useBuilderTranslation();
     const builderDragDropRef = useRef<HTMLDivElement | null>(null);
 
     const router = useRouter();
@@ -86,6 +88,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         const response: any = await apiCall(apiObj);
         if (response?.data && !isPublishClicked) {
             toast('Form saved!', { type: 'success' });
+            if (!isEditMode) router.push(`/${locale}${workspace?.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`);
             dispatch(setBuilderState({ isFormDirty: false }));
         }
         return response;
@@ -169,7 +172,11 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                 if (event.code === 'Slash' && builderState.activeFieldIndex >= 0) {
                     const viewportHeight = window.innerHeight;
                     const bottomPosition = builderDragDropRef.current?.getBoundingClientRect().bottom ?? 0;
-                    console.log({ viewportHeight, bottomPosition, position: bottomPosition + 300 > viewportHeight ? 'up' : 'down' });
+                    console.log({
+                        viewportHeight,
+                        bottomPosition,
+                        position: bottomPosition + 300 > viewportHeight ? 'up' : 'down'
+                    });
                     // 300 is the height of the FormBuilderTagSelector
                     dispatch(
                         setBuilderState({
@@ -256,7 +263,14 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         (event: FocusEvent) => {
             event.preventDefault();
             setBackspaceCount(0);
-            dispatch(setBuilderState({ menus: { ...builderState.menus, commands: { isOpen: false, atFieldUuid: '', position: 'down' } } }));
+            dispatch(
+                setBuilderState({
+                    menus: {
+                        ...builderState.menus,
+                        commands: { isOpen: false, atFieldUuid: '', position: 'down' }
+                    }
+                })
+            );
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [builderState, backspaceCount]
@@ -290,7 +304,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             value={builderState[b.key]}
                             position={b.position}
                             activeFieldIndex={builderState.activeFieldIndex}
-                            placeholder={b.placeholder}
+                            placeholder={t(b.placeholder)}
                             className={b.className}
                             onChangeCallback={(event: FormEvent<HTMLElement>) => {
                                 setBackspaceCount(0);
