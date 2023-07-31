@@ -1,4 +1,5 @@
 import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { position } from 'html2canvas/dist/types/css/property-descriptors/position';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import { v4 } from 'uuid';
@@ -64,6 +65,28 @@ export const builder = createSlice({
             return {
                 ...state,
                 ...action.payload
+            };
+        },
+        setActiveChoice: (state, action: PayloadAction<{ id?: string; position: number }>) => {
+            const { id, position } = action.payload;
+            const activeField = state.fields[state.activeFieldId];
+            if (!activeField) return state;
+
+            const updatedActiveField = {
+                ...activeField,
+                properties: {
+                    ...activeField.properties,
+                    activeChoiceId: id,
+                    activeChoiceIndex: position
+                }
+            };
+
+            return {
+                ...state,
+                fields: {
+                    ...state.fields,
+                    [state.activeFieldId]: updatedActiveField
+                }
             };
         },
         // current active/focused field
