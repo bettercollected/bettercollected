@@ -33,7 +33,7 @@ function getIcon(type: FormBuilderTagNames) {
 export default function StartAdornmentInputField({ type, value, id, onChange, onFocus }: IStartAdornmentInputFieldProps) {
     return (
         <FormBuilderInput
-            autoFocus={false}
+            autoFocus={true}
             id={id}
             className="!w-fit !mb-0"
             value={value}
