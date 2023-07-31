@@ -25,5 +25,5 @@ export default function PhoneNumber({ ans, enabled, field }: IPhoneNumberProps) 
         }
     };
 
-    return <PhoneInput disabled={!enabled} placeholder={field?.properties?.placeholder} value={ans?.phone_number} onChange={onChange} />;
+    return <PhoneInput containerClass="!mb-4" disabled={!enabled} placeholder={field?.properties?.placeholder} value={ans?.phone_number} onChange={onChange} />;
 }
