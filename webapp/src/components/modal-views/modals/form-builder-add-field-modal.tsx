@@ -4,6 +4,7 @@ import { v4 } from 'uuid';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { resetBuilderMenuState, setAddNewField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
@@ -11,11 +12,11 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 const Fields = [
     {
-        title: 'Elements with Label',
+        title: 'INSERT_MENU.WITH_LABEL',
         items: allowedQuestionAndAnswerTags
     },
     {
-        title: 'Layouts',
+        title: 'INSERT_MENU.LAYOUTS',
         items: allowedLayoutTags
     }
     // {
@@ -29,9 +30,17 @@ export default function FormBuilderAddFieldModal({ index }: { index?: number }) 
     const builderState = useAppSelector(selectBuilderState);
 
     const dispatch = useAppDispatch();
+
+    const { t } = useBuilderTranslation();
     const handleFieldSelected = (type: FormBuilderTagNames) => {
         batch(() => {
-            dispatch(setAddNewField({ id: v4(), type, position: builderState.activeFieldIndex >= 0 ? builderState.activeFieldIndex : Object.keys(builderState.fields).length - 1 }));
+            dispatch(
+                setAddNewField({
+                    id: v4(),
+                    type,
+                    position: builderState.activeFieldIndex >= 0 ? builderState.activeFieldIndex : Object.keys(builderState.fields).length - 1
+                })
+            );
             dispatch(resetBuilderMenuState());
         });
         closeModal();
@@ -46,7 +55,7 @@ export default function FormBuilderAddFieldModal({ index }: { index?: number }) 
                 }}
             />
             {Fields.map((fieldType, index) => (
-                <div key={fieldType.title} className="flex flex-col">
+                <div key={t(fieldType.title)} className="flex flex-col">
                     <div className="body1 mb-6">{fieldType.title}</div>
                     <div className="grid gap-x-12 gap-y-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                         {fieldType.items.map((tag, index) => (

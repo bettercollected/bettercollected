@@ -22,17 +22,17 @@ interface IHeaderInputBlockProps {
 const getPlaceholder = (type: FormBuilderTagNames) => {
     switch (type) {
         case FormBuilderTagNames.LAYOUT_HEADER5:
-            return 'Header 5';
+            return '5';
         case FormBuilderTagNames.LAYOUT_HEADER4:
-            return 'Header 4';
+            return '4';
         case FormBuilderTagNames.LAYOUT_HEADER3:
-            return 'Header 3';
+            return '3';
         case FormBuilderTagNames.LAYOUT_HEADER2:
-            return 'Header 2';
+            return '2';
         case FormBuilderTagNames.LAYOUT_HEADER1:
-            return 'Header 1';
+            return '1';
         case FormBuilderTagNames.LAYOUT_LABEL:
-            return 'Label';
+            return 'LABEL';
         default:
             return '';
     }
@@ -63,7 +63,7 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
             value={field?.value || ''}
             className={'w-full  ' + contentEditableClassNames(false, field?.type)}
             onChangeCallback={onChange}
-            placeholder={t(getPlaceholder(field?.type))}
+            placeholder={'COMPONENTS.HEADER.' + t(getPlaceholder(field?.type))}
             onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
                 dispatch(setBuilderState({ activeFieldIndex: position }));
             }}

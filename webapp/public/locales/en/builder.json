@@ -58,6 +58,41 @@
       "4": "Header 4",
       "5": "Header 5",
       "LABEL": "Label"
+    },
+    "INPUT": {
+      "END_ADORNMENT_PLACEHOLDER": "Placeholder for input",
+      "OPTION": "Option"
+    }
+  },
+  "TIPS": {
+    "DEFAULT": "Tips",
+    "HIT": "Hit",
+    "ACTIONS": {
+      "COMMAND": "key to open the command in the field selection",
+      "ENTER": "key to add a new field, or,",
+      "CTRL_I": "key to open the insert field menu",
+      "ESC": "key to close spotlight, field selector, and field options",
+      "BACKSPACE": "key twice when the field is empty to remove the field",
+      "UP": "arrow key to move up into different fields, and,",
+      "CTRL_UP": "arrow key to drag the field upwards",
+      "DOWN": "arrow key to move down into different fields, and,",
+      "CTRL_DOWN": "arrow key to drag the field downwards",
+      "CTRL_K": "key to open the builder spotlight",
+      "CTRL_S": "key to save the form",
+      "CTRL_P": "key to preview the form",
+      "CTRL_D": "key to duplicate the focused field",
+      "CTRL_DELETE": "key to remove the focused field"
+    }
+  },
+  "INSERT_MENU": {
+    "WITH_LABEL": "Elements with Label",
+    "LAYOUTS": "Layouts"
+  },
+  "SPOTLIGHT": {
+    "PLACEHOLDER": "What field would you like to add?",
+    "TIPS": {
+      "1": "Move your arrow keys (↕), and press Enter to see the magic.",
+      "2": "Press Esc to close the builder spotlight."
     }
   }
 }

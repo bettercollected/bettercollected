@@ -1,5 +1,7 @@
 import React from 'react';
 
+import _ from 'lodash';
+
 import FormBuilderBackspaceIcon from '@Components/Common/Icons/FormBuilderBackspaceIcon';
 import FormBuilderDeleteIcon from '@Components/Common/Icons/FormBuilderDeleteIcon';
 import FormBuilderDuplicateIcon from '@Components/Common/Icons/FormBuilderDuplicateIcon';
@@ -10,16 +12,20 @@ import FormBuilderSpotlightIcon from '@Components/Common/Icons/FormBuilderSpotli
 import KeyboardArrowDownIcon from '@Components/Common/Icons/KeyboardArrowDownIcon';
 import KeyboardArrowUpIcon from '@Components/Common/Icons/KeyboardArrowUpIcon';
 
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+
 export default function BuilderTips() {
     const isMac = typeof window !== 'undefined' ? navigator.userAgent.toUpperCase().indexOf('MAC') >= 0 : false;
     const commandKeyString = isMac ? 'Command' : 'Ctrl';
+
+    const { t } = useBuilderTranslation();
 
     const tips = [
         {
             Icon: <FormBuilderSlashIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">/</strong> key to open the command in the field selection
+                    {t('TIPS.HIT')} <strong className="text-brand">/</strong> {t('TIPS.ACTIONS.COMMAND')}
                 </>
             )
         },
@@ -28,10 +34,10 @@ export default function BuilderTips() {
             TextComponent: (
                 <div className="flex flex-col gap-2">
                     <div className="flex justify-start items-center gap-1">
-                        Hit <strong className="text-brand">Enter</strong> key to add a new field, <strong>or,</strong>
+                        {t('TIPS.HIT')} <strong className="text-brand">Enter</strong> {t('TIPS.ACTIONS.ENTER')}
                     </div>
                     <div className="flex justify-start items-center gap-1">
-                        Hit <strong className="text-brand">{commandKeyString} + I</strong> key to open the insert field menu
+                        {t('TIPS.HIT')} <strong className="text-brand">{commandKeyString} + I</strong> {t('TIPS.ACTIONS.CTRL_I')}
                     </div>
                 </div>
             )
@@ -40,7 +46,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderEscapeIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">Escape</strong> key to close spotlight, field selector, and field options
+                    {t('TIPS.HIT')} <strong className="text-brand">Escape</strong> {t('TIPS.ACTIONS.ESC')}
                 </>
             )
         },
@@ -48,7 +54,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderBackspaceIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">Backspace</strong> key <strong>twice</strong> when the field is empty to remove the field
+                    {t('TIPS.HIT')} <strong className="text-brand">Backspace</strong> {t('TIPS.ACTIONS.BACKSPACE')}
                 </>
             )
         },
@@ -57,10 +63,10 @@ export default function BuilderTips() {
             TextComponent: (
                 <div className="flex flex-col gap-2">
                     <div className="flex justify-start items-center gap-1">
-                        Hit <strong className="text-brand">&uarr;</strong> arrow key to move up into different fields, <strong>and,</strong>
+                        {t('TIPS.HIT')} <strong className="text-brand">&uarr;</strong> {t('TIPS.ACTIONS.UP')}
                     </div>
                     <div className="flex justify-start items-center gap-1">
-                        Hit <strong className="text-brand">{commandKeyString} + &uarr;</strong> arrow key to drag the field upwards
+                        {t('TIPS.HIT')} <strong className="text-brand">{commandKeyString} + &uarr;</strong> {t('TIPS.ACTIONS.CTRL_UP')}
                     </div>
                 </div>
             )
@@ -70,10 +76,10 @@ export default function BuilderTips() {
             TextComponent: (
                 <div className="flex flex-col gap-2">
                     <div className="flex justify-start items-center gap-1">
-                        Hit <strong className="text-brand">&darr;</strong> arrow key to move down into different fields, <strong>and,</strong>
+                        {t('TIPS.HIT')} <strong className="text-brand">&darr;</strong> {t('TIPS.ACTIONS.DOWN')}
                     </div>
                     <div className="flex justify-start items-center gap-1">
-                        Hit <strong className="text-brand">{commandKeyString} + &darr;</strong> arrow key to drag the field downwards
+                        {t('TIPS.HIT')} <strong className="text-brand">{commandKeyString} + &darr;</strong> {t('TIPS.ACTIONS.CTRL_DOWN')}
                     </div>
                 </div>
             )
@@ -83,7 +89,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderSpotlightIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">{commandKeyString} + K</strong> key to open the builder spotlight
+                    {t('TIPS.HIT')} <strong className="text-brand">{commandKeyString} + K</strong> {t('TIPS.ACTIONS.CTRL_K')}
                 </>
             )
         },
@@ -91,7 +97,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderDuplicateIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">{commandKeyString} + S</strong> key to save the form
+                    {t('TIPS.HIT')} <strong className="text-brand">{commandKeyString} + S</strong> {t('TIPS.ACTIONS.CTRL_S')}
                 </>
             )
         },
@@ -99,7 +105,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderDuplicateIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">{commandKeyString} + P</strong> key to preview the form
+                    {t('TIPS.HIT')} <strong className="text-brand">{commandKeyString} + P</strong> {t('TIPS.ACTIONS.CTRL_P')}
                 </>
             )
         },
@@ -107,7 +113,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderDuplicateIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">{commandKeyString} + D</strong> key to duplicate the focused field
+                    {t('TIPS.HIT')} <strong className="text-brand">{commandKeyString} + D</strong> {t('TIPS.ACTIONS.CTRL_D')}
                 </>
             )
         },
@@ -115,7 +121,7 @@ export default function BuilderTips() {
             Icon: <FormBuilderDeleteIcon />,
             TextComponent: (
                 <>
-                    Hit <strong className="text-brand">{commandKeyString} + Delete</strong> key to remove the focused field
+                    {t('TIPS.HIT')} <strong className="text-brand">{commandKeyString} + Delete</strong> {t('TIPS.ACTIONS.CTRL_DELETE')}
                 </>
             )
         }
@@ -127,7 +133,7 @@ export default function BuilderTips() {
                 <strong className="text-brand uppercase mr-2">Note:</strong>
                 If you are on macOS, use <strong>Command (Cmd)</strong> key instead of <strong>Control (Ctrl)</strong> key.
             </p> */}
-            <h1 className="uppercase font-bold tracking-wide text-brand">TIPS</h1>
+            <h1 className="uppercase font-bold tracking-wide text-brand">{_.capitalize(t('TIPS.DEFAULT'))}</h1>
             {tips.map((tip, index) => (
                 <div key={index} className="flex items-start gap-4">
                     {tip.Icon}

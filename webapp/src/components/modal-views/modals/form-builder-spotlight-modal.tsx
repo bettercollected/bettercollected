@@ -6,6 +6,7 @@ import { batch } from 'react-redux';
 import { v4 } from 'uuid';
 
 import { useModal } from '@app/components/modal-views/context';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { BlockTypes, FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { resetBuilderMenuState, setAddNewField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
@@ -39,6 +40,8 @@ const defaultFields = [...allowedLayoutTags, ...allowedInputTags, ...allowedQues
 
 export default function FormBuilderSpotlightModal({ index }: { index?: number }) {
     const { closeModal, modalProps } = useModal();
+
+    const { t } = useBuilderTranslation();
 
     const inputRef = useRef<HTMLInputElement>(null);
     const dispatch = useAppDispatch();
@@ -114,7 +117,7 @@ export default function FormBuilderSpotlightModal({ index }: { index?: number })
                             }
                         }}
                         inputRef={inputRef}
-                        placeholder="What field would you like to add?"
+                        placeholder={t('SPOTLIGHT.PLACEHOLDER')}
                         fullWidth
                     />
                 )}
@@ -126,14 +129,10 @@ export default function FormBuilderSpotlightModal({ index }: { index?: number })
                 )}
             />
             <div className="text-neutral-500 mt-4 text-xs flex flex-col items-start justify-start gap-3">
-                <span className="bg-brand-500 rounded-3xl px-2 py-1 font-semibold uppercase leading-none text-white">Tips</span>
+                <span className="bg-brand-500 rounded-3xl px-2 py-1 font-semibold uppercase leading-none text-white">{t('TIPS.DEFAULT')}</span>
                 <ol className="flex flex-col gap-2 list-inside list-decimal">
-                    <li className="">
-                        Move your arrow keys (&#8597;), and press <strong>Enter</strong> to see the magic.
-                    </li>
-                    <li className="">
-                        Press <strong>Esc</strong> to close the builder spotlight.
-                    </li>
+                    <li className="">{t('SPOTLIGHT.TIPS.1')}</li>
+                    <li className="">{t('SPOTLIGHT.TIPS.2')}</li>
                 </ol>
             </div>
         </div>
