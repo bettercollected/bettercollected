@@ -5,6 +5,7 @@ import { ArrowDropDown, TrendingUpSharp } from '@mui/icons-material';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setActiveChoice, setActiveField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
@@ -36,6 +37,7 @@ function getIcon(type: FormBuilderTagNames) {
 
 export default function StartAdornmentInputField({ type, value, id, focus, onChange, onFocus }: IStartAdornmentInputFieldProps) {
     const dispatch = useAppDispatch();
+    const { t } = useBuilderTranslation();
 
     useEffect(() => {
         if (focus) {
@@ -67,7 +69,7 @@ export default function StartAdornmentInputField({ type, value, id, focus, onCha
                     border: 'none'
                 }
             }}
-            placeholder="Option"
+            placeholder={t('COMPONENTS.INPUT.OPTION')}
             InputProps={{
                 startAdornment: <div className="text-gray-400"> {getIcon(type)}</div>
             }}

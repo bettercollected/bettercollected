@@ -66,7 +66,7 @@ export default function Validation({ field, type }: IValidationProps) {
                     onChange={handleValidationValueChange}
                     value={!!field?.validations && !!field?.validations[type] ? field?.validations[type] : ''}
                     type={type === ValidationType.REGEX ? 'text' : 'number'}
-                    placeholder={t(type === ValidationType.REGEX ? 'ENTER_REGEX' : 'ENTER_NUMBER')}
+                    placeholder={t('COMPONENTS.VALIDATIONS.' + (type === ValidationType.REGEX ? 'ENTER_REGEX' : 'ENTER_NUMBER'))}
                     className="rounded-md mt-2 py-2 px-4 outline:none border border-black-600 !text-black-900"
                 />
             )}

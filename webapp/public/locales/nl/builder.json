@@ -24,21 +24,21 @@
       "DEFAULT": "Opties",
       "HIDE_FIELD": "Veld verbergen",
       "IDENTIFIER_FIELD": "Identificatieveld",
-      "TOOLTIP_TITLE": "Sleep of klik om opties voor dit blok te openen",
+      "TOOLTIP_TITLE": "Sleep of klik om de opties voor dit blok te openen",
       "STEPS": "Stappen",
       "MAX": "Max"
     },
     "VALIDATIONS": {
       "DEFAULT": "Validaties",
-      "REQUIRED": "Verplicht",
-      "MAX_VALUE": "Max. Waarde",
-      "MAX_CHOICES": "Max. Keuzes",
-      "MAX_LENGTH": "Max. Lengte",
-      "MIN_VALUE": "Min. Waarde",
-      "MIN_CHOICES": "Min. Keuzes",
-      "MIN_LENGTH": "Min. Lengte",
+      "REQUIRED": "Vereist",
+      "MAX_VALUE": "Maximale waarde",
+      "MAX_CHOICES": "Maximale keuzes",
+      "MAX_LENGTH": "Maximale lengte",
+      "MIN_VALUE": "Minimale waarde",
+      "MIN_CHOICES": "Minimale keuzes",
+      "MIN_LENGTH": "Minimale lengte",
       "REGEX": "Regex",
-      "ENTER_NUMBER": "Voer een nummer in",
+      "ENTER_NUMBER": "Voer een getal in",
       "ENTER_REGEX": "Voer een regex in"
     },
     "ACTIONS": {
@@ -58,6 +58,41 @@
       "4": "Kop 4",
       "5": "Kop 5",
       "LABEL": "Label"
+    },
+    "INPUT": {
+      "END_ADORNMENT_PLACEHOLDER": "Plaatsaanduiding voor invoer",
+      "OPTION": "Optie"
+    }
+  },
+  "TIPS": {
+    "DEFAULT": "Tips",
+    "HIT": "Toets",
+    "ACTIONS": {
+      "COMMAND": "toets om het veld te selecteren",
+      "ENTER": "toets om een nieuw veld toe te voegen, of,",
+      "CTRL_I": "toets om het invoegmenu te openen",
+      "ESC": "toets om spotlight, veldselectie en veldopties te sluiten",
+      "BACKSPACE": "toets twee keer in wanneer het veld leeg is om het veld te verwijderen",
+      "UP": "pijltoets om naar verschillende velden omhoog te gaan, en,",
+      "CTRL_UP": "pijltoets om het veld omhoog te slepen",
+      "DOWN": "pijltoets om naar verschillende velden omlaag te gaan, en,",
+      "CTRL_DOWN": "pijltoets om het veld omlaag te slepen",
+      "CTRL_K": "toets om de bouwer spotlight te openen",
+      "CTRL_S": "toets om het formulier op te slaan",
+      "CTRL_P": "toets om het formulier te bekijken",
+      "CTRL_D": "toets om het gefocuste veld te dupliceren",
+      "CTRL_DELETE": "toets om het gefocuste veld te verwijderen"
+    }
+  },
+  "INSERT_MENU": {
+    "WITH_LABEL": "Elementen met Label",
+    "LAYOUTS": "Indelingen"
+  },
+  "SPOTLIGHT": {
+    "PLACEHOLDER": "Welk veld wil je toevoegen?",
+    "TIPS": {
+      "1": "Beweeg je pijltoetsen (↕) en druk op Enter om het magische te zien.",
+      "2": "Druk op Esc om de bouwer spotlight te sluiten."
     }
   }
 }

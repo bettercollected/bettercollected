@@ -95,7 +95,6 @@ export default function ShortText({ ans, enabled, field }: IShortTextProps) {
                         outline: 'gray'
                     }
                 }}
-                className={`!mb-7 `}
                 fullWidth
                 onChange={onChange}
             />
