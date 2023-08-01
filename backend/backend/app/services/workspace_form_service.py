@@ -15,10 +15,10 @@ from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
+from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.utils import AiohttpClient
-from backend.config import settings
 from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
 from common.models.standard_form import StandardForm, StandardFormResponse
@@ -39,6 +39,7 @@ class WorkspaceFormService:
         form_response_service: FormResponseService,
         responder_groups_service: ResponderGroupsService,
         user_tags_service: UserTagsService,
+        temporal_service: TemporalService,
     ):
         self.form_provider_service = form_provider_service
         self.plugin_proxy_service = plugin_proxy_service
@@ -51,6 +52,7 @@ class WorkspaceFormService:
         self.form_response_service = form_response_service
         self.responder_groups_service = responder_groups_service
         self.user_tags_service = user_tags_service
+        self.temporal_service = temporal_service
 
     # TODO : Use plugin interface for importing for now endpoint is used here
     async def import_form_to_workspace(
@@ -109,14 +111,18 @@ class WorkspaceFormService:
                 private=not standard_form.settings.is_public,
             ),
         )
-        self.schedular.add_job(
-            self.form_schedular.update_form,
-            "interval",
-            id=f"{provider}_{standard_form.form_id}",
-            coalesce=True,
-            replace_existing=True,
-            kwargs={"form_id": standard_form.form_id, "workspace_id": workspace_id},
-            minutes=settings.schedular_settings.INTERVAL_MINUTES,
+        # self.schedular.add_job(
+        #     self.form_schedular.update_form,
+        #     "interval",
+        #     id=f"{provider}_{standard_form.form_id}",
+        #     coalesce=True,
+        #     replace_existing=True,
+        #     kwargs={"form_id": standard_form.form_id, "workspace_id": workspace_id},
+        #     minutes=settings.schedular_settings.INTERVAL_MINUTES,
+        # )
+
+        await self.temporal_service.add_scheduled_job_for_importing_form(
+            workspace_id=workspace_id, form_id=standard_form.form_id
         )
 
     async def convert_form(self, *, provider, request, form_import):

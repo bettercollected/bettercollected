@@ -1,4 +1,5 @@
 import logging
+from http import HTTPStatus
 
 import jwt
 from starlette.requests import Request
@@ -26,6 +27,16 @@ def get_logged_user(request: Request, response: Response) -> User:
         except Exception as e:
             logging.error(e)
             raise HTTPException(401, "No user logged in.")
+
+
+def get_api_key(request: Request, response: Response) -> str:
+    if request.headers.get("api_key") != settings.temporal_settings.api_key:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            content="You are not allowed to perform this action.",
+        )
+
+    return request.headers.get("api_key")
 
 
 def get_user_from_token(token: str) -> User:

@@ -170,6 +170,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
         user_tags_service=user_tags_service,
+        temporal_service=temporal_service,
     )
     workspace_service: WorkspaceService = providers.Singleton(
         WorkspaceService,

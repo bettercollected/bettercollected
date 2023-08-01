@@ -67,4 +67,4 @@ async def init_schedulers(scheduler: AsyncIOScheduler):
         replace_existing=True,
         minutes=1440,
     )
-    await update_all_scheduled_forms(scheduler=scheduler)
+    # await update_all_scheduled_forms(scheduler=scheduler)
