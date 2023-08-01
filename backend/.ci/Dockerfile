@@ -34,4 +34,5 @@ RUN poetry install --no-interaction
 COPY  ./common ./common
 COPY  ./backend ./backend
 COPY ./tests ./tests
+COPY ./pytest.ini ./pytest.ini
 CMD ["pytest"]
