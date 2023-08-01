@@ -7,6 +7,7 @@ import { v4 } from 'uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { IBuilderMenuState, IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
+import { convertProxyToObject } from '@app/utils/reduxUtils';
 
 import { setUpdateField } from './actions';
 import { getInitialPropertiesForFieldType } from './utils';
@@ -99,6 +100,26 @@ export const builder = createSlice({
                 activeFieldId: action.payload.id
             };
         },
+        setAddNewChoice: (state: IBuilderState) => {
+            const activeField = state.fields[state.activeFieldId];
+            const id = uuidv4();
+            const newChoices = Object.values(convertProxyToObject(activeField.properties?.choices || {}));
+            newChoices.splice((activeField.properties?.activeChoiceIndex ?? 0) + 1, 0, { id, value: '' });
+            const choices: any = {};
+            newChoices.forEach((choice: any) => {
+                choices[choice.id] = choice;
+            });
+            return { ...state, fields: { ...state.fields, [activeField.id]: { ...activeField, properties: { ...activeField.properties, choices } } } };
+        },
+        setDeleteChoice: (state: IBuilderState, action: { payload: string; type: string }) => {
+            const activeField = state.fields[state.activeFieldId];
+            const proxyKeys = Object.getOwnPropertyNames(activeField.properties?.choices ?? {});
+            //@ts-ignore
+            const choicesEntries = proxyKeys.map((key) => [key, activeField.properties?.choices[key]]);
+            const choices = Object.fromEntries(choicesEntries);
+            if (action.payload) delete choices[action.payload];
+            return { ...state, fields: { ...state.fields, [activeField.id]: { ...activeField, properties: { activeChoiceId: activeField.properties?.activeChoiceId, activeChoiceIndex: (activeField.properties?.activeChoiceIndex ?? -1) - 1, choices } } } };
+        },
         setCommandMenuPosition: (state, action: { payload: 'up' | 'down' }) => {
             if (state.menus?.commands) return { ...state, menus: { ...state.menus, commands: { ...state.menus?.commands, position: action.payload } } };
         },
@@ -140,7 +161,6 @@ export const builder = createSlice({
 
             return { ...state, fields: newFieldsMap };
         },
-
         addDuplicateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             // TODO: fix duplicate for shortcut keys
             const fieldsArray = [...Object.values(state.fields)];

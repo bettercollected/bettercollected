@@ -15,5 +15,7 @@ export const {
     setActiveField,
     setIdentifierField,
     setMoveField,
-    setCommandMenuPosition
+    setCommandMenuPosition,
+    setDeleteChoice,
+    setAddNewChoice
 } = builder.actions;
