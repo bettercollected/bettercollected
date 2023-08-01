@@ -61,4 +61,5 @@ class UserRouter(Routable):
 
     @delete("/{user_id}")
     async def delete_user(self, user_id: PydanticObjectId):
-        return await self.user_service.delete_user(user_id=user_id)
+        await self.user_service.delete_user(user_id=user_id)
+        return "User deleted"
