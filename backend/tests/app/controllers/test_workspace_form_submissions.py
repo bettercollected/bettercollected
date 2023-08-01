@@ -2,18 +2,63 @@ import pytest
 
 from backend.app.container import container
 from backend.app.schemas.standard_form_response import FormResponseDeletionRequest
+from common.constants import MESSAGE_FORBIDDEN
 from common.models.standard_form import StandardFormResponse, StandardForm
 from tests.app.controllers.data import testUser1, formResponse, testUser, formData_2
 
 
 @pytest.fixture()
-def client(client_test):
-    yield client_test
+def common_url(workspace):
+    yield "/api/v1/workspaces/" + str(workspace.id)
 
 
 @pytest.fixture()
-def form_response_api(workspace):
-    yield "/api/v1/workspaces/" + str(workspace.id)
+def get_request_delete_response_url(common_url, workspace_form_response):
+    return f"{common_url}/submissions/{workspace_form_response['response_id']}"
+
+
+@pytest.fixture()
+def get_delete_form_response_url(common_url, workspace_form, workspace_form_response):
+    return f"{common_url}/forms/{workspace_form.form_id}/response/{workspace_form_response['response_id']}"
+
+
+@pytest.fixture()
+def get_get_form_responses_url(common_url, workspace_form):
+    return f"{common_url}/forms/{workspace_form.form_id}/submissions"
+
+
+@pytest.fixture()
+def get_all_workspace_responses_url(common_url):
+    return f"{common_url}/all-submissions"
+
+
+@pytest.fixture()
+def get_user_submission_url(common_url):
+    return f"{common_url}/submissions"
+
+
+@pytest.fixture()
+def get_form_response_by_id_url(common_url, workspace_form_response):
+    return f"{common_url}/submissions/{workspace_form_response['response_id']}"
+
+
+async def create_responses(form, workspace):
+    user_1_response = await container.workspace_form_service().submit_response(
+        workspace.id,
+        form.form_id,
+        StandardFormResponse(**formResponse),
+        testUser,
+    )
+    user_2_response = await container.workspace_form_service().submit_response(
+        workspace.id,
+        form.form_id,
+        StandardFormResponse(**formResponse),
+        testUser1,
+    )
+    return [
+        (dict(user_2_response))["response_id"],
+        (dict(user_1_response))["response_id"],
+    ]
 
 
 @pytest.mark.asyncio
@@ -22,85 +67,129 @@ class TestWorkspaceFormSubmission:
         self,
         client,
         test_user_cookies,
-        workspace,
-        workspace_form,
         workspace_form_response,
-        form_response_api,
+        get_request_delete_response_url,
     ):
         request_response_deletion = client.delete(
-            form_response_api
-            + "/submissions/"
-            + str(workspace_form_response["response_id"]),
+            get_request_delete_response_url,
             cookies=test_user_cookies,
         )
-        assert request_response_deletion.status_code == 200
-        assert request_response_deletion.json() == {
-            "message": "Request for deletion created successfully."
-        }
         form_response_deletion_request = (
             await FormResponseDeletionRequest.find().to_list()
         )
-        assert (
-            form_response_deletion_request[0].response_id
-            == workspace_form_response["response_id"]
+
+        actual_response = request_response_deletion.json()
+        expected_response = {"message": "Request for deletion created successfully."}
+        assert actual_response == expected_response
+        actual_response_id = form_response_deletion_request[0].response_id
+        expected_response_id = workspace_form_response["response_id"]
+        assert actual_response_id == expected_response_id
+
+    def test_throws_error_on_multiple_request_for_delete_form_response(
+        self,
+        client,
+        test_user_cookies,
+        get_request_delete_response_url,
+        workspace_form_response,
+    ):
+        # Arrange
+        request_response_deletion = client.delete(
+            get_request_delete_response_url, cookies=test_user_cookies
         )
+
+        # Act
         request_response_deletion_2 = client.delete(
-            form_response_api
-            + "/submissions/"
-            + str(workspace_form_response["response_id"]),
-            cookies=test_user_cookies,
+            get_request_delete_response_url, cookies=test_user_cookies
         )
-        assert (
-            request_response_deletion_2.json()
-            == "Error: Deletion request already exists for the response : "
-            + str(workspace_form_response["response_id"])
+
+        # Assert
+        actual_response = request_response_deletion_2.json()
+        expected_response = (
+            f"Error: Deletion request already exists for the response : "
+            f"{workspace_form_response['response_id']}"
         )
+        assert actual_response == expected_response
+
+    def test_delete_deletion_requested_form_response(
+        self,
+        client,
+        workspace_form_response,
+        test_user_cookies,
+        get_request_delete_response_url,
+        get_delete_form_response_url,
+    ):
+        # Arrange
+        request_response_deletion = client.delete(
+            get_request_delete_response_url, cookies=test_user_cookies
+        )
+
+        # Act
         deleted_requested_form = client.delete(
-            form_response_api
-            + "/forms/"
-            + str(workspace_form.form_id)
-            + "/response/"
-            + str(workspace_form_response["response_id"]),
-            cookies=test_user_cookies,
+            get_delete_form_response_url, cookies=test_user_cookies
         )
+
+        # Assert
+        actual_response = deleted_requested_form.json()
+        expected_response = workspace_form_response["response_id"]
         assert deleted_requested_form.status_code == 200
-        assert deleted_requested_form.json() == workspace_form_response["response_id"]
+        assert actual_response == expected_response
 
     def test_unauthorized_user_request_for_delete_form_response(
         self,
         client,
         test_user_cookies_1,
-        workspace,
-        workspace_form_response,
-        form_response_api,
+        get_request_delete_response_url,
     ):
         request_response_deletion = client.delete(
-            form_response_api
-            + "/submissions/"
-            + str(workspace_form_response["response_id"]),
+            get_request_delete_response_url,
             cookies=test_user_cookies_1,
         )
-        assert request_response_deletion.status_code == 403
-        assert (
-            request_response_deletion.json()
-            == "You are not authorized to perform this action."
-        )
 
-    async def test_get_workspace_form_responses(
+        actual_response = request_response_deletion.json()
+        expected_response = "You are not authorized to perform this action."
+        assert request_response_deletion.status_code == 403
+        assert actual_response == expected_response
+
+    def test_get_workspace_form_responses(
         self,
         client,
-        form_response_api,
+        get_get_form_responses_url,
         test_user_cookies,
         workspace_form,
         workspace_form_response_1,
         workspace_form_response,
-        workspace_form_1,
-        workspace_1,
     ):
-        response_id_1 = workspace_form_response["response_id"]
-        response_id_2 = workspace_form_response_1["response_id"]
-        response_ids = [response_id_1, response_id_2]
-        new_form_response = dict(
+        response_ids = [
+            workspace_form_response["response_id"],
+            workspace_form_response_1["response_id"],
+        ]
+
+        form_responses = client.get(
+            get_get_form_responses_url,
+            cookies=test_user_cookies,
+        )
+
+        actual_total_responses = form_responses.json()["total"]
+        expected_total_responses = 2
+        expected_response_ids = response_ids
+        actual_response_ids = [
+            item["responseId"] for item in form_responses.json()["items"]
+        ]
+        assert form_responses.status_code == 200
+        assert actual_total_responses == expected_total_responses
+        assert actual_response_ids == expected_response_ids
+
+    async def test_get_workspace_form_responses_returns_only_its_workspace_responses(
+        self,
+        client,
+        workspace_form_1,
+        get_get_form_responses_url,
+        workspace_1,
+        workspace_form_response_1,
+        workspace_form_response,
+        test_user_cookies,
+    ):
+        new_workspace_form_response = dict(
             await container.workspace_form_service().submit_response(
                 workspace_1.id,
                 workspace_form_1.form_id,
@@ -108,182 +197,163 @@ class TestWorkspaceFormSubmission:
                 testUser1,
             )
         )
+
         form_responses = client.get(
-            form_response_api
-            + "/forms/"
-            + str(workspace_form.form_id)
-            + "/submissions",
+            get_get_form_responses_url,
             cookies=test_user_cookies,
         )
-        assert form_responses.status_code == 200
-        assert form_responses.json()["total"] == 2
-        form_responses_response_id = [
+
+        actual_response_ids = [
             item["responseId"] for item in form_responses.json()["items"]
         ]
-        assert form_responses_response_id == response_ids
-        assert new_form_response["response_id"] not in form_responses_response_id
+        expected_response_id = new_workspace_form_response["response_id"]
+        assert expected_response_id not in actual_response_ids
 
     def test_unauthorized_get_workspace_form_responses(
-        self,
-        client,
-        form_response_api,
-        test_user_cookies_1,
-        workspace_form,
+        self, client, test_user_cookies_1, workspace_form, get_get_form_responses_url
     ):
         form_responses = client.get(
-            form_response_api
-            + "/forms/"
-            + str(workspace_form.form_id)
-            + "/submissions",
+            get_get_form_responses_url,
             cookies=test_user_cookies_1,
         )
+
+        expected_response = MESSAGE_FORBIDDEN
+        actual_response = form_responses.json()
         assert form_responses.status_code == 403
-        assert (
-            form_responses.json()
-            == "403 - Forbidden: You don't have permission to access this resource."
+        assert actual_response == expected_response
+
+    async def test_non_workspace_form_fails_on_get_form_responses(
+        self, client, common_url, test_user_cookies, workspace_form_1
+    ):
+        get_non_workspace_form_url = (
+            f"{common_url}/forms/{workspace_form_1.form_id}/submissions"
         )
 
-    async def test_non_workspace_form_get_form_responses_fails(
-        self, client, form_response_api, test_user_cookies, workspace_form_1
-    ):
         form_responses = client.get(
-            form_response_api
-            + "/forms/"
-            + str(workspace_form_1.form_id)
-            + "/submissions",
+            get_non_workspace_form_url,
             cookies=test_user_cookies,
         )
-        assert form_responses.json() == "Form not found in the workspace."
+
+        expected_response = "Form not found in the workspace."
+        actual_response = form_responses.json()
+        assert actual_response == expected_response
 
     async def test_get_all_workspaces_response(
         self,
         client,
         workspace,
-        form_response_api,
+        get_all_workspace_responses_url,
         test_user_cookies,
         workspace_form_response,
     ):
+        # Arrange
         new_form = await container.workspace_form_service().create_form(
             workspace.id, StandardForm(**formData_2), testUser
         )
-        user_1_response = dict(
-            await container.workspace_form_service().submit_response(
-                workspace.id,
-                new_form.form_id,
-                StandardFormResponse(**formResponse),
-                testUser,
-            )
+        user_responses = await create_responses(new_form, workspace)
+
+        # Act
+        all_responses = client.get(
+            get_all_workspace_responses_url, cookies=test_user_cookies
         )
-        user_2_response = dict(
-            await container.workspace_form_service().submit_response(
-                workspace.id,
-                new_form.form_id,
-                StandardFormResponse(**formResponse),
-                testUser1,
-            )
-        )
-        response_ids = [
-            user_2_response["response_id"],
-            user_1_response["response_id"],
+
+        # Assert
+        expected_response_ids = [
+            *user_responses,
             workspace_form_response["response_id"],
         ]
-        all_responses = client.get(
-            form_response_api + "/all-submissions", cookies=test_user_cookies
-        )
-        assert all_responses.status_code == 200
-        assert all_responses.json()["total"] == 3
-        all_responses_response_ids = [
+        actual_response_ids = [
             item["responseId"] for item in all_responses.json()["items"]
         ]
-        assert all_responses_response_ids == response_ids
+        actual_responses = all_responses.json()["total"]
+        expected_responses = 3
+        assert actual_responses == expected_responses
+        assert actual_response_ids == expected_response_ids
 
     def test_unauthorized_get_all_workspace_responses(
-        self, client, form_response_api, workspace_form_response, test_user_cookies_1
+        self,
+        client,
+        get_all_workspace_responses_url,
+        workspace_form_response,
+        test_user_cookies_1,
     ):
         all_responses = client.get(
-            form_response_api + "/all-submissions", cookies=test_user_cookies_1
+            get_all_workspace_responses_url, cookies=test_user_cookies_1
         )
+
+        expected_response = MESSAGE_FORBIDDEN
+        actual_response = all_responses.json()
         assert all_responses.status_code == 403
-        assert (
-            all_responses.json()
-            == "403 - Forbidden: You don't have permission to access this resource."
-        )
+        assert actual_response == expected_response
 
     async def test_get_single_user_submissions_in_workspace(
         self,
         client,
         workspace,
-        form_response_api,
+        get_user_submission_url,
         test_user_cookies,
         workspace_form,
         workspace_form_response,
     ):
-        new_form_response = dict(
-            await container.workspace_form_service().submit_response(
-                workspace.id,
-                workspace_form.form_id,
-                StandardFormResponse(**formResponse),
-                testUser,
-            )
+        [new_user_form_response, current_user_form_response] = await create_responses(
+            workspace_form, workspace
         )
-        new_user_response = dict(
-            await container.workspace_form_service().submit_response(
-                workspace.id,
-                workspace_form.form_id,
-                StandardFormResponse(**formResponse),
-                testUser1,
-            )
+
+        user_submissions = client.get(
+            get_user_submission_url, cookies=test_user_cookies
         )
-        response_ids = [
+
+        expected_response_ids = [
             workspace_form_response["response_id"],
-            new_form_response["response_id"],
+            current_user_form_response,
         ]
-        user_submission = client.get(
-            form_response_api + "/submissions", cookies=test_user_cookies
-        )
-        assert user_submission.status_code == 200
-        assert user_submission.json()["total"] == 2
-        user_submission_response_ids = [
-            item["responseId"] for item in user_submission.json()["items"]
+        actual_response_ids = [
+            item["responseId"] for item in user_submissions.json()["items"]
         ]
-        assert user_submission_response_ids == response_ids
-        assert new_user_response not in user_submission_response_ids
+        expected_number_of_responses = 2
+        actual_number_of_responses = user_submissions.json()["total"]
+        assert user_submissions.status_code == 200
+        assert actual_number_of_responses == expected_number_of_responses
+        assert actual_response_ids == expected_response_ids
+        assert new_user_form_response not in expected_response_ids
 
     def test_get_workspace_form_response_by_response_id(
-        self, client, form_response_api, test_user_cookies, workspace_form_response
+        self,
+        client,
+        get_form_response_by_id_url,
+        test_user_cookies,
+        workspace_form_response,
     ):
         single_form_response = client.get(
-            form_response_api
-            + "/submissions/"
-            + str(workspace_form_response["response_id"]),
-            cookies=test_user_cookies,
-        )
-        assert single_form_response.status_code == 200
-        assert (
-            single_form_response.json()["response"]["responseId"]
-            == workspace_form_response["response_id"]
+            get_form_response_by_id_url, cookies=test_user_cookies
         )
 
+        expected_response_id = workspace_form_response["response_id"]
+        actual_response_id = single_form_response.json()["response"]["responseId"]
+        assert single_form_response.status_code == 200
+        assert actual_response_id == expected_response_id
+
     def test_unauthorized_get_workspace_form_response_by_response_id(
-        self, client, form_response_api, test_user_cookies_1, workspace_form_response
+        self,
+        client,
+        get_form_response_by_id_url,
+        test_user_cookies_1,
+        workspace_form_response,
     ):
         single_form_response = client.get(
-            form_response_api
-            + "/submissions/"
-            + str(workspace_form_response["response_id"]),
-            cookies=test_user_cookies_1,
+            get_form_response_by_id_url, cookies=test_user_cookies_1
         )
+
+        expected_response_message = "You are not authorized to perform this action."
+        actual_response_message = single_form_response.json()
         assert single_form_response.status_code == 403
-        assert (
-            single_form_response.json()
-            == "You are not authorized to perform this action."
-        )
+        assert actual_response_message == expected_response_message
 
     async def test_get_workspace_form_response_by_response_id_fails(
         self,
         client,
         workspace_form_1,
-        form_response_api,
+        common_url,
         workspace_1,
         test_user_cookies,
     ):
@@ -295,8 +365,14 @@ class TestWorkspaceFormSubmission:
                 testUser,
             )
         )
-        single_form_response = client.get(
-            form_response_api + "/submissions/" + str(new_form_response["response_id"]),
-            cookies=test_user_cookies,
+        get_workspace_response_by_id_url = (
+            f"{common_url}/submissions/{new_form_response['response_id']}"
         )
-        assert single_form_response.json() == "Form not found in this workspace"
+
+        single_form_response = client.get(
+            get_workspace_response_by_id_url, cookies=test_user_cookies
+        )
+
+        expected_response_message = "Form not found in this workspace"
+        actual_response_message = single_form_response.json()
+        assert actual_response_message == expected_response_message
