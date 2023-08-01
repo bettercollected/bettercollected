@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 
 import { TextField, TextFieldProps } from '@mui/material';
 import cn from 'classnames';
 
-export default function FormBuilderInput(props: TextFieldProps) {
+const FormBuilderInput = forwardRef<HTMLDivElement, TextFieldProps>((props, ref) => {
     const { placeholder, inputProps, inputMode, className, ...otherProps } = props;
     return (
         <TextField
+            ref={ref}
             variant="outlined"
             inputMode={inputMode || 'text'}
             inputProps={
@@ -30,4 +31,7 @@ export default function FormBuilderInput(props: TextFieldProps) {
             placeholder={placeholder || 'Placeholder for Input'}
         />
     );
-}
+});
+
+FormBuilderInput.displayName = 'FormBuilderInput';
+export default FormBuilderInput;

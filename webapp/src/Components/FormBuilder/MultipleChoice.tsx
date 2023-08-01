@@ -75,6 +75,11 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
         dispatch(setActiveChoice({ id: choiceId, position }));
     };
 
+    useEffect(() => {
+        if (field.position !== builderState.activeFieldIndex) return;
+        contentRef.current?.focus();
+    }, [builderState.activeFieldIndex, field.position]);
+
     return (
         <div tabIndex={0} ref={contentRef} className="flex w-full items-start justify-start focus-visible:!outline-none focus-visible:!border-none ">
             <DragDropContext onDragEnd={onDragEnd}>
