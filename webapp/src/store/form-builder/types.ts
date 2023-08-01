@@ -50,6 +50,8 @@ export interface IFormFieldProperties {
     hidden?: boolean;
     allowMultipleSelection?: boolean;
     choices?: Record<string, { id: string; value: string }>;
+    activeChoiceId?: string;
+    activeChoiceIndex?: number;
 }
 
 export interface IFormFieldValidation {

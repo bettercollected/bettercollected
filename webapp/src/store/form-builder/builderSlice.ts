@@ -1,11 +1,15 @@
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { position } from 'html2canvas/dist/types/css/property-descriptors/position';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import { v4 } from 'uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { IBuilderMenuState, IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
+import { convertProxyToObject } from '@app/utils/reduxUtils';
 
+import { setUpdateField } from './actions';
 import { getInitialPropertiesForFieldType } from './utils';
 
 const firstFieldId = v4();
@@ -66,6 +70,28 @@ export const builder = createSlice({
                 ...action.payload
             };
         },
+        setActiveChoice: (state, action: PayloadAction<{ id?: string; position?: number }>) => {
+            const { id, position } = action.payload;
+            const activeField = state.fields[state.activeFieldId];
+            if (!activeField) return state;
+
+            const updatedActiveField = {
+                ...activeField,
+                properties: {
+                    ...activeField.properties,
+                    activeChoiceId: id ?? activeField.properties?.activeChoiceId,
+                    activeChoiceIndex: position ?? activeField.properties?.activeChoiceIndex
+                }
+            };
+
+            return {
+                ...state,
+                fields: {
+                    ...state.fields,
+                    [state.activeFieldId]: updatedActiveField
+                }
+            };
+        },
         // current active/focused field
         setActiveField: (state, action: PayloadAction<{ id: string; position: number }>) => {
             return {
@@ -73,6 +99,26 @@ export const builder = createSlice({
                 activeFieldIndex: action.payload.position,
                 activeFieldId: action.payload.id
             };
+        },
+        setAddNewChoice: (state: IBuilderState) => {
+            const activeField = state.fields[state.activeFieldId];
+            const id = uuidv4();
+            const newChoices = Object.values(convertProxyToObject(activeField.properties?.choices || {}));
+            newChoices.splice((activeField.properties?.activeChoiceIndex ?? 0) + 1, 0, { id, value: '' });
+            const choices: any = {};
+            newChoices.forEach((choice: any) => {
+                choices[choice.id] = choice;
+            });
+            return { ...state, fields: { ...state.fields, [activeField.id]: { ...activeField, properties: { ...activeField.properties, choices } } } };
+        },
+        setDeleteChoice: (state: IBuilderState, action: { payload: string; type: string }) => {
+            const activeField = state.fields[state.activeFieldId];
+            const proxyKeys = Object.getOwnPropertyNames(activeField.properties?.choices ?? {});
+            //@ts-ignore
+            const choicesEntries = proxyKeys.map((key) => [key, activeField.properties?.choices[key]]);
+            const choices = Object.fromEntries(choicesEntries);
+            if (action.payload) delete choices[action.payload];
+            return { ...state, fields: { ...state.fields, [activeField.id]: { ...activeField, properties: { activeChoiceId: activeField.properties?.activeChoiceId, activeChoiceIndex: (activeField.properties?.activeChoiceIndex ?? -1) - 1, choices } } } };
         },
         setCommandMenuPosition: (state, action: { payload: 'up' | 'down' }) => {
             if (state.menus?.commands) return { ...state, menus: { ...state.menus, commands: { ...state.menus?.commands, position: action.payload } } };

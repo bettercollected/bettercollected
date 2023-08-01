@@ -1,16 +1,17 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 
 import { TextField, TextFieldProps } from '@mui/material';
 import cn from 'classnames';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 
-export default function FormBuilderInput(props: TextFieldProps) {
+const FormBuilderInput = forwardRef<HTMLDivElement, TextFieldProps>((props, ref) => {
     const { placeholder, inputProps, inputMode, className, ...otherProps } = props;
 
     const { t } = useBuilderTranslation();
     return (
         <TextField
+            ref={ref}
             variant="outlined"
             inputMode={inputMode || 'text'}
             inputProps={
@@ -34,4 +35,7 @@ export default function FormBuilderInput(props: TextFieldProps) {
             placeholder={placeholder || t('COMPONENTS.INPUT.END_ADORNMENT_PLACEHOLDER')}
         />
     );
-}
+});
+
+FormBuilderInput.displayName = 'FormBuilderInput';
+export default FormBuilderInput;
