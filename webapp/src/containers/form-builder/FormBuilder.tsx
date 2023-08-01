@@ -360,7 +360,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         onDragStartHandlerCallback={(start: DragStart, provided: ResponderProvided) => {}}
                         onDragUpdateHandlerCallback={(update: DragUpdate, provided: ResponderProvided) => {}}
                         onDragEndHandlerCallback={(result: DropResult, provided: ResponderProvided) => {
-                            if (!result.destination?.index) {
+                            if (!result.destination) {
                                 return;
                             }
                             const items: Array<IFormFieldState> = reorder(Object.values(builderState.fields), result.source.index, result.destination.index);
