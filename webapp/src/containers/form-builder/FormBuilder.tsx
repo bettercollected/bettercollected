@@ -18,7 +18,7 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setAddNewField, setBuilderState, setDeleteField, setFields, setUpdateField } from '@app/store/form-builder/actions';
+import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField, setFields, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
@@ -147,42 +147,25 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                 if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault();
                     event.stopPropagation();
-                    if (isMultipleChoice(formField.type)) {
+                    if (isMultipleChoice(formField?.type) && builderState.activeFieldIndex >= -1) {
                         //@ts-ignore
                         if ((formField.properties?.choices[formField.properties.activeChoiceId].value || '') !== '') {
-                            const id = uuidv4();
-                            const newChoices = Object.values(formField.properties?.choices || {});
-                            newChoices.splice((formField.properties?.activeChoiceIndex ?? 0) + 1, 0, { id, value: '' });
-                            const choices: any = {};
-                            newChoices.forEach((choice: any) => {
-                                choices[choice.id] = choice;
-                            });
-                            dispatch(setUpdateField({ ...formField, properties: { ...formField.properties, choices: choices } }));
+                            dispatch(setAddNewChoice());
                         } else {
                             const choices = { ...formField.properties?.choices };
                             //@ts-ignore
-                            delete choices[formField.properties.activeChoiceId];
-                            const newField: IFormFieldState = createNewField(builderState.activeFieldIndex);
-                            batch(() => {
-                                dispatch(setUpdateField({ ...formField, properties: { ...formField.properties, choices: { ...choices } } }));
-                                if (Object.values(choices).length === 0) dispatch(setDeleteField(formField.id));
-                                dispatch(setAddNewField(newField));
-                                dispatch(
-                                    setBuilderState({
-                                        isFormDirty: true,
-                                        activeFieldIndex: builderState.activeFieldIndex + (Object.values(choices).length === 0 ? 0 : 1)
-                                    })
-                                );
-                            });
+                            dispatch(setDeleteChoice(formField.properties.activeChoiceId));
+                            if (Object.values(choices).length === 0) dispatch(setDeleteField(formField.id));
+                            dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
+                            dispatch(
+                                setBuilderState({
+                                    isFormDirty: true,
+                                    activeFieldIndex: builderState.activeFieldIndex + (Object.values(choices).length === 0 ? 0 : 1)
+                                })
+                            );
                         }
                     } else if (builderState.activeFieldIndex >= -1) {
-                        const newField: IFormFieldState = {
-                            id: v4(),
-                            type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
-                            isCommandMenuOpen: false,
-                            position: builderState.activeFieldIndex
-                        };
-                        dispatch(setAddNewField(newField));
+                        dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
                         dispatch(
                             setBuilderState({
                                 isFormDirty: true,
