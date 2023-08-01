@@ -67,7 +67,7 @@ export const builder = createSlice({
                 ...action.payload
             };
         },
-        setActiveChoice: (state, action: PayloadAction<{ id?: string; position: number }>) => {
+        setActiveChoice: (state, action: PayloadAction<{ id?: string; position?: number }>) => {
             const { id, position } = action.payload;
             const activeField = state.fields[state.activeFieldId];
             if (!activeField) return state;
@@ -76,8 +76,8 @@ export const builder = createSlice({
                 ...activeField,
                 properties: {
                     ...activeField.properties,
-                    activeChoiceId: id,
-                    activeChoiceIndex: position
+                    activeChoiceId: id ?? activeField.properties?.activeChoiceId,
+                    activeChoiceIndex: position ?? activeField.properties?.activeChoiceIndex
                 }
             };
 
