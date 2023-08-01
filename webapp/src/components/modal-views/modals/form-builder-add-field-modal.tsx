@@ -56,7 +56,7 @@ export default function FormBuilderAddFieldModal({ index }: { index?: number }) 
             />
             {Fields.map((fieldType, index) => (
                 <div key={t(fieldType.title)} className="flex flex-col">
-                    <div className="body1 mb-6">{fieldType.title}</div>
+                    <div className="body1 mb-6">{t(fieldType.title)}</div>
                     <div className="grid gap-x-12 gap-y-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                         {fieldType.items.map((tag, index) => (
                             <div
