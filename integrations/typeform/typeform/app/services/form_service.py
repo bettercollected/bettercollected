@@ -3,7 +3,6 @@ from http import HTTPStatus
 from typing import Any, Dict, List
 
 import requests
-from fastapi import HTTPException
 
 from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.form_import import FormImportResponse
@@ -40,7 +39,7 @@ def perform_typeform_request(
     )
     if api_response.status_code != 200:
         raise HTTPException(
-            status_code=400, detail="Error while fetching forms from typeform."
+            status_code=400, content="Error while fetching forms from typeform."
         )
     return api_response.json()
 
