@@ -111,16 +111,6 @@ class WorkspaceFormService:
                 private=not standard_form.settings.is_public,
             ),
         )
-        # self.schedular.add_job(
-        #     self.form_schedular.update_form,
-        #     "interval",
-        #     id=f"{provider}_{standard_form.form_id}",
-        #     coalesce=True,
-        #     replace_existing=True,
-        #     kwargs={"form_id": standard_form.form_id, "workspace_id": workspace_id},
-        #     minutes=settings.schedular_settings.INTERVAL_MINUTES,
-        # )
-
         await self.temporal_service.add_scheduled_job_for_importing_form(
             workspace_id=workspace_id, form_id=standard_form.form_id
         )
@@ -165,7 +155,9 @@ class WorkspaceFormService:
         if len(workspace_ids) > 1:
             return "Form deleted from workspace."
         if workspace_form.settings.provider != "self":
-            self.schedular.remove_job(f"{workspace_form.settings.provider}_{form_id}")
+            await self.temporal_service.delete_form_import_schedule(
+                workspace_id, form_id
+            )
         await self.form_service.delete_form(form_id=form_id)
         await self.form_response_service.delete_form_responses(form_id=form_id)
         await self.form_response_service.delete_deletion_requests(form_id=form_id)
@@ -229,10 +221,9 @@ class WorkspaceFormService:
         )
         for workspace_form in workspace_forms:
             if workspace_form.settings.provider != "self":
-                self.schedular.remove_job(
-                    workspace_form.settings.provider + "_" + workspace_form.form_id
+                await self.temporal_service.delete_form_import_schedule(
+                    workspace_form.workspace_id, workspace_form.form_id
                 )
-
         await self.form_response_service.delete_form_responses_of_form_ids(
             form_ids=form_ids
         )

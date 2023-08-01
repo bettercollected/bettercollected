@@ -89,3 +89,16 @@ class TemporalService:
             )
         except Exception as e:
             loguru.logger.error(e)
+
+    async def delete_form_import_schedule(
+        self, workspace_id: PydanticObjectId, form_id: str
+    ):
+        if not self.client:
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                content="Cannot connect to temporal server",
+            )
+        schedule_handle = self.client.get_schedule_handle(
+            "import_" + str(workspace_id) + "_" + form_id
+        )
+        await schedule_handle.delete()
