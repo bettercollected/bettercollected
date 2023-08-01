@@ -10,6 +10,7 @@ import { GridCloseIcon } from '@mui/x-data-grid';
 import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react-beautiful-dnd';
 import { useDispatch } from 'react-redux';
 
+import useFormBuilderState from '@app/containers/form-builder/context';
 import { setActiveChoice, setActiveField, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
@@ -24,13 +25,14 @@ interface IMultipleChoiceProps {
 export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
     const dispatch = useDispatch();
     const contentRef = useRef<HTMLDivElement | null>(null);
+    const { setBackspaceCount } = useFormBuilderState();
 
     const builderState = useAppSelector(selectBuilderState);
     const handleChoiceValueChange = (id: string, value: string) => {
         dispatch(
             setUpdateField({
                 ...field,
-                properties: { ...field.properties?.choices, choices: { ...field.properties?.choices, [id]: { id, value } } }
+                properties: { ...field.properties, choices: { ...field.properties?.choices, [id]: { id, value } } }
             })
         );
     };
@@ -122,6 +124,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
                                                         focus={builderState.fields[builderState.activeFieldId]?.properties?.activeChoiceIndex === index && field.id === builderState.activeFieldId}
                                                         id={choice.id}
                                                         onChange={(event) => {
+                                                            setBackspaceCount(0);
                                                             handleChoiceValueChange(choice.id, event.target.value);
                                                         }}
                                                         onFocus={() => {

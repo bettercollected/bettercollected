@@ -1,3 +1,4 @@
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { position } from 'html2canvas/dist/types/css/property-descriptors/position';
 import { persistReducer } from 'redux-persist';
@@ -7,6 +8,7 @@ import { v4 } from 'uuid';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { IBuilderMenuState, IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 
+import { setUpdateField } from './actions';
 import { getInitialPropertiesForFieldType } from './utils';
 
 const firstFieldId = v4();
@@ -138,6 +140,7 @@ export const builder = createSlice({
 
             return { ...state, fields: newFieldsMap };
         },
+
         addDuplicateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             // TODO: fix duplicate for shortcut keys
             const fieldsArray = [...Object.values(state.fields)];

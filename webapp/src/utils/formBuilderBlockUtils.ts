@@ -1,4 +1,8 @@
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { v4 } from 'uuid';
+
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { IFormFieldState } from '@app/store/form-builder/types';
 
 export function extractBlockTypeNames() {}
 
@@ -54,3 +58,17 @@ export function isMultipleChoice(type: FormBuilderTagNames): boolean {
     const mulipleChoiceTypes = [FormBuilderTagNames.INPUT_CHECKBOXES, FormBuilderTagNames.INPUT_MULTIPLE_CHOICE, FormBuilderTagNames.INPUT_DROPDOWN, FormBuilderTagNames.INPUT_RANKING];
     return mulipleChoiceTypes.includes(type);
 }
+
+export const createNewChoice = () => {
+    const id = uuidv4();
+    return { id, value: '' };
+};
+
+export const createNewField = (position: number): IFormFieldState => {
+    return {
+        id: v4(),
+        type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+        isCommandMenuOpen: false,
+        position
+    };
+};
