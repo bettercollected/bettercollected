@@ -11,6 +11,8 @@ from temporalio.client import (
     ScheduleActionStartWorkflow,
     ScheduleSpec,
     ScheduleIntervalSpec,
+    ScheduleUpdateInput,
+    ScheduleUpdate,
 )
 from temporalio.common import RetryPolicy
 from temporalio.exceptions import WorkflowAlreadyStartedError
@@ -83,7 +85,13 @@ class TemporalService:
                         task_queue=settings.temporal_settings.worker_queue,
                     ),
                     spec=ScheduleSpec(
-                        intervals=[ScheduleIntervalSpec(every=timedelta(seconds=30))],
+                        intervals=[
+                            ScheduleIntervalSpec(
+                                every=timedelta(
+                                    minutes=settings.schedular_settings.INTERVAL_MINUTES
+                                )
+                            )
+                        ],
                     ),
                 ),
             )
@@ -102,3 +110,22 @@ class TemporalService:
             "import_" + str(workspace_id) + "_" + form_id
         )
         await schedule_handle.delete()
+
+    def update_schedule_interval(self, interval: timedelta):
+        async def update_interval_to_default(
+            update_input: ScheduleUpdateInput,
+        ) -> ScheduleUpdate:
+            schedule_spec = update_input.description.schedule.spec
+            if isinstance(schedule_spec, ScheduleSpec):
+                schedule_spec.intervals = [ScheduleIntervalSpec(every=interval)]
+            return ScheduleUpdate(schedule=update_input.description.schedule)
+
+        return update_interval_to_default
+
+    async def update_interval_of_schedule(
+        self, workspace_id: PydanticObjectId, form_id: str, interval: timedelta
+    ):
+        handle = self.client.get_schedule_handle(
+            "import_" + str(workspace_id) + "_" + form_id
+        )
+        await handle.update(updater=self.update_schedule_interval(interval=interval))

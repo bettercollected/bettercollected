@@ -5,6 +5,7 @@ from aiohttp import ServerDisconnectedError
 from beanie import PydanticObjectId
 from loguru import logger
 
+from backend.app.models.enum.update_status import UpdateStatus
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
@@ -51,9 +52,7 @@ class FormSchedular:
                 logger.info(
                     ("Schedular for form " + form_id + ": Could not fetch user details")
                 )
-                logger.error(
-                    f"Error while updating form with id {form_id} by schedular"
-                )
+                logger.info(f"Error while updating form with id {form_id} by schedular")
                 return
 
             user = User(
@@ -73,7 +72,7 @@ class FormSchedular:
             )
 
             if not raw_form:
-                logger.error(
+                logger.info(
                     f"Could not fetch form form provider for form with id {form_id} by schedular"
                 )
                 return
@@ -86,7 +85,7 @@ class FormSchedular:
             )
 
             if not response_data:
-                logger.error(
+                logger.info(
                     f"Error while requesting conversion for form with id {form_id} by schedular"
                 )
                 return
@@ -98,9 +97,12 @@ class FormSchedular:
                 )
             )
         if standard_form:
+            workspace_form.last_update_status = UpdateStatus.SUCCESS
             logger.info(f"Form {form_id} is updated successfully by schedular.")
         else:
-            logger.error(f"Error while updating form with id {form_id} by schedular")
+            workspace_form.last_update_status = UpdateStatus.FAILED
+            logger.info(f"Error while updating form with id {form_id} by schedular")
+        await workspace_form.save()
 
     async def perform_conversion_request(
         self,
