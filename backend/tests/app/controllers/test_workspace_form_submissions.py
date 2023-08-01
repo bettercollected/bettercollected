@@ -61,7 +61,6 @@ async def create_responses(form, workspace):
     ]
 
 
-@pytest.mark.asyncio
 class TestWorkspaceFormSubmission:
     async def test_request_for_delete_form_response(
         self,

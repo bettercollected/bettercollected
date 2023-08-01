@@ -34,7 +34,6 @@ def get_workspace_group_url(common_url, workspace_form, workspace_group):
     return f"{common_url}/{workspace_form.form_id}/groups/add?group_id={workspace_group.id}"
 
 
-@pytest.mark.asyncio
 class TestWorkspaceForm:
     def test_get_workspace_forms(
         self,

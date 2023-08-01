@@ -6,7 +6,7 @@ from tests.app.controllers.data import testUser, workspace_tag
 
 
 @pytest.fixture()
-def workspace_responders_api(workspace):
+async def workspace_responders_api(workspace):
     return "api/v1/workspaces/" + str(workspace.id) + "/responders"
 
 
@@ -21,7 +21,6 @@ async def create_tag_for_responder(workspace, tag_title):
     )
 
 
-@pytest.mark.asyncio
 class TestWorkspaceResponders:
     async def test_get_workspace_responders(
         self,
