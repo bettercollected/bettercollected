@@ -1,13 +1,11 @@
 from dependency_injector import providers
 from fastapi.testclient import TestClient
 from mongomock_motor import AsyncMongoMockClient
-import asyncio
 
 import pytest
 from unittest.mock import patch
 
 from backend.app.schemas.workspace import WorkspaceDocument
-from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services import workspace_service
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponse
@@ -25,7 +23,7 @@ from backend.app.container import container
 
 
 @pytest.fixture
-def client_test():
+def client():
     container.database_client.override(providers.Singleton(AsyncMongoMockClient))
     app = get_application(is_test_mode=True)
     with TestClient(app) as test_client:
@@ -33,99 +31,81 @@ def client_test():
 
 
 @pytest.fixture()
-def workspace():
-    asyncio.run(workspace_service.create_workspace(testUser))
-    workspace = (asyncio.run(WorkspaceDocument.find().to_list()))[0]
-    yield workspace
+async def workspace():
+    await workspace_service.create_workspace(testUser)
+    workspace = (await WorkspaceDocument.find().to_list())[0]
+    return workspace
 
 
 @pytest.fixture()
-def workspace_1():
-    asyncio.run(workspace_service.create_workspace(testUser))
-    asyncio.run(workspace_service.create_workspace(testUser1))
-    workspace = (asyncio.run(WorkspaceDocument.find().to_list()))[1]
-    yield workspace
+async def workspace_1():
+    await workspace_service.create_workspace(testUser)
+    await workspace_service.create_workspace(testUser1)
+    workspace = (await WorkspaceDocument.find().to_list())[1]
+    return workspace
 
 
 @pytest.fixture()
-def workspace_form(workspace):
-    form = asyncio.run(
-        container.workspace_form_service().create_form(
-            workspace.id, StandardForm(**formData), testUser
-        )
+async def workspace_form(workspace):
+    form = await container.workspace_form_service().create_form(
+        workspace.id, StandardForm(**formData), testUser
+    )
+    return form
+
+
+@pytest.fixture()
+async def workspace_form_1(workspace_1):
+    form = await container.workspace_form_service().create_form(
+        workspace_1.id, StandardForm(**formData), testUser1
     )
     yield form
 
 
 @pytest.fixture()
-def workspace_form_1(workspace_1):
-    form = asyncio.run(
-        container.workspace_form_service().create_form(
-            workspace_1.id, StandardForm(**formData), testUser1
-        )
+async def workspace_form_response(workspace, workspace_form):
+    form_response = await container.workspace_form_service().submit_response(
+        workspace.id,
+        workspace_form.form_id,
+        StandardFormResponse(**formResponse),
+        testUser,
     )
-    yield form
+    return dict(form_response)
 
 
 @pytest.fixture()
-def workspace_form_response(workspace, workspace_form):
-    response = dict(
-        asyncio.run(
-            container.workspace_form_service().submit_response(
-                workspace.id,
-                workspace_form.form_id,
-                StandardFormResponse(**formResponse),
-                testUser,
-            )
-        )
+async def workspace_form_response_1(workspace, workspace_form):
+    response = await container.workspace_form_service().submit_response(
+        workspace.id,
+        workspace_form.form_id,
+        StandardFormResponse(**formResponse),
+        testUser1,
     )
-    yield response
+    return dict(response)
 
 
 @pytest.fixture()
-def workspace_form_response_1(workspace, workspace_form):
-    response = dict(
-        asyncio.run(
-            container.workspace_form_service().submit_response(
-                workspace.id,
-                workspace_form.form_id,
-                StandardFormResponse(**formResponse),
-                testUser1,
-            )
-        )
+async def workspace_form_response_2(workspace, workspace_form):
+    response = await container.workspace_form_service().submit_response(
+        workspace.id,
+        workspace_form.form_id,
+        StandardFormResponse(**formResponse),
+        testUser2,
     )
-    yield response
+    return dict(response)
 
 
 @pytest.fixture()
-def workspace_form_response_2(workspace, workspace_form):
-    response = dict(
-        asyncio.run(
-            container.workspace_form_service().submit_response(
-                workspace.id,
-                workspace_form.form_id,
-                StandardFormResponse(**formResponse),
-                testUser2,
-            )
-        )
+async def workspace_group(workspace, workspace_form):
+    group = await container.responder_groups_service().create_group(
+        workspace.id,
+        "Testing_Group",
+        "testing_group@gmail.com",
+        testUser,
+        workspace_form.form_id,
+        "testing_Description",
+        "@gmail.com",
     )
-    yield response
-
-
-@pytest.fixture()
-def workspace_group(workspace, workspace_form):
-    group = asyncio.run(
-        container.responder_groups_service().create_group(
-            workspace.id,
-            "Testing_Group",
-            "testing_group@gmail.com",
-            testUser,
-            workspace_form.form_id,
-            "testing_Description",
-            "@gmail.com",
-        )
-    )
-    yield group
+    return group
 
 
 @pytest.fixture()
@@ -155,9 +135,6 @@ def mock_aiohttp_get_request():
 @pytest.fixture()
 def mock_aiohttp_post_request(workspace_form, workspace_form_response):
     async def mock_post(*args, **kwargs):
-        # class MockResponse:
-        #     async def json(self):
-        #         return StandardForm(**formData)
         responses = StandardFormResponse(**workspace_form_response)
         form = StandardForm(**dict(workspace_form))
         return FormImportResponse(form=form, responses=[responses])
