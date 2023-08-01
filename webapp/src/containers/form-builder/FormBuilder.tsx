@@ -17,13 +17,14 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addDuplicateField, resetBuilderMenuState, setAddNewField, setBuilderState, setDeleteField, setFields } from '@app/store/form-builder/actions';
+import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setAddNewField, setBuilderState, setDeleteField, setFields } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateFormMutation, usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
+import { isMultipleChoice } from '@app/utils/formBuilderBlockUtils';
 
 import useFormBuilderState from './context';
 
@@ -145,7 +146,10 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                 if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault();
                     event.stopPropagation();
-                    if (builderState.activeFieldIndex >= -1) {
+
+                    if (isMultipleChoice(formField.type)) {
+                        // debugger;
+                    } else if (builderState.activeFieldIndex >= -1) {
                         const newField: IFormFieldState = {
                             id: v4(),
                             type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
@@ -163,10 +167,29 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                 }
 
                 if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
-                if (!event.ctrlKey && !event.metaKey && (event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
+                // Only for multiple choice
+                if (event.key === 'ArrowDown' && isMultipleChoice(formField.type)) {
+                    //@ts-ignore
+                    if (formField.properties?.activeChoiceIndex < Object.values(formField.properties?.choices).length - 1) {
+                        dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) + 1 }));
+                    }
+                }
+                if (event.key === 'ArrowUp' && isMultipleChoice(formField.type)) {
+                    //@ts-ignore
+                    if (formField.properties?.activeChoiceIndex > 0) {
+                        dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) - 1 }));
+                    }
+                }
+                if (
+                    !event.ctrlKey &&
+                    !event.metaKey &&
+                    (event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) &&
+                    builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1 &&
+                    (!isMultipleChoice(formField.type) || formField.properties?.activeChoiceIndex === Object.values(formField.properties?.choices ?? {}).length - 1)
+                ) {
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
                 }
-                if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2) {
+                if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2 && (!isMultipleChoice(formField.type) || (formField.properties?.activeChoiceIndex ?? 0) === 0)) {
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                 }
                 if (event.code === 'Slash' && builderState.activeFieldIndex >= 0) {
