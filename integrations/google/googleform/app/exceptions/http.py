@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from google.auth.exceptions import RefreshError
+from httplib2 import ServerNotFoundError
 
 
 class HTTPException(Exception):
@@ -92,4 +93,11 @@ async def refresh_error_handler(request: Request, exception: RefreshError):
     return JSONResponse(
         status_code=HTTPStatus.UNAUTHORIZED,
         content="Refresh error",
+    )
+
+
+async def server_not_found_error_handler(request: Request, exception: ServerNotFoundError):
+    return JSONResponse(
+        status_code=HTTPStatus.UNAUTHORIZED,
+        content="Could not reach google server server",
     )

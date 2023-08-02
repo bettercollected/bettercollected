@@ -5,6 +5,7 @@ import sentry_sdk
 from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
 from fastapi import FastAPI
 from google.auth.exceptions import RefreshError
+from httplib2 import ServerNotFoundError
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
@@ -14,7 +15,7 @@ from googleform.app.exceptions import (
     HTTPException,
     http_exception_handler,
 )
-from googleform.app.exceptions.http import timeout_error_handler
+from googleform.app.exceptions.http import timeout_error_handler, refresh_error_handler, server_not_found_error_handler
 from googleform.app.router import root_api_router
 from googleform.app.services.database_service import close_db, init_db
 from googleform.app.services.migration_service import (
@@ -101,8 +102,8 @@ def get_application():
     log.debug("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(TimeoutError, timeout_error_handler)
-    app.add_exception_handler(RefreshError, timeout_error_handler)
-
+    app.add_exception_handler(RefreshError, refresh_error_handler)
+    app.add_exception_handler(ServerNotFoundError, server_not_found_error_handler)
     if settings.apm_settings.service_name and settings.apm_settings.server_url:
         app.add_middleware(ElasticAPM, client=apm)
     return app
