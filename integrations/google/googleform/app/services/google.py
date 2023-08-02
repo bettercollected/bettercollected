@@ -1,5 +1,10 @@
-from googleapiclient.discovery import build
+from http import HTTPStatus
 
+from google.auth.exceptions import RefreshError
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
+from googleform.app.exceptions import HTTPException
 from googleform.app.utils.google import dict_to_credential
 
 
@@ -42,13 +47,24 @@ class GoogleService:
         Returns:
             dict: A dictionary containing the form data.
         """
-        google_form = (
-            self._build_service(credentials=credentials, service_name="forms")
-            .forms()
-            .get(formId=form_id)
-            .execute()
-        )
-        return google_form
+        try:
+            google_form = (
+                self._build_service(credentials=credentials, service_name="forms")
+                .forms()
+                .get(formId=form_id)
+                .execute()
+            )
+            return google_form
+        except HttpError as e:
+            if e.status_code == HTTPStatus.NOT_FOUND:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    content="Form not found is Google forms",
+                )
+        except RefreshError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED, content="Refresh error"
+            )
 
     def get_form_list(self, credentials, page_token=None, max_page_size=100):
         """

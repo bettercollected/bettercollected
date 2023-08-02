@@ -53,5 +53,6 @@ class Container(containers.DeclarativeContainer):
         oauth_credential_repo=oauth_credential_repo,
         oauth_google_service=oauth_google_service,
     )
-    executor: ThreadPoolExecutor = providers.Singleton(ThreadPoolExecutor,
-                                                       max_workers=settings.MAX_THREAD_POOL_EXECUTORS)
+    executor: ThreadPoolExecutor = providers.Singleton(
+        ThreadPoolExecutor, max_workers=settings.MAX_THREAD_POOL_EXECUTORS
+    )

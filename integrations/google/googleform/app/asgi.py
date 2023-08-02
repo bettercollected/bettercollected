@@ -23,6 +23,7 @@ from googleform.config import settings
 
 log = logging.getLogger(__name__)
 
+
 async def on_startup():
     """Define FastAPI startup event handler.
 

@@ -13,7 +13,11 @@ from googleform.app.services.user_service import get_user_credential
 
 
 class GoogleFormRouter(Routable):
-    def __init__(self, *args, **kwargs, ):
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
         """This class defines the routes for interacting with the Google forms."""
         # Injecting dependencies
         super().__init__(*args, **kwargs)
@@ -30,8 +34,11 @@ class GoogleFormRouter(Routable):
             credential.email
         )
 
-        task = asyncio.get_event_loop().run_in_executor(self.executor, self.google_service.get_form_list,
-                                                        credential.credentials.dict())
+        task = asyncio.get_event_loop().run_in_executor(
+            self.executor,
+            self.google_service.get_form_list,
+            credential.credentials.dict(),
+        )
 
         forms_list = await task
         return forms_list
@@ -46,8 +53,12 @@ class GoogleFormRouter(Routable):
             credential.email
         )
 
-        task = asyncio.get_event_loop().run_in_executor(self.executor, self.google_service.get_form, form_id,
-                                                        credential.credentials.dict())
+        task = asyncio.get_event_loop().run_in_executor(
+            self.executor,
+            self.google_service.get_form,
+            form_id,
+            credential.credentials.dict(),
+        )
         form = await task
         return form
 
@@ -64,9 +75,12 @@ class GoogleFormRouter(Routable):
         transformer = GoogleFormTransformerService()
         standard_form = transformer.transform_form(form_import)
         if convert_responses:
-            task = asyncio.get_event_loop().run_in_executor(self.executor,
-                                                            self.google_service.get_form_response_list,
-                                                            standard_form.form_id, credential.credentials.dict())
+            task = asyncio.get_event_loop().run_in_executor(
+                self.executor,
+                self.google_service.get_form_response_list,
+                standard_form.form_id,
+                credential.credentials.dict(),
+            )
             form_responses = await task
             standard_responses = transformer.transform_form_responses(form_responses)
             return FormImportResponse(form=standard_form, responses=standard_responses)

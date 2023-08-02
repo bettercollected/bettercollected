@@ -42,9 +42,7 @@ class OauthCredentialRepository:
             HTTPException: If there is an error connecting to the database.
         """
         try:
-            document = await Oauth2CredentialDocument.find_one(
-                {"email": email}
-            )
+            document = await Oauth2CredentialDocument.find_one({"email": email})
             if document:
                 document.credentials = OauthCredentialRepository.decrypt_token(
                     user_id=document.user_id, token=document.credentials

@@ -5,7 +5,6 @@ from urllib import parse
 
 import google_auth_oauthlib.flow
 import requests
-from fastapi import HTTPException
 from google.auth.exceptions import RefreshError
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -24,6 +23,7 @@ from common.constants import (
     MESSAGE_OAUTH_MISSING_TOKEN_OR_EXPIRY,
 )
 from common.models.user import UserInfo
+from googleform.app.exceptions import HTTPException
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.app.utils import AiohttpClient
@@ -84,9 +84,6 @@ class OauthGoogleService:
             )
 
             flow.redirect_uri = settings.GOOGLE_REDIRECT_URIS
-
-            logger.warning(state)
-
             authorization_url, state = flow.authorization_url(
                 access_type="offline",
                 state=state,
@@ -100,27 +97,27 @@ class OauthGoogleService:
         except InvalidGrantError:
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
-                detail=MESSAGE_OAUTH_INVALID_GRANT,
+                content=MESSAGE_OAUTH_INVALID_GRANT,
             )
         except HttpError as error:
             raise HTTPException(
-                status_code=error.status_code, detail=error.error_details
+                status_code=error.status_code, content=error.error_details
             )
         except RefreshError:
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
-                detail=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
+                content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
         except InvalidClientError:
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
-                detail=MESSAGE_OAUTH_INVALID_CLIENT,
+                content=MESSAGE_OAUTH_INVALID_CLIENT,
             )
         except Exception as error:
             logger.error(error)
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
+                content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
 
     async def oauth2callback(self, request: Request, user_id: str):
@@ -170,27 +167,27 @@ class OauthGoogleService:
         except InvalidGrantError:
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
-                detail=MESSAGE_OAUTH_INVALID_GRANT,
+                content=MESSAGE_OAUTH_INVALID_GRANT,
             )
         except HttpError as error:
             raise HTTPException(
-                status_code=error.status_code, detail=error.error_details
+                status_code=error.status_code, content=error.error_details
             )
         except RefreshError:
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
-                detail=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
+                content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
         except InvalidClientError:
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
-                detail=MESSAGE_OAUTH_INVALID_CLIENT,
+                content=MESSAGE_OAUTH_INVALID_CLIENT,
             )
         except Exception as error:
             logger.error(error)
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
+                content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
 
     def fetch_token(self, auth_code: str, state: str):
@@ -220,27 +217,27 @@ class OauthGoogleService:
         except InvalidGrantError:
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
-                detail=MESSAGE_OAUTH_INVALID_GRANT,
+                content=MESSAGE_OAUTH_INVALID_GRANT,
             )
         except HttpError as error:
             raise HTTPException(
-                status_code=error.status_code, detail=error.error_details
+                status_code=error.status_code, content=error.error_details
             )
         except RefreshError:
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
-                detail=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
+                content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
         except InvalidClientError:
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
-                detail=MESSAGE_OAUTH_INVALID_CLIENT,
+                content=MESSAGE_OAUTH_INVALID_CLIENT,
             )
         except Exception as error:
             logger.error(error)
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
+                content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
 
     async def fetch_oauth_token(self, oauth_credential: Oauth2CredentialDocument):
@@ -263,7 +260,6 @@ class OauthGoogleService:
                 token is missing or has expired.
         """
 
-        oauth_fetch_start_time = datetime.utcnow()
         try:
             credentials = dict_to_credential(oauth_credential.credentials.dict())
             expiry_datetime = credentials.expiry
@@ -277,7 +273,9 @@ class OauthGoogleService:
                     "refresh_token": credentials.refresh_token,
                     "grant_type": "refresh_token",
                 }
-                refreshed_token_response = await AiohttpClient.post(credentials.token_uri, data)
+                refreshed_token_response = await AiohttpClient.post(
+                    credentials.token_uri, data
+                )
                 token = await refreshed_token_response.json()
                 if token.get("error"):
                     raise InvalidGrantError()
@@ -292,33 +290,22 @@ class OauthGoogleService:
                 saved_credentials = await self.oauth_credential_repo.update(
                     oauth_credential.email, oauth_credential
                 )
-                logger.info(
-                    str(oauth_credential.email)
-                    + ": Timer: Oauth Token Refresh Time: "
-                    + str(datetime.utcnow() - oauth_fetch_start_time)
-                )
                 return saved_credentials
-
-            logger.info(
-                str(oauth_credential.email)
-                + ": Timer: Oauth Token Fetch Time: "
-                + str(datetime.utcnow() - oauth_fetch_start_time)
-            )
             return oauth_credential
         except HttpError:
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
-                detail=MESSAGE_OAUTH_MISSING_TOKEN_OR_EXPIRY,
+                content=MESSAGE_OAUTH_MISSING_TOKEN_OR_EXPIRY,
             )
         except InvalidGrantError:
             raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST, detail=MESSAGE_OAUTH_INVALID_GRANT
+                status_code=HTTPStatus.BAD_REQUEST, content=MESSAGE_OAUTH_INVALID_GRANT
             )
         except Exception as error:
             logger.error(error)
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
+                content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
 
     @staticmethod
@@ -353,19 +340,20 @@ class OauthGoogleService:
             return oauth_service.userinfo().get().execute()
         except HttpError as error:
             raise HTTPException(
-                status_code=error.status_code, detail=error.error_details
+                status_code=error.status_code, content=error.error_details
             )
         except RefreshError:
             raise HTTPException(
-                status_code=401, detail="Google auth token refresh error."
+                status_code=401, content="Google auth token refresh error."
             )
         except InvalidClientError as error:
             raise HTTPException(
-                status_code=401, detail="Google auth invalid client error."
+                status_code=401, content="Google auth invalid client error."
             )
         except AttributeError:
             raise HTTPException(
-                status_code=401, detail="State not found. Connect with google services."
+                status_code=401,
+                content="State not found. Connect with google services.",
             )
         except InvalidGrantError:
             raise HTTPException(401, "Invalid Grant error.")
