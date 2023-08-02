@@ -84,7 +84,17 @@ user_info = {
 
 test_form_import_data = {"form": {}, "response_data_owner": "string"}
 
+workspace_attribute = {
+    "title": "betterCollected_test_workspace",
+    "description": "It is a testing workspace",
+    "custom_domain": "test_custom_domain",
+}
+workspace_attribute_1 = {
+    "title": "new_testing_workspace",
+    "description": "It is another testing workspace",
+}
 
 testUser = User(id=str(PydanticObjectId()), sub="test@email.com")
 testUser1 = User(id=str(PydanticObjectId()), sub="bettercollected@email.com")
 testUser2 = User(id=str(PydanticObjectId()), sub="random@email.com")
+proUser = User(id=str(PydanticObjectId()), sub="prouser@gmail.com", plan="PRO")
