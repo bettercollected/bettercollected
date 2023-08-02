@@ -16,6 +16,7 @@ from tests.app.controllers.data import (
     testUser,
     testUser1,
     testUser2,
+    proUser,
 )
 
 from backend.app import get_application
@@ -27,7 +28,7 @@ def client():
     container.database_client.override(providers.Singleton(AsyncMongoMockClient))
     app = get_application(is_test_mode=True)
     with TestClient(app) as test_client:
-        yield test_client
+        return test_client
 
 
 @pytest.fixture()
@@ -42,6 +43,13 @@ async def workspace_1():
     await workspace_service.create_workspace(testUser)
     await workspace_service.create_workspace(testUser1)
     workspace = (await WorkspaceDocument.find().to_list())[1]
+    return workspace
+
+
+@pytest.fixture()
+async def workspace_pro():
+    await workspace_service.create_workspace(proUser)
+    workspace = (await WorkspaceDocument.find().to_list())[0]
     return workspace
 
 
@@ -121,6 +129,12 @@ def test_user_cookies_1():
 
 
 @pytest.fixture()
+def test_pro_user_cookies():
+    token = container.jwt_service().encode(proUser)
+    return {"Authorization": token, "RefreshToken": token}
+
+
+@pytest.fixture()
 def mock_aiohttp_get_request():
     async def mock_get(*args, **kwargs):
         class MockResponse:
@@ -142,4 +156,12 @@ def mock_aiohttp_post_request(workspace_form, workspace_form_response):
     yield patch(
         "backend.app.services.workspace_form_service.WorkspaceFormService.convert_form",
         side_effect=mock_post,
+    )
+
+
+@pytest.fixture()
+def mock_send_otp_get_request():
+    yield patch(
+        "backend.app.services.workspace_service.WorkspaceService.send_otp_for_workspace",
+        return_value={"message": "Otp sent successfully"},
     )
