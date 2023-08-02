@@ -1,9 +1,10 @@
 import asyncio
 import logging
 
-from auth.config import settings
-
+import loguru
 from beanie import init_beanie
+
+from auth.config import settings
 
 log = logging.getLogger(__name__)
 
@@ -19,13 +20,13 @@ async def init_db(database_client):
     database_client.get_io_loop = asyncio.get_running_loop
     db = database_client[settings.mongo_settings.DB]
     await init_beanie(database=db, document_models=document_models)
-    log.info("Database connected successfully.")
+    loguru.logger.info("Database connected successfully.")
 
 
 async def close_db(database_client):
     try:
-        database_client().close()
-        log.info("Database disconnected successfully.")
+        database_client.close()
+        loguru.logger.info("Database disconnected successfully.")
     except Exception as e:
-        log.error("Database disconnect failure.")
-        log.error(e)
+        loguru.logger.error("Database disconnect failure.")
+        loguru.logger.error(e)
