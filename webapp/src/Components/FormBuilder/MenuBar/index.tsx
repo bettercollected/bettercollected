@@ -129,7 +129,7 @@ export default function FormBuilderMenuBar({ onInsert, onAddNewPage, onAddFormLo
                     </IconButton>
                 </Tooltip>
                 <Divider orientation="vertical" flexItem />
-                <Tooltip title={t('PREVIEW.DEFAULT')}>
+                <Tooltip title={t('PUBLISH.DEFAULT')}>
                     <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onFormPublish}>
                         <PublishIcon />
                         <span className="hidden text-black-700 lg:flex">{t('PUBLISH.DEFAULT')}</span>
