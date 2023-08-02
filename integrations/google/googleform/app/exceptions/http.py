@@ -1,8 +1,10 @@
 """Application implementation - custom FastAPI HTTP exception with handler."""
+from http import HTTPStatus
 from typing import Any, Dict, Optional
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from google.auth.exceptions import RefreshError
 
 
 class HTTPException(Exception):
@@ -76,4 +78,18 @@ async def http_exception_handler(request: Request, exception: HTTPException):
         status_code=exception.status_code,
         content=exception.content,
         headers=exception.headers,
+    )
+
+
+async def timeout_error_handler(request: Request, exception: TimeoutError):
+    return JSONResponse(
+        status_code=HTTPStatus.GATEWAY_TIMEOUT,
+        content="Request Timed out",
+    )
+
+
+async def refresh_error_handler(request: Request, exception: RefreshError):
+    return JSONResponse(
+        status_code=HTTPStatus.UNAUTHORIZED,
+        content="Refresh error",
     )
