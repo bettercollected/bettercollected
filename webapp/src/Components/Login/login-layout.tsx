@@ -44,7 +44,7 @@ export default function LoginLayout(props: MyLoginProps) {
     );
 
     return (
-        <Layout className="min-h-screen">
+        <Layout className="min-h-screen !mt-0">
             <div className="absolute h-fit top-0 left-0 w-full flex flex-col md:flex-row">
                 <div className={`bg-brand-500 relative order-2 md:order-1 min-h-screen md:max-h-screen overflow-hidden h-fit md:h-full w-full md:w-[50%] flex flex-col justify-center`}>
                     <div className="flex flex-col px-8 md:max-h-[300px] my-10 md:px-[94px] ">
