@@ -302,7 +302,6 @@ class OauthGoogleService:
                 status_code=HTTPStatus.BAD_REQUEST, content=MESSAGE_OAUTH_INVALID_GRANT
             )
         except Exception as error:
-            logger.error(error)
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
