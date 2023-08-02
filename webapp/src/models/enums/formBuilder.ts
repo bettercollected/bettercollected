@@ -98,3 +98,8 @@ export const NonInputFormBuilderTagNames = [
     FormBuilderTagNames.EMBED_CODE,
     FormBuilderTagNames.EMBED_RECAPTCHA
 ];
+
+export enum FormBuilderEventBusType {
+    Save = 'formSave',
+    Publish = 'Publish'
+}
