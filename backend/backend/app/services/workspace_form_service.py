@@ -149,6 +149,7 @@ class WorkspaceFormService:
         workspace_ids = (
             await self.workspace_form_repository.get_workspace_ids_for_form_id(form_id)
         )
+
         workspace_form = await self.workspace_form_repository.delete_form_in_workspace(
             workspace_id=workspace_id, form_id=form_id
         )
@@ -158,6 +159,7 @@ class WorkspaceFormService:
             await self.temporal_service.delete_form_import_schedule(
                 workspace_id, form_id
             )
+
         await self.form_service.delete_form(form_id=form_id)
         await self.form_response_service.delete_form_responses(form_id=form_id)
         await self.form_response_service.delete_deletion_requests(form_id=form_id)

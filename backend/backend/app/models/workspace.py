@@ -5,8 +5,6 @@ from beanie import PydanticObjectId
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
 
-from backend.app.models.enum.update_status import UpdateStatusEnum
-
 
 class WorkspaceRequestDto(BaseModel):
     """Model for creating or updating a workspace."""

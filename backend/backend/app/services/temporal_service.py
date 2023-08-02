@@ -16,6 +16,7 @@ from temporalio.client import (
 )
 from temporalio.common import RetryPolicy
 from temporalio.exceptions import WorkflowAlreadyStartedError
+from temporalio.service import RPCError
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.ImportFormParams import ImportFormParams
@@ -27,8 +28,13 @@ from common.utils.asyncio_run import asyncio_run
 
 class TemporalService:
     def __init__(self, server_uri: str, namespace: str, crypto: Crypto):
+        self.server_uri = server_uri
+        self.namespace = namespace
+        self.crypto = crypto
+        self.connect_to_temporal_server(server_uri=server_uri, namespace=namespace)
+
+    def connect_to_temporal_server(self, server_uri: str, namespace: str):
         try:
-            self.crypto = crypto
             self.client: Client = asyncio_run(
                 Client.connect(server_uri, namespace=namespace)
             )
@@ -36,12 +42,17 @@ class TemporalService:
             self.client: Client = None
             loguru.logger.error("Could not connect to Temporal server", e)
 
-    async def start_user_deletion_workflow(self, user_tokens: UserTokens, user_id: str):
+    async def check_temporal_client_and_try_to_connect_if_not_connected(self):
         if not self.client:
-            raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                content="Cannot connect to temporal server",
-            )
+            self.connect_to_temporal_server(self.server_uri, self.namespace)
+            if not self.client:
+                raise HTTPException(
+                    status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                    content="Cannot connect to temporal server",
+                )
+
+    async def start_user_deletion_workflow(self, user_tokens: UserTokens, user_id: str):
+        await self.check_temporal_client_and_try_to_connect_if_not_connected()
         try:
             encrypted_tokens = self.crypto.encrypt(json.dumps(asdict(user_tokens)))
             await self.client.start_workflow(
@@ -66,11 +77,7 @@ class TemporalService:
     async def add_scheduled_job_for_importing_form(
         self, workspace_id: PydanticObjectId, form_id: str
     ):
-        if not self.client:
-            raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                content="Cannot connect to temporal server",
-            )
+        await self.check_temporal_client_and_try_to_connect_if_not_connected()
 
         try:
             await self.client.create_schedule(
@@ -101,15 +108,14 @@ class TemporalService:
     async def delete_form_import_schedule(
         self, workspace_id: PydanticObjectId, form_id: str
     ):
-        if not self.client:
-            raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                content="Cannot connect to temporal server",
-            )
-        schedule_handle = self.client.get_schedule_handle(
-            "import_" + str(workspace_id) + "_" + form_id
-        )
-        await schedule_handle.delete()
+        await self.check_temporal_client_and_try_to_connect_if_not_connected()
+        schedule_id = "import_" + str(workspace_id) + "_" + form_id
+        schedule_handle = self.client.get_schedule_handle(schedule_id)
+        try:
+            await schedule_handle.delete()
+        except RPCError as e:
+            loguru.logger.info("No schedule found for id:" + schedule_id + " to delete")
+            pass
 
     def update_schedule_interval(self, interval: timedelta):
         async def update_interval_to_default(

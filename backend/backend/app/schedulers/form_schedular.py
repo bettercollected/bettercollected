@@ -5,10 +5,12 @@ from aiohttp import ServerDisconnectedError
 from beanie import PydanticObjectId
 from loguru import logger
 
+from backend.app.exceptions import HTTPException
 from backend.app.models.enum.update_status import UpdateStatus
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
+from backend.app.services.temporal_service import TemporalService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
 from common.models.user import User
@@ -21,10 +23,12 @@ class FormSchedular:
         form_provider_service: FormPluginProviderService,
         form_import_service: FormImportService,
         jwt_service: JwtService,
+        temporal_service: TemporalService,
     ):
         self.form_provider_service = form_provider_service
         self.form_import_service = form_import_service
         self.jwt_service = jwt_service
+        self.temporal_service = temporal_service
 
     async def update_form(
         self,
@@ -32,13 +36,11 @@ class FormSchedular:
         form_id,
         workspace_id: PydanticObjectId = None,
     ):
-        logger.info(f"Job started for form {form_id} by schedular.")
         workspace_form = await WorkspaceFormDocument.find_one(
             {"form_id": form_id, "workspace_id": workspace_id}
         )
         if not workspace_form:
             logger.error(f"No form with id  {form_id} found")
-            logger.error(f"Error while updating form with id {form_id} by schedular")
             return
         users_response = await self.fetch_user_details([workspace_form.user_id])
         standard_form = None
@@ -52,31 +54,39 @@ class FormSchedular:
                 logger.info(
                     ("Schedular for form " + form_id + ": Could not fetch user details")
                 )
-                logger.info(f"Error while updating form with id {form_id} by schedular")
                 return
-
             user = User(
                 **user_response,
                 id=user_response.get("_id"),
                 sub=user_response.get("email"),
             )
-
             cookies = {"Authorization": self.jwt_service.encode(user)}
-
-            # TODO Make it do with proxy service after service and proxy router refactored
-            raw_form = await self.perform_request(
-                provider=workspace_form.settings.provider,
-                append_url=f"/{form_id}",
-                method="GET",
-                cookies=cookies,
-            )
-
+            raw_form = None
+            try:
+                raw_form = await self.perform_request(
+                    provider=workspace_form.settings.provider,
+                    append_url=f"/{form_id}",
+                    method="GET",
+                    cookies=cookies,
+                )
+            except HTTPException as e:
+                if e.status_code == HTTPStatus.NOT_FOUND:
+                    await self.temporal_service.delete_form_import_schedule(
+                        workspace_id=workspace_id, form_id=form_id
+                    )
+                    workspace_form.last_update_status = UpdateStatus.NOT_FOUND
+                    await workspace_form.save()
+                elif e.status_code == HTTPStatus.UNAUTHORIZED:
+                    await self.temporal_service.delete_form_import_schedule(
+                        workspace_id=workspace_id, form_id=form_id
+                    )
+                    workspace_form.last_update_status = UpdateStatus.INVALID_GRANT
+                    await workspace_form.save()
             if not raw_form:
                 logger.info(
                     f"Could not fetch form form provider for form with id {form_id} by schedular"
                 )
                 return
-                # if the latest status of form is not closed then perform saving
 
             response_data = await self.perform_conversion_request(
                 provider=workspace_form.settings.provider,
@@ -143,10 +153,20 @@ class FormSchedular:
                 timeout=60,
             )
             if response.status != HTTPStatus.OK:
-                logger.error(await response.json())
+                if response.status == HTTPStatus.NOT_FOUND:
+                    raise HTTPException(
+                        status_code=HTTPStatus.NOT_FOUND,
+                        content="Form not found in providers",
+                    )
+                if response.status == HTTPStatus.UNAUTHORIZED:
+                    raise HTTPException(
+                        status_code=HTTPStatus.UNAUTHORIZED,
+                        content="Unauthorized to fetch form",
+                    )
                 return None
             data = await response.json()
             return data
+
         except ServerDisconnectedError as e:
             return None
 

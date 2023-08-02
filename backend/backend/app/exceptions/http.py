@@ -4,8 +4,6 @@ from typing import Any, Dict, Optional
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-import common.exceptions.http
-
 
 class HTTPException(Exception):
     """Define custom HTTPException class definition.
@@ -54,9 +52,7 @@ class HTTPException(Exception):
         return f"{self.__class__.__name__}({', '.join(kwargs)})"
 
 
-async def http_exception_handler(
-    request: Request, exception: HTTPException | common.exceptions.http.HTTPException
-):
+async def http_exception_handler(request: Request, exception: HTTPException):
     """Define custom HTTPException handler.
 
     In this application custom handler is added in asgi.py while initializing
