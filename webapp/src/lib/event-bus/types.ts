@@ -1,1 +1,1 @@
-type EventHandler = (payload: any) => void;
+export type EventHandler = (payload: any) => void;
