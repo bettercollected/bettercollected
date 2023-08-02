@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 import jwt
 from starlette.requests import Request
 
@@ -15,4 +17,6 @@ async def get_user_credential(request: Request) -> Oauth2CredentialDocument:
         access_token, key=settings.AUTH_JWT_SECRET, algorithms=["HS256"]
     )
     credential = await OauthCredentialRepository().get(jwt_response.get("sub"))
+    if not credential:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Credentials for user not found")
     return credential
