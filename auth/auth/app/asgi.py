@@ -8,6 +8,7 @@ from auth.app.exceptions import (
     HTTPException,
     http_exception_handler,
 )
+from auth.app.exceptions.http import not_found_error_handler
 from auth.app.router import root_api_router
 from auth.app.services.database_service import close_db, init_db
 from auth.config import settings
@@ -16,6 +17,8 @@ from fastapi import FastAPI
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
+
+from common.exceptions import NotFoundError
 
 log = logging.getLogger(__name__)
 
@@ -91,6 +94,7 @@ def get_application():
     app.include_router(root_api_router)
     log.debug("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
+    app.add_exception_handler(NotFoundError, not_found_error_handler)
     if settings.apm_settings.service_name and settings.apm_settings.server_url:
         app.add_middleware(ElasticAPM, client=apm)
     return app

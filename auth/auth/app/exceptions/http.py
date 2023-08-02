@@ -1,8 +1,11 @@
 """Application implementation - custom FastAPI HTTP exception with handler."""
+from http import HTTPStatus
 from typing import Any, Dict, Optional
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
+
+from common.exceptions import NotFoundError
 
 
 class HTTPException(Exception):
@@ -76,4 +79,11 @@ async def http_exception_handler(request: Request, exception: HTTPException):
         status_code=exception.status_code,
         content=exception.content,
         headers=exception.headers,
+    )
+
+
+async def not_found_error_handler(request: Request, exception: NotFoundError):
+    return JSONResponse(
+        status_code=HTTPStatus.NOT_FOUND,
+        content="Not Found",
     )
