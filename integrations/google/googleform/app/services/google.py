@@ -61,9 +61,14 @@ class GoogleService:
                     status_code=HTTPStatus.NOT_FOUND,
                     content="Form not found is Google forms",
                 )
+            raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content="Error fetching form from Google")
         except RefreshError as e:
             raise HTTPException(
                 status_code=HTTPStatus.UNAUTHORIZED, content="Refresh error"
+            )
+        except TimeoutError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Request Timed out"
             )
 
     def get_form_list(self, credentials, page_token=None, max_page_size=100):
@@ -78,32 +83,49 @@ class GoogleService:
         Returns:
             list: A list containing the forms.
         """
-        forms = []
-        drive_service = self._build_service(
-            credentials=credentials, service_name="drive", version="v3"
-        )
-        fields = (
-            "nextPageToken, files(id, name, webViewLink, iconLink, "
-            "createdTime, modifiedTime, owners)"
-        )
-        while max_page_size > 0:
-            max_page_size -= 1
-            response = (
-                drive_service.files()
-                .list(
-                    q="mimeType='application/vnd.google-apps.form'",
-                    spaces="drive",
-                    fields=fields,
-                    pageToken=page_token,
-                )
-                .execute()
+
+        try:
+            forms = []
+            drive_service = self._build_service(
+                credentials=credentials, service_name="drive", version="v3"
             )
-            forms.extend(response.get("files", []))
-            page_token = response.get("nextPageToken", None)
-            if page_token is None:
-                break
-        drive_service.close()
-        return forms
+            fields = (
+                "nextPageToken, files(id, name, webViewLink, iconLink, "
+                "createdTime, modifiedTime, owners)"
+            )
+            while max_page_size > 0:
+                max_page_size -= 1
+                response = (
+                    drive_service.files()
+                    .list(
+                        q="mimeType='application/vnd.google-apps.form'",
+                        spaces="drive",
+                        fields=fields,
+                        pageToken=page_token,
+                    )
+                    .execute()
+                )
+                forms.extend(response.get("files", []))
+                page_token = response.get("nextPageToken", None)
+                if page_token is None:
+                    break
+            drive_service.close()
+            return forms
+        except HttpError as e:
+            if e.status_code == HTTPStatus.NOT_FOUND:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    content="Form not found is Google forms",
+                )
+            raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content="Error fetching form from Google")
+        except RefreshError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED, content="Refresh error"
+            )
+        except TimeoutError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Request Timed out"
+            )
 
     def get_form_response_list(self, form_id: str, credentials):
         """
