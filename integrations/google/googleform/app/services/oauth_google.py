@@ -90,9 +90,6 @@ class OauthGoogleService:
                 include_granted_scopes="true",
                 prompt="consent",
             )
-
-            logger.warning(state)
-
             return authorization_url, state
         except InvalidGrantError:
             raise HTTPException(
