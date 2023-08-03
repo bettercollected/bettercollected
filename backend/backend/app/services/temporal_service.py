@@ -78,7 +78,6 @@ class TemporalService:
         self, workspace_id: PydanticObjectId, form_id: str
     ):
         await self.check_temporal_client_and_try_to_connect_if_not_connected()
-
         try:
             await self.client.create_schedule(
                 "import_" + str(workspace_id) + "_" + form_id,

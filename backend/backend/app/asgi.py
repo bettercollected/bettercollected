@@ -1,5 +1,14 @@
 """Application implementation - ASGI."""
 import sentry_sdk
+from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
+from fastapi import FastAPI
+from fastapi_pagination import add_pagination
+from fastapi_utils.timing import add_timing_middleware
+from loguru import logger
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
+from sentry_sdk.integrations.httpx import HttpxIntegration
+from sentry_sdk.integrations.loguru import LoguruIntegration
+
 from backend.app.container import container
 from backend.app.exceptions import (
     HTTPException,
@@ -9,17 +18,12 @@ from backend.app.handlers import init_logging
 from backend.app.handlers.database import close_db, init_db, init_scheduler_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
-from backend.app.services.init_schedulers import init_schedulers
+from backend.app.services.init_schedulers import (
+    init_schedulers,
+    migrate_schedule_to_temporal,
+)
 from backend.app.utils import AiohttpClient
 from backend.config import settings
-from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
-from fastapi import FastAPI
-from fastapi_pagination import add_pagination
-from fastapi_utils.timing import add_timing_middleware
-from loguru import logger
-from sentry_sdk.integrations.asyncio import AsyncioIntegration
-from sentry_sdk.integrations.httpx import HttpxIntegration
-from sentry_sdk.integrations.loguru import LoguruIntegration
 
 
 async def on_startup():
@@ -34,9 +38,10 @@ async def on_startup():
     AiohttpClient.get_aiohttp_client()
     # TODO merge with container
     client = container.database_client()
-    await init_scheduler_db(client)
     await init_db(settings.mongo_settings.DB, client)
+    await migrate_schedule_to_temporal()
     if settings.schedular_settings.ENABLED:
+        await init_scheduler_db(client)
         await init_schedulers(container.schedular())
 
 
@@ -56,7 +61,8 @@ async def on_shutdown():
 
     await AiohttpClient.close_aiohttp_client()
     await container.http_client().aclose()
-    container.schedular().shutdown()
+    if settings.schedular_settings.ENABLED:
+        container.schedular().shutdown()
 
 
 apm = make_apm_client()
