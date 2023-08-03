@@ -38,7 +38,7 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
         (event: KeyboardEvent) => {
             batch(async () => {
                 const fieldId = builderState.activeFieldId;
-                const formField = builderState.fields[fieldId];
+                const formField: IFormFieldState | undefined = builderState.fields[fieldId];
 
                 if (event.key === 'Escape') {
                     dispatch(resetBuilderMenuState());
@@ -83,13 +83,13 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
 
                 if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
                 // Only for multiple choice
-                if (event.key === 'ArrowDown' && isMultipleChoice(formField.type)) {
+                if (event.key === 'ArrowDown' && isMultipleChoice(formField?.type)) {
                     //@ts-ignore
                     if (formField.properties?.activeChoiceIndex < Object.values(formField.properties?.choices).length - 1) {
                         dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) + 1 }));
                     }
                 }
-                if (event.key === 'ArrowUp' && isMultipleChoice(formField.type)) {
+                if (event.key === 'ArrowUp' && isMultipleChoice(formField?.type)) {
                     //@ts-ignore
                     if (formField.properties?.activeChoiceIndex > 0) {
                         dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) - 1 }));
@@ -100,11 +100,11 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
                     !event.metaKey &&
                     (event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) &&
                     builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1 &&
-                    (!isMultipleChoice(formField.type) || formField.properties?.activeChoiceIndex === Object.values(formField.properties?.choices ?? {}).length - 1)
+                    (!isMultipleChoice(formField?.type) || formField?.properties?.activeChoiceIndex === Object.values(formField?.properties?.choices ?? {}).length - 1)
                 ) {
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
                 }
-                if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2 && (!isMultipleChoice(formField.type) || (formField.properties?.activeChoiceIndex ?? 0) === 0)) {
+                if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2 && (!isMultipleChoice(formField?.type) || (formField.properties?.activeChoiceIndex ?? 0) === 0)) {
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                 }
                 if (event.code === 'Slash' && builderState.activeFieldIndex >= 0) {
