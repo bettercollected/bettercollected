@@ -143,7 +143,10 @@ class WorkspaceService:
             banner_image_file=banner_image_file,
         )
 
-        if workspace_patch.workspace_name:
+        if (
+            workspace_patch.workspace_name
+            and workspace_patch.workspace_name != workspace_document.workspace_name
+        ):
             exists_by_handle = await WorkspaceDocument.find_one(
                 {"workspace_name": workspace_patch.workspace_name}
             )
