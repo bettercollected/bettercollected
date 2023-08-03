@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { isEmpty } from 'lodash';
 
-import { AlternateEmail, ArrowDropDown, DateRange, Grid4x4, Notes, Phone, ShortText, Star, TrendingUpSharp } from '@mui/icons-material';
+import { AlternateEmail, ArrowDropDown, DateRange, Grid4x4, Notes, Phone, ShortText, Star, Tag, TrendingUpSharp } from '@mui/icons-material';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import LinkIcon from '@mui/icons-material/Link';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
@@ -32,6 +32,13 @@ export const allowedInputTags = [
         type: FormBuilderTagNames.INPUT_EMAIL,
         label: 'Email',
         icon: <AlternateEmail width={20} height={20} />,
+        blockType: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_MARKDOWN,
+        type: FormBuilderTagNames.INPUT_MARKDOWN,
+        label: 'Markdown',
+        icon: <Tag width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {

@@ -6,6 +6,7 @@ import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
 import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
+import MarkdownEditor from '@Components/FormBuilder/MarkdownEditor';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { DragStart, DragUpdate, DropResult, ResponderProvided } from 'react-beautiful-dnd';
@@ -145,7 +146,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             eventBus.removeListener(FormBuilderEventBusType.Publish, onFormPublish);
             document.removeEventListener('blur', onBlurCallback);
         };
-    }, []);
+    });
 
     return (
         <div>

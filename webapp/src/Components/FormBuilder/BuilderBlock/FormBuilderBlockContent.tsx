@@ -10,6 +10,8 @@ import { useDispatch } from 'react-redux';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setActiveField } from '@app/store/form-builder/actions';
 
+import MarkdownEditor from '../MarkdownEditor';
+
 interface IFormBuilderBlockContent {
     type: string;
     position: number;
@@ -29,6 +31,8 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
             case FormBuilderTagNames.LAYOUT_HEADER5:
             case FormBuilderTagNames.LAYOUT_LABEL:
                 return <HeaderInputBlock field={field} id={id} position={position} />;
+            case FormBuilderTagNames.INPUT_MARKDOWN:
+                return <MarkdownEditor field={field} id={id} />;
             case FormBuilderTagNames.INPUT_SHORT_TEXT:
             case FormBuilderTagNames.INPUT_EMAIL:
             case FormBuilderTagNames.INPUT_NUMBER:
