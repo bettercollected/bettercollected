@@ -1,21 +1,27 @@
+from typing import Any, Coroutine
+
 import pytest
+from aiohttp.test_utils import TestClient
 
 from backend.app.container import container
+from backend.app.schemas.workspace import WorkspaceDocument
 from common.constants import MESSAGE_FORBIDDEN
 from tests.app.controllers.data import testUser, workspace_tag
 
 
 @pytest.fixture()
-async def workspace_responders_api(workspace):
+def workspace_responders_api(workspace: Coroutine[Any, Any, WorkspaceDocument]):
     return "api/v1/workspaces/" + str(workspace.id) + "/responders"
 
 
 @pytest.fixture()
-def workspace_tag_url(workspace_responders_api):
+def workspace_tag_url(workspace_responders_api: Coroutine[Any, Any, str]):
     return f"{workspace_responders_api}/tags"
 
 
-async def create_tag_for_responder(workspace, tag_title):
+async def create_tag_for_responder(
+    workspace: Coroutine[Any, Any, WorkspaceDocument], tag_title: str
+):
     return await container.workspace_responders_service().create_workspace_tag(
         workspace.id, tag_title, testUser
     )
@@ -24,23 +30,25 @@ async def create_tag_for_responder(workspace, tag_title):
 class TestWorkspaceResponders:
     async def test_get_workspace_responders(
         self,
-        client,
-        workspace,
-        workspace_responders_api,
-        test_user_cookies,
-        workspace_form_response,
-        workspace_form_response_1,
-        workspace_form_response_2,
+        client: TestClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_responders_api: str,
+        test_user_cookies: dict[str, str],
+        workspace_form_response: Coroutine[Any, Any, dict],
+        workspace_form_response_1: Coroutine[Any, Any, dict],
+        workspace_form_response_2: Coroutine[Any, Any, dict],
     ):
-        workspace_responders = client.get(
-            workspace_responders_api, cookies=test_user_cookies
-        )
-
-        expected_responders_emails = [
+        responders_emails = [
             workspace_form_response_2["dataOwnerIdentifier"],
             workspace_form_response_1["dataOwnerIdentifier"],
             workspace_form_response["dataOwnerIdentifier"],
         ]
+
+        workspace_responders = client.get(
+            workspace_responders_api, cookies=test_user_cookies
+        )
+
+        expected_responders_emails = responders_emails
         expected_responders_emails.sort()
         actual_responders_emails = [
             item["email"] for item in workspace_responders.json()["items"]
@@ -53,10 +61,10 @@ class TestWorkspaceResponders:
 
     def test_unauthorized_get_workspace_responders(
         self,
-        client,
-        workspace_responders_api,
-        workspace_form_response,
-        test_user_cookies_1,
+        client: TestClient,
+        workspace_responders_api: str,
+        workspace_form_response: Coroutine[Any, Any, dict],
+        test_user_cookies_1: dict[str, str],
     ):
         unauthorized_client = client.get(
             workspace_responders_api, cookies=test_user_cookies_1
@@ -69,11 +77,11 @@ class TestWorkspaceResponders:
 
     async def test_get_workspace_tags(
         self,
-        client,
-        workspace_tag_url,
-        workspace_group,
-        test_user_cookies,
-        workspace,
+        client: TestClient,
+        workspace_tag_url: str,
+        workspace_group: Coroutine,
+        test_user_cookies: dict[str, str],
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
     ):
         tag1 = await create_tag_for_responder(workspace, "Admin")
         tag2 = await create_tag_for_responder(workspace, "Leader")
@@ -85,7 +93,10 @@ class TestWorkspaceResponders:
         assert actual_tags == expected_tags
 
     def test_unauthorized_get_workspace_tags(
-        self, client, workspace_tag_url, test_user_cookies_1
+        self,
+        client: TestClient,
+        workspace_tag_url: str,
+        test_user_cookies_1: dict[str, str],
     ):
         unauthorized_client = client.get(workspace_tag_url, cookies=test_user_cookies_1)
 
@@ -94,7 +105,12 @@ class TestWorkspaceResponders:
         assert unauthorized_client.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_create_workspace_tag(self, client, workspace_tag_url, test_user_cookies):
+    def test_create_workspace_tag(
+        self,
+        client: TestClient,
+        workspace_tag_url: str,
+        test_user_cookies: dict[str, str],
+    ):
         tag = client.post(
             workspace_tag_url, cookies=test_user_cookies, json=workspace_tag
         )
@@ -105,7 +121,10 @@ class TestWorkspaceResponders:
         assert actual_tag == expected_tag
 
     def test_unauthorized_create_workspace_tag(
-        self, client, workspace_tag_url, test_user_cookies_1
+        self,
+        client: TestClient,
+        workspace_tag_url: str,
+        test_user_cookies_1: dict[str, str],
     ):
         unauthorized_client = client.post(
             workspace_tag_url, cookies=test_user_cookies_1, json=workspace_tag
@@ -117,7 +136,11 @@ class TestWorkspaceResponders:
         assert actual_response_message == expected_response_message
 
     async def test_patch_workspace_responder_with_email(
-        self, client, test_user_cookies, workspace, workspace_responders_api
+        self,
+        client: TestClient,
+        test_user_cookies: dict[str, str],
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_responders_api: str,
     ):
         tag = await container.workspace_responders_service().create_workspace_tag(
             workspace.id, "GrandMaster", testUser
@@ -138,7 +161,11 @@ class TestWorkspaceResponders:
         assert actual_tag_id == expected_tag_id
 
     async def test_unauthorized_patch_workspace_responder_with_email(
-        self, client, test_user_cookies_1, workspace_responders_api, workspace
+        self,
+        client: TestClient,
+        test_user_cookies_1: dict[str, str],
+        workspace_responders_api: str,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
     ):
         tag = await container.workspace_responders_service().create_workspace_tag(
             workspace.id, "GrandMaster", testUser

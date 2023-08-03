@@ -66,7 +66,7 @@ async def workspace_form_1(workspace_1):
     form = await container.workspace_form_service().create_form(
         workspace_1.id, StandardForm(**formData), testUser1
     )
-    yield form
+    return form
 
 
 @pytest.fixture()
