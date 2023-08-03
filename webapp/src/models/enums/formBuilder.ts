@@ -29,6 +29,7 @@ export enum FormBuilderTagNames {
 
     INPUT_SHORT_TEXT = 'input_short_text',
     INPUT_LONG_TEXT = 'input_long_text',
+    INPUT_MARKDOWN = 'input_markdown',
     INPUT_MULTIPLE_CHOICE = 'input_multiple_choice',
     INPUT_MULTISELECT = 'input_multiselect',
     INPUT_CHECKBOXES = 'input_checkboxes',
