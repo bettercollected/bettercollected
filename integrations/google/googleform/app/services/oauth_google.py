@@ -113,12 +113,6 @@ class OauthGoogleService:
                 status_code=HTTPStatus.EXPECTATION_FAILED,
                 content=MESSAGE_OAUTH_INVALID_CLIENT,
             )
-        except Exception as error:
-            logger.error(error)
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
-            )
 
     async def oauth2callback(self, request: Request, user_id: str):
         """
@@ -183,12 +177,6 @@ class OauthGoogleService:
                 status_code=HTTPStatus.EXPECTATION_FAILED,
                 content=MESSAGE_OAUTH_INVALID_CLIENT,
             )
-        except Exception as error:
-            logger.error(error)
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
-            )
 
     def fetch_token(self, auth_code: str, state: str):
         """
@@ -232,12 +220,6 @@ class OauthGoogleService:
             raise HTTPException(
                 status_code=HTTPStatus.EXPECTATION_FAILED,
                 content=MESSAGE_OAUTH_INVALID_CLIENT,
-            )
-        except Exception as error:
-            logger.error(error)
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
 
     async def fetch_oauth_token(self, oauth_credential: Oauth2CredentialDocument):
@@ -300,11 +282,6 @@ class OauthGoogleService:
         except InvalidGrantError:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, content=MESSAGE_OAUTH_INVALID_GRANT
-            )
-        except Exception as error:
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                content=MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
             )
 
     @staticmethod
