@@ -1,3 +1,5 @@
+from typing import Any, Coroutine
+
 from dependency_injector import providers
 from fastapi.testclient import TestClient
 from mongomock_motor import AsyncMongoMockClient
@@ -5,6 +7,7 @@ from mongomock_motor import AsyncMongoMockClient
 import pytest
 from unittest.mock import patch
 
+from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.services import workspace_service
 from common.models.form_import import FormImportResponse
@@ -54,7 +57,7 @@ async def workspace_pro():
 
 
 @pytest.fixture()
-async def workspace_form(workspace):
+async def workspace_form(workspace: Coroutine[Any, Any, WorkspaceDocument]):
     form = await container.workspace_form_service().create_form(
         workspace.id, StandardForm(**formData), testUser
     )
@@ -62,7 +65,7 @@ async def workspace_form(workspace):
 
 
 @pytest.fixture()
-async def workspace_form_1(workspace_1):
+async def workspace_form_1(workspace_1: Coroutine[Any, Any, WorkspaceDocument]):
     form = await container.workspace_form_service().create_form(
         workspace_1.id, StandardForm(**formData), testUser1
     )
@@ -70,7 +73,10 @@ async def workspace_form_1(workspace_1):
 
 
 @pytest.fixture()
-async def workspace_form_response(workspace, workspace_form):
+async def workspace_form_response(
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    workspace_form: Coroutine[Any, Any, FormDocument],
+):
     form_response = await container.workspace_form_service().submit_response(
         workspace.id,
         workspace_form.form_id,
@@ -81,7 +87,10 @@ async def workspace_form_response(workspace, workspace_form):
 
 
 @pytest.fixture()
-async def workspace_form_response_1(workspace, workspace_form):
+async def workspace_form_response_1(
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    workspace_form: Coroutine[Any, Any, FormDocument],
+):
     response = await container.workspace_form_service().submit_response(
         workspace.id,
         workspace_form.form_id,
@@ -92,7 +101,10 @@ async def workspace_form_response_1(workspace, workspace_form):
 
 
 @pytest.fixture()
-async def workspace_form_response_2(workspace, workspace_form):
+async def workspace_form_response_2(
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    workspace_form: Coroutine[Any, Any, FormDocument],
+):
     response = await container.workspace_form_service().submit_response(
         workspace.id,
         workspace_form.form_id,
@@ -103,7 +115,10 @@ async def workspace_form_response_2(workspace, workspace_form):
 
 
 @pytest.fixture()
-async def workspace_group(workspace, workspace_form):
+async def workspace_group(
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    workspace_form: Coroutine[Any, Any, FormDocument],
+):
     group = await container.responder_groups_service().create_group(
         workspace.id,
         "Testing_Group",
@@ -147,7 +162,10 @@ def mock_aiohttp_get_request():
 
 
 @pytest.fixture()
-def mock_aiohttp_post_request(workspace_form, workspace_form_response):
+def mock_aiohttp_post_request(
+    workspace_form: Coroutine[Any, Any, FormDocument],
+    workspace_form_response: Coroutine[Any, Any, dict],
+):
     async def mock_post(*args, **kwargs):
         responses = StandardFormResponse(**workspace_form_response)
         form = StandardForm(**dict(workspace_form))
