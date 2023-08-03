@@ -20,7 +20,6 @@ interface MarkdownEditorProps {
 export default function MarkdownEditor({ id, field }: MarkdownEditorProps) {
     const [preview, setPreview] = useState(false);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
-    const contentRef = useRef<HTMLDivElement | null>(null);
 
     const dispatch = useDispatch();
     const builderState = useAppSelector(selectBuilderState);
@@ -28,8 +27,9 @@ export default function MarkdownEditor({ id, field }: MarkdownEditorProps) {
     // const { t } = useBuilderTranslation();
 
     const activeFieldIndex = builderState.activeFieldIndex;
+
     const onChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-        console.log('text area changed');
+        event.preventDefault();
         setBackspaceCount(0);
         dispatch(
             setUpdateField({
@@ -44,13 +44,12 @@ export default function MarkdownEditor({ id, field }: MarkdownEditorProps) {
 
     useEffect(() => {
         if (field?.position !== activeFieldIndex) return;
-        console.log('focussed');
         // contentRef.current?.focus();
         inputRef.current?.focus();
     }, [activeFieldIndex, field?.position]);
 
     return (
-        <div className={cn('w-full relative ', preview && 'border rounded-md px-3')}>
+        <div className={cn('w-full relative ', preview && 'border rounded-md p-8')}>
             <div className="cursor-pointer  absolute right-3 top-1 text-gray-500" onClick={handlePreview}>
                 {preview ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
             </div>

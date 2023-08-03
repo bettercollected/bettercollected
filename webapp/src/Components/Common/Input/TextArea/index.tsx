@@ -6,7 +6,7 @@ import { TextareaAutosizeProps } from '@mui/material';
 const TextArea = React.forwardRef<HTMLTextAreaElement, TextareaAutosizeProps>(({ value, onChange, ...inputProps }, ref) => {
     return (
         <TextareaAutosize
-            className="w-full border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-none hover:border-gray-900 p-3 rounded-md !text-black-600 "
+            className="w-full border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-none hover:border-gray-900 p-3 rounded-md !text-black-800 "
             disabled={false}
             ref={ref}
             aria-label="text-area"
