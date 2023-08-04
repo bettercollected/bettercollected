@@ -39,7 +39,7 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
             batch(async () => {
                 const fieldId = builderState.activeFieldId;
                 const formField: IFormFieldState | undefined = builderState.fields[fieldId];
-
+                console.log(event.key);
                 if (event.key === 'Escape') {
                     dispatch(resetBuilderMenuState());
                 }
@@ -107,7 +107,7 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
                 if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2 && (!isMultipleChoice(formField?.type) || (formField.properties?.activeChoiceIndex ?? 0) === 0)) {
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                 }
-                if (event.code === 'Slash' && builderState.activeFieldIndex >= 0) {
+                if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey) {
                     const viewportHeight = window.innerHeight;
                     const bottomPosition = builderDragDropRef.current?.getBoundingClientRect().bottom ?? 0;
                     console.log({
