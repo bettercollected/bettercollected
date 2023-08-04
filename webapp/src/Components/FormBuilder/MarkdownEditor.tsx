@@ -54,8 +54,10 @@ const MarkdownEditor = ({ id, field }: MarkdownEditorProps) => {
         const lines = inputRef.current?.value.split('\n');
         const lastLineIndex = (lines?.length ?? 1) - 1;
 
-        if (currentEditingLine === 0 || currentEditingLine === lastLineIndex) return;
-        if (event.key === KeyType.ArrowUp || event.key === KeyType.ArrowDown) {
+        if (event.key === KeyType.ArrowUp && currentEditingLine !== 0) {
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+        } else if (event.key === KeyType.ArrowDown && currentEditingLine !== lastLineIndex) {
             event.stopPropagation();
             event.stopImmediatePropagation();
         }
