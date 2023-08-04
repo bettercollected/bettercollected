@@ -52,24 +52,7 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
                 if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault();
                     event.stopPropagation();
-                    if (isMultipleChoice(formField?.type) && builderState.activeFieldIndex >= -1) {
-                        //@ts-ignore
-                        if ((formField.properties?.choices[formField.properties.activeChoiceId].value || '') !== '') {
-                            dispatch(setAddNewChoice());
-                        } else {
-                            const choices = { ...formField.properties?.choices };
-                            //@ts-ignore
-                            dispatch(setDeleteChoice(formField.properties.activeChoiceId));
-                            if (Object.values(choices).length - 1 === 0) dispatch(setDeleteField(formField.id));
-                            dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
-                            dispatch(
-                                setBuilderState({
-                                    isFormDirty: true,
-                                    activeFieldIndex: builderState.activeFieldIndex + (Object.values(choices).length - 1 === 0 ? 0 : 1)
-                                })
-                            );
-                        }
-                    } else if (builderState.activeFieldIndex >= -1) {
+                    if (builderState.activeFieldIndex >= -1) {
                         dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
                         dispatch(
                             setBuilderState({
@@ -81,19 +64,7 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
                 }
 
                 if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
-                // Only for multiple choice
-                if (event.key === 'ArrowDown' && isMultipleChoice(formField?.type)) {
-                    //@ts-ignore
-                    if (formField.properties?.activeChoiceIndex < Object.values(formField.properties?.choices).length - 1) {
-                        dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) + 1 }));
-                    }
-                }
-                if (event.key === 'ArrowUp' && isMultipleChoice(formField?.type)) {
-                    //@ts-ignore
-                    if (formField.properties?.activeChoiceIndex > 0) {
-                        dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) - 1 }));
-                    }
-                }
+
                 if (
                     !event.ctrlKey &&
                     !event.metaKey &&
