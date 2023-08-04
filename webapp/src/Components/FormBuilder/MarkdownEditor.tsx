@@ -86,12 +86,11 @@ const MarkdownEditor = ({ id, field }: MarkdownEditorProps) => {
 
     useEffect(() => {
         if (field?.position !== activeFieldIndex) return;
-        // contentRef.current?.focus();
         inputRef.current?.focus();
     }, [activeFieldIndex, field?.position]);
 
     return (
-        <div id={id} className={cn('w-full relative ', preview && 'border rounded-md p-8')}>
+        <div id={id} className={cn('w-full relative ', preview && 'border rounded-md p-4')}>
             <div className="cursor-pointer  absolute right-3 top-1 text-gray-500" onClick={handlePreview}>
                 {preview ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
             </div>
