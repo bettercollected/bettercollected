@@ -24,6 +24,7 @@ class FormBuilderTagTypes(str, enum.Enum):
     LAYOUT_DIVIDER = "divider"
 
     INPUT_SHORT_TEXT = "input_short_text"
+    INPUT_MARKDOWN = "input_markdown"
     INPUT_LONG_TEXT = "input_long_text"
     INPUT_MULTIPLE_CHOICE = "input_multiple_choice"
     INPUT_MULTISELECT = "input_multiselect"
@@ -78,6 +79,7 @@ class StandardFormFieldType(str, Enum):
 
     INPUT_SHORT_TEXT = "input_short_text"
     INPUT_LONG_TEXT = "input_long_text"
+    INPUT_MARKDOWN = "input_markdown"
     INPUT_MULTIPLE_CHOICE = "input_multiple_choice"
     INPUT_MULTISELECT = "input_multiselect"
     INPUT_CHECKBOXES = "input_checkboxes"
