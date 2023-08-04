@@ -110,7 +110,7 @@ Please refer to the [.env.example](.env.example) file for updated environment va
 ### Run database using docker
 
 Since `Backend` and `Auth` repositories depends on mongo database so you will need to run mongo before running `Backend` and `Auth` repositories. To run the database
-use following command to run the docker container 
+use following command to run the docker container from this webapp repository.
 
 ```
     docker compose -f "docker-compose.local.yml" up -d

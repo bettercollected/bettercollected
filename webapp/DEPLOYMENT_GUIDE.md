@@ -25,7 +25,7 @@ Similarly for using `Typeform` you need to set up certain environment variables 
 
 ## COMMAND
 
- Finally use the below command to run your docker container.
+ Finally use the below command to run your docker container from this webapp repository.
 
  ```
     docker compose -f "docker-compose.deployment.yml" up -d
