@@ -28,17 +28,17 @@ export const allowedInputTags = [
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.INPUT_EMAIL,
-        type: FormBuilderTagNames.INPUT_EMAIL,
-        label: 'Email',
-        icon: <AlternateEmail width={20} height={20} />,
-        blockType: BlockTypes.INPUT_BLOCKS
-    },
-    {
         id: FormBuilderTagNames.INPUT_MARKDOWN,
         type: FormBuilderTagNames.INPUT_MARKDOWN,
         label: 'Markdown',
         icon: <Tag width={20} height={20} />,
+        blockType: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_EMAIL,
+        type: FormBuilderTagNames.INPUT_EMAIL,
+        label: 'Email',
+        icon: <AlternateEmail width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {

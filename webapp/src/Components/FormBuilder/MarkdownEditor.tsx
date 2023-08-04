@@ -6,6 +6,8 @@ import cn from 'classnames';
 import { useDispatch } from 'react-redux';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
+import eventBus from '@app/lib/event-bus';
+import { KeyType } from '@app/models/enums/formBuilder';
 import { setActiveField, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
@@ -17,7 +19,7 @@ interface MarkdownEditorProps {
     id: string;
 }
 
-export default function MarkdownEditor({ id, field }: MarkdownEditorProps) {
+const MarkdownEditor = ({ id, field }: MarkdownEditorProps) => {
     const [preview, setPreview] = useState(false);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -29,8 +31,8 @@ export default function MarkdownEditor({ id, field }: MarkdownEditorProps) {
     const activeFieldIndex = builderState.activeFieldIndex;
 
     const onChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-        event.preventDefault();
         setBackspaceCount(0);
+        console.log(event.target.value);
         dispatch(
             setUpdateField({
                 ...field,
@@ -38,6 +40,7 @@ export default function MarkdownEditor({ id, field }: MarkdownEditorProps) {
             })
         );
     };
+
     const handlePreview = () => {
         setPreview(!preview);
     };
@@ -49,7 +52,7 @@ export default function MarkdownEditor({ id, field }: MarkdownEditorProps) {
     }, [activeFieldIndex, field?.position]);
 
     return (
-        <div className={cn('w-full relative ', preview && 'border rounded-md p-8')}>
+        <div id={id} className={cn('w-full relative ', preview && 'border rounded-md p-8')}>
             <div className="cursor-pointer  absolute right-3 top-1 text-gray-500" onClick={handlePreview}>
                 {preview ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
             </div>
@@ -68,5 +71,6 @@ export default function MarkdownEditor({ id, field }: MarkdownEditorProps) {
             )}
         </div>
     );
-}
-2;
+};
+
+export default MarkdownEditor;
