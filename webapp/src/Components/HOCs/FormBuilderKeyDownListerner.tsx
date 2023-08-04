@@ -15,12 +15,12 @@ import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setAddNewCho
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { createNewField, isMultipleChoice } from '@app/utils/formBuilderBlockUtils';
+import { createNewField } from '@app/utils/formBuilderBlockUtils';
 
 export default function FormBuilderKeyDownListerner({ children }: React.PropsWithChildren) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
-    const onKeyDownCallbackRef = useRef<any>(null);
+    // const onKeyDownCallbackRef = useRef<any>(null);
     const { backspaceCount, setBackspaceCount } = useFormBuilderState();
 
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
@@ -38,7 +38,7 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
             batch(async () => {
                 const fieldId = builderState.activeFieldId;
                 const formField: IFormFieldState | undefined = builderState.fields[fieldId];
-                console.log(event.key);
+
                 if (event.key === 'Escape') {
                     dispatch(resetBuilderMenuState());
                 }
@@ -65,16 +65,10 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
 
                 if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
 
-                if (
-                    !event.ctrlKey &&
-                    !event.metaKey &&
-                    (event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) &&
-                    builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1 &&
-                    (!isMultipleChoice(formField?.type) || formField?.properties?.activeChoiceIndex === Object.values(formField?.properties?.choices ?? {}).length - 1)
-                ) {
+                if (!event.ctrlKey && !event.metaKey && (event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
                 }
-                if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2 && (!isMultipleChoice(formField?.type) || (formField.properties?.activeChoiceIndex ?? 0) === 0)) {
+                if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2) {
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                 }
                 if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey) {
@@ -149,7 +143,7 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
     );
 
     useEffect(() => {
-        onKeyDownCallbackRef.current = throttle(onKeyDownCallback, 100);
+        // onKeyDownCallbackRef.current = throttle(onKeyDownCallback, 100);
 
         document.addEventListener('keydown', onKeyDownCallback);
 
@@ -157,7 +151,7 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
             document.removeEventListener('keydown', onKeyDownCallback);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [builderState, onKeyDownCallback]);
+    }, [builderState]);
 
     return <div>{children}</div>;
 }

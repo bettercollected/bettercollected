@@ -25,9 +25,9 @@ interface IMultipleChoiceProps {
 export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
     const dispatch = useDispatch();
     const contentRef = useRef<HTMLDivElement | null>(null);
-    const { setBackspaceCount } = useFormBuilderState();
 
     const builderState = useAppSelector(selectBuilderState);
+
     const handleChoiceValueChange = (id: string, value: string) => {
         dispatch(
             setUpdateField({
@@ -36,7 +36,6 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
             })
         );
     };
-
     const addChoice = (index: number) => {
         const id = uuidv4();
         const newChoices = Object.values(field.properties?.choices || {});
@@ -47,7 +46,6 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
         });
         dispatch(setUpdateField({ ...field, properties: { ...field.properties, choices: choices } }));
     };
-
     const deleteChoice = (id: string) => {
         const choices = { ...field.properties?.choices };
         delete choices[id];
@@ -123,8 +121,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
                                                         type={field.type}
                                                         focus={builderState.fields[builderState.activeFieldId]?.properties?.activeChoiceIndex === index && field.id === builderState.activeFieldId}
                                                         id={choice.id}
-                                                        onChange={(event) => {
-                                                            setBackspaceCount(0);
+                                                        onChangeCallback={(event) => {
                                                             handleChoiceValueChange(choice.id, event.target.value);
                                                         }}
                                                         onFocus={() => {

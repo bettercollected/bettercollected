@@ -1,20 +1,24 @@
 import React, { useEffect } from 'react';
 
+import useFormBuilderState from '@app/containers/form-builder/context';
 import { setActiveChoice, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { createNewField, isMultipleChoice } from '@app/utils/formBuilderBlockUtils';
 
-export default function MultipleKeyEventListener({ children }: React.PropsWithChildren) {
+export default function MultipleChoiceKeyEventListener({ children }: React.PropsWithChildren) {
     const dispatch = useAppDispatch();
+    const asyncDispatch = useAppAsyncDispatch();
+    const { backspaceCount, setBackspaceCount } = useFormBuilderState();
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
 
     const onKeyDownCallback = (event: KeyboardEvent) => {
         const fieldId = builderState.activeFieldId;
         const formField: IFormFieldState | undefined = builderState.fields[fieldId];
-
         if (!isMultipleChoice(formField?.type)) return;
+        if (!formField.properties?.activeChoiceId) return;
+
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
             event.stopPropagation();
@@ -49,6 +53,21 @@ export default function MultipleKeyEventListener({ children }: React.PropsWithCh
             }
         }
 
+        if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
+            //@ts-ignore
+            if (!formField?.properties?.choices[formField.properties.activeChoiceId].value && backspaceCount === 1) {
+                asyncDispatch(dispatch(setDeleteChoice(formField.properties?.activeChoiceId))).then(() => setBackspaceCount(0));
+                dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) - 1 }));
+
+                if (Object.values(formField?.properties?.choices ?? {}).length - 1 === 0) {
+                    asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
+                    dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
+                }
+            } else {
+                setBackspaceCount(1);
+            }
+        }
+
         event.stopPropagation();
     };
 
@@ -59,6 +78,7 @@ export default function MultipleKeyEventListener({ children }: React.PropsWithCh
             document.removeEventListener('keydown', onKeyDownCallback);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [builderState]);
+    }, [builderState, backspaceCount]);
+
     return <div>{children}</div>;
 }
