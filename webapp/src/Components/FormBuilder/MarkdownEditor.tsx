@@ -30,9 +30,38 @@ const MarkdownEditor = ({ id, field }: MarkdownEditorProps) => {
 
     const activeFieldIndex = builderState.activeFieldIndex;
 
+    const getEditingLinePosition = () => {
+        const textArea = inputRef.current;
+        let lineIndex = 0;
+        let currentCharCount = 0;
+
+        if (!textArea) return lineIndex;
+
+        const lines = textArea.value.split('\n');
+        const cursorPosition = textArea.selectionStart || 0;
+        for (let i = 0; i < lines.length; i++) {
+            currentCharCount += lines[i].length + 1;
+            if (cursorPosition <= currentCharCount) {
+                lineIndex = i;
+                break;
+            }
+        }
+        return lineIndex;
+    };
+    const onKeyDownCallback = (event: KeyboardEvent) => {
+        if (field?.position !== activeFieldIndex) return;
+        const currentEditingLine = getEditingLinePosition();
+        const lines = inputRef.current?.value.split('\n');
+        const lastLineIndex = (lines?.length ?? 1) - 1;
+
+        if (currentEditingLine === 0 || currentEditingLine === lastLineIndex) return;
+        if (event.key === KeyType.ArrowUp || event.key === KeyType.ArrowDown) {
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+        }
+    };
     const onChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
         setBackspaceCount(0);
-        console.log(event.target.value);
         dispatch(
             setUpdateField({
                 ...field,
@@ -40,10 +69,20 @@ const MarkdownEditor = ({ id, field }: MarkdownEditorProps) => {
             })
         );
     };
-
     const handlePreview = () => {
         setPreview(!preview);
     };
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            onKeyDownCallback(event);
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    });
 
     useEffect(() => {
         if (field?.position !== activeFieldIndex) return;
