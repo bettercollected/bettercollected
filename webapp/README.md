@@ -243,7 +243,7 @@ Also put this environment variable in the same folder containing the docker-comp
 - CLIENT_ADMIN_URL=http://localhost:3000
 
 # Google
-- GOOGLE_SCOPES='openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly'
+- GOOGLE_SCOPES='openid https://www.googleapis.com/auth/userinfo.'openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly'profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly'
 - GOOGLE_CLIENT_ID=
 - GOOGLE_PROJECT_ID=
 - GOOGLE_CLIENT_SECRET=
@@ -254,10 +254,10 @@ Also put this environment variable in the same folder containing the docker-comp
 - OAUTHLIB_RELAX_TOKEN_SCOPE=1
 
 # Typeform
-- TYPEFORM_BASIC_SCOPE=accounts:read
-- TYPEFORM_SCOPE=offline+accounts:read+forms:read+responses:read
-- TYPEFORM_CLIENT_ID=25cnSnYpD8x7RF85CAqfyQF1aHvubtxAh5mo4f4ruuFF
-- TYPEFORM_CLIENT_SECRET=7ao4RFQnLVgzHDf5jN2pTgg8Q3QJzoM9wCa3sRMeRSHD
+- TYPEFORM_BASIC_SCOPE=
+- TYPEFORM_SCOPE=
+- TYPEFORM_CLIENT_ID=
+- TYPEFORM_CLIENT_SECRET=
 - TYPEFORM_BASIC_REDIRECT_URI=http://localhost:8000/api/v1/auth/typeform/basic/callback
 - TYPEFORM_REDIRECT_URI=http://localhost:8000/api/v1/auth/typeform/oauth/callback
 
