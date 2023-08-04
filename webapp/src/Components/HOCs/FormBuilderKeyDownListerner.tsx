@@ -10,7 +10,7 @@ import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import useFormBuilderState from '@app/containers/form-builder/context';
 import eventBus from '@app/lib/event-bus';
-import { FormBuilderEventBusType } from '@app/models/enums/formBuilder';
+import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
@@ -20,7 +20,6 @@ import { createNewField, isMultipleChoice } from '@app/utils/formBuilderBlockUti
 export default function FormBuilderKeyDownListerner({ children }: React.PropsWithChildren) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
-    const builderDragDropRef = useRef<HTMLDivElement | null>(null);
     const onKeyDownCallbackRef = useRef<any>(null);
     const { backspaceCount, setBackspaceCount } = useFormBuilderState();
 
@@ -108,27 +107,8 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                 }
                 if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey) {
-                    const viewportHeight = window.innerHeight;
-                    const bottomPosition = builderDragDropRef.current?.getBoundingClientRect().bottom ?? 0;
-                    console.log({
-                        viewportHeight,
-                        bottomPosition,
-                        position: bottomPosition + 300 > viewportHeight ? 'up' : 'down'
-                    });
-                    // 300 is the height of the FormBuilderTagSelector
-                    dispatch(
-                        setBuilderState({
-                            isFormDirty: true,
-                            menus: {
-                                ...builderState.menus,
-                                commands: {
-                                    isOpen: true,
-                                    atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '',
-                                    position: bottomPosition + 300 > viewportHeight ? 'up' : 'down'
-                                }
-                            }
-                        })
-                    );
+                    console.log('openSelector event emitted');
+                    eventBus.emit(EventBusEventType.FormBuilder.OpenTagSelector);
                 }
                 if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
                     console.log({ 'backspace count': backspaceCount });
@@ -184,12 +164,12 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
                 if ((event.key === 'S' || event.key === 's') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
                     event.preventDefault();
                     event.stopPropagation();
-                    eventBus.emit(FormBuilderEventBusType.Save);
+                    eventBus.emit(EventBusEventType.FormBuilder.Save);
                 }
                 if ((event.key === 'P' || event.key === 'p') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
                     event.preventDefault();
                     event.stopPropagation();
-                    eventBus.emit(FormBuilderEventBusType.Publish);
+                    eventBus.emit(EventBusEventType.FormBuilder.Publish);
                 }
             });
         },

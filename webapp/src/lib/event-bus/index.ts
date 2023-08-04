@@ -22,7 +22,7 @@ class EventBusAdapter implements EventBus {
     }
 
     on(key: string, handler: EventHandler): void {
-        this.emitter.removeListener(key, handler);
+        this.emitter.on(key, handler);
     }
 
     removeListener(key: string, handler: EventHandler): void {

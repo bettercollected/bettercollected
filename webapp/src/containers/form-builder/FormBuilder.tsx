@@ -19,7 +19,7 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import eventBus from '@app/lib/event-bus';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { FormBuilderEventBusType, FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField, setFields, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
@@ -133,17 +133,42 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         onFormPublishRedirect(response);
     };
 
+    const openTagSelector = () => {
+        const viewportHeight = window.innerHeight;
+        const bottomPosition = builderDragDropRef.current?.getBoundingClientRect().bottom ?? 0;
+        console.log({
+            viewportHeight,
+            bottomPosition,
+            position: bottomPosition + 300 > viewportHeight ? 'up' : 'down'
+        });
+        // 300 is the height of the FormBuilderTagSelector
+        dispatch(
+            setBuilderState({
+                isFormDirty: true,
+                menus: {
+                    ...builderState.menus,
+                    commands: {
+                        isOpen: true,
+                        atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '',
+                        position: bottomPosition + 300 > viewportHeight ? 'up' : 'down'
+                    }
+                }
+            })
+        );
+    };
     useEffect(() => {
         onBlurCallbackRef.current = throttle(onBlurCallback, 100);
         document.addEventListener('blur', onBlurCallback);
 
         // Listens events from the HOCs
-        eventBus.on(FormBuilderEventBusType.Save, onFormSave);
-        eventBus.on(FormBuilderEventBusType.Publish, onFormPublish);
+        eventBus.on(EventBusEventType.FormBuilder.Save, onFormSave);
+        eventBus.on(EventBusEventType.FormBuilder.Publish, onFormPublish);
+        eventBus.on(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
 
         return () => {
-            eventBus.removeListener(FormBuilderEventBusType.Save, onFormSave);
-            eventBus.removeListener(FormBuilderEventBusType.Publish, onFormPublish);
+            eventBus.removeListener(EventBusEventType.FormBuilder.Save, onFormSave);
+            eventBus.removeListener(EventBusEventType.FormBuilder.Publish, onFormPublish);
+            eventBus.removeListener(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
             document.removeEventListener('blur', onBlurCallback);
         };
     });
