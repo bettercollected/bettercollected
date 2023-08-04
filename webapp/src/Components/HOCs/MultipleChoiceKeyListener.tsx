@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
 import { setActiveChoice, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField } from '@app/store/form-builder/actions';
@@ -13,63 +13,66 @@ export default function MultipleChoiceKeyEventListener({ children }: React.Props
     const { backspaceCount, setBackspaceCount } = useFormBuilderState();
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
 
-    const onKeyDownCallback = (event: KeyboardEvent) => {
-        const fieldId = builderState.activeFieldId;
-        const formField: IFormFieldState | undefined = builderState.fields[fieldId];
-        if (!isMultipleChoice(formField?.type)) return;
-        if (!formField.properties?.activeChoiceId) return;
+    const onKeyDownCallback = useCallback(
+        (event: KeyboardEvent) => {
+            const fieldId = builderState.activeFieldId;
+            const formField: IFormFieldState | undefined = builderState.fields[fieldId];
+            if (!isMultipleChoice(formField?.type)) return;
+            if (!formField.properties?.activeChoiceId) return;
 
-        if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            event.stopPropagation();
-            if (builderState.activeFieldIndex >= -1) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (builderState.activeFieldIndex >= -1) {
+                    //@ts-ignore
+                    if ((formField.properties?.choices[formField.properties.activeChoiceId].value || '') !== '') {
+                        dispatch(setAddNewChoice());
+                    } else {
+                        const choices = { ...formField.properties?.choices };
+                        if (formField.properties?.activeChoiceId) dispatch(setDeleteChoice(formField.properties?.activeChoiceId));
+                        if (Object.values(choices).length - 1 === 0) dispatch(setDeleteField(formField.id));
+                        dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
+                        dispatch(
+                            setBuilderState({
+                                isFormDirty: true,
+                                activeFieldIndex: builderState.activeFieldIndex + (Object.values(choices).length - 1 === 0 ? 0 : 1)
+                            })
+                        );
+                    }
+                }
+            }
+            if (event.key === 'ArrowDown') {
                 //@ts-ignore
-                if ((formField.properties?.choices[formField.properties.activeChoiceId].value || '') !== '') {
-                    dispatch(setAddNewChoice());
+                if (formField.properties?.activeChoiceIndex < Object.values(formField.properties?.choices).length - 1) {
+                    dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) + 1 }));
+                }
+            }
+            if (event.key === 'ArrowUp') {
+                //@ts-ignore
+                if (formField.properties?.activeChoiceIndex > 0) {
+                    dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) - 1 }));
+                }
+            }
+
+            if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
+                //@ts-ignore
+                if (!formField?.properties?.choices[formField.properties.activeChoiceId].value && backspaceCount === 1) {
+                    asyncDispatch(dispatch(setDeleteChoice(formField.properties?.activeChoiceId))).then(() => setBackspaceCount(0));
+                    dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) - 1 }));
+
+                    if (Object.values(formField?.properties?.choices ?? {}).length - 1 === 0) {
+                        asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
+                        dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
+                    }
                 } else {
-                    const choices = { ...formField.properties?.choices };
-                    if (formField.properties?.activeChoiceId) dispatch(setDeleteChoice(formField.properties?.activeChoiceId));
-                    if (Object.values(choices).length - 1 === 0) dispatch(setDeleteField(formField.id));
-                    dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
-                    dispatch(
-                        setBuilderState({
-                            isFormDirty: true,
-                            activeFieldIndex: builderState.activeFieldIndex + (Object.values(choices).length - 1 === 0 ? 0 : 1)
-                        })
-                    );
+                    setBackspaceCount(1);
                 }
             }
-        }
-        if (event.key === 'ArrowDown') {
-            //@ts-ignore
-            if (formField.properties?.activeChoiceIndex < Object.values(formField.properties?.choices).length - 1) {
-                dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) + 1 }));
-            }
-        }
-        if (event.key === 'ArrowUp') {
-            //@ts-ignore
-            if (formField.properties?.activeChoiceIndex > 0) {
-                dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) - 1 }));
-            }
-        }
 
-        if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
-            //@ts-ignore
-            if (!formField?.properties?.choices[formField.properties.activeChoiceId].value && backspaceCount === 1) {
-                asyncDispatch(dispatch(setDeleteChoice(formField.properties?.activeChoiceId))).then(() => setBackspaceCount(0));
-                dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) - 1 }));
-
-                if (Object.values(formField?.properties?.choices ?? {}).length - 1 === 0) {
-                    asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
-                    dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
-                }
-            } else {
-                setBackspaceCount(1);
-            }
-        }
-
-        event.stopPropagation();
-    };
+            event.stopPropagation();
+        },
+        [asyncDispatch, backspaceCount, builderState.activeFieldId, builderState.activeFieldIndex, builderState.fields, dispatch, setBackspaceCount]
+    );
 
     useEffect(() => {
         document.addEventListener('keydown', onKeyDownCallback);

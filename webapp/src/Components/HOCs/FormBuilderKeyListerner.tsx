@@ -17,7 +17,7 @@ import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
 
-export default function FormBuilderKeyDownListerner({ children }: React.PropsWithChildren) {
+export default function FormBuilderKeyListerner({ children }: React.PropsWithChildren) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
     // const onKeyDownCallbackRef = useRef<any>(null);
