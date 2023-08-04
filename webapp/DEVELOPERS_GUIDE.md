@@ -101,7 +101,7 @@ Please refer to the [.env.example](.env.example) file for updated environment va
 
 ### Walk through `README.md`
 
-1.  Walk thorugh `README.md` of this repository `bettercollected` and other dependent repositories `bettercollected-auth`,`bettercollected-backend`,0 `bettercollected-integrations-google-forms`,`bettercollected-integrations-typeform`.
+1.  Walk thorugh `README.md` of this repository `bettercollected` and other dependent repositories `bettercollected-auth`,`bettercollected-backend`,`bettercollected-integrations-google-forms`,`bettercollected-integrations-typeform`.
 2.  Use python version `3.10` , if you dont have then install using pyenv with command `pyenv install version_number` and set it global with `pyenv global version_number`.
 3.  Also inside each repository set up for "common" submodule with command:
     `git submodule update --init --recursive --remote`

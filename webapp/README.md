@@ -230,7 +230,7 @@ Also put this environment variable in the same folder containing the docker-comp
 ```
     # Auth
 - AUTH_AES_HEX_KEY='UAW6iquPs8Q2ZdKqjgIWcBZ-H8kPsGyFzedSGis7ZTA='
-- AUTH_JWT_SECRET=qZ86c1g6Mm4J9cVSzx6zGeppUyqDpS31
+- AUTH_JWT_SECRET=qZ86c1g6Mm4J9cVSzx6zGeppUyqDpS31d
 
 # Mongo
 - MONGO_URI=mongodb://root:root@mongodb:27017
@@ -244,9 +244,9 @@ Also put this environment variable in the same folder containing the docker-comp
 
 # Google
 - GOOGLE_SCOPES='openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly'
-- GOOGLE_CLIENT_ID=132120488980-tnq1s7b7qfp876s67l77jmfukjonggpp.apps.googleusercontent.com
-- GOOGLE_PROJECT_ID=bettercollected-sireto
-- GOOGLE_CLIENT_SECRET=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
+- GOOGLE_CLIENT_ID=
+- GOOGLE_PROJECT_ID=
+- GOOGLE_CLIENT_SECRET=
 - GOOGLE_JAVASCRIPT_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002
 - GOOGLE_BASIC_AUTH_REDIRECT=http://localhost:8000/api/v1/auth/google/basic/callback
 - GOOGLE_REDIRECT_URIS=http://localhost:8000/api/v1/auth/google/oauth/callback
