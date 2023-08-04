@@ -5,8 +5,23 @@ This document explains the deployment guide for the users to see the deployed pr
 ## IMPORTANT NOTE 
 
 Users have to fill out some of the env variables themselves before running the docker file.
-For google related environment variables, create a project in `Google Cloud Platform` and fill the empty environment variables.
-Similarly for typeform related environment variables create a `Typeform` account and add your app in `Developer apps` to get the value for typeform related environment variables.
+For using `Google forms` you need to set up certain environment variables, for that create a project in `Google Cloud Platform` and fill the following environment variables.
+
+```
+   GOOGLE_SCOPES=
+   GOOGLE_CLIENT_ID=
+   GOOGLE_PROJECT_ID=
+   GOOGLE_CLIENT_SECRET=
+```
+
+Similarly for using `Typeform` you need to set up certain environment variables and for that create a `Typeform` account and add your app in `Developer apps` to get the value for following environment variables.
+
+```
+   TYPEFORM_BASIC_SCOPE=
+   TYPEFORM_SCOPE=
+   TYPEFORM_CLIENT_ID=
+   TYPEFORM_CLIENT_SECRET=
+```
 
 ## COMMAND
 

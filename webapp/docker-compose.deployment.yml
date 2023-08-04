@@ -22,7 +22,7 @@ services:
     mongo-seed:
         build:
             context: .
-            dockerfile: Dockerfile.mongo-seed
+            dockerfile: Dockerfile.deployment.mongo-seed
         networks:
             - db
         depends_on:
