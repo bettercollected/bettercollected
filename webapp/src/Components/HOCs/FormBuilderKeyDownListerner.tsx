@@ -61,12 +61,12 @@ export default function FormBuilderKeyDownListerner({ children }: React.PropsWit
                             const choices = { ...formField.properties?.choices };
                             //@ts-ignore
                             dispatch(setDeleteChoice(formField.properties.activeChoiceId));
-                            if (Object.values(choices).length === 0) dispatch(setDeleteField(formField.id));
+                            if (Object.values(choices).length - 1 === 0) dispatch(setDeleteField(formField.id));
                             dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
                             dispatch(
                                 setBuilderState({
                                     isFormDirty: true,
-                                    activeFieldIndex: builderState.activeFieldIndex + (Object.values(choices).length === 0 ? 0 : 1)
+                                    activeFieldIndex: builderState.activeFieldIndex + (Object.values(choices).length - 1 === 0 ? 0 : 1)
                                 })
                             );
                         }
