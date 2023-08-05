@@ -23,9 +23,9 @@ export default function MultipleChoiceKeyEventListener({ children }: React.Props
             const formField: IFormFieldState | undefined = builderState.fields[fieldId];
             if (!isMultipleChoice(formField?.type)) return;
             if (!formField.properties?.activeChoiceId) return;
-
+            console.log('backspaceCount', backspaceCount);
             event.stopPropagation();
-
+            event.stopImmediatePropagation();
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
                 if (builderState.activeFieldIndex >= -1) {
@@ -47,12 +47,15 @@ export default function MultipleChoiceKeyEventListener({ children }: React.Props
                 }
             }
             if (event.key === 'ArrowDown') {
+                event.stopPropagation();
+
                 //@ts-ignore
                 if (formField.properties?.activeChoiceIndex < Object.values(formField.properties?.choices).length - 1) {
                     dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) + 1 }));
                 }
             }
             if (event.key === 'ArrowUp') {
+                event.stopPropagation();
                 //@ts-ignore
                 if (formField.properties?.activeChoiceIndex > 0) {
                     dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) - 1 }));
@@ -60,6 +63,7 @@ export default function MultipleChoiceKeyEventListener({ children }: React.Props
             }
 
             if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
+                event.stopPropagation();
                 //@ts-ignore
                 if (!formField?.properties?.choices[formField.properties.activeChoiceId].value && backspaceCount === 1) {
                     asyncDispatch(dispatch(setDeleteChoice(formField.properties?.activeChoiceId))).then(() => setBackspaceCount(0));
@@ -78,12 +82,12 @@ export default function MultipleChoiceKeyEventListener({ children }: React.Props
     );
 
     useEffect(() => {
-        const throttledKeyDownCallback = throttle(onKeyDownCallback, 300);
+        // const throttledKeyDownCallback = throttle(onKeyDownCallback, 300);
 
-        document.addEventListener('keydown', throttledKeyDownCallback);
+        document.addEventListener('keydown', onKeyDownCallback);
 
         return () => {
-            document.removeEventListener('keydown', throttledKeyDownCallback);
+            document.removeEventListener('keydown', onKeyDownCallback);
             eventBus.emit(EventBusEventType.FormBuilder.StopPropagation, false);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps

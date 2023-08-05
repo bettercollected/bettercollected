@@ -138,7 +138,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
             });
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [builderState, backspaceCount, stopPropagation]
+        [builderState, backspaceCount]
     );
 
     useEffect(() => {

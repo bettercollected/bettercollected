@@ -37,7 +37,6 @@ function getIcon(type: FormBuilderTagNames) {
 }
 
 export default function StartAdornmentInputField({ type, value, id, focus, onChangeCallback, onFocus }: IStartAdornmentInputFieldProps) {
-    const dispatch = useAppDispatch();
     const inputRef = useRef<HTMLInputElement | null>(null);
     const { setBackspaceCount } = useFormBuilderState();
     const { t } = useBuilderTranslation();
@@ -49,10 +48,7 @@ export default function StartAdornmentInputField({ type, value, id, focus, onCha
 
     useEffect(() => {
         if (focus) {
-            console.log(`focus - ${id} `, focus);
-            console.log(inputRef.current);
             inputRef.current?.focus();
-            // dispatch(setActiveChoice({ id }));
         }
     }, [focus, id]);
 
