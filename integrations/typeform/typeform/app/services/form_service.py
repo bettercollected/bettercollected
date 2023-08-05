@@ -38,6 +38,10 @@ def perform_typeform_request(
         params=params,
     )
     if api_response.status_code != 200:
+        if api_response.status_code == HTTPStatus.FORBIDDEN:
+            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content="Invalid Access Token")
+        if api_response.status_code == HTTPStatus.NOT_FOUND:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found.")
         raise HTTPException(
             status_code=400, content="Error while fetching forms from typeform."
         )
