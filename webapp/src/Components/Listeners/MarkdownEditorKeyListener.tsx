@@ -17,7 +17,7 @@ export default function MarkdownEditorKeyListener({ children }: React.PropsWithC
     const onKeyDownCallback = useCallback(
         (event: KeyboardEvent) => {
             const formField: IFormFieldState | undefined = builderState.fields[activeFieldId];
-            if (!formField || formField.type !== FormBuilderTagNames.INPUT_MARKDOWN) return;
+            if (!formField || formField.type !== FormBuilderTagNames.LAYOUT_MARKDOWN) return;
             // if (editorDetails.isFirstLine || editorDetails.isLastLine) return;
             if (event.key === KeyType.Enter) return;
             if (event.key === KeyType.ArrowUp || event.key === KeyType.ArrowDown) {

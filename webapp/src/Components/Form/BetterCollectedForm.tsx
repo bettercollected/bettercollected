@@ -40,7 +40,7 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
         case FormBuilderTagNames.LAYOUT_HEADER2:
         case FormBuilderTagNames.LAYOUT_LABEL:
             return <div className={'!mt-3 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
-        case FormBuilderTagNames.INPUT_MARKDOWN:
+        case FormBuilderTagNames.LAYOUT_MARKDOWN:
             return <MarkdownText text={field.value ?? ''} />;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
         case FormBuilderTagNames.INPUT_EMAIL:

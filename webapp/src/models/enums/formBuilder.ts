@@ -25,7 +25,7 @@ export enum FormBuilderTagNames {
     LAYOUT_SHORT_TEXT = 'p',
     LAYOUT_LABEL = 'strong',
     LAYOUT_DIVIDER = 'divider',
-    LAYOUT_MARKDOWN = 'mardown',
+    LAYOUT_MARKDOWN = 'markdown',
 
     INPUT_SHORT_TEXT = 'input_short_text',
     INPUT_LONG_TEXT = 'input_long_text',
