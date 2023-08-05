@@ -21,8 +21,6 @@ interface IHeaderInputBlockProps {
 
 const getPlaceholder = (type: FormBuilderTagNames) => {
     switch (type) {
-        case FormBuilderTagNames.LAYOUT_HEADER5:
-            return '5';
         case FormBuilderTagNames.LAYOUT_HEADER4:
             return '4';
         case FormBuilderTagNames.LAYOUT_HEADER3:

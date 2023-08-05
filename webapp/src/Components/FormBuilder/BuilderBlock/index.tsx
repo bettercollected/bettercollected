@@ -8,7 +8,7 @@ import { batch } from 'react-redux';
 import { v4 } from 'uuid';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { resetBuilderMenuState, setAddNewField, setBuilderState, setCommandMenuPosition, setMoveField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
@@ -62,6 +62,12 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [builderState, item.position]
     );
+
+    const getMarginTop = (type: FormBuilderTagNames) => {
+        if (NonInputFormBuilderTagNames.includes(type)) {
+            return 'mt-3';
+        }
+    };
 
     return (
         <Draggable key={item.position} draggableId={draggableId.toString()} index={item.position}>

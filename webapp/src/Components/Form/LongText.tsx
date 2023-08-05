@@ -3,7 +3,7 @@ import React, { ChangeEvent } from 'react';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { useDispatch } from 'react-redux';
 
-import BetterInput from '@app/components/Common/input';
+import BetterInput, { FormInputField } from '@app/components/Common/input';
 import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { addAnswer, deleteAnswer } from '@app/store/fill-form/slice';
 
@@ -34,15 +34,12 @@ export default function LongText({ ans, enabled, field }: ILongTextProps) {
     return (
         <div className="relative w-full h-full">
             {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
-            <BetterInput
+            <FormInputField
                 placeholder={field?.properties?.placeholder}
                 multiline
-                sx={{
-                    padding: '16 !important'
-                }}
                 InputProps={{
                     style: {
-                        padding: 16
+                        padding: '12px 16px'
                     }
                 }}
                 inputProps={{
@@ -56,7 +53,7 @@ export default function LongText({ ans, enabled, field }: ILongTextProps) {
                 disabled={!enabled}
                 fullWidth
                 onChange={onChange}
-                className="!mb-7"
+                className="!mb-0"
             />
         </div>
     );

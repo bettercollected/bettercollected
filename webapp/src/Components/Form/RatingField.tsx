@@ -14,7 +14,7 @@ export default function RatingField({ field, ans, enabled }: FormFieldProps) {
     const [hovered, setHovered] = useState(ans?.number || -1);
     const answer = useAppSelector(selectAnswer(field.id));
     return (
-        <div className="w-fit !mb-7 gap-3 flex  flex-wrap relative">
+        <div className="w-fit !mb-0 gap-3 flex  flex-wrap relative">
             {field?.validations?.required && <FieldRequired className="-right-5" />}
 
             {_.range(field.properties?.steps || 5).map((index) => {

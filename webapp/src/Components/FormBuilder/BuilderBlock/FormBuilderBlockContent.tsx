@@ -30,7 +30,6 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
             case FormBuilderTagNames.LAYOUT_HEADER2:
             case FormBuilderTagNames.LAYOUT_HEADER3:
             case FormBuilderTagNames.LAYOUT_HEADER4:
-            case FormBuilderTagNames.LAYOUT_HEADER5:
             case FormBuilderTagNames.LAYOUT_LABEL:
                 return <HeaderInputBlock field={field} id={id} position={position} />;
             case FormBuilderTagNames.LAYOUT_MARKDOWN:

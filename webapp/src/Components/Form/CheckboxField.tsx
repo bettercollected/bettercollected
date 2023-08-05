@@ -29,7 +29,7 @@ export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
     };
 
     return (
-        <div className="!mb-7 flex flex-col gap-3">
+        <div className="!mb-0 flex flex-col gap-3">
             {(field?.properties?.choices || []).map((choice: any, index: number) => (
                 <div key={choice?.id} className="flex w-fit  items-center relative">
                     {index === 0 && field?.validations?.required && <FieldRequired className="-right-5" />}

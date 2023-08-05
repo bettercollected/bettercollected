@@ -129,13 +129,6 @@ export const allowedLayoutTags = [
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.LAYOUT_HEADER5,
-        type: FormBuilderTagNames.LAYOUT_HEADER5,
-        label: 'Heading 5',
-        icon: <div className=" font-bold text-xl">H5</div>,
-        blockType: BlockTypes.LAYOUT_BLOCKS
-    },
-    {
         id: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         label: 'Text',

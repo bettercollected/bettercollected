@@ -29,7 +29,7 @@ export default function DropdownField({ field, ans, enabled }: FormFieldProps) {
                 disabled={!enabled}
                 value={ans?.choice.value || answer?.choice?.value || ''}
                 onChange={onChange}
-                className="w-fit min-w-[167px] !rounded-md !border-gray-600 !mb-7 text-black-900 !bg-white"
+                className="w-fit min-w-[167px] !rounded-md !border-gray-600 !mb-0 text-black-900 !bg-white"
             >
                 {field?.properties?.choices?.map((choice: any, index: number) => (
                     <MenuItem key={choice.id} value={choice?.value} className="relative">

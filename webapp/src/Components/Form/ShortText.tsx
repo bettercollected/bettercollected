@@ -3,7 +3,7 @@ import React, { ChangeEvent, useEffect } from 'react';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { useDispatch } from 'react-redux';
 
-import BetterInput from '@app/components/Common/input';
+import BetterInput, { FormInputField } from '@app/components/Common/input';
 import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { selectAuth } from '@app/store/auth/slice';
@@ -80,14 +80,17 @@ export default function ShortText({ ans, enabled, field }: IShortTextProps) {
 
     return (
         <div className="relative">
-            <BetterInput
+            <FormInputField
+                style={{
+                    margin: '0px !important'
+                }}
                 type={getInputType()}
                 value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name || ans?.date || ans?.phone_number}
                 placeholder={field?.properties?.placeholder}
                 disabled={!enabled}
                 inputProps={{
                     style: {
-                        padding: 16,
+                        padding: '12px 16px',
                         fontSize: 14,
                         fontWeight: 400,
                         color: 'black',

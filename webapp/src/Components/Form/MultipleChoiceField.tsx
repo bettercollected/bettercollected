@@ -21,7 +21,7 @@ export default function MultipleChoiceField({ field, ans, enabled }: FormFieldPr
         }
     };
     return (
-        <div className="!mb-7 flex flex-col gap-3">
+        <div className="!mb-0 flex flex-col gap-3">
             {(field?.properties?.choices || []).map((choice: any, index: number) => (
                 <div key={choice?.id} className={`flex relative w-fit items-center ${enabled ? 'cursor-pointer' : ''} ${!enableES5}`} onClick={() => handleSelectChoice(choice)}>
                     {index === 0 && field?.validations?.required && <FieldRequired className="-right-5" />}
