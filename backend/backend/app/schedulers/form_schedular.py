@@ -1,7 +1,8 @@
+from _socket import gaierror
 from http import HTTPStatus
 from typing import Any, Dict
 
-from aiohttp import ServerDisconnectedError
+from aiohttp import ServerDisconnectedError, ClientConnectorError
 from beanie import PydanticObjectId
 from loguru import logger
 
@@ -167,8 +168,10 @@ class FormSchedular:
             data = await response.json()
             return data
 
-        except ServerDisconnectedError as e:
-            return None
+        except gaierror | ServerDisconnectedError | ClientConnectorError:
+            raise HTTPException(
+                HTTPStatus.SERVICE_UNAVAILABLE, "Could not fetch data form proxy server"
+            )
 
     async def fetch_user_details(self, user_ids):
         response = await AiohttpClient.get_aiohttp_client().get(
