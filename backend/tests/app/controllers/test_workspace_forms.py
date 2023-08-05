@@ -1,5 +1,4 @@
 from typing import Any, Coroutine, Generator
-from unittest.mock import _patch, MagicMock, AsyncMock
 
 import pytest
 from aiohttp.test_utils import TestClient
@@ -27,7 +26,7 @@ from tests.app.controllers.data import (
 
 @pytest.fixture()
 def workspace_form_common_url(workspace: Coroutine[Any, Any, WorkspaceDocument]):
-    return "/api/v1/workspaces/" + str(workspace.id) + "/forms"
+    return f"/api/v1/workspaces/{workspace.id}/forms"
 
 
 @pytest.fixture()
