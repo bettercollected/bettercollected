@@ -273,12 +273,12 @@ class OauthGoogleService:
             return oauth_credential
         except HttpError:
             raise HTTPException(
-                status_code=HTTPStatus.EXPECTATION_FAILED,
+                status_code=HTTPStatus.UNAUTHORIZED,
                 content=MESSAGE_OAUTH_MISSING_TOKEN_OR_EXPIRY,
             )
         except InvalidGrantError:
             raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST, content=MESSAGE_OAUTH_INVALID_GRANT
+                status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_OAUTH_INVALID_GRANT
             )
 
     @staticmethod

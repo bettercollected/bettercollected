@@ -107,7 +107,7 @@ class OauthCredentialService:
             or not oauth_credential.credentials.refresh_token
         ):
             raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
+                status_code=HTTPStatus.UNAUTHORIZED,
                 detail=MESSAGE_OAUTH_MISSING_REFRESH_TOKEN,
             )
         return await self.oauth_google_service.fetch_oauth_token(oauth_credential)
