@@ -77,6 +77,8 @@ class TemporalService:
     async def add_scheduled_job_for_importing_form(
         self, workspace_id: PydanticObjectId, form_id: str
     ):
+        if not settings.schedular_settings.ENABLED:
+            return
         await self.check_temporal_client_and_try_to_connect_if_not_connected()
         try:
             await self.client.create_schedule(
@@ -107,6 +109,8 @@ class TemporalService:
     async def delete_form_import_schedule(
         self, workspace_id: PydanticObjectId, form_id: str
     ):
+        if not settings.schedular_settings.ENABLED:
+            return
         await self.check_temporal_client_and_try_to_connect_if_not_connected()
         schedule_id = "import_" + str(workspace_id) + "_" + form_id
         schedule_handle = self.client.get_schedule_handle(schedule_id)
