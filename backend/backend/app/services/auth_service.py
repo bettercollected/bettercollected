@@ -2,6 +2,7 @@ import json
 from http import HTTPStatus
 from typing import Tuple
 
+from httpx import ReadTimeout
 from pydantic import EmailStr
 from starlette.requests import Request
 
@@ -45,11 +46,17 @@ class AuthService:
         self.user_tags_service = user_tags_service
 
     async def get_user_status(self, user: User):
-        response_data = await self.http_client.get(
-            settings.auth_settings.BASE_URL + "/auth/status",
-            params={"user_id": user.id},
-        )
-        return response_data
+        try:
+            response_data = await self.http_client.get(
+                settings.auth_settings.BASE_URL + "/auth/status",
+                params={"user_id": user.id},
+                timeout=60,
+            )
+            return response_data
+        except ReadTimeout as e:
+            raise HTTPException(
+                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Read Timeout"
+            )
 
     async def send_otp_for_creator(self, receiver_email: EmailStr):
         await self.http_client.get(
