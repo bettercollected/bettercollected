@@ -1,6 +1,10 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+
+import { throttle } from 'lodash';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
+import eventBus from '@app/lib/event-bus';
+import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { setActiveChoice, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
@@ -20,9 +24,10 @@ export default function MultipleChoiceKeyEventListener({ children }: React.Props
             if (!isMultipleChoice(formField?.type)) return;
             if (!formField.properties?.activeChoiceId) return;
 
+            event.stopPropagation();
+
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
-                event.stopPropagation();
                 if (builderState.activeFieldIndex >= -1) {
                     //@ts-ignore
                     if ((formField.properties?.choices[formField.properties.activeChoiceId].value || '') !== '') {
@@ -68,17 +73,18 @@ export default function MultipleChoiceKeyEventListener({ children }: React.Props
                     setBackspaceCount(1);
                 }
             }
-
-            event.stopPropagation();
         },
         [asyncDispatch, backspaceCount, builderState.activeFieldId, builderState.activeFieldIndex, builderState.fields, dispatch, setBackspaceCount]
     );
 
     useEffect(() => {
-        document.addEventListener('keydown', onKeyDownCallback);
+        const throttledKeyDownCallback = throttle(onKeyDownCallback, 300);
+
+        document.addEventListener('keydown', throttledKeyDownCallback);
 
         return () => {
-            document.removeEventListener('keydown', onKeyDownCallback);
+            document.removeEventListener('keydown', throttledKeyDownCallback);
+            eventBus.emit(EventBusEventType.FormBuilder.StopPropagation, false);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [builderState, backspaceCount]);

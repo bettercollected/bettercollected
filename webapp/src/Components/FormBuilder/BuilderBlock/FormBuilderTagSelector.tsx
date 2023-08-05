@@ -28,13 +28,6 @@ export const allowedInputTags = [
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.INPUT_MARKDOWN,
-        type: FormBuilderTagNames.INPUT_MARKDOWN,
-        label: 'Markdown',
-        icon: <Tag width={20} height={20} />,
-        blockType: BlockTypes.INPUT_BLOCKS
-    },
-    {
         id: FormBuilderTagNames.INPUT_EMAIL,
         type: FormBuilderTagNames.INPUT_EMAIL,
         label: 'Email',
@@ -155,6 +148,13 @@ export const allowedLayoutTags = [
         label: 'Label',
         icon: <div className=" font-bold text-center text-xl">{'L'}</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.LAYOUT_MARKDOWN,
+        type: FormBuilderTagNames.LAYOUT_MARKDOWN,
+        label: 'Markdown',
+        icon: <Tag width={20} height={20} />,
+        blockType: BlockTypes.INPUT_BLOCKS
     }
 ];
 

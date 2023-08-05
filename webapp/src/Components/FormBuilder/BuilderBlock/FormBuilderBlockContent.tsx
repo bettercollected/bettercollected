@@ -5,7 +5,8 @@ import HeaderInputBlock from '@Components/FormBuilder/HeaderInputBlock';
 import LongText from '@Components/FormBuilder/LongText';
 import MultipleChoice from '@Components/FormBuilder/MultipleChoice';
 import RatingField from '@Components/FormBuilder/RatingField';
-import MarkdownKeyListener from '@Components/HOCs/MarkdownKeyListener';
+import MarkdownEditorKeyListener from '@Components/Listeners/MarkdownEditorKeyListener';
+import MultipleChoiceKeyEventListener from '@Components/Listeners/MultipleChoiceKeyListener';
 import { useDispatch } from 'react-redux';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
@@ -32,12 +33,8 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
             case FormBuilderTagNames.LAYOUT_HEADER5:
             case FormBuilderTagNames.LAYOUT_LABEL:
                 return <HeaderInputBlock field={field} id={id} position={position} />;
-            case FormBuilderTagNames.INPUT_MARKDOWN:
-                return (
-                    <MarkdownKeyListener>
-                        <MarkdownEditor field={field} id={id} />
-                    </MarkdownKeyListener>
-                );
+            case FormBuilderTagNames.LAYOUT_MARKDOWN:
+                return <MarkdownEditor field={field} id={id} />;
             case FormBuilderTagNames.INPUT_SHORT_TEXT:
             case FormBuilderTagNames.INPUT_EMAIL:
             case FormBuilderTagNames.INPUT_NUMBER:
@@ -51,7 +48,11 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
             case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
             case FormBuilderTagNames.INPUT_DROPDOWN:
             case FormBuilderTagNames.INPUT_RANKING:
-                return <MultipleChoice field={field} id={id} />;
+                return (
+                    <MultipleChoiceKeyEventListener>
+                        <MultipleChoice field={field} id={id} />
+                    </MultipleChoiceKeyEventListener>
+                );
             case FormBuilderTagNames.INPUT_RATING:
                 return <RatingField field={field} id={id} />;
             default:

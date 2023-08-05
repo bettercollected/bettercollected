@@ -26,10 +26,10 @@ export enum FormBuilderTagNames {
     LAYOUT_SHORT_TEXT = 'p',
     LAYOUT_LABEL = 'strong',
     LAYOUT_DIVIDER = 'divider',
+    LAYOUT_MARKDOWN = 'mardown',
 
     INPUT_SHORT_TEXT = 'input_short_text',
     INPUT_LONG_TEXT = 'input_long_text',
-    INPUT_MARKDOWN = 'input_markdown',
     INPUT_MULTIPLE_CHOICE = 'input_multiple_choice',
     INPUT_MULTISELECT = 'input_multiselect',
     INPUT_CHECKBOXES = 'input_checkboxes',

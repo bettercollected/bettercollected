@@ -3,7 +3,7 @@ import { EventEmitter } from 'events';
 import { EventHandler } from '@app/lib/event-bus/types';
 
 interface EventBus {
-    emit(key: string): void;
+    emit(key: string, ...args: any[]): void;
 
     on(key: string, handler: EventHandler): void;
 
@@ -17,8 +17,8 @@ class EventBusAdapter implements EventBus {
         this.emitter = new EventEmitter();
     }
 
-    emit(key: string): void {
-        this.emitter.emit(key);
+    emit(key: string, ...args: any[]): void {
+        this.emitter.emit(key, ...args);
     }
 
     on(key: string, handler: EventHandler): void {

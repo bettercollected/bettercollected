@@ -1,12 +1,13 @@
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
 
 import TextArea from '@Components/Common/Input/TextArea';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { Key, Visibility, VisibilityOff } from '@mui/icons-material';
 import cn from 'classnames';
 import { useDispatch } from 'react-redux';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
 import eventBus from '@app/lib/event-bus';
+import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { KeyType } from '@app/models/enums/formBuilder';
 import { setActiveField, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
@@ -39,21 +40,26 @@ const MarkdownEditor = ({ id, field }: MarkdownEditorProps) => {
 
         const lines = textArea.value.split('\n');
         const cursorPosition = textArea.selectionStart || 0;
+
         for (let i = 0; i < lines.length; i++) {
-            currentCharCount += lines[i].length + 1;
-            if (cursorPosition <= currentCharCount) {
+            if (cursorPosition <= currentCharCount + lines[i].length) {
                 lineIndex = i;
                 break;
             }
+            currentCharCount += lines[i].length + 1; // Adding 1 for newline character
         }
+
         return lineIndex;
     };
+
     const onKeyDownCallback = (event: KeyboardEvent) => {
         if (field?.position !== activeFieldIndex) return;
         const currentEditingLine = getEditingLinePosition();
         const lines = inputRef.current?.value.split('\n');
         const lastLineIndex = (lines?.length ?? 1) - 1;
-
+        console.log(lines);
+        console.log('lastLineIndex', lastLineIndex);
+        console.log('currentEditingLine', currentEditingLine);
         if (event.key === KeyType.ArrowUp && currentEditingLine !== 0) {
             event.stopPropagation();
             event.stopImmediatePropagation();

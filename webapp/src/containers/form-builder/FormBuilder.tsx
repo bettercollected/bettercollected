@@ -136,11 +136,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const openTagSelector = () => {
         const viewportHeight = window.innerHeight;
         const bottomPosition = builderDragDropRef.current?.getBoundingClientRect().bottom ?? 0;
-        console.log({
-            viewportHeight,
-            bottomPosition,
-            position: bottomPosition + 300 > viewportHeight ? 'up' : 'down'
-        });
+
         // 300 is the height of the FormBuilderTagSelector
         dispatch(
             setBuilderState({

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { throttle } from 'lodash';
 
@@ -17,9 +17,10 @@ import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
 
-export default function FormBuilderKeyListerner({ children }: React.PropsWithChildren) {
+export default function FormBuilderKeyListener({ children }: React.PropsWithChildren) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
+    const [stopPropagation, setStopPropagation] = useState(false);
     // const onKeyDownCallbackRef = useRef<any>(null);
     const { backspaceCount, setBackspaceCount } = useFormBuilderState();
 
@@ -39,6 +40,7 @@ export default function FormBuilderKeyListerner({ children }: React.PropsWithChi
                 const fieldId = builderState.activeFieldId;
                 const formField: IFormFieldState | undefined = builderState.fields[fieldId];
 
+                // if (stopPropagation) return;
                 if (event.key === 'Escape') {
                     dispatch(resetBuilderMenuState());
                 }
@@ -72,12 +74,9 @@ export default function FormBuilderKeyListerner({ children }: React.PropsWithChi
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                 }
                 if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey) {
-                    console.log('openSelector event emitted');
                     eventBus.emit(EventBusEventType.FormBuilder.OpenTagSelector);
                 }
                 if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
-                    console.log({ 'backspace count': backspaceCount });
-                    console.log('backspace pressed');
                     // TODO: Add support for other input types or form field type as well
                     if (!formField?.value && backspaceCount === 1) {
                         asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
@@ -139,16 +138,22 @@ export default function FormBuilderKeyListerner({ children }: React.PropsWithChi
             });
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [builderState, backspaceCount]
+        [builderState, backspaceCount, stopPropagation]
     );
 
     useEffect(() => {
-        // onKeyDownCallbackRef.current = throttle(onKeyDownCallback, 100);
+        const handleStopPropagation = (val: boolean) => {
+            console.log('stop propagation', val);
+            setStopPropagation(val);
+        };
+        const throttledKeyDownCallback = onKeyDownCallback;
 
-        document.addEventListener('keydown', onKeyDownCallback);
+        document.addEventListener('keydown', throttledKeyDownCallback);
+        // eventBus.on(EventBusEventType.FormBuilder.StopPropagation, handleStopPropagation);
 
         return () => {
-            document.removeEventListener('keydown', onKeyDownCallback);
+            document.removeEventListener('keydown', throttledKeyDownCallback);
+            // eventBus.removeListener(EventBusEventType.FormBuilder.StopPropagation, handleStopPropagation);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [builderState]);
