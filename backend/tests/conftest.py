@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from mongomock_motor import AsyncMongoMockClient
 
 import pytest
+import httpx
 from unittest.mock import patch
 
 from backend.app.schemas.standard_form import FormDocument
@@ -182,4 +183,15 @@ def mock_send_otp_get_request():
     yield patch(
         "backend.app.services.workspace_service.WorkspaceService.send_otp_for_workspace",
         return_value={"message": "Otp sent successfully"},
+    )
+
+
+@pytest.fixture()
+def mock_validate_otp():
+    async def get_user_after_validation_of_otp(*args, **kwargs):
+        return httpx.Response(200, json={"user": testUser.dict()})
+
+    yield patch(
+        "httpx.AsyncClient.get",
+        side_effect=get_user_after_validation_of_otp,
     )
