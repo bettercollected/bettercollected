@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Array to hold selected services
+services_to_start=("mongodb" "mongo-seed" "webapp" "nginx" "backend" "auth")
+
+# Start selected services using Docker Compose
+
+function both(){
+services=("integrations-typeform" "integrations-googleform")
+for service in "${services[@]}"; do
+    services_to_start+=("$service")
+done
+docker compose --file "docker-compose.deployment.yml" up -d "${services_to_start[@]}"
+}
+
+function none(){
+docker compose --file "docker-compose.deployment.yml" up -d "${services_to_start[@]}"
+}
+
+function googleform(){
+services_to_start+=("integrations-googleform")
+docker compose --file "docker-compose.deployment.yml" up -d "${services_to_start[@]}"
+}
+
+function typeform(){
+services_to_start+=("integrations-typeform")
+docker compose --file "docker-compose.deployment.yml" up -d "${services_to_start[@]}"
+}
+
+function down() {
+docker compose --file "docker-compose.deployment.yml" down 
+}
