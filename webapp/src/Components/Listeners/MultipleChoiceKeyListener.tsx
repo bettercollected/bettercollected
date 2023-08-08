@@ -37,23 +37,19 @@ export default function MultipleChoiceKeyEventListener({ children }: React.Props
                         dispatch(setDeleteField(formField.id));
                     }
                 }
-            }
-            if (event.key === 'ArrowDown') {
+            } else if (event.key === 'ArrowDown') {
                 //@ts-ignore
                 if (formField.properties?.activeChoiceIndex < Object.values(formField.properties?.choices).length - 1) {
                     event.stopPropagation();
                     dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) + 1 }));
                 }
-            }
-            if (event.key === 'ArrowUp') {
+            } else if (event.key === 'ArrowUp') {
                 //@ts-ignore
                 if (formField.properties?.activeChoiceIndex > 0) {
                     event.stopPropagation();
                     dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) - 1 }));
                 }
-            }
-
-            if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey)) {
+            } else if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey)) {
                 if (backspaceCount === 1 && Object.values(choices).length - 1 !== 0) {
                     event.preventDefault();
                     event.stopPropagation();

@@ -41,38 +41,27 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
 
                 if (event.key === 'Escape') {
                     dispatch(resetBuilderMenuState());
-                }
-
-                if (builderState.menus?.commands?.isOpen || fullScreenModal.isOpen || modal.isOpen || builderState.menus?.spotlightField?.isOpen) {
+                } else if (builderState.menus?.commands?.isOpen || fullScreenModal.isOpen || modal.isOpen || builderState.menus?.spotlightField?.isOpen) {
                     return;
-                }
-
-                if (event.key === 'Enter' && !event.shiftKey) {
+                } else if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
                     event.preventDefault();
                     event.stopPropagation();
-                    if (builderState.activeFieldIndex >= -1) {
-                        dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
-                        dispatch(
-                            setBuilderState({
-                                isFormDirty: true,
-                                activeFieldIndex: builderState.activeFieldIndex + 1
-                            })
-                        );
-                    }
-                }
 
-                if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
-
-                if (!event.ctrlKey && !event.metaKey && (event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
+                    dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
+                    dispatch(
+                        setBuilderState({
+                            isFormDirty: true,
+                            activeFieldIndex: builderState.activeFieldIndex + 1
+                        })
+                    );
+                } else if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
+                else if (!event.ctrlKey && !event.metaKey && (event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
-                }
-                if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2) {
+                } else if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2) {
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
-                }
-                if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey) {
+                } else if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey) {
                     eventBus.emit(EventBusEventType.FormBuilder.OpenTagSelector);
-                }
-                if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
+                } else if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
                     if (backspaceCount === 1) {
                         event.preventDefault();
 
@@ -82,9 +71,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     } else {
                         setBackspaceCount(1);
                     }
-                }
-
-                if (((event.key === 'Delete' && event.ctrlKey) || (event.key === 'Backspace' && event.metaKey)) && fieldId) {
+                } else if (((event.key === 'Delete' && event.ctrlKey) || (event.key === 'Backspace' && event.metaKey)) && fieldId) {
                     event.preventDefault();
                     event.stopPropagation();
 
@@ -97,8 +84,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                             activeFieldIndex: builderState.activeFieldIndex > 0 ? builderState.activeFieldIndex - 1 : 0
                         })
                     );
-                }
-                if ((event.key === 'D' || event.key === 'd') && !event.shiftKey && (event.ctrlKey || event.metaKey) && fieldId) {
+                } else if ((event.key === 'D' || event.key === 'd') && !event.shiftKey && (event.ctrlKey || event.metaKey) && fieldId) {
                     event.preventDefault();
                     event.stopPropagation();
                     if (builderState.activeFieldIndex < 0) {
@@ -111,18 +97,15 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                         dispatch(addDuplicateField(newField));
                         dispatch(setBuilderState({ isFormDirty: true }));
                     }
-                }
-                if ((event.key === 'I' || event.key === 'i') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
+                } else if ((event.key === 'I' || event.key === 'i') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
                     event.preventDefault();
                     event.stopPropagation();
                     onInsert();
-                }
-                if ((event.key === 'S' || event.key === 's') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
+                } else if ((event.key === 'S' || event.key === 's') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
                     event.preventDefault();
                     event.stopPropagation();
                     eventBus.emit(EventBusEventType.FormBuilder.Save);
-                }
-                if ((event.key === 'P' || event.key === 'p') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
+                } else if ((event.key === 'P' || event.key === 'p') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
                     event.preventDefault();
                     event.stopPropagation();
                     eventBus.emit(EventBusEventType.FormBuilder.Publish);
