@@ -148,6 +148,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_provider_service=form_provider_service,
         form_import_service=form_import_service,
         jwt_service=jwt_service,
+        temporal_service=temporal_service,
     )
 
     responder_groups_service = providers.Singleton(
@@ -170,6 +171,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
         user_tags_service=user_tags_service,
+        temporal_service=temporal_service,
     )
     workspace_service: WorkspaceService = providers.Singleton(
         WorkspaceService,
