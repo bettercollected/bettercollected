@@ -23,39 +23,44 @@ def get_add_form_in_group_url(
     return f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/groups/add?group_id={workspace_group.id}"
 
 
-@pytest.fixture()
-def get_request_delete_response_url(
-    workspace: Coroutine[Any, Any, WorkspaceDocument],
-    workspace_form_response: Coroutine[Any, Any, dict],
-):
-    return f"/api/v1/workspaces/{workspace.id}/submissions/{workspace_form_response['response_id']}"
-
-
 user_tags_url = "/api/v1/user/tags/"
 
 
 class TestUserTags:
-    def test_get_user_tags_for_form_import_and_group_create(
+    def test_get_user_tags_for_form_import_and_delete_request_received_and_delete_request_processed(
         self,
         client: TestClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
         workspace_form_response: Coroutine[Any, Any, dict],
+        workspace_form_response_1: Coroutine[Any, Any, dict],
+        workspace_form_response_2: Coroutine[Any, Any, dict],
         workspace_form: Coroutine[Any, Any, FormDocument],
-        get_request_delete_response_url: str,
         mock_aiohttp_post_request,
     ):
         import_form_url = f"/api/v1/workspaces/{workspace.id}/forms/import/google"
-        create_group_url = f"/api/v1/{workspace.id}/responder-groups?name=random_group"
+        request_delete_url_1 = f"/api/v1/workspaces/{workspace.id}/submissions/{workspace_form_response['response_id']}"
+        request_delete_url_2 = f"/api/v1/workspaces/{workspace.id}/submissions/{workspace_form_response_1['response_id']}"
+        client.delete(
+            request_delete_url_1,
+            cookies=test_user_cookies,
+        )
+        client.delete(
+            request_delete_url_2,
+            cookies=test_user_cookies,
+        )
         with mock_aiohttp_post_request:
             client.post(
                 import_form_url, cookies=test_user_cookies, json=test_form_import_data
             )
-        client.post(create_group_url, cookies=test_user_cookies)
 
         fetched_tags = client.get(user_tags_url, cookies=test_user_cookies)
 
-        expected_response = ["FORM_IMPORTED", "GROUP_CREATED"]
+        expected_response = [
+            "DELETION_REQUEST_RECEIVED",
+            "DELETION_REQUEST_PROCESSED",
+            "FORM_IMPORTED",
+        ]
         actual_response = fetched_tags.json()[0].get("tags")
         assert actual_response == expected_response
 
@@ -77,40 +82,49 @@ class TestUserTags:
         actual_response = fetched_tags.json()[0].get("tags")
         assert actual_response == expected_response
 
-    def test_get_user_tags_for_form_added_to_group_and_deletion_request_received(
+    def test_get_user_tags_for_form_added_to_group_and_group_created(
         self,
         client: TestClient,
         test_user_cookies: dict[str, str],
         get_add_form_in_group_url: str,
-        get_request_delete_response_url: str,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
     ):
         # add form to group
+        create_group_url = f"/api/v1/{workspace.id}/responder-groups?name=random_group"
         client.patch(get_add_form_in_group_url, cookies=test_user_cookies)
-        client.delete(get_request_delete_response_url, cookies=test_user_cookies)
+        client.post(create_group_url, cookies=test_user_cookies)
 
         fetched_tags = client.get(user_tags_url, cookies=test_user_cookies)
 
-        expected_response = ["FORM_ADDED_TO_GROUP", "DELETION_REQUEST_RECEIVED"]
+        expected_response = ["FORM_ADDED_TO_GROUP", "GROUP_CREATED"]
         actual_response = fetched_tags.json()[0].get("tags")
         assert actual_response == expected_response
 
-    def test_get_user_tags_for_custom_slug(
+    def test_get_user_tags_for_custom_slug_and_new_user(
         self,
         client: TestClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form: Coroutine[Any, Any, FormDocument],
         test_user_cookies: dict[str, str],
+        mock_validate_otp,
     ):
         patch_setting_url = (
             f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/settings"
         )
+        validate_otp_url = "/api/v1/auth/otp/validate"
         client.patch(
             patch_setting_url, cookies=test_user_cookies, json=workspace_settings
         )
+        with mock_validate_otp:
+            client.post(
+                validate_otp_url,
+                cookies=test_user_cookies,
+                json={"email": "asad@gmial.com", "otp_code": "12"},
+            )
 
         fetched_tags = client.get(user_tags_url, cookies=test_user_cookies)
 
-        expected_response = ["CUSTOM_SLUG"]
+        expected_response = ["CUSTOM_SLUG", "NEW_USER"]
         actual_response = fetched_tags.json()[0].get("tags")
         assert actual_response == expected_response
 
@@ -130,14 +144,15 @@ class TestUserTags:
     def test_get_user_tag_details(
         self,
         client: TestClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
         get_add_form_in_group_url: str,
-        get_request_delete_response_url: str,
         mock_aiohttp_get_request,
     ):
         tag_details_url = "/api/v1/user/tags/details"
+        create_group_url = f"/api/v1/{workspace.id}/responder-groups?name=random_group"
         client.patch(get_add_form_in_group_url, cookies=test_user_cookies)
-        client.delete(get_request_delete_response_url, cookies=test_user_cookies)
+        client.post(create_group_url, cookies=test_user_cookies)
 
         with mock_aiohttp_get_request:
             tag_details = client.get(tag_details_url, cookies=test_user_cookies)
