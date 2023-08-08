@@ -93,7 +93,7 @@ export default function SingleFormPage(props: any) {
     // TODO: Update this component to be reusable
     if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
         return (
-            <Layout className="relative !bg-white !min-h-screen">
+            <Layout className="relative !bg-white !min-h-screen" showNavbar={false}>
                 {back && (
                     <div className="flex cursor-pointer mt-5 items-center gap-2 px-5 lg:px-20 w-auto z-10 hover:!-translate-y-0 focus:-translate-y-0" onClick={() => goToForms()}>
                         <ChevronLeft height={24} width={24} />

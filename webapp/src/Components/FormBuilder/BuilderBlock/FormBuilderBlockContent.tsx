@@ -5,7 +5,6 @@ import HeaderInputBlock from '@Components/FormBuilder/HeaderInputBlock';
 import LongText from '@Components/FormBuilder/LongText';
 import MultipleChoice from '@Components/FormBuilder/MultipleChoice';
 import RatingField from '@Components/FormBuilder/RatingField';
-import MarkdownEditorKeyListener from '@Components/Listeners/MarkdownEditorKeyListener';
 import MultipleChoiceKeyEventListener from '@Components/Listeners/MultipleChoiceKeyListener';
 import { useDispatch } from 'react-redux';
 
