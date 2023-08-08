@@ -72,11 +72,11 @@ class TestWorkspaces:
     ):
         for i in range(settings.api_settings.ALLOWED_WORKSPACES):
             client.post(
-                common_url, cookies=test_pro_user_cookies, data=workspace_attribute
+                common_url, cookies=test_pro_user_cookies, data=workspace_attribute_1
             )
 
         max_limit_workspace = client.post(
-            common_url, cookies=test_pro_user_cookies, data=workspace_attribute
+            common_url, cookies=test_pro_user_cookies, data=workspace_attribute_1
         )
 
         expected_response_message = "Cannot add more workspaces"
@@ -153,6 +153,7 @@ class TestWorkspaces:
             "title": patched_workspace.json().get("title"),
             "description": patched_workspace.json().get("description"),
             "custom_domain": patched_workspace.json().get("customDomain"),
+            "workspace_name": patched_workspace.json().get("workspaceName"),
         }
         assert (
             actual_updated_workspace_attribute == expected_updated_workspace_attribute
