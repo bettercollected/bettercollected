@@ -11,11 +11,12 @@ import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react
 import { useDispatch } from 'react-redux';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
-import { setActiveChoice, setActiveField, setUpdateField } from '@app/store/form-builder/actions';
+import { setActiveChoice, setActiveField, setAddNewChoice, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 import { reorder } from '@app/utils/arrayUtils';
+import { createNewChoice } from '@app/utils/formBuilderBlockUtils';
 
 interface IMultipleChoiceProps {
     field: IFormFieldState;
@@ -32,19 +33,14 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
         dispatch(
             setUpdateField({
                 ...field,
-                properties: { ...field.properties, choices: { ...field.properties?.choices, [id]: { id, value } } }
+                // @ts-ignore
+                properties: { ...field.properties, choices: { ...field.properties?.choices, [id]: { ...field.properties?.choices[id], id, value } } }
             })
         );
     };
-    const addChoice = (index: number) => {
-        const id = uuidv4();
-        const newChoices = Object.values(field.properties?.choices || {});
-        newChoices.splice(index + 1, 0, { id, value: '' });
-        const choices: any = {};
-        newChoices.forEach((choice: any) => {
-            choices[choice.id] = choice;
-        });
-        dispatch(setUpdateField({ ...field, properties: { ...field.properties, choices: choices } }));
+    const addChoice = () => {
+        //@ts-ignore
+        dispatch(setAddNewChoice(createNewChoice(field.properties?.activeChoiceIndex + 1)));
     };
     const deleteChoice = (id: string) => {
         const choices = { ...field.properties?.choices };
@@ -97,7 +93,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
                                                     <div className="flex items-center gap-2 justify-center">
                                                         <div
                                                             onClick={() => {
-                                                                addChoice(index);
+                                                                addChoice();
                                                             }}
                                                             className="flex items-center justify-center rounded z-[10] text-gray-500 bg-gray-200 h-5 w-5 cursor-pointer"
                                                         >

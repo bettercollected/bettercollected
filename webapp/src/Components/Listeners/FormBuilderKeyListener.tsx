@@ -45,7 +45,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     return;
                 } else if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
                     event.preventDefault();
-                    console.log('Formbuilder choice enter event called');
+                    console.log('Formbuilder enter event called');
 
                     dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
                     dispatch(
@@ -56,7 +56,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     );
                 } else if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
                 else if (!event.ctrlKey && !event.metaKey && (event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
-                    console.log('Formbuilder choice arrow down called');
+                    console.log('Formbuilder arrow down called');
 
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
                 } else if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2) {

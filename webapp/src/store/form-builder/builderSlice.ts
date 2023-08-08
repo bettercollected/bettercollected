@@ -1,15 +1,13 @@
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { position } from 'html2canvas/dist/types/css/property-descriptors/position';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import { v4 } from 'uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { IBuilderMenuState, IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
+import { IBuilderMenuState, IBuilderState, IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
 import { convertProxyToObject } from '@app/utils/reduxUtils';
 
-import { setUpdateField } from './actions';
 import { getInitialPropertiesForFieldType } from './utils';
 
 const firstFieldId = v4();
@@ -100,16 +98,15 @@ export const builder = createSlice({
                 activeFieldId: action.payload.id
             };
         },
-        setAddNewChoice: (state: IBuilderState) => {
+        setAddNewChoice: (state: IBuilderState, action: { payload: IChoiceFieldState; type: string }) => {
             const activeField = state.fields[state.activeFieldId];
-            const id = uuidv4();
             const newChoices = Object.values(convertProxyToObject(activeField.properties?.choices || {}));
-            newChoices.splice((activeField.properties?.activeChoiceIndex ?? 0) + 1, 0, { id, value: '' });
+            newChoices.splice((activeField.properties?.activeChoiceIndex ?? 0) + 1, 0, { ...action.payload });
             const choices: any = {};
             newChoices.forEach((choice: any) => {
                 choices[choice.id] = choice;
             });
-            return { ...state, fields: { ...state.fields, [activeField.id]: { ...activeField, properties: { ...activeField.properties, choices } } } };
+            return { ...state, fields: { ...state.fields, [activeField.id]: { ...activeField, properties: { ...activeField.properties, choices, activeChoiceId: action.payload.id, activeChoiceIndex: action.payload.position } } } };
         },
         setDeleteChoice: (state: IBuilderState, action: { payload: string; type: string }) => {
             const activeField = state.fields[state.activeFieldId];

@@ -12,6 +12,11 @@ export interface IBuilderMenuState {
     pipingFieldSettings?: { isOpen: boolean; uuid: string };
 }
 
+export interface IChoiceFieldState {
+    id: string;
+    value: string;
+    position: number;
+}
 export interface IBuilderPipingState {}
 
 export interface IBuilderStateVersion {
@@ -49,7 +54,7 @@ export interface IFormFieldProperties {
     placeholder?: string;
     hidden?: boolean;
     allowMultipleSelection?: boolean;
-    choices?: Record<string, { id: string; value: string }>;
+    choices?: Record<string, IChoiceFieldState>;
     activeChoiceId?: string;
     activeChoiceIndex?: number;
 }

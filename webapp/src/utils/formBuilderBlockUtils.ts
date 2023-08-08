@@ -2,7 +2,7 @@ import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { v4 } from 'uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { IFormFieldState } from '@app/store/form-builder/types';
+import { IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
 
 export function extractBlockTypeNames() {}
 
@@ -57,9 +57,9 @@ export function isMultipleChoice(type?: FormBuilderTagNames): boolean {
     return mulipleChoiceTypes.includes(type);
 }
 
-export const createNewChoice = () => {
+export const createNewChoice = (position: number): IChoiceFieldState => {
     const id = uuidv4();
-    return { id, value: '' };
+    return { id, value: '', position };
 };
 
 export const createNewField = (position: number): IFormFieldState => {
