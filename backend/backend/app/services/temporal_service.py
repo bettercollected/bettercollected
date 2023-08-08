@@ -31,7 +31,8 @@ class TemporalService:
         self.server_uri = server_uri
         self.namespace = namespace
         self.crypto = crypto
-        self.connect_to_temporal_server(server_uri=server_uri, namespace=namespace)
+        if settings.schedular_settings.ENABLED:
+            self.connect_to_temporal_server(server_uri=server_uri, namespace=namespace)
 
     def connect_to_temporal_server(self, server_uri: str, namespace: str):
         try:
