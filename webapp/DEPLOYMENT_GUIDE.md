@@ -23,10 +23,39 @@ Similarly for using `Typeform` you need to set up certain environment variables 
    TYPEFORM_CLIENT_SECRET=
 ```
 
-## COMMAND
+## COMMANDs
 
- Finally use the below command to run your docker container from this webapp repository.
+ You can either run this project without `GoogleForm` and `Typeform` or you can run them optionally or run both. Below are the commands to run the docker container from this webapp repository.
+
+ ### Note
+ Always remember to run ```source runDocker``` to get access to the `runDocker` bash file for `new terminal` opened every time. And then you can run below commands based on your preference.
+
+ #### Run with both Googleform and Typeform
 
  ```
-    docker compose -f "docker-compose.deployment.yml" up -d
+    down && both
+ ```
+
+  #### Run without both Googleform and Typeform
+
+ ```
+    down && none
+ ```
+
+#### Run with Googleform 
+
+ ```
+    down && googleform
+ ```
+
+  #### Run with Typeform
+
+ ```
+    down && typeform
+ ```
+
+ And finally you can stop any running docker container using the following command:
+ 
+ ```
+   down
  ```
