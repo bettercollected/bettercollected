@@ -2,6 +2,7 @@ import React from 'react';
 
 import { useRouter } from 'next/router';
 
+import BetterCollectedLogo from '@Components/Common/Icons/BetterCollectedLogo';
 import Pro from '@Components/Common/Icons/Pro';
 
 import AnchorLink from '@app/components/ui/links/anchor-link';
@@ -16,6 +17,7 @@ interface ILogo {
     isClientDomain?: boolean;
     isCustomDomain?: boolean;
     isFooter?: boolean;
+
     [props: string]: any;
 }
 
@@ -35,10 +37,11 @@ const Logo = ({ className, isLink = true, isClientDomain = false, isCustomDomain
 
     const logo = (
         <div className="flex items-center gap-2">
-            <div className={`text-[20px] sm:text-[28px] font-semibold leading-8 ${className}`}>
-                <span className="text-brand-500">better</span>
-                <span className="text-black-900">collected.</span>
-            </div>
+            {/*<div className={`text-[20px] sm:text-[28px] font-semibold leading-8 ${className}`}>*/}
+            {/*    <span className="text-brand-500">better</span>*/}
+            {/*    <span className="text-black-900">collected.</span>*/}
+            {/*</div>*/}
+            <BetterCollectedLogo />
             {isProAndIsWorkspaceAdmin && showProTag && (
                 <div className="flex items-center rounded gap-[2px] h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
                     <Pro width={12} height={12} />
