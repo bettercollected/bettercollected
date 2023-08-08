@@ -1,15 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
-
-import { throttle } from 'lodash';
+import React, { useCallback, useEffect } from 'react';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
-import eventBus from '@app/lib/event-bus';
-import EventBusEventType from '@app/models/enums/eventBusEnum';
-import { setActiveChoice, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField } from '@app/store/form-builder/actions';
+import { setActiveChoice, setAddNewChoice, setDeleteChoice, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { createNewField, isMultipleChoice } from '@app/utils/formBuilderBlockUtils';
+import { isMultipleChoice } from '@app/utils/formBuilderBlockUtils';
 
 export default function MultipleChoiceKeyEventListener({ children }: React.PropsWithChildren) {
     const dispatch = useAppDispatch();
@@ -22,73 +18,64 @@ export default function MultipleChoiceKeyEventListener({ children }: React.Props
             const fieldId = builderState.activeFieldId;
             const formField: IFormFieldState | undefined = builderState.fields[fieldId];
             if (!isMultipleChoice(formField?.type)) return;
-            if (!formField.properties?.activeChoiceId) return;
-            console.log('backspaceCount', backspaceCount);
-            event.stopPropagation();
-            event.stopImmediatePropagation();
+
+            const choices = { ...formField.properties?.choices };
+
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
-                if (builderState.activeFieldIndex >= -1) {
-                    //@ts-ignore
-                    if ((formField.properties?.choices[formField.properties.activeChoiceId].value || '') !== '') {
-                        dispatch(setAddNewChoice());
+
+                //@ts-ignore
+                if ((formField.properties?.choices[formField.properties.activeChoiceId].value || '') !== '') {
+                    event.stopPropagation();
+
+                    dispatch(setAddNewChoice());
+                } else {
+                    if (formField.properties?.activeChoiceId && Object.values(choices).length - 1 !== 0) {
+                        event.stopPropagation();
+                        dispatch(setDeleteChoice(formField.properties?.activeChoiceId));
                     } else {
-                        const choices = { ...formField.properties?.choices };
-                        if (formField.properties?.activeChoiceId) dispatch(setDeleteChoice(formField.properties?.activeChoiceId));
-                        if (Object.values(choices).length - 1 === 0) dispatch(setDeleteField(formField.id));
-                        dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
-                        dispatch(
-                            setBuilderState({
-                                isFormDirty: true,
-                                activeFieldIndex: builderState.activeFieldIndex + (Object.values(choices).length - 1 === 0 ? 0 : 1)
-                            })
-                        );
+                        dispatch(setDeleteField(formField.id));
                     }
                 }
             }
             if (event.key === 'ArrowDown') {
-                event.stopPropagation();
-
                 //@ts-ignore
                 if (formField.properties?.activeChoiceIndex < Object.values(formField.properties?.choices).length - 1) {
+                    event.stopPropagation();
                     dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) + 1 }));
                 }
             }
             if (event.key === 'ArrowUp') {
-                event.stopPropagation();
                 //@ts-ignore
                 if (formField.properties?.activeChoiceIndex > 0) {
+                    event.stopPropagation();
                     dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) - 1 }));
                 }
             }
 
-            if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
-                event.stopPropagation();
-                //@ts-ignore
-                if (!formField?.properties?.choices[formField.properties.activeChoiceId].value && backspaceCount === 1) {
+            if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey)) {
+                if (backspaceCount === 1 && Object.values(choices).length - 1 !== 0) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    //@ts-ignore
                     asyncDispatch(dispatch(setDeleteChoice(formField.properties?.activeChoiceId))).then(() => setBackspaceCount(0));
                     dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) - 1 }));
-
-                    if (Object.values(formField?.properties?.choices ?? {}).length - 1 === 0) {
-                        asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
-                        dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
-                    }
                 } else {
                     setBackspaceCount(1);
                 }
             }
         },
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         [asyncDispatch, backspaceCount, builderState.activeFieldId, builderState.activeFieldIndex, builderState.fields, dispatch, setBackspaceCount]
     );
 
     useEffect(() => {
-        // const throttledKeyDownCallback = throttle(onKeyDownCallback, 300);
-
         document.addEventListener('keydown', onKeyDownCallback);
 
         return () => {
             document.removeEventListener('keydown', onKeyDownCallback);
-            eventBus.emit(EventBusEventType.FormBuilder.StopPropagation, false);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [builderState, backspaceCount]);
