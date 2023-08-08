@@ -85,10 +85,10 @@ user_info = {
 user_tag_details = {
     "email": "testing123@gmail.com",
     "name": "Test_First_Name Test_Second_Name",
-    "tags": ["FORM_ADDED_TO_GROUP", "DELETION_REQUEST_RECEIVED"],
+    "tags": ["FORM_ADDED_TO_GROUP", "GROUP_CREATED"],
 }
 
-test_form_import_data = {"form": {}, "response_data_owner": "string"}
+test_form_import_data = {"form": formData, "response_data_owner": "string"}
 
 workspace_attribute = {
     "title": "betterCollected_test_workspace",
@@ -101,7 +101,11 @@ workspace_attribute_1 = {
     "description": "It is another testing workspace",
 }
 
-testUser = User(id=str(PydanticObjectId()), sub="test@email.com", roles=["ADMIN"])
+testUser = User(
+    id=str(PydanticObjectId()), sub="test@email.com", roles=["ADMIN", "FORM_CREATOR"]
+)
 testUser1 = User(id=str(PydanticObjectId()), sub="bettercollected@email.com")
-testUser2 = User(id=str(PydanticObjectId()), sub="random@email.com")
+testUser2 = User(
+    id=str(PydanticObjectId()), sub="random@email.com", roles=["FORM_RESPONDER"]
+)
 proUser = User(id=str(PydanticObjectId()), sub="prouser@gmail.com", plan="PRO")
