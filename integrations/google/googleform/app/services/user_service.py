@@ -22,5 +22,5 @@ async def get_user_credential(request: Request) -> Oauth2CredentialDocument:
         raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content="Invalid JWT Signature")
     credential = await OauthCredentialRepository().get(jwt_response.get("sub"))
     if not credential:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Credentials for user not found")
+        raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content="Credentials for user not found")
     return credential
