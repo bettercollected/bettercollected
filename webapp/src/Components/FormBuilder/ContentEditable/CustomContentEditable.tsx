@@ -9,6 +9,7 @@ interface ICustomContentEditableProps {
     id: string;
     tagName: string;
     type: FormBuilderTagNames;
+    showPlaceHolder?: boolean;
     placeholder: string;
     value: any;
     position: number;
@@ -217,7 +218,22 @@ interface ICustomContentEditableProps {
     onKeyDownCallback?: React.KeyboardEventHandler<HTMLDivElement>;
 }
 
-function CustomContentEditable({ id, tagName, type, placeholder, value, position, activeFieldIndex, className = '', onChangeCallback, onKeyUpCallback, onKeyDownCallback, onFocusCallback, onBlurCallback }: ICustomContentEditableProps) {
+function CustomContentEditable({
+    id,
+    tagName,
+    type,
+    placeholder,
+    value,
+    position,
+    activeFieldIndex,
+    showPlaceHolder = true,
+    className = '',
+    onChangeCallback,
+    onKeyUpCallback,
+    onKeyDownCallback,
+    onFocusCallback,
+    onBlurCallback
+}: ICustomContentEditableProps) {
     const contentEditableRef = useRef<HTMLElement>(null);
 
     const { isOpen } = useModal();
@@ -231,6 +247,8 @@ function CustomContentEditable({ id, tagName, type, placeholder, value, position
     };
 
     const onBlurHandler = (event: FocusEvent<HTMLDivElement>) => {
+        if (!showPlaceHolder) contentEditableRef.current?.setAttribute('data-placeholder', '');
+
         if (onBlurCallback) onBlurCallback(event);
     };
 
@@ -248,6 +266,7 @@ function CustomContentEditable({ id, tagName, type, placeholder, value, position
 
         //@ts-ignore
         contentEditableRef.current?.focus();
+        if (!showPlaceHolder) contentEditableRef.current?.setAttribute('data-placeholder', placeholder);
 
         // Set the cursor position to 0 when the page loads
         const range = document.createRange();
@@ -261,7 +280,7 @@ function CustomContentEditable({ id, tagName, type, placeholder, value, position
             selection.removeAllRanges();
             selection.addRange(range);
         }
-    }, [position, activeFieldIndex, isOpen]);
+    }, [position, activeFieldIndex, isOpen, placeholder, showPlaceHolder]);
 
     return (
         <ContentEditable

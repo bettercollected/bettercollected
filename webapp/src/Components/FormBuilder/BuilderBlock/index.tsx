@@ -101,6 +101,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         type={item.type}
                                         value={item?.value ?? ''}
                                         position={item.position}
+                                        showPlaceHolder={false}
                                         activeFieldIndex={builderState.activeFieldIndex}
                                         placeholder={item.properties?.placeholder ?? t('COMPONENTS.COMMON.PLACEHOLDER')}
                                         className="text-base text-black-800"
