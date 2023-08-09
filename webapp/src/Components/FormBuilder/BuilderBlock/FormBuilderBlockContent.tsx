@@ -5,6 +5,7 @@ import HeaderInputBlock from '@Components/FormBuilder/HeaderInputBlock';
 import LongText from '@Components/FormBuilder/LongText';
 import MultipleChoice from '@Components/FormBuilder/MultipleChoice';
 import RatingField from '@Components/FormBuilder/RatingField';
+import LabelTagValidator from '@Components/HOCs/LabelTagValidator';
 import MultipleChoiceKeyEventListener from '@Components/Listeners/MultipleChoiceKeyListener';
 import { useDispatch } from 'react-redux';
 
@@ -58,6 +59,12 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
         }
     };
 
+    const renderValidatedBlockContent = (position: number) => {
+        if (type !== FormBuilderTagNames.LAYOUT_LABEL) {
+            return <LabelTagValidator position={position}> {renderBlockContent(position)}</LabelTagValidator>;
+        }
+        return renderBlockContent(position);
+    };
     return (
         <div className="w-full">
             <div
@@ -67,7 +74,7 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
                     dispatch(setActiveField({ position: field?.position, id: field?.id }));
                 }}
             >
-                {renderBlockContent(position)}
+                {renderValidatedBlockContent(position)}
             </div>
         </div>
     );
