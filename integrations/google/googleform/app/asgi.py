@@ -94,7 +94,7 @@ def get_application():
         version=settings.VERSION,
         docs_url=settings.API_ROOT_PATH + "/docs",
         openapi_url=settings.API_ROOT_PATH + "/openapi.json",
-        on_startup=[on_startup, init_db, migrate_credentials_to_include_user_id],
+        on_startup=[on_startup, init_db],
         on_shutdown=[on_shutdown, close_db],
     )
     log.debug("Add application routes.")

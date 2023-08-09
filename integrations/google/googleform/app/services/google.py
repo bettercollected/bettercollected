@@ -61,6 +61,8 @@ class GoogleService:
                     status_code=HTTPStatus.NOT_FOUND,
                     content="Form not found is Google forms",
                 )
+            if e.status_code == HTTPStatus.FORBIDDEN:
+                raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=e.content)
             raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content="Error fetching form from Google")
         except RefreshError as e:
             raise HTTPException(
