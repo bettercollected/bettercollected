@@ -53,7 +53,7 @@ Similarly for using `Typeform` you need to set up certain environment variables 
     ./runDocker typeform
  ```
 
- And finally you can stop any running docker container using the following command:
+ And finally you can stop running docker container using the following command:
  
  ```
    ./runDocker down
