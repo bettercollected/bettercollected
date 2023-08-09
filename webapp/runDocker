@@ -1,32 +1,33 @@
 #!/bin/bash
 
+user_preference="$1"
+
 # Array to hold selected services
 services_to_start=("mongodb" "mongo-seed" "webapp" "nginx" "backend" "auth")
 
-# Start selected services using Docker Compose
-
-function both(){
-services=("integrations-typeform" "integrations-googleform")
-for service in "${services[@]}"; do
-    services_to_start+=("$service")
-done
-docker compose --file "docker-compose.deployment.yml" up -d "${services_to_start[@]}"
+# Common docker function
+function dockerup(){
+  docker compose -f "docker-compose.deployment.yml" up -d "$@"
 }
 
-function none(){
-docker compose --file "docker-compose.deployment.yml" up -d "${services_to_start[@]}"
+function dockerdown() {
+docker compose -f "docker-compose.deployment.yml" down 
 }
 
-function googleform(){
-services_to_start+=("integrations-googleform")
-docker compose --file "docker-compose.deployment.yml" up -d "${services_to_start[@]}"
-}
-
-function typeform(){
-services_to_start+=("integrations-typeform")
-docker compose --file "docker-compose.deployment.yml" up -d "${services_to_start[@]}"
-}
-
-function down() {
-docker compose --file "docker-compose.deployment.yml" down 
-}
+if [ "$user_preference" == both ]; then
+    services=("integrations-typeform" "integrations-googleform")
+    for service in "${services[@]}"; do
+        services_to_start+=("$service")
+    done
+    dockerup "${services_to_start[@]}"
+elif [ "$user_preference" == googleform ]; then
+    services_to_start+=("integrations-googleform")
+    dockerup "${services_to_start[@]}"
+elif [ "$user_preference" == typeform ]; then
+    services_to_start+=("integrations-typeform")
+    dockerup "${services_to_start[@]}"
+elif [ "$user_preference" == down ]; then
+    dockerdown
+else 
+    dockerup "${services_to_start[@]}"
+fi
