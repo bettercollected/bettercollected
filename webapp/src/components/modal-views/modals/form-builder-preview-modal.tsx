@@ -38,9 +38,9 @@ export default function FormBuilderPreviewModal() {
     }, [builderState]);
 
     return (
-        <div className="relative h-full min-h-screen w-full overflow-auto pt-10 !bg-white ">
+        <div className="relative h-full min-h-screen w-full overflow-auto pt-16 !bg-brand-100 ">
             <div
-                className="absolute cursor-pointer text-black-600 top-10 right-10"
+                className="absolute cursor-pointer text-black-600 top-5 right-10"
                 onClick={() => {
                     closeModal();
                 }}

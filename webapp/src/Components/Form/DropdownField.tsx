@@ -22,8 +22,15 @@ export default function DropdownField({ field, ans, enabled }: FormFieldProps) {
         <div className="relative w-fit">
             {field?.validations?.required && <FieldRequired className=" -right-5" />}
             <Select
+                size="small"
                 MenuProps={{
                     style: { zIndex: 35001 }
+                }}
+                style={{
+                    paddingTop: '3.5px',
+                    paddingBottom: '3.5px',
+                    paddingLeft: '2px',
+                    fontSize: '14px'
                 }}
                 defaultValue={ans?.choice.value}
                 disabled={!enabled}

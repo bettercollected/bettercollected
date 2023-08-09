@@ -34,7 +34,7 @@ export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
                 <div key={choice?.id} className="flex w-fit  items-center relative">
                     {index === 0 && field?.validations?.required && <FieldRequired className="-right-5" />}
                     <Checkbox id={choice?.value} className="!p-0" size="medium" disabled={!enabled} checked={!!ans?.choices?.values?.includes(choice?.value) || !!answerChoices?.includes(choice?.value)} onClick={() => handleSelectChoice(choice)} />
-                    <label htmlFor={choice?.value} className="!ml-2">
+                    <label htmlFor={choice?.value} className="!ml-2 body4">
                         {choice?.value}
                     </label>
                 </div>

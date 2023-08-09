@@ -39,7 +39,7 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
         case FormBuilderTagNames.LAYOUT_HEADER4:
         case FormBuilderTagNames.LAYOUT_HEADER2:
         case FormBuilderTagNames.LAYOUT_LABEL:
-            return <div className={'!mt-3 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
+            return <div className={'!mt-4 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_MARKDOWN:
             return <MarkdownText text={field.value ?? ''} />;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
@@ -145,11 +145,11 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             onSubmit={onSubmitForm}
         >
             <div className="mb-7">
-                <div className="text-[36px] mb-5 font-bold">{form?.title}</div>
-                {form?.description && <div>{form?.description}</div>}
+                <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
+                {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
             </div>
 
-            <div className="flex flex-col w-full gap-4">
+            <div className="flex flex-col w-full gap-2">
                 {form?.fields.map((field: StandardFormFieldDto) => (
                     <div key={field?.id} className="relative w-full">
                         {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}

@@ -26,7 +26,7 @@ export default function MultipleChoiceField({ field, ans, enabled }: FormFieldPr
                 <div key={choice?.id} className={`flex relative w-fit items-center ${enabled ? 'cursor-pointer' : ''} ${!enableES5}`} onClick={() => handleSelectChoice(choice)}>
                     {index === 0 && field?.validations?.required && <FieldRequired className="-right-5" />}
                     <Radio id={choice?.value} className="!p-0 !rounded-full" size="medium" disabled={!enabled} checked={ans?.choice?.value === choice?.value || answer?.choice?.value === choice?.value} />
-                    <label htmlFor={choice?.value} className="!ml-2">
+                    <label htmlFor={choice?.value} className="!ml-2 body4">
                         {choice?.value}
                     </label>
                 </div>

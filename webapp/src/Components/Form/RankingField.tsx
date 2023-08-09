@@ -37,7 +37,7 @@ export default function RankingField({ field, enabled, ans }: FormFieldProps) {
                         {(ans?.choices?.values || rankAnswer?.choices?.values || field?.properties?.choices)?.map((choice: any, index: number) => (
                             <Draggable key={choice.id} draggableId={choice.id} index={index} isDragDisabled={!enabled}>
                                 {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
-                                    <div className={`rounded px-4 py-2 flex gap-2 bg-white border`} {...provided.draggableProps} ref={provided.innerRef}>
+                                    <div className={`rounded px-4 py-2 flex gap-2 bg-white body4 border`} {...provided.draggableProps} ref={provided.innerRef}>
                                         <div {...provided.dragHandleProps} className="rotate-90">
                                             <Code />
                                         </div>

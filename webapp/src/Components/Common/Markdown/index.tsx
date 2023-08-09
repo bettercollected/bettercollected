@@ -20,7 +20,7 @@ const MarkdownText = ({ text }: IMarkdownText) => {
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
-                className="text-black-900 font-inter space-y-4 text-base w-full"
+                className="text-black-900 mt-4 font-inter space-y-4 text-base w-full"
                 components={{
                     h1: (props) => <h1 className="text-4xl font-semibold" {...props} />,
                     h2: (props) => <h2 className="text-3xl font-semibold" {...props} />,

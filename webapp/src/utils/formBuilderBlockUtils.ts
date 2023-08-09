@@ -23,7 +23,7 @@ export function isContentEditableTag(tag: string): boolean {
 export function contentEditableClassNames(isPlaceholder: boolean, tag: string = FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
     let className = 'outline-none placeholder-gray-400 ';
     if (isPlaceholder) className += 'text-neutral-200 ';
-    else className += 'text-neutral-800 ';
+    else className += 'text-black-900 ';
 
     switch (tag) {
         case FormBuilderTagNames.LAYOUT_HEADER1:
@@ -39,7 +39,7 @@ export function contentEditableClassNames(isPlaceholder: boolean, tag: string = 
             className += ' text-base font-semibold';
             break;
         case FormBuilderTagNames.LAYOUT_LABEL:
-            className += ' text-[14px] font-medium';
+            className += ' text-[14px] font-medium leading-6';
             break;
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
             className += ' text-base';
