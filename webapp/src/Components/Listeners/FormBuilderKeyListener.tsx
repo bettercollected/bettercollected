@@ -103,8 +103,6 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     event.stopPropagation();
 
                     eventBus.emit(EventBusEventType.FormBuilder.Publish);
-                } else if ((event.key === 'l' || event.key === 'L') && event.altKey) {
-                    dispatch(setAddNewField(createNewField(builderState.activeFieldIndex - 1, FormBuilderTagNames.LAYOUT_LABEL)));
                 }
             });
         },

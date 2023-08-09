@@ -1,9 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
+import { useDispatch } from 'react-redux';
+
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { setAddNewField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
-import { useAppSelector } from '@app/store/hooks';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { createNewField } from '@app/utils/formBuilderBlockUtils';
 
 interface LabelTagValidatorProps extends React.PropsWithChildren {
     position: number;
@@ -12,6 +16,7 @@ interface LabelTagValidatorProps extends React.PropsWithChildren {
 export default function LabelTagValidator({ children, position }: LabelTagValidatorProps) {
     const builderState = useAppSelector(selectBuilderState);
 
+    const dispatch = useAppDispatch();
     const hintBox = (text: string) => {
         return <div className="bg-gray-100 p-1 rounded-sm">{text}</div>;
     };
@@ -27,6 +32,22 @@ export default function LabelTagValidator({ children, position }: LabelTagValida
 
     const field = builderState.fields[builderState.activeFieldId];
     const hasMissingLabel = field ? !validateField(field) && field.position === position : false;
+
+    const onKeyDownCallback = useCallback(
+        (event: KeyboardEvent) => {
+            if ((event.key === 'l' || event.key === 'L') && event.altKey && hasMissingLabel) {
+                dispatch(setAddNewField(createNewField(builderState.activeFieldIndex - 1, FormBuilderTagNames.LAYOUT_LABEL)));
+            }
+        },
+        [builderState.activeFieldIndex, dispatch, hasMissingLabel]
+    );
+    useEffect(() => {
+        document.addEventListener('keydown', onKeyDownCallback);
+
+        return () => {
+            document.removeEventListener('keydown', onKeyDownCallback);
+        };
+    }, [onKeyDownCallback]);
 
     return (
         <div className="relative group">
