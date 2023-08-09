@@ -27,35 +27,34 @@ Similarly for using `Typeform` you need to set up certain environment variables 
 
  You can either run this project without `GoogleForm` and `Typeform` or you can run them optionally or run both. Below are the commands to run the docker container from this webapp repository.
 
- ### Note
- Always remember to run ```source runDocker``` to get access to the `runDocker` bash file for `new terminal` opened every time. And then you can run below commands based on your preference.
+ Since `runDocker` file is in current working directory so you can run following below commands based on your preferences.
 
  #### Run with both Googleform and Typeform
 
  ```
-    down && both
+    ./runDocker both
  ```
 
   #### Run without both Googleform and Typeform
 
  ```
-    down && none
+    ./runDocker none
  ```
 
 #### Run with Googleform 
 
  ```
-    down && googleform
+    ./runDocker googleform
  ```
 
   #### Run with Typeform
 
  ```
-    down && typeform
+    ./runDocker typeform
  ```
 
  And finally you can stop any running docker container using the following command:
  
  ```
-   down
+   ./runDocker down
  ```
