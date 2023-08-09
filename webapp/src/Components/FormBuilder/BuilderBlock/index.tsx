@@ -9,7 +9,7 @@ import { v4 } from 'uuid';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetBuilderMenuState, setAddNewField, setBuilderState, setCommandMenuPosition, setMoveField } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setCommandMenuPosition, setMoveField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -63,6 +63,19 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
         [builderState, item.position]
     );
 
+    const onFocusCallback = useCallback(
+        (event: React.FocusEvent<HTMLElement>) => {
+            setBackspaceCount(0);
+            dispatch(
+                setActiveField({
+                    position: item.position,
+                    id: item.id
+                })
+            );
+        },
+        [item.id]
+    );
+
     const getMarginTop = (type: FormBuilderTagNames) => {
         if (NonInputFormBuilderTagNames.includes(type)) {
             return 'mt-3';
@@ -105,11 +118,12 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         activeFieldIndex={builderState.activeFieldIndex}
                                         placeholder={item.properties?.placeholder ?? t('COMPONENTS.COMMON.PLACEHOLDER')}
                                         className="text-base text-black-800"
+                                        onFocusCallback={onFocusCallback}
                                         onChangeCallback={(event: FormEvent<HTMLElement>) => {
                                             setBackspaceCount(0);
                                             batch(() => {
                                                 // @ts-ignore
-                                                if (event.nativeEvent.inputType === 'deleteContentBackward' && getLastItem(builderState.fields[builderState.activeFieldId].value ?? '') === '/') {
+                                                if (event.nativeEvent.inputType === 'deleteContentBackward' && getLastItem(builderState.fields[builderState.activeFieldId]?.value ?? '') === '/') {
                                                     dispatch(
                                                         setBuilderState({
                                                             isFormDirty: true,
@@ -135,16 +149,6 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                                 );
                                             });
                                         }}
-                                        onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
-                                            event.preventDefault();
-                                            setBackspaceCount(0);
-                                            dispatch(
-                                                setBuilderState({
-                                                    activeFieldIndex: item.position,
-                                                    activeFieldId: item.id
-                                                })
-                                            );
-                                        }}
                                     />
                                 </div>
 
@@ -154,7 +158,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         position={builderState.menus?.commands?.position}
                                         closeMenu={() => {}}
                                         handleSelection={handleTagSelection}
-                                        searchQuery={builderState.fields[builderState.activeFieldId].value?.split('/').slice(-1)[0] || ''}
+                                        searchQuery={builderState.fields[builderState.activeFieldId]?.value?.split('/').slice(-1)[0] || ''}
                                     />
                                 )}
                             </div>

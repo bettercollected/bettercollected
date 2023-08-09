@@ -36,8 +36,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     return;
                 } else if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
                     event.preventDefault();
-
-                    dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
+                    if (Object.keys(builderState.fields).length === 0) dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
                     dispatch(
                         setBuilderState({
                             isFormDirty: true,

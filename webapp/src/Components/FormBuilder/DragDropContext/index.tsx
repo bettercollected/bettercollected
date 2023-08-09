@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import { DragDropContext, DragStart, DragUpdate, DropResult, DroppableProvided, DroppableStateSnapshot, OnDragEndResponder, OnDragStartResponder, OnDragUpdateResponder, ResponderProvided } from 'react-beautiful-dnd';
 
@@ -34,6 +34,9 @@ export default function BuilderDragDropContext({ Component, componentAttrs, drop
         onDragEndHandlerCallback(result, provided);
     };
 
+    useEffect(() => {
+        console.log(droppableItems);
+    }, [droppableItems]);
     return (
         <DragDropContext onDragStart={onDragStartHandler} onDragUpdate={onDragUpdateHandler} onDragEnd={onDragEndHandler}>
             <StrictModeDroppable droppableId={droppableId}>

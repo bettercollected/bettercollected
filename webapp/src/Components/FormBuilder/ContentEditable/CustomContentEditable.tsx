@@ -4,6 +4,8 @@ import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
 
 import { useModal } from '@app/components/modal-views/context';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { setActiveField } from '@app/store/form-builder/actions';
+import { useAppDispatch } from '@app/store/hooks';
 
 interface ICustomContentEditableProps {
     id: string;
