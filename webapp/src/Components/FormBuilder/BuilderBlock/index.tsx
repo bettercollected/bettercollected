@@ -151,7 +151,6 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         }}
                                     />
                                 </div>
-
                                 {!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id && (
                                     <FormBuilderTagSelector
                                         className={!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id ? 'visible' : 'invisible'}
