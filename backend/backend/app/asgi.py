@@ -40,9 +40,6 @@ async def on_startup():
     client = container.database_client()
     await init_db(settings.mongo_settings.DB, client)
     await migrate_schedule_to_temporal()
-    if settings.schedular_settings.ENABLED:
-        await init_scheduler_db(client)
-        await init_schedulers(container.schedular())
 
 
 async def on_shutdown():
@@ -61,8 +58,6 @@ async def on_shutdown():
 
     await AiohttpClient.close_aiohttp_client()
     await container.http_client().aclose()
-    if settings.schedular_settings.ENABLED:
-        container.schedular().shutdown()
 
 
 apm = make_apm_client()
