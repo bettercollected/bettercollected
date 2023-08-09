@@ -16,6 +16,7 @@ import { v4 } from 'uuid';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import Button from '@app/components/ui/button';
 import eventBus from '@app/lib/event-bus';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -218,7 +219,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         }}
                     />
                 </div>
-                <BuilderTips />
+                {!builderState.isFormDirty && <BuilderTips />}
             </div>
         </div>
     );

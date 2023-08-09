@@ -51,12 +51,12 @@ export default function MultipleChoiceKeyEventListener({ children }: React.Props
                     }
                 } //@ts-ignore
                 else if (event.key === 'ArrowDown' && formField.properties?.activeChoiceIndex < Object.values(formField.properties?.choices).length - 1) {
-                    // event.stopPropagation();
+                    event.stopPropagation();
 
                     dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) + 1 }));
                 } //@ts-ignore
                 else if (event.key === 'ArrowUp' && formField.properties?.activeChoiceIndex > 0) {
-                    // event.stopPropagation();
+                    event.stopPropagation();
 
                     dispatch(setActiveChoice({ position: (formField.properties?.activeChoiceIndex ?? 0) - 1 }));
                 } else if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && backspaceCount === 1 && Object.values(choices).length - 1 !== 0) {
