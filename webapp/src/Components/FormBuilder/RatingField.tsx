@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import _ from 'lodash';
 
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { Star, StarBorder } from '@mui/icons-material';
+
+import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { useAppSelector } from '@app/store/hooks';
 
 interface IRatingFieldProps {
     field: any;
@@ -12,10 +15,19 @@ interface IRatingFieldProps {
 
 export default function RatingField({ field, id }: IRatingFieldProps) {
     const [hovered, setHovered] = useState(-1);
+    const builderState = useAppSelector(selectBuilderState);
+    const ratingContentRef = useRef<HTMLDivElement | null>(null);
 
+    const { activeFieldIndex } = builderState;
+    useEffect(() => {
+        if (field.position !== activeFieldIndex) return;
+        ratingContentRef.current?.focus();
+    });
     return (
         <div
-            className="flex relative gap-3 w-fit flex-wrap"
+            tabIndex={0}
+            ref={ratingContentRef}
+            className="flex relative gap-3 w-fit flex-wrap outline-none"
             onMouseLeave={() => {
                 setHovered(-1);
             }}

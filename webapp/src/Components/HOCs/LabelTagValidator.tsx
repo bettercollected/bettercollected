@@ -50,7 +50,7 @@ export default function LabelTagValidator({ children, position }: LabelTagValida
     }, [onKeyDownCallback]);
 
     return (
-        <div className="relative group">
+        <div id={`label-tag-validator-${position}`} className="relative group">
             {children}
             {hasMissingLabel && (
                 <div className="absolute -right-40 top-1/4 ">

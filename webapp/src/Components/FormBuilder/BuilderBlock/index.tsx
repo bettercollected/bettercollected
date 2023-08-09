@@ -73,7 +73,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                 })
             );
         },
-        [item.id]
+        [dispatch, item.id, item.position, setBackspaceCount]
     );
 
     const getMarginTop = (type: FormBuilderTagNames) => {

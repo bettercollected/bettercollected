@@ -34,9 +34,7 @@ export default function BuilderDragDropContext({ Component, componentAttrs, drop
         onDragEndHandlerCallback(result, provided);
     };
 
-    useEffect(() => {
-        console.log(droppableItems);
-    }, [droppableItems]);
+    useEffect(() => {}, [droppableItems]);
     return (
         <DragDropContext onDragStart={onDragStartHandler} onDragUpdate={onDragUpdateHandler} onDragEnd={onDragEndHandler}>
             <StrictModeDroppable droppableId={droppableId}>
