@@ -243,6 +243,7 @@ function CustomContentEditable({
     };
 
     const onFocusHandler = (event: FocusEvent<HTMLDivElement>) => {
+        if (!showPlaceHolder) contentEditableRef.current?.setAttribute('data-placeholder', placeholder);
         if (onFocusCallback) onFocusCallback(event);
     };
 
@@ -266,8 +267,7 @@ function CustomContentEditable({
 
         //@ts-ignore
         contentEditableRef.current?.focus();
-        if (!showPlaceHolder) contentEditableRef.current?.setAttribute('data-placeholder', placeholder);
-
+        if (showPlaceHolder) contentEditableRef.current?.setAttribute('data-placeholder', placeholder);
         // Set the cursor position to 0 when the page loads
         const range = document.createRange();
 
@@ -290,7 +290,7 @@ function CustomContentEditable({
             innerRef={contentEditableRef}
             html={value}
             tagName={tagName}
-            data-placeholder={placeholder}
+            // data-placeholder={placeholder}
             data-position={position}
             data-type={type}
             className={`m-0 p-0 w-full cursor-text focus-visible:border-0 focus-visible:outline-none ${className}`}
