@@ -62,10 +62,10 @@ export const createNewChoice = (position: number): IChoiceFieldState => {
     return { id, value: '', position };
 };
 
-export const createNewField = (position: number): IFormFieldState => {
+export const createNewField = (position: number, type?: FormBuilderTagNames): IFormFieldState => {
     return {
         id: v4(),
-        type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+        type: type ?? FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         isCommandMenuOpen: false,
         position
     };

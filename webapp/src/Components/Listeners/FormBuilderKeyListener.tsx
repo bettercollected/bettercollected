@@ -9,6 +9,7 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import useFormBuilderState from '@app/containers/form-builder/context';
 import eventBus from '@app/lib/event-bus';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
@@ -102,6 +103,8 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     event.stopPropagation();
 
                     eventBus.emit(EventBusEventType.FormBuilder.Publish);
+                } else if ((event.key === 'l' || event.key === 'L') && event.altKey) {
+                    dispatch(setAddNewField(createNewField(builderState.activeFieldIndex - 1, FormBuilderTagNames.LAYOUT_LABEL)));
                 }
             });
         },
