@@ -48,7 +48,7 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
             case FormBuilderTagNames.INPUT_RANKING:
                 return (
                     <MultipleChoiceKeyEventListener>
-                        <MultipleChoice field={field} id={id} />
+                        <MultipleChoice field={field} id={id} position={position} />
                     </MultipleChoiceKeyEventListener>
                 );
             case FormBuilderTagNames.INPUT_RATING:

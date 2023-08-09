@@ -20,7 +20,7 @@ import eventBus from '@app/lib/event-bus';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
-import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField, setFields, setUpdateField } from '@app/store/form-builder/actions';
+import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setActiveField, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField, setFields, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
@@ -192,7 +192,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
                                 event.preventDefault();
                                 setBackspaceCount(0);
-                                dispatch(setBuilderState({ activeFieldIndex: b.position }));
+                                dispatch(setActiveField({ position: b.position, id: b.id }));
                             }}
                         />
                     ))}

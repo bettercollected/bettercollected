@@ -1,6 +1,7 @@
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
 
 import TextArea from '@Components/Common/Input/TextArea';
+import MarkdownText from '@Components/Common/Markdown';
 import { Key, Visibility, VisibilityOff } from '@mui/icons-material';
 import cn from 'classnames';
 import { useDispatch } from 'react-redux';
@@ -12,8 +13,6 @@ import { KeyType } from '@app/models/enums/formBuilder';
 import { setActiveField, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
-
-import MarkdownText from '../UI/MarkdownText';
 
 interface MarkdownEditorProps {
     field: any;

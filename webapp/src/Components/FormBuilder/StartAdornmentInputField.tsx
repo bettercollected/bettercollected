@@ -48,6 +48,7 @@ export default function StartAdornmentInputField({ type, value, id, focus, onCha
 
     useEffect(() => {
         if (focus) {
+            console.log('choice focused');
             inputRef.current?.focus();
         }
     }, [focus, id]);

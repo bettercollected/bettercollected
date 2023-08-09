@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import { throttle } from 'lodash';
-
 import { batch } from 'react-redux';
 import { toast } from 'react-toastify';
 import { v4 } from 'uuid';
@@ -27,17 +25,10 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
     const fullScreenModal = useFullScreenModal();
     const modal = useModal();
 
-    const onInsert = () => {
-        asyncDispatch(resetBuilderMenuState()).then(() => {
-            modal.openModal('FORM_BUILDER_ADD_FIELD_VIEW');
-        });
-    };
-
     const onKeyDownCallback = useCallback(
         (event: KeyboardEvent) => {
             batch(async () => {
                 const fieldId = builderState.activeFieldId;
-                const formField: IFormFieldState | undefined = builderState.fields[fieldId];
 
                 if (event.key === 'Escape') {
                     dispatch(resetBuilderMenuState());
@@ -45,7 +36,6 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     return;
                 } else if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
                     event.preventDefault();
-                    console.log('Formbuilder enter event called');
 
                     dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
                     dispatch(
@@ -56,12 +46,8 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     );
                 } else if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
                 else if (!event.ctrlKey && !event.metaKey && (event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
-                    console.log('Formbuilder arrow down called');
-
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
                 } else if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2) {
-                    console.log('Formbuilder arrow up called');
-
                     dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                 } else if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey) {
                     eventBus.emit(EventBusEventType.FormBuilder.OpenTagSelector);
@@ -69,7 +55,6 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     if (backspaceCount === 1) {
                         event.preventDefault();
 
-                        asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
                         asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
                         dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
                     } else {
@@ -104,20 +89,36 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                 } else if ((event.key === 'I' || event.key === 'i') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
                     event.preventDefault();
                     event.stopPropagation();
-                    onInsert();
+
+                    asyncDispatch(resetBuilderMenuState()).then(() => {
+                        modal.openModal('FORM_BUILDER_ADD_FIELD_VIEW');
+                    });
                 } else if ((event.key === 'S' || event.key === 's') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
                     event.preventDefault();
                     event.stopPropagation();
+
                     eventBus.emit(EventBusEventType.FormBuilder.Save);
                 } else if ((event.key === 'P' || event.key === 'p') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
                     event.preventDefault();
                     event.stopPropagation();
+
                     eventBus.emit(EventBusEventType.FormBuilder.Publish);
                 }
             });
         },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [builderState, backspaceCount]
+        [
+            builderState.activeFieldId,
+            builderState.fields,
+            builderState.menus?.commands?.isOpen,
+            builderState.menus?.spotlightField?.isOpen,
+            builderState.activeFieldIndex,
+            fullScreenModal.isOpen,
+            modal,
+            dispatch,
+            backspaceCount,
+            asyncDispatch,
+            setBackspaceCount
+        ]
     );
 
     useEffect(() => {
@@ -126,9 +127,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
         return () => {
             document.removeEventListener('keydown', onKeyDownCallback);
         };
-
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [builderState, backspaceCount]);
+    }, [builderState, backspaceCount, onKeyDownCallback]);
 
     return <div>{children}</div>;
 }

@@ -21,9 +21,10 @@ import { createNewChoice } from '@app/utils/formBuilderBlockUtils';
 interface IMultipleChoiceProps {
     field: IFormFieldState;
     id: any;
+    position: number;
 }
 
-export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
+export default function MultipleChoice({ field, id, position }: IMultipleChoiceProps) {
     const dispatch = useDispatch();
     const contentRef = useRef<HTMLDivElement | null>(null);
 
@@ -72,9 +73,10 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
     };
 
     useEffect(() => {
-        if (field.position !== builderState.activeFieldIndex) return;
+        if (position !== builderState.activeFieldIndex) return;
+        console.log('Multiple choice focused');
         contentRef.current?.focus();
-    }, [builderState.activeFieldIndex, field.position]);
+    }, [builderState.activeFieldIndex, position]);
 
     return (
         <div tabIndex={0} ref={contentRef} className="flex w-full items-start justify-start focus-visible:!outline-none focus-visible:!border-none ">
@@ -85,7 +87,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
                             {Object.values(field.properties?.choices || {}).map((choice: any, index) => {
                                 // @ts-ignore
                                 return (
-                                    <Draggable key={index} draggableId={choice.id} index={index}>
+                                    <Draggable key={choice.position} draggableId={choice.id} index={index}>
                                         {(provided) => (
                                             <div className="flex gap-5 mb-3 items-start justify-start focus-visible:outline-none focus-visible:border-none" {...provided.draggableProps} ref={provided.innerRef}>
                                                 <div className="relative flex flex-row-reverse items-center gap-2">
@@ -115,7 +117,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
                                                     </div>
                                                     <StartAdornmentInputField
                                                         type={field.type}
-                                                        focus={builderState.fields[builderState.activeFieldId]?.properties?.activeChoiceIndex === index && field.id === builderState.activeFieldId}
+                                                        focus={builderState.fields[builderState.activeFieldId]?.properties?.activeChoiceIndex === choice.position && field.id === builderState.activeFieldId}
                                                         id={choice.id}
                                                         onChangeCallback={(event) => {
                                                             handleChoiceValueChange(choice.id, event.target.value);

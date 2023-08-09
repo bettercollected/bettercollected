@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
+import MarkdownText from '@Components/Common/Markdown';
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
 import FieldValidations from '@Components/Form/FieldValidations';
@@ -11,7 +12,6 @@ import PhoneNumber from '@Components/Form/PhoneNumber';
 import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
-import MarkdownText from '@Components/UI/MarkdownText';
 import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';

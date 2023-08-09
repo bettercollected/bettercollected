@@ -41,7 +41,8 @@ export function getInitialPropertiesForFieldType(type: FormBuilderTagNames) {
                 choices: {
                     [choiceId]: {
                         id: choiceId,
-                        value: ''
+                        value: '',
+                        position: 0
                     }
                 }
             };
