@@ -13,6 +13,7 @@ from temporalio.client import (
     ScheduleIntervalSpec,
     ScheduleUpdateInput,
     ScheduleUpdate,
+    ScheduleAlreadyRunningError,
 )
 from temporalio.common import RetryPolicy
 from temporalio.exceptions import WorkflowAlreadyStartedError
@@ -104,6 +105,8 @@ class TemporalService:
                     ),
                 ),
             )
+        except ScheduleAlreadyRunningError as e:
+            loguru.logger.info(e)
         except Exception as e:
             loguru.logger.error(e)
 
