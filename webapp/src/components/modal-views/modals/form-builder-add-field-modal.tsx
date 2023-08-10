@@ -6,7 +6,7 @@ import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetBuilderMenuState, setAddNewField } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setActiveField, setAddNewField, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
@@ -33,7 +33,12 @@ export default function FormBuilderAddFieldModal({ index }: { index?: number }) 
 
     const { t } = useBuilderTranslation();
     const handleFieldSelected = (type: FormBuilderTagNames) => {
+        const activeField = builderState.fields[builderState.activeFieldId];
+        const isActiveFieldLayoutShortText = activeField.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT;
+        const shouldInsertInCurrentField = isActiveFieldLayoutShortText && !activeField.value;
+
         batch(() => {
+            if (shouldInsertInCurrentField) dispatch(setDeleteField(activeField.id));
             dispatch(
                 setAddNewField({
                     id: v4(),
