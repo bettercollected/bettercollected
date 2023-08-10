@@ -343,9 +343,9 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
             });
         };
 
-        document.addEventListener('keyup', handleKeyDown);
+        document.addEventListener('keydown', handleKeyDown);
         return () => {
-            document.removeEventListener('keyup', handleKeyDown);
+            document.removeEventListener('keydown', handleKeyDown);
         };
     }, [handleSelection, selectedTag, command, closeMenu]);
 
