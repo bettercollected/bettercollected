@@ -7,7 +7,7 @@ services_to_start=("mongodb" "mongo-seed" "webapp" "nginx" "backend" "auth")
 
 # Common docker function
 function dockerup(){
-  docker compose -f "docker-compose.deployment.yml" up -d "$@"
+  docker compose -f "docker-compose.deployment.yml" up --build -d "$@"
 }
 
 function dockerdown() {
