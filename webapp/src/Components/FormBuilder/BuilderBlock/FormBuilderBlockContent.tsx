@@ -38,8 +38,8 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
             case FormBuilderTagNames.INPUT_EMAIL:
             case FormBuilderTagNames.INPUT_NUMBER:
             case FormBuilderTagNames.INPUT_LINK:
-            case FormBuilderTagNames.INPUT_DATE:
             case FormBuilderTagNames.INPUT_PHONE_NUMBER:
+            case FormBuilderTagNames.INPUT_DATE:
                 return <EndAdornmentInputField field={field} id={id} position={position} />;
             case FormBuilderTagNames.INPUT_LONG_TEXT:
                 return <LongText field={field} id={id} position={position} />;

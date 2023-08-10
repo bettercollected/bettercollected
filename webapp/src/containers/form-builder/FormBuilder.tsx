@@ -227,7 +227,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         }}
                     />
                     <div
-                        className={` absolute w-full cursor-pointer  px-5 md:px-[89px] flex items-center min-h-[40px] group`}
+                        className={` absolute w-fit cursor-pointer  px-5  md:px-[89px] flex items-center min-h-[40px] group`}
                         onClick={() => {
                             dispatch(setAddNewField(createNewField(Object.keys(builderState.fields).length - 1)));
                         }}
