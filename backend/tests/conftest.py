@@ -195,3 +195,14 @@ def mock_validate_otp():
         "httpx.AsyncClient.get",
         side_effect=get_user_after_validation_of_otp,
     )
+
+
+@pytest.fixture()
+def mock_get_user_info():
+    async def get_user_info_from_ids(*args, **kwargs):
+        return httpx.Response(200, json=user_info)
+
+    return patch(
+        "httpx.AsyncClient.get",
+        side_effect=get_user_info_from_ids,
+    )
