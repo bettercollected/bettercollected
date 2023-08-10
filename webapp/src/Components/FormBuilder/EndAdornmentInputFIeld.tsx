@@ -1,18 +1,15 @@
-import { ChangeEvent, useEffect, useRef } from 'react';
+import { ChangeEvent, useRef } from 'react';
 
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { AlternateEmail, DateRange, LocalPhone, Numbers, ShortText } from '@mui/icons-material';
 import LinkIcon from '@mui/icons-material/Link';
-import { value } from 'dom7';
 import { useDispatch } from 'react-redux';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setActiveField, setUpdateField } from '@app/store/form-builder/actions';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { setUpdateField } from '@app/store/form-builder/actions';
 import { IFormFieldState } from '@app/store/form-builder/types';
-import { useAppSelector } from '@app/store/hooks';
 
 interface IEndAdornmentInputFieldProps {
     field: IFormFieldState;
@@ -50,19 +47,11 @@ export default function EndAdornmentInputField({ field, id, position, placeholde
         dispatch(setUpdateField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
     };
 
-    const builderState = useAppSelector(selectBuilderState);
-
-    const activeFieldIndex = builderState.activeFieldIndex;
-    useEffect(() => {
-        // Focus on the first contentEditable element (title) when the page loads
-        if (position !== activeFieldIndex) return;
-        inputRef?.current?.focus();
-    }, [position, activeFieldIndex]);
-
     return (
         <div className="relative w-full h-full">
             {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
             <FormBuilderInput
+                autoFocus={true}
                 onChange={onChange}
                 placeholder={placeholder}
                 id={id}

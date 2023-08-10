@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { isEmpty } from 'lodash';
 
@@ -281,6 +281,13 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
         searchQuery && setBlockListTypes([...newBlockListTypes]);
     }, [searchQuery]);
 
+    const getFilteredList = useCallback(
+        (blockType: string) => {
+            return tagList.filter((tag) => tag.blockType === blockType);
+        },
+        [tagList]
+    );
+
     useEffect(() => {
         const handleKeyDown = (e: any) => {
             const keyActions: any = {
@@ -349,11 +356,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [handleSelection, selectedTag, command, closeMenu]);
-
-    const getFilteredList = (blockType: string) => {
-        return tagList.filter((tag) => tag.blockType === blockType);
-    };
+    }, [handleSelection, selectedTag, command, closeMenu, getFilteredList, blockListTypes]);
 
     const scrollToSelectedItem = (blockType: string, index: number | string) => {
         const selectedItem = listRef.current?.querySelector(`[data-id="${blockType}-${index}"]`);

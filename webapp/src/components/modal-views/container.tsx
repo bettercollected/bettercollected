@@ -1,4 +1,4 @@
-import { Fragment, useEffect } from 'react';
+import { Fragment, useCallback, useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
@@ -96,10 +96,10 @@ export default function ModalContainer() {
 
     const dispatch = useAppDispatch();
 
-    const closeModalHandler = () => {
+    const closeModalHandler = useCallback(() => {
         dispatch(resetBuilderMenuState());
         closeModal();
-    };
+    }, [closeModal, dispatch]);
 
     useEffect(() => {
         // close search modal when route change
@@ -107,7 +107,7 @@ export default function ModalContainer() {
         return () => {
             router.events.off('routeChangeStart', closeModalHandler);
         };
-    }, []);
+    }, [closeModalHandler, router.events]);
 
     return (
         <Transition appear show={isOpen} as={Fragment}>

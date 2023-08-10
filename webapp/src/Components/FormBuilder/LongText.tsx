@@ -20,40 +20,15 @@ export default function LongText({ field, id, position }: { field: IFormFieldSta
         dispatch(setUpdateField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
     };
 
-    const inputRef = useRef<HTMLInputElement>(null);
-    const builderState = useAppSelector(selectBuilderState);
-
-    const activeFieldIndex = builderState.activeFieldIndex;
-
-    useEffect(() => {
-        // Focus on the first contentEditable element (title) when the page loads
-        if (position !== activeFieldIndex) return;
-
-        inputRef?.current?.focus();
-
-        // Set the cursor position to 0 when the page loads
-        // const range = document.createRange();
-        //
-        // if (inputRef?.current) {
-        //     range.selectNodeContents(inputRef.current);
-        //     range.collapse(true);
-        // }
-        // const selection = window.getSelection();
-        // if (selection) {
-        //     selection.removeAllRanges();
-        //     selection.addRange(range);
-        // }
-    }, [position, activeFieldIndex]);
-
     return (
         <div className="relative w-full h-full">
             {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
             <FormBuilderInput
                 multiline
+                autoFocus={true}
                 id={id}
                 value={field?.properties?.placeholder || ''}
                 placeholder={field?.properties?.placeholder || ''}
-                inputRef={inputRef}
                 onChange={onChange}
                 inputMode="text"
                 minRows={10}

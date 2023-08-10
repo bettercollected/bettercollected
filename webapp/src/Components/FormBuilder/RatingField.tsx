@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 
 import _ from 'lodash';
 
@@ -15,18 +15,11 @@ interface IRatingFieldProps {
 
 export default function RatingField({ field, id }: IRatingFieldProps) {
     const [hovered, setHovered] = useState(-1);
-    const builderState = useAppSelector(selectBuilderState);
-    const ratingContentRef = useRef<HTMLDivElement | null>(null);
 
-    const { activeFieldIndex } = builderState;
-    useEffect(() => {
-        if (field.position !== activeFieldIndex) return;
-        ratingContentRef.current?.focus();
-    });
     return (
         <div
             tabIndex={0}
-            ref={ratingContentRef}
+            id={id}
             className="flex relative gap-3 w-fit flex-wrap outline-none"
             onMouseLeave={() => {
                 setHovered(-1);
@@ -39,7 +32,6 @@ export default function RatingField({ field, id }: IRatingFieldProps) {
                     <Component
                         fontSize="large"
                         key={index}
-                        id={id}
                         onMouseEnter={() => {
                             setHovered(index);
                         }}

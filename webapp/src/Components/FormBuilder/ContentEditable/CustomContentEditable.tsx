@@ -4,8 +4,6 @@ import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
 
 import { useModal } from '@app/components/modal-views/context';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setActiveField } from '@app/store/form-builder/actions';
-import { useAppDispatch } from '@app/store/hooks';
 
 interface ICustomContentEditableProps {
     id: string;
@@ -15,7 +13,6 @@ interface ICustomContentEditableProps {
     placeholder: string;
     value: any;
     position: number;
-    activeFieldIndex: number;
     className?: string;
     style?: Object;
     color?: string;
@@ -220,22 +217,7 @@ interface ICustomContentEditableProps {
     onKeyDownCallback?: React.KeyboardEventHandler<HTMLDivElement>;
 }
 
-function CustomContentEditable({
-    id,
-    tagName,
-    type,
-    placeholder,
-    value,
-    position,
-    activeFieldIndex,
-    showPlaceHolder = true,
-    className = '',
-    onChangeCallback,
-    onKeyUpCallback,
-    onKeyDownCallback,
-    onFocusCallback,
-    onBlurCallback
-}: ICustomContentEditableProps) {
+function CustomContentEditable({ id, tagName, type, placeholder, value, position, showPlaceHolder = true, className = '', onChangeCallback, onKeyUpCallback, onKeyDownCallback, onFocusCallback, onBlurCallback }: ICustomContentEditableProps) {
     const contentEditableRef = useRef<HTMLElement>(null);
 
     const { isOpen } = useModal();
@@ -264,12 +246,8 @@ function CustomContentEditable({
     };
 
     useEffect(() => {
-        // Focus on the first contentEditable element (title) when the page loads
-        if (position !== activeFieldIndex || isOpen) return;
-
-        //@ts-ignore
-        contentEditableRef.current?.focus();
         if (showPlaceHolder) contentEditableRef.current?.setAttribute('data-placeholder', placeholder);
+
         // Set the cursor position to 0 when the page loads
         const range = document.createRange();
 
@@ -282,7 +260,7 @@ function CustomContentEditable({
             selection.removeAllRanges();
             selection.addRange(range);
         }
-    }, [position, activeFieldIndex, isOpen, placeholder, showPlaceHolder]);
+    }, [position, isOpen, placeholder, showPlaceHolder]);
 
     return (
         <ContentEditable

@@ -92,11 +92,11 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         return () => {
             dispatch(resetFillForm());
         };
-    }, []);
+    }, [dispatch]);
 
     useEffect(() => {
         dispatch(setDataResponseOwnerField(form?.settings?.responseDataOwnerField || ''));
-    }, [form]);
+    }, [dispatch, form]);
 
     const onSubmitForm = async (event: any) => {
         event.preventDefault();

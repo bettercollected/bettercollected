@@ -2,12 +2,17 @@ import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 
-import { IBuilderTitleAndDescriptionObj } from './types';
+import { IBuilderTitleAndDescriptionObj, IFormFieldProperties } from './types';
 
 export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionObj> = [
     {
+<<<<<<< HEAD
         id: 'field-title',
         tagName: 'p',
+=======
+        id: 'item-form-title',
+        tagName: 'h1',
+>>>>>>> be5387e (Enhance formbuilder navigation)
         type: FormBuilderTagNames.LAYOUT_HEADER1,
         key: 'title',
         position: -2,
@@ -15,7 +20,7 @@ export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionOb
         className: 'font-semibold text-[24px] text-black-900'
     },
     {
-        id: 'field-description',
+        id: 'item-form-description',
         tagName: 'p',
         type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         key: 'description',
@@ -37,7 +42,9 @@ export function getInitialPropertiesForFieldType(type: FormBuilderTagNames) {
         case FormBuilderTagNames.INPUT_DROPDOWN:
         case FormBuilderTagNames.INPUT_MULTISELECT:
             const choiceId = uuidv4();
-            const properties: any = {
+            const properties: IFormFieldProperties = {
+                activeChoiceId: choiceId,
+                activeChoiceIndex: 0,
                 choices: {
                     [choiceId]: {
                         id: choiceId,
