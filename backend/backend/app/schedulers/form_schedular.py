@@ -77,12 +77,14 @@ class FormSchedular:
                     )
                     workspace_form.last_update_status = UpdateStatus.NOT_FOUND
                     await workspace_form.save()
+                    return
                 elif e.status_code == HTTPStatus.UNAUTHORIZED:
-                    await self.temporal_service.delete_form_import_schedule(
-                        workspace_id=workspace_id, form_id=form_id
-                    )
+                    # await self.temporal_service.delete_form_import_schedule(
+                    #     workspace_id=workspace_id, form_id=form_id
+                    # )
                     workspace_form.last_update_status = UpdateStatus.INVALID_GRANT
                     await workspace_form.save()
+                    return
             if not raw_form:
                 logger.info(
                     f"Could not fetch form form provider for form with id {form_id} by schedular"

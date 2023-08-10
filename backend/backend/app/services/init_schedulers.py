@@ -56,9 +56,10 @@ async def migrate_schedule_to_temporal():
     workspace_forms = await WorkspaceFormDocument.find().to_list()
     for workspace_form in workspace_forms:
         if (
-            workspace_form.settings.provider != "self"
-            and workspace_form.last_update_status != UpdateStatus.NOT_FOUND
-            and workspace_form.last_update_status != UpdateStatus.INVALID_GRANT
+            workspace_form.settings.provider
+            != "self"
+            # and workspace_form.last_update_status != UpdateStatus.NOT_FOUND
+            # and workspace_form.last_update_status != UpdateStatus.INVALID_GRANT
         ):
             try:
                 await temporal_service.add_scheduled_job_for_importing_form(
