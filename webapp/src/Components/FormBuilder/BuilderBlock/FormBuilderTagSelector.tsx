@@ -249,7 +249,7 @@ interface IFormBuilderTagSelector extends OnlyClassNameInterface {
 
 const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, position = 'down', searchQuery = '' }: IFormBuilderTagSelector) => {
     const [tagList, setTagList] = useState(allowedTags);
-    const [selectedTag, setSelectedTag] = useState({ blockType: BlockTypes.INPUT_BLOCKS, index: 0 });
+    const [selectedTag, setSelectedTag] = useState({ blockType: BlockTypes.QUESTION_INPUT_BLOCKS, index: 0 });
     const [command, setCommand] = useState('');
     const [blockListTypes, setBlockListTypes] = useState<Array<any>>([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS]);
     const listRef: any = useRef(null);
@@ -371,7 +371,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
 
                     {typeTagList.map((tag: any, index: number) => {
                         const isSelected = selectedTag.blockType === blockType && selectedTag.index === index;
-                        const listItemClass = isSelected ? 'bg-indigo-500 text-white selected' : 'text-neutral-700 hover:bg-indigo-400 hover:text-white';
+                        const listItemClass = isSelected ? 'bg-brand-500 text-white selected' : 'text-neutral-700 hover:bg-blue-400 hover:text-white';
 
                         return (
                             <ListItem
