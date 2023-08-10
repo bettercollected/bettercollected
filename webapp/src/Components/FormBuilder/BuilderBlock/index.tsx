@@ -119,6 +119,13 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         placeholder={item.properties?.placeholder ?? t('COMPONENTS.COMMON.PLACEHOLDER')}
                                         className="text-base text-black-800"
                                         onFocusCallback={onFocusCallback}
+                                        onKeyDownCallback={(event: KeyboardEvent<HTMLDivElement>) => {
+                                            if (builderState?.menus?.commands?.isOpen)
+                                                if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
+                                                    event.preventDefault();
+                                                    event.stopPropagation();
+                                                }
+                                        }}
                                         onChangeCallback={(event: FormEvent<HTMLElement>) => {
                                             setBackspaceCount(0);
                                             batch(() => {
