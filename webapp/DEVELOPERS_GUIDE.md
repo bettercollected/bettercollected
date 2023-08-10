@@ -101,8 +101,8 @@ Please refer to the [.env.example](.env.example) file for updated environment va
 
 ### Walk through `README.md`
 
-1.  Walk thorugh `README.md` of this repository `bettercollected` and other dependent repositories `bettercollected-auth`,`bettercollected-backend`,`bettercollected-integrations-google-forms`,`bettercollected-integrations-typeform`.
-2.  Use python version `3.10` , if you dont have then install using pyenv with command `pyenv install version_number` and set it global with `pyenv global version_number`.
+1.  Use python version `3.10` , if you dont have then install using pyenv with command `pyenv install version_number` and set it global with `pyenv global version_number`.
+2.  Walk thorugh `README.md` of this repository `bettercollected` and other dependent repositories `bettercollected-auth`,`bettercollected-backend`,`bettercollected-integrations-google-forms`,`bettercollected-integrations-typeform`.
 3.  Also inside each repository set up for "common" submodule with command:
     `git submodule update --init --recursive --remote`
     And then navigate to common submodule `cd common` and checkout master branch `git checkout master && git pull` and `cd ..`.
@@ -113,7 +113,7 @@ Since `Backend` and `Auth` repositories depends on mongo database so you will ne
 use following command to run the docker container from this webapp repository.
 
 ```
-    docker compose -f "docker-compose.local.yml" up -d
+    docker compose -f "docker-compose.local.yml" up --build -d
 ```
 
 <!-- 1. Go to `backend` database in the MongoDB, if not present, run the `bettercollected-backend` repo, the database should be created if all the configuration is correct.
