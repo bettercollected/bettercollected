@@ -12,9 +12,9 @@ export enum KeyType {
 }
 
 export enum BlockTypes {
-    INPUT_BLOCKS = 'Input Blocks',
+    INPUT_BLOCKS = 'Elements',
     LAYOUT_BLOCKS = 'Layout Blocks',
-    QUESTION_INPUT_BLOCKS = 'Header + Input BLocks'
+    QUESTION_INPUT_BLOCKS = 'Elements with Label'
 }
 
 export enum FormBuilderTagNames {

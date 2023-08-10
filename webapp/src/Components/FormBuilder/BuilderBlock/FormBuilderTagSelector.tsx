@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import { isEmpty } from 'lodash';
 
+import Element from '@Components/Common/Icons/Element';
+import ElementsWithLabel from '@Components/Common/Icons/ElementsWithLabel';
 import { AlternateEmail, ArrowDropDown, DateRange, Grid4x4, Notes, Phone, ShortText, Star, Tag, TrendingUpSharp } from '@mui/icons-material';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import LinkIcon from '@mui/icons-material/Link';
@@ -367,22 +369,21 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
         typeTagList.length != 0 && (
             <li key={blockType}>
                 <ul>
-                    <ListSubheader className="font-bold tracking-widest shadow-sm">{blockType.toUpperCase()}</ListSubheader>
+                    <ListSubheader className="font-medium  bg-brand-100">{blockType}</ListSubheader>
 
                     {typeTagList.map((tag: any, index: number) => {
                         const isSelected = selectedTag.blockType === blockType && selectedTag.index === index;
-                        const listItemClass = isSelected ? 'bg-brand-500 text-white selected' : 'text-neutral-700 hover:bg-blue-400 hover:text-white';
+                        const listItemClass = isSelected ? 'bg-brand-500 !text-white selected' : 'text-black-700 hover:bg-blue-400 hover:text-white';
 
                         return (
                             <ListItem
                                 key={index}
                                 data-id={`${blockType}-${index}`}
                                 data-tag={tag.type}
-                                className={`flex items-center px-3 py-2 gap-3 last:border-b-0 ${listItemClass}`}
+                                className={`flex items-center px-3 py-2 gap-3 body4  last:border-b-0 ${listItemClass}`}
                                 role="button"
                                 tabIndex={0}
                                 onClick={() => {
-                                    console.log('Item Clicked');
                                     handleSelection(tag.type);
                                 }}
                             >
@@ -400,23 +401,46 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
         return fields.every((field) => field === false) ? <ListSubheader className="font-bold tracking-widest shadow-sm">No Results found</ListSubheader> : fields;
     };
 
+    const getBlockTypeIcon = (type: BlockTypes) => {
+        switch (type) {
+            case BlockTypes.INPUT_BLOCKS:
+                return <Element />;
+            case BlockTypes.QUESTION_INPUT_BLOCKS:
+                return <ElementsWithLabel />;
+            case BlockTypes.LAYOUT_BLOCKS:
+                return <div className="text-[16px] px-2 text-center items-center leading-6 font-semibold">H</div>;
+        }
+    };
+
     return (
         <div className={`absolute ${position === 'down' ? 'top-full' : '-top-[300px]'} shadow-2xl left-0 right-0 z-[9999] overflow-hidden rounded bg-white drop-shadow-main ${className}`}>
             <Paper style={{ height: 300, overflowY: 'auto' }}>
-                <List
-                    ref={listRef}
-                    sx={{
-                        width: '100%',
-                        bgcolor: 'background.paper',
-                        position: 'relative',
-                        overflow: 'auto',
-                        maxHeight: 300,
-                        '& ul': { padding: 0 }
-                    }}
-                    subheader={<li />}
-                >
-                    {renderAllFields()}
-                </List>
+                <div className="flex h-full">
+                    <div className=" py-3">
+                        {blockListTypes.map((type: BlockTypes) => (
+                            <div key={type} className={` ${selectedTag.blockType === type ? 'bg-brand-200' : ''} px-4 py-2 `}>
+                                {getBlockTypeIcon(type)}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="w-full h-full bg-brand-100">
+                        <List
+                            className="px-4"
+                            ref={listRef}
+                            sx={{
+                                width: '100%',
+                                // bgcolor: 'background.paper',
+                                position: 'relative',
+                                overflow: 'auto',
+                                maxHeight: 300,
+                                '& ul': { padding: 0 }
+                            }}
+                            subheader={<p />}
+                        >
+                            {renderAllFields()}
+                        </List>
+                    </div>
+                </div>
             </Paper>
         </div>
     );
