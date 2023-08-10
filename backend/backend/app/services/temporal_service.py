@@ -81,8 +81,8 @@ class TemporalService:
     ):
         if not settings.schedular_settings.ENABLED:
             return
-        await self.check_temporal_client_and_try_to_connect_if_not_connected()
         try:
+            await self.check_temporal_client_and_try_to_connect_if_not_connected()
             await self.client.create_schedule(
                 "import_" + str(workspace_id) + "_" + form_id,
                 schedule=Schedule(
@@ -107,6 +107,9 @@ class TemporalService:
             )
         except ScheduleAlreadyRunningError as e:
             loguru.logger.info(e)
+        except HTTPException as e:
+            if e.status_code != HTTPStatus.SERVICE_UNAVAILABLE:
+                loguru.logger.error(e)
         except Exception as e:
             loguru.logger.error(e)
 
@@ -115,7 +118,10 @@ class TemporalService:
     ):
         if not settings.schedular_settings.ENABLED:
             return
-        await self.check_temporal_client_and_try_to_connect_if_not_connected()
+        try:
+            await self.check_temporal_client_and_try_to_connect_if_not_connected()
+        except HTTPException:
+            pass
         schedule_id = "import_" + str(workspace_id) + "_" + form_id
         schedule_handle = self.client.get_schedule_handle(schedule_id)
         try:

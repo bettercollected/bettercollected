@@ -4,6 +4,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from loguru import logger
 
 from backend.app.container import container
+from backend.app.exceptions import HTTPException
 from backend.app.models.enum.update_status import UpdateStatus
 from backend.app.schemas.blacklisted_refresh_tokens import BlackListedRefreshTokens
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
@@ -55,14 +56,20 @@ async def migrate_schedule_to_temporal():
     workspace_forms = await WorkspaceFormDocument.find().to_list()
     for workspace_form in workspace_forms:
         if (
-            workspace_form.settings.provider != "self"
-            and workspace_form.last_update_status != UpdateStatus.NOT_FOUND
-            and workspace_form.last_update_status != UpdateStatus.INVALID_GRANT
+            workspace_form.settings.provider
+            != "self"
+            # and workspace_form.last_update_status != UpdateStatus.NOT_FOUND
+            # and workspace_form.last_update_status != UpdateStatus.INVALID_GRANT
         ):
-            await temporal_service.add_scheduled_job_for_importing_form(
-                workspace_id=workspace_form.workspace_id, form_id=workspace_form.form_id
-            )
-            logger.info("Add job for form id: " + workspace_form.form_id)
+            try:
+                await temporal_service.add_scheduled_job_for_importing_form(
+                    workspace_id=workspace_form.workspace_id,
+                    form_id=workspace_form.form_id,
+                )
+                logger.info("Add job for form id: " + workspace_form.form_id)
+            except HTTPException as e:
+                logger.info("Temporal Service Unavailable")
+                return
 
 
 async def init_schedulers(scheduler: AsyncIOScheduler):
