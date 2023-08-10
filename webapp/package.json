@@ -11,7 +11,8 @@
     "postbuild": "cross-env next-sitemap --config next-sitemap.config.js",
     "start": "next start",
     "prepare": "husky install",
-    "test": "jest --watch"
+    "test": "jest --watch",
+    "runHeadless": "./node_modules/.bin/cypress run "
   },
   "dependencies": {
     "@calcom/embed-react": "^1.0.9",
@@ -118,6 +119,7 @@
     "@types/sanitize-html": "^2.9.0",
     "autoprefixer": "^10.4.12",
     "cross-env": "^7.0.3",
+    "cypress": "^12.17.2",
     "eslint": "8.25.0",
     "eslint-config-next": "12.3.1",
     "eslint-config-prettier": "8.5.0",

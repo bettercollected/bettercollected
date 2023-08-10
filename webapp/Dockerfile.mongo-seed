@@ -1,6 +1,0 @@
-FROM mongo:latest
-
-COPY ./seed-data.js .
-
-# This should run only when rnning your app through docker-compose
-CMD mongosh "mongodb://root:root@mongodb:27017/bettercollected_backend" --authenticationDatabase admin ./seed-data.js

@@ -616,3 +616,9 @@ $RECYCLE.BIN/
 # .pnp.*
 
 # End of https://www.toptal.com/developers/gitignore/api/nextjs,node,linux,windows,macos,intellij+all,webstorm+all,storybookjs,yarn,mean,pycharm+all,visualstudiocode
+
+
+# cypress
+cypress/videos/
+
+
