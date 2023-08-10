@@ -292,7 +292,7 @@ function CustomContentEditable({
             innerRef={contentEditableRef}
             html={value}
             tagName={tagName}
-            // data-placeholder={placeholder}
+            data-placeholder={placeholder}
             data-position={position}
             data-type={type}
             className={`m-0 p-0 w-full cursor-text focus-visible:border-0 focus-visible:outline-none ${className}`}
