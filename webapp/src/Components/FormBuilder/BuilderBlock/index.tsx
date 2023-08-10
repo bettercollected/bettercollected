@@ -13,7 +13,7 @@ import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState,
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
+import { createNewField, isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
 import { getLastItem } from '@app/utils/stringUtils';
 
 import CustomContentEditable from '../ContentEditable/CustomContentEditable';

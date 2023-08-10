@@ -28,6 +28,7 @@ import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateFormMutation, usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
+import { createNewField } from '@app/utils/formBuilderBlockUtils';
 import { throttle } from '@app/utils/throttleUtils';
 
 import useFormBuilderState from './context';
@@ -153,6 +154,13 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             })
         );
     };
+
+    const getAddFieldPrompt = (
+        <>
+            <div className="h-20 group-hover:h-0"></div>
+            <div className="invisible py-2 px-4 bg-gray-50 font-medium text-gray-400 rounded-md text-sm group-hover:visible">Click to add new field</div>
+        </>
+    );
     useEffect(() => {
         onBlurCallbackRef.current = throttle(onBlurCallback, 100);
         document.addEventListener('blur', onBlurCallback);
@@ -198,13 +206,13 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         />
                     ))}
                 </div>
-                <div ref={builderDragDropRef}>
+                <div ref={builderDragDropRef} className="relative pb-10">
                     <BuilderDragDropContext
                         Component={FormBuilderBlock}
                         componentAttrs={{ setBackspaceCount }}
                         droppableId="form-builder"
                         droppableItems={Object.values(builderState.fields || {})}
-                        droppableClassName="py-10"
+                        droppableClassName="pt-10"
                         onDragStartHandlerCallback={(start: DragStart, provided: ResponderProvided) => {}}
                         onDragUpdateHandlerCallback={(update: DragUpdate, provided: ResponderProvided) => {}}
                         onDragEndHandlerCallback={(result: DropResult, provided: ResponderProvided) => {
@@ -218,6 +226,14 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             });
                         }}
                     />
+                    <div
+                        className={` absolute w-full cursor-pointer  px-5 md:px-[89px] flex items-center min-h-[40px] group`}
+                        onClick={() => {
+                            dispatch(setAddNewField(createNewField(Object.keys(builderState.fields).length - 1)));
+                        }}
+                    >
+                        {getAddFieldPrompt}
+                    </div>
                 </div>
                 {!builderState.isFormDirty && <BuilderTips />}
             </div>
