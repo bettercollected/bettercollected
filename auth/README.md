@@ -5,11 +5,14 @@
 1. Install `pyenv` with `python` version `3.10` and higher. And activate a virtual environment.
 2. Look into [Makefile](Makefile) to see if you might need any command. If you need additional commands, you can add it there.
 3. Run `make install`, this will install `poetry` by default if it's not installed.
-4. Copy [.env.example](.env.example) with the name `.env`, and add/update the environment variables there. <br/>
+4. Check if virtualenv made by poetry is of python version `3.10` or not by using command `poetry run python --version`. 
+5. If it is not of python version `3.10` then  create a new virtualenv using command `poetry env use 3.10.8`.
+6. Copy [.env.example](.env.example) with the name `.env`, and add/update the environment variables there. <br/>
    (**Note: Keep `AUTH_AEX_HEX_KEY` and `GOOGLE_AES_KEY` same through every project for bettercollected**)<br/>
-(**Note: Keep `AUTH_JWT_SECRET` values same through every project for bettercollected**)
-5. After configuring the environment variables, the application is ready to run
-6. Run `uvicorn auth.app:get_application --port 8001 --reload --env-file .env`
+   (**Note: Keep `AUTH_JWT_SECRET` values same through every project for bettercollected**)
+7. Then open virtualenv using command `poetry shell`.
+8. After configuring the environment variables, the application is ready to run
+9. Run `uvicorn auth.app:get_application --port 8001 --reload --env-file .env`
 
 ### Contributing
 
