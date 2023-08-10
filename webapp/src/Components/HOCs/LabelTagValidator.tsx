@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import { useDispatch } from 'react-redux';
 
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setAddNewField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
@@ -22,7 +22,7 @@ export default function LabelTagValidator({ children, position }: LabelTagValida
     };
     const validateField = useCallback(
         (field: IFormFieldState) => {
-            if (field.type === FormBuilderTagNames.LAYOUT_LABEL) return true;
+            if (NonInputFormBuilderTagNames.includes(field.type)) return true;
 
             const previousField = Object.values(builderState.fields)[field.position - 1];
             return previousField?.type === FormBuilderTagNames.LAYOUT_LABEL;

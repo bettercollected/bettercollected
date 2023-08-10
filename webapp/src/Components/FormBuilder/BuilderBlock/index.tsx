@@ -1,19 +1,17 @@
 import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback } from 'react';
 
 import FormBuilderBlockContent from '@Components/FormBuilder/BuilderBlock/FormBuilderBlockContent';
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import { Popover } from '@mui/material';
 import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 import { v4 } from 'uuid';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setCommandMenuPosition, setMoveField } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setMoveField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { createNewField, isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
+import { isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
 import { getLastItem } from '@app/utils/stringUtils';
 
 import CustomContentEditable from '../ContentEditable/CustomContentEditable';
@@ -76,10 +74,10 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
         [dispatch, item.id, item.position, setBackspaceCount]
     );
 
-    const getMarginTop = (type: FormBuilderTagNames) => {
-        if (NonInputFormBuilderTagNames.includes(type)) {
-            return 'mt-3';
-        }
+    const getMarginTop = () => {
+        if (item.type === FormBuilderTagNames.LAYOUT_LABEL) return 'mt-2';
+        if (item.type === FormBuilderTagNames.LAYOUT_HEADER1 || item.type === FormBuilderTagNames.LAYOUT_HEADER2 || item.type === FormBuilderTagNames.LAYOUT_HEADER3 || item.type === FormBuilderTagNames.LAYOUT_HEADER4) return 'mt-4';
+        return '';
     };
 
     return (
@@ -87,7 +85,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
             {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                 <div
                     ref={provided.innerRef}
-                    className={`relative flex w-full flex-col ${snapshot.isDragging ? 'bg-brand-100' : 'bg-transparent'}`}
+                    className={`relative flex w-full flex-col ${snapshot.isDragging ? 'bg-brand-100' : 'bg-transparent'}   ${getMarginTop()}`}
                     onFocus={(event: FocusEvent<HTMLElement>) => {}}
                     onBlur={(event: FocusEvent<HTMLElement>) => {}}
                     onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => onKeyDownCallback(event, provided)}
@@ -117,7 +115,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         showPlaceHolder={false}
                                         activeFieldIndex={builderState.activeFieldIndex}
                                         placeholder={item.properties?.placeholder ?? t('COMPONENTS.COMMON.PLACEHOLDER')}
-                                        className="text-base text-black-800"
+                                        className="text-[14px] text-black-800"
                                         onFocusCallback={onFocusCallback}
                                         onKeyDownCallback={(event: KeyboardEvent<HTMLDivElement>) => {
                                             if (builderState?.menus?.commands?.isOpen)

@@ -7,12 +7,12 @@ import { IBuilderTitleAndDescriptionObj } from './types';
 export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionObj> = [
     {
         id: 'field-title',
-        tagName: 'h1',
+        tagName: 'p',
         type: FormBuilderTagNames.LAYOUT_HEADER1,
         key: 'title',
         position: -2,
         placeholder: 'FORM_TITLE.PLACEHOLDER',
-        className: 'font-semibold text-3xl text-black-800'
+        className: 'font-semibold text-[24px] text-black-900'
     },
     {
         id: 'field-description',
@@ -21,7 +21,7 @@ export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionOb
         key: 'description',
         position: -1,
         placeholder: 'FORM_DESCRIPTION.PLACEHOLDER',
-        className: 'text-base text-black-800 min-h-[40px]'
+        className: 'text-[14px] text-black-700 '
     }
 ];
 
