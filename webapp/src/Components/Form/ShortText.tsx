@@ -14,13 +14,14 @@ interface IShortTextProps {
     field: StandardFormFieldDto;
     ans?: any;
     enabled?: boolean;
+    helperText?: string;
 }
 
 ShortText.defaultProps = {
     enabled: false
 };
 
-export default function ShortText({ ans, enabled, field }: IShortTextProps) {
+export default function ShortText({ ans, enabled, field, helperText }: IShortTextProps) {
     const dispatch = useDispatch();
 
     const responseDataOwnerField = useAppSelector(selectFormResponderOwnerField);
@@ -88,7 +89,10 @@ export default function ShortText({ ans, enabled, field }: IShortTextProps) {
                 value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name || ans?.date || ans?.phone_number}
                 placeholder={field?.properties?.placeholder}
                 disabled={!enabled}
+                helperText={helperText && helperText}
+                InputLabelProps={{ shrink: true }}
                 inputProps={{
+                    max: '9999-00-00',
                     style: {
                         padding: '12px 16px',
                         fontSize: 14,

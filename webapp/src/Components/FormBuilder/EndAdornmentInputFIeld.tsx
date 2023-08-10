@@ -18,6 +18,7 @@ interface IEndAdornmentInputFieldProps {
     field: IFormFieldState;
     id: string;
     position: number;
+    placeholder?: string;
 }
 
 function getIcon(type: FormBuilderTagNames) {
@@ -39,7 +40,7 @@ function getIcon(type: FormBuilderTagNames) {
     }
 }
 
-export default function EndAdornmentInputField({ field, id, position }: IEndAdornmentInputFieldProps) {
+export default function EndAdornmentInputField({ field, id, position, placeholder }: IEndAdornmentInputFieldProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const dispatch = useDispatch();
     const { setBackspaceCount } = useFormBuilderState();
@@ -63,6 +64,7 @@ export default function EndAdornmentInputField({ field, id, position }: IEndAdor
             {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
             <FormBuilderInput
                 onChange={onChange}
+                placeholder={placeholder}
                 id={id}
                 value={field?.properties?.placeholder || ''}
                 inputRef={inputRef}

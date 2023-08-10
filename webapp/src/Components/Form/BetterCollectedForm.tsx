@@ -46,8 +46,9 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
         case FormBuilderTagNames.INPUT_EMAIL:
         case FormBuilderTagNames.INPUT_NUMBER:
         case FormBuilderTagNames.INPUT_LINK:
-        case FormBuilderTagNames.INPUT_DATE:
             return <ShortText enabled={enabled} field={field} ans={answer} />;
+        case FormBuilderTagNames.INPUT_DATE:
+            return <ShortText enabled={enabled} field={field} ans={answer} helperText={field?.properties?.placeholder} />;
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
             return <PhoneNumber enabled={enabled} field={field} ans={answer} />;
         case FormBuilderTagNames.INPUT_LONG_TEXT:
