@@ -104,6 +104,7 @@ cypress-tests:
     cache:
         paths:
             - node_modules/
+            - /root/.cache/Cypress
     stage: test
 
     image: cypress/base
