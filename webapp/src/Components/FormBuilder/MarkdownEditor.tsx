@@ -94,15 +94,16 @@ const MarkdownEditor = ({ id, field }: MarkdownEditorProps) => {
     }, [activeFieldIndex, field?.position]);
 
     return (
-        <div id={id} className={cn('w-full relative ', preview && 'border rounded-sm p-3 min-h-14')}>
+        <div className={cn('w-full relative ', preview && 'border rounded-sm p-3 min-h-14')}>
             <div className="cursor-pointer  absolute right-3 top-1 text-gray-500" onClick={handlePreview}>
                 {preview ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
             </div>
 
             {preview ? (
-                <MarkdownText text={field.value} />
+                <MarkdownText text={field.value ?? ''} />
             ) : (
                 <TextArea
+                    id={id}
                     ref={inputRef}
                     value={field?.value}
                     onChange={onChange}

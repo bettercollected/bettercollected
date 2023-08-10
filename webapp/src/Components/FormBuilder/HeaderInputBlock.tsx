@@ -1,6 +1,4 @@
-import React, { ChangeEvent, FormEvent, useRef } from 'react';
-
-import { useTranslation } from 'next-i18next';
+import React, { FormEvent } from 'react';
 
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import { useDispatch } from 'react-redux';
@@ -9,8 +7,6 @@ import useFormBuilderState from '@app/containers/form-builder/context';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setBuilderState, setUpdateField } from '@app/store/form-builder/actions';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { useAppSelector } from '@app/store/hooks';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 
 interface IHeaderInputBlockProps {
@@ -37,11 +33,9 @@ const getPlaceholder = (type: FormBuilderTagNames) => {
 };
 export default function HeaderInputBlock({ field, id, position }: IHeaderInputBlockProps) {
     const dispatch = useDispatch();
-    const builderState = useAppSelector(selectBuilderState);
     const { setBackspaceCount } = useFormBuilderState();
     const { t } = useBuilderTranslation();
 
-    const activeFieldIndex = builderState.activeFieldIndex;
     const onChange = (event: FormEvent<HTMLElement>) => {
         setBackspaceCount(0);
         dispatch(
@@ -54,7 +48,6 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
     return (
         <CustomContentEditable
             type={field?.type}
-            activeFieldIndex={activeFieldIndex}
             tagName="p"
             position={position}
             id={id}

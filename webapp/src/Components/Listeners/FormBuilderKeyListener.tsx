@@ -14,7 +14,7 @@ import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setAddNewCho
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { createNewField } from '@app/utils/formBuilderBlockUtils';
+import { createNewField, isMultipleChoice } from '@app/utils/formBuilderBlockUtils';
 
 export default function FormBuilderKeyListener({ children }: React.PropsWithChildren) {
     const dispatch = useAppDispatch();
@@ -31,6 +31,32 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
             batch(async () => {
                 const fieldId = builderState.activeFieldId;
 
+                const focusNextField = () => {
+                    let nextFieldId = Object.keys(builderState.fields)[builderState.activeFieldIndex + 1];
+
+                    if (isMultipleChoice(builderState.fields[nextFieldId]?.type)) {
+                        const choicesKeys = Object.keys(builderState.fields[nextFieldId].properties?.choices ?? {});
+                        const firstChoiceKey = choicesKeys[0];
+                        document.getElementById(`choice-${firstChoiceKey}`)?.focus();
+                    }
+                    if (builderState.activeFieldIndex === -2) nextFieldId = 'form-description';
+                    document.getElementById(`item-${nextFieldId}`)?.focus();
+                };
+
+                const focusPreviousField = () => {
+                    let previousFieldId = Object.keys(builderState.fields)[builderState.activeFieldIndex - 1];
+                    if (isMultipleChoice(builderState.fields[previousFieldId]?.type)) {
+                        const choicesKeys = Object.keys(builderState.fields[previousFieldId].properties?.choices ?? {});
+                        const lastChoiceKey = choicesKeys[choicesKeys.length - 1];
+
+                        document.getElementById(`choice-${lastChoiceKey}`)?.focus();
+                    }
+                    if (builderState.activeFieldIndex === 0) previousFieldId = 'form-description';
+                    if (builderState.activeFieldIndex === -1) previousFieldId = 'form-title';
+
+                    document.getElementById(`item-${previousFieldId}`)?.focus();
+                };
+
                 if (event.key === 'Escape') {
                     dispatch(resetBuilderMenuState());
                 } else if (builderState.menus?.commands?.isOpen || fullScreenModal.isOpen || modal.isOpen || builderState.menus?.spotlightField?.isOpen) {
@@ -38,17 +64,13 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                 } else if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
                     event.preventDefault();
                     if (builderState.activeFieldIndex >= 0 || Object.keys(builderState.fields).length === 0) dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
-                    dispatch(
-                        setBuilderState({
-                            isFormDirty: true,
-                            activeFieldIndex: builderState.activeFieldIndex + 1
-                        })
-                    );
+                    document.getElementById(`item-${Object.keys(builderState.fields)[builderState.activeFieldIndex + 1]}`)?.focus();
                 } else if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
                 else if (!event.ctrlKey && !event.metaKey && (event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
-                    dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
+                    focusNextField();
+                    // dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
                 } else if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2) {
-                    dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
+                    focusPreviousField();
                 } else if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey) {
                     eventBus.emit(EventBusEventType.FormBuilder.OpenTagSelector);
                 } else if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
@@ -56,7 +78,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                         event.preventDefault();
 
                         asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
-                        dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex - 1 }));
+                        focusPreviousField();
                     } else {
                         setBackspaceCount(1);
                     }
@@ -67,12 +89,8 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     if (builderState.activeFieldIndex < 0) {
                         toast("Can't delete the form title and description", { type: 'warning' });
                     } else dispatch(setDeleteField(fieldId));
-                    dispatch(
-                        setBuilderState({
-                            isFormDirty: true,
-                            activeFieldIndex: builderState.activeFieldIndex > 0 ? builderState.activeFieldIndex - 1 : 0
-                        })
-                    );
+
+                    focusPreviousField();
                 } else if ((event.key === 'D' || event.key === 'd') && !event.shiftKey && (event.ctrlKey || event.metaKey) && fieldId) {
                     event.preventDefault();
                     event.stopPropagation();

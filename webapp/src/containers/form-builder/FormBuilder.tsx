@@ -191,7 +191,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             type={b.type}
                             value={builderState[b.key]}
                             position={b.position}
-                            activeFieldIndex={builderState.activeFieldIndex}
                             placeholder={t(b.placeholder)}
                             className={b.className}
                             onChangeCallback={(event: FormEvent<HTMLElement>) => {

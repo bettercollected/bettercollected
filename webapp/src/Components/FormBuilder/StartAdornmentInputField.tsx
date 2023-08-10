@@ -18,7 +18,7 @@ interface IStartAdornmentInputFieldProps {
     id: string;
     focus?: boolean;
     onChangeCallback: ChangeEventHandler<HTMLInputElement>;
-    onFocus?: FocusEventHandler<HTMLInputElement | HTMLTextAreaElement>;
+    onFocusCallback?: FocusEventHandler<HTMLInputElement | HTMLTextAreaElement>;
 }
 
 function getIcon(type: FormBuilderTagNames) {
@@ -36,8 +36,7 @@ function getIcon(type: FormBuilderTagNames) {
     }
 }
 
-export default function StartAdornmentInputField({ type, value, id, focus, onChangeCallback, onFocus }: IStartAdornmentInputFieldProps) {
-    const inputRef = useRef<HTMLInputElement | null>(null);
+export default function StartAdornmentInputField({ type, value, id, onChangeCallback, onFocusCallback }: IStartAdornmentInputFieldProps) {
     const { setBackspaceCount } = useFormBuilderState();
     const { t } = useBuilderTranslation();
 
@@ -46,17 +45,13 @@ export default function StartAdornmentInputField({ type, value, id, focus, onCha
         onChangeCallback(event);
     };
 
-    useEffect(() => {
-        if (focus) {
-            console.log('choice focused');
-            inputRef.current?.focus();
-        }
-    }, [focus, id]);
-
+    const onFocus = (event: any) => {
+        console.log('Multiple choice focus called');
+        onFocusCallback && onFocusCallback(event);
+    };
     return (
         <FormBuilderInput
             autoFocus={true}
-            inputRef={inputRef}
             id={id}
             className="!w-fit !mb-0"
             value={value}

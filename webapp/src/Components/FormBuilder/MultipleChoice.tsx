@@ -5,28 +5,25 @@ import PlusIcon from '@Components/Common/Icons/Plus';
 import StartAdornmentInputField from '@Components/FormBuilder/StartAdornmentInputField';
 import { StrictModeDroppable } from '@Components/FormBuilder/StrictModeDroppable';
 import { FieldRequired } from '@Components/UI/FieldRequired';
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { GridCloseIcon } from '@mui/x-data-grid';
 import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react-beautiful-dnd';
 import { useDispatch } from 'react-redux';
 
-import useFormBuilderState from '@app/containers/form-builder/context';
-import { setActiveChoice, setActiveField, setAddNewChoice, setUpdateField } from '@app/store/form-builder/actions';
+import { setActiveChoice, setAddNewChoice, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { IFormFieldState } from '@app/store/form-builder/types';
+import { IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 import { reorder } from '@app/utils/arrayUtils';
 import { createNewChoice } from '@app/utils/formBuilderBlockUtils';
 
 interface IMultipleChoiceProps {
     field: IFormFieldState;
-    id: any;
+    id: string;
     position: number;
 }
 
-export default function MultipleChoice({ field, id, position }: IMultipleChoiceProps) {
+export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
     const dispatch = useDispatch();
-    const contentRef = useRef<HTMLDivElement | null>(null);
 
     const builderState = useAppSelector(selectBuilderState);
 
@@ -67,24 +64,13 @@ export default function MultipleChoice({ field, id, position }: IMultipleChoiceP
         );
     };
 
-    const handleFocus = (choiceId: string, position: number) => {
-        // Triigers on mouse click focus
-        dispatch(setActiveChoice({ id: choiceId, position }));
-    };
-
-    useEffect(() => {
-        if (position !== builderState.activeFieldIndex) return;
-        console.log('Multiple choice focused');
-        contentRef.current?.focus();
-    }, [builderState.activeFieldIndex, position]);
-
     return (
-        <div tabIndex={0} ref={contentRef} className="flex w-full items-start justify-start focus-visible:!outline-none focus-visible:!border-none ">
+        <div id={id} className="flex w-full items-start justify-start focus-visible:!outline-none focus-visible:!border-none ">
             <DragDropContext onDragEnd={onDragEnd}>
-                <StrictModeDroppable droppableId="choices">
+                <StrictModeDroppable droppableId="droppable-multiple-choice">
                     {(provided: DroppableProvided) => (
                         <div {...provided.droppableProps} ref={provided.innerRef} className="w-full">
-                            {Object.values(field.properties?.choices || {}).map((choice: any, index) => {
+                            {Object.values(field.properties?.choices || {}).map((choice, index) => {
                                 // @ts-ignore
                                 return (
                                     <Draggable key={choice.position} draggableId={choice.id} index={index}>
@@ -117,13 +103,13 @@ export default function MultipleChoice({ field, id, position }: IMultipleChoiceP
                                                     </div>
                                                     <StartAdornmentInputField
                                                         type={field.type}
-                                                        focus={builderState.fields[builderState.activeFieldId]?.properties?.activeChoiceIndex === choice.position && field.id === builderState.activeFieldId}
-                                                        id={choice.id}
+                                                        // focus={builderState.fields[builderState.activeFieldId]?.properties?.activeChoiceIndex === choice.position && field.id === builderState.activeFieldId}
+                                                        id={`choice-${choice.id}`}
                                                         onChangeCallback={(event) => {
                                                             handleChoiceValueChange(choice.id, event.target.value);
                                                         }}
-                                                        onFocus={() => {
-                                                            handleFocus(choice.id, index);
+                                                        onFocusCallback={() => {
+                                                            dispatch(setActiveChoice({ id: choice.id, position: choice.position }));
                                                         }}
                                                         // @ts-ignore
                                                         value={field?.properties?.choices[choice?.id]?.value || ''}

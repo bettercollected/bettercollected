@@ -41,7 +41,7 @@ export default function FullScreenModalContainer() {
         return () => {
             router.events.off('routeChangeStart', closeModal);
         };
-    }, []);
+    }, [closeModal, router.events]);
 
     return (
         <Transition appear show={isOpen} as={Fragment}>

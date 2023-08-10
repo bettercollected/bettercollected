@@ -57,8 +57,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                 }
             });
         },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [builderState, item.position]
+        [builderState.fields, dispatch, item.position]
     );
 
     const onFocusCallback = useCallback(
@@ -107,13 +106,12 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                             <div className="flex flex-col w-full relative">
                                 <div className={`w-full px-0 flex items-center min-h-[40px]`}>
                                     <CustomContentEditable
-                                        id={item.id}
+                                        id={`item-${item.id}`}
                                         tagName={item.type}
                                         type={item.type}
                                         value={item?.value ?? ''}
                                         position={item.position}
                                         showPlaceHolder={false}
-                                        activeFieldIndex={builderState.activeFieldIndex}
                                         placeholder={item.properties?.placeholder ?? t('COMPONENTS.COMMON.PLACEHOLDER')}
                                         className="text-[14px] text-black-800"
                                         onFocusCallback={onFocusCallback}
