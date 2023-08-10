@@ -1,22 +1,24 @@
 import React, { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import Divider from '@Components/Common/DataDisplay/Divider';
 import CopyIcon from '@Components/Common/Icons/Copy';
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import DragHandleIcon from '@Components/Common/Icons/DragHandle';
 import MuiSwitch from '@Components/Common/Input/Switch';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import IndividualFieldOptions from '@Components/FormBuilder/FieldOptions/IndividualFieldOptions';
+import FormValidations from '@Components/FormBuilder/FieldOptions/FormValidations';
+import StepsOption from '@Components/FormBuilder/FieldOptions/StepsOption';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import AltRouteIcon from '@mui/icons-material/AltRoute';
 import { FormControlLabel, ListItemIcon, MenuItem } from '@mui/material';
 import { DraggableProvided } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 
-import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addDuplicateField, setDeleteField, setUpdateField } from '@app/store/form-builder/actions';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { deleteField, selectFormField, updateField } from '@app/store/form-builder/slice';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { addDuplicateField, setDeleteField, setIdentifierField, setUpdateField } from '@app/store/form-builder/actions';
+import { selectFormField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
@@ -27,13 +29,13 @@ interface IFieldOptionsProps {
 }
 
 export default function FieldOptions({ provided, id, position }: IFieldOptionsProps) {
-    const builderState = useAppSelector(selectBuilderState);
-    const formField = builderState.fields[id];
+    const field: IFormFieldState = useAppSelector(selectFormField(id));
     const dispatch = useAppDispatch();
-
+    const responseOwnerField = useAppSelector(selectResponseOwnerField);
     const [open, setOpen] = useState(false);
+    const { t } = useBuilderTranslation();
     const duplicateField = () => {
-        const newField: IFormFieldState = { ...formField };
+        const newField: IFormFieldState = { ...field };
         newField.id = uuidv4();
         newField.position = position;
         batch(() => {
@@ -51,18 +53,14 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
     const handleBlockVisibilityChange = (event: React.SyntheticEvent<Element, Event>, checked: boolean) => {
         event.preventDefault();
         event.stopPropagation();
-        const fieldProperties = { ...formField.properties } || {};
+        const fieldProperties = { ...field.properties } || {};
         fieldProperties.hidden = checked;
-        dispatch(setUpdateField({ ...formField, properties: fieldProperties }));
+        dispatch(setUpdateField({ ...field, properties: fieldProperties }));
     };
 
-    const handleFieldRequiredChange = (event: React.SyntheticEvent<Element, Event>, checked: boolean) => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        const fieldValidations = { ...formField.validations };
-        fieldValidations.required = checked;
-        dispatch(setUpdateField({ ...formField, validations: fieldValidations }));
+    const handleSetEmailIdentifier = (event: any, checked: boolean) => {
+        if (checked) dispatch(setIdentifierField(field?.id));
+        else dispatch(setIdentifierField(''));
     };
 
     return (
@@ -92,7 +90,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                 }
             }}
             id="block-options-menu"
-            menuTitle="Drag or click to open options for this block"
+            menuTitle={t('COMPONENTS.OPTIONS.TOOLTIP_TITLE')}
             menuContent={
                 <div className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400" {...provided.dragHandleProps} tabIndex={-1}>
                     <DragHandleIcon tabIndex={-1} width={40} height={40} />
@@ -100,53 +98,49 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
             }
         >
             <div className="flex flex-col gap-2 py-3">
-                <p className="px-5 text-xs font-semibold tracking-widest leading-none uppercase text-black-700">Options</p>
+                <p className="px-5 text-xs font-semibold tracking-widest leading-none uppercase text-black-700">{t('COMPONENTS.OPTIONS.DEFAULT')}</p>
             </div>
 
-            <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
-                <FormControlLabel
-                    slotProps={{
-                        typography: {
-                            fontSize: 14
-                        }
-                    }}
-                    label="Hide field"
-                    labelPlacement="start"
-                    className="m-0 text-xs flex items-center justify-between w-full"
-                    control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!formField?.properties?.hidden} />}
-                />
-            </MenuItem>
-            {!NonInputFormBuilderTagNames.includes(formField?.type || FormBuilderTagNames.LAYOUT_SHORT_TEXT) && (
-                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
+            {field?.type == FormBuilderTagNames.INPUT_EMAIL && (
+                <MenuItem sx={{ paddingX: '20px', paddingY: '10px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
                     <FormControlLabel
                         slotProps={{
                             typography: {
                                 fontSize: 14
                             }
                         }}
-                        label="Required"
+                        label={t('COMPONENTS.OPTIONS.IDENTIFIER_FIELD')}
                         labelPlacement="start"
                         className="m-0 text-xs flex items-center justify-between w-full"
-                        control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleFieldRequiredChange} checked={!!formField.validations?.required} />}
+                        control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleSetEmailIdentifier} checked={responseOwnerField === field?.id} />}
                     />
                 </MenuItem>
             )}
 
-            <IndividualFieldOptions field={formField} />
-
-            <Divider className="my-2" />
-            <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={duplicateField}>
-                <ListItemIcon className="text-black-900">
-                    <AltRouteIcon width={20} height={20} />
-                </ListItemIcon>
-                <span className="leading-none flex items-center">Add conditional logic</span>
+            <MenuItem sx={{ paddingX: '20px', paddingY: '10px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
+                <FormControlLabel
+                    slotProps={{
+                        typography: {
+                            fontSize: 14
+                        }
+                    }}
+                    label={t('COMPONENTS.OPTIONS.HIDE_FIELD')}
+                    labelPlacement="start"
+                    className="m-0 text-xs flex items-center justify-between w-full"
+                    control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!field?.properties?.hidden} />}
+                />
             </MenuItem>
+
+            <StepsOption field={field} />
+
+            <FormValidations field={field} />
+            <Divider className="my-2" />
             <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={duplicateField}>
                 <ListItemIcon className="text-black-900">
                     <CopyIcon width={20} height={20} />
                 </ListItemIcon>
                 <span className="leading-none flex items-center justify-between w-full">
-                    <span>Duplicate</span>
+                    <span>{t('COMPONENTS.ACTIONS.DUPLICATE')}</span>
                     <span className="italic text-xs text-black-500">Ctrl/Cmd + D</span>
                 </span>
             </MenuItem>
@@ -155,8 +149,8 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                     <DeleteIcon width={20} height={20} />
                 </ListItemIcon>
                 <span className="leading-none flex items-center justify-between w-full">
-                    <span>Delete</span>
-                    <span className="italic text-xs text-black-500">Ctrl/Cmd + Shift + D</span>
+                    <span>{t('COMPONENTS.ACTIONS.DELETE')}</span>
+                    <span className="italic text-xs text-black-500">Ctrl/Cmd + Del</span>
                 </span>
             </MenuItem>
         </MenuDropdown>

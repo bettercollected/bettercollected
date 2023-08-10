@@ -5,21 +5,35 @@ import HeaderInputBlock from '@Components/FormBuilder/HeaderInputBlock';
 import LongText from '@Components/FormBuilder/LongText';
 import MultipleChoice from '@Components/FormBuilder/MultipleChoice';
 import RatingField from '@Components/FormBuilder/RatingField';
+import LabelTagValidator from '@Components/HOCs/LabelTagValidator';
+import MultipleChoiceKeyEventListener from '@Components/Listeners/MultipleChoiceKeyListener';
+import { useDispatch } from 'react-redux';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setActiveFieldIndex } from '@app/store/form-builder/slice';
-import { useAppDispatch } from '@app/store/hooks';
+import { setActiveField } from '@app/store/form-builder/actions';
 
-export default function FormBuilderBlockContent({ type, position, field, id }: any) {
+import MarkdownEditor from '../MarkdownEditor';
+
+interface IFormBuilderBlockContent {
+    type: string;
+    position: number;
+    id: string;
+    field: any;
+}
+
+export default function FormBuilderBlockContent({ type, position, field, id }: IFormBuilderBlockContent) {
+    const dispatch = useDispatch();
+
     const renderBlockContent = (position: number) => {
         switch (type) {
             case FormBuilderTagNames.LAYOUT_HEADER1:
             case FormBuilderTagNames.LAYOUT_HEADER2:
             case FormBuilderTagNames.LAYOUT_HEADER3:
             case FormBuilderTagNames.LAYOUT_HEADER4:
-            case FormBuilderTagNames.LAYOUT_HEADER5:
             case FormBuilderTagNames.LAYOUT_LABEL:
                 return <HeaderInputBlock field={field} id={id} position={position} />;
+            case FormBuilderTagNames.LAYOUT_MARKDOWN:
+                return <MarkdownEditor field={field} id={id} />;
             case FormBuilderTagNames.INPUT_SHORT_TEXT:
             case FormBuilderTagNames.INPUT_EMAIL:
             case FormBuilderTagNames.INPUT_NUMBER:
@@ -33,7 +47,11 @@ export default function FormBuilderBlockContent({ type, position, field, id }: a
             case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
             case FormBuilderTagNames.INPUT_DROPDOWN:
             case FormBuilderTagNames.INPUT_RANKING:
-                return <MultipleChoice field={field} id={id} />;
+                return (
+                    <MultipleChoiceKeyEventListener>
+                        <MultipleChoice field={field} id={id} position={position} />
+                    </MultipleChoiceKeyEventListener>
+                );
             case FormBuilderTagNames.INPUT_RATING:
                 return <RatingField field={field} id={id} />;
             default:
@@ -41,10 +59,22 @@ export default function FormBuilderBlockContent({ type, position, field, id }: a
         }
     };
 
+    const renderValidatedBlockContent = (position: number) => {
+        if (type !== FormBuilderTagNames.LAYOUT_LABEL) {
+            return <LabelTagValidator position={position}> {renderBlockContent(position)}</LabelTagValidator>;
+        }
+        return renderBlockContent(position);
+    };
     return (
         <div className="w-full">
-            <div data-position={position} data-tag={type}>
-                {renderBlockContent(position)}
+            <div
+                data-position={position}
+                data-tag={type}
+                onFocus={() => {
+                    dispatch(setActiveField({ position: field?.position, id: field?.id }));
+                }}
+            >
+                {renderValidatedBlockContent(position)}
             </div>
         </div>
     );

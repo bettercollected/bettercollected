@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { AlternateEmail, ArrowDropDown, DateRange, Grid4x4, Notes, Phone, ShortText, Star, TrendingUpSharp } from '@mui/icons-material';
+import { isEmpty } from 'lodash';
+
+import { AlternateEmail, ArrowDropDown, DateRange, Grid4x4, Notes, Phone, ShortText, Star, Tag, TrendingUpSharp } from '@mui/icons-material';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import LinkIcon from '@mui/icons-material/Link';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
@@ -8,6 +10,7 @@ import { List, ListItem, ListSubheader, Paper } from '@mui/material';
 
 import { TagIcon } from '@app/components/icons/tag-icon';
 import { BlockTypes, FormBuilderTagNames, KeyType } from '@app/models/enums/formBuilder';
+import { OnlyClassNameInterface } from '@app/models/interfaces';
 
 export const allowedInputTags = [
     {
@@ -126,13 +129,6 @@ export const allowedLayoutTags = [
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
-        id: FormBuilderTagNames.LAYOUT_HEADER5,
-        type: FormBuilderTagNames.LAYOUT_HEADER5,
-        label: 'Heading 5',
-        icon: <div className=" font-bold text-xl">H5</div>,
-        blockType: BlockTypes.LAYOUT_BLOCKS
-    },
-    {
         id: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         label: 'Text',
@@ -145,6 +141,13 @@ export const allowedLayoutTags = [
         label: 'Label',
         icon: <div className=" font-bold text-center text-xl">{'L'}</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.LAYOUT_MARKDOWN,
+        type: FormBuilderTagNames.LAYOUT_MARKDOWN,
+        label: 'Markdown',
+        icon: <Tag width={20} height={20} />,
+        blockType: BlockTypes.INPUT_BLOCKS
     }
 ];
 
@@ -236,24 +239,52 @@ export const allowedQuestionAndAnswerTags = [
 ];
 
 export const allowedTags = [...allowedQuestionAndAnswerTags, ...allowedLayoutTags, ...allowedInputTags];
-const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '' }: any) => {
+
+interface IFormBuilderTagSelector extends OnlyClassNameInterface {
+    closeMenu: any;
+    handleSelection: any;
+    position?: 'up' | 'down';
+    searchQuery?: string;
+}
+
+const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, position = 'down', searchQuery = '' }: IFormBuilderTagSelector) => {
     const [tagList, setTagList] = useState(allowedTags);
-    const [selectedTag, setSelectedTag] = useState({ blockType: BlockTypes.INPUT_BLOCKS, index: 0 });
+    const [selectedTag, setSelectedTag] = useState({ blockType: BlockTypes.QUESTION_INPUT_BLOCKS, index: 0 });
     const [command, setCommand] = useState('');
-
-    const [blockListTypes, setBlockListTypes] = useState<Array<any>>([BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.QUESTION_INPUT_BLOCKS]);
-
+    const [blockListTypes, setBlockListTypes] = useState<Array<any>>([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS]);
     const listRef: any = useRef(null);
 
     useEffect(() => {
-        setTagList(allowedTags);
-    }, []);
+        if (!searchQuery) {
+            setBlockListTypes([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.INPUT_BLOCKS]);
+            setTagList(allowedTags);
+        }
+        if (!searchQuery || searchQuery?.includes('\n')) return; // Discard enter character in search query
+        const filteredAllowedQuestionAnswerTags = allowedQuestionAndAnswerTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
+        const filteredAllowedInputTags = allowedInputTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
+        const filteredAllowedLayoutTags = allowedLayoutTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
+        const newBlockListTypes: Array<BlockTypes> = [];
+        let selectedBlockType = BlockTypes.INPUT_BLOCKS;
+        if (filteredAllowedQuestionAnswerTags.length > 0) {
+            newBlockListTypes.push(BlockTypes.QUESTION_INPUT_BLOCKS);
+        }
+        if (filteredAllowedLayoutTags.length > 0) {
+            newBlockListTypes.push(BlockTypes.LAYOUT_BLOCKS);
+        }
+        if (filteredAllowedInputTags.length > 0) {
+            newBlockListTypes.push(BlockTypes.INPUT_BLOCKS);
+        }
+        setSelectedTag({ blockType: newBlockListTypes.length > 0 ? newBlockListTypes[0] : selectedBlockType, index: 0 });
+        setTagList([...filteredAllowedQuestionAnswerTags, ...filteredAllowedInputTags, ...filteredAllowedLayoutTags]);
+        searchQuery && setBlockListTypes([...newBlockListTypes]);
+    }, [searchQuery]);
 
     useEffect(() => {
         const handleKeyDown = (e: any) => {
             const keyActions: any = {
                 [KeyType.Enter]: () => {
                     e.preventDefault();
+                    e.stopPropagation();
                     const selectedListItem: any = listRef.current?.querySelector('.selected');
                     if (selectedListItem) {
                         const tag = selectedListItem.dataset.tag;
@@ -264,7 +295,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '' }: 
                 [KeyType.ArrowUp]: () => selectPreviousTag(e),
                 [KeyType.Backspace]: () => {
                     setCommand((prevCommand) => {
-                        closeMenu();
+                        // closeMenu();
                         return command.slice(0, -1);
                     });
                 },
@@ -332,40 +363,46 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '' }: 
         }
     };
 
-    const renderSingleTypeTagElements = (blockType: string, typeTagList: Array<any>) => (
-        <li key={blockType}>
-            <ul>
-                <ListSubheader className="font-bold tracking-widest shadow-sm">{blockType.toUpperCase()}</ListSubheader>
-                {typeTagList.length === 0 && <p className="m-0 px-4 py-2 text-sm text-neutral-300">No items</p>}
-                {typeTagList.map((tag: any, index: number) => {
-                    const isSelected = selectedTag.blockType === blockType && selectedTag.index === index;
-                    const listItemClass = isSelected ? 'bg-indigo-500 text-white selected' : 'text-neutral-700 hover:bg-indigo-400 hover:text-white';
+    const renderSingleTypeTagElements = (blockType: string, typeTagList: Array<any>) =>
+        typeTagList.length != 0 && (
+            <li key={blockType}>
+                <ul>
+                    <ListSubheader className="font-bold tracking-widest shadow-sm">{blockType.toUpperCase()}</ListSubheader>
 
-                    return (
-                        <ListItem
-                            key={index}
-                            data-id={`${blockType}-${index}`}
-                            data-tag={tag.type}
-                            className={`flex items-center px-3 py-2 gap-3 last:border-b-0 ${listItemClass}`}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                                console.log('Item Clicked');
-                                handleSelection(tag.type);
-                            }}
-                        >
-                            {tag.icon}
-                            <span className="ml-2">{tag.label}</span>
-                        </ListItem>
-                    );
-                })}
-            </ul>
-        </li>
-    );
+                    {typeTagList.map((tag: any, index: number) => {
+                        const isSelected = selectedTag.blockType === blockType && selectedTag.index === index;
+                        const listItemClass = isSelected ? 'bg-brand-500 text-white selected' : 'text-neutral-700 hover:bg-blue-400 hover:text-white';
+
+                        return (
+                            <ListItem
+                                key={index}
+                                data-id={`${blockType}-${index}`}
+                                data-tag={tag.type}
+                                className={`flex items-center px-3 py-2 gap-3 last:border-b-0 ${listItemClass}`}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => {
+                                    console.log('Item Clicked');
+                                    handleSelection(tag.type);
+                                }}
+                            >
+                                {tag.icon}
+                                <span className="ml-2">{tag.label}</span>
+                            </ListItem>
+                        );
+                    })}
+                </ul>
+            </li>
+        );
+
+    const renderAllFields = () => {
+        const fields = blockListTypes.map((type) => renderSingleTypeTagElements(type, getFilteredList(type)));
+        return fields.every((field) => field === false) ? <ListSubheader className="font-bold tracking-widest shadow-sm">No Results found</ListSubheader> : fields;
+    };
 
     return (
-        <div className={`absolute top-full left-0 right-0 z-[9999] overflow-hidden rounded bg-white drop-shadow-main ${className}`}>
-            <Paper style={{ maxHeight: 320, overflowY: 'auto' }}>
+        <div className={`absolute ${position === 'down' ? 'top-full' : '-top-[300px]'} shadow-2xl left-0 right-0 z-[9999] overflow-hidden rounded bg-white drop-shadow-main ${className}`}>
+            <Paper style={{ height: 300, overflowY: 'auto' }}>
                 <List
                     ref={listRef}
                     sx={{
@@ -378,7 +415,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className = '' }: 
                     }}
                     subheader={<li />}
                 >
-                    {blockListTypes.map((type) => renderSingleTypeTagElements(type, getFilteredList(type)))}
+                    {renderAllFields()}
                 </List>
             </Paper>
         </div>

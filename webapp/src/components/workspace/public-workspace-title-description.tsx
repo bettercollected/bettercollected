@@ -6,7 +6,6 @@ import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import { toast } from 'react-toastify';
 
 import ReactContentEditable from '@app/components/inline-editable';
-import MarkdownText from '@app/components/ui/markdown-text';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -62,7 +61,7 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
                     <Tooltip title={trimTooltipTitle(fullWorkspaceName)}>
                         <h4 className="h4 w-fit">{strippedWorkspaceTitle}</h4>
                     </Tooltip>
-                    <MarkdownText scrollTitle={fullWorkspaceName} description={workspace.description} contentStripLength={280} markdownClassName="text-black-700 " textClassName="text-black-700 body3" />
+                    {/* <MarkdownText scrollTitle={fullWorkspaceName} description={workspace.description} contentStripLength={280} markdownClassName="text-black-700 " textClassName="text-black-700 body3" /> */}
                 </div>
             </div>
         );
@@ -70,18 +69,7 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
         <div className={`h-full w-full ${className}`}>
             <div className="w-full flex flex-col gap-4">
                 <ReactContentEditable callback={handleTitleChange} type="h4" content={fullWorkspaceName} className="h4" />
-                {isMarkdownEditable ? (
-                    <ReactContentEditable callback={handleDescriptionChange} type="p" content={workspace?.description} className="text-black-700 body3" />
-                ) : (
-                    <MarkdownText
-                        scrollTitle={fullWorkspaceName}
-                        onClick={() => setIsMarkdownEditable(true)}
-                        description={workspace.description}
-                        contentStripLength={280}
-                        markdownClassName="text-black-700 body3 !leading-none"
-                        textClassName="text-black-700 body3 !leading-none"
-                    />
-                )}
+                <ReactContentEditable callback={handleDescriptionChange} type="p" content={workspace?.description} className="text-black-700 body3" />
             </div>
         </div>
     );

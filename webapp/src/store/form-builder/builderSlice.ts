@@ -1,10 +1,12 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import { v4 } from 'uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { IBuilderMenuState, IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
+import { IBuilderMenuState, IBuilderState, IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
+import { convertProxyToObject } from '@app/utils/reduxUtils';
 
 import { getInitialPropertiesForFieldType } from './utils';
 
@@ -16,7 +18,7 @@ const initialState: IBuilderState = {
     description: '',
     menus: {
         spotlightField: { isOpen: false, afterFieldUuid: '' },
-        commands: { isOpen: false, atFieldUuid: '' },
+        commands: { isOpen: false, atFieldUuid: '', position: 'down' },
         fieldSettings: { isOpen: false, atFieldUuid: '' },
         pipingFields: { isOpen: false, atFieldUuid: '' },
         pipingFieldSettings: { isOpen: false, uuid: '' }
@@ -32,7 +34,8 @@ const initialState: IBuilderState = {
     versions: [],
     currentVersionIndex: 0,
     isFormDirty: false,
-    activeFieldIndex: -2
+    activeFieldIndex: -2,
+    activeFieldId: ''
 };
 
 export const setIsFormDirtyAsync = createAsyncThunk('form/setIsFormDirtyAsync', async (isDirty, { getState }) => {
@@ -65,6 +68,58 @@ export const builder = createSlice({
                 ...action.payload
             };
         },
+        setActiveChoice: (state, action: PayloadAction<{ id?: string; position?: number }>) => {
+            const { id, position } = action.payload;
+            const activeField = state.fields[state.activeFieldId];
+            if (!activeField) return state;
+
+            const updatedActiveField = {
+                ...activeField,
+                properties: {
+                    ...activeField.properties,
+                    activeChoiceId: id ?? activeField.properties?.activeChoiceId,
+                    activeChoiceIndex: position ?? activeField.properties?.activeChoiceIndex
+                }
+            };
+
+            return {
+                ...state,
+                fields: {
+                    ...state.fields,
+                    [state.activeFieldId]: updatedActiveField
+                }
+            };
+        },
+        // current active/focused field
+        setActiveField: (state, action: PayloadAction<{ id: string; position: number }>) => {
+            return {
+                ...state,
+                activeFieldIndex: action.payload.position,
+                activeFieldId: action.payload.id
+            };
+        },
+        setAddNewChoice: (state: IBuilderState, action: { payload: IChoiceFieldState; type: string }) => {
+            const activeField = state.fields[state.activeFieldId];
+            const newChoices = Object.values(convertProxyToObject(activeField.properties?.choices || {}));
+            newChoices.splice((activeField.properties?.activeChoiceIndex ?? 0) + 1, 0, { ...action.payload });
+            const choices: any = {};
+            newChoices.forEach((choice: any) => {
+                choices[choice.id] = choice;
+            });
+            return { ...state, fields: { ...state.fields, [activeField.id]: { ...activeField, properties: { ...activeField.properties, choices, activeChoiceId: action.payload.id, activeChoiceIndex: action.payload.position } } } };
+        },
+        setDeleteChoice: (state: IBuilderState, action: { payload: string; type: string }) => {
+            const activeField = state.fields[state.activeFieldId];
+            const proxyKeys = Object.getOwnPropertyNames(activeField.properties?.choices ?? {});
+            //@ts-ignore
+            const choicesEntries = proxyKeys.map((key) => [key, activeField.properties?.choices[key]]);
+            const choices = Object.fromEntries(choicesEntries);
+            if (action.payload) delete choices[action.payload];
+            return { ...state, fields: { ...state.fields, [activeField.id]: { ...activeField, properties: { activeChoiceId: activeField.properties?.activeChoiceId, activeChoiceIndex: (activeField.properties?.activeChoiceIndex ?? -1) - 1, choices } } } };
+        },
+        setCommandMenuPosition: (state, action: { payload: 'up' | 'down' }) => {
+            if (state.menus?.commands) return { ...state, menus: { ...state.menus, commands: { ...state.menus?.commands, position: action.payload } } };
+        },
         setBuilderMenuState: (state: IBuilderState, action: { payload: Partial<IBuilderMenuState>; type: string }) => {
             const menus = { ...state.menus, ...action.payload };
             return { ...state, menus };
@@ -75,9 +130,6 @@ export const builder = createSlice({
         },
         setAddNewField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             const fieldsToAdd: Array<IFormFieldState> = [];
-            // const fields = Object.values(state.fields);
-            // const isFieldPositionExist = fields.filter((field) => field.position === action.payload.position).length > 0;
-            // if (isFieldPositionExist && fields.length == 0) return { ...state };
             const type = action.payload?.type;
             let newType = type;
             if (type.includes('question')) {
@@ -96,8 +148,9 @@ export const builder = createSlice({
             };
             newField.properties = getInitialPropertiesForFieldType(newType);
             fieldsToAdd.push(newField);
-            const fieldsArray = Object.values(state.fields);
-            fieldsArray.splice((action.payload?.position ?? 0) + 1 || (state.activeFieldIndex || 0) + 1 || fieldsArray.length, 0, ...fieldsToAdd);
+            const fieldsArray = [...Object.values(state.fields)];
+
+            fieldsArray.splice(action?.payload?.position + (action?.payload?.replace ? 0 : 1), action?.payload?.replace ? 1 : 0, ...fieldsToAdd);
             const newFieldsMap: any = {};
             fieldsArray.forEach((field: IFormFieldState, index: number) => {
                 newFieldsMap[field.id] = { ...field, position: index };
@@ -106,14 +159,16 @@ export const builder = createSlice({
             return { ...state, fields: newFieldsMap };
         },
         addDuplicateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
-            const fieldsArray = Object.values(state.fields);
+            // TODO: fix duplicate for shortcut keys
+            const fieldsArray = [...Object.values(state.fields)];
             fieldsArray.splice(action?.payload?.position, 0, { ...action.payload });
             const newFieldsMap: any = {};
-            fieldsArray.forEach((field: any) => {
+            fieldsArray.forEach((field: IFormFieldState, index: number) => {
                 newFieldsMap[field.id] = field;
+                newFieldsMap[field.id].position = index;
             });
-
-            return { ...state, fields: newFieldsMap };
+            state.fields = newFieldsMap;
+            state.activeFieldIndex = action?.payload?.position;
         },
         setUpdateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             return {
@@ -134,26 +189,68 @@ export const builder = createSlice({
                 fields: fields
             };
         },
-        setDeleteField: (state, action) => {
-            delete state.fields[action.payload];
+        setDeleteField: (state: IBuilderState, action: { payload: string; type: string }) => {
+            const fields = { ...state.fields };
+            delete fields[action.payload];
+            const fieldsArray = [...Object.values(fields)];
+            const newFieldsMap: any = {};
+            fieldsArray.forEach((field: IFormFieldState, index: number) => {
+                newFieldsMap[field.id] = field;
+                newFieldsMap[field.id].position = index;
+            });
+
+            state.fields = newFieldsMap;
+            state.isFormDirty = true;
         },
         setEditForm: (state, action) => {
             const fields: any = {};
-            for (const field of action.payload.fields) {
+            action.payload.fields.forEach((field: any, index: number) => {
                 const choices: any = {};
                 for (const choice of field?.properties?.choices || []) {
                     choices[choice.id] = choice;
                 }
-                fields[field.id] = { ...field, properties: { ...field.properties, choices: choices } };
-            }
+                fields[field.id] = { ...field, position: index, properties: { ...field.properties, choices: choices } };
+            });
             return {
                 ...state,
                 id: action.payload.formId,
                 title: action.payload.title,
                 description: action.payload.description,
+                activeFieldIndex: -2,
+                activeFieldId: 'field-title',
+                settings: {
+                    responseDataOwnerField: action.payload.settings?.responseDataOwnerField || ''
+                },
                 fields: fields
             };
         },
+        setIdentifierField: (state, action) => {
+            return {
+                ...state,
+                settings: {
+                    responseDataOwnerField: action.payload
+                }
+            };
+        },
+        setMoveField: (state: IBuilderState, action: PayloadAction<{ oldIndex: number; newIndex: number }>) => {
+            const { oldIndex, newIndex } = action.payload;
+            const fields = { ...state.fields };
+            const fieldsArray = [...Object.values(fields)];
+            const movedField = fieldsArray.splice(oldIndex, 1)[0];
+            fieldsArray.splice(newIndex, 0, movedField);
+            const newFieldsMap: any = {};
+            fieldsArray.forEach((field: IFormFieldState, index: number) => {
+                newFieldsMap[field.id] = field;
+                newFieldsMap[field.id].position = index;
+            });
+
+            state.fields = newFieldsMap;
+            state.isFormDirty = true;
+            state.activeFieldIndex = newIndex;
+
+            state.activeFieldId = Object.keys(fieldsArray).at(newIndex) ?? '';
+        },
+
         resetForm: (state) => {
             return initialState;
         }

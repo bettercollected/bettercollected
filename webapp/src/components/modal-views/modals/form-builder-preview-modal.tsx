@@ -2,10 +2,8 @@ import React, { useEffect, useState } from 'react';
 
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 
-import { Close } from '@app/components/icons/close';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { selectCreateForm } from '@app/store/form-builder/slice';
-import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
+import { IFormFieldState } from '@app/store/form-builder/types';
 import { initialIBuilderState } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -32,15 +30,17 @@ export default function FormBuilderPreviewModal() {
                 return field;
             });
             previewForm.fields = fields;
-
+            previewForm.settings = {
+                responseDataOwnerField: builderState.settings?.responseDataOwnerField || ''
+            };
             setFormToRender(previewForm);
         }
     }, [builderState]);
 
     return (
-        <div className="relative h-full w-full overflow-auto pt-10 !bg-white ">
+        <div className="relative h-full min-h-screen w-full overflow-auto pt-16 !bg-brand-100 ">
             <div
-                className="absolute cursor-pointer text-black-600 top-10 right-10"
+                className="absolute cursor-pointer text-black-600 top-5 right-10"
                 onClick={() => {
                     closeModal();
                 }}

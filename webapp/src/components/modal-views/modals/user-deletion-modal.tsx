@@ -25,12 +25,13 @@ export default function UserDeletionModal() {
     const router = useRouter();
     const locale = router?.locale === 'en' ? '' : `${router.locale}/`;
 
-    const handleDeleteAccount = async () => {
+    const handleDeleteAccount = async (event: any) => {
+        event.preventDefault();
         try {
             if (confirm.toUpperCase() === 'CONFIRM') {
                 await deleteAccount().then((response) => {
                     if ('data' in response) {
-                        router.push(`/${locale}login`);
+                        router.push(`/`);
                         toast(t(toastMessage.accountDeletion.success).toString(), {
                             toastId: ToastId.SUCCESS_TOAST,
                             type: 'success'

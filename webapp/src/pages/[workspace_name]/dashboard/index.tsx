@@ -12,8 +12,9 @@ import Button from '@app/components/ui/button';
 import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
 import WorkspaceDashboardOverview from '@app/components/workspace-dashboard/workspace-dashboard-overview';
 import environments from '@app/configs/environments';
-import { buttonConstant } from '@app/constants/locales/button';
 import { formConstant } from '@app/constants/locales/form';
+import { builderConstants } from '@app/constants/locales/form-builder';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
@@ -22,6 +23,8 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function CreatorDashboard({ hasCustomDomain, ...props }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
     const { t } = useTranslation();
+
+    const { t: builderTranslation } = useTranslation('builder');
 
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
@@ -94,7 +97,7 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                                 router.push(`/${workspace.workspaceName}/dashboard/forms/create`);
                             }}
                         >
-                            Create Form
+                            {builderTranslation(builderConstants.createForm)}
                         </Button>
                     )}
 

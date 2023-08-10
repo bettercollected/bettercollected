@@ -6,7 +6,11 @@ export const importFormConstant = {
         googleForm: 'IMPORT_FORM.TEXT_LABEL.GOOGLE_FORM',
         typeform: 'IMPORT_FORM.TEXT_LABEL.TYPEFORM'
     },
-    responseOwnerTagTitle: 'IMPORT_FORM.RESPONSE_OWNER_TAG_TITLE',
-    responseOwnerTagLabel: 'IMPORT_FORM.RESPONSE_OWNER_TAG_LABEL',
-    responseOwnerTagDescription: 'IMPORT_FORM.RESPONSE_OWNER_TAG_DESCRIPTION'
+    responseOwnerTagTitleGoogle: 'IMPORT_FORM.GOOGLE.RESPONSE_OWNER_TAG_TITLE',
+    responseOwnerTagLabelGoogle: 'IMPORT_FORM.GOOGLE.RESPONSE_OWNER_TAG_LABEL',
+    responseOwnerTagDescriptionGoogle: 'IMPORT_FORM.GOOGLE.RESPONSE_OWNER_TAG_DESCRIPTION',
+
+    responseOwnerTagTitleTypeform: 'IMPORT_FORM.TYPEFORM.RESPONSE_OWNER_TAG_TITLE',
+    responseOwnerTagLabelTypeform: 'IMPORT_FORM.TYPEFORM.RESPONSE_OWNER_TAG_LABEL',
+    responseOwnerTagDescriptionTypeform: 'IMPORT_FORM.TYPEFORM.RESPONSE_OWNER_TAG_DESCRIPTION'
 };

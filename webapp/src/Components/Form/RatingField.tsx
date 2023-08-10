@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 import _ from 'lodash';
 
 import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
+import { FieldRequired } from '@Components/UI/FieldRequired';
 import { Star, StarBorder } from '@mui/icons-material';
 
 import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
@@ -13,7 +14,9 @@ export default function RatingField({ field, ans, enabled }: FormFieldProps) {
     const [hovered, setHovered] = useState(ans?.number || -1);
     const answer = useAppSelector(selectAnswer(field.id));
     return (
-        <div className="w-fit mt-3">
+        <div className="w-fit !mb-0 gap-3 flex  flex-wrap relative">
+            {field?.validations?.required && <FieldRequired className="-right-5" />}
+
             {_.range(field.properties?.steps || 5).map((index) => {
                 const Component = index <= hovered ? Star : StarBorder;
 
@@ -34,11 +37,12 @@ export default function RatingField({ field, ans, enabled }: FormFieldProps) {
                                 dispatch(addAnswer(answer));
                             }
                         }}
+                        className="cursor-pointer"
                         onMouseOver={() => {
                             if (enabled) setHovered(index);
                         }}
                     >
-                        <Component fontSize="large" className={`pointer-events-none ${index <= hovered ? 'cursor-pointer text-yellow-500' : 'text-gray-400'} `} />
+                        <Component fontSize="large" className={`pointer-events-none ${index <= hovered ? ' text-yellow-500' : 'text-gray-400'} `} />
                     </span>
                 );
             })}

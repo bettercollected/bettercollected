@@ -17,8 +17,7 @@ import BetterInput from '@app/components/Common/input';
 import SelectDropdown from '@app/components/dropdown/select';
 import Button from '@app/components/ui/button';
 import Loader from '@app/components/ui/loader';
-import MarkdownText from '@app/components/ui/markdown-text';
-import { StandardFormQuestionDto } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectInvalidFields } from '@app/store/fill-form/slice';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -136,7 +135,7 @@ export default function FormRenderer({ form, response, enabled }: FormRendererPr
         const embedUrl = `https://www.youtube.com/embed/${strippedLink}`;
         return (
             <div className="w-full">
-                {description && <MarkdownText description={description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />}
+                {description && <div>{description}</div>}
                 {strippedLink && (
                     <div className="relative w-full aspect-video">
                         <iframe src={embedUrl} width="100%" className="aspect-video" frameBorder="0" marginHeight={0} marginWidth={0}>
@@ -148,7 +147,7 @@ export default function FormRenderer({ form, response, enabled }: FormRendererPr
         );
     }
 
-    const renderQuestionTypeField = (question: StandardFormQuestionDto, ans?: any, response?: any) => {
+    const renderQuestionTypeField = (question: StandardFormFieldDto, ans?: any, response?: any) => {
         const questionType: QUESTION_TYPE = question.type;
         switch (questionType) {
             case QUESTION_TYPE.DATE:
@@ -319,10 +318,10 @@ export default function FormRenderer({ form, response, enabled }: FormRendererPr
         return <p className="text-gray-300">Couldn&apos;t display media Unsupported Type.</p>;
     }
 
-    const renderQuestionField = (question: StandardFormQuestionDto, response?: any) => (
+    const renderQuestionField = (question: StandardFormFieldDto, response?: any) => (
         <div className="flex flex-col gap-3">
             <h1 className="body1 !text-black-900">{question.title}</h1>
-            {question?.description && <MarkdownText description={question.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />}
+            {/* {question?.description && <MarkdownText description={question.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />} */}
             {question.attachment?.type && renderQuestionAttachment(question.attachment)}
             {renderQuestionTypeField(question, response ? response[question.id || ''] : undefined, response)}
         </div>
@@ -336,11 +335,11 @@ export default function FormRenderer({ form, response, enabled }: FormRendererPr
                 <div className="flex flex-col gap-4">
                     <div className="p-6 bg-white rounded-lg flex flex-col gap-4">
                         <h1 className="font-semibold h4">{form?.title}</h1>
-                        {form?.description && <MarkdownText description={form?.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />}
+                        {/* {form?.description && <MarkdownText description={form?.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />} */}
                     </div>
-                    {form?.fields?.map((question: StandardFormQuestionDto, idx: number) => {
+                    {form?.fields?.map((question: StandardFormFieldDto, idx: number) => {
                         return (
-                            <div key={question?.id + idx} className={`p-6 bg-white relative rounded-lg border border-solid ${invalidFields.includes(question?.id) ? 'border-red-500' : 'border-white'}`}>
+                            <div key={question?.id + idx} className={`p-6 bg-white relative rounded-lg border border-solid`}>
                                 {question?.validations?.required && <div className="absolute top-5 right-5 text-red-500">*</div>}
                                 {renderQuestionField(question, response?.answers)}
                             </div>

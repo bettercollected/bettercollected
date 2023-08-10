@@ -111,6 +111,13 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
     const decreaseStep = () => {
         setStepCount(stepCount - 1);
     };
+
+    const checkIfInvalidCharactersPresentInHandler = () => {
+        if (!formData.workspaceName) return false;
+        const validHandlePattern = /^[a-z0-9_]+$/;
+        return !validHandlePattern.test(formData.workspaceName);
+    };
+
     const handleFile = async (e: any) => {
         const image = e.target.files[0];
         const MB = 1048576;
@@ -152,6 +159,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
 
     const getAvailabilityStatusOfWorkspaceName = async (workspaceName: string | null) => {
         if (!workspaceName) return false;
+        if (checkIfInvalidCharactersPresentInHandler()) return false;
         const { isSuccess, data } = await getWorkspaceAvailability(workspaceName);
         if (isSuccess) {
             return data === 'True';
@@ -212,7 +220,6 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         updateFormData.append('description', formData.description);
         updateFormData.append('workspace_name', formData.workspaceName as string);
         const response: any = await patchExistingWorkspace({ workspace_id: workspace?.id, body: updateFormData });
-        debugger;
         if (response.error) {
             toast(response.error?.data || t(toastMessage.somethingWentWrong), {
                 toastId: ToastId.ERROR_TOAST,
@@ -305,7 +312,8 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                     value={!formData.workspaceName ? '' : formData.workspaceName}
                     onChange={handleOnchange}
                 />
-                {formData.workspaceName === '' && isError && <p className="body4 !text-red-500 mb-4 mt-2 h-[10px]">{t(validationMessage.workspaceName)}</p>}
+                {formData.workspaceName === '' && isError && <p className="body4 !text-red-500 !mb-4 h-[10px]">{t(validationMessage.workspaceName)}</p>}
+                {isError && checkIfInvalidCharactersPresentInHandler() && <p className="body4 !text-red-500 !mb-4 !text-xs h-[10px]">{t(validationMessage.workspaceNameInvalidCharacter)}</p>}
 
                 <div className={'flex italic items-center flex-wrap'}>
                     {workspaceNameSuggestions.length ? <p className={'text-sm'}>{t(onBoarding.suggestions)}&nbsp;</p> : <></>}
@@ -339,7 +347,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                 <Button
                     size="medium"
                     onClick={async () => {
-                        if (formData.title !== '' && formData.workspaceName !== '' && (await getAvailabilityStatusOfWorkspaceName(formData.workspaceName))) {
+                        if (formData.title !== '' && formData.workspaceName !== '' && !checkIfInvalidCharactersPresentInHandler() && (await getAvailabilityStatusOfWorkspaceName(formData.workspaceName))) {
                             increaseStep();
                         } else {
                             setError(true);

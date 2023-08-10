@@ -1,19 +1,18 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import { ChevronLeft } from '@mui/icons-material';
+import { Button } from '@mui/material';
 import { Widget } from '@typeform/embed-react';
 
-import { LongArrowLeft } from '@app/components/icons/long-arrow-left';
-import Button from '@app/components/ui/button';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import { localesCommon } from '@app/constants/locales/common';
-import { formConstant } from '@app/constants/locales/form';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -29,12 +28,34 @@ export default function SingleFormPage(props: any) {
     const form: StandardFormDto | undefined = data;
 
     const iframeRef = useRef(null);
+    const { openModal } = useFullScreenModal();
 
     const responderUri = form?.settings?.embedUrl || '';
     const { t } = useTranslation();
 
+    // @ts-ignore
+    if (error && error?.status === 401) {
+        return (
+            <div className="min-h-screen min-w-screen  flex flex-col items-center justify-center">
+                <span>You are trying to access a private form. Please login to continue.</span>
+                <Button
+                    onClick={() => {
+                        openModal('LOGIN_VIEW');
+                    }}
+                >
+                    Login
+                </Button>
+            </div>
+        );
+    }
+
     if (error) {
-        return <div className="min-h-screen min-w-screen  flex items-center justify-center">Error: Could not fetch form!!</div>;
+        return (
+            <div className="min-h-screen min-w-screen text-center flex items-center justify-center">
+                Error loading form!! <br />
+                Either the form does not exist or you do not have access to this form.
+            </div>
+        );
     }
     if (isLoading) return <FullScreenLoader />;
     const hasFileUpload = (fields: Array<any>) => {
@@ -72,7 +93,7 @@ export default function SingleFormPage(props: any) {
     // TODO: Update this component to be reusable
     if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
         return (
-            <Layout className="relative !bg-white !min-h-screen">
+            <div className="relative !bg-brand-100 !min-h-screen">
                 {back && (
                     <div className="flex cursor-pointer mt-5 items-center gap-2 px-5 lg:px-20 w-auto z-10 hover:!-translate-y-0 focus:-translate-y-0" onClick={() => goToForms()}>
                         <ChevronLeft height={24} width={24} />
@@ -102,12 +123,26 @@ export default function SingleFormPage(props: any) {
                         </div>
                     </div>
                 </div>
-            </Layout>
+            </div>
+        );
+    }
+
+    if (form?.settings?.provider && form.settings?.provider === 'google') {
+        return (
+            <div className="!min-h-screen relative">
+                <div className="absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0'">
+                    {form?.settings?.provider === 'google' && !!responderUri && (
+                        <iframe ref={iframeRef} src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0">
+                            <Loader />
+                        </iframe>
+                    )}
+                </div>
+            </div>
         );
     }
 
     return (
-        <Layout showNavbar={form?.settings?.provider === 'self' && !hasCustomDomain} showAuthAccount={true} className="relative !bg-white !min-h-screen">
+        <Layout showNavbar={form?.settings?.provider === 'self' && !hasCustomDomain} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showAuthAccount={true} className="relative !bg-white !min-h-screen">
             {back && (
                 <div className=" absolute  mt-5   px-5 lg:px-20 w-auto z-10 hover:!-translate-y-0 focus:-translate-y-0">
                     <div className="flex items-center gap-2  cursor-pointer" onClick={() => goToForms()}>
@@ -116,15 +151,10 @@ export default function SingleFormPage(props: any) {
                     </div>
                 </div>
             )}
-            <div className={'absolute bg-white left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
-                {form?.settings?.provider === 'google' && !!responderUri && (
-                    <iframe ref={iframeRef} src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0">
-                        <Loader />
-                    </iframe>
-                )}
+            <div className={'absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
                 {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (
-                    <div className="flex !bg-white justify-center w-full items-center">
+                    <div className="flex !bg-brand-100 justify-center w-full py-6 items-center">
                         <BetterCollectedForm form={form} enabled={true} isCustomDomain={hasCustomDomain} />
                     </div>
                 )}

@@ -56,7 +56,7 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
     if (!workspace_name) {
         return {
             props: {
-                ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl'])),
+                ...(await serverSideTranslations(locale, ['common', 'builder'], null, ['en', 'nl'])),
                 hasCustomDomain,
                 workspaceId,
                 workspace
@@ -70,7 +70,7 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
     } catch (e) {}
     return {
         props: {
-            ...(await serverSideTranslations(locale, ['common'], null, ['en', 'nl'])),
+            ...(await serverSideTranslations(locale, ['common', 'builder'], null, ['en', 'nl'])),
             hasCustomDomain,
             workspaceId,
             workspace

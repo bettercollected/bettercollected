@@ -12,6 +12,7 @@ import ProfileImageComponent from '@app/components/dashboard/profile-image';
 import FormsAndSubmissionsTabContainer from '@app/components/forms-and-submisions-tabs/forms-and-submisisons-tab-container';
 import WorkspaceFooter from '@app/components/layout/workspace-footer';
 import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import PublicWorkspaceTitleAndDescription from '@app/components/workspace/public-workspace-title-description';
 import environments from '@app/configs/environments';
@@ -45,7 +46,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
     const authStatus = useAppSelector(selectAuth);
 
     const user: UserStatus = authStatus ?? null;
-    const { openModal } = useModal();
+    const { openModal } = useFullScreenModal();
     const screenSize = useBreakpoint();
 
     if (!workspace) return <FullScreenLoader />;

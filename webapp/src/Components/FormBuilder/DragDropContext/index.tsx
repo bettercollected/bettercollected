@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import { DragDropContext, DragStart, DragUpdate, DropResult, DroppableProvided, DroppableStateSnapshot, OnDragEndResponder, OnDragStartResponder, OnDragUpdateResponder, ResponderProvided } from 'react-beautiful-dnd';
 
@@ -40,7 +40,7 @@ export default function BuilderDragDropContext({ Component, componentAttrs, drop
                 {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
                     <div className={`flex flex-col gap-2 transition-all duration-200 ease-in ${snapshot.isDraggingOver ? 'bg-black-100 bg-opacity-30 rounded' : 'bg-white'} ${droppableClassName}`} {...provided.droppableProps} ref={provided.innerRef}>
                         {droppableItems.map((item: any, idx: number) => (
-                            <Component key={item.position} draggableId={idx} item={item} {...componentAttrs} />
+                            <Component key={idx} draggableId={idx} item={item} {...componentAttrs} />
                         ))}
                         {provided.placeholder}
                     </div>

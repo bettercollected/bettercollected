@@ -1,14 +1,17 @@
-import React, { ChangeEvent } from 'react';
+import React, { ChangeEvent, useEffect } from 'react';
 
+import { FieldRequired } from '@Components/UI/FieldRequired';
 import { useDispatch } from 'react-redux';
 
-import BetterInput from '@app/components/Common/input';
-import { AnswerDto, StandardFormQuestionDto } from '@app/models/dtos/form';
+import BetterInput, { FormInputField } from '@app/components/Common/input';
+import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addAnswer, deleteAnswer } from '@app/store/fill-form/slice';
+import { selectAuth } from '@app/store/auth/slice';
+import { addAnswer, deleteAnswer, selectFormResponderOwnerField } from '@app/store/fill-form/slice';
+import { useAppSelector } from '@app/store/hooks';
 
 interface IShortTextProps {
-    field: StandardFormQuestionDto;
+    field: StandardFormFieldDto;
     ans?: any;
     enabled?: boolean;
 }
@@ -19,6 +22,10 @@ ShortText.defaultProps = {
 
 export default function ShortText({ ans, enabled, field }: IShortTextProps) {
     const dispatch = useDispatch();
+
+    const responseDataOwnerField = useAppSelector(selectFormResponderOwnerField);
+
+    const auth = useAppSelector(selectAuth);
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
         const answer = {} as AnswerDto;
         answer.field = { id: field.id };
@@ -48,29 +55,53 @@ export default function ShortText({ ans, enabled, field }: IShortTextProps) {
         }
     };
 
+    useEffect(() => {
+        if (responseDataOwnerField === field?.id && auth) {
+            console.log(auth, responseDataOwnerField, field.id);
+            const answer = {} as AnswerDto;
+            answer.field = { id: field.id };
+            answer.email = auth.email;
+            dispatch(addAnswer(answer));
+        }
+    }, [responseDataOwnerField, auth, field.id, dispatch]);
+
+    const getInputType = () => {
+        switch (field?.type) {
+            case FormBuilderTagNames.INPUT_EMAIL:
+                return 'email';
+            case FormBuilderTagNames.INPUT_NUMBER:
+                return 'number';
+            case FormBuilderTagNames.INPUT_DATE:
+                return 'date';
+            default:
+                return 'text';
+        }
+    };
+
     return (
-        // <StyledTextField>
-        <BetterInput
-            type={field?.type === 'email' ? 'email' : 'text'}
-            value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name || ans?.date || ans?.phone_number}
-            placeholder={field?.properties?.placeholder}
-            disabled={!enabled}
-            inputProps={{
-                style: {
-                    paddingTop: 0,
-                    paddingBottom: 0,
-                    height: 40,
-                    fontSize: 14,
-                    fontWeight: 400,
-                    color: 'black',
-                    content: 'none',
-                    letterSpacing: 1
-                }
-            }}
-            className={`!mt-2 `}
-            fullWidth
-            onChange={onChange}
-        />
-        // </StyledTextField>
+        <div className="relative">
+            <FormInputField
+                style={{
+                    margin: '0px !important'
+                }}
+                type={getInputType()}
+                value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name || ans?.date || ans?.phone_number}
+                placeholder={field?.properties?.placeholder}
+                disabled={!enabled}
+                inputProps={{
+                    style: {
+                        padding: '12px 16px',
+                        fontSize: 14,
+                        fontWeight: 400,
+                        color: 'black',
+                        content: 'none',
+                        outline: 'gray'
+                    }
+                }}
+                fullWidth
+                onChange={onChange}
+            />
+            {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
+        </div>
     );
 }

@@ -2,6 +2,9 @@ import _ from 'lodash';
 
 import { buttonConstant } from '@app/constants/locales/button';
 import { formConstant } from '@app/constants/locales/form';
+import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { FormValidationError } from '@app/store/fill-form/type';
 
 /**
  * Validation method to check if the given value is undefined or not.
@@ -59,4 +62,45 @@ export const statusProps = (status: string, t: any) => {
         currentStatus,
         cName
     };
+};
+
+export const validateFormFieldAnswer = (field: StandardFormFieldDto, answer: AnswerDto) => {
+    const errors: Array<FormValidationError> = [];
+    if (!field?.properties?.hidden) {
+        if (answer) {
+            if (field?.type === FormBuilderTagNames.INPUT_SHORT_TEXT || field?.type === FormBuilderTagNames.INPUT_LONG_TEXT) {
+                if (field?.validations?.minLength && (answer?.text || '').length < field?.validations?.minLength) {
+                    errors.push(FormValidationError.INSUFFICIENT_LENGTH);
+                }
+                if (field?.validations?.maxLength && (answer?.text || '').length > field?.validations?.maxLength) {
+                    errors.push(FormValidationError.EXCEEDS_MAX_LENGTH);
+                }
+                if (field?.validations?.regex && answer?.text?.match(field?.validations?.regex || '')) {
+                    errors.push(FormValidationError.REGEX_PATTERN);
+                }
+            }
+            if (field?.type === FormBuilderTagNames.INPUT_NUMBER) {
+                if (field?.validations?.minValue && (answer?.number || 0) < field?.validations?.minValue) {
+                    errors.push(FormValidationError.INSUFFICIENT_VALUE);
+                }
+                if (field?.validations?.maxValue && (answer?.number || 0) > field?.validations?.maxValue) {
+                    errors.push(FormValidationError.EXCEEDS_MAX_VALUE);
+                }
+            }
+
+            if (field?.type === FormBuilderTagNames.INPUT_CHECKBOXES || field?.type === FormBuilderTagNames.INPUT_MULTISELECT) {
+                if (field?.validations?.minChoices && (answer?.choices?.values?.length || 0) < field?.validations?.minChoices) {
+                    errors.push(FormValidationError.INSUFFICIENT_CHOICES);
+                }
+                if (field?.validations?.maxChoices && (answer?.choices?.values?.length || 0) > field?.validations?.maxChoices) {
+                    errors.push(FormValidationError.INSUFFICIENT_CHOICES);
+                }
+            }
+        } else {
+            if (field?.validations?.required) {
+                errors.push(FormValidationError.REQUIRED);
+            }
+        }
+    }
+    return errors;
 };

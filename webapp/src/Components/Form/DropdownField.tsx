@@ -1,4 +1,7 @@
+import React from 'react';
+
 import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
+import { FieldRequired } from '@Components/UI/FieldRequired';
 import { Select, SelectChangeEvent } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 
@@ -16,21 +19,32 @@ export default function DropdownField({ field, ans, enabled }: FormFieldProps) {
     };
 
     return (
-        <Select
-            MenuProps={{
-                style: { zIndex: 35001 }
-            }}
-            defaultValue={ans?.choice.value}
-            disabled={!enabled}
-            value={ans?.choice.value || answer?.choice?.value || ''}
-            onChange={onChange}
-            className="w-fit mt-3 min-w-[200px] mb-3 text-black-900 !bg-white"
-        >
-            {field?.properties?.choices?.map((choice: any) => (
-                <MenuItem key={choice.id} value={choice?.value}>
-                    {choice.value}
-                </MenuItem>
-            ))}
-        </Select>
+        <div className="relative w-fit">
+            {field?.validations?.required && <FieldRequired className=" -right-5" />}
+            <Select
+                size="small"
+                MenuProps={{
+                    style: { zIndex: 35001 }
+                }}
+                style={{
+                    paddingTop: '3.5px',
+                    paddingBottom: '3.5px',
+                    paddingLeft: '2px',
+                    fontSize: '14px'
+                }}
+                defaultValue={ans?.choice.value}
+                disabled={!enabled}
+                value={ans?.choice.value || answer?.choice?.value || ''}
+                onChange={onChange}
+                className="w-fit min-w-[167px] !rounded-md !border-gray-600 !mb-0 text-black-900 !bg-white"
+            >
+                {field?.properties?.choices?.map((choice: any, index: number) => (
+                    <MenuItem key={choice.id} value={choice?.value} className="relative">
+                        {index === 0 && field?.validations?.required && <FieldRequired className="-right-5" />}
+                        {choice.value}
+                    </MenuItem>
+                ))}
+            </Select>
+        </div>
     );
 }

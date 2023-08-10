@@ -101,7 +101,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 ref={buttonRef}
                 onClick={clickHandler}
                 className={cn(
-                    'relative inline-flex shrink-0 items-center justify-center overflow-hidden text-center text-xs font-medium tracking-wider outline-none transition-all sm:text-sm',
+                    'relative inline-flex shrink-0 items-center justify-center overflow-hidden text-center text-xs font-medium outline-none transition-all sm:text-sm',
                     !disabled ? buttonColorClassNames : 'cursor-not-allowed bg-brand-300',
                     disabled || isLoading || variant === 'transparent' || variant === 'ghost' ? '' : ' hover:shadow-md focus:shadow-large focus:outline-none',
                     isLoading && 'pointer-events-auto cursor-default focus:outline-none',

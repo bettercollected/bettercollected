@@ -1,16 +1,20 @@
-import React, { FocusEvent, FormEvent, useEffect, useRef } from 'react';
+import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback } from 'react';
 
 import FormBuilderBlockContent from '@Components/FormBuilder/BuilderBlock/FormBuilderBlockContent';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { Popover } from '@mui/material';
 import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 import { v4 } from 'uuid';
 
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetBuilderMenuState, setBuilderState } from '@app/store/form-builder/actions';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setCommandMenuPosition, setMoveField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
+import { createNewField, isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
+import { getLastItem } from '@app/utils/stringUtils';
 
 import CustomContentEditable from '../ContentEditable/CustomContentEditable';
 import FormBuilderActionMenu from './FormBuilderActionMenu';
@@ -19,60 +23,62 @@ import FormBuilderTagSelector from './FormBuilderTagSelector';
 interface IBuilderBlockProps {
     item: IFormFieldState;
     draggableId: string | number;
+    setBackspaceCount: React.Dispatch<React.SetStateAction<number>>;
 }
 
-export default function FormBuilderBlock({ item, draggableId }: IBuilderBlockProps) {
+export default function FormBuilderBlock({ item, draggableId, setBackspaceCount }: IBuilderBlockProps) {
     const dispatch = useAppDispatch();
     const builderState = useAppSelector(selectBuilderState);
+    const { t } = useBuilderTranslation();
 
     const handleTagSelection = (type: FormBuilderTagNames) => {
-        if (type !== FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
-            if (type.includes('question')) {
-                // TODO: Add this implementation
-                // dispatch(
-                //     addQuestionAndAnswerField({
-                //         position: position,
-                //         id: item.id,
-                //         type
-                //     })
-                // );
-                return;
-            }
-            const newBlock: any = {
-                id: item.id,
-                type: type
+        batch(() => {
+            const field = {
+                id: v4(),
+                type,
+                position: item.position,
+                replace: true
             };
-            if (type === FormBuilderTagNames.INPUT_RATING) {
-                newBlock['properties'] = {
-                    steps: 5
-                };
-            }
-            if (
-                type === FormBuilderTagNames.INPUT_MULTIPLE_CHOICE ||
-                type === FormBuilderTagNames.INPUT_CHECKBOXES ||
-                type === FormBuilderTagNames.INPUT_RANKING ||
-                type === FormBuilderTagNames.INPUT_DROPDOWN ||
-                type === FormBuilderTagNames.INPUT_MULTISELECT
-            ) {
-                const id = v4();
-                newBlock['properties'] = {};
-                newBlock['properties']['choices'] = {
-                    [id]: {
-                        id: id,
-                        value: ''
-                    }
-                };
-                if (type === FormBuilderTagNames.INPUT_CHECKBOXES || type === FormBuilderTagNames.INPUT_MULTISELECT) {
-                    newBlock['properties'] = {
-                        ...(newBlock['properties'] || {}),
-                        allowMultipleSelection: true
-                    };
-                }
-            }
+            dispatch(setAddNewField(field));
+            dispatch(resetBuilderMenuState());
+        });
+    };
+
+    const onKeyDownCallback = useCallback(
+        (event: KeyboardEvent<HTMLDivElement>, provided: DraggableProvided) => {
             batch(() => {
-                // TODO: Update the block
-                dispatch(resetBuilderMenuState());
+                if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && (event.ctrlKey || event.metaKey)) {
+                    event.preventDefault();
+
+                    const direction = event.key === 'ArrowDown' ? 1 : -1;
+                    const newIndex = item.position + direction;
+
+                    if (newIndex >= 0 && newIndex < Object.keys(builderState.fields).length) {
+                        dispatch(setMoveField({ oldIndex: item.position, newIndex }));
+                    }
+                }
             });
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [builderState, item.position]
+    );
+
+    const onFocusCallback = useCallback(
+        (event: React.FocusEvent<HTMLElement>) => {
+            setBackspaceCount(0);
+            dispatch(
+                setActiveField({
+                    position: item.position,
+                    id: item.id
+                })
+            );
+        },
+        [dispatch, item.id, item.position, setBackspaceCount]
+    );
+
+    const getMarginTop = (type: FormBuilderTagNames) => {
+        if (NonInputFormBuilderTagNames.includes(type)) {
+            return 'mt-3';
         }
     };
 
@@ -82,14 +88,9 @@ export default function FormBuilderBlock({ item, draggableId }: IBuilderBlockPro
                 <div
                     ref={provided.innerRef}
                     className={`relative flex w-full flex-col ${snapshot.isDragging ? 'bg-brand-100' : 'bg-transparent'}`}
-                    onFocus={(event: FocusEvent<HTMLElement>) => {
-                        // console.log(event);
-                    }}
-                    onBlur={(event: FocusEvent<HTMLElement>) => {
-                        if (!event.currentTarget.contains(event.relatedTarget)) {
-                            // console.log(event);
-                        }
-                    }}
+                    onFocus={(event: FocusEvent<HTMLElement>) => {}}
+                    onBlur={(event: FocusEvent<HTMLElement>) => {}}
+                    onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => onKeyDownCallback(event, provided)}
                     {...provided.draggableProps}
                 >
                     <div className={`builder-block px-5 min-h-[40px] flex items-center md:px-[89px]`}>
@@ -111,30 +112,61 @@ export default function FormBuilderBlock({ item, draggableId }: IBuilderBlockPro
                                         id={item.id}
                                         tagName={item.type}
                                         type={item.type}
-                                        value={item?.label ?? ''}
+                                        value={item?.value ?? ''}
                                         position={item.position}
+                                        showPlaceHolder={false}
                                         activeFieldIndex={builderState.activeFieldIndex}
-                                        placeholder={item.properties?.placeholder ?? 'Type / to open the commands menu'}
+                                        placeholder={item.properties?.placeholder ?? t('COMPONENTS.COMMON.PLACEHOLDER')}
                                         className="text-base text-black-800"
-                                        onChangeCallback={(event: FormEvent<HTMLElement>) => {
-                                            // @ts-ignore
-                                            dispatch(
-                                                setBuilderState({
-                                                    isFormDirty: true,
-                                                    fields: {
-                                                        ...builderState.fields,
-                                                        [item.id]: { ...item, label: event.currentTarget.innerText }
-                                                    }
-                                                })
-                                            );
+                                        onFocusCallback={onFocusCallback}
+                                        onKeyDownCallback={(event: KeyboardEvent<HTMLDivElement>) => {
+                                            if (builderState?.menus?.commands?.isOpen)
+                                                if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
+                                                    event.preventDefault();
+                                                    event.stopPropagation();
+                                                }
                                         }}
-                                        onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
-                                            event.preventDefault();
-                                            dispatch(setBuilderState({ activeFieldIndex: item.position }));
+                                        onChangeCallback={(event: FormEvent<HTMLElement>) => {
+                                            setBackspaceCount(0);
+                                            batch(() => {
+                                                // @ts-ignore
+                                                if (event.nativeEvent.inputType === 'deleteContentBackward' && getLastItem(builderState.fields[builderState.activeFieldId]?.value ?? '') === '/') {
+                                                    dispatch(
+                                                        setBuilderState({
+                                                            isFormDirty: true,
+                                                            menus: {
+                                                                ...builderState.menus,
+                                                                commands: {
+                                                                    isOpen: false,
+                                                                    atFieldUuid: '',
+                                                                    position: 'down'
+                                                                }
+                                                            }
+                                                        })
+                                                    );
+                                                }
+                                                dispatch(
+                                                    setBuilderState({
+                                                        isFormDirty: true,
+                                                        fields: {
+                                                            ...builderState.fields,
+                                                            [item.id]: { ...item, value: event.currentTarget.innerText }
+                                                        }
+                                                    })
+                                                );
+                                            });
                                         }}
                                     />
                                 </div>
-                                <FormBuilderTagSelector className={!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id ? 'visible' : 'invisible'} closeMenu={() => {}} handleSelection={handleTagSelection} />
+                                {!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id && (
+                                    <FormBuilderTagSelector
+                                        className={!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id ? 'visible' : 'invisible'}
+                                        position={builderState.menus?.commands?.position}
+                                        closeMenu={() => {}}
+                                        handleSelection={handleTagSelection}
+                                        searchQuery={builderState.fields[builderState.activeFieldId]?.value?.split('/').slice(-1)[0] || ''}
+                                    />
+                                )}
                             </div>
                         )}
                     </div>

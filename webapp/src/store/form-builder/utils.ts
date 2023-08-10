@@ -11,7 +11,7 @@ export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionOb
         type: FormBuilderTagNames.LAYOUT_HEADER1,
         key: 'title',
         position: -2,
-        placeholder: 'Form title',
+        placeholder: 'FORM_TITLE.PLACEHOLDER',
         className: 'font-semibold text-3xl text-black-800'
     },
     {
@@ -20,7 +20,7 @@ export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionOb
         type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         key: 'description',
         position: -1,
-        placeholder: 'Form description',
+        placeholder: 'FORM_DESCRIPTION.PLACEHOLDER',
         className: 'text-base text-black-800 min-h-[40px]'
     }
 ];
@@ -41,7 +41,8 @@ export function getInitialPropertiesForFieldType(type: FormBuilderTagNames) {
                 choices: {
                     [choiceId]: {
                         id: choiceId,
-                        value: ''
+                        value: '',
+                        position: 0
                     }
                 }
             };

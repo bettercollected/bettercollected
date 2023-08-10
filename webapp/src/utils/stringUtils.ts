@@ -46,3 +46,7 @@ export const trimTooltipTitle = (title?: string, limit: number = 20) => {
     if (title && title.length > limit) return title;
     return '';
 };
+
+export const getLastItem = (arr: string) => {
+    return arr.charAt(arr.length - 1);
+};

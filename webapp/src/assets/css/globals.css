@@ -79,3 +79,29 @@ body {
     overflow: visible !important;
     text-overflow: ellipsis;
 }
+
+.react-tel-input .form-control {
+    position: relative;
+    font-size: 14px;
+    letter-spacing: 0.01rem;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    margin-left: 0;
+    background: #fff;
+    border: 1px solid #cacaca;
+    border-radius: 4px;
+    line-height: 25px;
+    height: 46px !important;
+    width: 100% !important;
+    outline: none;
+    padding: 12px 16px 12px 64px !important;
+}
+
+.react-tel-input .selected-flag {
+    outline: none;
+    position: relative;
+    width: 52px !important;
+    height: 100% !important;
+    padding: 0 0 0 14px;
+    border-radius: 3px 0 0 3px;
+}

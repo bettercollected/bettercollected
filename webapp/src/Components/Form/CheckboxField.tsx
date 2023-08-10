@@ -1,7 +1,10 @@
+import React from 'react';
+
 import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
+import { FieldRequired } from '@Components/UI/FieldRequired';
 import Checkbox from '@mui/material/Checkbox';
 
-import { StandardFormQuestionDto } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { addAnswer, selectAnswer, selectAnswers } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
@@ -26,13 +29,16 @@ export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
     };
 
     return (
-        <>
-            {(field?.properties?.choices || []).map((choice: any) => (
-                <div key={choice?.id} className="flex items-center ">
-                    <Checkbox disabled={!enabled} checked={!!ans?.choices?.values?.includes(choice?.value) || !!answerChoices?.includes(choice?.value)} onClick={() => handleSelectChoice(choice)} />
-                    <div>{choice?.value}</div>
+        <div className="!mb-0 flex flex-col gap-3">
+            {(field?.properties?.choices || []).map((choice: any, index: number) => (
+                <div key={choice?.id} className="flex w-fit  items-center relative">
+                    {index === 0 && field?.validations?.required && <FieldRequired className="-right-5" />}
+                    <Checkbox id={choice?.value} className="!p-0" size="medium" disabled={!enabled} checked={!!ans?.choices?.values?.includes(choice?.value) || !!answerChoices?.includes(choice?.value)} onClick={() => handleSelectChoice(choice)} />
+                    <label htmlFor={choice?.value} className="!ml-2 body4">
+                        {choice?.value}
+                    </label>
                 </div>
             ))}
-        </>
+        </div>
     );
 }

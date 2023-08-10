@@ -2,47 +2,54 @@ import React, { useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
+import MarkdownText from '@Components/Common/Markdown';
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
+import FieldValidations from '@Components/Form/FieldValidations';
 import LongText from '@Components/Form/LongText';
 import MultipleChoiceField from '@Components/Form/MultipleChoiceField';
+import PhoneNumber from '@Components/Form/PhoneNumber';
 import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
 import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';
-import { StandardFormDto, StandardFormQuestionDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetFillForm, selectAnswers, selectInvalidFields, selectRequiredFields, setInvalidFields, setRequiredFields } from '@app/store/fill-form/slice';
+import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setInvalidFields } from '@app/store/fill-form/slice';
+import { FormValidationError } from '@app/store/fill-form/type';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
+import { validateFormFieldAnswer } from '@app/utils/validationUtils';
 
 export interface FormFieldProps {
-    field: StandardFormQuestionDto;
+    field: StandardFormFieldDto;
     ans?: any;
     enabled?: boolean;
 }
 
-const renderFormField = (field: StandardFormQuestionDto, enabled?: boolean, answer?: any) => {
+const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?: any) => {
     switch (field?.type) {
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
         case FormBuilderTagNames.LAYOUT_HEADER3:
         case FormBuilderTagNames.LAYOUT_HEADER1:
         case FormBuilderTagNames.LAYOUT_HEADER4:
         case FormBuilderTagNames.LAYOUT_HEADER2:
-        case FormBuilderTagNames.LAYOUT_HEADER5:
         case FormBuilderTagNames.LAYOUT_LABEL:
-            return <div className={'mt-5 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
+            return <div className={'!mt-4 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
+        case FormBuilderTagNames.LAYOUT_MARKDOWN:
+            return <MarkdownText text={field.value ?? ''} />;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
         case FormBuilderTagNames.INPUT_EMAIL:
         case FormBuilderTagNames.INPUT_NUMBER:
         case FormBuilderTagNames.INPUT_LINK:
         case FormBuilderTagNames.INPUT_DATE:
-        case FormBuilderTagNames.INPUT_PHONE_NUMBER:
             return <ShortText enabled={enabled} field={field} ans={answer} />;
+        case FormBuilderTagNames.INPUT_PHONE_NUMBER:
+            return <PhoneNumber enabled={enabled} field={field} ans={answer} />;
         case FormBuilderTagNames.INPUT_LONG_TEXT:
             return <LongText field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
@@ -71,36 +78,38 @@ interface IBetterCollectedFormProps {
 
 export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, preview = false, closeModal }: IBetterCollectedFormProps) {
     const dispatch = useAppDispatch();
-    const invalidFields = useAppSelector(selectInvalidFields);
-    const requiredFields = useAppSelector(selectRequiredFields);
     const [submitResponse] = useSubmitResponseMutation();
     const answers = useAppSelector(selectAnswers);
+    const responseDataOwnerField = useAppSelector(selectFormResponderOwnerField);
+    const invalidFields = useAppSelector(selectInvalidFields);
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
 
     useEffect(() => {
-        const requiredFields: Array<string> = [];
-        for (const field of form?.fields || []) {
-            if (field?.validations?.required) {
-                requiredFields.push(field.id);
-            }
-        }
-        dispatch(setRequiredFields(requiredFields));
-    }, [form]);
+        dispatch(resetFillForm());
+
+        return () => {
+            dispatch(resetFillForm());
+        };
+    }, []);
 
     useEffect(() => {
-        dispatch(resetFillForm());
-    }, []);
+        dispatch(setDataResponseOwnerField(form?.settings?.responseDataOwnerField || ''));
+    }, [form]);
 
     const onSubmitForm = async (event: any) => {
         event.preventDefault();
-        const invalidFields: Array<string> = [];
-        for (const requiredField of requiredFields) {
-            if (!answers[requiredField]) {
-                invalidFields.push(requiredField);
+        const invalidFields: Record<string, Array<FormValidationError>> = {};
+        let isResponseValid = true;
+        form?.fields.forEach((field: StandardFormFieldDto, index: number) => {
+            const validationErrors = validateFormFieldAnswer(field, answers[field.id]);
+            if (validationErrors.length > 0) {
+                isResponseValid = false;
             }
-        }
-        if (invalidFields.length > 0) {
+            invalidFields[field.id] = validationErrors;
+        });
+
+        if (!isResponseValid) {
             dispatch(setInvalidFields(invalidFields));
             // toast('All required fields are not filled yet.', { type: 'error' });
             return;
@@ -112,7 +121,8 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         }
         const postBody = {
             form_id: form?.formId,
-            answers: answers
+            answers: answers,
+            dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
         };
         const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: postBody });
         if (response?.data) {
@@ -134,27 +144,28 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             }}
             onSubmit={onSubmitForm}
         >
-            <div>
-                <div className="text-[36px] font-bold">{form?.title}</div>
+            <div className="mb-7">
+                <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
+                {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
             </div>
-            {form?.fields.map((field: StandardFormQuestionDto) => (
-                <div key={field?.id} className="relative w-full">
-                    {renderFormField(field, enabled, response?.answers[field.id])}
-                    {invalidFields?.includes(field?.id) && <div className="text-red-500 mt-2">Field Required*</div>}
-                    {field?.validations?.required && (
-                        <>
-                            <div className="absolute top-1  cursor-pointer  rounded-full">
-                                <span className="!w-4 text-center flex items-center justify-center pt-1.5 text-xl font-bold rounded-full !h-4 relative -left-2  bg-gray-300 px-0.5  z-[35003]">*</span>
-                            </div>
-                        </>
-                    )}
-                </div>
-            ))}
-            {enabled && (
-                <Button className="mt-10" type="submit" disabled={!enabled}>
-                    Submit
-                </Button>
-            )}
+
+            <div className="flex flex-col w-full gap-2">
+                {form?.fields.map((field: StandardFormFieldDto) => (
+                    <div key={field?.id} className="relative w-full">
+                        {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
+                        <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
+                        {/*{invalidFields?.includes(field?.id) &&*/}
+                        {/*    <div className=" body5 !mb-7 !text-red-500 ">Field Required*</div>}*/}
+                    </div>
+                ))}
+                {enabled && (
+                    <div>
+                        <Button className="mt-10 bg-black-900 hover:bg-black-800" type="submit" disabled={!enabled}>
+                            Submit
+                        </Button>
+                    </div>
+                )}
+            </div>
         </form>
     );
 }

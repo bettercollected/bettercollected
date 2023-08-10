@@ -311,9 +311,16 @@
   "IMPORT_FORM": {
     "DEFAULT": "Formulier importeren",
     "CHOICE": "Welk formulier wilt u importeren?",
-    "RESPONSE_OWNER_TAG_DESCRIPTION": "Selecteer veld waaruit de eigenaar van het antwoord kan worden geïdentificeerd",
-    "RESPONSE_OWNER_TAG_LABEL": "Kies een gegevenseigenaarveld voor dit formulier",
-    "RESPONSE_OWNER_TAG_TITLE": "Reactie-eigenaar tag",
+    "GOOGLE":{
+      "RESPONSE_OWNER_TAG_DESCRIPTION": "U hoeft het veld niet te selecteren als u ”e-mails verzamelen” hebt ingeschakeld in uw Google-formulieren.",
+      "RESPONSE_OWNER_TAG_LABEL": "Selecteer e-mailveld",
+      "RESPONSE_OWNER_TAG_TITLE": "Selecteer het e-mailadres van de responder"
+    },
+    "TYPEFORM":{
+      "RESPONSE_OWNER_TAG_DESCRIPTION": "",
+      "RESPONSE_OWNER_TAG_LABEL": "Select email field",
+      "RESPONSE_OWNER_TAG_TITLE": "Selecteer het e-mailadres van de responder"
+    },
     "TEXT_LABEL": "Kies uw Google-formulier",
     "TITLE": "Selecteer een formulier om te importeren"
   },
@@ -416,6 +423,16 @@
   "REMOVE": "Verwijderen",
   "REMOVE_INVITATION_FOR": "Uitnodiging verwijderen voor",
   "REMOVE_WARNING_MESSAGE": "Het verwijderen van een lid zal ook alle door de gebruiker geïmporteerde formulieren verwijderen",
+  "RESPONDER_SECTION": {
+    "FEATURES_HEADING": "Zodra je bent ingelogd, kun je het volgende doen:",
+    "FEATURE_1": "Alle vormen van werkruimte bekijken",
+    "FEATURE_2": "Al je ingediende formulieren van die specifieke werkruimte bekijken",
+    "FEATURE_3": "Je ingediende formulierreacties verwijderen",
+    "OTP_FAILURE_TOAST": "Kan OTP niet verzenden",
+    "OTP_SUCCESS_TOAST": "OTP succesvol verzonden",
+    "OTP_VERIFICATION_SUCCESS_TOAST": "Met succes geverifieerd",
+    "OTP_VERIFICATION_FAILURE_TOAST": "Verificatie mislukt"
+  },
   "RESPONDERS_AND_GROUPS": "Responders en groepen",
   "SAVE": "Opslaan",
   "SEND_CODE": {
@@ -431,7 +448,7 @@
   "SIGNIN_SCREEN": {
     "COLLECT_FORMS": "Verzamel uw formulieren",
     "SIGN_IN": "Aanmelden",
-    "CONTINUE_WITH": "ga verder met:",
+    "CONTINUE_WITH": "Heb je geen account?",
     "DELETE_RESPONSES": "Antwoorden verwijderen",
     "EASY_TO_MANAGE_FORMS": "Eenvoudig te beheren formulieren",
     "LOGIN_TITLE_SLOGAN": "Maak deel uit van de grotere gemeenschap door in te loggen.",
@@ -440,14 +457,20 @@
     "SIGNIN_AGREEMENT_DESCRIPTION": "Door in te loggen, gaat u akkoord met onze",
     "WELCOME_MESSAGE": "Welkom terug!",
     "FEATURES": {
-      "TITLE": "Creëer een persoonlijke merkwerkruimte waar",
-      "FEATURE_1": "U kunt al uw formulieren importeren.",
-      "FEATURE_2": "U kunt uw formulier-URL's aanpassen.",
-      "FEATURE_3": "U kunt uw collega's uitnodigen voor samenwerking.",
-      "FEATURE_4": "U kunt uw werkruimte openbaar delen met uw formulierbeantwoorders",
-      "FEATURE_5": "Uw formulierbeantwoorders kunnen gemakkelijk al uw openbare formulieren vinden",
-      "FEATURE_6": "Uw formulierresponders kunnen hun antwoord veilig bekijken"
-    }
+      "TITLE": "Zodra je bent ingelogd, kun je:",
+      "FEATURE_1": "Formulieren importeren (Google Forms of Typeform)",
+      "FEATURE_2": "Formulier-URL's aanpassen.",
+      "FEATURE_3": "Je collega's uitnodigen voor samenwerking.",
+      "FEATURE_4": "Meerdere werkruimtes aanmaken.",
+      "FEATURE_5": "Je werkruimte delen met je publiek."
+    },
+    "CONTINUE": "Doorgaan",
+    "OR_SIGN_IN_USING": "Of log in met",
+    "VERIFICATION": "Verificatie",
+    "ENTER_OTP_CODE": "Voer de OTP-code in",
+    "ENTER_CODE_SENT_IN_EMAIL": "Voer de code in die in uw e-mail is verzonden",
+    "BACK_BUTTON_TITLE": "Rug",
+    "DIDNOT_RECEIVE_CODE": "Geen code ontvangen?"
   },
   "SLUG": {
     "DEFAULT": "Slak",
@@ -597,6 +620,7 @@
     "TITLE": "Werkruimtetitel",
     "TITLE_VALIDATION_MESSAGE": "Werkruimtetitel is vereist",
     "WORKSPACE_NAME_VALIDATION_MESSAGE": "Werkruimtehandle is vereist",
+    "WORKSPACE_NAME_INVALID_CHARACTER": "workspace handle mag alleen kleine letters, cijfers en een lage streep bevatten",
     "URL": "Workspace-URL"
   }
 }

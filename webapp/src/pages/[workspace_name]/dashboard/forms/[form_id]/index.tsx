@@ -40,7 +40,7 @@ export default function FormPage(props: any) {
     const router = useRouter();
     useEffect(() => {
         dispatch(setForm(props.form));
-    }, []);
+    }, [dispatch, props.form]);
 
     if (!props && Object.keys(props).length === 0) {
         return <Error />;

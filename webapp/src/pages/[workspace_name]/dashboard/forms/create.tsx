@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
 
 import FormBuilderContainerWrapper from '@Components/HOCs/FormBuilderContainerWrapper';
+import FormBuilderKeyListener from '@Components/Listeners/FormBuilderKeyListener';
 
 import environments from '@app/configs/environments';
-import FormBuilder from '@app/containers/FormBuilder';
+import FormBuilder from '@app/containers/form-builder/FormBuilder';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { resetForm } from '@app/store/form-builder/slice';
+import { resetForm } from '@app/store/form-builder/actions';
 import { useAppDispatch } from '@app/store/hooks';
 
 interface ICreateFormProps {
@@ -20,13 +21,15 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
 
     useEffect(() => {
         dispatch(resetForm());
-    }, []);
+    }, [dispatch]);
 
     return environments.ENABLE_FORM_BUILDER ? (
         <FormBuilderContainerWrapper>
-            <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
-                <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} />
-            </Layout>
+            <FormBuilderKeyListener>
+                <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
+                    <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} />
+                </Layout>
+            </FormBuilderKeyListener>
         </FormBuilderContainerWrapper>
     ) : (
         <></>

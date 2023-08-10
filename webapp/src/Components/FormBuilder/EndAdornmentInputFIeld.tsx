@@ -1,20 +1,22 @@
 import { ChangeEvent, useEffect, useRef } from 'react';
 
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
+import { FieldRequired } from '@Components/UI/FieldRequired';
 import { AlternateEmail, DateRange, LocalPhone, Numbers, ShortText } from '@mui/icons-material';
 import LinkIcon from '@mui/icons-material/Link';
 import { value } from 'dom7';
 import { useDispatch } from 'react-redux';
 
+import useFormBuilderState from '@app/containers/form-builder/context';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setUpdateField } from '@app/store/form-builder/actions';
+import { setActiveField, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { updateField } from '@app/store/form-builder/slice';
+import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 
 interface IEndAdornmentInputFieldProps {
-    field: any;
-    id: any;
+    field: IFormFieldState;
+    id: string;
     position: number;
 }
 
@@ -40,7 +42,10 @@ function getIcon(type: FormBuilderTagNames) {
 export default function EndAdornmentInputField({ field, id, position }: IEndAdornmentInputFieldProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const dispatch = useDispatch();
+    const { setBackspaceCount } = useFormBuilderState();
+
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setBackspaceCount(0);
         dispatch(setUpdateField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
     };
 
@@ -50,35 +55,24 @@ export default function EndAdornmentInputField({ field, id, position }: IEndAdor
     useEffect(() => {
         // Focus on the first contentEditable element (title) when the page loads
         if (position !== activeFieldIndex) return;
-
         inputRef?.current?.focus();
-
-        // Set the cursor position to 0 when the page loads
-        const range = document.createRange();
-
-        if (inputRef?.current) {
-            range.selectNodeContents(inputRef.current);
-            range.collapse(true);
-        }
-        const selection = window.getSelection();
-        if (selection) {
-            selection.removeAllRanges();
-            selection.addRange(range);
-        }
     }, [position, activeFieldIndex]);
 
     return (
-        <FormBuilderInput
-            onChange={onChange}
-            id={id}
-            value={field?.properties?.placeholder || ''}
-            inputRef={inputRef}
-            InputProps={{
-                endAdornment: getIcon(field.type)
-            }}
-            onFocus={(event) => {
-                inputRef?.current?.setSelectionRange(event.currentTarget.value.length, event.currentTarget.value.length);
-            }}
-        />
+        <div className="relative w-full h-full">
+            {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
+            <FormBuilderInput
+                onChange={onChange}
+                id={id}
+                value={field?.properties?.placeholder || ''}
+                inputRef={inputRef}
+                InputProps={{
+                    endAdornment: getIcon(field.type)
+                }}
+                onFocus={(event) => {
+                    inputRef?.current?.setSelectionRange(event.currentTarget.value.length, event.currentTarget.value.length);
+                }}
+            />
+        </div>
     );
 }
