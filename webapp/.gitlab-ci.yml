@@ -100,16 +100,19 @@ deploy release:
         - release
 
 cypress-tests:
-  stage: test
+    cache:
+        paths:
+            - node_modules/
+    stage: test
 
-  image: cypress/base
+    image: cypress/base
 
-  tags:
-    - docker
+    tags:
+        - docker
 
-  script:
-    - yarn install 
-    - yarn run runHeadless
+    script:
+        - yarn install --frozen-lockfile
+        - yarn run runHeadless
 
-  variables:
-    CYPRESS_baseUrl: "https://admin.bettercollected.com/login"
+    variables:
+        CYPRESS_baseUrl: "https://admin.bettercollected.com/login"
