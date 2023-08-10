@@ -109,3 +109,5 @@ testUser2 = User(
     id=str(PydanticObjectId()), sub="random@email.com", roles=["FORM_RESPONDER"]
 )
 proUser = User(id=str(PydanticObjectId()), sub="prouser@gmail.com", plan="PRO")
+
+invitation_request = {"email": "invited_daemon@gmail.com", "role": "COLLABORATOR"}
