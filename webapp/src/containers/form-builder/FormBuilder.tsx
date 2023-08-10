@@ -188,7 +188,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             className={b.className}
                             onChangeCallback={(event: FormEvent<HTMLElement>) => {
                                 setBackspaceCount(0);
-                                dispatch(setBuilderState({ isFormDirty: true, [b.key]: event.currentTarget.innerText }));
+                                dispatch(setBuilderState({ [b.key]: event.currentTarget.innerText }));
                             }}
                             onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
                                 event.preventDefault();
