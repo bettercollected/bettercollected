@@ -24,7 +24,7 @@ const FormBuilderInput = forwardRef<HTMLDivElement, TextFieldProps>((props, ref)
                         color: 'gray',
                         fontWeight: 400,
                         content: 'none',
-                        letterSpacing: 1
+                        letterSpacing: 0
                     }
                 }
             }
