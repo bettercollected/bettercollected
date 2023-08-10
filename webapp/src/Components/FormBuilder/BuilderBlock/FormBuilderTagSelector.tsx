@@ -251,24 +251,28 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
     const [tagList, setTagList] = useState(allowedTags);
     const [selectedTag, setSelectedTag] = useState({ blockType: BlockTypes.INPUT_BLOCKS, index: 0 });
     const [command, setCommand] = useState('');
-    const [blockListTypes, setBlockListTypes] = useState<Array<any>>([BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.QUESTION_INPUT_BLOCKS]);
+    const [blockListTypes, setBlockListTypes] = useState<Array<any>>([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS]);
     const listRef: any = useRef(null);
 
     useEffect(() => {
+        if (!searchQuery) {
+            setBlockListTypes([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.INPUT_BLOCKS]);
+            setTagList(allowedTags);
+        }
         if (!searchQuery || searchQuery?.includes('\n')) return; // Discard enter character in search query
         const filteredAllowedQuestionAnswerTags = allowedQuestionAndAnswerTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
         const filteredAllowedInputTags = allowedInputTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
         const filteredAllowedLayoutTags = allowedLayoutTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
         const newBlockListTypes: Array<BlockTypes> = [];
         let selectedBlockType = BlockTypes.INPUT_BLOCKS;
-        if (filteredAllowedInputTags.length > 0) {
-            newBlockListTypes.push(BlockTypes.INPUT_BLOCKS);
+        if (filteredAllowedQuestionAnswerTags.length > 0) {
+            newBlockListTypes.push(BlockTypes.QUESTION_INPUT_BLOCKS);
         }
         if (filteredAllowedLayoutTags.length > 0) {
             newBlockListTypes.push(BlockTypes.LAYOUT_BLOCKS);
         }
-        if (filteredAllowedQuestionAnswerTags.length > 0) {
-            newBlockListTypes.push(BlockTypes.QUESTION_INPUT_BLOCKS);
+        if (filteredAllowedInputTags.length > 0) {
+            newBlockListTypes.push(BlockTypes.INPUT_BLOCKS);
         }
         setSelectedTag({ blockType: newBlockListTypes.length > 0 ? newBlockListTypes[0] : selectedBlockType, index: 0 });
         setTagList([...filteredAllowedQuestionAnswerTags, ...filteredAllowedInputTags, ...filteredAllowedLayoutTags]);
