@@ -6,13 +6,8 @@ import { IBuilderTitleAndDescriptionObj, IFormFieldProperties } from './types';
 
 export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionObj> = [
     {
-<<<<<<< HEAD
         id: 'field-title',
         tagName: 'p',
-=======
-        id: 'item-form-title',
-        tagName: 'h1',
->>>>>>> be5387e (Enhance formbuilder navigation)
         type: FormBuilderTagNames.LAYOUT_HEADER1,
         key: 'title',
         position: -2,
