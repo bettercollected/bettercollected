@@ -35,10 +35,12 @@ export default function MultipleChoiceKeyEventListener({ children }: React.Props
                     } else if (choices[activeChoiceId].value === '' && Object.values(choices).length > 1) {
                         dispatch(setDeleteChoice(activeChoiceId));
                         dispatch(setAddNewField(createNewField(formField.position + 1)));
-                        document.getElementById(`choice-${Object.keys(choices)[activeChoiceIndex + 1]}`)?.focus();
+                        setTimeout(() => document.getElementById(`choice-${Object.keys(choices)[activeChoiceIndex + 1]}`)?.focus(), 1);
                     } else {
+                        const newField = createNewField(formField.position);
                         dispatch(setDeleteField(formField.id));
-                        dispatch(setAddNewField(createNewField(formField.position)));
+                        dispatch(setAddNewField(newField));
+                        setTimeout(() => document.getElementById(`item-${newField.id}`)?.focus(), 1);
                     }
                 } else if (event.key === 'ArrowDown' && activeChoiceIndex < Object.values(choices).length - 1) {
                     event.stopPropagation();
