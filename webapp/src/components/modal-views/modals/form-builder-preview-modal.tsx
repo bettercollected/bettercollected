@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from 'react';
 
+import EditIcon from '@Components/Common/Icons/Edit';
+import Share from '@Components/Common/Icons/Share';
+import Button from '@Components/Common/Input/Button';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 
+import { formConstant } from '@app/constants/locales/form';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { initialIBuilderState } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { getFormUrl } from '@app/utils/urlUtils';
 
 import { useFullScreenModal } from '../full-screen-modal-context';
 
-export default function FormBuilderPreviewModal() {
+export default function FormBuilderPreviewModal({ publish }: { publish: () => void }) {
     const [formToRender, setFormToRender] = useState(initialIBuilderState);
     const { closeModal } = useFullScreenModal();
     const builderState = useAppSelector(selectBuilderState);
@@ -38,15 +43,39 @@ export default function FormBuilderPreviewModal() {
     }, [builderState]);
 
     return (
-        <div className="relative h-full min-h-screen w-full overflow-auto pt-16 !bg-brand-100 ">
-            <div
-                className="absolute cursor-pointer text-black-600 top-5 right-10"
-                onClick={() => {
-                    closeModal();
-                }}
-            >
-                {' '}
-                Back to Editor
+        <div className="relative h-full min-h-screen w-full pt-28 pb-6 px-5 overflow-auto 2xl:pt-6 !bg-brand-100 ">
+            {/*<div*/}
+            {/*    className="absolute cursor-pointer text-black-600 top-5 right-10"*/}
+            {/*    onClick={() => {*/}
+            {/*        closeModal();*/}
+            {/*    }}*/}
+            {/*>*/}
+            {/*    {' '}*/}
+            {/*    Back to Editor*/}
+            {/*</div>*/}
+            <div className="flex absolute top-6 right-10 gap-4 w-fit">
+                <Button
+                    variant="contained"
+                    className="w-fit bg-brand-500 px-8 gap-2 py-3 "
+                    onClick={() => {
+                        closeModal();
+                    }}
+                >
+                    <span>
+                        <EditIcon />
+                    </span>
+                    Edit
+                </Button>
+
+                <Button
+                    variant="outlined"
+                    className="w-fit text-brand-500 px-8 gap-2 py-3 "
+                    onClick={() => {
+                        publish();
+                    }}
+                >
+                    Publish
+                </Button>
             </div>
             <BetterCollectedForm form={formToRender} enabled={true} preview={true} closeModal={closeModal} />
         </div>

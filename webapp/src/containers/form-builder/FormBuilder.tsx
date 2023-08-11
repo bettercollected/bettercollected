@@ -68,7 +68,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const onPreview = () => {
         asyncDispatch(resetBuilderMenuState()).then(() => {
-            fullScreenModal.openModal('FORM_BUILDER_PREVIEW');
+            fullScreenModal.openModal('FORM_BUILDER_PREVIEW', { publish: onFormPublish });
         });
     };
 
