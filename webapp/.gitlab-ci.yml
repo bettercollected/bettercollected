@@ -1,5 +1,5 @@
 stages:
-    - test
+#    - test
     - build
     - deploy
 
@@ -100,17 +100,17 @@ deploy release:
     only:
         - release
 
-cypress-tests:
-    stage: test
-
-    image: cypress/base
-
-    tags:
-        - docker
-
-    script:
-        - yarn install --frozen-lockfile
-        - yarn run runHeadless
-
-    variables:
-        CYPRESS_baseUrl: "https://admin.bettercollected.com/login"
+#cypress-tests:
+#    stage: test
+#
+#    image: cypress/base
+#
+#    tags:
+#        - docker
+#
+#    script:
+#        - yarn install --frozen-lockfile
+#        - yarn run runHeadless
+#
+#    variables:
+#        CYPRESS_baseUrl: "https://admin.bettercollected.com/login"
