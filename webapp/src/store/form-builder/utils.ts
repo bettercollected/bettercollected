@@ -6,8 +6,8 @@ import { IBuilderTitleAndDescriptionObj, IFormFieldProperties } from './types';
 
 export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionObj> = [
     {
-        id: 'field-title',
-        tagName: 'p',
+        id: 'item-form-title',
+        tagName: 'h1',
         type: FormBuilderTagNames.LAYOUT_HEADER1,
         key: 'title',
         position: -2,
@@ -52,7 +52,5 @@ export function getInitialPropertiesForFieldType(type: FormBuilderTagNames) {
                 properties['allowMultipleSelection'] = true;
             }
             return properties;
-        default:
-            return null;
     }
 }

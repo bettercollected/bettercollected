@@ -10,7 +10,7 @@ import useFormBuilderState from '@app/containers/form-builder/context';
 import eventBus from '@app/lib/event-bus';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField } from '@app/store/form-builder/actions';
+import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setActiveField, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -63,12 +63,12 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     return;
                 } else if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
                     event.preventDefault();
-                    if (builderState.activeFieldIndex >= 0 || Object.keys(builderState.fields).length === 0) dispatch(setAddNewField(createNewField(builderState.activeFieldIndex)));
-                    document.getElementById(`item-${Object.keys(builderState.fields)[builderState.activeFieldIndex + 1]}`)?.focus();
+                    const newField = createNewField(builderState.activeFieldIndex);
+                    if (builderState.activeFieldIndex >= 0 || Object.keys(builderState.fields).length === 0) dispatch(setAddNewField(newField));
+                    setTimeout(() => document.getElementById(`item-${newField.id}`)?.focus(), 1);
                 } else if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
                 else if (!event.ctrlKey && !event.metaKey && (event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
                     focusNextField();
-                    // dispatch(setBuilderState({ activeFieldIndex: builderState.activeFieldIndex + 1 }));
                 } else if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2) {
                     focusPreviousField();
                 } else if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey) {

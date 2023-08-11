@@ -33,15 +33,16 @@ export default function BuilderDragDropContext({ Component, componentAttrs, drop
 
         onDragEndHandlerCallback(result, provided);
     };
+    console.log(droppableItems);
 
     return (
         <DragDropContext onDragStart={onDragStartHandler} onDragUpdate={onDragUpdateHandler} onDragEnd={onDragEndHandler}>
             <StrictModeDroppable droppableId={droppableId}>
                 {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
                     <div className={`flex flex-col gap-2 transition-all duration-200 ease-in ${snapshot.isDraggingOver ? 'bg-black-100 bg-opacity-30 rounded' : 'bg-white'} ${droppableClassName}`} {...provided.droppableProps} ref={provided.innerRef}>
-                        {droppableItems.map((item: any, idx: number) => (
-                            <Component key={idx} draggableId={idx} item={item} {...componentAttrs} />
-                        ))}
+                        {droppableItems.map((item: any, idx: number) => {
+                            return <Component key={`${item.id}-${item.position}}`} draggableId={idx} item={item} {...componentAttrs} />;
+                        })}
                         {provided.placeholder}
                     </div>
                 )}
