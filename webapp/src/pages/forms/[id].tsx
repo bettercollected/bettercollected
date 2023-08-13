@@ -151,7 +151,7 @@ export default function SingleFormPage(props: any) {
                     </div>
                 </div>
             )}
-            <div className={'absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
+            <div className={'absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0 bg-brand-100'}>
                 {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (
                     <div className="flex !bg-brand-100 justify-center w-full py-6 items-center">
