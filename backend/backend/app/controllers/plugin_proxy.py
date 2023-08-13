@@ -31,7 +31,7 @@ class PluginProxy(BasePluginRoute):
 
     async def list_forms(
         self,
-        provider: str | FormProvider,
+        provider: FormProvider,
         request: Request,
         user: User = Depends(get_logged_user),
     ):

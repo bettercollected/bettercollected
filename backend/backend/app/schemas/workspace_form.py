@@ -3,6 +3,7 @@ from typing import Optional
 
 from beanie import PydanticObjectId
 
+from backend.app.models.enum.update_status import UpdateStatus
 from backend.app.models.workspace import WorkspaceFormSettings
 from common.configs.mongo_document import MongoDocument
 
@@ -29,6 +30,7 @@ class WorkspaceFormDocument(MongoDocument):
     form_id: str
     user_id: str
     settings: Optional[WorkspaceFormSettings]
+    last_update_status: UpdateStatus = None
 
     class Settings:
         name = "workspace_forms"
