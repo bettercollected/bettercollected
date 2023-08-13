@@ -51,7 +51,6 @@ class WorkspaceFormRepository:
         self,
         workspace_id: PydanticObjectId,
         query: str,
-        throw_if_absent=True,
         is_admin=True,
     ):
         try:
@@ -63,9 +62,6 @@ class WorkspaceFormRepository:
                 query["settings.private"] = False
 
             workspace_form = await WorkspaceFormDocument.find_one(query)
-            if not workspace_form and throw_if_absent:
-                raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
-
             return workspace_form
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(
