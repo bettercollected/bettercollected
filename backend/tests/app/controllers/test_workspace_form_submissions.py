@@ -90,10 +90,10 @@ class TestWorkspaceFormSubmission:
             get_request_delete_response_url,
             cookies=test_user_cookies,
         )
+
         form_response_deletion_request = (
             await FormResponseDeletionRequest.find().to_list()
         )
-
         actual_response = request_response_deletion.json()
         expected_response = {"message": "Request for deletion created successfully."}
         assert actual_response == expected_response
@@ -150,7 +150,7 @@ class TestWorkspaceFormSubmission:
         assert deleted_requested_form.status_code == 200
         assert actual_response == expected_response
 
-    def test_unauthorized_user_request_for_delete_form_response(
+    def test_unauthorized_user_request_for_delete_form_response_fails(
         self,
         client: TestClient,
         test_user_cookies_1: dict[str, str],
@@ -225,7 +225,7 @@ class TestWorkspaceFormSubmission:
         expected_response_id = new_workspace_form_response["response_id"]
         assert expected_response_id not in actual_response_ids
 
-    def test_unauthorized_get_workspace_form_responses(
+    def test_unauthorized_get_workspace_form_responses_fails(
         self,
         client: TestClient,
         test_user_cookies_1: dict[str, str],
@@ -294,7 +294,7 @@ class TestWorkspaceFormSubmission:
         assert actual_responses == expected_responses
         assert actual_response_ids == expected_response_ids
 
-    def test_unauthorized_get_all_workspace_responses(
+    def test_unauthorized_get_all_workspace_responses_fails(
         self,
         client: TestClient,
         get_all_workspace_responses_url: str,
@@ -357,7 +357,7 @@ class TestWorkspaceFormSubmission:
         assert single_form_response.status_code == 200
         assert actual_response_id == expected_response_id
 
-    def test_unauthorized_get_workspace_form_response_by_response_id(
+    def test_unauthorized_get_workspace_form_response_by_response_id_fails(
         self,
         client: TestClient,
         get_form_response_by_id_url: str,
@@ -373,7 +373,7 @@ class TestWorkspaceFormSubmission:
         assert single_form_response.status_code == 403
         assert actual_response_message == expected_response_message
 
-    async def test_get_workspace_form_response_by_response_id_fails(
+    async def test_get_workspace_form_response_by_response_id_of_other_workspace_form_fails(
         self,
         client: TestClient,
         workspace_form_1: Coroutine[Any, Any, FormDocument],
