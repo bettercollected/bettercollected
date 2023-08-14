@@ -25,7 +25,7 @@ export default function LongText({ field, id, position }: { field: IFormFieldSta
             {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
             <FormBuilderInput
                 multiline
-                autoFocus={true}
+                autoFocus={false}
                 id={id}
                 value={field?.properties?.placeholder || ''}
                 placeholder={field?.properties?.placeholder || ''}
