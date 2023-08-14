@@ -59,7 +59,7 @@ class TestWorkspaceResponders:
         assert actual_responders_number == expected_responders_number
         assert actual_responders_emails == expected_responders_emails
 
-    def test_unauthorized_get_workspace_responders(
+    def test_unauthorized_get_workspace_responders_fails(
         self,
         client: TestClient,
         workspace_responders_api: str,
@@ -92,7 +92,7 @@ class TestWorkspaceResponders:
         expected_tags = [tag1.title, tag2.title]
         assert actual_tags == expected_tags
 
-    def test_unauthorized_get_workspace_tags(
+    def test_unauthorized_get_workspace_tags_fails(
         self,
         client: TestClient,
         workspace_tag_url: str,
@@ -120,7 +120,7 @@ class TestWorkspaceResponders:
         assert tag.status_code == 200
         assert actual_tag == expected_tag
 
-    def test_unauthorized_create_workspace_tag(
+    def test_unauthorized_create_workspace_tag_fails(
         self,
         client: TestClient,
         workspace_tag_url: str,
@@ -160,7 +160,7 @@ class TestWorkspaceResponders:
         assert workspace_responder.status_code == 200
         assert actual_tag_id == expected_tag_id
 
-    async def test_unauthorized_patch_workspace_responder_with_email(
+    async def test_unauthorized_patch_workspace_responder_with_email_fails(
         self,
         client: TestClient,
         test_user_cookies_1: dict[str, str],

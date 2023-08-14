@@ -128,7 +128,7 @@ class TestUserTags:
         actual_response = fetched_tags.json()[0].get("tags")
         assert actual_response == expected_response
 
-    def test_non_admin_get_user_tags(
+    def test_non_admin_get_user_tags_fails(
         self,
         client: TestClient,
         test_user_cookies_1: dict[str, str],
@@ -161,7 +161,7 @@ class TestUserTags:
             actual_response = tag_details.json()
             assert actual_response == expected_response
 
-    def test_non_admin_get_user_tag_details(
+    def test_non_admin_get_user_tag_details_fails(
         self,
         client: TestClient,
         test_user_cookies_1: dict[str, str],

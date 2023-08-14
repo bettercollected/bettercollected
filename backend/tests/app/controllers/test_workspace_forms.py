@@ -168,7 +168,7 @@ class TestWorkspaceForm:
         expected_request_response_deletion = None
         assert actual_request_response_deletion == expected_request_response_deletion
 
-    async def test_unauthorized_user_delete_workspace_form(
+    async def test_unauthorized_user_delete_workspace_form_fails(
         self,
         client: TestClient,
         test_user_cookies_1: dict[str, str],
@@ -201,7 +201,7 @@ class TestWorkspaceForm:
         actual_updated_form_description = update_form.json()["description"]
         assert actual_updated_form_description == expected_updated_form_description
 
-    def test_unauthorized_user_update_workspace_form(
+    def test_unauthorized_user_update_workspace_form_fails(
         self,
         client: TestClient,
         test_user_cookies_1: dict[str, str],
@@ -408,7 +408,7 @@ class TestWorkspaceForm:
         assert group_form.status_code == 200
         assert actual_added_form == expected_added_form
 
-    def test_unauthorized_user_add_form_in_group(
+    def test_unauthorized_user_add_form_in_group_fails(
         self,
         client: TestClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
@@ -450,7 +450,7 @@ class TestWorkspaceForm:
         assert group_form.status_code == 200
         assert actual_form == expected_form
 
-    def test_unauthorized_user_delete_form_from_group(
+    def test_unauthorized_user_delete_form_from_group_fails(
         self,
         client: TestClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],

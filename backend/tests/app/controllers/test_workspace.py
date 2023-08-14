@@ -159,7 +159,7 @@ class TestWorkspaces:
             actual_updated_workspace_attribute == expected_updated_workspace_attribute
         )
 
-    def test_patch_workspace_with_custom_domain_for_normal_user(
+    def test_patch_workspace_with_custom_domain_for_normal_user_fails(
         self,
         client: TestClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
@@ -176,7 +176,7 @@ class TestWorkspaces:
         assert patched_workspace.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_unauthorized_client_patch_workspace(
+    def test_unauthorized_client_patch_workspace_false(
         self,
         client: TestClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
@@ -280,7 +280,7 @@ class TestWorkspaces:
         )
         assert actual_custom_domain == expected_custom_domain
 
-    def test_delete_custom_domain_for_normal_user(
+    def test_delete_custom_domain_for_normal_user_fails(
         self,
         client: TestClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
@@ -317,7 +317,7 @@ class TestWorkspaces:
         actual_response = workspace_stats.json()
         assert actual_response == expected_response
 
-    def test_unauthorized_client_get_workspace_stats(
+    def test_unauthorized_client_get_workspace_stats_fails(
         self,
         client: TestClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
