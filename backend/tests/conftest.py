@@ -8,8 +8,10 @@ import pytest
 import httpx
 from unittest.mock import patch
 
+from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
+from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services import workspace_service
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponse
@@ -21,6 +23,7 @@ from tests.app.controllers.data import (
     testUser1,
     testUser2,
     proUser,
+    invited_user,
 )
 
 from backend.app import get_application
@@ -39,6 +42,11 @@ def client():
 async def workspace():
     await workspace_service.create_workspace(testUser)
     workspace = (await WorkspaceDocument.find().to_list())[0]
+    await WorkspaceUserDocument(
+        workspace_id=workspace.id,
+        user_id=invited_user.id,
+        roles=[WorkspaceRoles.COLLABORATOR],
+    ).save()
     return workspace
 
 
@@ -151,6 +159,12 @@ def test_pro_user_cookies():
 
 
 @pytest.fixture()
+def test_invited_user_cookies():
+    token = container.jwt_service().encode(invited_user)
+    return {"Authorization": token, "RefreshToken": token}
+
+
+@pytest.fixture()
 def mock_aiohttp_get_request():
     async def mock_get(*args, **kwargs):
         class MockResponse:
@@ -206,3 +220,11 @@ def mock_get_user_info():
         "httpx.AsyncClient.get",
         side_effect=get_user_info_from_ids,
     )
+
+
+@pytest.fixture()
+def mock_create_invitation_request():
+    def send_email_for_invitation(*args, **kwargs):
+        return httpx.Response(200, json={"data": "Mail sent successfully!!"})
+
+    return patch("httpx.AsyncClient.get", side_effect=send_email_for_invitation)
