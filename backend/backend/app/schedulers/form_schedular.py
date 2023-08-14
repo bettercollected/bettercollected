@@ -41,7 +41,10 @@ class FormSchedular:
             {"form_id": form_id, "workspace_id": workspace_id}
         )
         if not workspace_form:
-            logger.error(f"No form with id  {form_id} found")
+            if settings.schedular_settings.ENABLED:
+                await self.temporal_service.delete_form_import_schedule(
+                    workspace_id=workspace_id, form_id=form_id
+                )
             return
         users_response = await self.fetch_user_details([workspace_form.user_id])
         standard_form = None
