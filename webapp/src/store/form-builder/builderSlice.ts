@@ -101,10 +101,10 @@ export const builder = createSlice({
         setAddNewChoice: (state: IBuilderState, action: { payload: IChoiceFieldState; type: string }) => {
             const activeField = state.fields[state.activeFieldId];
             const newChoices = Object.values(convertProxyToObject(activeField.properties?.choices || {}));
-            newChoices.splice((activeField.properties?.activeChoiceIndex ?? 0) + 1, 0, { ...action.payload });
+            newChoices.splice(action.payload.position, 0, { ...action.payload });
             const choices: any = {};
-            newChoices.forEach((choice: any) => {
-                choices[choice.id] = choice;
+            newChoices.forEach((choice: any, index: number) => {
+                choices[choice.id] = { ...choice, position: index };
             });
             return { ...state, fields: { ...state.fields, [activeField.id]: { ...activeField, properties: { ...activeField.properties, choices, activeChoiceId: action.payload.id, activeChoiceIndex: action.payload.position } } } };
         },
@@ -132,21 +132,24 @@ export const builder = createSlice({
             const fieldsToAdd: Array<IFormFieldState> = [];
             const type = action.payload?.type;
             let newType = type;
+            let newFieldId = action.payload.id;
             if (type.includes('question')) {
                 // @ts-ignore
                 newType = type.replace('question_', 'input_');
+                newFieldId = v4();
                 fieldsToAdd.push({
-                    id: v4(),
+                    id: action.payload.id,
                     type: FormBuilderTagNames.LAYOUT_LABEL,
                     position: action.payload.position
                 });
             }
             const newField: IFormFieldState = {
                 ...action.payload,
+                id: newFieldId,
                 type: newType,
                 position: action.payload.position
             };
-            newField.properties = getInitialPropertiesForFieldType(newType);
+            newField.properties = action.payload.properties ?? getInitialPropertiesForFieldType(newType);
             fieldsToAdd.push(newField);
             const fieldsArray = [...Object.values(state.fields)];
 
@@ -155,7 +158,6 @@ export const builder = createSlice({
             fieldsArray.forEach((field: IFormFieldState, index: number) => {
                 newFieldsMap[field.id] = { ...field, position: index };
             });
-
             return { ...state, fields: newFieldsMap };
         },
         addDuplicateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {

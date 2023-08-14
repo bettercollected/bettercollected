@@ -51,7 +51,7 @@ export default function EndAdornmentInputField({ field, id, position, placeholde
         <div className="relative w-full h-full">
             {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
             <FormBuilderInput
-                autoFocus={true}
+                autoFocus={false}
                 onChange={onChange}
                 placeholder={placeholder}
                 id={id}

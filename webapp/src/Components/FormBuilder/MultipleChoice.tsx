@@ -73,7 +73,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
                             {Object.values(field.properties?.choices || {}).map((choice, index) => {
                                 // @ts-ignore
                                 return (
-                                    <Draggable key={choice.position} draggableId={choice.id} index={index}>
+                                    <Draggable key={`${choice.id}-${choice.position}`} draggableId={choice.id} index={index}>
                                         {(provided) => (
                                             <div className="flex gap-5 mb-3 items-start justify-start focus-visible:outline-none focus-visible:border-none" {...provided.draggableProps} ref={provided.innerRef}>
                                                 <div className="relative flex flex-row-reverse items-center gap-2">

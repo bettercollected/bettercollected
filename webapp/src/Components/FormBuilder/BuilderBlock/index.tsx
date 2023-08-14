@@ -1,6 +1,7 @@
 import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback } from 'react';
 
 import FormBuilderBlockContent from '@Components/FormBuilder/BuilderBlock/FormBuilderBlockContent';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 import { v4 } from 'uuid';
@@ -9,9 +10,9 @@ import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setMoveField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { IFormFieldState } from '@app/store/form-builder/types';
+import { IFormFieldProperties, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { isContentEditableTag } from '@app/utils/formBuilderBlockUtils';
+import { isContentEditableTag, isMultipleChoice } from '@app/utils/formBuilderBlockUtils';
 import { getLastItem } from '@app/utils/stringUtils';
 
 import CustomContentEditable from '../ContentEditable/CustomContentEditable';
@@ -31,14 +32,34 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
 
     const handleTagSelection = (type: FormBuilderTagNames) => {
         batch(() => {
-            const field = {
+            const field: IFormFieldState = {
                 id: v4(),
                 type,
                 position: item.position,
                 replace: true
             };
+            if (isMultipleChoice(type)) {
+                const choiceId = uuidv4();
+                const properties: IFormFieldProperties = {
+                    activeChoiceId: choiceId,
+                    activeChoiceIndex: 0,
+                    choices: {
+                        [choiceId]: {
+                            id: choiceId,
+                            value: '',
+                            position: 0
+                        }
+                    }
+                };
+                field.properties = properties;
+            }
             dispatch(setAddNewField(field));
             dispatch(resetBuilderMenuState());
+            if (isMultipleChoice(type)) {
+                setTimeout(() => document.getElementById(`choice-${field.properties?.activeChoiceId}`)?.focus(), 1);
+            } else {
+                setTimeout(() => document.getElementById(`item-${field.id}`)?.focus(), 1);
+            }
         });
     };
 
@@ -111,7 +132,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         type={item.type}
                                         value={item?.value ?? ''}
                                         position={item.position}
-                                        showPlaceHolder={false}
+                                        showHideHolder={true}
                                         placeholder={item.properties?.placeholder ?? t('COMPONENTS.COMMON.PLACEHOLDER')}
                                         className="text-[14px] text-black-800"
                                         onFocusCallback={onFocusCallback}

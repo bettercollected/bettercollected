@@ -9,7 +9,7 @@ interface ICustomContentEditableProps {
     id: string;
     tagName: string;
     type: FormBuilderTagNames;
-    showPlaceHolder?: boolean;
+    showHideHolder?: boolean;
     placeholder: string;
     value: any;
     position: number;
@@ -217,7 +217,7 @@ interface ICustomContentEditableProps {
     onKeyDownCallback?: React.KeyboardEventHandler<HTMLDivElement>;
 }
 
-function CustomContentEditable({ id, tagName, type, placeholder, value, position, showPlaceHolder = true, className = '', onChangeCallback, onKeyUpCallback, onKeyDownCallback, onFocusCallback, onBlurCallback }: ICustomContentEditableProps) {
+function CustomContentEditable({ id, tagName, type, placeholder, value, position, showHideHolder = false, className = '', onChangeCallback, onKeyUpCallback, onKeyDownCallback, onFocusCallback, onBlurCallback }: ICustomContentEditableProps) {
     const contentEditableRef = useRef<HTMLElement>(null);
 
     const { isOpen } = useModal();
@@ -227,12 +227,12 @@ function CustomContentEditable({ id, tagName, type, placeholder, value, position
     };
 
     const onFocusHandler = (event: FocusEvent<HTMLDivElement>) => {
-        if (!showPlaceHolder) contentEditableRef.current?.setAttribute('data-placeholder', placeholder);
+        if (showHideHolder) contentEditableRef.current?.setAttribute('data-placeholder', placeholder);
         if (onFocusCallback) onFocusCallback(event);
     };
 
     const onBlurHandler = (event: FocusEvent<HTMLDivElement>) => {
-        if (!showPlaceHolder) contentEditableRef.current?.setAttribute('data-placeholder', '');
+        if (showHideHolder) contentEditableRef.current?.setAttribute('data-placeholder', '');
 
         if (onBlurCallback) onBlurCallback(event);
     };
@@ -267,10 +267,10 @@ function CustomContentEditable({ id, tagName, type, placeholder, value, position
             id={id}
             contentEditable
             spellCheck={false}
-            // innerRef={contentEditableRef}
+            innerRef={contentEditableRef}
             html={value}
             tagName={tagName}
-            data-placeholder={placeholder}
+            data-placeholder={!showHideHolder ? placeholder : ''}
             data-position={position}
             data-type={type}
             className={`m-0 p-0 w-full cursor-text focus-visible:border-0 focus-visible:outline-none ${className}`}
