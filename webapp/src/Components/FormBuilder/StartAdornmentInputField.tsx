@@ -38,6 +38,7 @@ function getIcon(type: FormBuilderTagNames) {
 
 export default function StartAdornmentInputField({ type, value, id, onChangeCallback, onFocusCallback }: IStartAdornmentInputFieldProps) {
     const { setBackspaceCount } = useFormBuilderState();
+    const inputRef = useRef(null);
     const { t } = useBuilderTranslation();
 
     const onChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -49,10 +50,12 @@ export default function StartAdornmentInputField({ type, value, id, onChangeCall
         console.log('Multiple choice focus called');
         onFocusCallback && onFocusCallback(event);
     };
+
     return (
         <FormBuilderInput
-            autoFocus={true}
+            autoFocus={false}
             id={id}
+            inputRef={inputRef}
             className="!w-fit !mb-0"
             value={value}
             variant="standard"

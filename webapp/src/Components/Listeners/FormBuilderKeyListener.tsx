@@ -64,6 +64,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                 } else if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
                     event.preventDefault();
                     const newField = createNewField(builderState.activeFieldIndex);
+                    console.log('newField', newField);
                     if (builderState.activeFieldIndex >= 0 || Object.keys(builderState.fields).length === 0) dispatch(setAddNewField(newField));
                     setTimeout(() => document.getElementById(`item-${newField.id}`)?.focus(), 1);
                 } else if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
