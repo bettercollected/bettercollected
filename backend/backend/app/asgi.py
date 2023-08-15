@@ -9,17 +9,17 @@ from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 
+import common.exceptions.http
 from backend.app.container import container
 from backend.app.exceptions import (
     HTTPException,
     http_exception_handler,
 )
 from backend.app.handlers import init_logging
-from backend.app.handlers.database import close_db, init_db, init_scheduler_db
+from backend.app.handlers.database import close_db, init_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
 from backend.app.services.init_schedulers import (
-    init_schedulers,
     migrate_schedule_to_temporal,
 )
 from backend.app.utils import AiohttpClient
@@ -110,6 +110,10 @@ def get_application(is_test_mode: bool = False):
     app.include_router(root_api_router)
     logger.info("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
+    app.add_exception_handler(
+        common.exceptions.http.HTTPException,
+        common.exceptions.http.http_exception_handler,
+    )
 
     logger.info("Register application middlewares.")
     include_middlewares(app)
