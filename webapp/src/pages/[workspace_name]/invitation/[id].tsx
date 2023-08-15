@@ -132,8 +132,13 @@ export async function getServerSideProps(_context: any) {
     let invitation = null;
     try {
         const userStatus = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, config);
-
         user = (await userStatus?.json().catch((e: any) => e)) ?? null;
+        if (userStatus.status !== 200)
+            return {
+                props: {
+                    ...globalProps
+                }
+            };
         if (user !== null) {
             const invitation_response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace.id}/members/invitations/${id}`, config);
             invitation = await invitation_response?.json();
