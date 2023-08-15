@@ -53,7 +53,11 @@ export default function FormSettingsTab() {
             dispatch(setFormSettings(settings));
             toast(t(localesCommon.updated).toString(), { type: 'success' });
         } else {
-            toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+            if (response.error.status === 409) {
+                toast(t('TOAST.SLUG_ALREADY_EXISTS').toString(), { type: 'error' });
+            } else {
+                toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+            }
             return response.error;
         }
     };
