@@ -513,6 +513,7 @@
     "GROUP_DELETED": "Groep succesvol verwijderd",
     "ADDED_ON_GROUP": "Toegevoegd aan groep",
     "REMOVE_FROM_GROUP": "Verwijderd uit groep",
+    "SLUG_ALREADY_EXISTS": "Formulier met gegeven slug bestaat al in de werkruimte",
     "ALREADY_IN_GROUP": "Al in groep",
     "LAST_PERSON_IN_GROUP": "Je kunt de laatste persoon van deze groep niet verwijderen",
     "REMOVED": "Verwijderd"

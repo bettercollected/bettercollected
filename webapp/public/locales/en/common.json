@@ -315,12 +315,12 @@
   "IMPORT_FORM": {
     "DEFAULT": "Import form",
     "CHOICE": "Which form do you want to import ?",
-    "GOOGLE":{
+    "GOOGLE": {
       "RESPONSE_OWNER_TAG_DESCRIPTION": "You do not have to select the field if you have “collect emails” enabled in your Google forms.",
       "RESPONSE_OWNER_TAG_LABEL": "Select email field",
       "RESPONSE_OWNER_TAG_TITLE": "Select responder’s email field"
     },
-    "TYPEFORM":{
+    "TYPEFORM": {
       "RESPONSE_OWNER_TAG_DESCRIPTION": "",
       "RESPONSE_OWNER_TAG_LABEL": "Select email field",
       "RESPONSE_OWNER_TAG_TITLE": "Select responder’s email field"
@@ -520,6 +520,7 @@
     "GROUP_DELETED": "Group deleted Successfully",
     "ADDED_ON_GROUP": "Added on group",
     "REMOVE_FROM_GROUP": "Removed from group",
+    "SLUG_ALREADY_EXISTS": "Form with given slug already exists in workspace",
     "ALREADY_IN_GROUP": "Already in group",
     "LAST_PERSON_IN_GROUP": "You cant remove the last person of this group",
     "REMOVED": "Removed",
@@ -640,7 +641,7 @@
     "PROFILE_IMAGE": "Workspace Profile Image",
     "TITLE": "Workspace Title",
     "TITLE_VALIDATION_MESSAGE": "Workspace title is required",
-    "WORKSPACE_NAME_VALIDATION_MESSAGE":"Workspace Handle is required",
+    "WORKSPACE_NAME_VALIDATION_MESSAGE": "Workspace Handle is required",
     "WORKSPACE_NAME_INVALID_CHARACTER": "Workspace handle must only contain lowercase letters, numbers and underscore",
     "URL": "Workspace URL"
   }
