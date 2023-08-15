@@ -135,6 +135,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                         showHideHolder={true}
                                         placeholder={item.properties?.placeholder ?? t('COMPONENTS.COMMON.PLACEHOLDER')}
                                         className="text-[14px] text-black-800"
+                                        onBlurCallback={() => {}}
                                         onFocusCallback={onFocusCallback}
                                         onKeyDownCallback={(event: KeyboardEvent<HTMLDivElement>) => {
                                             if (builderState?.menus?.commands?.isOpen)
@@ -179,7 +180,20 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                     <FormBuilderTagSelector
                                         className={!!builderState.menus?.commands?.isOpen && builderState.menus?.commands?.atFieldUuid === item.id ? 'visible' : 'invisible'}
                                         position={builderState.menus?.commands?.position}
-                                        closeMenu={() => {}}
+                                        closeMenu={() => {
+                                            dispatch(
+                                                setBuilderState({
+                                                    menus: {
+                                                        ...builderState.menus,
+                                                        commands: {
+                                                            isOpen: false,
+                                                            atFieldUuid: '',
+                                                            position: 'down'
+                                                        }
+                                                    }
+                                                })
+                                            );
+                                        }}
                                         handleSelection={handleTagSelection}
                                         searchQuery={builderState.fields[builderState.activeFieldId]?.value?.split('/').slice(-1)[0] || ''}
                                     />

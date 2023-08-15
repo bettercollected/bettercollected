@@ -1,46 +1,54 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { isEmpty } from 'lodash';
-
 import Element from '@Components/Common/Icons/Element';
 import ElementsWithLabel from '@Components/Common/Icons/ElementsWithLabel';
-import { AlternateEmail, ArrowDropDown, DateRange, Grid4x4, Notes, Phone, ShortText, Star, Tag, TrendingUpSharp } from '@mui/icons-material';
-import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import CheckboxIcon from '@Components/Common/Icons/FormBuilder/CheckboxIcon';
+import DateIcon from '@Components/Common/Icons/FormBuilder/DateIcon';
+import DropDownIcon from '@Components/Common/Icons/FormBuilder/DropDownIcon';
+import EmailIcon from '@Components/Common/Icons/FormBuilder/EmailIcon';
+import LongTextIcon from '@Components/Common/Icons/FormBuilder/LongTextIcon';
+import MultipleChoiceIcon from '@Components/Common/Icons/FormBuilder/MultipleChoiceIcon';
+import PhoneNumberIcon from '@Components/Common/Icons/FormBuilder/PhoneNumberIcon';
+import RankingIcon from '@Components/Common/Icons/FormBuilder/RankingIcon';
+import RatingIcon from '@Components/Common/Icons/FormBuilder/RatingIcon';
+import ShortTextIcon from '@Components/Common/Icons/FormBuilder/ShortTextIcon';
+import TagListItem from '@Components/FormBuilder/BuilderBlock/TagListItem';
+import { Tag } from '@mui/icons-material';
 import LinkIcon from '@mui/icons-material/Link';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
-import { List, ListItem, ListSubheader, Paper } from '@mui/material';
+import { List, ListSubheader, Paper } from '@mui/material';
 
-import { TagIcon } from '@app/components/icons/tag-icon';
 import { BlockTypes, FormBuilderTagNames, KeyType } from '@app/models/enums/formBuilder';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
+import { selectActiveFieldId } from '@app/store/form-builder/selectors';
+import { useAppSelector } from '@app/store/hooks';
 
 export const allowedInputTags = [
     {
         id: FormBuilderTagNames.INPUT_SHORT_TEXT,
         type: FormBuilderTagNames.INPUT_SHORT_TEXT,
         label: 'Short Input Text',
-        icon: <ShortText width={20} height={20} />,
+        icon: <ShortTextIcon width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_LONG_TEXT,
         type: FormBuilderTagNames.INPUT_LONG_TEXT,
         label: 'Long Text Input',
-        icon: <Notes width={20} height={20} />,
+        icon: <LongTextIcon width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_EMAIL,
         type: FormBuilderTagNames.INPUT_EMAIL,
         label: 'Email',
-        icon: <AlternateEmail width={20} height={20} />,
+        icon: <EmailIcon width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_NUMBER,
         type: FormBuilderTagNames.INPUT_NUMBER,
         label: 'Number',
-        icon: <TagIcon width={20} height={20} />,
+        icon: <Tag width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
@@ -54,49 +62,49 @@ export const allowedInputTags = [
         id: FormBuilderTagNames.INPUT_DATE,
         type: FormBuilderTagNames.INPUT_DATE,
         label: 'Date',
-        icon: <DateRange width={20} height={20} />,
+        icon: <DateIcon width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_PHONE_NUMBER,
         type: FormBuilderTagNames.INPUT_PHONE_NUMBER,
         label: 'Phone Number',
-        icon: <Phone width={20} height={20} />,
+        icon: <PhoneNumberIcon width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_CHECKBOXES,
         type: FormBuilderTagNames.INPUT_CHECKBOXES,
         label: 'Checkboxes',
-        icon: <CheckBoxOutlineBlankIcon width={20} height={20} />,
+        icon: <CheckboxIcon width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_MULTIPLE_CHOICE,
         type: FormBuilderTagNames.INPUT_MULTIPLE_CHOICE,
         label: 'Multiple Choice',
-        icon: <RadioButtonUncheckedIcon width={20} height={20} />,
+        icon: <MultipleChoiceIcon width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_DROPDOWN,
         type: FormBuilderTagNames.INPUT_DROPDOWN,
         label: 'Dropdown',
-        icon: <ArrowDropDown width={20} height={20} />,
+        icon: <DropDownIcon width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_RATING,
         type: FormBuilderTagNames.INPUT_RATING,
         label: 'Rating',
-        icon: <Star width={20} height={20} />,
+        icon: <RatingIcon width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_RANKING,
         type: FormBuilderTagNames.INPUT_RANKING,
         label: 'Ranking',
-        icon: <TrendingUpSharp width={20} height={20} />,
+        icon: <RankingIcon width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
     }
 ];
@@ -106,42 +114,42 @@ export const allowedLayoutTags = [
         id: FormBuilderTagNames.LAYOUT_HEADER1,
         type: FormBuilderTagNames.LAYOUT_HEADER1,
         label: 'Heading 1',
-        icon: <div className="w-5 font-bold text-xl">H1</div>,
+        icon: <div className="font-bold text-[16px] text-black-800">H1</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER2,
         type: FormBuilderTagNames.LAYOUT_HEADER2,
         label: 'Heading 2',
-        icon: <div className=" font-bold text-xl">H2</div>,
+        icon: <div className="font-bold text-[16px] text-black-800">H2</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER3,
         type: FormBuilderTagNames.LAYOUT_HEADER3,
         label: 'Heading 3',
-        icon: <div className=" font-bold text-xl">H3</div>,
+        icon: <div className="font-bold text-[16px] text-black-800">H3</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER4,
         type: FormBuilderTagNames.LAYOUT_HEADER4,
         label: 'Heading 4',
-        icon: <div className=" font-bold text-xl">H4</div>,
+        icon: <div className="font-bold text-[16px] text-black-800">H4</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         label: 'Text',
-        icon: <div className="font-bold text-center text-xl">{'T'}</div>,
+        icon: <div className="font-bold text-[16px] px-2 text-black-800">T</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_LABEL,
         type: FormBuilderTagNames.LAYOUT_LABEL,
         label: 'Label',
-        icon: <div className=" font-bold text-center text-xl">{'L'}</div>,
+        icon: <div className="font-bold text-[16px] px-2 text-black-800">L</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
@@ -149,7 +157,7 @@ export const allowedLayoutTags = [
         type: FormBuilderTagNames.LAYOUT_MARKDOWN,
         label: 'Markdown',
         icon: <Tag width={20} height={20} />,
-        blockType: BlockTypes.INPUT_BLOCKS
+        blockType: BlockTypes.LAYOUT_BLOCKS
     }
 ];
 
@@ -158,28 +166,28 @@ export const allowedQuestionAndAnswerTags = [
         id: FormBuilderTagNames.QUESTION_SHORT_TEXT,
         type: FormBuilderTagNames.QUESTION_SHORT_TEXT,
         label: 'Label + Short Input Text',
-        icon: <ShortText width={20} height={20} />,
+        icon: <ShortTextIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_LONG_TEXT,
         type: FormBuilderTagNames.QUESTION_LONG_TEXT,
         label: 'Label + Long Text Input',
-        icon: <Notes width={20} height={20} />,
+        icon: <LongTextIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_EMAIL,
         type: FormBuilderTagNames.QUESTION_EMAIL,
         label: 'Label + Email',
-        icon: <AlternateEmail width={20} height={20} />,
+        icon: <EmailIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_NUMBER,
         type: FormBuilderTagNames.QUESTION_NUMBER,
         label: 'Label + Number',
-        icon: <TagIcon width={20} height={20} />,
+        icon: <Tag width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
@@ -193,49 +201,49 @@ export const allowedQuestionAndAnswerTags = [
         id: FormBuilderTagNames.QUESTION_DATE,
         type: FormBuilderTagNames.QUESTION_DATE,
         label: 'Label + Date',
-        icon: <DateRange width={20} height={20} />,
+        icon: <DateIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_PHONE_NUMBER,
         type: FormBuilderTagNames.QUESTION_PHONE_NUMBER,
         label: 'Label + Phone Number',
-        icon: <Phone width={20} height={20} />,
+        icon: <PhoneNumberIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_CHECKBOXES,
         type: FormBuilderTagNames.QUESTION_CHECKBOXES,
         label: 'Label + Checkboxes',
-        icon: <CheckBoxOutlineBlankIcon width={20} height={20} />,
+        icon: <CheckboxIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
         type: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
         label: 'Label + Multiple Choice',
-        icon: <RadioButtonUncheckedIcon width={20} height={20} />,
+        icon: <MultipleChoiceIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_DROPDOWN,
         type: FormBuilderTagNames.QUESTION_DROPDOWN,
         label: 'Label + Dropdown',
-        icon: <ArrowDropDown width={20} height={20} />,
+        icon: <DropDownIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_RATING,
         type: FormBuilderTagNames.QUESTION_RATING,
         label: 'Label + Rating',
-        icon: <Star width={20} height={20} />,
+        icon: <RatingIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_RANKING,
         type: FormBuilderTagNames.QUESTION_RANKING,
         label: 'Label + Ranking',
-        icon: <TrendingUpSharp width={20} height={20} />,
+        icon: <RankingIcon width={20} height={20} />,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     }
 ];
@@ -253,9 +261,9 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
     const [tagList, setTagList] = useState(allowedTags);
     const [selectedTag, setSelectedTag] = useState({ blockType: BlockTypes.QUESTION_INPUT_BLOCKS, index: 0 });
     const [command, setCommand] = useState('');
-    const [blockListTypes, setBlockListTypes] = useState<Array<any>>([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS]);
+    const [blockListTypes, setBlockListTypes] = useState<Array<BlockTypes>>([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS]);
     const listRef: any = useRef(null);
-
+    const activeField = useAppSelector(selectActiveFieldId);
     useEffect(() => {
         if (!searchQuery) {
             setBlockListTypes([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.INPUT_BLOCKS]);
@@ -352,9 +360,20 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
             });
         };
 
+        const handleMouseDown = (e: any) => {
+            const tagSelector = document.getElementById('tag-selector');
+            const inputElement = document.getElementById(`item-${activeField}`);
+            if (!tagSelector?.contains(e.target) && !inputElement?.contains(e.target)) {
+                closeMenu();
+            } else {
+                e.preventDefault();
+            }
+        };
         document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('mousedown', handleMouseDown);
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('mousedown', handleMouseDown);
         };
     }, [handleSelection, selectedTag, command, closeMenu, getFilteredList, blockListTypes]);
 
@@ -365,40 +384,32 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
         }
     };
 
-    const renderSingleTypeTagElements = (blockType: string, typeTagList: Array<any>) =>
+    const scrollBlockTypeToTop = (blockType: BlockTypes) => {
+        const blockHeading = document.getElementById(blockType);
+        if (blockHeading) {
+            blockHeading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    const renderSingleTypeTagElements = (blockType: BlockTypes, typeTagList: Array<any>) =>
         typeTagList.length != 0 && (
             <li key={blockType}>
                 <ul>
-                    <div className="font-medium px-3 py-5 bg-brand-100">{blockType}</div>
-
+                    <div className="font-medium px-6 py-5 bg-brand-100" id={blockType}>
+                        {blockType}
+                    </div>
                     {typeTagList.map((tag: any, index: number) => {
                         const isSelected = selectedTag.blockType === blockType && selectedTag.index === index;
-                        const listItemClass = isSelected ? 'bg-brand-500 !text-white selected' : 'text-black-700 hover:bg-blue-400 hover:text-white';
 
-                        return (
-                            <ListItem
-                                key={index}
-                                data-id={`${blockType}-${index}`}
-                                data-tag={tag.type}
-                                className={`flex items-center px-3 py-2 gap-3 body4  last:border-b-0 ${listItemClass}`}
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => {
-                                    handleSelection(tag.type);
-                                }}
-                            >
-                                {tag.icon}
-                                <span className="ml-2">{tag.label}</span>
-                            </ListItem>
-                        );
+                        return <TagListItem key={index} tag={tag} index={index} blockType={blockType} isSelected={isSelected} handleSelection={handleSelection} setSelectedTag={setSelectedTag} />;
                     })}
                 </ul>
             </li>
         );
 
     const renderAllFields = () => {
-        const fields = blockListTypes.map((type) => renderSingleTypeTagElements(type, getFilteredList(type)));
-        return fields.every((field) => field === false) ? <ListSubheader className="font-bold tracking-widest shadow-sm">No Results found</ListSubheader> : fields;
+        const fields = blockListTypes.map((type: BlockTypes) => renderSingleTypeTagElements(type, getFilteredList(type)));
+        return fields.every((field) => field === false) ? <ListSubheader className="font-bold shadow-sm">No Results found</ListSubheader> : fields;
     };
 
     const getBlockTypeIcon = (type: BlockTypes) => {
@@ -413,23 +424,29 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
     };
 
     return (
-        <div className={`absolute max-w-[389px] ${position === 'down' ? 'top-full' : '-top-[300px]'} shadow-2xl left-0 right-0 z-[9999] overflow-hidden rounded bg-white drop-shadow-main ${className}`}>
-            <Paper style={{ height: 300, maxWidth: 389, width: 'full', overflowY: 'auto' }}>
+        <div id="tag-selector" className={`absolute max-w-[389px] ${position === 'down' ? 'top-full' : '-top-[300px]'} shadow-2xl left-0 right-0 z-[9999] overflow-hidden rounded bg-white drop-shadow-main ${className}`}>
+            <Paper style={{ maxHeight: 300, maxWidth: 389, width: 'full', overflowY: 'auto' }}>
                 <div className="flex h-full">
                     <div className=" py-3">
                         {blockListTypes.map((type: BlockTypes) => (
-                            <div key={type} className={` ${selectedTag.blockType === type ? 'bg-brand-200' : ''} px-4 py-2 `}>
+                            <div
+                                key={type}
+                                className={`cursor-pointer ${selectedTag.blockType === type ? 'bg-brand-200' : ''} px-4 py-2 `}
+                                onClick={() => {
+                                    setSelectedTag({ blockType: type, index: 0 });
+                                    scrollBlockTypeToTop(type);
+                                }}
+                            >
                                 {getBlockTypeIcon(type)}
                             </div>
                         ))}
                     </div>
                     <div className="w-full h-full bg-brand-100">
                         <List
-                            className="px-4"
+                            className=""
                             ref={listRef}
                             sx={{
                                 width: '100%',
-                                // bgcolor: 'background.paper',
                                 position: 'relative',
                                 overflow: 'auto',
                                 maxHeight: 300,

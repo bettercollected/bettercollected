@@ -6,4 +6,6 @@ export const selectIsFormDirty = (state: RootState) => state.builder.isFormDirty
 
 export const selectFormField = (id: string) => (state: RootState) => state.builder.fields[id];
 
+export const selectActiveFieldId = (state: RootState) => state.builder.activeFieldId;
+
 export const selectResponseOwnerField = (state: RootState) => state.builder.settings?.responseDataOwnerField;
