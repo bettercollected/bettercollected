@@ -47,25 +47,27 @@ export default function FormBuilderPreviewModal({ publish }: { publish: () => vo
             <div className="flex fixed z-[10000] bg-transparent top-6 right-10 gap-4 w-fit">
                 <Button
                     variant="contained"
-                    className="w-fit bg-brand-500 px-8 gap-2 py-3 "
+                    className="w-fit capitalize bg-brand-500 px-4 gap-2 py-2 "
                     onClick={() => {
                         closeModal();
                     }}
+                    size="small"
                 >
                     <span>
                         <EditIcon />
                     </span>
-                    Edit
+                    Edit Form
                 </Button>
 
                 <Button
                     variant="outlined"
-                    className="w-fit bg-brand-100 text-brand-500 px-8 gap-2 py-3 "
+                    className="w-fit capitalize bg-brand-100 text-brand-500 px-4 gap-2 py-2 "
                     onClick={() => {
                         publish();
                     }}
+                    size="small"
                 >
-                    Publish
+                    Publish Form
                 </Button>
             </div>
             <div className="h-screen overflow-auto 2xl:pt-6 min-h-screen w-full pt-28 pb-6 px-5">
