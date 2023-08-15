@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 
 import { batch } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -10,7 +10,7 @@ import useFormBuilderState from '@app/containers/form-builder/context';
 import eventBus from '@app/lib/event-bus';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setActiveField, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField } from '@app/store/form-builder/actions';
+import { addDuplicateField, resetBuilderMenuState, setAddNewField, setBuilderState, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -30,7 +30,6 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
         (event: KeyboardEvent) => {
             batch(async () => {
                 const fieldId = builderState.activeFieldId;
-
                 const focusNextField = () => {
                     let nextFieldId = Object.keys(builderState.fields)[builderState.activeFieldIndex + 1];
 
@@ -64,20 +63,23 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                 } else if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
                     event.preventDefault();
                     const newField = createNewField(builderState.activeFieldIndex);
-                    console.log('newField', newField);
-                    if (builderState.activeFieldIndex >= 0 || Object.keys(builderState.fields).length === 0) dispatch(setAddNewField(newField));
-                    setTimeout(() => document.getElementById(`item-${newField.id}`)?.focus(), 1);
+                    if (builderState.activeFieldIndex >= 0 || Object.keys(builderState.fields).length === 0) {
+                        dispatch(setAddNewField(newField));
+                        setTimeout(() => document.getElementById(`item-${newField.id}`)?.focus(), 1);
+                    } else {
+                        console.log(`item-${Object.keys(builderState.fields)[0]}`);
+                        document.getElementById(`item-${Object.keys(builderState.fields)[0]}`)?.focus();
+                    }
                 } else if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
                 else if (!event.ctrlKey && !event.metaKey && (event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
                     focusNextField();
                 } else if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2) {
                     focusPreviousField();
-                } else if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey) {
+                } else if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey && builderState.fields[builderState.activeFieldId]?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
                     eventBus.emit(EventBusEventType.FormBuilder.OpenTagSelector);
                 } else if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
                     if (backspaceCount === 1) {
                         event.preventDefault();
-
                         asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
                         focusPreviousField();
                     } else {
