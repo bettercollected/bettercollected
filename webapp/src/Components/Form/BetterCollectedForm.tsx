@@ -34,10 +34,12 @@ export interface FormFieldProps {
 const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?: any) => {
     switch (field?.type) {
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
+            return <div className={contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_HEADER3:
         case FormBuilderTagNames.LAYOUT_HEADER1:
         case FormBuilderTagNames.LAYOUT_HEADER4:
         case FormBuilderTagNames.LAYOUT_HEADER2:
+            return <div className={'!mt-6 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_LABEL:
             return <div className={'!mt-4 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_MARKDOWN:

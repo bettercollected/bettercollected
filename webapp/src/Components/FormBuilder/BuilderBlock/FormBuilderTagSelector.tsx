@@ -361,10 +361,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
     const scrollToSelectedItem = (blockType: string, index: number | string) => {
         const selectedItem = listRef.current?.querySelector(`[data-id="${blockType}-${index}"]`);
         if (selectedItem) {
-            selectedItem.scrollIntoView({
-                block: 'end',
-                inline: 'end'
-            });
+            selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     };
 
@@ -372,7 +369,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
         typeTagList.length != 0 && (
             <li key={blockType}>
                 <ul>
-                    <ListSubheader className="font-medium  bg-brand-100">{blockType}</ListSubheader>
+                    <div className="font-medium px-3 py-5 bg-brand-100">{blockType}</div>
 
                     {typeTagList.map((tag: any, index: number) => {
                         const isSelected = selectedTag.blockType === blockType && selectedTag.index === index;
@@ -416,8 +413,8 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
     };
 
     return (
-        <div className={`absolute ${position === 'down' ? 'top-full' : '-top-[300px]'} shadow-2xl left-0 right-0 z-[9999] overflow-hidden rounded bg-white drop-shadow-main ${className}`}>
-            <Paper style={{ height: 300, overflowY: 'auto' }}>
+        <div className={`absolute max-w-[389px] ${position === 'down' ? 'top-full' : '-top-[300px]'} shadow-2xl left-0 right-0 z-[9999] overflow-hidden rounded bg-white drop-shadow-main ${className}`}>
+            <Paper style={{ height: 300, maxWidth: 389, width: 'full', overflowY: 'auto' }}>
                 <div className="flex h-full">
                     <div className=" py-3">
                         {blockListTypes.map((type: BlockTypes) => (

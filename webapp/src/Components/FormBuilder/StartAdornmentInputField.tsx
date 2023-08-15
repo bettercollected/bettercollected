@@ -70,7 +70,6 @@ export default function StartAdornmentInputField({ type, value, id, onChangeCall
                     fontWeight: 400,
                     color: 'black',
                     content: 'none',
-                    letterSpacing: 1,
                     outline: 'none',
                     border: 'none'
                 }
