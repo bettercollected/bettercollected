@@ -39,9 +39,9 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
         case FormBuilderTagNames.LAYOUT_HEADER1:
         case FormBuilderTagNames.LAYOUT_HEADER4:
         case FormBuilderTagNames.LAYOUT_HEADER2:
-            return <div className={'!mt-6 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
+            return <div className={'!mt-8 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_LABEL:
-            return <div className={'!mt-4 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
+            return <div className={'!mt-3 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_MARKDOWN:
             return <MarkdownText text={field.value ?? ''} />;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:

@@ -43,17 +43,8 @@ export default function FormBuilderPreviewModal({ publish }: { publish: () => vo
     }, [builderState]);
 
     return (
-        <div className="relative h-full min-h-screen w-full pt-28 pb-6 px-5 overflow-auto 2xl:pt-6 !bg-brand-100 ">
-            {/*<div*/}
-            {/*    className="absolute cursor-pointer text-black-600 top-5 right-10"*/}
-            {/*    onClick={() => {*/}
-            {/*        closeModal();*/}
-            {/*    }}*/}
-            {/*>*/}
-            {/*    {' '}*/}
-            {/*    Back to Editor*/}
-            {/*</div>*/}
-            <div className="flex absolute top-6 right-10 gap-4 w-fit">
+        <div className="relative w-full   !bg-brand-100 ">
+            <div className="flex fixed z-[10000] bg-transparent top-6 right-10 gap-4 w-fit">
                 <Button
                     variant="contained"
                     className="w-fit bg-brand-500 px-8 gap-2 py-3 "
@@ -69,7 +60,7 @@ export default function FormBuilderPreviewModal({ publish }: { publish: () => vo
 
                 <Button
                     variant="outlined"
-                    className="w-fit text-brand-500 px-8 gap-2 py-3 "
+                    className="w-fit bg-brand-100 text-brand-500 px-8 gap-2 py-3 "
                     onClick={() => {
                         publish();
                     }}
@@ -77,7 +68,9 @@ export default function FormBuilderPreviewModal({ publish }: { publish: () => vo
                     Publish
                 </Button>
             </div>
-            <BetterCollectedForm form={formToRender} enabled={true} preview={true} closeModal={closeModal} />
+            <div className="h-screen overflow-auto 2xl:pt-6 min-h-screen w-full pt-28 pb-6 px-5">
+                <BetterCollectedForm form={formToRender} enabled={true} preview={true} closeModal={closeModal} />
+            </div>
         </div>
     );
 }
