@@ -135,9 +135,10 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         onFormPublishRedirect(response);
     };
 
-    const openTagSelector = () => {
+    const openTagSelector = (event: any) => {
         const viewportHeight = window.innerHeight;
-        const bottomPosition = builderDragDropRef.current?.getBoundingClientRect().bottom ?? 0;
+        const boundingRect = event.target.getBoundingClientRect();
+        const bottomPosition = boundingRect.bottom ?? 0;
 
         // 300 is the height of the FormBuilderTagSelector
         dispatch(

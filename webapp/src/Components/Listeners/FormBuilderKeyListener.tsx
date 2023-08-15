@@ -67,7 +67,6 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                         dispatch(setAddNewField(newField));
                         setTimeout(() => document.getElementById(`item-${newField.id}`)?.focus(), 1);
                     } else {
-                        console.log(`item-${Object.keys(builderState.fields)[0]}`);
                         document.getElementById(`item-${Object.keys(builderState.fields)[0]}`)?.focus();
                     }
                 } else if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
@@ -76,7 +75,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                 } else if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2) {
                     focusPreviousField();
                 } else if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey && builderState.fields[builderState.activeFieldId]?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
-                    eventBus.emit(EventBusEventType.FormBuilder.OpenTagSelector);
+                    eventBus.emit(EventBusEventType.FormBuilder.OpenTagSelector, event);
                 } else if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
                     if (backspaceCount === 1) {
                         event.preventDefault();
