@@ -2,8 +2,8 @@ import React from 'react';
 
 export default function EditIcon(props: React.SVGAttributes<any>) {
     return (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-            <path d="M18 10L21 7L17 3L14 6M18 10L8 20H4V16L14 6M18 10L14 6" stroke="currentColor" strokeWidth="currentWidth" strokeLinecap="round" strokeLinejoin="round" />
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+            <path d="M11.9998 6.66667L13.9998 4.66667L11.3332 2L9.33317 4M11.9998 6.66667L5.33317 13.3333H2.6665V10.6667L9.33317 4M11.9998 6.66667L9.33317 4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
     );
 }

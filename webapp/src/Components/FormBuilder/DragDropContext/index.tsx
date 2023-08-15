@@ -33,7 +33,6 @@ export default function BuilderDragDropContext({ Component, componentAttrs, drop
 
         onDragEndHandlerCallback(result, provided);
     };
-    console.log(droppableItems);
 
     return (
         <DragDropContext onDragStart={onDragStartHandler} onDragUpdate={onDragUpdateHandler} onDragEnd={onDragEndHandler}>
