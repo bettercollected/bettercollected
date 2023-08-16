@@ -1,4 +1,3 @@
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
@@ -35,7 +34,9 @@ const initialState: IBuilderState = {
     currentVersionIndex: 0,
     isFormDirty: false,
     activeFieldIndex: -2,
-    activeFieldId: ''
+    activeFieldId: '',
+    activeChoiceId: '',
+    activeChoiceIndex: 0
 };
 
 export const setIsFormDirtyAsync = createAsyncThunk('form/setIsFormDirtyAsync', async (isDirty, { getState }) => {
@@ -68,27 +69,10 @@ export const builder = createSlice({
                 ...action.payload
             };
         },
-        setActiveChoice: (state, action: PayloadAction<{ id?: string; position?: number }>) => {
+        setActiveChoice: (state, action: PayloadAction<{ id: string; position: number }>) => {
             const { id, position } = action.payload;
-            const activeField = state.fields[state.activeFieldId];
-            if (!activeField) return state;
-
-            const updatedActiveField = {
-                ...activeField,
-                properties: {
-                    ...activeField.properties,
-                    activeChoiceId: id ?? activeField.properties?.activeChoiceId,
-                    activeChoiceIndex: position ?? activeField.properties?.activeChoiceIndex
-                }
-            };
-
-            return {
-                ...state,
-                fields: {
-                    ...state.fields,
-                    [state.activeFieldId]: updatedActiveField
-                }
-            };
+            state.activeChoiceId = id;
+            state.activeChoiceIndex = position;
         },
         // current active/focused field
         setActiveField: (state, action: PayloadAction<{ id: string; position: number }>) => {
@@ -106,7 +90,21 @@ export const builder = createSlice({
             newChoices.forEach((choice: any, index: number) => {
                 choices[choice.id] = { ...choice, position: index };
             });
-            return { ...state, fields: { ...state.fields, [activeField.id]: { ...activeField, properties: { ...activeField.properties, choices, activeChoiceId: action.payload.id, activeChoiceIndex: action.payload.position } } } };
+            return {
+                ...state,
+                fields: {
+                    ...state.fields,
+                    [activeField.id]: {
+                        ...activeField,
+                        properties: {
+                            ...activeField.properties,
+                            choices,
+                            activeChoiceId: action.payload.id,
+                            activeChoiceIndex: action.payload.position
+                        }
+                    }
+                }
+            };
         },
         setDeleteChoice: (state: IBuilderState, action: { payload: string; type: string }) => {
             const activeField = state.fields[state.activeFieldId];
@@ -115,10 +113,27 @@ export const builder = createSlice({
             const choicesEntries = proxyKeys.map((key) => [key, activeField.properties?.choices[key]]);
             const choices = Object.fromEntries(choicesEntries);
             if (action.payload) delete choices[action.payload];
-            return { ...state, fields: { ...state.fields, [activeField.id]: { ...activeField, properties: { activeChoiceId: activeField.properties?.activeChoiceId, activeChoiceIndex: (activeField.properties?.activeChoiceIndex ?? -1) - 1, choices } } } };
+            return {
+                ...state,
+                fields: {
+                    ...state.fields,
+                    [activeField.id]: {
+                        ...activeField,
+                        properties: {
+                            activeChoiceId: activeField.properties?.activeChoiceId,
+                            activeChoiceIndex: (activeField.properties?.activeChoiceIndex ?? -1) - 1,
+                            choices
+                        }
+                    }
+                }
+            };
         },
         setCommandMenuPosition: (state, action: { payload: 'up' | 'down' }) => {
-            if (state.menus?.commands) return { ...state, menus: { ...state.menus, commands: { ...state.menus?.commands, position: action.payload } } };
+            if (state.menus?.commands)
+                return {
+                    ...state,
+                    menus: { ...state.menus, commands: { ...state.menus?.commands, position: action.payload } }
+                };
         },
         setBuilderMenuState: (state: IBuilderState, action: { payload: Partial<IBuilderMenuState>; type: string }) => {
             const menus = { ...state.menus, ...action.payload };
@@ -149,7 +164,7 @@ export const builder = createSlice({
                 type: newType,
                 position: action.payload.position
             };
-            newField.properties = action.payload.properties ?? getInitialPropertiesForFieldType(newType);
+            newField.properties = action.payload.properties || getInitialPropertiesForFieldType(newType);
             fieldsToAdd.push(newField);
             const fieldsArray = [...Object.values(state.fields)];
 
@@ -208,9 +223,10 @@ export const builder = createSlice({
             const fields: any = {};
             action.payload.fields.forEach((field: any, index: number) => {
                 const choices: any = {};
-                for (const choice of field?.properties?.choices || []) {
-                    choices[choice.id] = choice;
-                }
+
+                field?.properties?.choices?.map((choice: IChoiceFieldState, index: number) => {
+                    choices[choice.id] = { ...choice, position: index };
+                });
                 fields[field.id] = { ...field, position: index, properties: { ...field.properties, choices: choices } };
             });
             return {

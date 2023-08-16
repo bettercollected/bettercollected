@@ -9,7 +9,7 @@ import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { createNewChoice, createNewField, isMultipleChoice } from '@app/utils/formBuilderBlockUtils';
 
-export default function MultipleChoiceKeyEventListener({ children }: React.PropsWithChildren) {
+export default function MultipleChoiceKeyEventListener({ children, field }: { children: React.ReactNode; field: IFormFieldState }) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
     const { backspaceCount, setBackspaceCount } = useFormBuilderState();
@@ -20,16 +20,14 @@ export default function MultipleChoiceKeyEventListener({ children }: React.Props
             batch(async () => {
                 const fieldId = builderState.activeFieldId;
                 const formField: IFormFieldState | undefined = builderState.fields[fieldId];
+                if (fieldId !== field.id) return;
                 if (!isMultipleChoice(formField?.type)) return;
-
-                const { activeChoiceId, activeChoiceIndex, choices } = formField.properties || {};
-
+                const { activeChoiceId, activeChoiceIndex } = builderState;
+                const { choices } = formField.properties || {};
                 if (activeChoiceIndex === undefined || activeChoiceId === undefined || choices === undefined) return;
-
                 if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault();
                     event.stopPropagation();
-
                     if (choices[activeChoiceId].value !== '') {
                         const newChoice = createNewChoice(activeChoiceIndex + 1);
                         dispatch(setAddNewChoice(newChoice));
@@ -67,12 +65,11 @@ export default function MultipleChoiceKeyEventListener({ children }: React.Props
     );
 
     useEffect(() => {
-        document.addEventListener('keydown', onKeyDownCallback);
-
+        if (field.id === builderState.activeFieldId) document.addEventListener('keydown', onKeyDownCallback);
         return () => {
             document.removeEventListener('keydown', onKeyDownCallback);
         };
-    }, [builderState, backspaceCount, onKeyDownCallback]);
+    }, [builderState, backspaceCount, onKeyDownCallback, builderState.activeFieldId, builderState.fields]);
 
     return <div>{children}</div>;
 }
