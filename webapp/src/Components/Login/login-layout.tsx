@@ -45,24 +45,24 @@ export default function LoginLayout(props: MyLoginProps) {
 
     return (
         <Layout className="min-h-screen !mt-0">
-            <div className="absolute h-fit top-0 left-0 w-full flex flex-col md:flex-row">
-                <div className={`bg-brand-500 relative order-2 md:order-1 min-h-screen md:max-h-screen overflow-hidden h-fit md:h-full w-full md:w-[50%] flex flex-col justify-center`}>
-                    <div className="flex flex-col px-8 md:max-h-[300px] my-10 md:px-[94px] ">
-                        <h1 className="h4 !text-black-100 mb-6">{features.heading}</h1>
+            <div className="absolute h-fit top-0 left-0 w-full flex flex-col xl:flex-row">
+                <div className={`bg-brand-500 relative order-2 xl:order-1 min-h-screen xl:max-h-screen overflow-hidden h-fit xl:h-full w-full xl:w-[50%] flex flex-col justify-start`}>
+                    <div className="flex flex-col px-8 my-10 xl:max-h-[300px] xl:px-[94px] ">
+                        <h1 className="sh1 !text-black-100 mb-6">{features.heading}</h1>
                         {features.paragraphs.map((paragraph: string, idx: number) => (
                             <div key={idx} className="flex items-center gap-3 mb-4 last:mb-0">
                                 <Check className="text-black-300" />
-                                <p className="text-black-300">{paragraph}</p>
+                                <p className="body2 !text-black-300">{paragraph}</p>
                             </div>
                         ))}
                     </div>
-                    <div className="flex items-center justify-center w-full">
-                        <div className="relative  md:h-[400px] h-[300px] w-full  ">
-                            <Image layout="fill" src={ImageWorkspacePreview} alt="BetterCollected" objectFit="contain" />
+                    <div className="flex w-full xl:px-[94px] px-8 pt-8 ">
+                        <div className="xl:h-[400px] h-[300px] w-fit">
+                            <Image src={ImageWorkspacePreview} alt="BetterCollected" objectFit="contain" />
                         </div>
                     </div>
                 </div>
-                <div className="flex flex-col order-1 md:order-2 items-start justify-start md:justify-center px-8 py-7 md:py-8 md:px-[110px] h-fit md:h-full w-full md:max-w-[716px]">
+                <div className="flex flex-col order-1 xl:order-2 items-start justify-start xl:justify-center px-8 py-7 xl:py-8 xl:px-[110px] h-fit xl:h-full w-full xl:max-w-[716px]">
                     <Logo isLink={false} />
                     {!email ? <OtpEmailInput isCreator={props.isCreator} setEmail={setEmail} /> : <OtpCodeComponent email={email} setEmail={setEmail} isCreator={props.isCreator} />}
                     <TermsAndCondition />
