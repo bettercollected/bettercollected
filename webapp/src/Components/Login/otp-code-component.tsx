@@ -18,11 +18,14 @@ import { useAppSelector } from '@app/store/hooks';
 interface OtpCodePropType {
     email: string;
     isCreator: boolean;
+    isModal?: boolean;
     setEmail: Dispatch<SetStateAction<string>>;
 }
 
 export default function OtpCodeComponent(props: OtpCodePropType) {
     const { t } = useTranslation();
+
+    const { isModal } = props;
 
     const { closeModal } = useFullScreenModal();
 
@@ -106,30 +109,30 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
 
     return (
         <>
-            <div className={'flex items-center mt-[48px] cursor-pointer gap-1 hover:text-brand'} onClick={handleGoBackOnStepOne}>
+            <div className={`flex items-center cursor-pointer gap-1 hover:text-brand ${isModal ? 'mt-[44px]' : ' mt-[48px]'}`} onClick={handleGoBackOnStepOne}>
                 <Back />
                 <p className={'hover:text-brand'}>{constants.backButtonTitle}</p>
             </div>
-            <h3 className="h3 mt-[44px] mb-[16px]">{constants.verificationTitle}</h3>
+            <h3 className={`h4 mb-4 ${isModal ? 'mt-5' : ' mt-[44px]'}`}>{constants.verificationTitle}</h3>
 
-            <form onSubmit={handleOtpPost}>
-                <p className=" mb-[8px] mt-[44px] text-black-900">{constants.enterOtpCode}</p>
+            <form onSubmit={handleOtpPost} className="w-full">
+                <p className={`body4 mb-[8px] text-black-900 ${!isModal && 'mt-[44px]'}`}>{constants.enterOtpCode}</p>
                 <BetterInput placeholder={constants.enterOtpCode} value={otp} onChange={handleOtpChange} />
-                <Button type={'submit'} variant="solid" isLoading={isLoading} className={'w-full mt-[32px] mb-[40px]'} size={'large'}>
+                <Button type={'submit'} variant="solid" isLoading={isLoading} className={' w-full my-4'} size={'extraMedium'}>
                     {constants.continue}
                 </Button>
             </form>
-            <div className={'flex items-center gap-2 mb-[60px] text-black-900'}>
-                <p>{constants.didnotReceiveCode}</p>
+            <div className={`flex items-center gap-2  text-black-900 ${isModal ? 'mb-[182px]' : 'mb-[60px]'}`}>
+                <p className="body4">{constants.didnotReceiveCode}</p>
                 <>
                     {counter !== 0 && (
-                        <p className="text-gray-500 cursor-not-allowed">
-                            {t(buttonConstant.resendCode)} <span className={'text-brand-500'}>({counter})</span>
+                        <p className="body4 text-gray-500 cursor-not-allowed">
+                            {t(buttonConstant.resendCode)} <span className={'body4 text-brand-500'}>({counter})</span>
                         </p>
                     )}
                     {counter === 0 && (
                         <p
-                            className="cursor-pointer underline text-brand-500"
+                            className="body4 cursor-pointer underline text-brand-500"
                             onClick={async () => {
                                 await resendOtpCode();
                             }}

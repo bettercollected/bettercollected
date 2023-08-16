@@ -25,7 +25,7 @@ export default function ConnectWithProviderButton(props: ConnectWithProviderButt
         );
 
     return (
-        <a href={`${url}${creator ? '?creator=true' : ''}`} referrerPolicy="unsafe-url" className={`mx-auto w-fit flex items-center justify-center`}>
+        <a href={`${url}${creator ? '?creator=true' : ''}`} referrerPolicy="unsafe-url" className={`xl:mx-auto w-fit flex items-center justify-center`}>
             <ProviderLoginButton disabled={disabled} label={text} type={type} onClick={() => {}} />
         </a>
     );
