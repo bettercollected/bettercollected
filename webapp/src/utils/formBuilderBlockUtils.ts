@@ -53,7 +53,7 @@ export function contentEditableClassNames(isPlaceholder: boolean, tag: string = 
 
 export function isMultipleChoice(type?: FormBuilderTagNames): boolean {
     if (!type) return false;
-    const mulipleChoiceTypes = [FormBuilderTagNames.INPUT_CHECKBOXES, FormBuilderTagNames.INPUT_MULTIPLE_CHOICE, FormBuilderTagNames.INPUT_DROPDOWN, FormBuilderTagNames.INPUT_RANKING, FormBuilderTagNames];
+    const mulipleChoiceTypes = [FormBuilderTagNames.INPUT_CHECKBOXES, FormBuilderTagNames.INPUT_MULTIPLE_CHOICE, FormBuilderTagNames.INPUT_DROPDOWN, FormBuilderTagNames.INPUT_RANKING, FormBuilderTagNames.INPUT_MULTISELECT];
     return mulipleChoiceTypes.includes(type);
 }
 

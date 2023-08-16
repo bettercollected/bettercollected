@@ -17,6 +17,7 @@ export interface IChoiceFieldState {
     value: string;
     position: number;
 }
+
 export interface IBuilderPipingState {}
 
 export interface IBuilderStateVersion {
@@ -41,6 +42,8 @@ export interface IBuilderState {
     isFormDirty?: boolean;
     activeFieldIndex: number;
     activeFieldId: string;
+    activeChoiceId: string;
+    activeChoiceIndex: number;
 }
 
 export interface IBuilderStateProps {

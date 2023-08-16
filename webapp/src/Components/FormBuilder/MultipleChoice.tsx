@@ -25,8 +25,6 @@ interface IMultipleChoiceProps {
 export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
     const dispatch = useDispatch();
 
-    const builderState = useAppSelector(selectBuilderState);
-
     const handleChoiceValueChange = (id: string, value: string) => {
         dispatch(
             setUpdateField({

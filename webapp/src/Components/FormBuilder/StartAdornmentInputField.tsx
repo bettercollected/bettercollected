@@ -47,7 +47,6 @@ export default function StartAdornmentInputField({ type, value, id, onChangeCall
     };
 
     const onFocus = (event: any) => {
-        console.log('Multiple choice focus called');
         onFocusCallback && onFocusCallback(event);
     };
 
