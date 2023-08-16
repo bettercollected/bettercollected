@@ -64,7 +64,7 @@ export const Login = () => {
 
     const constants = {
         heading: t(signInScreen.features.title),
-        paragraphs: [t(signInScreen.features.feature1), t(signInScreen.features.feature2), t(signInScreen.features.feature3), t(signInScreen.features.feature4), t(signInScreen.features.feature5)]
+        paragraphs: [t(signInScreen.features.feature1), t(signInScreen.features.feature2), t(signInScreen.features.feature3), t(signInScreen.features.feature4), t(signInScreen.features.feature5), t(signInScreen.features.feature6)]
     };
 
     return <LoginLayout isCreator={true} features={constants} />;
