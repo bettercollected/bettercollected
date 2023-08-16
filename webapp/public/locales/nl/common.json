@@ -305,18 +305,18 @@
     "ASK_ADMIN_TO_CREATE_A_GROUP": "Vraag beheerder om een ​​groep te maken"
   },
   "HEY": "hoi",
-  "HIDDEN": "Verborgen",
+  "HIDDEN": "Privaat",
   "IMAGE": "Afbeelding",
   "IMAGE_SIZE_RESTRICTION": "Zorg ervoor dat uw afbeelding kleiner is dan 100 MB",
   "IMPORT_FORM": {
     "DEFAULT": "Formulier importeren",
     "CHOICE": "Welk formulier wilt u importeren?",
-    "GOOGLE":{
+    "GOOGLE": {
       "RESPONSE_OWNER_TAG_DESCRIPTION": "U hoeft het veld niet te selecteren als u ”e-mails verzamelen” hebt ingeschakeld in uw Google-formulieren.",
       "RESPONSE_OWNER_TAG_LABEL": "Selecteer e-mailveld",
       "RESPONSE_OWNER_TAG_TITLE": "Selecteer het e-mailadres van de responder"
     },
-    "TYPEFORM":{
+    "TYPEFORM": {
       "RESPONSE_OWNER_TAG_DESCRIPTION": "",
       "RESPONSE_OWNER_TAG_LABEL": "Select email field",
       "RESPONSE_OWNER_TAG_TITLE": "Selecteer het e-mailadres van de responder"

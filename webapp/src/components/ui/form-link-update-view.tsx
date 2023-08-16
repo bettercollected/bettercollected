@@ -64,7 +64,7 @@ export default function FormLinkUpdateView({ link, isLinkChangable = false, isDi
                     </div>
                     {isLinkChangable && (
                         <div>
-                            <Button size="medium" onClick={handleFormLinkChnage}>
+                            <Button size="medium" className="!mb-4" onClick={handleFormLinkChnage}>
                                 {t(updateWorkspace.common.change)}
                             </Button>
                         </div>
