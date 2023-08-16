@@ -157,8 +157,6 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                     <div key={field?.id} className="relative w-full">
                         {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
                         <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
-                        {/*{invalidFields?.includes(field?.id) &&*/}
-                        {/*    <div className=" body5 !mb-7 !text-red-500 ">Field Required*</div>}*/}
                     </div>
                 ))}
                 {enabled && (
