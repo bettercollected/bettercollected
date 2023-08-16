@@ -1,12 +1,12 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-
-import LoginLayout from '@Components/Login/login-layout';
 
 import { Close } from '@app/components/icons/close';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
+
+import { SignInModal } from '../modal-views/modals/sign-in-modal';
 
 export default function LoginView(props: any) {
     const { closeModal } = useFullScreenModal();
@@ -20,9 +20,9 @@ export default function LoginView(props: any) {
     };
 
     return (
-        <div ref={ref} className="relative z-50 mx-auto max-w-full w-full" {...props}>
-            <LoginLayout isCreator={false} features={features} />
-            <Close onClick={() => closeModal()} className="cursor-pointer absolute top-5 right-5 hover:text-black dark:text-white" />
+        <div ref={ref} className="relative z-50 mx-auto my-auto w-screen overflow-auto xl:w-[1094px] min-h-screen xl:min-h-[687px] xl:h-[687px] bg-brand-100 dark:bg-dark xl:rounded-lg" {...props}>
+            <SignInModal isCreator={false} features={features} />
+            <Close onClick={() => closeModal()} className="cursor-pointer fixed xl:absolute top-5 right-5 hover:text-black dark:text-white" />
         </div>
     );
 }

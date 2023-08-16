@@ -454,7 +454,7 @@
   "SHARE_YOUR_WORKSPACE": "Share your workspace",
   "SIGNIN_SCREEN": {
     "COLLECT_FORMS": "Collect your forms",
-    "SIGN_IN": "Sign in",
+    "SIGN_IN": "Sign In",
     "CONTINUE_WITH": "Don't have an account?",
     "DELETE_RESPONSES": "Delete responses",
     "EASY_TO_MANAGE_FORMS": "Easy to manage forms",
@@ -465,11 +465,12 @@
     "WELCOME_MESSAGE": "Welcome back!",
     "FEATURES": {
       "TITLE": "Once you sign in you will be able to:",
-      "FEATURE_1": "Import forms (Google Forms or Typeform)",
-      "FEATURE_2": "Customize form URLs.",
-      "FEATURE_3": "Invite your colleagues for collaboration.",
-      "FEATURE_4": "Create multiple workspace",
-      "FEATURE_5": "Share your workspace with your audience"
+      "FEATURE_1": "Create your personalized form",
+      "FEATURE_2": "Customize form URLs",
+      "FEATURE_3": "Import forms (Google Forms or Typeform)",
+      "FEATURE_4": "Collect all forms in a single place",
+      "FEATURE_5": "Share form page with your audience",
+      "FEATURE_6": "Create group and share your private forms"
     },
     "CONTINUE": "Continue",
     "OR_SIGN_IN_USING": "Or sign in using",

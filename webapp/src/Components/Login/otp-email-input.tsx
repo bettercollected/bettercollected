@@ -18,11 +18,12 @@ import { capitalize } from '@app/utils/stringUtils';
 
 interface OtpEmailInputPropType {
     isCreator: boolean;
+    isModal?: boolean;
     setEmail: Dispatch<SetStateAction<string>>;
 }
 
 export default function OtpEmailInput(props: OtpEmailInputPropType) {
-    const isCreator = props.isCreator;
+    const { isCreator, isModal } = props;
 
     const workspace = useAppSelector((state) => state.workspace);
 
@@ -84,30 +85,32 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
     };
 
     return (
-        <form className="mt-[96px]" onSubmit={isCreator ? handleEmailInputForCreator : handleEmailInputForResponder}>
-            <h3 className="h3 mb-[16px]">{constants.heading3}</h3>
-
-            <p className=" mb-[8px] mt-[44px] text-black-900">{constants.enterYourEmail}</p>
+        <form className={` w-full ${isModal ? 'mt-[48px]' : 'mt-[80px]'}`} onSubmit={isCreator ? handleEmailInputForCreator : handleEmailInputForResponder}>
+            <div className="flex flex-col gap-3 mt-2">
+                <span className="h4 ">{constants.heading3}</span>
+                {isModal && <span className="body4 sm:w-[410px]">You will only be able to see responses done with the email you sign in with.</span>}
+            </div>
+            <p className="body4 mb-[8px] mt-[44px] text-black-900">{constants.enterYourEmail}</p>
             <input
                 type={'email'}
                 required={true}
-                className={`flex-1 w-full placeholder:font-normal placeholder:text-sm placeholder:tracking-normal !mb-4 !rounded-[1px] text-black-900 bg-white border-gray-400`}
+                className={`body4 flex-1 px-4 py-3 w-full placeholder:font-normal placeholder:text-sm placeholder:tracking-normal !rounded-[1px] text-black-900 bg-white border-gray-400`}
                 placeholder={constants.enterYourEmail}
                 value={email}
                 onChange={handleEmailInput}
             />
-            <Button type={'submit'} variant="solid" isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={'w-full mt-[32px] mb-[40px]'} size={'large'}>
+            <Button type={'submit'} variant="solid" isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={'body1 w-full mt-[32px] mb-[44px]'} size={'extraMedium'}>
                 {constants.continue}
             </Button>
 
-            <Divider orientation="horizontal" flexItem className={'text-black-700 mb-[40px]'}>
+            <Divider orientation="horizontal" flexItem className={'body4 !text-black-700 mb-[40px]'}>
                 {constants.orSignInUsing}
             </Divider>
 
-            <div className="flex flex-col gap-[20px] mb-[60px]">
+            <div className="flex flex-col gap-[20px] mb-[60px] w-full">
                 <FormProviderContext.Consumer>
                     {(formProviders: Array<IntegrationFormProviders>) => (
-                        <div className="flex md:flex-row flex-col gap-4">
+                        <div className="flex md:flex-row flex-col gap-4 justify-center items-center">
                             {formProviders.map((provider: IntegrationFormProviders) => (
                                 <ConnectWithProviderButton
                                     key={provider.providerName}

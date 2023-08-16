@@ -458,11 +458,12 @@
     "WELCOME_MESSAGE": "Welkom terug!",
     "FEATURES": {
       "TITLE": "Zodra je bent ingelogd, kun je:",
-      "FEATURE_1": "Formulieren importeren (Google Forms of Typeform)",
-      "FEATURE_2": "Formulier-URL's aanpassen.",
-      "FEATURE_3": "Je collega's uitnodigen voor samenwerking.",
-      "FEATURE_4": "Meerdere werkruimtes aanmaken.",
-      "FEATURE_5": "Je werkruimte delen met je publiek."
+      "FEATURE_1": "Maak je persoonlijke formulier",
+      "FEATURE_2": "Pas formulier-URL's aan",
+      "FEATURE_3": "Importeer formulieren (Google Forms of Typeform)",
+      "FEATURE_4": "Verzamel alle formulieren op één plek",
+      "FEATURE_5": "Deel de formulierpagina met je publiek",
+      "FEATURE_6": "Maak een groep aan en deel je privéformulieren"
     },
     "CONTINUE": "Doorgaan",
     "OR_SIGN_IN_USING": "Of log in met",

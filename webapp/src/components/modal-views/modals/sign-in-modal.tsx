@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
@@ -7,11 +7,10 @@ import OtpCodeComponent from '@Components/Login/otp-code-component';
 import OtpEmailInput from '@Components/Login/otp-email-input';
 import { Check } from '@mui/icons-material';
 
-import ImageWorkspacePreview from '@app/assets/images/workspace-preview.png';
+import ImageWorkspacePreview from '@app/assets/images/workspace-preview1.png';
 import Logo from '@app/components/ui/logo';
 import { localesCommon } from '@app/constants/locales/common';
 import { signInScreen } from '@app/constants/locales/signin-screen';
-import Layout from '@app/layouts/_layout';
 
 interface FeatureType {
     heading: string;
@@ -23,7 +22,7 @@ interface MyLoginProps {
     isCreator: boolean;
 }
 
-export default function LoginLayout(props: MyLoginProps) {
+export function SignInModal(props: MyLoginProps) {
     const features = props.features;
     const { t } = useTranslation();
 
@@ -44,10 +43,10 @@ export default function LoginLayout(props: MyLoginProps) {
     );
 
     return (
-        <Layout className="min-h-screen !mt-0">
-            <div className="absolute h-fit top-0 left-0 w-full flex flex-col xl:flex-row">
-                <div className={`bg-brand-500 relative order-2 xl:order-1 min-h-screen xl:max-h-screen overflow-hidden h-fit xl:h-full w-full xl:w-[50%] flex flex-col justify-start`}>
-                    <div className="flex flex-col px-8 my-10 xl:max-h-[300px] xl:px-[94px] ">
+        <div className="!mt-0">
+            <div className="absolute top-0 left-0 w-full flex flex-col xl:flex-row ">
+                <div className={`bg-brand-500 xl:rounded-l-lg relative xl:order-1 overflow-hidden w-screen xl:w-[547px] xl:h-[687px] pt-16 xl:px-[60px] xl:py-[80px] hidden xl:flex xl:flex-col xl:justify-start`}>
+                    <div className="flex flex-col px-8 xl:max-h-[300px] mb-[105px]">
                         <h1 className="sh1 !text-black-100 mb-6">{features.heading}</h1>
                         {features.paragraphs.map((paragraph: string, idx: number) => (
                             <div key={idx} className="flex items-center gap-3 mb-4 last:mb-0">
@@ -56,18 +55,18 @@ export default function LoginLayout(props: MyLoginProps) {
                             </div>
                         ))}
                     </div>
-                    <div className="flex w-full xl:px-[94px] px-8 pt-8 ">
-                        <div className="xl:h-[400px] h-[300px] w-fit">
+                    <div className="flex w-full px-8 ">
+                        <div className=" h-screen xl:h-[230px] w-fit  ">
                             <Image src={ImageWorkspacePreview} alt="BetterCollected" objectFit="contain" />
                         </div>
                     </div>
                 </div>
-                <div className="flex flex-col order-1 xl:order-2 items-start justify-start xl:justify-center px-8 py-7 xl:py-8 xl:px-[110px] h-fit xl:h-full w-full xl:max-w-[716px]">
+                <div className="flex flex-col order-1 !bg-brand-100 xl:order-2 items-start justify-start xl:justify-center px-8 py-7 xl:p-[28px] h-screen xl:h-[687px] w-screen xl:w-[547px]">
                     <Logo isLink={false} />
-                    {!email ? <OtpEmailInput isCreator={props.isCreator} setEmail={setEmail} /> : <OtpCodeComponent email={email} setEmail={setEmail} isCreator={props.isCreator} />}
+                    {!email ? <OtpEmailInput isCreator={props.isCreator} setEmail={setEmail} isModal={true} /> : <OtpCodeComponent email={email} setEmail={setEmail} isCreator={props.isCreator} isModal={true} />}
                     <TermsAndCondition />
                 </div>
             </div>
-        </Layout>
+        </div>
     );
 }
