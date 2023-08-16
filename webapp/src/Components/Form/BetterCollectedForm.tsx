@@ -141,7 +141,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         <form
             className="w-full max-w-[700px] mx-auto px-10 py-10 bg-white flex rounded-lg flex-col items-start "
             onKeyDown={(event: any) => {
-                if (event.key === 'Enter') {
+                if (!event.shiftKey && event.key === 'Enter') {
                     event.preventDefault();
                 }
             }}
