@@ -5,7 +5,6 @@ import { useRouter } from 'next/router';
 import ImportProviderForms from '@app/components/form-integrations/import-provider-forms';
 import DeleteFormModal from '@app/components/form/delete-form-modal';
 import { Close } from '@app/components/icons/close';
-import LoginView from '@app/components/login/login-view';
 import LogoutView from '@app/components/logout/logout-view';
 import { MODAL_VIEW, useModal } from '@app/components/modal-views/context';
 import CustomizeUrlModal from '@app/components/modal-views/modals/customize-url-modal';
