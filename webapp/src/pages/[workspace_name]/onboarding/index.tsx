@@ -143,7 +143,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
 
     const fetchSuggestionsForWorkspaceHandle = async (e: any) => {
         if (!!e.target.value) {
-            const { isSuccess, data } = await trigger(e.target.value);
+            const { isSuccess, data } = await trigger(e.target.value.toLowerCase());
             if (isSuccess) {
                 setWorkspaceNameSuggestions(data);
                 return;
@@ -295,7 +295,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                         },
                         endAdornment: (
                             <div className={'min-w-fit italic'}>
-                                {isWorkspaceNameAvailable === null ? (
+                                {isWorkspaceNameAvailable === null || formData.workspaceName === workspace?.workspaceName ? (
                                     <></>
                                 ) : isWorkspaceNameAvailable ? (
                                     <p className={'text-green-600 text-xs md:text-sm'}>&#10004; {t(onBoarding.workspaceNameAvailable)}</p>

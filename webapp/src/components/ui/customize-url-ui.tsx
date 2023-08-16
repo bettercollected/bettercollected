@@ -29,7 +29,7 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
     const dispatch = useAppDispatch();
     const [patchFormSettings, { isLoading }] = usePatchFormSettingsMutation();
     const handleOnchange = (e: any) => {
-        setSlug(e.target.value);
+        setSlug(e.target.value.trim());
     };
     const slugRegex = /^(?=.*$)(?![_][-])(?!.*[_][-]{2})[a-zA-Z0-9_-]+(?<![_][-])$/;
 
