@@ -59,8 +59,7 @@ const slice = createSlice({
 const fillFormReducer = persistReducer(
     {
         key: 'rtk:fillForm',
-        storage,
-        whitelist: ['value']
+        storage
     },
     slice.reducer
 );
