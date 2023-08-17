@@ -64,7 +64,7 @@ class GoogleService:
                 )
             if e.status_code == HTTPStatus.FORBIDDEN:
                 loguru.logger.error("FormId: " +
-                                    form_id + ", Content: " + e.content)
+                                    form_id + ", Content: " + e.reason)
                 raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=e.reason)
             raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content="Error fetching form from Google")
         except RefreshError as e:
