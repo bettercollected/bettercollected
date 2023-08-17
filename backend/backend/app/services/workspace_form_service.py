@@ -136,7 +136,7 @@ class WorkspaceFormService:
             workspace_id=workspace_id
         )
 
-        if len(workspace_forms) >= 10:
+        if len(workspace_forms) >= 100:
             return False
         return True
 
