@@ -1,0 +1,113 @@
+version: '3.7'
+networks:
+    db:
+    backend:
+    frontend:
+volumes:
+    mongo-data:
+services:
+    mongodb:
+        image: mongo:latest
+        networks:
+            - db
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: root
+        ports:
+            - 27017:27017
+        volumes:
+            - mongo-data:/data/db
+        restart: always
+
+    mongo-seed:
+        build:
+            context: .
+            dockerfile: Dockerfile.deployment.mongo-seed
+        networks:
+            - db
+        depends_on:
+            - mongodb
+
+    # If you want to run webapp locally without using docker-compose,
+    # you will also need to run nginx locally and not from docker-compose
+    webapp:
+        image: git.sireto.io:5050/bettercollected/webapp:nightly
+        # image: bettercollected/webapp:nightly
+        networks:
+            - frontend
+        environment:
+            INTERNAL_DOCKER_API_ENDPOINT_HOST: http://backend:8000/api/v1
+            API_ENDPOINT_HOST: http://localhost:8000/api/v1
+            ADMIN_DOMAIN: localhost:3000
+            CLIENT_DOMAIN: localhost:3001
+            NEXT_PUBLIC_NODE_ENV: development
+        ports:
+            - '3000:3000'
+
+    # You need to run nginx only if your webapp is running locally without using docker-compose
+    # You may need to setup nginx locally with same configs provided inside `./nginx.conf`
+    nginx:
+        image: nginx
+        networks:
+            - frontend
+        volumes:
+            - ./nginx-deployment.conf:/etc/nginx/conf.d/nginx.conf:ro
+        ports:
+            - '80:80'
+            - '3001:3001'
+            - '3002:3002'
+
+    backend:
+        image: git.sireto.io:5050/bettercollected/backend:nightly
+        # image: bettercollected/backend:nightly
+        networks:
+            - backend
+            - db
+            - frontend
+        environment:
+            AUTH_BASE_URL: http://auth:8000/api/v1
+            AUTH_CALLBACK_URI: http://auth:8000/api/v1/auth/callback
+        env_file:
+            - .env.deployment
+        ports:
+            - '8000:8000'
+
+    auth:
+        image: git.sireto.io:5050/bettercollected/auth:nightly
+        # image: bettercollected/auth:nightly
+        networks:
+            - backend
+            - db
+        environment:
+            TYPEFORM_SCOPE: ${TYPEFORM_BASIC_SCOPE}
+            TYPEFORM_REDIRECT_URI: ${TYPEFORM_BASIC_REDIRECT_URI}
+            # Stripe
+            STRIPE_SUCCESS_URL: ${STRIPE_REDIRECT_URL}
+            STRIPE_CANCEL_URL: ${STRIPE_REDIRECT_URL}
+            STRIPE_RETURN_URL: ${STRIPE_REDIRECT_URL}
+        env_file:
+            - .env.deployment
+        ports:
+            - '8001:8000'
+
+    integrations-typeform:
+        image: git.sireto.io:5050/bettercollected/integrations-typeform:nightly
+        # image: bettercollected/integrations-typeform:nightly
+        networks:
+            - backend
+            - db
+        env_file:
+            - .env.deployment
+        ports:
+            - '8002:8000'
+
+    integrations-googleform:
+        image: git.sireto.io:5050/bettercollected/integrations-googleform:nightly
+        # image: bettercollected/integrations-googleform:nightly
+        networks:
+            - backend
+            - db
+        env_file:
+            - .env.deployment
+        ports:
+            - '8003:8000'

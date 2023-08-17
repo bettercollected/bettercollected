@@ -1,0 +1,74 @@
+[tool.black]
+line-length = 88
+target-version = ['py36', 'py37', 'py38', 'py39', 'py310']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  # The following are specific to Black, you probably don't want those.
+  | blib2to3
+  | tests/data
+  | profiling
+)/
+'''
+
+
+[tool.poetry]
+name = "common"
+version = "0.1.0"
+description = "This project was generated with fastapi-mvc."
+authors = ["nabin6246 <nabin62246@gmail.com>"]
+license = "no"
+readme = "README.md"
+repository = "https://your.repo.url.here"
+classifiers = [
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "~0.92.0"
+beanie = "^1.17.0"
+cryptography = "^39.0.1"
+tink = "^1.7.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "~7.2.0"
+pytest-cov = "~4.0.0"
+pytest-asyncio = "~0.20.3"
+flake8 = "~5.0.4"
+flake8-docstrings = "~1.6.0"
+flake8-import-order = "~0.18.1"
+flake8-todo = "^0.7"
+black = "~22.8.0"
+Sphinx = "~5.3.0"
+Pallets-Sphinx-Themes = "~2.0.2"
+myst-parser = "~0.18.1"
+
+[tool.poetry.urls]
+"Issues" = "https://your.repo.url.here/issues"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.coverage.report]
+exclude_lines = [
+    "pass",
+]

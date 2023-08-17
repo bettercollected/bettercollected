@@ -1,0 +1,21 @@
+# Changes here will be overwritten by Copier
+_commit: 0.3.0
+_src_path: https://github.com/fastapi-mvc/copier-project.git
+aiohttp: true
+author: Bibishan Pandey
+chart_name: googleform
+container_image_name: googleform
+copyright_date: 2023
+email: bibishan.b.pandey@gmail.com
+fastapi_mvc_version: 0.24.0
+github_actions: true
+helm: true
+license: 'no'
+nix: false
+package_name: googleform
+project_description: ''
+project_name: googleform
+redis: true
+repo_url: ''
+script_name: googleform
+version: 0.1.0
