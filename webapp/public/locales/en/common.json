@@ -1,0 +1,648 @@
+{
+  "AN": "an",
+  "ADD_CNAME_RECORD_MESSAGE": "Add CNAME record of your domain to point to 'custom.",
+  "ADD_WORKSPACE_LOGO": "Add a workspace logo",
+  "ADVANCE": "Advance",
+  "ADVANCED_SETTING": {
+    "CUSTOM_DOMAIN_NOT_SET_DESCRIPTION": "You have not set up custom domain.",
+    "CUSTOM_DOMAIN_SET_DESCRIPTION": "Your Custom Domain is currently set to",
+    "WORKSPACE_HANDLE_SET_DESCRIPTION": "Customize your workspace handle name to make your workspace more personal."
+  },
+  "ADVANCED_SETTINGS": "Advanced Settings",
+  "ALL_FORMS": "All forms",
+  "AND": "and",
+  "BASIC_INFORMATION": "Basic Information",
+  "BECOME_A_BETTER_COLLECTOR": "Become a better data collector",
+  "BREAD_CRUMBS_ITEM": {
+    "DASHBOARD": "Dashboard",
+    "FORMS": "Forms",
+    "HOME": "Home",
+    "MANAGE_WORKSPACE": "Manage Workspace",
+    "RESPONSES": "Responses",
+    "SUBMISSIONS": "Submissions",
+    "MY_SUBMISSIONS": "My Submissions"
+  },
+  "NO_GROUP_FOUND": "No Group Found",
+  "BUTTON": {
+    "ADD": "Add",
+    "ADD_MEMBERS": "Add Members",
+    "SAVE_GROUP": "Save Group",
+    "ADD_REGEX": "Add Regex",
+    "ADD_MEMBER": "Add Member",
+    "ADD_FORM": "Add Form",
+    "BACK": "Back",
+    "CANCEL": "Cancel",
+    "CHECK_MY_DATA": "Check my data",
+    "CONTINUE": "Continue",
+    "CONTINUE_WITH_GOOGLE": "Continue with Google",
+    "COPY_LINK": "Copy link",
+    "CREATE_FORM": "Create Form",
+    "CREATE_WORKSPACE": "Create a workspace",
+    "CUSTOMIZE_LINK": "Customize your link",
+    "DELETE": "Delete",
+    "DELETE_ACCOUNT": " Delete Account",
+    "DONE": "Done",
+    "GETIN": " Get In",
+    "GOOGLE_SIGNIN": "Sign in with Google",
+    "IMPORT_FORMS": "Import Forms",
+    "IMPORT_NOW": "Import Now",
+    "INVITE_COLLABORATOR": "Invite Collaborator",
+    "LOGIN": "Login",
+    "LOGOUT": "Logout",
+    "NEXT": "Next",
+    "PREVIOUS": "Previous",
+    "PRO": "PRO",
+    "REQUEST_AN_INTEGRATION": "Request an integration",
+    "RESEND": "Resend",
+    "RESEND_CODE": "Resend Code",
+    "SAVE": "Save",
+    "SAVE_IMAGE": "Save Image",
+    "SAVING": "Saving",
+    "SEND_CODE": "Send Code",
+    "SEND_INVITATION": "Send Invitation",
+    "SHARE": "Share",
+    "SUBMIT": "Submit",
+    "TYPEFORM_SIGNIN": "Sign in with Typeform",
+    "UPDATE": "Update",
+    "UPDATE_URL": "Update URL",
+    "UPDATE_WORKSPACE": "Update workspace",
+    "UPGRADE": "Upgrade",
+    "UPGRADE_TO_PRO": "Upgrade To PRO",
+    "UPLOAD": "Upload",
+    "UPLOAD_UNLIMITED_FORMS": "Upload unlimited forms",
+    "VERIFY": "Verify",
+    "DECLINE": "Decline",
+    "JOIN_WORKSPACE": "Join Workspace",
+    "YES": "Yes",
+    "NO": "No",
+    "REQUEST_FOR_DELETION": "Request for deletion",
+    "REQUESTED_FOR_DELETION": "Requested for deletion",
+    "REMOVE_INVITATION": "Remove invitation",
+    "DELETE_MEMBER": "Delete member",
+    "SKIP": "Skip",
+    "UPDATE_NOW": "Update Now",
+    "SAVE_CHANGES": "Save Changes",
+    "ADD_GROUP": "Add group",
+    "DELETE_FORM": "Delete Form",
+    "DELETE_NOW": "Delete Now",
+    "ADD_TO_GROUP": "Add to group",
+    "OPEN": "Open"
+  },
+  "CONTACT_US": {
+    "DESCRIPTION": "Any questions or remarks? Just write us a message",
+    "DEFAULT": "Contact us"
+  },
+  "CUSTOMIZE_DOMAIN": {
+    "DEFAULT": "Customize domain",
+    "DESCRIPTION": "Customize your Workspace URL so that your audience can know that it’s you."
+  },
+  "CUSTOMIZE_FORM": {
+    "TITLE": "Customize form",
+    "POINT_1": "Make it relevant to your business or organization.",
+    "POINT_2": "Avoid using spaces or special characters. Only “-” and “_” is accepted.",
+    "POINT_3": "Keep it short and concise."
+  },
+  "CUSTOMIZE_URL": "Customize URL",
+  "CUSTOM_DOMAIN": "Custom Domain",
+  "DASHBOARD": {
+    "DEFAULT": "Dashboard",
+    "PREVIEW": "Preview"
+  },
+  "DASHBOARD_DRAWER": {
+    "COLLABORATOR": "Collaborator",
+    "OWNER": "Owner",
+    "MANAGE_URLS": "Manage Links"
+  },
+  "DELETE": {
+    "DEFAULT": "Delete",
+    "MESSAGE": "Once this action is completed, it can't be undone."
+  },
+  "ADDED": "Added",
+  "DELETION_REMAINING": "deletion remaining",
+  "DESCRIPTION": "Description",
+  "DOMAIN": "Domain",
+  "EARLY_ACCESS": "Get early access!",
+  "EDIT_WORKSPACE": {
+    "TITLE": "Edit Workspace",
+    "DESCRIPTION": "Create a group to send forms to entire groups, streamlining the process and saving time.",
+    "UPLOAD_BANNER_IMAGE": "Upload Banner Image",
+    "BANNER_ASPECT_RATIO": "5:1 aspect ratio recommended"
+  },
+  "EMAIL": "Email",
+  "EMAIL_ADDRESS": "Email Address",
+  "ENTER_EMAIL": "Enter Email",
+  "GO_TO_RESPONSE": "Go To Response",
+  "FORM": {
+    "DEFAULT": "Form",
+    "UNPIN_FORM": "Unpin form",
+    "COLLECTED_RESPONSES": "Collected responses",
+    "DELETE": "Delete form",
+    "DELETE_DESCRIPTION": "Deleting this form will also remove all the responses and deletion requests.",
+    "DELETION_REQUEST.DESCRIPTION": "You have not requested any deletion for your filled responses.",
+    "DELETION_REQUESTS": "Deletion Requests",
+    "DELETION_RESPONSE.DESCRIPTION": "You have not submitted any response on the forms provided in this workspace.",
+    "DELETION_RESPONSE_WARNING_MESSAGE": "Are you sure you want to request your response to be deleted?",
+    "EMPTY": {
+      "DESCRIPTION": "Import your Google Forms or Typeforms",
+      "TITLE": "Import your first form"
+    },
+    "EMPTY_DELETION_REQUEST": {
+      "DESCRIPTION": "You will be able to see deletion request once responders requests for deletion.",
+      "TITLE": "No deletion request yet"
+    },
+    "EMPTY_RESPONSE": {
+      "DESCRIPTION": "You will be able to see the form responders once responder responses ",
+      "TITLE": "No responder yet"
+    },
+    "EMPTY_DELETION_RESPONSE.TITLE": "No responses to show",
+    "FORM_TYPE": "Form type",
+    "HIDE": "Hide Form",
+    "HIDE_DESCRIPTION": "Do not show this form in workspace page.",
+    "IMPORTED_DATE": "Imported date",
+    "IMPORTED_FORMS": "Imported forms",
+    "IMPORT_UNLIMITED": "Import unlimited forms",
+    "PINNED": "Pinned",
+    "PINNED_DESCRIPTION": "Show this form in pinned section",
+    "RECENT_FORMS": "Recent forms",
+    "REQUESTED_BY": "Requested by",
+    "RESPONDER": "Responder",
+    "RESPONDED_ON": "Responded On",
+    "REQUESTED_ON": "Requested On",
+    "RESPONDERS": "Responders",
+    "RESPONSE": "Response",
+    "RESPONSES": "Responses",
+    "RESPONSE_ID": "Response ID",
+    "STATUS_DELETED": "Deleted",
+    "STATUS_PENDING": "Pending",
+    "STATUS_EXPIRED": "Expired",
+    "SUBMISSION_DATE": "Submission Date",
+    "SUBMITTED_FORMS": "Submitted forms",
+    "PREVIEW": "Preview",
+    "URL": "Form URL",
+    "IMPORTED_BY": "Imported By",
+    "IMPORTED_ON": "Imported On",
+    "SETTINGS": {
+      "DESCRIPTION": "Collaborators can import forms, delete forms, see responses and delete response.",
+      "FORM_LINK": {
+        "TITLE": "Form Link",
+        "DESCRIPTION": "Create personalized form links that align with their branding or specific requirements."
+      },
+      "CUSTOMIZE_FORM_LINK": {
+        "TITLE": "Custom Domain Form Link",
+        "DESCRIPTION": "Custom domain form links add a level of professionalism and brand consistency to your forms.",
+        "LIST": {
+          "TITLE": "What will happen?",
+          "POINT_1": " In customized form link, the domain name associated with the link will also be visible.",
+          "POINT_2": "Once the domain name expires, this link won’t work."
+        }
+      },
+      "PIN_FORM": {
+        "TITLE": "Pin Form",
+        "DESCRIPTION": "Show this form in pinned section"
+      },
+      "VISIBILITY": {
+        "TITLE": "Form Visibility",
+        "DESCRIPTION": "Forms will only be hidden from your workspace.",
+        "PUBLIC": "Public",
+        "PRIVATE": "Private"
+      }
+    },
+    "ADD_GROUP": {
+      "TITLE": "Add {{form}} to Group",
+      "DESCRIPTION": "Select groups to make form visible only to them.",
+      "LABEL": "Select Group"
+    },
+    "GROUP": {
+      "DESCRIPTION": "Add form on group to grant access to group specific member"
+    }
+  },
+  "CHOOSE_YOUR_FORM": "Choose your form",
+  "FORMS": "Forms",
+  "FORMS_LINK": "Forms Links",
+  "FORM_LINK_WITH_PREVIOUS_DOMAIN_WONT_WORK": "Form links with previous domain won't work after updating.",
+  "FORM_LINK_WITH_PREVIOUS_WORKSPACE_HANDLE_WONT_WORK": "Form links with previous workspace handle won't work after updating.",
+  "FORM_MENU": {
+    "DELETE_FORM": "Delete form",
+    "PIN_FORM": "Pin form",
+    "SHARE": "Share",
+    "VISIBILITY": "Visibility",
+    "MAKE_FORM_PRIVATE": "Make form private",
+    "MAKE_FORM_PUBLIC": "Make form public"
+  },
+  "GET_STARTED": {
+    "0_FIT_STEP": {
+      "TITLE": "Is bettercollected right fit for you?",
+      "DESCRIPTION": "We do not want to waste your time on bettercollected if it is not a great fit for you. This short guide will help you and us to figure out.",
+      "BUTTON_TEXT": "Let's find out",
+      "ADDITIONAL_PROPS": {
+        "TEXT": "Already familiar with the app?",
+        "LINKED_TEXT": "Sign Up Now!"
+      }
+    },
+    "FORM_BUILDERS": {
+      "TITLE": "Do you use online form builders?",
+      "DESCRIPTION": "Do you use online form builders like Google Form and Typeform for collecting form responses for yourself or your company?"
+    },
+    "FORM_BRAND": {
+      "TITLE": "Did you ever wish if you could brand your forms better?",
+      "DESCRIPTION": "Wish you could have customer friendly form URLs and your own custom domain links that reflects your brand instead of default generated URLs."
+    },
+    "DATA_RIGHTS": {
+      "TITLE": "Wish you could show by action you  care about users' data rights? GDPR/CCPA etc.",
+      "DESCRIPTION": "Data privacy regulations like GDPR and CCPA provide form responders with rights like right to access and to request data deletion"
+    },
+    "USER_IS_FIT": {
+      "TITLE": "You are in the right place",
+      "DESCRIPTION_1": "You use online forms to collect data from your users and care about branding and users data rights. Better Collected is built exactly for you.",
+      "DESCRIPTION_2": " We would be happy to onboard you. Sign up now to become a better data collector.",
+      "BUTTON_TEXT": "Sign Up"
+    },
+    "USER_IS_NOT_FIT": {
+      "TITLE": "This app may not be perfect fit for you.",
+      "DESCRIPTION_1": "This app is built for people who use online forms to collect data from your users and care about branding and users data rights.",
+      "DESCRIPTION_2": "Based on your choices, it seems we're not a great match. However, you're still welcome to try out. Maybe you'll still like it.",
+      "BUTTON_TEXT": " Give it a try"
+    }
+  },
+  "EXAMPLE": "Example:",
+  "GROUP": {
+    "DEFAULT": "Group",
+    "GROUPS": "Groups",
+    "BASIC_INFORMATION": "Group Basic Information",
+    "REGEX": {
+      "TITLE": "Domain-Based Group Member",
+      "DESCRIPTION": "Auto add members based on common Domain address.",
+      "EXAMPLE": "Eg: johndoe@yourdomain.any",
+      "MODAL": {
+        "TITLE": "Domain-Based Group Member",
+        "DESCRIPTION": "if you want to create a group for employees in a specific department, you can use a regex pattern such as '*@yourcompany.com' to add all employees with email addresses ending in '@yourcompany.com'.",
+        "LABEL": "Domain Regex"
+      }
+    },
+    "FORM": {
+      "DESCRIPTION": "Make form private so that only members of the group will have exclusive access to these forms"
+    },
+    "MEMBERS_ADDED": "Members Added",
+    "ADD_MEMBERS": {
+      "DEFAULT": "Add Members",
+      "DESCRIPTION": "Enter email to add new members"
+    },
+    "ADDED_MEMBERS": "Added Members",
+    "DETAILS": "Group Details",
+    "TITLE": "Create a group to limit access to form from your workspace",
+    "CREATE_GROUP": "Create Group",
+    "EDIT_GROUP": "Edit Group",
+    "CREATE_NEW_GROUP": {
+      "DEFAULT": "Create New Group",
+      "DESCRIPTION": "Create groups to grant them access to group-specific forms."
+    },
+    "NAME": "Group Name",
+    "DESCRIPTION": "Create groups to grant them access to group-specific forms.",
+    "MEMBERS": {
+      "DEFAULT": "Members",
+      "DESCRIPTION": "Only these members can see your form in your workspace."
+    },
+    "CREATED_BY": "Created By",
+    "CREATED_ON": "Created On",
+    "MEMBER_EMAIL": "Member email",
+    "NOT_IN_ANY_GROUP": "Not in any group",
+    "ASK_ADMIN_TO_CREATE_A_GROUP": "Ask admin to create a group"
+  },
+  "HEY": "Hey",
+  "HIDDEN": "Private",
+  "IMAGE": "Image",
+  "IMAGE_SIZE_RESTRICTION": "Make sure your image is less than 100MB",
+  "IMPORT_FORM": {
+    "DEFAULT": "Import form",
+    "CHOICE": "Which form do you want to import ?",
+    "GOOGLE": {
+      "RESPONSE_OWNER_TAG_DESCRIPTION": "You do not have to select the field if you have “collect emails” enabled in your Google forms.",
+      "RESPONSE_OWNER_TAG_LABEL": "Select email field",
+      "RESPONSE_OWNER_TAG_TITLE": "Select responder’s email field"
+    },
+    "TYPEFORM": {
+      "RESPONSE_OWNER_TAG_DESCRIPTION": "",
+      "RESPONSE_OWNER_TAG_LABEL": "Select email field",
+      "RESPONSE_OWNER_TAG_TITLE": "Select responder’s email field"
+    },
+    "TEXT_LABEL": {
+      "GOOGLE_FORM": "Choose your google form",
+      "TYPEFORM": "Choose your Typeform"
+    },
+    "TITLE": "Select a form to import"
+  },
+  "INVALID_DOMAIN": "Invalid domain",
+  "INVALID_WORKSPACE_HANDLE": "Invalid Workspace Handle",
+  "INVITATION": {
+    "TITLE_1": "You have been invited to",
+    "TITLE_2": "Join workspace and start collaborating",
+    "LINK_EXPIRY": "This link will expire in 7 days.",
+    "LIST": {
+      "ITEM_1": "All forms and responses in workspace",
+      "ITEM_2": "Importing forms to workspace",
+      "ITEM_3": "Deleting form form workspace",
+      "TITLE": "You will have access to:"
+    }
+  },
+  "INVITE_COLLABORATOR": {
+    "DEFAULT": "Invite Collaborator",
+    "DESCRIPTION": "A collaborator can import and manage forms in workspace."
+  },
+  "LAST_SUBMITTED_AT": "Submitted at: ",
+  "LINK_TO_PRIVACY_POLICY": "Link to Privacy Policy",
+  "LINK_TO_TERMS_OF_SERVICES": "Link to Terms of Service",
+  "LOGOUT_MESSAGE": "Are you sure you want to logout?",
+  "MANAGE": "Manage",
+  "MANAGE_WORKSPACE": "Manage Workspace",
+  "MEMBER": "Member",
+  "MEMBERS": {
+    "DEFAULT": "Members",
+    "INVITATION": "Invitations",
+    "INVITATION_DATE": "Invitation Date",
+    "JOIN": "Joined Date",
+    "ROLE": "Role",
+    "COLLABORATORS": {
+      "DEFAULT": "Collaborators",
+      "DESCRIPTION": "Collaborators can import forms, delete forms, see responses and delete responses."
+    },
+    "PENDING_REQUESTS": {
+      "DEFAULT": "Pending Requests",
+      "DESCRIPTION": "Requests will expires after 7 days of invitation.",
+      "EMPTY": "No pending requests at the moment."
+    }
+  },
+  "MENU_DROPDOWN.CREATE_WORKSPACE": "Create a new workspace",
+  "NEW_LINK": "New link",
+  "NO_DESCRIPTION": "No description available for this company.",
+  "NO_IMAGE": "No image available",
+  "OF": "of",
+  "ONBOARDING": {
+    "ADD_WORKSPACE": "Add your workspace",
+    "DESCRIPTION": "Please create your workspace so that your team know you are here.",
+    "TIME_MESSAGE": "It will only take few minutes",
+    "WELCOME_MESSAGE": "Welcome to BetterCollected.",
+    "SUGGESTIONS": "suggestions:",
+    "AVAILABLE": "Available",
+    "NOT_AVAILABLE": "Not Available"
+  },
+  "OR": "Or",
+  "OTP_RENDERER": {
+    "OTP_SEND_MESSAGE": "An OTP code will be sent to your email account",
+    "SUBTITLE": "OTP code has been sent to",
+    "TITLE": "Enter OTP code"
+  },
+  "PAYMENT": {
+    "MONTHLY": "Monthly",
+    "YEARLY": "Yearly"
+  },
+  "PINNED_FORMS": "Pinned forms",
+  "PLACEHOLDER": {
+    "ENTER_CUSTOM_DOMAIN": "Enter your custom domain",
+    "ENTER_WORKSPACE_HANDLE": "Enter workspace handle",
+    "DESCRIPTION": "Add your description",
+    "PRIVACY_POLICY_LINK": "Privacy Policy Link",
+    "TERMS_OF_SERVICES_LINK": "Terms Of Services Link",
+    "WORKSPACE_TITLE": "Your company",
+    "GROUP_NAME": "Enter group name",
+    "MEMBER_EMAIL": "Enter member email",
+    "SEARCH": "Search"
+  },
+  "POWERED_BY": "Powered by:",
+  "PRICING_PLAN": {
+    "DESCRIPTION": "Secure payments processed with Stripe.",
+    "NO_RISK": "No risk. Cancel anytime",
+    "TITLE": "Upgrade to PRO",
+    "FOR_UNLIMITED_IMPORT": "for unlimited form import and many more features.",
+    "FOR_THIS_FEATURE": " for this feature"
+  },
+  "PRIVACY_POLICY": {
+    "TITLE": "Privacy Policy",
+    "DESCRIPTION": "Our Privacy Policy outlines how we handle, collect, and protect your personal information when you use our services."
+  },
+  "PROFILE_MENU": {
+    "BILLING": "Billing",
+    "LOGOUT": "Logout",
+    "MY_DASHBOARD": "My Dashboard",
+    "ACCOUNT_SETTINGS": "Account Settings"
+  },
+  "PUBLIC": "Public",
+  "READ_MORE": "Read more",
+  "REMOVE": "Remove",
+  "REMOVE_INVITATION_FOR": "Remove invitation for",
+  "REMOVE_WARNING_MESSAGE": "Removing a member will also remove all forms imported by the user",
+  "RESPONDER_SECTION": {
+    "FEATURES_HEADING": "Once you sign in you will be able to:",
+    "FEATURE_1": "See all forms of workspace",
+    "FEATURE_2": "See all your submitted forms of that particular workspace.",
+    "FEATURE_3": "Delete your submitted form responses",
+    "OTP_FAILURE_TOAST": "Failed to send OTP",
+    "OTP_SUCCESS_TOAST": "OTP sent successfully",
+    "OTP_VERIFICATION_SUCCESS_TOAST": "Verified successfully",
+    "OTP_VERIFICATION_FAILURE_TOAST": "Verification failed"
+  },
+  "RESPONDERS_AND_GROUPS": "Responders and Groups",
+  "SAVE": "Save",
+  "SEND_CODE": {
+    "DESCRIPTION": "OTP code will be sent to this email",
+    "TITLE": "Enter Your Email"
+  },
+  "SETTINGS": "Settings",
+  "SETUP_CUSTOM_DOMAIN_FOR_WORKSPACE": "Setup your custom domain for workspace",
+  "SHARE": "Share",
+  "SHARE_THIS_FORM": "Share this form",
+  "SHARE_WORKSPACE": "Share Workspace",
+  "SHARE_YOUR_WORKSPACE": "Share your workspace",
+  "SIGNIN_SCREEN": {
+    "COLLECT_FORMS": "Collect your forms",
+    "SIGN_IN": "Sign In",
+    "CONTINUE_WITH": "Don't have an account?",
+    "DELETE_RESPONSES": "Delete responses",
+    "EASY_TO_MANAGE_FORMS": "Easy to manage forms",
+    "LOGIN_TITLE_SLOGAN": "Be a part of the greater community by signing in.",
+    "READY_TO_GET_STARTED": "Ready to get started?",
+    "REVIEW_FORMS": "Review forms",
+    "SIGNIN_AGREEMENT_DESCRIPTION": "By signing in, you agree to our",
+    "WELCOME_MESSAGE": "Welcome back!",
+    "FEATURES": {
+      "TITLE": "Once you sign in you will be able to:",
+      "FEATURE_1": "Create your personalized form",
+      "FEATURE_2": "Customize form URLs",
+      "FEATURE_3": "Import forms (Google Forms or Typeform)",
+      "FEATURE_4": "Collect all forms in a single place",
+      "FEATURE_5": "Share form page with your audience",
+      "FEATURE_6": "Create group and share your private forms"
+    },
+    "CONTINUE": "Continue",
+    "OR_SIGN_IN_USING": "Or sign in using",
+    "VERIFICATION": "Verification",
+    "ENTER_OTP_CODE": "Enter OTP Code",
+    "ENTER_CODE_SENT_IN_EMAIL": "Enter code sent in your email",
+    "BACK_BUTTON_TITLE": "Back",
+    "DIDNOT_RECEIVE_CODE": "Did not receive code?"
+  },
+  "SLUG": {
+    "DEFAULT": "Slug",
+    "VALIDATION_MESSAGE": "Enter valid slug"
+  },
+  "STATUS": "Status",
+  "STEP": "Step",
+  "TERMS_OF_SERVICES": {
+    "TITLE": "Terms Of Services",
+    "DESCRIPTION": "Our Terms of Services establish the rules and guidelines for using our services."
+  },
+  "TOAST": {
+    "COPIED": "Copied!",
+    "COULD_NOT_IMPORT_FORM": "Could not import the form.",
+    "CUSTOM_DOMAIN_DELETION_ERROR": "Error Deleting Custom Domain",
+    "CUSTOM_DOMAIN_UPDATED": "Updated custom Domain of workspace",
+    "ERROR_DELETING_CUSTOM_DOMAIN": " Error Deleting Custom Domain",
+    "ERROR_FETCHING_SUBMISSION_DATA": "Error fetching submission data",
+    "FAILED_INVITATION_DELETION": "Failed to delete invitation",
+    "FAILED_TO_REMOVE_USER": "Failed to remove user",
+    "FAILED_TO_SEND_EMAIL": "Failed to send email",
+    "FORMS_DELETED": "Form Deleted",
+    "FORMS_DELETE_FAIL": "Could not delete form",
+    "FORM_IMPORTED_SUCCESSFULLY": "Form imported successfully.",
+    "FORM_SETTING_UPDATE_ERROR": "Could not update this form setting",
+    "FORM_URL_COPIED": "Form URL Copied !",
+    "IMAGE_SIZE_RESTRICTION": "Image size is greater than 100MB",
+    "INVALID_URL": "Invalid URL",
+    "INVITATION_DELETED": "Invitation Deleted",
+    "INVITATION_SENT": "Invitation Sent",
+    "MEMBER_REMOVED_FROM_WORKSPACE": "Member removed from workspace",
+    "OTP_FIELD_NULL_ERROR": "OTP field cannot be empty!",
+    "SOMETHING_WENT_WRONG": "Something went wrong",
+    "UPDATED_SUCCESSFULLY": "Updated Successfully !!",
+    "WORKSPACE_SUCCESS": "Success",
+    "WORKSPACE_UPDATE": "Workspace Updated",
+    "WORKSPACE_URL_COPIED": "Workspace Url Copied",
+    "EMAIL_ALREADY_EXIST": "This email address is already exist",
+    "GROUP_DELETED": "Group deleted Successfully",
+    "ADDED_ON_GROUP": "Added on group",
+    "REMOVE_FROM_GROUP": "Removed from group",
+    "SLUG_ALREADY_EXISTS": "Form with given slug already exists in workspace",
+    "ALREADY_IN_GROUP": "Already in group",
+    "LAST_PERSON_IN_GROUP": "You cant remove the last person of this group",
+    "REMOVED": "Removed",
+    "ACCOUNT_DELETION": {
+      "SUCCESS": "Account Deletion Successful!",
+      "FAILED": "Failed to delete account"
+    }
+  },
+  "TOOLTIP": {
+    "DELETION_REQUEST": "deletion requests",
+    "FORM_IMPORTED": "forms imported",
+    "FORM_RESPONSES": "form responses",
+    "OUT_OF_LIMITED_FORM": "out of limited 100 forms",
+    "PREVIEW_WORKSPACE": "Preview your workspace",
+    "RESPONSES_DELETE_OUT_OF": "responsRequestes deleted out of",
+    "VISIBILITY": "Visibility of the form should be public to pin it into the workspace.",
+    "REQUEST_FOR_DELETION": "Request for deletion",
+    "ALREADY_REQUESTED_FOR_DELETION": "Already requested for deletion",
+    "EDIT_WORKSPACE": "Edit your workspace",
+    "SHARE_WORKSPACE": "Share your workspace",
+    "FORM_PROVIDER_HIDDEN": "Form Providers are disabled.",
+    "COPY_LINK": "Copy Link",
+    "HIDE_FORM": "Hidden from your public workspace",
+    "PINNED": "Pinned to your public workspace view",
+    "OPTIONS": "Options",
+    "FORM_OPTIONS": "Form options",
+    "SHARE_FORM": "Share form",
+    "FORM_IS_ALREADY_ON_GROUP": "{{form}} is already on {{group}}",
+    "NO_ACCESS_TO_GROUP": "You dont have access to create group",
+    "EMPTY_FORM_ON_WORKSPACE": "You dont have any form on your workspace"
+  },
+  "UNTITLED": "Untitled",
+  "UPDATED": "Updated",
+  "UPDATE_WORKSPACE_HANDLE": "Updated workspace handle",
+  "UPDATE_YOUR_CUSTOM_DOMAIN": "Update your Custom Domain",
+  "UPDATE_YOUR_PROFILE_IMAGE": "Update your Workspace Profile picture",
+  "WORKSPACE_HANDLE": "Workspace Handle",
+  "UPDATE_WORKSPACE": {
+    "COMMON": {
+      "CONSEQUENCE": "What will happen?",
+      "CURRENT_LINK": "Your current link",
+      "CHANGE": "Change"
+    },
+    "SETTINGS": {
+      "COMMON": {
+        "POINT1": "Make it easier to remember",
+        "POINT2": "Make it relevant to your business or organization.",
+        "POINT3": "Keep it short and concise."
+      },
+      "HANDLE": {
+        "POINT4": "Avoid using spaces or special characters. Only “.” and “_” is accepted."
+      },
+      "DOMAIN": {
+        "REMOVE": "Remove current domain and",
+        "RESET": "reset to default.",
+        "CNAME": "Add CNAME record of your domain to point to ",
+        "CONFIRMATION_TITLE": "Are you sure you want to reset domain name to default?",
+        "CONFIRMATION_DESC": "Any links with old domain name will no longer work."
+      }
+    },
+    "HANDLE": {
+      "DESC": "Customize your workspace handle name to make your workspace more personal.",
+      "POINT_1": "Your new workspace handle name will be displayed in all of your workspace-related communications, such as workspace link, forms etc.",
+      "POINT_2": "Any links with old workspace handle name will no longer work."
+    },
+    "DOMAIN": {
+      "DESC": "Changing your domain name and improve your workspace branding and identity.",
+      "POINT_1": "Your new domain name will be displayed in all of your workspace-related communications, such as workspace link, forms etc.",
+      "POINT_2": "Any links with old domain name will no longer work."
+    }
+  },
+  "CONFIRM": "CONFIRM",
+  "ACCOUNT_DELETION_CONFIRMATION": {
+    "TITLE": "Are you sure you want to delete Account?",
+    "POINT_1": "All your workspace will be deleted.",
+    "POINT_2": "All imported forms will be deleted.",
+    "POINT_3": "All created groups will be deleted.",
+    "POINT_4": "Your workspace link or your custom form link will not work anymore.",
+    "INPUT_TEXT_LABEL": "Type <span class='font-medium'>CONFIRM</span> and click on Delete Now to complete action"
+  },
+  "UPGRADE": {
+    "PRO_INCLUDES": "PRO Plan Includes",
+    "DEFAULT_SLOGAN": "Upgrade To PRO Plan For More Features",
+    "FEATURES": {
+      "WORKSPACE": {
+        "SLOGAN": "Organize Your Users With Multiple Workspace",
+        "TITLE": "Multiple Workspace",
+        "DESCRIPTION": "Pro accounts offer the ability to create multiple workspaces, while Free accounts only allow for one workspace. This means that Pro users can create separate workspaces for different projects, or teams."
+      },
+      "COLLABORATOR": {
+        "SLOGAN": "Start Collaborating With Your Team",
+        "TITLE": "Collaborate With Others",
+        "DESCRIPTION": "Pro accounts offer collaboration features, while Basic accounts do not. This means that Pro users can collaborate with others to import forms and manage forms. This can be a great way to get work done faster and more efficiently."
+      },
+      "CUSTOM_DOMAIN": {
+        "SLOGAN": "Personalize Your URLs With Custom Domain",
+        "TITLE": "Custom Domain Name",
+        "DESCRIPTION": "Pro accounts offer custom domain support, while Free accounts do not. This means that Pro users can use their own domain name for their Workspace, instead of using the “BetterCollected” domain. This can be a great way to make your business look more professional and to improve your brand recognition."
+      },
+      "UNLIMITED_FORMS": {
+        "SLOGAN": "Import Unlimited Forms with PRO Plan",
+        "TITLE": "Unlimited Form Import",
+        "DESCRIPTION": "Pro accounts offer unlimited form import, while Free accounts are limited to 100 form imports. This can be a great benefit for businesses that need to import large amounts of data from forms."
+      }
+    }
+  },
+  "WORKSPACE": {
+    "DEFAULT": "workspace",
+    "BANNER": "Workspace Banner",
+    "ALL_RESPONDERS": "All Responders",
+    "BANNER_EMPTY_MESSAGE": "You can drag to adjust the image.",
+    "DESCRIPTION": "Workspace Description",
+    "INVITATION_NOT_FOUND": "Invitation Not Found",
+    "LOGO.DESCRIPTION": "Make sure your image is less than 100mb",
+    "NAME": "Workspace name",
+    "PREVIEW.EMPTY_FORM_DESCRIPTION": "There are no forms imported in this workspace.",
+    "PREVIEW.EMPTY_FORM_TITLE": "No forms to show",
+    "PROFILE_IMAGE": "Workspace Profile Image",
+    "TITLE": "Workspace Title",
+    "TITLE_VALIDATION_MESSAGE": "Workspace title is required",
+    "WORKSPACE_NAME_VALIDATION_MESSAGE": "Workspace Handle is required",
+    "WORKSPACE_NAME_INVALID_CHARACTER": "Workspace handle must only contain lowercase letters, numbers and underscore",
+    "URL": "Workspace URL"
+  }
+}
