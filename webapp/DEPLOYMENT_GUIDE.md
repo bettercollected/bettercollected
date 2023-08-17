@@ -4,7 +4,7 @@ This document explains the deployment guide for the users to see the deployed pr
 
 ## IMPORTANT NOTE 
 
-Users have to fill out some of the env variables themselves before running the docker file.
+Users have to fill out some of the env variables themselves on `.env.deployment` before running the docker file.
 For using `Google forms` you need to set up certain environment variables, for that create a project in `Google Cloud Platform` and fill the following environment variables.
 
 ```
