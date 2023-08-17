@@ -1,10 +1,3 @@
-services:
-  - dind
-
-cache:
-  paths:
-    - .venv
-
 stages:
   - build
   - test
@@ -28,7 +21,7 @@ build:
     - echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
     - docker push $CI_REGISTRY_IMAGE:$IMAGE_IDENTIFIER
     - docker push $CI_REGISTRY_IMAGE:$COMMON_TAG
-test: 
+test:
   stage: test
   tags:
     - shell
@@ -50,7 +43,7 @@ deploy:
     DOCKER_SERVICE_PRODUCTION:  bettercollected-backend
 
   rules:
-    - if: $CI_COMMIT_BRANCH == 'master'  || $CI_COMMIT_BRANCH == 'develop' || $CI_COMMIT_TAG != null     
+    - if: $CI_COMMIT_BRANCH == 'master'  || $CI_COMMIT_BRANCH == 'develop' || $CI_COMMIT_TAG != null
 
   script:
     - if [ ! -z "$CI_COMMIT_TAG" ]; then IMAGE_TAG=$CI_COMMIT_REF_SLUG;  else IMAGE_TAG=$CI_COMMIT_SHA; fi
