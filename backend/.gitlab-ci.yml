@@ -1,0 +1,54 @@
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+build:
+  stage: build
+  image: docker:latest
+  tags:
+    - shell
+  services:
+    - docker:dind
+  script:
+    - docker info
+    - if [ ! -z "$CI_COMMIT_TAG" ]; then COMMON_TAG="release";  elif [ "$CI_COMMIT_REF_NAME" == "master" ]; then COMMON_TAG="latest"; else COMMON_TAG=$CI_COMMIT_REF_SLUG; fi
+    - if [ ! -z "$CI_COMMIT_TAG" ]; then IMAGE_IDENTIFIER="$CI_COMMIT_TAG"; else IMAGE_IDENTIFIER=$CI_COMMIT_SHA; fi
+    - docker build -t "$CI_REGISTRY_IMAGE:$IMAGE_IDENTIFIER" -t "$CI_REGISTRY_IMAGE:$COMMON_TAG" .
+    - echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+    - docker push $CI_REGISTRY_IMAGE:$IMAGE_IDENTIFIER
+    - docker push $CI_REGISTRY_IMAGE:$COMMON_TAG
+test:
+  stage: test
+  tags:
+    - shell
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+   -  ./.ci/test
+
+deploy:
+  stage: deploy
+  image: docker:latest
+  variables:
+    DOCKER_HOST_DEVELOP: 172.31.0.6:2376
+    DOCKER_HOST_STAGING: 172.31.0.7:2376
+    DOCKER_HOST_PRODUCTION: 172.31.0.7:2376
+    DOCKER_SERVICE_DEVELOP:  bettercollected-new_dev_backend
+    DOCKER_SERVICE_STAGING:  bettercollected-new_staging_backend
+    DOCKER_SERVICE_PRODUCTION:  bettercollected-backend
+
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'master'  || $CI_COMMIT_BRANCH == 'develop' || $CI_COMMIT_TAG != null
+
+  script:
+    - if [ ! -z "$CI_COMMIT_TAG" ]; then IMAGE_TAG=$CI_COMMIT_REF_SLUG;  else IMAGE_TAG=$CI_COMMIT_SHA; fi
+    - if [ ! -z "$CI_COMMIT_TAG" ]; then DEPLOY_HOST=$DOCKER_HOST_PRODUCTION;  elif [ "$CI_COMMIT_REF_NAME" == "master" ]; then DEPLOY_HOST=$DOCKER_HOST_STAGING; else DEPLOY_HOST=$DOCKER_HOST_DEVELOP; fi
+    - if [ ! -z "$CI_COMMIT_TAG" ]; then DOCKER_SERVICE=$DOCKER_SERVICE_PRODUCTION;  elif [ "$CI_COMMIT_REF_NAME" == "master" ]; then DOCKER_SERVICE=$DOCKER_SERVICE_STAGING; else DOCKER_SERVICE=$DOCKER_SERVICE_DEVELOP; fi
+
+    - echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+    - docker --host $DEPLOY_HOST service update --with-registry-auth --image $CI_REGISTRY_IMAGE:$IMAGE_TAG  ${DOCKER_SERVICE}

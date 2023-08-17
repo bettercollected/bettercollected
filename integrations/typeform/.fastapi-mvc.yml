@@ -1,0 +1,21 @@
+# Changes here will be overwritten by Copier
+_commit: 0.3.0
+_src_path: https://github.com/fastapi-mvc/copier-project.git
+aiohttp: true
+author: nabin6246
+chart_name: typeform
+container_image_name: typeform
+copyright_date: 2023
+email: nabin62246@gmail.com
+fastapi_mvc_version: 0.24.0
+github_actions: false
+helm: false
+license: 'no'
+nix: false
+package_name: typeform
+project_description: This project was generated with fastapi-mvc.
+project_name: typeform
+redis: false
+repo_url: https://your.repo.url.here
+script_name: typeform
+version: 0.1.0

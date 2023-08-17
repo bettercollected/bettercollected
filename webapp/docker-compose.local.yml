@@ -1,0 +1,27 @@
+version: '3.7'
+networks:
+    db:
+volumes:
+    mongo-data:
+services:
+    mongodb:
+        image: mongo:latest
+        networks:
+            - db
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: root
+        ports:
+            - 27017:27017
+        volumes:
+            - mongo-data:/data/db
+        restart: always
+
+    mongo-seed:
+        build:
+            context: .
+            dockerfile: Dockerfile.local.mongo-seed
+        networks:
+            - db
+        depends_on:
+            - mongodb
