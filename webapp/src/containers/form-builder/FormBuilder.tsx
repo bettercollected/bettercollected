@@ -19,6 +19,8 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import Button from '@app/components/ui/button';
 import eventBus from '@app/lib/event-bus';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
+import useUndoRedo from '@app/lib/use-undo-redo';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setActiveField, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField, setFields, setUpdateField } from '@app/store/form-builder/actions';
@@ -37,6 +39,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
     const { t } = useBuilderTranslation();
+    const { handleUserTypingEnd } = useUserTypingDetection();
+    const { isUndoRedoInProgress } = useUndoRedo();
     const builderDragDropRef = useRef<HTMLDivElement | null>(null);
 
     const router = useRouter();
@@ -195,8 +199,10 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                             placeholder={t(b.placeholder)}
                             className={b.className}
                             onChangeCallback={(event: FormEvent<HTMLElement>) => {
+                                if (isUndoRedoInProgress) return;
                                 setBackspaceCount(0);
                                 dispatch(setBuilderState({ [b.key]: event.currentTarget.innerText }));
+                                handleUserTypingEnd();
                             }}
                             onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
                                 event.preventDefault();

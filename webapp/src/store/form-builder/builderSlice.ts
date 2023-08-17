@@ -1,6 +1,8 @@
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
+import undoable, { excludeAction, includeAction } from 'redux-undo';
 import { v4 } from 'uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
@@ -67,6 +69,12 @@ export const builder = createSlice({
             return {
                 ...state,
                 ...action.payload
+            };
+        },
+        setTyping: (state: IBuilderState, action: PayloadAction<boolean>) => {
+            return {
+                ...state,
+                isTyping: action.payload
             };
         },
         setActiveChoice: (state, action: PayloadAction<{ id: string; position: number }>) => {
@@ -173,7 +181,7 @@ export const builder = createSlice({
             fieldsArray.forEach((field: IFormFieldState, index: number) => {
                 newFieldsMap[field.id] = { ...field, position: index };
             });
-            return { ...state, fields: newFieldsMap };
+            return { ...state, activeFieldId: newField.id, fields: newFieldsMap };
         },
         addDuplicateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             // TODO: fix duplicate for shortcut keys
@@ -183,11 +191,22 @@ export const builder = createSlice({
             fieldsArray.forEach((field: IFormFieldState, index: number) => {
                 newFieldsMap[field.id] = field;
                 newFieldsMap[field.id].position = index;
+                ``;
             });
             state.fields = newFieldsMap;
             state.activeFieldIndex = action?.payload?.position;
         },
         setUpdateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
+            return {
+                ...state,
+                isTyping: true,
+                fields: {
+                    ...state.fields,
+                    [action.payload.id]: action.payload
+                }
+            };
+        },
+        setUpdateCommandField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             return {
                 ...state,
                 fields: {
@@ -284,5 +303,14 @@ const builderPersistReducer = persistReducer(
     builder.reducer
 );
 
-const reducerObj = { reducerPath: builder.name, reducer: builderPersistReducer };
+const undoableReducer = undoable(builderPersistReducer, {
+    neverSkipReducer: true,
+    debug: true,
+    filter: function filterActions(action, currentState, previousHistory) {
+        if (currentState.isTyping) return false;
+        return [builder.actions.setAddNewField.type, builder.actions.setAddNewChoice.type, builder.actions.setTyping.type].includes(action.type);
+    }
+});
+
+const reducerObj = { reducerPath: builder.name, reducer: undoableReducer };
 export default reducerObj;
