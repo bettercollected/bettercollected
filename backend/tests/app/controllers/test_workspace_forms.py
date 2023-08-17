@@ -1,3 +1,4 @@
+import json
 from typing import Any, Coroutine, Generator
 
 import pytest
@@ -12,7 +13,9 @@ from backend.app.schemas.standard_form_response import (
 )
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from common.constants import MESSAGE_FORBIDDEN
+from common.models.form_import import FormImportRequestBody
 from common.models.standard_form import StandardForm, StandardFormResponse
 from tests.app.controllers.data import (
     formData,
@@ -21,6 +24,7 @@ from tests.app.controllers.data import (
     formData_2,
     test_form_import_data,
     testUser,
+    proUser,
 )
 
 
@@ -43,6 +47,15 @@ def get_workspace_group_url(
     workspace_group: Coroutine,
 ):
     return f"{workspace_form_common_url}/{workspace_form.form_id}/groups/add?group_id={workspace_group.id}"
+
+
+async def create_form_request_body():
+    form = (await FormDocument.find().to_list())[0]
+    form_dict = {**form.dict(), "formId": form.dict().get("form_id")}
+    unwanted_keys = ["id", "updated_at", "created_at", "fields"]
+    for key in unwanted_keys:
+        del form_dict[key]
+    return {"form": form_dict, "response_data_owner": "string"}
 
 
 class TestWorkspaceForm:
@@ -472,7 +485,7 @@ class TestWorkspaceForm:
         assert unauthorized_client.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_import_form_to_workspace(
+    async def test_import_form_to_workspace(
         self,
         client: TestClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
@@ -483,13 +496,103 @@ class TestWorkspaceForm:
         mock_aiohttp_post_request,
     ):
         with mock_aiohttp_post_request:
+            form_body = await create_form_request_body()
             import_form_url = f"{workspace_form_common_url}/import/google"
 
             import_form = client.post(
-                import_form_url, cookies=test_user_cookies, json=test_form_import_data
+                import_form_url, cookies=test_user_cookies, json=form_body
             )
 
             expected_response = {"message": "Import successful."}
             actual_response = import_form.json()
             assert import_form.status_code == 200
+            assert actual_response == expected_response
+
+    def test_unauthorized_user_import_form_to_workspace_fails(
+        self,
+        client: TestClient,
+        test_user_cookies_1: dict[str, str],
+        workspace_form_common_url: str,
+    ):
+        import_form_url = f"{workspace_form_common_url}/import/google"
+
+        unauthorized_client = client.post(
+            import_form_url, cookies=test_user_cookies_1, json=test_form_import_data
+        )
+
+        expected_response_message = MESSAGE_FORBIDDEN
+        actual_response_message = unauthorized_client.json()
+        assert unauthorized_client.status_code == 403
+        assert actual_response_message == expected_response_message
+
+    async def test_import_form_imported_in_other_workspace_fails(
+        self,
+        client: TestClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        test_user_cookies: dict[str, str],
+        workspace_form_1: Coroutine[Any, Any, FormDocument],
+        workspace_form_common_url: str,
+        workspace_form_response: Coroutine[Any, Any, dict],
+        mock_aiohttp_post_request,
+    ):
+        with mock_aiohttp_post_request:
+            form_body = await create_form_request_body()
+            import_form_url = f"{workspace_form_common_url}/import/google"
+
+            import_form = client.post(
+                import_form_url, cookies=test_user_cookies, json=form_body
+            )
+
+            expected_response = "Form has already been imported to another workspace"
+            actual_response = import_form.json()
+            assert import_form.status_code == 409
+            assert actual_response == expected_response
+
+    async def test_pro_user_can_import_more_than_100_form(
+        self,
+        client: TestClient,
+        workspace_pro: Coroutine[Any, Any, WorkspaceDocument],
+        test_pro_user_cookies: dict[str, str],
+        mock_aiohttp_post_request_for_pro,
+    ):
+        for i in range(101):
+            await container.workspace_form_service().create_form(
+                workspace_pro.id, StandardForm(**formData), proUser
+            )
+        form_body = await create_form_request_body()
+        import_form_url = f"/api/v1/workspaces/{workspace_pro.id}/forms/import/google"
+
+        with mock_aiohttp_post_request_for_pro:
+            import_form = client.post(
+                import_form_url, cookies=test_pro_user_cookies, json=form_body
+            )
+
+            expected_response = {"message": "Import successful."}
+            actual_response = import_form.json()
+            assert import_form.status_code == 200
+            assert actual_response == expected_response
+
+    async def test_normal_user_importing_more_than_100_form_fails(
+        self,
+        client: TestClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        test_user_cookies: dict[str, str],
+        workspace_form_common_url: str,
+        mock_aiohttp_post_request,
+    ):
+        for i in range(101):
+            await container.workspace_form_service().create_form(
+                workspace.id, StandardForm(**formData), testUser
+            )
+        form_body = await create_form_request_body()
+        import_form_url = f"{workspace_form_common_url}/import/google"
+
+        with mock_aiohttp_post_request:
+            import_form = client.post(
+                import_form_url, cookies=test_user_cookies, json=form_body
+            )
+
+            expected_response = "Upgrade plan to import more forms"
+            actual_response = import_form.json()
+            assert import_form.status_code == 403
             assert actual_response == expected_response
