@@ -15,7 +15,11 @@ from googleform.app.exceptions import (
     HTTPException,
     http_exception_handler,
 )
-from googleform.app.exceptions.http import timeout_error_handler, refresh_error_handler, server_not_found_error_handler
+from googleform.app.exceptions.http import (
+    timeout_error_handler,
+    refresh_error_handler,
+    server_not_found_error_handler,
+)
 from googleform.app.router import root_api_router
 from googleform.app.services.database_service import close_db, init_db
 from googleform.app.services.migration_service import (

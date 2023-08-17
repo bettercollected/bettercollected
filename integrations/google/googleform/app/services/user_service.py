@@ -19,8 +19,13 @@ async def get_user_credential(request: Request) -> Oauth2CredentialDocument:
             access_token, key=settings.AUTH_JWT_SECRET, algorithms=["HS256"]
         )
     except (InvalidSignatureError, ExpiredSignatureError):
-        raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content="Invalid JWT Signature")
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED, content="Invalid JWT Signature"
+        )
     credential = await OauthCredentialRepository().get(jwt_response.get("sub"))
     if not credential:
-        raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content="Credentials for user not found")
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            content="Credentials for user not found",
+        )
     return credential

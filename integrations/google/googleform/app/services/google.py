@@ -63,10 +63,14 @@ class GoogleService:
                     content="Form not found is Google forms",
                 )
             if e.status_code == HTTPStatus.FORBIDDEN:
-                loguru.logger.error("FormId: " +
-                                    form_id + ", Content: " + e.reason)
-                raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=e.reason)
-            raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content="Error fetching form from Google")
+                loguru.logger.error("FormId: " + form_id + ", Content: " + e.reason)
+                raise HTTPException(
+                    status_code=HTTPStatus.UNAUTHORIZED, content=e.reason
+                )
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                content="Error fetching form from Google",
+            )
         except RefreshError as e:
             raise HTTPException(
                 status_code=HTTPStatus.UNAUTHORIZED, content="Refresh error"
@@ -122,7 +126,10 @@ class GoogleService:
                     status_code=HTTPStatus.NOT_FOUND,
                     content="Form not found is Google forms",
                 )
-            raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content="Error fetching form from Google")
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                content="Error fetching form from Google",
+            )
         except RefreshError as e:
             raise HTTPException(
                 status_code=HTTPStatus.UNAUTHORIZED, content="Refresh error"

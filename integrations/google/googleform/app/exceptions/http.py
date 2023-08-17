@@ -96,7 +96,9 @@ async def refresh_error_handler(request: Request, exception: RefreshError):
     )
 
 
-async def server_not_found_error_handler(request: Request, exception: ServerNotFoundError):
+async def server_not_found_error_handler(
+    request: Request, exception: ServerNotFoundError
+):
     return JSONResponse(
         status_code=HTTPStatus.UNAUTHORIZED,
         content="Could not reach google server server",
