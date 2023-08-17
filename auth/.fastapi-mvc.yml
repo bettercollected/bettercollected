@@ -1,0 +1,21 @@
+# Changes here will be overwritten by Copier
+_commit: 0.3.0
+_src_path: https://github.com/fastapi-mvc/copier-project.git
+aiohttp: false
+author: nabin6246
+chart_name: auth
+container_image_name: auth
+copyright_date: 2023
+email: nabin62246@gmail.com
+fastapi_mvc_version: 0.24.0
+github_actions: false
+helm: false
+license: 'no'
+nix: false
+package_name: auth
+project_description: This project was generated with fastapi-mvc.
+project_name: auth
+redis: false
+repo_url: https://your.repo.url.here
+script_name: auth
+version: 0.1.0
