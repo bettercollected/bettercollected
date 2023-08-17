@@ -7,10 +7,11 @@ import MultipleChoice from '@Components/FormBuilder/MultipleChoice';
 import RatingField from '@Components/FormBuilder/RatingField';
 import LabelTagValidator from '@Components/HOCs/LabelTagValidator';
 import MultipleChoiceKeyEventListener from '@Components/Listeners/MultipleChoiceKeyListener';
-import { useDispatch } from 'react-redux';
 
+import useUndoRedo from '@app/lib/use-undo-redo';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setActiveField } from '@app/store/form-builder/actions';
+import { useAppDispatch } from '@app/store/hooks';
 
 import MarkdownEditor from '../MarkdownEditor';
 
@@ -22,7 +23,7 @@ interface IFormBuilderBlockContent {
 }
 
 export default function FormBuilderBlockContent({ type, position, field, id }: IFormBuilderBlockContent) {
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
 
     const renderBlockContent = (position: number) => {
         switch (type) {

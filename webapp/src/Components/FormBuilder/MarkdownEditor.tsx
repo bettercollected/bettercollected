@@ -8,6 +8,8 @@ import { useDispatch } from 'react-redux';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
 import eventBus from '@app/lib/event-bus';
+import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
+import useUndoRedo from '@app/lib/use-undo-redo';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { KeyType } from '@app/models/enums/formBuilder';
 import { setActiveField, setUpdateField } from '@app/store/form-builder/actions';
@@ -22,10 +24,13 @@ interface MarkdownEditorProps {
 const MarkdownEditor = ({ id, field }: MarkdownEditorProps) => {
     const [preview, setPreview] = useState(false);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
+    const { setBackspaceCount } = useFormBuilderState();
+    const { handleUserTypingEnd } = useUserTypingDetection();
+    const { isUndoRedoInProgress } = useUndoRedo();
 
     const dispatch = useDispatch();
     const builderState = useAppSelector(selectBuilderState);
-    const { setBackspaceCount } = useFormBuilderState();
+
     // const { t } = useBuilderTranslation();
 
     const activeFieldIndex = builderState.activeFieldIndex;
@@ -65,6 +70,7 @@ const MarkdownEditor = ({ id, field }: MarkdownEditorProps) => {
         }
     };
     const onChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+        if (isUndoRedoInProgress) return;
         setBackspaceCount(0);
         dispatch(
             setUpdateField({
@@ -72,6 +78,7 @@ const MarkdownEditor = ({ id, field }: MarkdownEditorProps) => {
                 value: event.target.value
             })
         );
+        handleUserTypingEnd();
     };
     const handlePreview = () => {
         setPreview(!preview);

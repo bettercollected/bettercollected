@@ -1,15 +1,23 @@
-import { ChangeEvent, useRef } from 'react';
+import { ChangeEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+
+import { debounce } from 'lodash';
 
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { AlternateEmail, DateRange, LocalPhone, Numbers, ShortText } from '@mui/icons-material';
 import LinkIcon from '@mui/icons-material/Link';
+import { log } from 'console';
 import { useDispatch } from 'react-redux';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
+import eventBus from '@app/lib/event-bus';
+import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
+import useUndoRedo from '@app/lib/use-undo-redo';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setUpdateField } from '@app/store/form-builder/actions';
+import { setTyping, setUpdateField } from '@app/store/form-builder/actions';
+import { selectBuilderFutureState, selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
+import { useAppSelector } from '@app/store/hooks';
 
 interface IEndAdornmentInputFieldProps {
     field: IFormFieldState;
@@ -37,14 +45,17 @@ function getIcon(type: FormBuilderTagNames) {
     }
 }
 
-export default function EndAdornmentInputField({ field, id, position, placeholder }: IEndAdornmentInputFieldProps) {
+export default function EndAdornmentInputField({ field, id, placeholder }: IEndAdornmentInputFieldProps) {
     const inputRef = useRef<HTMLInputElement>(null);
-    const dispatch = useDispatch();
     const { setBackspaceCount } = useFormBuilderState();
-
-    const onChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { handleUserTypingEnd } = useUserTypingDetection();
+    const { isUndoRedoInProgress } = useUndoRedo();
+    const dispatch = useDispatch();
+    const onChange = (event: any) => {
+        if (isUndoRedoInProgress) return;
         setBackspaceCount(0);
         dispatch(setUpdateField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
+        handleUserTypingEnd();
     };
 
     return (
@@ -55,13 +66,10 @@ export default function EndAdornmentInputField({ field, id, position, placeholde
                 onChange={onChange}
                 placeholder={placeholder}
                 id={id}
-                value={field?.properties?.placeholder || ''}
+                value={field.properties?.placeholder || ''}
                 inputRef={inputRef}
                 InputProps={{
                     endAdornment: getIcon(field.type)
-                }}
-                onFocus={(event) => {
-                    inputRef?.current?.setSelectionRange(event.currentTarget.value.length, event.currentTarget.value.length);
                 }}
             />
         </div>
