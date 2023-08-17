@@ -193,6 +193,31 @@ def mock_aiohttp_post_request(
 
 
 @pytest.fixture()
+def mock_aiohttp_post_request_for_pro(
+    workspace_pro: Coroutine[Any, Any, WorkspaceDocument],
+):
+    async def mock_post(*args, **kwargs):
+        form = await container.workspace_form_service().create_form(
+            workspace_pro.id, StandardForm(**formData), proUser
+        )
+        responses = await container.workspace_form_service().submit_response(
+            workspace_pro.id,
+            form.form_id,
+            StandardFormResponse(**formResponse),
+            proUser,
+        )
+        return FormImportResponse(
+            form=StandardForm(**form.dict()),
+            responses=[StandardFormResponse(**responses.dict())],
+        )
+
+    yield patch(
+        "backend.app.services.workspace_form_service.WorkspaceFormService.convert_form",
+        side_effect=mock_post,
+    )
+
+
+@pytest.fixture()
 def mock_send_otp_get_request():
     yield patch(
         "backend.app.services.workspace_service.WorkspaceService.send_otp_for_workspace",
