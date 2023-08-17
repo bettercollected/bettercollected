@@ -1,4 +1,3 @@
-import logging
 from http import HTTPStatus
 from typing import Any, Mapping, Dict
 
@@ -39,14 +38,23 @@ class PluginProxyService:
                 cookies=request.cookies,
                 timeout=60,
             )
+
+            if response.status_code == HTTPStatus.NOT_FOUND:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND, content=response.content
+                )
+            if response.status_code == HTTPStatus.UNAUTHORIZED:
+                raise HTTPException(
+                    status_code=HTTPStatus.UNAUTHORIZED, content=response.content
+                )
+            if response.status_code == HTTPStatus.FORBIDDEN:
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN, content=response.content
+                )
             if response.status_code != HTTPStatus.OK:
-                logging.error(response.url)
-                logging.error(response.status_code)
-                logging.error(response.content)
                 raise HTTPException(
                     HTTPStatus.INTERNAL_SERVER_ERROR, messages.proxy_server_error
                 )
-
             return response.json()
         except ConnectError:
             raise HTTPException(

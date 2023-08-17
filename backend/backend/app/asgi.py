@@ -9,17 +9,17 @@ from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 
+import common.exceptions.http
 from backend.app.container import container
 from backend.app.exceptions import (
     HTTPException,
     http_exception_handler,
 )
 from backend.app.handlers import init_logging
-from backend.app.handlers.database import close_db, init_db, init_scheduler_db
+from backend.app.handlers.database import close_db, init_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
 from backend.app.services.init_schedulers import (
-    init_schedulers,
     migrate_schedule_to_temporal,
 )
 from backend.app.utils import AiohttpClient
@@ -60,9 +60,6 @@ async def on_shutdown():
     await container.http_client().aclose()
 
 
-apm = make_apm_client()
-
-
 def get_application(is_test_mode: bool = False):
     """Initialize FastAPI application.
 
@@ -75,24 +72,24 @@ def get_application(is_test_mode: bool = False):
     logger.info("Initialize FastAPI application node.")
     api_settings = settings.api_settings
     sentry_settings = settings.sentry_settings
-
-    sentry_sdk.init(
-        dsn=sentry_settings.DSN,
-        max_breadcrumbs=50,
-        debug=sentry_settings.DEBUG,
-        release=api_settings.VERSION,
-        environment=api_settings.ENVIRONMENT,
-        attach_stacktrace=True,
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        # We recommend adjusting this value in production,
-        traces_sample_rate=1.0,
-        integrations=[
-            AsyncioIntegration(),
-            HttpxIntegration(),
-            LoguruIntegration(),
-        ],
-    )
+    if sentry_settings.DSN:
+        sentry_sdk.init(
+            dsn=sentry_settings.DSN,
+            max_breadcrumbs=50,
+            debug=sentry_settings.DEBUG,
+            release=api_settings.VERSION,
+            environment=api_settings.ENVIRONMENT,
+            attach_stacktrace=True,
+            # Set traces_sample_rate to 1.0 to capture 100%
+            # of transactions for performance monitoring.
+            # We recommend adjusting this value in production,
+            traces_sample_rate=1.0,
+            integrations=[
+                AsyncioIntegration(),
+                HttpxIntegration(),
+                LoguruIntegration(),
+            ],
+        )
 
     app = FastAPI(
         title=api_settings.TITLE,
@@ -113,6 +110,10 @@ def get_application(is_test_mode: bool = False):
     app.include_router(root_api_router)
     logger.info("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
+    app.add_exception_handler(
+        common.exceptions.http.HTTPException,
+        common.exceptions.http.http_exception_handler,
+    )
 
     logger.info("Register application middlewares.")
     include_middlewares(app)
@@ -120,5 +121,6 @@ def get_application(is_test_mode: bool = False):
 
     add_pagination(app)  # Important for paginating elements
     if settings.apm_settings.service_name and settings.apm_settings.server_url:
+        apm = make_apm_client()
         app.add_middleware(ElasticAPM, client=apm)
     return app

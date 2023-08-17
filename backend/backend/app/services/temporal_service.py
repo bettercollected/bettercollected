@@ -120,14 +120,16 @@ class TemporalService:
             return
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
+            schedule_id = "import_" + str(workspace_id) + "_" + form_id
+            schedule_handle = self.client.get_schedule_handle(schedule_id)
+            await schedule_handle.delete()
+
         except HTTPException:
             pass
-        schedule_id = "import_" + str(workspace_id) + "_" + form_id
-        schedule_handle = self.client.get_schedule_handle(schedule_id)
-        try:
-            await schedule_handle.delete()
         except RPCError as e:
-            loguru.logger.info("No schedule found for id:" + schedule_id + " to delete")
+            loguru.logger.info(
+                "No schedule found for id:" + str(schedule_id) + " to delete"
+            )
             pass
 
     def update_schedule_interval(self, interval: timedelta):

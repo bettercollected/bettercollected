@@ -22,6 +22,7 @@ coverage.xml
 *,cover
 .hypothesis/
 xunit-*.xml
+coverage_re/
 
 # PyCharm
 .idea/

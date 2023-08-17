@@ -3,6 +3,7 @@ from http import HTTPStatus
 from typing import List, Any
 
 from beanie import PydanticObjectId
+from websockets.exceptions import InvalidStatus
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_member_dto import WorkspaceMemberDto
@@ -15,6 +16,8 @@ from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
 from common.constants import MESSAGE_NOT_FOUND
+from common.constants import MESSAGE_NOT_FOUND, MESSAGE_FORBIDDEN
+from common.enums.plan import Plans
 from common.enums.workspace_invitation_status import InvitationStatus
 from common.models.user import User
 from common.services.http_client import HttpClient
@@ -57,7 +60,7 @@ class WorkspaceMembersService:
     async def create_invitation_request(
         self, workspace_id: PydanticObjectId, invitation: InvitationRequest, user: User
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(
+        await self.workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
 
@@ -99,23 +102,25 @@ class WorkspaceMembersService:
         self, workspace_id: PydanticObjectId, user: User, invitation_token: str
     ):
         try:
-            await self.workspace_user_service.check_user_has_access_in_workspace(
+            await self.workspace_user_service.check_is_admin_in_workspace(
                 workspace_id, user
             )
             is_admin = True
         except HTTPException:
             is_admin = False
-
         invitation = await self.workspace_invitation_repository.get_workspace_invitation_by_token(
             workspace_id=workspace_id, invitation_token=invitation_token
         )
-        if invitation is None:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, content="Invitation not found"
-            )
         if (not is_admin) and (user.sub != invitation.email):
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, content="Invitation not found"
+                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
+            )
+        if (not is_admin) and (
+            invitation.invitation_status != InvitationStatus.PENDING
+            or invitation.expiry < get_expiry_epoch_after(time_delta=timedelta())
+        ):
+            raise HTTPException(
+                status_code=HTTPStatus.GONE, content="This operation is no longer valid"
             )
         return invitation
 
@@ -129,10 +134,6 @@ class WorkspaceMembersService:
         invitation_request = await self.workspace_invitation_repository.get_workspace_invitation_by_token(
             workspace_id=workspace_id, invitation_token=invitation_token
         )
-        if not invitation_request:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
-            )
 
         if invitation_request.email != user.sub:
             raise HTTPException(
@@ -143,11 +144,11 @@ class WorkspaceMembersService:
             invitation_request.invitation_status = InvitationStatus.EXPIRED
             await invitation_request.save()
             raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED, content="Token has expired"
+                status_code=HTTPStatus.GONE, content="Token has expired"
             )
         elif invitation_request.invitation_status != InvitationStatus.PENDING:
             raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST, content="Invalid Invitation Token"
+                status_code=HTTPStatus.GONE, content="Invalid Invitation Token"
             )
 
         if response_status == InvitationResponse.ACCEPTED:
@@ -159,7 +160,6 @@ class WorkspaceMembersService:
         else:
             invitation_request.invitation_status = InvitationStatus.DECLINED
         await invitation_request.save()
-
         return "Request Processed Successfully."
 
     async def _get_user_info_from_ids(

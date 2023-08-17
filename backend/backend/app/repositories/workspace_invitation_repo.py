@@ -11,6 +11,7 @@ from backend.app.models.enum.invitation_response import InvitationResponse
 from backend.app.models.invitation_request import InvitationRequest
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
+from common.constants import MESSAGE_NOT_FOUND
 from common.enums.workspace_invitation_status import InvitationStatus
 
 
@@ -50,18 +51,15 @@ class WorkspaceInvitationRepo:
         return await paginate(invitations_query)
 
     async def get_workspace_invitation_by_token(
-        self, workspace_id: PydanticObjectId, invitation_token: str, is_admin=False
+        self, workspace_id: PydanticObjectId, invitation_token: str
     ) -> WorkspaceUserInvitesDocument | None:
         invitation_request = await WorkspaceUserInvitesDocument.find_one(
             {"invitation_token": invitation_token, "workspace_id": workspace_id}
         )
-
-        if not is_admin and (
-            invitation_request.invitation_status != InvitationStatus.PENDING
-            or invitation_request.expiry
-            < get_expiry_epoch_after(time_delta=timedelta())
-        ):
-            return None
+        if not invitation_request:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
+            )
 
         return invitation_request
 

@@ -30,8 +30,9 @@ WORKDIR $PYSETUP_PATH
 
 COPY poetry.lock pyproject.toml $PYSETUP_PATH
 RUN poetry install --no-dev --no-interaction
+RUN poetry install --no-interaction
 COPY  ./common ./common
 COPY  ./backend ./backend
-EXPOSE 8000/tcp
-
-CMD ["uvicorn", "backend.app:get_application", "--host", "0.0.0.0", "--port", "8000"]
+COPY ./tests ./tests
+COPY ./pytest.ini ./pytest.ini
+CMD ["pytest"]

@@ -68,7 +68,7 @@ class WorkspaceRespondersController(Routable):
         patch_request: WorkspaceResponderPatchDto = Body(),
         user: User = Depends(get_logged_user),
     ):
-        await self.workspace_responders_service.patch_workspace_responder_with_email(
+        return await self.workspace_responders_service.patch_workspace_responder_with_email(
             workspace_id=workspace_id,
             email=email,
             patch_request=patch_request,

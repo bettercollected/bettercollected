@@ -93,7 +93,7 @@ class FormImportService:
                 "$set": {"status": DeletionRequestStatus.SUCCESS},
             }
         )
-        if updated_result.modified_count > 1:
+        if updated_result.modified_count >= 1:
             workspace = await self._workspace_repo.get_workspace_by_id(
                 workspace_id=workspace_id
             )
