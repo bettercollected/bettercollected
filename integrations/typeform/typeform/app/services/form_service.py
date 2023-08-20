@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 import requests
 
-from common.constants import MESSAGE_UNAUTHORIZED
+from common.constants import MESSAGE_FORBIDDEN
 from common.models.form_import import FormImportResponse
 from common.models.user import Credential, Token
 from typeform.app.exceptions import HTTPException
@@ -23,7 +23,7 @@ async def refresh_typeform_token(refresh_token, email: str = None) -> Token:
     }
     typeform_response = requests.post(settings.TYPEFORM_TOKEN_URI, data=data)
     if typeform_response.status_code > 299 or typeform_response.status_code < 200:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
+        raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
     typeform_token = Token(**typeform_response.json())
     await CredentialRepository.update_credentials(email=email, token=typeform_token)
     return typeform_token
@@ -39,7 +39,7 @@ def perform_typeform_request(
     )
     if api_response.status_code != 200:
         if api_response.status_code == HTTPStatus.FORBIDDEN:
-            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content="Invalid Access Token")
+            raise HTTPException(status_code=HTTPStatus.FORBIDDEN, content="Invalid Access Token")
         if api_response.status_code == HTTPStatus.NOT_FOUND:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found.")
         raise HTTPException(
