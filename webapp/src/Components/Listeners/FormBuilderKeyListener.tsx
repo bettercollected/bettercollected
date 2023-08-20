@@ -19,7 +19,6 @@ import { createNewField, isMultipleChoice } from '@app/utils/formBuilderBlockUti
 export default function FormBuilderKeyListener({ children }: React.PropsWithChildren) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
-    // const onKeyDownCallbackRef = useRef<any>(null);
     const { backspaceCount, setBackspaceCount } = useFormBuilderState();
 
     const builderState: IBuilderState = useAppSelector(selectBuilderState);

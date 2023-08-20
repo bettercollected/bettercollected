@@ -42,6 +42,7 @@ export interface IBuilderState {
     isFormDirty?: boolean;
     activeFieldIndex: number;
     activeFieldId: string;
+    isTyping?: boolean;
     activeChoiceId: string;
     activeChoiceIndex: number;
 }

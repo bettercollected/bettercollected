@@ -9,6 +9,8 @@ import { GridCloseIcon } from '@mui/x-data-grid';
 import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react-beautiful-dnd';
 import { useDispatch } from 'react-redux';
 
+import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
+import useUndoRedo from '@app/lib/use-undo-redo';
 import { setActiveChoice, setAddNewChoice, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
@@ -24,8 +26,11 @@ interface IMultipleChoiceProps {
 
 export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
     const dispatch = useDispatch();
+    const { handleUserTypingEnd } = useUserTypingDetection();
+    const { isUndoRedoInProgress } = useUndoRedo();
 
     const handleChoiceValueChange = (id: string, value: string) => {
+        if (isUndoRedoInProgress) return;
         dispatch(
             setUpdateField({
                 ...field,
@@ -33,6 +38,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
                 properties: { ...field.properties, choices: { ...field.properties?.choices, [id]: { ...field.properties?.choices[id], id, value } } }
             })
         );
+        handleUserTypingEnd();
     };
     const addChoice = () => {
         //@ts-ignore

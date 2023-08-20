@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import FormBuilderContainerWrapper from '@Components/HOCs/FormBuilderContainerWrapper';
 import FormBuilderKeyListener from '@Components/Listeners/FormBuilderKeyListener';
+import HistoryKeyListener from '@Components/Listeners/HistoryKeyListener';
 
 import environments from '@app/configs/environments';
 import FormBuilder from '@app/containers/form-builder/FormBuilder';
@@ -25,11 +26,13 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
 
     return environments.ENABLE_FORM_BUILDER ? (
         <FormBuilderContainerWrapper>
-            <FormBuilderKeyListener>
-                <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
-                    <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} />
-                </Layout>
-            </FormBuilderKeyListener>
+            <HistoryKeyListener>
+                <FormBuilderKeyListener>
+                    <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
+                        <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} />
+                    </Layout>
+                </FormBuilderKeyListener>
+            </HistoryKeyListener>
         </FormBuilderContainerWrapper>
     ) : (
         <></>

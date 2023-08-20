@@ -5,6 +5,8 @@ import { useDispatch } from 'react-redux';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
+import useUndoRedo from '@app/lib/use-undo-redo';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setBuilderState, setUpdateField } from '@app/store/form-builder/actions';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
@@ -35,8 +37,11 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
     const dispatch = useDispatch();
     const { setBackspaceCount } = useFormBuilderState();
     const { t } = useBuilderTranslation();
+    const { handleUserTypingEnd } = useUserTypingDetection();
+    const { isUndoRedoInProgress } = useUndoRedo();
 
     const onChange = (event: FormEvent<HTMLElement>) => {
+        if (isUndoRedoInProgress) return;
         setBackspaceCount(0);
         dispatch(
             setUpdateField({
@@ -44,6 +49,7 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
                 value: event.currentTarget.innerText
             })
         );
+        handleUserTypingEnd();
     };
     return (
         <CustomContentEditable
