@@ -2,6 +2,7 @@ import { Reducer, combineReducers, configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { createLogger } from 'redux-logger';
 import { persistStore } from 'redux-persist';
+import undoable from 'redux-undo';
 
 import environments from '@app/configs/environments';
 import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
