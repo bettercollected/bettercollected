@@ -14,6 +14,7 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.temporal_service import TemporalService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
+from common.constants import MESSAGE_FORBIDDEN
 from common.models.user import User
 from common.services.jwt_service import JwtService
 
@@ -82,10 +83,14 @@ class FormSchedular:
                     await workspace_form.save()
                     return
                 elif e.status_code == HTTPStatus.UNAUTHORIZED:
-                    # await self.temporal_service.delete_form_import_schedule(
-                    #     workspace_id=workspace_id, form_id=form_id
-                    # )
                     workspace_form.last_update_status = UpdateStatus.INVALID_GRANT
+                    await workspace_form.save()
+                    return
+                elif e.status_code == HTTPStatus.FORBIDDEN:
+                    await self.temporal_service.delete_form_import_schedule(
+                        workspace_id=workspace_id, form_id=form_id
+                    )
+                    workspace_form.last_update_status = UpdateStatus.REVOKED
                     await workspace_form.save()
                     return
             if not raw_form:
@@ -168,6 +173,10 @@ class FormSchedular:
                     raise HTTPException(
                         status_code=HTTPStatus.UNAUTHORIZED,
                         content="Unauthorized to fetch form",
+                    )
+                if response.status == HTTPStatus.FORBIDDEN:
+                    raise HTTPException(
+                        status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
                     )
                 return None
             data = await response.json()
