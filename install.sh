@@ -61,10 +61,17 @@ for service in "${services[@]}"; do
     pids+=($!)
 done
 
+setup_webapp() {
+  cd webapp
+  yarn
+}
+
 # Wait for all background processes to finish
 for pid in "${pids[@]}"; do
     wait "$pid"
 done
+
+setup_webapp
 
 echo "Initialization complete!"
 
