@@ -97,9 +97,10 @@ class WorkspaceFormsRouter(Routable):
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-        return await self.workspace_form_service.submit_response(
+        response = await self.workspace_form_service.submit_response(
             workspace_id=workspace_id, form_id=form_id, response=response, user=user
         )
+        return response.id
 
     @delete("/{form_id}/response/{response_id}")
     async def delete_form_response(
