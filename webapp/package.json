@@ -10,7 +10,6 @@
     "build": "next build",
     "postbuild": "cross-env next-sitemap --config next-sitemap.config.js",
     "start": "next start",
-    "prepare": "husky install",
     "test": "jest --watch",
     "runHeadless": "./node_modules/.bin/cypress run "
   },
