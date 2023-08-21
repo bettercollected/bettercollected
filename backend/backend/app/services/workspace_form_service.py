@@ -313,7 +313,7 @@ class WorkspaceFormService:
         if not response.dataOwnerIdentifier and user:
             response.dataOwnerIdentifier = user.sub
         return await self.form_response_service.submit_form_response(
-            form_id=form_id, response=response
+            form_id=form_id, response=response, workspace_id=workspace_id
         )
 
     async def delete_form_response(
