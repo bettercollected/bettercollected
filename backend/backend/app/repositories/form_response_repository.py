@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict, List
 
 import fastapi_pagination.ext.beanie
@@ -18,8 +19,9 @@ from backend.app.schemas.standard_form_response import (
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 from common.base.repo import BaseRepository
 from common.enums.form_provider import FormProvider
-from common.models.standard_form import StandardFormResponse
+from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
 from common.models.user import User
+from common.services.crypto_service import crypto_service
 
 
 class FormResponseRepository(BaseRepository):
@@ -234,10 +236,20 @@ class FormResponseRepository(BaseRepository):
         ).delete()
 
     async def save_form_response(
-        self, form_id: PydanticObjectId, response: StandardFormResponse
+        self, form_id: PydanticObjectId, response: StandardFormResponse, workspace_id: PydanticObjectId
     ):
         response_document = FormResponseDocument(**response.dict())
         response_document.response_id = str(PydanticObjectId())
+        if workspace_id and type(
+            response_document.answers == StandardFormResponseAnswer
+        ):
+            for k, v in response_document.answers.items():
+                response_document.answers[k] = v.dict()
+            response_document.answers = crypto_service.encrypt(
+                workspace_id=workspace_id,
+                form_id=response_document.form_id,
+                data=json.dumps(response_document.answers),
+            )
         response_document.form_id = str(form_id)
         response_document.provider = "self"
         return await response_document.save()
