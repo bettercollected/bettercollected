@@ -3,20 +3,22 @@ import React, { useState } from 'react';
 import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
+import cn from "classnames";
 
 interface IMarkdownText {
     text: string;
+    className?:string
 }
 
 const preprocessMarkdown = (text: string) => {
     return text.replace(/^"/gm, '> ').replace(/\n/g, '  \n');
 };
 
-const MarkdownText = ({ text }: IMarkdownText) => {
+const MarkdownText = ({ text, className }: IMarkdownText) => {
     const processedText = preprocessMarkdown(text);
 
     return (
-        <div className="w-full">
+        <div className={cn("w-full", className)}>
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
