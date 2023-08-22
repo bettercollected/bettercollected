@@ -1,9 +1,9 @@
 name: Build Docker Images
+
 on:
   push:
     branches:
-      - master
-      - develop
+      - '**'
 
 jobs:
   build:
@@ -16,45 +16,38 @@ jobs:
           - integrations/typeform
           - webapp
           - temporal/worker
-        
+
     runs-on: ubuntu-latest
-      
-      steps:
-          - name: Checkout code
-            uses: actions/checkout@v2
 
-            - name: Set up Docker
-              uses: docker/setup-docker@v2
-              with:
-                dockerfile: ${{ matrix.service }}/Dockerfile
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-            - name: Build Docker image
-              run: |
-                docker build -t my-docker-registry/${{ matrix.service }}:${{ github.sha }} ${{ matrix.service }}
-                
-                if [ "${{ github.ref }}" = "refs/heads/develop" ]; then
-                  docker tag bettercollected/${{ matrix.service }}:${{ github.sha }} my-docker-registry/${{ matrix.service }}:nightly
-                fi
-                
-                if [ "${{ github.ref }}" = "refs/heads/master" ]; then
-                  docker tag bettercollected/${{ matrix.service }}:${{ github.sha }} my-docker-registry/${{ matrix.service }}:latest
-                fi
+      - name: Set up Docker
+        uses: docker/login-action@v1
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
-            - name: Log in to Docker registry
-              uses: docker/login-action@v1
-              with:
-                registry: docker.io
-                username: ${{ secrets.DOCKERHUB_USERNAME }}
-                password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and Push Docker image
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: ${{ matrix.service }}
+          file: ${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            bettercollected/${{ matrix.service }}:${{ github.sha }}
 
-            - name: Push Docker image
-              run: |
-                docker push bettercollected/${{ matrix.service }}:${{ github.sha }}
-                
-                if [ "${{ github.ref }}" = "refs/heads/develop" ]; then
-                  docker push bettercollected/${{ matrix.service }}:nightly
-                fi
-                
-                if [ "${{ github.ref }}" = "refs/heads/master" ]; then
-                  docker push bettercollected/${{ matrix.service }}:latest
-                fi
+      - name: Add Nightly and Latest Tags
+        run: |          
+          if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
+            docker tag bettercollected/${{ matrix.service }}:${{ github.sha }} bettercollected/${{ matrix.service }}:nightly
+            docker push bettercollected/${{ matrix.service }}:nightly
+          fi
+          if [[ "${{ github.ref }}" = "refs/heads/master" ]]; then
+            docker tag bettercollected/${{ matrix.service }}:${{ github.sha }} bettercollected/${{ matrix.service }}:latest
+            docker push bettercollected/${{ matrix.service }}:latest
+          fi
+
