@@ -15,6 +15,7 @@ import ShortTextIcon from '@Components/Common/Icons/FormBuilder/ShortTextIcon';
 import TagListItem from '@Components/FormBuilder/BuilderBlock/TagListItem';
 import { Tag } from '@mui/icons-material';
 import LinkIcon from '@mui/icons-material/Link';
+import PermMediaIcon from '@mui/icons-material/PermMedia';
 import { List, ListSubheader, Paper } from '@mui/material';
 
 import { BlockTypes, FormBuilderTagNames, KeyType } from '@app/models/enums/formBuilder';
@@ -157,6 +158,13 @@ export const allowedLayoutTags = [
         type: FormBuilderTagNames.LAYOUT_MARKDOWN,
         label: 'Markdown',
         icon: <Tag width={20} height={20} />,
+        blockType: BlockTypes.LAYOUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.LAYOUT_MEDIA,
+        type: FormBuilderTagNames.LAYOUT_MEDIA,
+        label: 'Media',
+        icon: <PermMediaIcon width={20} height={20} />,
         blockType: BlockTypes.LAYOUT_BLOCKS
     }
 ];

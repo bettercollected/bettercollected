@@ -26,6 +26,7 @@ export enum FormBuilderTagNames {
     LAYOUT_LABEL = 'strong',
     LAYOUT_DIVIDER = 'divider',
     LAYOUT_MARKDOWN = 'markdown',
+    LAYOUT_MEDIA = 'media',
 
     INPUT_SHORT_TEXT = 'input_short_text',
     INPUT_LONG_TEXT = 'input_long_text',
