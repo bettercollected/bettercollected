@@ -6,6 +6,13 @@ if ! python3.10 --version &>/dev/null; then
     exit 1
 fi
 
+# Ensure the poetry is installed
+if ! poetry --version &>/dev/null; then
+    echo "Poetry is required but not found. Please install it."
+    exit 1
+fi
+
+
 # Store the root directory path
 root_dir=$(pwd)
 
@@ -14,6 +21,9 @@ services=("auth" "integrations/google" "integrations/typeform" "backend" "tempor
 
 # Initialize an array to hold the background process IDs
 pids=()
+
+echo "Initializing and updating submodules"
+git submodule update --init --remote --recursive
 
 # Function to set up a service
 setup_service() {
