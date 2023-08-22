@@ -12,6 +12,7 @@ import PhoneNumber from '@Components/Form/PhoneNumber';
 import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
+import FileUpload from '@Components/FormBuilder/FileUpload';
 import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';
@@ -44,6 +45,8 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
             return <div className={'!mt-3 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_MARKDOWN:
             return <MarkdownText text={field.value ?? ''} />;
+        case FormBuilderTagNames.LAYOUT_MEDIA:
+            return <FileUpload />;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
         case FormBuilderTagNames.INPUT_EMAIL:
         case FormBuilderTagNames.INPUT_NUMBER:
