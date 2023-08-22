@@ -14,7 +14,7 @@ services:
             MONGO_INITDB_ROOT_USERNAME: root
             MONGO_INITDB_ROOT_PASSWORD: root
         ports:
-            - 27017:27017
+            - "27017:27017"
         volumes:
             - mongo-data:/data/db
         restart: always
@@ -51,7 +51,7 @@ services:
         networks:
             - frontend
         volumes:
-            - ./nginx-deployment.conf:/etc/nginx/conf.d/nginx.conf:ro
+            - ./nginx-deployment.conf:/etc/nginx/conf.d/nginx-deployment.conf:ro
         ports:
             - '80:80'
             - '3001:3001'
