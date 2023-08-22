@@ -37,10 +37,10 @@ export default function WorkspacePreviewModal() {
                     >
                         <Close />
                     </div>
-                    <div className="bg-white z-[5000] body-4 !pointer-events-auto h-fit py-6 flex justify-center gap-1  w-full">
+                    <div className="bg-white z-[5000] body-4 px-10 !pointer-events-auto h-fit py-6 text-center  w-full">
                         <span>This is just a preview of your workspace. To visit the real workspace</span>
                         <a href={getWorkspaceUrl()} rel="noopener noreferrer" referrerPolicy="no-referrer" target="_blank">
-                            <span className="!text-brand-500 cursor-pointer hover:underline">{' click here.'}</span>
+                            <span className="!text-brand-500 ml-1 inline-block cursor-pointer hover:underline">{' click here.'}</span>
                         </a>
                     </div>
                     <WorkspaceHomeContainer isCustomDomain={false} isWorkspacePreview={true} />
