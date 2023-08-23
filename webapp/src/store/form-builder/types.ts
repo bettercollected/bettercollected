@@ -45,6 +45,7 @@ export interface IBuilderState {
     isTyping?: boolean;
     activeChoiceId: string;
     activeChoiceIndex: number;
+    buttonText?: string;
 }
 
 export interface IBuilderStateProps {

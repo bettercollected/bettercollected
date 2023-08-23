@@ -35,6 +35,7 @@ export default function FormBuilderPreviewModal({ publish }: { publish: () => vo
                 return field;
             });
             previewForm.fields = fields;
+            previewForm.buttonText = builderState.buttonText;
             previewForm.settings = {
                 responseDataOwnerField: builderState.settings?.responseDataOwnerField || ''
             };

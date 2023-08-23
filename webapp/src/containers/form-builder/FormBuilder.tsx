@@ -1,4 +1,4 @@
-import React, { FormEvent, useCallback, useEffect, useRef } from 'react';
+import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
@@ -6,24 +6,21 @@ import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
 import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
-import MarkdownEditor from '@Components/FormBuilder/MarkdownEditor';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { DragStart, DragUpdate, DropResult, ResponderProvided } from 'react-beautiful-dnd';
+import ContentEditable from 'react-contenteditable';
 import { batch } from 'react-redux';
 import { toast } from 'react-toastify';
-import { v4 } from 'uuid';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import Button from '@app/components/ui/button';
 import eventBus from '@app/lib/event-bus';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
 import useUndoRedo from '@app/lib/use-undo-redo';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
-import { addDuplicateField, resetBuilderMenuState, setActiveChoice, setActiveField, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField, setFields, setUpdateField } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setFields } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
@@ -122,6 +119,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         });
         publishRequest.fields = fields;
         publishRequest.settings = builderState.settings;
+        publishRequest.buttonText = builderState.buttonText;
         const apiObj: any = { workspaceId: workspace.id, body: publishRequest };
         if (isEditMode) apiObj['formId'] = builderState?.id;
 
@@ -240,6 +238,21 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                     >
                         {getAddFieldPrompt}
                     </div>
+                </div>
+                <div className="mt-10  px-5 md:px-[89px]">
+                    <ContentEditable
+                        className="w-fit rounded py-3 px-5 text-white !text-[14px] !font-semibold bg-blue-500 min-w-[130px] text-center focus-visible:border-0 focus-visible:outline-none"
+                        html={builderState.buttonText || ''}
+                        onKeyDown={(event) => {
+                            event.stopPropagation();
+                        }}
+                        onBlur={(event) => {
+                            if (!event.currentTarget.innerText) dispatch(setBuilderState({ buttonText: 'Submit' }));
+                        }}
+                        onChange={(event: FormEvent<HTMLInputElement>) => {
+                            dispatch(setBuilderState({ buttonText: event.currentTarget.innerText }));
+                        }}
+                    />
                 </div>
                 {!builderState.isFormDirty && <BuilderTips />}
             </div>

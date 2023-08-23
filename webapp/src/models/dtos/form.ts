@@ -34,6 +34,7 @@ export interface StandardFormDto {
     formId: string;
     title: string;
     description?: string | null | undefined;
+    buttonText?: string;
     provider?: string;
     createdAt?: string | Date;
     responses?: number;

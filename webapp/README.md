@@ -99,8 +99,10 @@ The need for you to clone this repository is because you need it to seed the dat
 
 After configuring all the environments in the `docker-compose.yml` file, run the following command to start the services:
 
-##  `docker login git.sireto.io:5050`
-##  And sign in using your git.sireto.io login credentials
+## `docker login git.sireto.io:5050`
+
+## And sign in using your git.sireto.io login credentials
+
 ## `docker compose up --build --remove-orphans`
 
 After running this command, you may need to login into stripe.
@@ -221,10 +223,10 @@ services:
             - .env
         ports:
             - '8003:8000'
-
 ```
 
 Also put this environment variable in the same folder containing the docker-compose.yml file.
+
 ##### Environment Variables
 
 ```
