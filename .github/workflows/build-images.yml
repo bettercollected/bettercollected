@@ -20,16 +20,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout code with submodules
         uses: actions/checkout@v2
-
-      - name: Replace slashes with hyphens
-        id: replace_slashes
-        run: |
-          SERVICE=${{ matrix.service }}
-          SERVICE_TAG=${SERVICE//\//-}
-          echo "Service tag: $SERVICE_TAG"
-          echo "::set-output name=service_tag::$SERVICE_TAG"
+        with:
+          submodules: 'recursive'
 
       - name: Set up Docker
         uses: docker/login-action@v1
@@ -40,21 +34,20 @@ jobs:
 
       - name: Build and Push Docker image
         id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          context: ${{ matrix.service }}
-          file: ${{ matrix.service }}/Dockerfile
-          push: true
-          tags: |
-            bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:${{ github.sha }}
+        env:
+          SERVICE_TAG: ${{ matrix.service }}
+        run: |
+          SERVICE_TAG=${SERVICE_TAG//\//-}
+          docker build -t bettercollected/${SERVICE_TAG}:${{ github.sha }} ${{ matrix.service }}
+          docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
 
       - name: Add Nightly and Latest Tags
         run: |          
           if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
-            docker tag bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:${{ github.sha }} bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:nightly
-            docker push bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:nightly
+            docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:nightly
+            docker push bettercollected/${SERVICE_TAG}:nightly
           fi
           if [[ "${{ github.ref }}" = "refs/heads/master" ]]; then
-            docker tag bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:${{ github.sha }} bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:latest
-            docker push bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:latest
+            docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:latest
+            docker push bettercollected/${SERVICE_TAG}:latest
           fi
