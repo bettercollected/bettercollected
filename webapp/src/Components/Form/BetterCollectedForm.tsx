@@ -1,6 +1,6 @@
-import React, {useEffect} from 'react';
+import React, { useEffect } from 'react';
 
-import {useRouter} from 'next/router';
+import { useRouter } from 'next/router';
 
 import MarkdownText from '@Components/Common/Markdown';
 import CheckboxField from '@Components/Form/CheckboxField';
@@ -13,25 +13,18 @@ import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
 import FileUpload from '@Components/FormBuilder/FileUpload';
-import {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';
-import {StandardFormDto, StandardFormFieldDto, StandardFormResponseDto} from '@app/models/dtos/form';
-import {FormBuilderTagNames} from '@app/models/enums/formBuilder';
-import {
-    resetFillForm,
-    selectAnswers,
-    selectFormResponderOwnerField,
-    selectInvalidFields,
-    setDataResponseOwnerField,
-    setInvalidFields
-} from '@app/store/fill-form/slice';
-import {FormValidationError} from '@app/store/fill-form/type';
-import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {useSubmitResponseMutation} from '@app/store/workspaces/api';
-import {selectWorkspace} from '@app/store/workspaces/slice';
-import {contentEditableClassNames} from '@app/utils/formBuilderBlockUtils';
-import {validateFormFieldAnswer} from '@app/utils/validationUtils';
+import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setInvalidFields } from '@app/store/fill-form/slice';
+import { FormValidationError } from '@app/store/fill-form/type';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useSubmitResponseMutation } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
+import { validateFormFieldAnswer } from '@app/utils/validationUtils';
 
 export interface FormFieldProps {
     field: StandardFormFieldDto;
@@ -51,31 +44,30 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
         case FormBuilderTagNames.LAYOUT_LABEL:
             return <div className={'!mt-3 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_MARKDOWN:
-            return <MarkdownText text={field.value ?? ''}/>;
+            return <MarkdownText text={field.value ?? ''} />;
         case FormBuilderTagNames.LAYOUT_MEDIA:
-            return <FileUpload/>;
+            return <FileUpload />;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
         case FormBuilderTagNames.INPUT_EMAIL:
         case FormBuilderTagNames.INPUT_NUMBER:
         case FormBuilderTagNames.INPUT_LINK:
-            return <ShortText enabled={enabled} field={field} ans={answer}/>;
+            return <ShortText enabled={enabled} field={field} ans={answer} />;
         case FormBuilderTagNames.INPUT_DATE:
-            return <ShortText enabled={enabled} field={field} ans={answer}
-                              helperText={field?.properties?.placeholder}/>;
+            return <ShortText enabled={enabled} field={field} ans={answer} helperText={field?.properties?.placeholder} />;
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
-            return <PhoneNumber enabled={enabled} field={field} ans={answer}/>;
+            return <PhoneNumber enabled={enabled} field={field} ans={answer} />;
         case FormBuilderTagNames.INPUT_LONG_TEXT:
-            return <LongText field={field} ans={answer} enabled={enabled}/>;
+            return <LongText field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
-            return <MultipleChoiceField field={field} ans={answer} enabled={enabled}/>;
+            return <MultipleChoiceField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_CHECKBOXES:
-            return <CheckboxField field={field} ans={answer} enabled={enabled}/>;
+            return <CheckboxField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_DROPDOWN:
-            return <DropdownField field={field} ans={answer} enabled={enabled}/>;
+            return <DropdownField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_RANKING:
-            return <RankingField field={field} ans={answer} enabled={enabled}/>;
+            return <RankingField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_RATING:
-            return <RatingField field={field} ans={answer} enabled={enabled}/>;
+            return <RatingField field={field} ans={answer} enabled={enabled} />;
         default:
             return <></>;
     }
@@ -90,14 +82,7 @@ interface IBetterCollectedFormProps {
     closeModal?: () => void;
 }
 
-export default function BetterCollectedForm({
-                                                form,
-                                                enabled = false,
-                                                response,
-                                                isCustomDomain = false,
-                                                preview = false,
-                                                closeModal
-                                            }: IBetterCollectedFormProps) {
+export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, preview = false, closeModal }: IBetterCollectedFormProps) {
     const dispatch = useAppDispatch();
     const [submitResponse] = useSubmitResponseMutation();
     const answers = useAppSelector(selectAnswers);
@@ -136,7 +121,7 @@ export default function BetterCollectedForm({
             return;
         }
         if (preview) {
-            toast('Response Submitted', {type: 'success'});
+            toast('Response Submitted', { type: 'success' });
             closeModal && closeModal();
             return;
         }
@@ -145,13 +130,13 @@ export default function BetterCollectedForm({
             answers: answers,
             dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
         };
-        const response: any = await submitResponse({workspaceId: workspace.id, formId: form?.formId, body: postBody});
+        const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: postBody });
         if (response?.data) {
-            toast('Response Submitted', {type: 'success'});
+            toast('Response Submitted', { type: 'success' });
             const workspaceUrl = isCustomDomain ? `https://${workspace.customDomain}` : `/${workspace.workspaceName}`;
             router.push(workspaceUrl);
         } else {
-            toast('Error submitting response', {type: 'error'});
+            toast('Error submitting response', { type: 'error' });
         }
     };
 
@@ -174,14 +159,13 @@ export default function BetterCollectedForm({
                 {form?.fields.map((field: StandardFormFieldDto) => (
                     <div key={field?.id} className="relative w-full">
                         {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
-                        <FieldValidations field={field} inValidations={invalidFields[field?.id]}/>
+                        <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
                     </div>
                 ))}
                 {enabled && (
                     <div>
-                        <button className="mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-blue-500  !font-semibold " type="submit"
-                                disabled={!enabled}>
-                            {form?.buttonText || "Submit"}
+                        <button className="mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-blue-500  !font-semibold " type="submit" disabled={!enabled}>
+                            {form?.buttonText || 'Submit'}
                         </button>
                     </div>
                 )}
