@@ -23,6 +23,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Replace slashes with hyphens
+        id: replace_slashes
+        run: |
+          SERVICE=${{ matrix.service }}
+          SERVICE_TAG=${SERVICE//\//-}
+          echo "Service tag: $SERVICE_TAG"
+          echo "::set-output name=service_tag::$SERVICE_TAG"
+
       - name: Set up Docker
         uses: docker/login-action@v1
         with:
@@ -38,16 +46,15 @@ jobs:
           file: ${{ matrix.service }}/Dockerfile
           push: true
           tags: |
-            bettercollected/${{ matrix.service }}:${{ github.sha }}
+            bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:${{ github.sha }}
 
       - name: Add Nightly and Latest Tags
         run: |          
           if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
-            docker tag bettercollected/${{ matrix.service }}:${{ github.sha }} bettercollected/${{ matrix.service }}:nightly
-            docker push bettercollected/${{ matrix.service }}:nightly
+            docker tag bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:${{ github.sha }} bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:nightly
+            docker push bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:nightly
           fi
           if [[ "${{ github.ref }}" = "refs/heads/master" ]]; then
-            docker tag bettercollected/${{ matrix.service }}:${{ github.sha }} bettercollected/${{ matrix.service }}:latest
-            docker push bettercollected/${{ matrix.service }}:latest
+            docker tag bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:${{ github.sha }} bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:latest
+            docker push bettercollected/${{ steps.replace_slashes.outputs.service_tag }}:latest
           fi
-
