@@ -1,53 +1,43 @@
-import React, {FormEvent, useCallback, useEffect, useRef, useState} from 'react';
+import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 
-import {useRouter} from 'next/router';
+import { useRouter } from 'next/router';
 
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
 import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
-import {DragStart, DragUpdate, DropResult, ResponderProvided} from 'react-beautiful-dnd';
-import {batch} from 'react-redux';
-import {toast} from 'react-toastify';
+import { DragStart, DragUpdate, DropResult, ResponderProvided } from 'react-beautiful-dnd';
+import ContentEditable from 'react-contenteditable';
+import { batch } from 'react-redux';
+import { toast } from 'react-toastify';
 
-import {useModal} from '@app/components/modal-views/context';
-import {useFullScreenModal} from '@app/components/modal-views/full-screen-modal-context';
+import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import eventBus from '@app/lib/event-bus';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
 import useUndoRedo from '@app/lib/use-undo-redo';
-import {WorkspaceDto} from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
-import {
-    resetBuilderMenuState,
-    setActiveField,
-    setAddNewField,
-    setBuilderState,
-    setFields
-} from '@app/store/form-builder/actions';
-import {selectBuilderState} from '@app/store/form-builder/selectors';
-import {IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState} from '@app/store/form-builder/types';
-import {builderTitleAndDescriptionList} from '@app/store/form-builder/utils';
-import {useAppAsyncDispatch, useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {useCreateFormMutation, usePatchFormMutation} from '@app/store/workspaces/api';
-import {reorder} from '@app/utils/arrayUtils';
-import {createNewField} from '@app/utils/formBuilderBlockUtils';
-import {throttle} from '@app/utils/throttleUtils';
+import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setFields } from '@app/store/form-builder/actions';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
+import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
+import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useCreateFormMutation, usePatchFormMutation } from '@app/store/workspaces/api';
+import { reorder } from '@app/utils/arrayUtils';
+import { createNewField } from '@app/utils/formBuilderBlockUtils';
+import { throttle } from '@app/utils/throttleUtils';
 
 import useFormBuilderState from './context';
-import ContentEditable from "react-contenteditable";
 
-export default function FormBuilder({workspace, _nextI18Next, isEditMode = false}: {
-    isEditMode?: boolean;
-    workspace: WorkspaceDto;
-    _nextI18Next: any
-}) {
+export default function FormBuilder({ workspace, _nextI18Next, isEditMode = false }: { isEditMode?: boolean; workspace: WorkspaceDto; _nextI18Next: any }) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
-    const {t} = useBuilderTranslation();
-    const {handleUserTypingEnd} = useUserTypingDetection();
-    const {isUndoRedoInProgress} = useUndoRedo();
+    const { t } = useBuilderTranslation();
+    const { handleUserTypingEnd } = useUserTypingDetection();
+    const { isUndoRedoInProgress } = useUndoRedo();
     const builderDragDropRef = useRef<HTMLDivElement | null>(null);
 
     const router = useRouter();
@@ -55,7 +45,7 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
     const onBlurCallbackRef = useRef<any>(null);
 
-    const {backspaceCount, setBackspaceCount} = useFormBuilderState();
+    const { backspaceCount, setBackspaceCount } = useFormBuilderState();
 
     const [postCreateForm] = useCreateFormMutation();
     const [patchForm] = usePatchFormMutation();
@@ -71,18 +61,15 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
         });
     };
 
-    const onAddNewPage = () => {
-    };
+    const onAddNewPage = () => {};
 
-    const onAddFormLogo = () => {
-    };
+    const onAddFormLogo = () => {};
 
-    const onAddFormCover = () => {
-    };
+    const onAddFormCover = () => {};
 
     const onPreview = () => {
         asyncDispatch(resetBuilderMenuState()).then(() => {
-            fullScreenModal.openModal('FORM_BUILDER_PREVIEW', {publish: onFormPublish});
+            fullScreenModal.openModal('FORM_BUILDER_PREVIEW', { publish: onFormPublish });
         });
     };
 
@@ -94,7 +81,7 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
                 setBuilderState({
                     menus: {
                         ...builderState.menus,
-                        commands: {isOpen: false, atFieldUuid: '', position: 'down'}
+                        commands: { isOpen: false, atFieldUuid: '', position: 'down' }
                     }
                 })
             );
@@ -108,12 +95,12 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
         const createUpdateText = !isEditMode ? 'creat' : 'updat';
 
         if (response?.data) {
-            toast(`Form ${createUpdateText}ed!!`, {type: 'success'});
-            asyncDispatch(setBuilderState({isFormDirty: false})).then(async () => {
+            toast(`Form ${createUpdateText}ed!!`, { type: 'success' });
+            asyncDispatch(setBuilderState({ isFormDirty: false })).then(async () => {
                 await router.push(redirectUrl);
             });
         } else {
-            toast(`Error ${createUpdateText}ing form`, {type: 'error'});
+            toast(`Error ${createUpdateText}ing form`, { type: 'error' });
         }
     };
 
@@ -126,21 +113,21 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
         let fields: any = Object.values(builderState.fields || {});
         fields = fields.map((field: IFormFieldState) => {
             if (field.properties?.choices) {
-                return {...field, properties: {...field.properties, choices: Object.values(field.properties?.choices)}};
+                return { ...field, properties: { ...field.properties, choices: Object.values(field.properties?.choices) } };
             }
             return field;
         });
         publishRequest.fields = fields;
         publishRequest.settings = builderState.settings;
-        publishRequest.buttonText = builderState.buttonText
-        const apiObj: any = {workspaceId: workspace.id, body: publishRequest};
+        publishRequest.buttonText = builderState.buttonText;
+        const apiObj: any = { workspaceId: workspace.id, body: publishRequest };
         if (isEditMode) apiObj['formId'] = builderState?.id;
 
         const response: any = await apiCall(apiObj);
         if (response?.data && !isPublishClicked) {
-            toast('Form saved!', {type: 'success'});
+            toast('Form saved!', { type: 'success' });
             if (!isEditMode) router.push(`/${locale}${workspace?.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`);
-            dispatch(setBuilderState({isFormDirty: false}));
+            dispatch(setBuilderState({ isFormDirty: false }));
         }
         return response;
     };
@@ -174,10 +161,7 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
     const getAddFieldPrompt = (
         <>
             <div className="h-20 group-hover:h-0"></div>
-            <div
-                className="invisible py-2 px-4 bg-gray-50 font-medium text-gray-400 rounded-md text-sm group-hover:visible">Click
-                to add new field
-            </div>
+            <div className="invisible py-2 px-4 bg-gray-50 font-medium text-gray-400 rounded-md text-sm group-hover:visible">Click to add new field</div>
         </>
     );
     useEffect(() => {
@@ -199,8 +183,7 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
 
     return (
         <div>
-            <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo}
-                                onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish}/>
+            <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
             <div className="h-full w-full max-w-4xl mx-auto py-10">
                 <div className="flex flex-col gap-4 px-5 md:px-[89px]">
                     {builderTitleAndDescriptionList.map((b: IBuilderTitleAndDescriptionObj) => (
@@ -216,13 +199,13 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
                             onChangeCallback={(event: FormEvent<HTMLElement>) => {
                                 if (isUndoRedoInProgress) return;
                                 setBackspaceCount(0);
-                                dispatch(setBuilderState({[b.key]: event.currentTarget.innerText}));
+                                dispatch(setBuilderState({ [b.key]: event.currentTarget.innerText }));
                                 handleUserTypingEnd();
                             }}
                             onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
                                 event.preventDefault();
                                 setBackspaceCount(0);
-                                dispatch(setActiveField({position: b.position, id: b.id}));
+                                dispatch(setActiveField({ position: b.position, id: b.id }));
                             }}
                         />
                     ))}
@@ -230,14 +213,12 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
                 <div ref={builderDragDropRef} className="relative pb-10">
                     <BuilderDragDropContext
                         Component={FormBuilderBlock}
-                        componentAttrs={{setBackspaceCount}}
+                        componentAttrs={{ setBackspaceCount }}
                         droppableId="form-builder"
                         droppableItems={Object.values(builderState.fields || {})}
                         droppableClassName="pt-10"
-                        onDragStartHandlerCallback={(start: DragStart, provided: ResponderProvided) => {
-                        }}
-                        onDragUpdateHandlerCallback={(update: DragUpdate, provided: ResponderProvided) => {
-                        }}
+                        onDragStartHandlerCallback={(start: DragStart, provided: ResponderProvided) => {}}
+                        onDragUpdateHandlerCallback={(update: DragUpdate, provided: ResponderProvided) => {}}
                         onDragEndHandlerCallback={(result: DropResult, provided: ResponderProvided) => {
                             if (!result.destination) {
                                 return;
@@ -245,7 +226,7 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
                             const items: Array<IFormFieldState> = reorder(Object.values(builderState.fields), result.source.index, result.destination.index);
                             batch(() => {
                                 dispatch(setFields(items));
-                                dispatch(setBuilderState({activeFieldIndex: result.destination?.index ?? builderState.activeFieldIndex}));
+                                dispatch(setBuilderState({ activeFieldIndex: result.destination?.index ?? builderState.activeFieldIndex }));
                             });
                         }}
                     />
@@ -257,25 +238,23 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
                     >
                         {getAddFieldPrompt}
                     </div>
-
                 </div>
                 <div className="mt-10  px-5 md:px-[89px]">
                     <ContentEditable
                         className="w-fit rounded py-3 px-5 text-white !text-[14px] !font-semibold bg-blue-500 min-w-[130px] text-center focus-visible:border-0 focus-visible:outline-none"
-                        html={builderState.buttonText || ""}
+                        html={builderState.buttonText || ''}
                         onKeyDown={(event) => {
-                            event.stopPropagation()
+                            event.stopPropagation();
                         }}
                         onBlur={(event) => {
-                            if (!event.currentTarget.innerText)
-                                dispatch(setBuilderState({buttonText: "Submit"}))
+                            if (!event.currentTarget.innerText) dispatch(setBuilderState({ buttonText: 'Submit' }));
                         }}
                         onChange={(event: FormEvent<HTMLInputElement>) => {
-                            dispatch(setBuilderState({buttonText: event.currentTarget.innerText}))
+                            dispatch(setBuilderState({ buttonText: event.currentTarget.innerText }));
                         }}
                     />
                 </div>
-                {!builderState.isFormDirty && <BuilderTips/>}
+                {!builderState.isFormDirty && <BuilderTips />}
             </div>
         </div>
     );

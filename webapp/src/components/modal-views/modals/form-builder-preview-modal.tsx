@@ -1,22 +1,22 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 
 import EditIcon from '@Components/Common/Icons/Edit';
 import Share from '@Components/Common/Icons/Share';
 import Button from '@Components/Common/Input/Button';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 
-import {formConstant} from '@app/constants/locales/form';
-import {selectBuilderState} from '@app/store/form-builder/selectors';
-import {IFormFieldState} from '@app/store/form-builder/types';
-import {initialIBuilderState} from '@app/store/forms/slice';
-import {useAppSelector} from '@app/store/hooks';
-import {getFormUrl} from '@app/utils/urlUtils';
+import { formConstant } from '@app/constants/locales/form';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { IFormFieldState } from '@app/store/form-builder/types';
+import { initialIBuilderState } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { getFormUrl } from '@app/utils/urlUtils';
 
-import {useFullScreenModal} from '../full-screen-modal-context';
+import { useFullScreenModal } from '../full-screen-modal-context';
 
-export default function FormBuilderPreviewModal({publish}: { publish: () => void }) {
+export default function FormBuilderPreviewModal({ publish }: { publish: () => void }) {
     const [formToRender, setFormToRender] = useState(initialIBuilderState);
-    const {closeModal} = useFullScreenModal();
+    const { closeModal } = useFullScreenModal();
     const builderState = useAppSelector(selectBuilderState);
 
     useEffect(() => {
@@ -29,13 +29,13 @@ export default function FormBuilderPreviewModal({publish}: { publish: () => void
                 if (field.properties?.choices) {
                     return {
                         ...field,
-                        properties: {...field.properties, choices: Object.values(field.properties?.choices)}
+                        properties: { ...field.properties, choices: Object.values(field.properties?.choices) }
                     };
                 }
                 return field;
             });
             previewForm.fields = fields;
-            previewForm.buttonText = builderState.buttonText
+            previewForm.buttonText = builderState.buttonText;
             previewForm.settings = {
                 responseDataOwnerField: builderState.settings?.responseDataOwnerField || ''
             };
@@ -55,7 +55,7 @@ export default function FormBuilderPreviewModal({publish}: { publish: () => void
                     size="small"
                 >
                     <span>
-                        <EditIcon/>
+                        <EditIcon />
                     </span>
                     Edit Form
                 </Button>
@@ -72,7 +72,7 @@ export default function FormBuilderPreviewModal({publish}: { publish: () => void
                 </Button>
             </div>
             <div className="h-screen overflow-auto 2xl:pt-6 min-h-screen w-full pt-28 pb-6 px-5">
-                <BetterCollectedForm form={formToRender} enabled={true} preview={true} closeModal={closeModal}/>
+                <BetterCollectedForm form={formToRender} enabled={true} preview={true} closeModal={closeModal} />
             </div>
         </div>
     );
