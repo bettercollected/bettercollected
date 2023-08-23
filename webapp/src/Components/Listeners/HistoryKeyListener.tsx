@@ -9,7 +9,7 @@ import { resetBuilderMenuState, setBuilderState } from '@app/store/form-builder/
 import { selectBuilderFutureState, selectBuilderPastState, selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { focusElementById, focusElementByIdWithDelay } from '@app/utils/domUtils';
+import {  focusElementByIdWithDelay } from '@app/utils/domUtils';
 import { isMultipleChoice } from '@app/utils/formBuilderBlockUtils';
 
 export default function HistoryKeyListener({ children }: React.PropsWithChildren) {
