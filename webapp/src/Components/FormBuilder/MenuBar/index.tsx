@@ -119,7 +119,7 @@ export default function FormBuilderMenuBar({ onInsert, onAddNewPage, onAddFormLo
                         <SettingsIcon />
                         <span className="hidden text-black-700 lg:flex">Settings</span>
                     </IconButton>
-                </Tooltip> */}
+                </Tooltip>
                 <Divider orientation="vertical" flexItem />
 
                 {/*<Tooltip title={t('PREVIEW.DEFAULT')}>*/}
