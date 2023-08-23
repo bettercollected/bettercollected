@@ -42,7 +42,10 @@ jobs:
           docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
 
       - name: Add Nightly and Latest Tags
-        run: |          
+        env:
+          SERVICE_TAG: ${{ matrix.service }}
+        run: |
+          SERVICE_TAG=${SERVICE_TAG//\//-}
           if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:nightly
             docker push bettercollected/${SERVICE_TAG}:nightly
