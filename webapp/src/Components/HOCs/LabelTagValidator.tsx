@@ -1,19 +1,17 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, {useCallback, useEffect} from 'react';
 
-import { useDispatch } from 'react-redux';
-
-import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setAddNewField } from '@app/store/form-builder/actions';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { IFormFieldState } from '@app/store/form-builder/types';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { createNewField } from '@app/utils/formBuilderBlockUtils';
+import {FormBuilderTagNames, NonInputFormBuilderTagNames} from '@app/models/enums/formBuilder';
+import {setAddNewField} from '@app/store/form-builder/actions';
+import {selectBuilderState} from '@app/store/form-builder/selectors';
+import {IFormFieldState} from '@app/store/form-builder/types';
+import {useAppDispatch, useAppSelector} from '@app/store/hooks';
+import {createNewField} from '@app/utils/formBuilderBlockUtils';
 
 interface LabelTagValidatorProps extends React.PropsWithChildren {
     position: number;
 }
 
-export default function LabelTagValidator({ children, position }: LabelTagValidatorProps) {
+export default function LabelTagValidator({children, position}: LabelTagValidatorProps) {
     const builderState = useAppSelector(selectBuilderState);
 
     const dispatch = useAppDispatch();
@@ -24,7 +22,7 @@ export default function LabelTagValidator({ children, position }: LabelTagValida
         (field: IFormFieldState) => {
             if (NonInputFormBuilderTagNames.includes(field.type)) return true;
 
-            const previousField = Object.values(builderState.fields)[field.position - 1];
+            const previousField: any = Object.values(builderState.fields)[field.position - 1];
             return previousField?.type === FormBuilderTagNames.LAYOUT_LABEL;
         },
         [builderState.fields]
