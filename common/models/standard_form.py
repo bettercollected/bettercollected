@@ -312,6 +312,7 @@ class StandardForm(BaseModel):
     type: Optional[str]
     title: Optional[str]
     description: Optional[str]
+    button_text: Optional[str]
     fields: Optional[List[StandardFormField]]
     state: Optional[State] = Field(State())
     settings: Optional[StandardFormSettings] = StandardFormSettings()
