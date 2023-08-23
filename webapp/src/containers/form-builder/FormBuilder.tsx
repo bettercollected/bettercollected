@@ -1,4 +1,4 @@
-import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import React, { FormEvent, HTMLAttributes, MouseEventHandler, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
@@ -6,7 +6,11 @@ import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
 import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
+import { FormCoverComponent, FormLogoComponent } from '@Components/FormBuilder/Header';
+import MarkdownEditor from '@Components/FormBuilder/MarkdownEditor';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { SetStateAction } from 'jotai';
 import { DragStart, DragUpdate, DropResult, ResponderProvided } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 import { batch } from 'react-redux';
@@ -42,6 +46,9 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const router = useRouter();
 
+    const [isLogoClicked, setIsLogoClicked] = useState(false);
+    const [isCoverClicked, setIsCoverClicked] = useState(false);
+
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
     const onBlurCallbackRef = useRef<any>(null);
 
@@ -63,9 +70,13 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const onAddNewPage = () => {};
 
-    const onAddFormLogo = () => {};
+    const onAddFormLogo = () => {
+        setIsLogoClicked(true);
+    };
 
-    const onAddFormCover = () => {};
+    const onAddFormCover = () => {
+        setIsCoverClicked(true);
+    };
 
     const onPreview = () => {
         asyncDispatch(resetBuilderMenuState()).then(() => {
@@ -185,8 +196,10 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     return (
         <div>
             <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
+            {isCoverClicked && <FormCoverComponent setIsCoverClicked={setIsCoverClicked} />}
             <div className="h-full w-full max-w-4xl mx-auto py-10">
-                <div className="flex flex-col gap-4 px-12 md:px-[89px]">
+                {isLogoClicked && <FormLogoComponent setIsLogoClicked={setIsLogoClicked} classname={isCoverClicked ? '-mt-[90px]' : ''} />}
+                <div className="flex flex-col gap-4 px-5 md:px-[89px]">
                     {builderTitleAndDescriptionList.map((b: IBuilderTitleAndDescriptionObj) => (
                         <CustomContentEditable
                             key={b.id}
