@@ -1,17 +1,17 @@
-import React, {useCallback, useEffect} from 'react';
+import React, { useCallback, useEffect } from 'react';
 
-import {FormBuilderTagNames, NonInputFormBuilderTagNames} from '@app/models/enums/formBuilder';
-import {setAddNewField} from '@app/store/form-builder/actions';
-import {selectBuilderState} from '@app/store/form-builder/selectors';
-import {IFormFieldState} from '@app/store/form-builder/types';
-import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {createNewField} from '@app/utils/formBuilderBlockUtils';
+import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { setAddNewField } from '@app/store/form-builder/actions';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { IFormFieldState } from '@app/store/form-builder/types';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { createNewField } from '@app/utils/formBuilderBlockUtils';
 
 interface LabelTagValidatorProps extends React.PropsWithChildren {
     position: number;
 }
 
-export default function LabelTagValidator({children, position}: LabelTagValidatorProps) {
+export default function LabelTagValidator({ children, position }: LabelTagValidatorProps) {
     const builderState = useAppSelector(selectBuilderState);
 
     const dispatch = useAppDispatch();

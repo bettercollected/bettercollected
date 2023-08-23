@@ -17,6 +17,7 @@ const initialState: IBuilderState = {
     id: '',
     title: '',
     description: '',
+    buttonText: 'Submit',
     menus: {
         spotlightField: { isOpen: false, afterFieldUuid: '' },
         commands: { isOpen: false, atFieldUuid: '', position: 'down' },
@@ -253,6 +254,7 @@ export const builder = createSlice({
                 id: action.payload.formId,
                 title: action.payload.title,
                 description: action.payload.description,
+                buttonText: action.payload.buttonText || 'Submit',
                 activeFieldIndex: -2,
                 activeFieldId: 'field-title',
                 settings: {

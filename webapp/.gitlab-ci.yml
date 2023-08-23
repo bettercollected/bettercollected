@@ -2,9 +2,9 @@ stages:
     - build
     - test
     - deploy
-     
+
 variables:
-  CYPRESS_CACHE_FOLDER: "$CI_PROJECT_DIR/cache/Cypress"
+    CYPRESS_CACHE_FOLDER: '$CI_PROJECT_DIR/cache/Cypress'
 
 build develop:
     stage: build
@@ -108,7 +108,7 @@ cypress-tests:
     image: cypress/base:18.16.1
 
     tags:
-       - docker
+        - docker
     cache:
         paths:
             - node_modules/
@@ -120,21 +120,4 @@ cypress-tests:
         - yarn runHeadless
 
     variables:
-       CYPRESS_baseUrl: "https://admin.bettercollected.com/login"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        CYPRESS_baseUrl: 'https://admin.bettercollected.com/login'

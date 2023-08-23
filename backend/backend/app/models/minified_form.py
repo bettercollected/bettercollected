@@ -25,3 +25,4 @@ class MinifiedForm(CamelModel):
     imported_by: Optional[str]
     importer_details: Optional[FormImporterDetails]
     fields: Optional[List[StandardFormFieldCamelModel]]
+    button_text: Optional[str]

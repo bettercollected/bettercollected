@@ -158,4 +158,5 @@ class FormRepository:
         form_document.fields = form.fields
         form_document.title = form.title
         form_document.description = form.description
+        form_document.button_text = form.button_text
         return await form_document.save()
