@@ -8,6 +8,7 @@ import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { resetBuilderMenuState, setActiveField, setAddNewField, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { IBuilderState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 const Fields = [
@@ -26,14 +27,20 @@ const Fields = [
 ];
 
 export default function FormBuilderAddFieldModal({ index }: { index?: number }) {
-    const { closeModal, modalProps } = useModal();
-    const builderState = useAppSelector(selectBuilderState);
+    const { closeModal } = useModal();
+    const builderState: IBuilderState = useAppSelector(selectBuilderState);
 
     const dispatch = useAppDispatch();
 
     const { t } = useBuilderTranslation();
     const handleFieldSelected = (type: FormBuilderTagNames) => {
-        const activeField = builderState.fields[builderState.activeFieldId];
+        const getActiveIndex = () => {
+            if (index !== undefined && index > -1) return index;
+            if (builderState.activeFieldIndex > -1) return builderState.activeFieldIndex;
+            return Object.keys(builderState.fields).length - 1;
+        };
+        const activeIndex = getActiveIndex();
+        const activeField = Object.values(builderState.fields)[activeIndex];
         const isActiveFieldLayoutShortText = activeField.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT;
         const shouldInsertInCurrentField = isActiveFieldLayoutShortText && !activeField.value;
 
@@ -43,7 +50,7 @@ export default function FormBuilderAddFieldModal({ index }: { index?: number }) 
                 setAddNewField({
                     id: v4(),
                     type,
-                    position: builderState.activeFieldIndex >= 0 ? builderState.activeFieldIndex : Object.keys(builderState.fields).length - 1
+                    position: activeIndex
                 })
             );
             dispatch(resetBuilderMenuState());

@@ -52,7 +52,7 @@ const Logo = ({ className, isLink = true, isClientDomain = false, isCustomDomain
     );
 
     return isLink ? (
-        <AnchorLink href={url} className="w-fit outline-none" {...props}>
+        <AnchorLink href={url} target={isCustomDomain && isFooter ? '_blank' : undefined} className="w-fit outline-none" {...props}>
             {logo}
         </AnchorLink>
     ) : (

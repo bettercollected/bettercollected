@@ -83,12 +83,12 @@ export default function FormBuilderMenuBar({ onInsert, onAddNewPage, onAddFormLo
         >
             <Toolbar sx={{ height: '40px !important' }} className="flex body4 w-full justify-center">
                 <Divider orientation="vertical" flexItem />
-                <Tooltip title={t('INSERT.A_FIELD')}>
-                    <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onInsert}>
-                        <PlusIcon />
-                        <span className="hidden text-black-700 lg:flex">{t('INSERT.DEFAULT')}</span>
-                    </IconButton>
-                </Tooltip>
+                {/*<Tooltip title={t('INSERT.A_FIELD')}>*/}
+                <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onInsert}>
+                    <PlusIcon />
+                    <span className=" text-black-700">{t('INSERT.DEFAULT')}</span>
+                </IconButton>
+                {/*</Tooltip>*/}
                 {/* <Divider orientation="vertical" flexItem />
 
                 <Tooltip title="Add a new page">
@@ -122,19 +122,19 @@ export default function FormBuilderMenuBar({ onInsert, onAddNewPage, onAddFormLo
                 </Tooltip> */}
                 <Divider orientation="vertical" flexItem />
 
-                <Tooltip title={t('PREVIEW.DEFAULT')}>
-                    <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onPreview}>
-                        <VisibilityOutlinedIcon />
-                        <span className="hidden text-black-700 lg:flex">{t('PREVIEW.DEFAULT')}</span>
-                    </IconButton>
-                </Tooltip>
+                {/*<Tooltip title={t('PREVIEW.DEFAULT')}>*/}
+                <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onPreview}>
+                    <VisibilityOutlinedIcon />
+                    <span className=" text-black-700 ">{t('PREVIEW.DEFAULT')}</span>
+                </IconButton>
+                {/*</Tooltip>*/}
                 <Divider orientation="vertical" flexItem />
-                <Tooltip title={t('PUBLISH.DEFAULT')}>
-                    <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onFormPublish}>
-                        <PublishIcon />
-                        <span className="hidden text-black-700 lg:flex">{t('PUBLISH.DEFAULT')}</span>
-                    </IconButton>
-                </Tooltip>
+                {/*<Tooltip title={t('PUBLISH.DEFAULT')}>*/}
+                <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onFormPublish}>
+                    <PublishIcon />
+                    <span className=" text-black-700">{t('PUBLISH.DEFAULT')}</span>
+                </IconButton>
+                {/*</Tooltip>*/}
                 <Divider orientation="vertical" flexItem />
             </Toolbar>
         </AppBar>
