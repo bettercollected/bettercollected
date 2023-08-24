@@ -307,7 +307,6 @@ const builderPersistReducer = persistReducer(
 
 const undoableReducer = undoable(builderPersistReducer, {
     neverSkipReducer: true,
-    debug: true,
     filter: function filterActions(action, currentState, previousHistory) {
         if (currentState.isTyping) return false;
         return [builder.actions.setAddNewField.type, builder.actions.setAddNewChoice.type, builder.actions.setTyping.type].includes(action.type);
