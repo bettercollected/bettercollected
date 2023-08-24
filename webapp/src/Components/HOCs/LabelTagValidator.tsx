@@ -51,7 +51,7 @@ export default function LabelTagValidator({ children, position }: LabelTagValida
         <div id={`label-tag-validator-${position}`} className="relative group">
             {children}
             {hasMissingLabel && (
-                <div className="absolute -right-40 top-1/4 ">
+                <div className="absolute -right-40 top-1/4 hidden xl:block">
                     <div className="flex space-x-2 items-center text-xs font-medium text-gray-400">
                         <div className="text-sm">Add label</div>
                         {hintBox('Alt')}

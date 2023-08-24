@@ -97,11 +97,31 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                 </div>
             }
         >
-            <div className="flex flex-col gap-2 py-3">
-                <p className="px-5 text-xs font-semibold tracking-widest leading-none uppercase text-black-700">{t('COMPONENTS.OPTIONS.DEFAULT')}</p>
-            </div>
+            <div
+                onKeyDown={(event) => {
+                    event.stopPropagation();
+                }}
+            >
+                <div className="flex flex-col gap-2 py-3">
+                    <p className="px-5 text-xs font-semibold tracking-widest leading-none uppercase text-black-700">{t('COMPONENTS.OPTIONS.DEFAULT')}</p>
+                </div>
 
-            {field?.type == FormBuilderTagNames.INPUT_EMAIL && (
+                {field?.type == FormBuilderTagNames.INPUT_EMAIL && (
+                    <MenuItem sx={{ paddingX: '20px', paddingY: '10px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
+                        <FormControlLabel
+                            slotProps={{
+                                typography: {
+                                    fontSize: 14
+                                }
+                            }}
+                            label={t('COMPONENTS.OPTIONS.IDENTIFIER_FIELD')}
+                            labelPlacement="start"
+                            className="m-0 text-xs flex items-center justify-between w-full"
+                            control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleSetEmailIdentifier} checked={responseOwnerField === field?.id} />}
+                        />
+                    </MenuItem>
+                )}
+
                 <MenuItem sx={{ paddingX: '20px', paddingY: '10px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
                     <FormControlLabel
                         slotProps={{
@@ -109,50 +129,36 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                                 fontSize: 14
                             }
                         }}
-                        label={t('COMPONENTS.OPTIONS.IDENTIFIER_FIELD')}
+                        label={t('COMPONENTS.OPTIONS.HIDE_FIELD')}
                         labelPlacement="start"
                         className="m-0 text-xs flex items-center justify-between w-full"
-                        control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleSetEmailIdentifier} checked={responseOwnerField === field?.id} />}
+                        control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!field?.properties?.hidden} />}
                     />
                 </MenuItem>
-            )}
 
-            <MenuItem sx={{ paddingX: '20px', paddingY: '10px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
-                <FormControlLabel
-                    slotProps={{
-                        typography: {
-                            fontSize: 14
-                        }
-                    }}
-                    label={t('COMPONENTS.OPTIONS.HIDE_FIELD')}
-                    labelPlacement="start"
-                    className="m-0 text-xs flex items-center justify-between w-full"
-                    control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!field?.properties?.hidden} />}
-                />
-            </MenuItem>
+                <StepsOption field={field} />
 
-            <StepsOption field={field} />
-
-            <FormValidations field={field} />
-            <Divider className="my-2" />
-            <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={duplicateField}>
-                <ListItemIcon className="text-black-900">
-                    <CopyIcon width={20} height={20} />
-                </ListItemIcon>
-                <span className="leading-none flex items-center justify-between w-full">
-                    <span>{t('COMPONENTS.ACTIONS.DUPLICATE')}</span>
-                    <span className="italic text-xs text-black-500">Ctrl/Cmd + D</span>
-                </span>
-            </MenuItem>
-            <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={deleteFieldWithId}>
-                <ListItemIcon className="text-black-900">
-                    <DeleteIcon width={20} height={20} />
-                </ListItemIcon>
-                <span className="leading-none flex items-center justify-between w-full">
-                    <span>{t('COMPONENTS.ACTIONS.DELETE')}</span>
-                    <span className="italic text-xs text-black-500">Ctrl/Cmd + Del</span>
-                </span>
-            </MenuItem>
+                <FormValidations field={field} />
+                <Divider className="my-2" />
+                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={duplicateField}>
+                    <ListItemIcon className="text-black-900">
+                        <CopyIcon width={20} height={20} />
+                    </ListItemIcon>
+                    <span className="leading-none flex items-center justify-between w-full">
+                        <span>{t('COMPONENTS.ACTIONS.DUPLICATE')}</span>
+                        <span className="italic text-xs text-black-500">Ctrl/Cmd + D</span>
+                    </span>
+                </MenuItem>
+                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={deleteFieldWithId}>
+                    <ListItemIcon className="text-black-900">
+                        <DeleteIcon width={20} height={20} />
+                    </ListItemIcon>
+                    <span className="leading-none flex items-center justify-between w-full">
+                        <span>{t('COMPONENTS.ACTIONS.DELETE')}</span>
+                        <span className="italic text-xs text-black-500">Ctrl/Cmd + Del</span>
+                    </span>
+                </MenuItem>
+            </div>
         </MenuDropdown>
     );
 }
