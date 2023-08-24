@@ -43,7 +43,8 @@
     },
     "ACTIONS": {
       "DUPLICATE": "Dupliceren",
-      "DELETE": "Verwijderen"
+      "DELETE": "Verwijderen",
+      "ADD_LABEL": "Etiket toevoegen"
     },
     "END_ADORNMENT_INPUT_FIELD": {
       "PLACEHOLDER": "Plaatsaanduiding voor invoer"

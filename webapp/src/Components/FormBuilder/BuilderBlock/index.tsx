@@ -111,7 +111,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                     onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => onKeyDownCallback(event, provided)}
                     {...provided.draggableProps}
                 >
-                    <div className={`builder-block px-5 min-h-[40px] flex items-center md:px-[89px]`}>
+                    <div className={`builder-block px-12 min-h-[40px] flex items-center md:px-[89px]`}>
                         <FormBuilderActionMenu
                             index={item.position}
                             id={item.id}

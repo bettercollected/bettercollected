@@ -43,7 +43,8 @@
     },
     "ACTIONS": {
       "DUPLICATE": "Duplicate",
-      "DELETE": "Delete"
+      "DELETE": "Delete",
+      "ADD_LABEL": "Add label"
     },
     "END_ADORNMENT_INPUT_FIELD": {
       "PLACEHOLDER": "Placeholder for input"

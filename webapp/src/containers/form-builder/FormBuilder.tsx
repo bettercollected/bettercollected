@@ -161,8 +161,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const getAddFieldPrompt = (
         <>
-            <div className="h-20 group-hover:h-0"></div>
-            <div className="invisible py-2 px-4 bg-gray-50 font-medium text-gray-400 rounded-md text-sm group-hover:visible">Click to add new field</div>
+            <div className="h-10 group-hover:h-0"></div>
+            <div className="lg:invisible py-2 px-4 bg-gray-50 font-medium text-gray-400 rounded-md text-sm group-hover:visible">Click to add new field</div>
         </>
     );
     useEffect(() => {
@@ -186,7 +186,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         <div>
             <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
             <div className="h-full w-full max-w-4xl mx-auto py-10">
-                <div className="flex flex-col gap-4 px-5 md:px-[89px]">
+                <div className="flex flex-col gap-4 px-12 md:px-[89px]">
                     {builderTitleAndDescriptionList.map((b: IBuilderTitleAndDescriptionObj) => (
                         <CustomContentEditable
                             key={b.id}
@@ -232,7 +232,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         }}
                     />
                     <div
-                        className={` absolute w-fit cursor-pointer  px-5  md:px-[89px] flex items-center min-h-[40px] group`}
+                        className={` absolute w-fit cursor-pointer  px-12  md:px-[89px] flex items-center min-h-[40px] group`}
                         onClick={() => {
                             dispatch(setAddNewField(createNewField(Object.keys(builderState.fields).length - 1)));
                         }}
@@ -240,9 +240,9 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         {getAddFieldPrompt}
                     </div>
                 </div>
-                <div className="mt-10  px-5 md:px-[89px]">
+                <div className="mt-2  px-12 md:px-[89px]">
                     <ContentEditable
-                        className="w-fit rounded py-3 px-5 text-white !text-[14px] !font-semibold bg-blue-500 min-w-[130px] text-center focus-visible:border-0 focus-visible:outline-none"
+                        className="w-fit rounded py-3 px-5 text-white !text-[14px] !font-semibold bg-black-900 min-w-[130px] text-center focus-visible:border-0 focus-visible:outline-none"
                         html={builderState.buttonText || ''}
                         onKeyDown={(event) => {
                             event.stopPropagation();
