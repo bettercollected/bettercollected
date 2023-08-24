@@ -12,6 +12,7 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
+import PoweredBy from '@app/components/ui/powered-by';
 import { localesCommon } from '@app/constants/locales/common';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
@@ -93,7 +94,7 @@ export default function SingleFormPage(props: any) {
     // TODO: Update this component to be reusable
     if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
         return (
-            <div className="relative !bg-brand-100 !min-h-screen">
+            <div className="relative !bg-white !min-h-screen">
                 {back && (
                     <div className="flex cursor-pointer mt-5 items-center gap-2 px-5 lg:px-20 w-auto z-10 hover:!-translate-y-0 focus:-translate-y-0" onClick={() => goToForms()}>
                         <ChevronLeft height={24} width={24} />
@@ -151,14 +152,15 @@ export default function SingleFormPage(props: any) {
                     </div>
                 </div>
             )}
-            <div className={'absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0 bg-brand-100'}>
+            <div className={'absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
                 {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (
-                    <div className="flex !bg-brand-100 justify-center w-full py-6 items-center">
+                    <div className="flex !bg-white justify-center w-full py-6 items-center">
                         <BetterCollectedForm form={form} enabled={true} isCustomDomain={hasCustomDomain} />
                     </div>
                 )}
             </div>
+            {hasCustomDomain && <PoweredBy />}
         </Layout>
     );
 }
