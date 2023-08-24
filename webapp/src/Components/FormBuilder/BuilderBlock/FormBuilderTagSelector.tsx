@@ -107,6 +107,13 @@ export const allowedInputTags = [
         label: 'Ranking',
         icon: <RankingIcon width={20} height={20} />,
         blockType: BlockTypes.INPUT_BLOCKS
+    },
+    {
+        id: FormBuilderTagNames.INPUT_MEDIA,
+        type: FormBuilderTagNames.INPUT_MEDIA,
+        label: 'Media',
+        icon: <PermMediaIcon width={20} height={20} />,
+        blockType: BlockTypes.INPUT_BLOCKS
     }
 ];
 
@@ -158,13 +165,6 @@ export const allowedLayoutTags = [
         type: FormBuilderTagNames.LAYOUT_MARKDOWN,
         label: 'Markdown',
         icon: <Tag width={20} height={20} />,
-        blockType: BlockTypes.LAYOUT_BLOCKS
-    },
-    {
-        id: FormBuilderTagNames.LAYOUT_MEDIA,
-        type: FormBuilderTagNames.LAYOUT_MEDIA,
-        label: 'Media',
-        icon: <PermMediaIcon width={20} height={20} />,
         blockType: BlockTypes.LAYOUT_BLOCKS
     }
 ];
