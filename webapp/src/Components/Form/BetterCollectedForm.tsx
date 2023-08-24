@@ -181,7 +181,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 ))}
                 {enabled && (
                     <div>
-                        <button className="mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-blue-500  !font-semibold " type="submit" disabled={!enabled}>
+                        <button className="mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-black-900  !font-semibold " type="submit" disabled={!enabled}>
                             {form?.buttonText || 'Submit'}
                         </button>
                     </div>
