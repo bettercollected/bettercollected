@@ -6,13 +6,13 @@ import MarkdownText from '@Components/Common/Markdown';
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
 import FieldValidations from '@Components/Form/FieldValidations';
+import FileUpload from '@Components/Form/FileUpload';
 import LongText from '@Components/Form/LongText';
 import MultipleChoiceField from '@Components/Form/MultipleChoiceField';
 import PhoneNumber from '@Components/Form/PhoneNumber';
 import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
-import FileUpload from '@Components/FormBuilder/FileUpload';
 import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';
@@ -25,6 +25,8 @@ import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 import { validateFormFieldAnswer } from '@app/utils/validationUtils';
+
+import useFormAtom from './atom';
 
 export interface FormFieldProps {
     field: StandardFormFieldDto;
@@ -45,8 +47,6 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
             return <div className={'!mt-3 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_MARKDOWN:
             return <MarkdownText text={field.value ?? ''} />;
-        case FormBuilderTagNames.LAYOUT_MEDIA:
-            return <FileUpload />;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
         case FormBuilderTagNames.INPUT_EMAIL:
         case FormBuilderTagNames.INPUT_NUMBER:
@@ -66,6 +66,8 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
             return <DropdownField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_RANKING:
             return <RankingField field={field} ans={answer} enabled={enabled} />;
+        case FormBuilderTagNames.INPUT_MEDIA:
+            return <FileUpload field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_RATING:
             return <RatingField field={field} ans={answer} enabled={enabled} />;
         default:
@@ -90,6 +92,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const invalidFields = useAppSelector(selectInvalidFields);
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
+    const { files, resetFormFiles } = useFormAtom();
 
     useEffect(() => {
         dispatch(resetFillForm());
@@ -125,14 +128,27 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             closeModal && closeModal();
             return;
         }
+
+        const formData = new FormData();
+        console.log(files);
+        // Append files to formData
+        files.forEach((fileObj) => {
+            formData.append('files', fileObj.file, fileObj.fileName);
+            formData.append('file_field_ids', fileObj.fieldId);
+            formData.append('file_ids', fileObj.fileId);
+        });
+
         const postBody = {
             form_id: form?.formId,
             answers: answers,
             dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
         };
-        const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: postBody });
+        formData.append('response', JSON.stringify(postBody));
+        console.log(formData);
+        const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: formData });
         if (response?.data) {
             toast('Response Submitted', { type: 'success' });
+            resetFormFiles();
             const workspaceUrl = isCustomDomain ? `https://${workspace.customDomain}` : `/${workspace.workspaceName}`;
             router.push(workspaceUrl);
         } else {
@@ -149,6 +165,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 }
             }}
             onSubmit={onSubmitForm}
+            onBlur={resetFormFiles}
         >
             <div className="mb-7">
                 <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>

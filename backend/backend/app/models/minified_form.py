@@ -13,6 +13,8 @@ from backend.app.models.response_dtos import (
 
 class MinifiedForm(CamelModel):
     form_id: Optional[str]
+    form_logo: Optional[str]
+    form_cover: Optional[str]
     title: Optional[str]
     description: Optional[str]
     type: Optional[str]

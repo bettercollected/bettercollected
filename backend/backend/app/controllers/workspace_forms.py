@@ -1,9 +1,12 @@
+import json
 from http import HTTPStatus
+from typing import List, Annotated
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, patch, post, delete
-from fastapi import Depends
+from fastapi import Depends, UploadFile, File, Form
 from fastapi_pagination import Page
+from pydantic import parse_obj_as
 from starlette.requests import Request
 
 from backend.app.container import container
@@ -15,7 +18,7 @@ from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.response_dtos import (
     WorkspaceFormPatchResponse,
     StandardFormCamelModel,
-    StandardFormResponseCamelModel,
+    StandardFormResponseCamelModel, FormFileResponse,
 )
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.router import router
@@ -31,11 +34,11 @@ from common.models.user import User
 @router(prefix="/workspaces/{workspace_id}/forms", tags=["Workspace Forms"])
 class WorkspaceFormsRouter(Routable):
     def __init__(
-        self,
-        form_service: FormService = container.form_service(),
-        workspace_form_service: WorkspaceFormService = container.workspace_form_service(),
-        *args,
-        **kwargs
+            self,
+            form_service: FormService = container.form_service(),
+            workspace_form_service: WorkspaceFormService = container.workspace_form_service(),
+            *args,
+            **kwargs
     ):
         super().__init__(*args, **kwargs)
         self._form_service = form_service
@@ -43,10 +46,10 @@ class WorkspaceFormsRouter(Routable):
 
     @get("", response_model=Page[MinifiedForm])
     async def get_workspace_forms(
-        self,
-        workspace_id: PydanticObjectId,
-        sort: SortRequest = Depends(),
-        user: User = Depends(get_user_if_logged_in),
+            self,
+            workspace_id: PydanticObjectId,
+            sort: SortRequest = Depends(),
+            user: User = Depends(get_user_if_logged_in),
     ) -> Page[MinifiedForm]:
         forms = await self._form_service.get_forms_in_workspace(
             workspace_id, sort, user
@@ -55,10 +58,12 @@ class WorkspaceFormsRouter(Routable):
 
     @post("", response_model=MinifiedForm)
     async def create_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form: MinifiedForm,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form: MinifiedForm,
+            # logo_image: UploadFile = None,
+            # cover_image: UploadFile = None,
+            user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
@@ -70,11 +75,11 @@ class WorkspaceFormsRouter(Routable):
 
     @patch("/{form_id}", response_model=MinifiedForm)
     async def patch_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        form: MinifiedForm,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            form: MinifiedForm,
+            user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
@@ -89,26 +94,36 @@ class WorkspaceFormsRouter(Routable):
 
     @post("/{form_id}/response")
     async def respond_to_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        response: StandardFormResponseCamelModel,
-        user: User = Depends(get_user_if_logged_in),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            files: list[UploadFile],
+            file_field_ids: list[str] = Form(),
+            file_ids: list[str] = Form(),
+            response: str = Form(),
+            user: User = Depends(get_user_if_logged_in),
     ):
+        form_files = [FormFileResponse(file_id=file_id, field_id=field_id, filename=file.filename, file=file) for
+                      file_id, field_id, file in zip(file_ids, file_field_ids, files)]
+        parsed_response = StandardFormResponseCamelModel(**json.loads(response))
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
         response = await self.workspace_form_service.submit_response(
-            workspace_id=workspace_id, form_id=form_id, response=response, user=user
+            workspace_id=workspace_id, form_id=form_id, response=parsed_response, form_files=form_files, user=user
         )
         return response.id
 
+    @get("/files/{file_id}")
+    def get_file_downloadable_link(self, file_id: str):
+        return self.workspace_form_service.generate_presigned_file_url(file_id)
+
     @delete("/{form_id}/response/{response_id}")
     async def delete_form_response(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        response_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            response_id: PydanticObjectId,
+            user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
@@ -121,10 +136,10 @@ class WorkspaceFormsRouter(Routable):
 
     @post("/search")
     async def search_forms_in_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        query: str,
-        user: User = Depends(get_user_if_logged_in),
+            self,
+            workspace_id: PydanticObjectId,
+            query: str,
+            user: User = Depends(get_user_if_logged_in),
     ):
         forms = await self._form_service.search_form_in_workspace(
             workspace_id, query, user
@@ -133,21 +148,21 @@ class WorkspaceFormsRouter(Routable):
 
     @get("/{form_id}", response_model=MinifiedForm)
     async def _get_form_by_id(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        user: User = Depends(get_user_if_logged_in),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            user: User = Depends(get_user_if_logged_in),
     ):
         form = await self._form_service.get_form_by_id(workspace_id, form_id, user)
         return form
 
     @patch("/{form_id}/settings")
     async def patch_settings_for_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        settings: SettingsPatchDto,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            settings: SettingsPatchDto,
+            user: User = Depends(get_logged_user),
     ):
         data = await self._form_service.patch_settings_in_workspace_form(
             workspace_id, form_id, settings, user
@@ -157,11 +172,11 @@ class WorkspaceFormsRouter(Routable):
     @patch("/{form_id}/groups/add", summary="Add form in group")
     @user_tag(tag=UserTagType.FORM_ADDED_TO_GROUP)
     async def patch_groups_for_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        group_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            group_id: PydanticObjectId,
+            user: User = Depends(get_logged_user),
     ):
         return await self.workspace_form_service.add_group_to_form(
             workspace_id, form_id, group_id, user
@@ -169,11 +184,11 @@ class WorkspaceFormsRouter(Routable):
 
     @delete("/{form_id}/groups", summary="Delete form from group")
     async def delete_group_from_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        group_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            group_id: PydanticObjectId,
+            user: User = Depends(get_logged_user),
     ):
         return await self.workspace_form_service.delete_group_from_form(
             workspace_id=workspace_id, form_id=form_id, group_id=group_id, user=user
@@ -182,12 +197,12 @@ class WorkspaceFormsRouter(Routable):
     @post("/import/{provider}")
     @user_tag(tag=UserTagType.FORM_IMPORTED)
     async def _import_form_to_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        provider: str,
-        form: FormImportRequestBody,
-        request: Request,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            provider: str,
+            form: FormImportRequestBody,
+            request: Request,
+            user: User = Depends(get_logged_user),
     ):
         await self.workspace_form_service.import_form_to_workspace(
             workspace_id, provider, form, user, request
@@ -196,10 +211,10 @@ class WorkspaceFormsRouter(Routable):
 
     @delete("/{form_id}")
     async def _delete_form_from_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            user: User = Depends(get_logged_user),
     ):
         return await self.workspace_form_service.delete_form_from_workspace(
             workspace_id=workspace_id, form_id=form_id, user=user

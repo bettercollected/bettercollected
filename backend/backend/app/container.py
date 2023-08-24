@@ -172,6 +172,7 @@ class AppContainer(containers.DeclarativeContainer):
         responder_groups_service=responder_groups_service,
         user_tags_service=user_tags_service,
         temporal_service=temporal_service,
+        aws_service=aws_service
     )
     workspace_service: WorkspaceService = providers.Singleton(
         WorkspaceService,

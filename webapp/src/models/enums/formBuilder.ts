@@ -26,7 +26,6 @@ export enum FormBuilderTagNames {
     LAYOUT_LABEL = 'strong',
     LAYOUT_DIVIDER = 'divider',
     LAYOUT_MARKDOWN = 'markdown',
-    LAYOUT_MEDIA = 'media',
 
     INPUT_SHORT_TEXT = 'input_short_text',
     INPUT_LONG_TEXT = 'input_long_text',
@@ -49,6 +48,7 @@ export enum FormBuilderTagNames {
     INPUT_FILE_UPLOAD = 'input_file_upload',
     INPUT_RANKING = 'input_ranking',
     INPUT_MATRIX = 'input_matrix',
+    INPUT_MEDIA = 'input_file_upload',
 
     EMBED_IMAGE = 'embed_image',
     EMBED_VIDEO = 'embed_video',

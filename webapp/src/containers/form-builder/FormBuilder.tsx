@@ -117,6 +117,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             }
             return field;
         });
+        console.log({ fields });
         publishRequest.fields = fields;
         publishRequest.settings = builderState.settings;
         publishRequest.buttonText = builderState.buttonText;

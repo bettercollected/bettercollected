@@ -6,7 +6,7 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspaceStatsDto';
-import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
+import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFileUrlQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
@@ -203,6 +203,12 @@ export const workspacesApi = createApi({
                 method: 'GET'
             }),
             providesTags: [WORKSPACE_TAGS]
+        }),
+        getFormFileDownloadableLink: builder.query<string, IGetWorkspaceFileUrlQuery>({
+            query: (query) => ({
+                url: `/workspaces/${query.workspace_id}/forms/files/${query.file_id}`,
+                method: 'GET'
+            })
         }),
         getFormsSubmissions: builder.query<Page<StandardFormResponseDto>, IGetFormSubmissionsQuery>({
             query: (query) => ({
@@ -491,5 +497,6 @@ export const {
     useAddFormOnGroupMutation,
     useDeleteResponderFromGroupMutation,
     useDeleteGroupFormMutation,
-    useUpdateResponderGroupMutation
+    useUpdateResponderGroupMutation,
+    useLazyGetFormFileDownloadableLinkQuery
 } = workspacesApi;
