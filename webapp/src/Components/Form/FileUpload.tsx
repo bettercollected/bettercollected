@@ -11,7 +11,9 @@ import AnchorLink from '@app/components/ui/links/anchor-link';
 import { FileMetadata } from '@app/models/types/fileTypes';
 import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { generateFileMetaData } from '@app/utils/fileUtils';
+import { useLazyGetFormFileDownloadableLinkQuery } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { downloadFile, generateFileMetaData } from '@app/utils/fileUtils';
 
 import { FormFieldProps } from './BetterCollectedForm';
 import useFormAtom from './atom';
@@ -19,6 +21,8 @@ import useFormAtom from './atom';
 export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     const [isDragging, setIsDragging] = useState(false);
     const { addFile } = useFormAtom();
+    const workspace = useAppSelector(selectWorkspace);
+    const [getFileDownloadableLink, result] = useLazyGetFormFileDownloadableLinkQuery();
     const [fileMetaData, setFileMetadata] = useState<FileMetadata>(ans?.file_metadata ?? { id: uuidv4() });
     const dispatch = useAppDispatch();
 
@@ -36,11 +40,11 @@ export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     };
 
     const updateAndDispatchFile = (file: File) => {
-        if (file.size > 25.0) {
+        const fMetaData = generateFileMetaData(file, fileMetaData.id);
+        if (fMetaData.size! > 25.0) {
             toast('File must be less than 25 MB', { type: 'error' });
             return;
         }
-        const fMetaData = generateFileMetaData(file, fileMetaData.id);
         setFileMetadata({ ...fMetaData });
         addFile(field.id, fMetaData.id, fMetaData.name!, file);
         dispatch(addAnswer({ field: { id: field.id }, file_metadata: { ...fMetaData } }));
@@ -61,15 +65,28 @@ export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
         updateAndDispatchFile(file);
     };
 
+    const downloadFormFile = async () => {
+        const payload = await getFileDownloadableLink({ workspace_id: workspace.id, file_id: fileMetaData.id });
+        if (payload.data) {
+            downloadFile(payload.data, fileMetaData.name ?? fileMetaData.id);
+        } else {
+            toast('Error downloading file', { type: 'error' });
+        }
+    };
     const getFilePreview = () => {
         return (
             <div className="flex w-full space-x-2">
-                <div className="p1 flex w-full justify-between items-center rounded bg-blue-200 py-2 px-3">
+                <div
+                    className="p1 flex w-full justify-between items-center rounded bg-blue-200 py-2 px-3 cursor-pointer"
+                    onClick={() => {
+                        downloadFormFile();
+                    }}
+                >
                     <p>{fileMetaData?.name}</p>
                     <p className="text-sm">{fileMetaData?.size} MB</p>
                 </div>
 
-                {ans && !ans.file_metadata && (
+                {!ans?.file_metadata && (
                     <div className="items-center justify-center rounded bg-blue-200 p-2" onClick={() => setFileMetadata({ ...fileMetaData, name: undefined, size: undefined, type: undefined, url: undefined })}>
                         <Image src={deleteImg} alt="delete-icon" />
                     </div>
@@ -80,7 +97,7 @@ export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
 
     return (
         <div className="space-y-3">
-            {ans && !ans.file_metadata && (
+            {(!ans?.file_metadata || enabled) && (
                 <div
                     tabIndex={0}
                     className={`flex flex-col w-[541px] items-center justify-center space-y-3 rounded border border-dashed border-black-600 bg-black-200 py-10 focus-visible:!outline-none ${isDragging && enabled ? 'border-blue-500' : ''}`}
