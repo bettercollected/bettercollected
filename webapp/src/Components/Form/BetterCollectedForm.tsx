@@ -92,7 +92,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const invalidFields = useAppSelector(selectInvalidFields);
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
-    const { files } = useFormAtom();
+    const { files, resetFormFiles } = useFormAtom();
 
     useEffect(() => {
         dispatch(resetFillForm());
@@ -148,6 +148,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: formData });
         if (response?.data) {
             toast('Response Submitted', { type: 'success' });
+            resetFormFiles();
             const workspaceUrl = isCustomDomain ? `https://${workspace.customDomain}` : `/${workspace.workspaceName}`;
             router.push(workspaceUrl);
         } else {
@@ -164,6 +165,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 }
             }}
             onSubmit={onSubmitForm}
+            onBlur={resetFormFiles}
         >
             <div className="mb-7">
                 <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
