@@ -240,9 +240,9 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         {getAddFieldPrompt}
                     </div>
                 </div>
-                <div className="mt-10  px-12 md:px-[89px]">
+                <div className="mt-2  px-12 md:px-[89px]">
                     <ContentEditable
-                        className="w-fit rounded py-3 px-5 text-white !text-[14px] !font-semibold bg-blue-500 min-w-[130px] text-center focus-visible:border-0 focus-visible:outline-none"
+                        className="w-fit rounded py-3 px-5 text-white !text-[14px] !font-semibold bg-black-900 min-w-[130px] text-center focus-visible:border-0 focus-visible:outline-none"
                         html={builderState.buttonText || ''}
                         onKeyDown={(event) => {
                             event.stopPropagation();
