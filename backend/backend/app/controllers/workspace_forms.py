@@ -113,6 +113,10 @@ class WorkspaceFormsRouter(Routable):
         )
         return response.id
 
+    @get("/files/{file_id}")
+    def get_file_downloadable_link(self, file_id: str):
+        return self.workspace_form_service.generate_presigned_file_url(file_id)
+
     @delete("/{form_id}/response/{response_id}")
     async def delete_form_response(
             self,
