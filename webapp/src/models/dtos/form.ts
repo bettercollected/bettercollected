@@ -5,6 +5,7 @@ import { UserStatus } from '@app/models/dtos/UserStatus';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { IFormFieldValidation } from '@app/store/form-builder/types';
 
+import { FileMetadata } from '../types/fileTypes';
 import { ResponderGroupDto } from './groups';
 
 export interface StandardFormFieldDto {
@@ -91,6 +92,7 @@ export interface AnswerDto {
     date?: string;
     time?: string;
     url?: string;
+    file_metadata?: FileMetadata;
     phoneNumber?: string;
     phone_number?: string;
     choice?: {
