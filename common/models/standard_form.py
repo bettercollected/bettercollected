@@ -152,6 +152,14 @@ class StandardPaymentAnswer(BaseModel):
     name: Optional[str]
 
 
+class FileMetadata(BaseModel):
+    id: str
+    name: Optional[str]
+    type: Optional[str]
+    size: Optional[float]
+    url: Optional[str]
+
+
 class StandardChoiceAnswer(BaseModel):
     value: Optional[str]
     other: Optional[str]
@@ -333,6 +341,7 @@ class StandardFormResponseAnswer(BaseModel):
     file_url: Optional[str]
     payment: Optional[StandardPaymentAnswer]
     phone_number: Optional[str]
+    file_metadata: Optional[FileMetadata]
 
 
 class ResponseState(BaseModel):
