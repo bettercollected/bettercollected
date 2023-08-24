@@ -13,6 +13,8 @@ import PhoneNumber from '@Components/Form/PhoneNumber';
 import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
+import FileUpload from '@Components/FormBuilder/FileUpload';
+import cn from 'classnames';
 import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';
@@ -179,13 +181,11 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                         <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
                     </div>
                 ))}
-                {enabled && (
-                    <div>
-                        <button className="mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-black-900  !font-semibold " type="submit" disabled={!enabled}>
-                            {form?.buttonText || 'Submit'}
-                        </button>
-                    </div>
-                )}
+                <div>
+                    <button className={cn('mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-black-900  !font-semibold ', enabled ? 'cursor-pointer' : 'cursor-not-allowed')} type="submit" disabled={!enabled}>
+                        {form?.buttonText || 'Submit'}
+                    </button>
+                </div>
             </div>
         </form>
     );
