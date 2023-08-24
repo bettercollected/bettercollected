@@ -36,7 +36,8 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
                 return <HeaderInputBlock field={field} id={id} position={position} />;
             case FormBuilderTagNames.LAYOUT_MARKDOWN:
                 return <MarkdownEditor field={field} id={id} />;
-
+            case FormBuilderTagNames.LAYOUT_MEDIA:
+                return <FileUpload id={id} disableUpload />;
             case FormBuilderTagNames.INPUT_SHORT_TEXT:
             case FormBuilderTagNames.INPUT_EMAIL:
             case FormBuilderTagNames.INPUT_NUMBER:
