@@ -14,5 +14,8 @@ export default function useFormAtom() {
     const addFile = (fieldId: string, fileId: string, fileName: string, file: File) => {
         setFiles([...files, { fieldId, fileId, fileName, file }]);
     };
-    return { files, addFile };
+    const resetFormFiles = () => {
+        setFiles([]);
+    };
+    return { files, addFile, resetFormFiles };
 }
