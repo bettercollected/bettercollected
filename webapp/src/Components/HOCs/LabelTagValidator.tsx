@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setAddNewField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
@@ -13,6 +14,8 @@ interface LabelTagValidatorProps extends React.PropsWithChildren {
 
 export default function LabelTagValidator({ children, position }: LabelTagValidatorProps) {
     const builderState = useAppSelector(selectBuilderState);
+
+    const { t } = useBuilderTranslation();
 
     const dispatch = useAppDispatch();
     const hintBox = (text: string) => {
@@ -31,10 +34,14 @@ export default function LabelTagValidator({ children, position }: LabelTagValida
     const field = builderState.fields[builderState.activeFieldId];
     const hasMissingLabel = field ? !validateField(field) && field.position === position : false;
 
+    const addLabel = () => {
+        dispatch(setAddNewField(createNewField(builderState.activeFieldIndex - 1, FormBuilderTagNames.LAYOUT_LABEL)));
+    };
+
     const onKeyDownCallback = useCallback(
         (event: KeyboardEvent) => {
             if ((event.key === 'l' || event.key === 'L') && event.altKey && hasMissingLabel) {
-                dispatch(setAddNewField(createNewField(builderState.activeFieldIndex - 1, FormBuilderTagNames.LAYOUT_LABEL)));
+                addLabel();
             }
         },
         [builderState.activeFieldIndex, dispatch, hasMissingLabel]
@@ -48,12 +55,14 @@ export default function LabelTagValidator({ children, position }: LabelTagValida
     }, [onKeyDownCallback]);
 
     return (
-        <div id={`label-tag-validator-${position}`} className="relative group">
+        <div id={`label-tag-validator-${position}`} className="group">
             {children}
             {hasMissingLabel && (
-                <div className="absolute -right-40 top-1/4 hidden xl:block">
+                <div className=" absolute -right-32 top-2 hidden xl:block">
                     <div className="flex space-x-2 items-center text-xs font-medium text-gray-400">
-                        <div className="text-sm">Add label</div>
+                        <div className="text-sm p-1 cursor-pointer hover:bg-black-100 rounded" onClick={addLabel}>
+                            {t('COMPONENTS.ACTIONS.ADD_LABEL')}
+                        </div>
                         {hintBox('Alt')}
                         {hintBox('+')}
                         {hintBox('L')}

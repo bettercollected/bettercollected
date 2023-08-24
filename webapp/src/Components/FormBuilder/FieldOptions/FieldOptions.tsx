@@ -16,11 +16,12 @@ import { DraggableProvided } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addDuplicateField, setDeleteField, setIdentifierField, setUpdateField } from '@app/store/form-builder/actions';
-import { selectFormField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
+import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { addDuplicateField, setAddNewField, setDeleteField, setIdentifierField, setUpdateField } from '@app/store/form-builder/actions';
+import { selectBuilderState, selectFormField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { createNewField } from '@app/utils/formBuilderBlockUtils';
 
 interface IFieldOptionsProps {
     provided: DraggableProvided;
@@ -34,6 +35,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
     const responseOwnerField = useAppSelector(selectResponseOwnerField);
     const [open, setOpen] = useState(false);
     const { t } = useBuilderTranslation();
+    const builderState = useAppSelector(selectBuilderState);
     const duplicateField = () => {
         const newField: IFormFieldState = { ...field };
         newField.id = uuidv4();
@@ -61,6 +63,16 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
     const handleSetEmailIdentifier = (event: any, checked: boolean) => {
         if (checked) dispatch(setIdentifierField(field?.id));
         else dispatch(setIdentifierField(''));
+    };
+
+    const hasLabelField = () => {
+        if (NonInputFormBuilderTagNames.includes(field.type)) return true;
+        const previousField: any = Object.values(builderState.fields)[field.position - 1];
+        return previousField?.type === FormBuilderTagNames.LAYOUT_LABEL;
+    };
+
+    const addFieldLabel = () => {
+        dispatch(setAddNewField(createNewField(builderState.activeFieldIndex - 1, FormBuilderTagNames.LAYOUT_LABEL)));
     };
 
     return (
@@ -140,6 +152,18 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
 
                 <FormValidations field={field} />
                 <Divider className="my-2" />
+                {!hasLabelField() && (
+                    <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 xl:hidden hover:bg-brand-100" onClick={addFieldLabel}>
+                        <ListItemIcon className=" rounded text-black-900">
+                            <span className="bg-black-100 w-5 h-5 text-center justify-center font-bold text-[14px] flex items-center">L</span>
+                        </ListItemIcon>
+                        <span className="leading-none flex items-center justify-between w-full">
+                            <span>{t('COMPONENTS.ACTIONS.ADD_LABEL')}</span>
+                            <span className="italic text-xs text-black-500">Alt + L</span>
+                        </span>
+                    </MenuItem>
+                )}
+
                 <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={duplicateField}>
                     <ListItemIcon className="text-black-900">
                         <CopyIcon width={20} height={20} />
