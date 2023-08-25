@@ -59,7 +59,7 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
             case FormBuilderTagNames.INPUT_RATING:
                 return <RatingField field={field} id={id} />;
             case FormBuilderTagNames.INPUT_MEDIA:
-                return <FileUpload id={id} disableUpload />;
+                return <FileUpload id={id} />;
             default:
                 return null;
         }
