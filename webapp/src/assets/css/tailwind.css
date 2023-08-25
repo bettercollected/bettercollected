@@ -118,12 +118,17 @@ input.spin-button-hidden::-webkit-inner-spin-button {
 .h4 {
     @apply text-[24px] font-semibold leading-[36px] text-black-900;
 }
-
+.h4-new {
+    @apply text-[20px] font-semibold leading-[30px] text-black-900;
+}
 .h5 {
     @apply text-[20px] font-semibold leading-[30px] text-black-900;
 }
 
 .h6 {
+    @apply text-[16px] font-semibold leading-[24px] text-black-900;
+}
+.h5-new {
     @apply text-[16px] font-semibold leading-[24px] text-black-900;
 }
 .sh1 {

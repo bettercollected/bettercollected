@@ -31,6 +31,9 @@ module.exports = {
                         900: '#2E2E2E',
 
                         DEFAULT: '#2E2E2E'
+                    },
+                    blue: {
+                        100: '#F2F7FF'
                     }
                 },
                 // brand: 'rgb(var(--color-brand) / <alpha-value>)',
