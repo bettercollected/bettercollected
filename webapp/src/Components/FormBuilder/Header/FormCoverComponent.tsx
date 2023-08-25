@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 
 import Image from 'next/image';
 
+import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 import cn from 'classnames';
 import html2canvas from 'html2canvas';
 import { SetStateAction } from 'jotai';
@@ -20,6 +21,7 @@ const FormCoverComponent = (props: IFormCoverComponent) => {
     const [showButtonsOnHOver, setShowButtonsOnHOver] = useState(false);
     const [isSaveButtonClicked, setIsSaveButtonClicked] = useState(false);
     const inputRef = useRef<HTMLInputElement | null>(null);
+    const { setCoverImage, resetImages } = useFormBuilderAtom();
 
     const handleFileChange = (event: any) => {
         if (!event.target.files.length) return;
@@ -36,6 +38,7 @@ const FormCoverComponent = (props: IFormCoverComponent) => {
 
     const onClickRemoveButton = () => {
         setIsCoverClicked(false);
+        setCoverImage(null);
     };
 
     const onClickCancelButton = () => {
@@ -53,8 +56,7 @@ const FormCoverComponent = (props: IFormCoverComponent) => {
                 const file = new File([blob], 'formbannerimage.png', { type: blob.type });
                 setImageURL(URL.createObjectURL(file));
                 setIsSaveButtonClicked(true);
-                // const formData = new FormData();
-                // formData.append('banner_image', file);
+                setCoverImage(file);
             });
         });
     };

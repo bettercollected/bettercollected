@@ -27,7 +27,9 @@ export const initialIBuilderState: StandardFormDto = {
     },
     fields: [],
     modifiedTime: '',
-    groups: []
+    groups: [],
+    coverImage: '',
+    logo: ''
 };
 
 export const slice = createSlice({
