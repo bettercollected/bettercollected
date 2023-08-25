@@ -446,8 +446,10 @@
   "SHARE_WORKSPACE": "Werkruimte delen",
   "SHARE_YOUR_WORKSPACE": "Deel je werkruimte",
   "SIGNIN_SCREEN": {
+    "EMAIL_INPUT_LABEL": "E-mail",
     "COLLECT_FORMS": "Verzamel uw formulieren",
-    "SIGN_IN": "Aanmelden",
+    "WELCOME_BACK": "Welkom terug!",
+    "SIGNIN_TO_CONTINUE":"Gelieve in te loggen om door te gaan",
     "CONTINUE_WITH": "Heb je geen account?",
     "DELETE_RESPONSES": "Antwoorden verwijderen",
     "EASY_TO_MANAGE_FORMS": "Eenvoudig te beheren formulieren",
@@ -457,21 +459,36 @@
     "SIGNIN_AGREEMENT_DESCRIPTION": "Door in te loggen, gaat u akkoord met onze",
     "WELCOME_MESSAGE": "Welkom terug!",
     "FEATURES": {
-      "TITLE": "Zodra je bent ingelogd, kun je:",
-      "FEATURE_1": "Maak je persoonlijke formulier",
-      "FEATURE_2": "Pas formulier-URL's aan",
-      "FEATURE_3": "Importeer formulieren (Google Forms of Typeform)",
-      "FEATURE_4": "Verzamel alle formulieren op één plek",
-      "FEATURE_5": "Deel de formulierpagina met je publiek",
-      "FEATURE_6": "Maak een groep aan en deel je privéformulieren"
+      "TITLE": "Versterk uw organisatie met een aangepaste formulierpagina",
+      "OTP_TITLE":"Aangepaste URL's en verbeterde SEO",
+      "DESCRIPTION": "Maak uw aangepaste formulierpagina aan om al uw formulieren te centraliseren (betere verzamelde formulieren, Google Formulieren en Typeform). Deze gepersonaliseerde oplossing stelt u in staat om al uw formulieren binnen één enkele omgeving te verzamelen en te beheren.",
+      "OTP_DESCRIPTION":"Vervang standaardkoppelingen door uw eigen URL's die uw bedrijf beter vertegenwoordigen en uw online aanwezigheid verbeteren."
     },
-    "CONTINUE": "Doorgaan",
+    "SEND_CODE_BUTTON": "Stuur code",
     "OR_SIGN_IN_USING": "Of log in met",
-    "VERIFICATION": "Verificatie",
+    "SIGN_IN_BUTTON":"Inloggen",
+    "VERIFICATION": { "TITLE": "Verificatie", "DESCRIPTION": "Een 6-cijferige code is verzonden naar uw e-mail" },
     "ENTER_OTP_CODE": "Voer de OTP-code in",
-    "ENTER_CODE_SENT_IN_EMAIL": "Voer de code in die in uw e-mail is verzonden",
+    "ENTER_CODE_PLACEHOLDER":"bijv: 000000",
     "BACK_BUTTON_TITLE": "Rug",
-    "DIDNOT_RECEIVE_CODE": "Geen code ontvangen?"
+    "DIDNOT_RECEIVE_CODE": "Geen code ontvangen?",
+    "MODAL":{"DESCRIPTION":"Je zult alleen reacties kunnen zien die zijn gedaan met het e-mailadres waarmee je bent ingelogd."}
+  },
+  "SIGNUP_SCREEN":{
+    "LOGO_DESCRIPTION": "Privacyvriendelijke formulierenbouwer",
+    "SIGN_UP":"Registreren",
+    "VERIFICATION": { "TITLE": "Verificatie", "DESCRIPTION": "Een 6-cijferige code is verzonden naar uw e-mail" },
+    "ENTER_OTP_CODE": "Voer de OTP-code in",
+    "ENTER_CODE_PLACEHOLDER":"bijv: 000000",
+    "SIGNUP_AGREEMENT_DESCRIPTION": "Door je aan te melden, ga je akkoord met onze",
+    "SIGNUP_TO_CONTINUE":"Je kunt je aanmelden door eenvoudig in te loggen met Google of Typeform, of door je e-mail te gebruiken.",
+    "FEATURES":{
+      "TITLE":"Wij zijn een platform voor formulierenbouwers met focus op privacy",
+      "OTP_TITLE":"Word een betere gegevensverzamelaar ",
+      "OTP_SUB_TITLE":"Klant worden van bettercollected is een belofte om",
+      "DESCRIPTION":"In tegenstelling tot andere formulierenbouwers stellen wij de privacyrechten van degenen die de formulieren invullen voorop.",
+      "OTP_DESCRIPTION":"Wij zorgen ervoor dat respondenten hun formulierantwoorden kunnen bekijken en op elk moment een verzoek tot verwijdering van hun antwoorden kunnen indienen."
+    }
   },
   "SLUG": {
     "DEFAULT": "Slak",
