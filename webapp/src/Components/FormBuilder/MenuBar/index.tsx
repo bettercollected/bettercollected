@@ -89,7 +89,7 @@ export default function FormBuilderMenuBar({ onInsert, onAddNewPage, onAddFormLo
                     <span className=" text-black-700">{t('INSERT.DEFAULT')}</span>
                 </IconButton>
                 {/*</Tooltip>*/}
-                {/* <Divider orientation="vertical" flexItem />
+                <Divider orientation="vertical" flexItem />
 
                 <Tooltip title="Add a new page">
                     <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onAddNewPage}>
