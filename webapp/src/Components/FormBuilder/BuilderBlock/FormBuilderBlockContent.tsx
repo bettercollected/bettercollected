@@ -1,6 +1,7 @@
 import React from 'react';
 
 import EndAdornmentInputField from '@Components/FormBuilder/EndAdornmentInputFIeld';
+import FileUpload from '@Components/FormBuilder/FileUpload';
 import HeaderInputBlock from '@Components/FormBuilder/HeaderInputBlock';
 import LongText from '@Components/FormBuilder/LongText';
 import MultipleChoice from '@Components/FormBuilder/MultipleChoice';
@@ -8,12 +9,10 @@ import RatingField from '@Components/FormBuilder/RatingField';
 import LabelTagValidator from '@Components/HOCs/LabelTagValidator';
 import MultipleChoiceKeyEventListener from '@Components/Listeners/MultipleChoiceKeyListener';
 
-import useUndoRedo from '@app/lib/use-undo-redo';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setActiveField } from '@app/store/form-builder/actions';
 import { useAppDispatch } from '@app/store/hooks';
 
-import FileUpload from '../FileUpload';
 import MarkdownEditor from '../MarkdownEditor';
 
 interface IFormBuilderBlockContent {
@@ -36,7 +35,6 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
                 return <HeaderInputBlock field={field} id={id} position={position} />;
             case FormBuilderTagNames.LAYOUT_MARKDOWN:
                 return <MarkdownEditor field={field} id={id} />;
-
             case FormBuilderTagNames.INPUT_SHORT_TEXT:
             case FormBuilderTagNames.INPUT_EMAIL:
             case FormBuilderTagNames.INPUT_NUMBER:
