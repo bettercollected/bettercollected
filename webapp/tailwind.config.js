@@ -118,7 +118,8 @@ module.exports = {
                 main: '0px 4px 8px rgba(0, 0, 0, 0.08)'
             },
             backgroundImage: {
-                'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))'
+                'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                'sign-in': "url('/images/background.png')"
             },
             animation: {
                 blink: 'blink 1.4s infinite both;',
