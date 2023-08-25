@@ -2,8 +2,8 @@ import React from 'react';
 
 import BackButtonMenuBar from '@Components/Common/BackButtonMenuBar';
 import ConsentInformationPanel from '@Components/Consent/ConsentInformationPanel';
+import CreateConsentForm from '@Components/Consent/Form/CreateConsentForm';
 
-import CreateConsentContainer from '@app/containers/consent/CreateConsentContainer';
 import Layout from '@app/layouts/_layout';
 
 export default function CreateConsent() {
@@ -12,7 +12,7 @@ export default function CreateConsent() {
             <div className="flex min-w-screen">
                 <div>
                     <BackButtonMenuBar text="Back to Form" />
-                    <CreateConsentContainer className="mt-20 pb-20" />
+                    <CreateConsentForm className="mt-20 pb-20" />
                 </div>
                 <ConsentInformationPanel />
             </div>

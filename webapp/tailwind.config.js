@@ -81,6 +81,9 @@ module.exports = {
                 orange: {
                     500: '#EB8E07',
                     DEFAULT: '#EB8E07'
+                },
+                pink: {
+                    DEFAULT: '#FE3678'
                 }
             },
             spacing: {
