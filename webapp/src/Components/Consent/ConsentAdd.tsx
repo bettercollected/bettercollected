@@ -20,7 +20,7 @@ export default function ConsentAddInput({ title, placeholder, hint }: ConsentAdd
                 </div>
             )}
             <div className="space-y-3">
-                <div className="h6">{title}</div>
+                <div className="h5-new">{title}</div>
                 <ConsentInput placeholder={placeholder} className="!cursor-pointer" />
             </div>
         </div>

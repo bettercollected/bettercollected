@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
+import FormButton from '@Components/Common/Input/Button/FormButton';
 import MarkdownText from '@Components/Common/Markdown';
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
@@ -189,20 +190,17 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                     {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
                 </div>
 
-                <div className="flex flex-col w-full gap-2">
-                    {form?.fields.map((field: StandardFormFieldDto) => (
-                        <div key={field?.id} className="relative w-full">
-                            {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
-                            <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
-                        </div>
-                    ))}
-                    <div>
-                        <button className={cn('mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-black-900  !font-semibold ', enabled ? 'cursor-pointer' : 'cursor-not-allowed')} type="submit" disabled={!enabled}>
-                            {form?.buttonText || 'Submit'}
-                        </button>
+            <div className="flex flex-col w-full gap-2">
+                {form?.fields.map((field: StandardFormFieldDto) => (
+                    <div key={field?.id} className="relative w-full">
+                        {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
+                        <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
                     </div>
+                ))}
+                <div>
+                    <FormButton>{form?.buttonText || 'Submit'}</FormButton>
                 </div>
-            </form>
-        </>
+            </div>
+        </form>
     );
 }
