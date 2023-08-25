@@ -5,7 +5,6 @@ import { useTranslation } from 'next-i18next';
 import LoginLayout from '@Components/Login/login-layout';
 
 import environments from '@app/configs/environments';
-import { signInScreen } from '@app/constants/locales/signin-screen';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
@@ -62,12 +61,7 @@ export async function getServerSideProps(_context: any) {
 export const Login = () => {
     const { t } = useTranslation();
 
-    const constants = {
-        heading: t(signInScreen.features.title),
-        paragraphs: [t(signInScreen.features.feature1), t(signInScreen.features.feature2), t(signInScreen.features.feature3), t(signInScreen.features.feature4), t(signInScreen.features.feature5), t(signInScreen.features.feature6)]
-    };
-
-    return <LoginLayout isCreator={true} features={constants} />;
+    return <LoginLayout isCreator={true} />;
 };
 
 export default Login;
