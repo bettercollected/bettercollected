@@ -9,21 +9,25 @@ export const signInScreen = {
     continueWIth: 'SIGNIN_SCREEN.CONTINUE_WITH',
     signinAgreementDescription: 'SIGNIN_SCREEN.SIGNIN_AGREEMENT_DESCRIPTION',
     signUp: 'GET_STARTED.USER_IS_FIT.BUTTON_TEXT',
+    welcomeBack: 'SIGNIN_SCREEN.WELCOME_BACK',
+    signInToContinue: 'SIGNIN_SCREEN.SIGNIN_TO_CONTINUE',
     features: {
         title: 'SIGNIN_SCREEN.FEATURES.TITLE',
-        feature1: 'SIGNIN_SCREEN.FEATURES.FEATURE_1',
-        feature2: 'SIGNIN_SCREEN.FEATURES.FEATURE_2',
-        feature3: 'SIGNIN_SCREEN.FEATURES.FEATURE_3',
-        feature4: 'SIGNIN_SCREEN.FEATURES.FEATURE_4',
-        feature5: 'SIGNIN_SCREEN.FEATURES.FEATURE_5',
-        feature6: 'SIGNIN_SCREEN.FEATURES.FEATURE_6'
+        description: 'SIGNIN_SCREEN.FEATURES.DESCRIPTION',
+        otp_title: 'SIGNIN_SCREEN.FEATURES.OTP_TITLE',
+        otp_description: 'SIGNIN_SCREEN.FEATURES.OTP_DESCRIPTION'
     },
     signIn: 'SIGNIN_SCREEN.SIGN_IN',
+    emailInputLabel: 'SIGNIN_SCREEN.EMAIL_INPUT_LABEL',
     enterYourEmail: 'SEND_CODE.TITLE',
-    continue: 'SIGNIN_SCREEN.CONTINUE',
+    sendCodeButton: 'SIGNIN_SCREEN.SEND_CODE_BUTTON',
+    signInButton: 'SIGNIN_SCREEN.SIGN_IN_BUTTON',
     orSignInUsing: 'SIGNIN_SCREEN.OR_SIGN_IN_USING',
-    verificationTitle: 'SIGNIN_SCREEN.VERIFICATION',
-    enterOtpCode: 'SIGNIN_SCREEN.ENTER_CODE_SENT_IN_EMAIL',
+    verificationTitle: 'SIGNIN_SCREEN.VERIFICATION.TITLE',
+    verificationDescription: 'SIGNIN_SCREEN.VERIFICATION.DESCRIPTION',
+    enterOtpCode: 'SIGNIN_SCREEN.ENTER_OTP_CODE',
+    enterOtpCodePlaceholder: 'SIGNIN_SCREEN.ENTER_CODE_PLACEHOLDER',
     backButtonTitle: 'SIGNIN_SCREEN.BACK_BUTTON_TITLE',
-    didNotReceiveCode: 'SIGNIN_SCREEN.DIDNOT_RECEIVE_CODE'
+    didNotReceiveCode: 'SIGNIN_SCREEN.DIDNOT_RECEIVE_CODE',
+    descriptionInModal: 'SIGNIN_SCREEN.MODAL.DESCRIPTION'
 };
