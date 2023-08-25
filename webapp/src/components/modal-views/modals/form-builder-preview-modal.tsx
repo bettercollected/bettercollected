@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 
 import EditIcon from '@Components/Common/Icons/Edit';
+import UploadIcon from '@Components/Common/Icons/FormBuilder/UploadIcon';
 import Share from '@Components/Common/Icons/Share';
 import Button from '@Components/Common/Input/Button';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 
+import uploadImage from '@app/assets/images/upload.png';
+import Back from '@app/components/icons/back';
+import Image from '@app/components/ui/image';
 import { formConstant } from '@app/constants/locales/form';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
@@ -44,34 +48,28 @@ export default function FormBuilderPreviewModal({ publish }: { publish: () => vo
     }, [builderState]);
 
     return (
-        <div className="relative w-full   !bg-brand-100 ">
-            <div className="flex fixed z-[10000] bg-transparent top-6 right-10 gap-4 w-fit">
-                <Button
-                    variant="contained"
-                    className="w-fit capitalize bg-brand-500 px-4 gap-2 py-2 "
+        <div className=" w-full">
+            <div className="fixed z-[10000] h-[46px] border-b border-black-300 shadow !bg-white px-5 flex justify-between items-center top-0 right-0 left-0 gap-4">
+                <div
+                    className="flex items-center gap-2 text-black-800 text-[14px] cursor-pointer"
                     onClick={() => {
                         closeModal();
                     }}
-                    size="small"
                 >
-                    <span>
-                        <EditIcon />
-                    </span>
-                    Edit Form
-                </Button>
-
-                <Button
-                    variant="outlined"
-                    className="w-fit capitalize bg-brand-100 text-brand-500 px-4 gap-2 py-2 "
+                    <Back />
+                    Back to Editor
+                </div>
+                <div
+                    className="flex gap-2 items-center cursor-pointer"
                     onClick={() => {
                         publish();
                     }}
-                    size="small"
                 >
-                    Publish Form
-                </Button>
+                    <UploadIcon />
+                    Publish
+                </div>
             </div>
-            <div className="h-screen overflow-auto 2xl:pt-6 min-h-screen w-full pt-28 pb-6 px-5">
+            <div className="h-screen overflow-auto min-h-screen w-full pt-14 pb-6 px-5">
                 <BetterCollectedForm form={formToRender} enabled={true} preview={true} closeModal={closeModal} />
             </div>
         </div>
