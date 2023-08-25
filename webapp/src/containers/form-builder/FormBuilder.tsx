@@ -9,6 +9,7 @@ import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import { FormCoverComponent, FormLogoComponent } from '@Components/FormBuilder/Header';
 import MarkdownEditor from '@Components/FormBuilder/MarkdownEditor';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
+import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { SetStateAction } from 'jotai';
 import { DragStart, DragUpdate, DropResult, ResponderProvided } from 'react-beautiful-dnd';
@@ -51,6 +52,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
     const onBlurCallbackRef = useRef<any>(null);
+    const { headerImages, resetImages } = useFormBuilderAtom();
 
     const { backspaceCount, setBackspaceCount } = useFormBuilderState();
 
@@ -117,6 +119,11 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const onFormSave = async (isPublishClicked = false) => {
         const apiCall = !isEditMode ? postCreateForm : patchForm;
+        console.log(headerImages);
+
+        const formData = new FormData();
+        if (headerImages.coverImage) formData.append('cover_image', headerImages.coverImage);
+        if (headerImages.logo) formData.append('logo', headerImages.logo);
 
         const publishRequest: any = {};
         publishRequest.title = builderState.title;
@@ -128,11 +135,11 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             }
             return field;
         });
-        console.log({ fields });
         publishRequest.fields = fields;
         publishRequest.settings = builderState.settings;
         publishRequest.buttonText = builderState.buttonText;
-        const apiObj: any = { workspaceId: workspace.id, body: publishRequest };
+        formData.append('form_body', JSON.stringify(publishRequest));
+        const apiObj: any = { workspaceId: workspace.id, body: formData };
         if (isEditMode) apiObj['formId'] = builderState?.id;
 
         const response: any = await apiCall(apiObj);
@@ -177,6 +184,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         </>
     );
     useEffect(() => {
+        resetImages();
         onBlurCallbackRef.current = throttle(onBlurCallback, 100);
         document.addEventListener('blur', onBlurCallback);
 
@@ -190,8 +198,9 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             eventBus.removeListener(EventBusEventType.FormBuilder.Publish, onFormPublish);
             eventBus.removeListener(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
             document.removeEventListener('blur', onBlurCallback);
+            resetImages();
         };
-    });
+    }, []);
 
     return (
         <div>

@@ -5,6 +5,7 @@ import UploadIcon from '@Components/Common/Icons/FormBuilder/UploadIcon';
 import Share from '@Components/Common/Icons/Share';
 import Button from '@Components/Common/Input/Button';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
+import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 
 import uploadImage from '@app/assets/images/upload.png';
 import Back from '@app/components/icons/back';
@@ -22,6 +23,7 @@ export default function FormBuilderPreviewModal({ publish }: { publish: () => vo
     const [formToRender, setFormToRender] = useState(initialIBuilderState);
     const { closeModal } = useFullScreenModal();
     const builderState = useAppSelector(selectBuilderState);
+    const { headerImages } = useFormBuilderAtom();
 
     useEffect(() => {
         if (builderState) {
@@ -43,9 +45,11 @@ export default function FormBuilderPreviewModal({ publish }: { publish: () => vo
             previewForm.settings = {
                 responseDataOwnerField: builderState.settings?.responseDataOwnerField || ''
             };
+            previewForm.coverImage = headerImages.coverImage ? URL.createObjectURL(headerImages?.coverImage) : undefined;
+            previewForm.logo = headerImages.logo ? URL.createObjectURL(headerImages.logo) : undefined;
             setFormToRender(previewForm);
         }
-    }, [builderState]);
+    }, [builderState, headerImages]);
 
     return (
         <div className=" w-full">
