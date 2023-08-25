@@ -12,7 +12,7 @@ export default function CreateConsentContainer({ className }: CreateConsentConta
         <div className={cn('ml-[267px] w-[508px] space-y-20', className)}>
             <div className="space-y-4">
                 <div className="h4">Form Purpose and Data Usage</div>
-                <div className="p2 !text-[#4D4D4D]">
+                <div className="p2 !text-new-black-800">
                     {`We want to make sure you're fully informed about how your data will be used before you proceed with our form. Our commitment to transparency means that we've included a consent page to provide you with important details. Here's what you
         can find on the consent page:`}
                 </div>
