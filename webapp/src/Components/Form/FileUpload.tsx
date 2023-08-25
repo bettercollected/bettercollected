@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 import Image from 'next/image';
 
@@ -20,6 +20,7 @@ import useFormAtom from './atom';
 
 export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     const [isDragging, setIsDragging] = useState(false);
+    const inputFileRef = useRef<HTMLInputElement | null>(null);
     const { addFile } = useFormAtom();
     const workspace = useAppSelector(selectWorkspace);
     const [getFileDownloadableLink, result] = useLazyGetFormFileDownloadableLinkQuery();
@@ -66,6 +67,8 @@ export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     };
 
     const downloadFormFile = async () => {
+        if (!enabled) return;
+
         const payload = await getFileDownloadableLink({ workspace_id: workspace.id, file_id: fileMetaData.id });
         if (payload.data) {
             downloadFile(payload.data, fileMetaData.name ?? fileMetaData.id);
@@ -73,21 +76,22 @@ export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
             toast('Error downloading file', { type: 'error' });
         }
     };
+    const handleDeleteFile = () => {
+        if (inputFileRef.current) {
+            inputFileRef.current.value = '';
+        }
+        setFileMetadata({ ...fileMetaData, name: undefined, size: undefined, type: undefined, url: undefined });
+    };
     const getFilePreview = () => {
         return (
             <div className="flex w-full space-x-2">
-                <div
-                    className="p1 flex w-full justify-between items-center rounded bg-blue-200 py-2 px-3 cursor-pointer"
-                    onClick={() => {
-                        downloadFormFile();
-                    }}
-                >
+                <div className="p1 flex w-full justify-between items-center rounded bg-blue-200 py-2 px-3 cursor-pointer" onClick={downloadFormFile}>
                     <p>{fileMetaData?.name}</p>
                     <p className="text-sm">{fileMetaData?.size} MB</p>
                 </div>
 
-                {!ans?.file_metadata && (
-                    <div className="items-center justify-center rounded bg-blue-200 p-2" onClick={() => setFileMetadata({ ...fileMetaData, name: undefined, size: undefined, type: undefined, url: undefined })}>
+                {enabled && (
+                    <div className="items-center justify-center rounded bg-blue-200 p-2" onClick={handleDeleteFile}>
                         <Image src={deleteImg} alt="delete-icon" />
                     </div>
                 )}
@@ -96,11 +100,11 @@ export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     };
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-3 w-[541px]">
             {(!ans?.file_metadata || enabled) && (
                 <div
                     tabIndex={0}
-                    className={`flex flex-col w-[541px] items-center justify-center space-y-3 rounded border border-dashed border-black-600 bg-black-200 py-10 focus-visible:!outline-none ${isDragging && enabled ? 'border-blue-500' : ''}`}
+                    className={`flex flex-col  items-center justify-center space-y-3 rounded border border-dashed border-black-600 bg-black-200 py-10 focus-visible:!outline-none ${isDragging && enabled ? 'border-blue-500' : ''}`}
                     onDragEnter={handleDragEnter}
                     onDragLeave={handleDragLeave}
                     onDragOver={handleDragOver}
@@ -110,7 +114,7 @@ export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
                         <Image alt="file-upload-img" src={fileUploadImg} width={24} height={24} />
                         <span className="text-sm font-semibold leading-5 text-black-900">Upload File</span>
                     </label>
-                    {enabled && <input type="file" id={`${fileMetaData.id}-file-input`} className="hidden" onChange={handleFileInputChange} />}
+                    {enabled && <input ref={inputFileRef} type="file" id={`${fileMetaData.id}-file-input`} className="hidden" onChange={handleFileInputChange} />}
                     <div className="flex w-full flex-col items-center space-y-2 text-xs text-black-800">
                         <span className="font-semibold leading-4">{isDragging ? 'Release to drop' : 'Or drag here'}</span>
                         <span className="text-center leading-5">

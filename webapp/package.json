@@ -4,9 +4,8 @@
     "private": true,
     "scripts": {
         "clean": "rimraf \"{node_modules,.next,.next-dev,out,.cache,.idea}\"",
-        "format": "prettier --write .",
+        "format": "npx lint-staged",
         "lint": "next lint",
-        "pre-commit": "npx lint-staged",
         "dev": "cross-env NODE_OPTIONS='--inspect' next dev",
         "build": "next build",
         "postbuild": "cross-env next-sitemap --config next-sitemap.config.js",

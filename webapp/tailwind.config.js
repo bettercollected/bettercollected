@@ -18,6 +18,21 @@ module.exports = {
                 dashboardBackground: '105px'
             },
             colors: {
+                new: {
+                    black: {
+                        100: '#F6F6F6',
+                        200: '#EEEEEE',
+                        300: '#DBDBDB',
+                        400: '#CED4DA',
+                        500: '#ADB5BD',
+                        600: '#6C757D',
+                        700: '#495057',
+                        800: '#4D4D4D',
+                        900: '#2E2E2E',
+
+                        DEFAULT: '#2E2E2E'
+                    }
+                },
                 // brand: 'rgb(var(--color-brand) / <alpha-value>)',
                 dark: '#1c1917',
                 success: '#B5F4AF',
