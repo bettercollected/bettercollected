@@ -54,6 +54,8 @@ export interface StandardFormDto {
     fields: Array<StandardFormFieldDto>;
     createdTime?: string | Date;
     modifiedTime?: string | Date;
+    coverImage?: string
+    logo?: string
 }
 
 export interface StandardFormResponseDto {

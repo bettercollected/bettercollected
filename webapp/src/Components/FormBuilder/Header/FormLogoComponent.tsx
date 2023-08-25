@@ -8,6 +8,7 @@ import { SetStateAction } from 'jotai';
 
 import Camera from '@app/components/icons/camera';
 import Button from '@app/components/ui/button';
+import useFormBuilderAtom from '@app/Components/FormBuilder/builderAtom';
 
 interface IFormLogoComponent {
     setIsLogoClicked: React.Dispatch<SetStateAction<boolean>>;
@@ -19,6 +20,7 @@ const FormLogoComponent = (props: IFormLogoComponent) => {
     const [isAddLogoClicked, setIsAddLogoClicked] = useState(false);
     const [isUpdateButtonClicked, setIsUpdateButtonClicked] = useState(false);
     const [selectedImageURL, setSelectedImageURL] = useState<string | null>(null);
+    const {setLogoImage} = useFormBuilderAtom();
 
     const onClickUpdateNewLogoButton = () => {
         setIsAddLogoClicked(true);
@@ -31,11 +33,13 @@ const FormLogoComponent = (props: IFormLogoComponent) => {
             setSelectedImageURL(URL.createObjectURL(selectedFile));
             setIsUpdateButtonClicked(true);
             setIsAddLogoClicked(false);
+            setLogoImage(selectedFile);
         }
     };
 
     const onClickRemoveLogoButton = () => {
         setIsLogoClicked(false);
+        setLogoImage(null);
     };
 
     const onClickCloseIcon = () => {
