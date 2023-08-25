@@ -48,10 +48,12 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
         subHeading2: t(signInScreen.continueWIth),
         button: t(signInScreen.signUp),
         enterYourEmail: t(signInScreen.enterYourEmail),
-        continue: t(signInScreen.continue),
         orSignInUsing: t(signInScreen.orSignInUsing),
         verificationTitle: t(signInScreen.verificationTitle),
+        verificationDescription: t(signInScreen.verificationDescription),
+        signInButton: t(signInScreen.signInButton),
         enterOtpCode: t(signInScreen.enterOtpCode),
+        enterOtpCodePlaceholder: t(signInScreen.enterOtpCodePlaceholder),
         backButtonTitle: t(signInScreen.backButtonTitle),
         didnotReceiveCode: t(signInScreen.didNotReceiveCode),
         otpVerificationSuccess: t(formResponderLogin.verificationSuccessMessage),
@@ -109,20 +111,21 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
 
     return (
         <>
-            <div className={`flex items-center cursor-pointer gap-1 hover:text-brand ${isModal ? 'mt-[44px]' : ' mt-[48px]'}`} onClick={handleGoBackOnStepOne}>
+            <div className={`flex items-center cursor-pointer gap-1 hover:text-brand ${isModal ? ' mt-10' : ' mt-[48px]'}`} onClick={handleGoBackOnStepOne}>
                 <Back />
                 <p className={'hover:text-brand'}>{constants.backButtonTitle}</p>
             </div>
-            <h3 className={`h4 mb-4 ${isModal ? 'mt-5' : ' mt-[44px]'}`}>{constants.verificationTitle}</h3>
+            <h3 className={`h4 mb-3 ${isModal ? 'mt-5' : ' mt-[44px]'}`}>{constants.verificationTitle}</h3>
+            <h5 className="body4 !text-black-800">{constants.verificationDescription}</h5>
 
-            <form onSubmit={handleOtpPost} className="w-full">
-                <p className={`body4 mb-[8px] text-black-900 ${!isModal && 'mt-[44px]'}`}>{constants.enterOtpCode}</p>
-                <BetterInput placeholder={constants.enterOtpCode} value={otp} onChange={handleOtpChange} />
+            <form onSubmit={handleOtpPost} className={`w-full ${isModal && 'mt-10'}`}>
+                <p className={`mb-[8px] text-black-900 text-md font-semibold ${!isModal && 'mt-10 '}`}>{constants.enterOtpCode}</p>
+                <BetterInput placeholder={constants.enterOtpCodePlaceholder} value={otp} onChange={handleOtpChange} />
                 <Button type={'submit'} variant="solid" isLoading={isLoading} className={' w-full my-4'} size={'extraMedium'}>
-                    {constants.continue}
+                    {constants.signInButton}
                 </Button>
             </form>
-            <div className={`flex items-center gap-2  text-black-900 ${isModal ? 'mb-[182px]' : 'mb-[60px]'}`}>
+            <div className={`flex items-center gap-2  text-black-900 ${isModal ? 'mb-[182px]' : ' mb-64'}`}>
                 <p className="body4">{constants.didnotReceiveCode}</p>
                 <>
                     {counter !== 0 && (
