@@ -16,7 +16,7 @@ export default function ConsentAddInput({ title, placeholder, hint }: ConsentAdd
             {hint && (
                 <div className="mb-4 relative">
                     <Hint className="absolute" />
-                    <div className="ml-10 p2 !text-[#4D4D4D]">{hint}</div>
+                    <div className="ml-10 p2 !text-new-black-800">{hint}</div>
                 </div>
             )}
             <div className="space-y-3">
