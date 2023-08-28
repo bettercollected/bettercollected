@@ -189,44 +189,46 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                     <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
                     {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
                 </div>
-        <>
-            {form?.coverImage && (
-                <div className="relative z-0 -mx-5 w-screen aspect-banner-mobile lg:aspect-banner-desktop">
-                    <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75" />
-                </div>
-            )}
-            <form
-                className="w-full max-w-[700px] mx-auto px-10 py-10 bg-white flex rounded-lg flex-col items-start "
-                onKeyDown={(event: any) => {
-                    if (!event.shiftKey && event.key === 'Enter') {
-                        event.preventDefault();
-                    }
-                }}
-                onSubmit={onSubmitForm}
-            >
-                {form?.logo && (
-                    <div className={`relative  ${form?.coverImage ? '-top-20' : ''} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
-                        <Image height={100} width={100} objectFit="cover" src={form.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
-                    </div>
-                )}
-                <div className="mb-7">
-                    <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
-                    {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
-                </div>
-
-                <div className="flex flex-col w-full gap-2">
-                    {form?.fields.map((field: StandardFormFieldDto) => (
-                        <div key={field?.id} className="relative w-full">
-                            {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
-                            <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
+                <>
+                    {form?.coverImage && (
+                        <div className="relative z-0 -mx-5 w-screen aspect-banner-mobile lg:aspect-banner-desktop">
+                            <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75" />
                         </div>
-                    ))}
-                    <div>
-                        <button className={cn('mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-black-900  !font-semibold ', enabled ? 'cursor-pointer' : 'cursor-not-allowed')} type="submit" disabled={!enabled}>
-                            {form?.buttonText || 'Submit'}
-                        </button>
-                    </div>
-                </div>
+                    )}
+                    <form
+                        className="w-full max-w-[700px] mx-auto px-10 py-10 bg-white flex rounded-lg flex-col items-start "
+                        onKeyDown={(event: any) => {
+                            if (!event.shiftKey && event.key === 'Enter') {
+                                event.preventDefault();
+                            }
+                        }}
+                        onSubmit={onSubmitForm}
+                    >
+                        {form?.logo && (
+                            <div className={`relative  ${form?.coverImage ? '-top-20' : ''} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
+                                <Image height={100} width={100} objectFit="cover" src={form.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
+                            </div>
+                        )}
+                        <div className="mb-7">
+                            <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
+                            {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
+                        </div>
+
+                        <div className="flex flex-col w-full gap-2">
+                            {form?.fields.map((field: StandardFormFieldDto) => (
+                                <div key={field?.id} className="relative w-full">
+                                    {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
+                                    <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
+                                </div>
+                            ))}
+                            <div>
+                                <button className={cn('mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-black-900  !font-semibold ', enabled ? 'cursor-pointer' : 'cursor-not-allowed')} type="submit" disabled={!enabled}>
+                                    {form?.buttonText || 'Submit'}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </>
             </form>
         </>
     );
