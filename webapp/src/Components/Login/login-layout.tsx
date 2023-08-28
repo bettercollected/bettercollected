@@ -63,7 +63,7 @@ export default function LoginLayout(props: MyLoginProps) {
     const [email, setEmail] = useState('');
 
     const TermsAndCondition = () => (
-        <div className="body4 ">
+        <div className="body4 mt-24 lg:mt-0">
             {t(isSignup ? constants.signUpAgreementDescription : signInScreen.signinAgreementDescription)}
             <a href="https://bettercollected.com/terms-of-service" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
                 {t(localesCommon.termsOfServices.title)}
@@ -77,16 +77,16 @@ export default function LoginLayout(props: MyLoginProps) {
     );
 
     return (
-        <Layout className="min-h-screen !mt-0">
-            <div className="absolute h-fit top-0 left-0 w-full flex flex-col lg:flex-row">
-                <div className={` bg-sign-in bg-no-repeat bg-cover relative order-2 lg:order-1 min-h-screen overflow-hidden lg:h-full w-full lg:w-[50%] flex flex-col justify-start`} style={{ backgroundImage: '' }}>
+        <Layout className="min-h-screen !mt-0 !p-0">
+            <div className=" h-full w-full flex flex-col lg:flex-row">
+                <div className={` bg-sign-in bg-no-repeat bg-cover relative min-h-fit sm:min-h-screen order-2 lg:order-1 overflow-hidden w-full lg:w-[50%] flex flex-col justify-start`}>
                     {email ? <OtpCodeContent isSignup={isSignup} constants={constants} /> : <OtpEmailContent isSignup={isSignup} constants={constants} />}
                 </div>
-                <div className="flex flex-col relative order-1 lg:order-2 items-start justify-start lg:justify-center px-8 pt-7 lg:pt-8 xl:pl-[90px] xl:pr-28 h-fit lg:h-full w-full lg:max-w-[50%]">
-                    <>
+                <div className="relative flex flex-col order-1 lg:order-2 items-start justify-between px-8 py-7 lg:py-8 xl:pl-[90px] xl:pr-28 min-h-fit sm:min-h-screen w-full lg:max-w-[50%]">
+                    <div className='mb-20 lg:mb-0'>
                         <Logo isLink={false} />
                         <h1 className="body4 !text-black-800 mt-2">{constants.signUpLogoSubTitle}</h1>
-                    </>
+                    </div>
                     {!email ? <OtpEmailInput isCreator={props.isCreator} setEmail={setEmail} isSignup={isSignup} /> : <OtpCodeComponent email={email} setEmail={setEmail} isCreator={props.isCreator} />}
                     <TermsAndCondition />
                 </div>
@@ -102,7 +102,7 @@ const OtpEmailContent = ({ isSignup, constants }: IContentProps) => {
                 <h1 className={cn('text-base md:text-[32px] leading-normal text-white font-semibold ', isSignup ? 'sm:w-[456px]' : 'sm:w-[431px]')}>{isSignup ? constants.signUpEmailTitle : constants.signInEmailTitle}</h1>
                 <span className="font-normal text-black-200 text-xs md:text-base sm:w-[400px]">{isSignup ? constants.signUpEmailDescription : constants.signInEmailDescription}</span>
             </div>
-            <div className="flex w-full lg:px-[60px] px-8 ">
+            <div className="flex w-full justify-center lg:px-[60px] px-8 ">
                 <div className="lg:h-[400px] h-[300px] w-fit">
                     <Image src={isSignup ? ImageSignUpPreview : ImageSignInPreview} alt="BetterCollected" objectFit="contain" />
                 </div>
@@ -119,7 +119,7 @@ const OtpCodeContent = ({ isSignup, constants }: IContentProps) => {
                 <h1 className="text-base md:text-[32px] leading-normal text-white font-semibold sm:w-[502px]">{isSignup ? constants.signUpCodeTitle : constants.signInCodeTitle}</h1>
                 <span className="font-normal text-black-200 text-xs md:text-base sm:w-[400px]">{isSignup ? constants.signUpCodeDescription : constants.signInCodeDescription}</span>
             </div>
-            <div className="flex w-full lg:px-[60px] px-8 pt-8">
+            <div className="flex w-full justify-center lg:px-[60px] px-8 pt-8">
                 <div className="lg:h-[400px] h-[300px] w-fit">
                     <Image src={isSignup ? ImageSignUpValidation : ImageSignInValidatin} alt="BetterCollected" objectFit="contain" />
                 </div>
