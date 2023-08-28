@@ -115,6 +115,9 @@ input.spin-button-hidden::-webkit-inner-spin-button {
     @apply text-[36px] font-semibold leading-[54px] text-black-900;
 }
 
+.h3-new {
+    @apply text-[24px] font-semibold leading-[36px] text-black-900;
+}
 .h4 {
     @apply text-[24px] font-semibold leading-[36px] text-black-900;
 }
