@@ -1,8 +1,8 @@
-import { ActionCreatorWithPayload } from '@reduxjs/toolkit';
+import {ActionCreatorWithPayload} from '@reduxjs/toolkit';
 
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import {FormBuilderTagNames} from '@app/models/enums/formBuilder';
 
-import { AppDispatch } from '../store';
+import {AppDispatch} from '../store';
 
 export interface IBuilderMenuState {
     spotlightField?: { isOpen: boolean; afterFieldUuid: string };
@@ -18,7 +18,8 @@ export interface IChoiceFieldState {
     position: number;
 }
 
-export interface IBuilderPipingState {}
+export interface IBuilderPipingState {
+}
 
 export interface IBuilderStateVersion {
     timestamp: Date | string | number;
@@ -35,6 +36,8 @@ export interface IBuilderState {
     description: string;
     menus?: IBuilderMenuState;
     piping?: IBuilderPipingState;
+    logo?: string;
+    coverImage?: string;
     fields: Record<string, IFormFieldState>;
     versions?: Array<IBuilderStateVersion>;
     currentVersionIndex?: number;
