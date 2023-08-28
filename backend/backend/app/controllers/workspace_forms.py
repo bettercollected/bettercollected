@@ -1,12 +1,10 @@
 import json
 from http import HTTPStatus
-from typing import List, Annotated
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, patch, post, delete
-from fastapi import Depends, UploadFile, File, Form
+from fastapi import Depends, UploadFile, Form
 from fastapi_pagination import Page
-from pydantic import parse_obj_as
 from starlette.requests import Request
 
 from backend.app.container import container
@@ -58,53 +56,68 @@ class WorkspaceFormsRouter(Routable):
 
     @post("", response_model=MinifiedForm)
     async def create_form(
-            self,
-            workspace_id: PydanticObjectId,
-            form: MinifiedForm,
-            # logo_image: UploadFile = None,
-            # cover_image: UploadFile = None,
-            user: User = Depends(get_logged_user),
+        self,
+        workspace_id: PydanticObjectId,
+        form_body: str = Form(),
+        logo: UploadFile = None,
+        cover_image: UploadFile = None,
+        user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+
+        form = json.loads(form_body)
+
+        minified_form = MinifiedForm(**form)
         # Camel model is converted to basic modal so that camel case is not stored in db
         response = await self.workspace_form_service.create_form(
-            workspace_id=workspace_id, form=StandardForm(**form.dict()), user=user
+            workspace_id=workspace_id, form=StandardForm(**minified_form.dict()), user=user, logo=logo,
+            cover_image=cover_image
         )
         return MinifiedForm(**response.dict())
 
     @patch("/{form_id}", response_model=MinifiedForm)
     async def patch_form(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: PydanticObjectId,
-            form: MinifiedForm,
-            user: User = Depends(get_logged_user),
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        form_body: str = Form(),
+        logo: UploadFile = None,
+        cover_image: UploadFile = None,
+        user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+
+        form = json.loads(form_body)
+
+        minified_form = MinifiedForm(**form)
         # Camel model is converted to basic modal so that camel case is not stored in db
         response = await self.workspace_form_service.update_form(
             workspace_id=workspace_id,
             form_id=form_id,
-            form=StandardForm(**form.dict()),
+            form=StandardForm(**minified_form.dict()),
             user=user,
+            logo=logo,
+            cover_image=cover_image
         )
         return StandardFormCamelModel(**response.dict())
 
     @post("/{form_id}/response")
     async def respond_to_form(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: PydanticObjectId,
-            files: list[UploadFile],
-            file_field_ids: list[str] = Form(),
-            file_ids: list[str] = Form(),
-            response: str = Form(),
-            user: User = Depends(get_user_if_logged_in),
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        files: list[UploadFile] = None,
+        file_field_ids: list[str] = Form(None),
+        file_ids: list[str] = Form(None),
+        response: str = Form(None),
+        user: User = Depends(get_user_if_logged_in),
     ):
-        form_files = [FormFileResponse(file_id=file_id, field_id=field_id, filename=file.filename, file=file) for
-                      file_id, field_id, file in zip(file_ids, file_field_ids, files)]
+        form_files = None
+        if files and file_field_ids and file_ids:
+            form_files = [FormFileResponse(file_id=file_id, field_id=field_id, filename=file.filename, file=file) for
+                          file_id, field_id, file in zip(file_ids, file_field_ids, files)]
         parsed_response = StandardFormResponseCamelModel(**json.loads(response))
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
