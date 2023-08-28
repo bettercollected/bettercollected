@@ -323,6 +323,8 @@ class WorkspaceFormService:
                 previous_image=existing_form.logo
             )
             form.logo = logo_url
+        else:
+            form.logo = form.logo if form.logo is not None else existing_form.logo
         if cover_image:
             cover_image_url = await self._aws_service.upload_file_to_s3(
                 file=cover_image.file,
@@ -330,6 +332,8 @@ class WorkspaceFormService:
                 previous_image=existing_form.cover_image
             )
             form.cover_image = cover_image_url
+        else:
+            form.cover_image = form.cover_image if form.cover_image is not None else existing_form.cover_image
         return await self.form_service.update_form(form_id=form_id, form=form)
 
     async def upload_files_to_s3_and_update_url(self, form_files, response):
