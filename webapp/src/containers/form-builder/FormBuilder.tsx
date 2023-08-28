@@ -56,11 +56,11 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
     const builderDragDropRef = useRef<HTMLDivElement | null>(null);
 
     const router = useRouter();
-
-    const [isLogoClicked, setIsLogoClicked] = useState(false);
-    const [isCoverClicked, setIsCoverClicked] = useState(false);
-
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
+
+    const [showLogo, setShowLogo] = useState(false);
+    const [showCover, setShowCover] = useState(false);
+
     const onBlurCallbackRef = useRef<any>(null);
     const {headerImages, resetImages} = useFormBuilderAtom();
 
@@ -74,6 +74,11 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
     //
     const locale = _nextI18Next.initialLocale === 'en' ? '' : `${_nextI18Next.initialLocale}/`;
 
+    useEffect(() => {
+        setShowLogo(!!builderState.logo)
+        setShowCover(!!builderState.coverImage)
+    }, [builderState.logo, builderState.coverImage])
+
     const onInsert = () => {
         asyncDispatch(resetBuilderMenuState()).then(() => {
             modal.openModal('FORM_BUILDER_ADD_FIELD_VIEW');
@@ -84,11 +89,11 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
     };
 
     const onAddFormLogo = () => {
-        setIsLogoClicked(true);
+        setShowLogo(true);
     };
 
     const onAddFormCover = () => {
-        setIsCoverClicked(true);
+        setShowCover(true);
     };
 
     const onPreview = () => {
@@ -226,10 +231,16 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
         <div>
             <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo}
                                 onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish}/>
-            {isCoverClicked && <FormCoverComponent setIsCoverClicked={setIsCoverClicked}/>}
+            {
+                showCover &&
+                <FormCoverComponent setIsCoverClicked={setShowCover}/>
+            }
             <div className="h-full w-full max-w-4xl mx-auto py-10">
-                {isLogoClicked && <FormLogoComponent setIsLogoClicked={setIsLogoClicked}
-                                                     classname={isCoverClicked ? '-mt-[90px]' : ''}/>}
+                {
+                    showLogo &&
+                    <FormLogoComponent setIsLogoClicked={setShowLogo}
+                                       classname={showCover ? '-mt-[90px]' : ''}/>
+                }
                 <div className="flex flex-col gap-4 px-5 md:px-[89px]">
                     {builderTitleAndDescriptionList.map((b: IBuilderTitleAndDescriptionObj) => (
                         <CustomContentEditable
