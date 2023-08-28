@@ -28,13 +28,14 @@ import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
 import AddMembersModal from './modals/add-members-modal';
 import AddRegexModal from './modals/add-regex-modal';
+import ConsentPurposeModalView from './modals/consent-purpose-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
 import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
 import UserDeletionModal from './modals/user-deletion-modal';
 
-function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
+function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
         case 'REQUEST_FOR_DELETION_VIEW':
             return <RequestForDeletionView {...modalProps} />;
@@ -84,6 +85,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <FormBuilderAddFieldModal {...modalProps} />;
         case 'FORM_BUILDER_SPOTLIGHT_VIEW':
             return <FormBuilderSpotlightModal {...modalProps} />;
+        case 'CONSENT_PURPOSE_MODAL_VIEW':
+            return <ConsentPurposeModalView />;
         default:
             return <></>;
     }

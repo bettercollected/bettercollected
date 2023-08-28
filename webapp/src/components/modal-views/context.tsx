@@ -29,9 +29,16 @@ export type MODAL_VIEW =
     | 'ADD_REGEX'
     | 'DELETE_RESPONSE'
     | 'FORM_BUILDER_SPOTLIGHT_VIEW'
-    | 'FORM_BUILDER_ADD_FIELD_VIEW';
+    | 'FORM_BUILDER_ADD_FIELD_VIEW'
+    | 'CONSENT_PURPOSE_MODAL_VIEW'
+    | 'DEFAULT_MODAL_VIEW';
 
-const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
+interface ModalAtomType {
+    isOpen: boolean;
+    view: MODAL_VIEW;
+    modalProps: any;
+}
+const modalAtom = atom<ModalAtomType>({ isOpen: false, view: 'DEFAULT_MODAL_VIEW', modalProps: null });
 
 export function useModal() {
     const [state, setState] = useAtom(modalAtom);
@@ -43,7 +50,7 @@ export function useModal() {
             modalProps
         });
     const closeModal = () => {
-        setState({ ...state, isOpen: false, modalProps: null, view: '' });
+        setState({ ...state, isOpen: false, modalProps: null, view: 'DEFAULT_MODAL_VIEW' });
     };
 
     return {
