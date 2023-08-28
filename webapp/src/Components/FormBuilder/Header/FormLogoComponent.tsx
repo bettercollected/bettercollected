@@ -15,10 +15,12 @@ import {selectBuilderState} from "@app/store/form-builder/selectors";
 interface IFormLogoComponent {
     setIsLogoClicked: React.Dispatch<SetStateAction<boolean>>;
     classname?: string;
+    imagesRemoved: any;
+    setImagesRemoved: any
 }
 
 const FormLogoComponent = (props: IFormLogoComponent) => {
-    const {setIsLogoClicked, classname} = props;
+    const {setIsLogoClicked, classname, setImagesRemoved, imagesRemoved} = props;
     const [isAddLogoClicked, setIsAddLogoClicked] = useState(false);
     const [isUpdateButtonClicked, setIsUpdateButtonClicked] = useState(false);
     const [selectedImageURL, setSelectedImageURL] = useState<string | null>(null);
@@ -43,6 +45,9 @@ const FormLogoComponent = (props: IFormLogoComponent) => {
     const onClickRemoveLogoButton = () => {
         setIsLogoClicked(false);
         setLogoImage(null);
+        setImagesRemoved({
+            ...imagesRemoved, logo: true
+        })
     };
 
     const onClickCloseIcon = () => {

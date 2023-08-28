@@ -16,10 +16,12 @@ import {IBuilderState} from "@app/store/form-builder/types";
 
 interface IFormCoverComponent {
     setIsCoverClicked: React.Dispatch<SetStateAction<boolean>>;
+    imagesRemoved: any;
+    setImagesRemoved: any
 }
 
 const FormCoverComponent = (props: IFormCoverComponent) => {
-    const {setIsCoverClicked} = props;
+    const {setIsCoverClicked, imagesRemoved, setImagesRemoved} = props;
     const [imageURL, setImageURL] = useState<string>('');
     const [showButtonsOnHOver, setShowButtonsOnHOver] = useState(false);
     const [isSaveButtonClicked, setIsSaveButtonClicked] = useState(false);
@@ -42,6 +44,9 @@ const FormCoverComponent = (props: IFormCoverComponent) => {
     const onClickRemoveButton = () => {
         setIsCoverClicked(false);
         setCoverImage(null);
+        setImagesRemoved({
+            ...imagesRemoved, cover: true
+        })
     };
 
     const onClickCancelButton = () => {

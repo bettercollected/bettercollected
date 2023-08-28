@@ -69,6 +69,8 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
     const [postCreateForm] = useCreateFormMutation();
     const [patchForm] = usePatchFormMutation();
 
+    const [imagesRemoved, setImagesRemoved] = useState<{ logo: boolean, cover: boolean }>({logo: false, cover: false})
+
     const fullScreenModal = useFullScreenModal();
     const modal = useModal();
     //
@@ -154,6 +156,8 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
         publishRequest.fields = fields;
         publishRequest.settings = builderState.settings;
         publishRequest.buttonText = builderState.buttonText;
+        if (imagesRemoved.logo) publishRequest.logo = ""
+        if (imagesRemoved.cover) publishRequest.cover_image = ""
         formData.append('form_body', JSON.stringify(publishRequest));
         const apiObj: any = {workspaceId: workspace.id, body: formData};
         if (isEditMode) apiObj['formId'] = builderState?.id;
@@ -233,13 +237,15 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
                                 onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish}/>
             {
                 showCover &&
-                <FormCoverComponent setIsCoverClicked={setShowCover}/>
+                <FormCoverComponent setIsCoverClicked={setShowCover} imagesRemoved={imagesRemoved}
+                                    setImagesRemoved={setImagesRemoved}/>
             }
             <div className="h-full w-full max-w-4xl mx-auto py-10">
                 {
                     showLogo &&
                     <FormLogoComponent setIsLogoClicked={setShowLogo}
-                                       classname={showCover ? '-mt-[90px]' : ''}/>
+                                       classname={showCover ? '-mt-[90px]' : ''} imagesRemoved={imagesRemoved}
+                                       setImagesRemoved={setImagesRemoved}/>
                 }
                 <div className="flex flex-col gap-4 px-5 md:px-[89px]">
                     {builderTitleAndDescriptionList.map((b: IBuilderTitleAndDescriptionObj) => (
