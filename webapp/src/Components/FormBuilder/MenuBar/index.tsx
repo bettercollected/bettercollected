@@ -13,11 +13,11 @@ import AppBar from '@mui/material/AppBar';
 import IconButton from '@mui/material/IconButton';
 import InputBase from '@mui/material/InputBase';
 import Toolbar from '@mui/material/Toolbar';
-import { alpha, styled } from '@mui/material/styles';
+import {alpha, styled} from '@mui/material/styles';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 
-const Search = styled('div')(({ theme }) => ({
+const Search = styled('div')(({theme}) => ({
     position: 'relative',
     borderRadius: theme.shape.borderRadius,
     backgroundColor: alpha(theme.palette.common.white, 0.15),
@@ -33,7 +33,7 @@ const Search = styled('div')(({ theme }) => ({
     }
 }));
 
-const SearchIconWrapper = styled('div')(({ theme }) => ({
+const SearchIconWrapper = styled('div')(({theme}) => ({
     padding: theme.spacing(0, 2),
     height: '100%',
     position: 'absolute',
@@ -43,7 +43,7 @@ const SearchIconWrapper = styled('div')(({ theme }) => ({
     justifyContent: 'center'
 }));
 
-const StyledInputBase = styled(InputBase)(({ theme }) => ({
+const StyledInputBase = styled(InputBase)(({theme}) => ({
     color: 'inherit',
     '& .MuiInputBase-input': {
         padding: theme.spacing(1, 1, 1, 0),
@@ -68,8 +68,15 @@ interface IFormBuilderMenuBarProps {
 
 const optionButtonClassName = 'flex flex-col text-black-700 !p-2 !md:p-3 !px-3 !md:px-5 border-1 h-full hover-none border-solid border-gray-500 md:gap-2 md:flex-row rounded-none ';
 
-export default function FormBuilderMenuBar({ onInsert, onAddNewPage, onAddFormLogo, onAddFormCover, onPreview, onFormPublish }: IFormBuilderMenuBarProps) {
-    const { t } = useBuilderTranslation();
+export default function FormBuilderMenuBar({
+                                               onInsert,
+                                               onAddNewPage,
+                                               onAddFormLogo,
+                                               onAddFormCover,
+                                               onPreview,
+                                               onFormPublish
+                                           }: IFormBuilderMenuBarProps) {
+    const {t} = useBuilderTranslation();
     return (
         <AppBar
             position="static"
@@ -81,61 +88,43 @@ export default function FormBuilderMenuBar({ onInsert, onAddNewPage, onAddFormLo
                 boxShadow: 'inherit'
             }}
         >
-            <Toolbar sx={{ height: '40px !important' }} className="flex body4 w-full justify-center">
-                <Divider orientation="vertical" flexItem />
+            <Toolbar sx={{height: '40px !important'}} className="flex body4 w-full justify-center">
+                <Divider orientation="vertical" flexItem/>
                 {/*<Tooltip title={t('INSERT.A_FIELD')}>*/}
                 <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onInsert}>
-                    <PlusIcon />
+                    <PlusIcon/>
                     <span className=" text-black-700">{t('INSERT.DEFAULT')}</span>
                 </IconButton>
                 {/*</Tooltip>*/}
-                <Divider orientation="vertical" flexItem />
-
-                <Tooltip title="Add a new page">
-                    <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onAddNewPage}>
-                        <PageIcon />
-                        <span className="hidden text-black-700 lg:flex">Page</span>
-                    </IconButton>
-                </Tooltip>
-                <Divider orientation="vertical" flexItem />
-                <Tooltip title="Add a form logo">
-                    <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onAddFormLogo}>
-                        <CircleOutlinedIcon />
-                        <span className="hidden text-black-700 lg:flex">Logo</span>
-                    </IconButton>
-                </Tooltip>
-                <Divider orientation="vertical" flexItem />
-                <Tooltip title="Add a form cover">
-                    <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onAddFormCover}>
-                        <CoverIcon />
-                        <span className="hidden text-black-700 lg:flex">Cover</span>
-                    </IconButton>
-                </Tooltip>
-                <Divider orientation="vertical" flexItem />
-                <div className="hidden md:flex md:w-20" />
-                <Divider className="hidden sm:flex" orientation="vertical" flexItem />
-                <Tooltip title="Form Settings">
-                    <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={() => {}}>
-                        <SettingsIcon />
-                        <span className="hidden text-black-700 lg:flex">Settings</span>
-                    </IconButton>
-                </Tooltip>
-                <Divider orientation="vertical" flexItem />
+                <Divider orientation="vertical" flexItem/>
+                <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onAddFormLogo}>
+                    <CircleOutlinedIcon/>
+                    <span className="hidden text-black-700 lg:flex">Logo</span>
+                </IconButton>
+                <Divider orientation="vertical" flexItem/>
+                <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onAddFormCover}>
+                    <CoverIcon/>
+                    <span className="hidden text-black-700 lg:flex">Cover</span>
+                </IconButton>
+                <Divider orientation="vertical" flexItem/>
+                <div className="hidden md:flex md:w-20"/>
+                <Divider className="hidden sm:flex" orientation="vertical" flexItem/>
+                <Divider orientation="vertical" flexItem/>
 
                 {/*<Tooltip title={t('PREVIEW.DEFAULT')}>*/}
                 <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onPreview}>
-                    <VisibilityOutlinedIcon />
+                    <VisibilityOutlinedIcon/>
                     <span className=" text-black-700 ">{t('PREVIEW.DEFAULT')}</span>
                 </IconButton>
                 {/*</Tooltip>*/}
-                <Divider orientation="vertical" flexItem />
+                <Divider orientation="vertical" flexItem/>
                 {/*<Tooltip title={t('PUBLISH.DEFAULT')}>*/}
                 <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onFormPublish}>
-                    <PublishIcon />
+                    <PublishIcon/>
                     <span className=" text-black-700">{t('PUBLISH.DEFAULT')}</span>
                 </IconButton>
                 {/*</Tooltip>*/}
-                <Divider orientation="vertical" flexItem />
+                <Divider orientation="vertical" flexItem/>
             </Toolbar>
         </AppBar>
     );
