@@ -37,7 +37,7 @@ export interface IBuilderState {
     menus?: IBuilderMenuState;
     piping?: IBuilderPipingState;
     logo?: string;
-    coverImage: string;
+    coverImage?: string;
     fields: Record<string, IFormFieldState>;
     versions?: Array<IBuilderStateVersion>;
     currentVersionIndex?: number;
