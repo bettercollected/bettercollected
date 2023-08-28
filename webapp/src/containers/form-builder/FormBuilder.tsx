@@ -36,7 +36,6 @@ import { createNewField } from '@app/utils/formBuilderBlockUtils';
 import { throttle } from '@app/utils/throttleUtils';
 
 import useFormBuilderState from './context';
-import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 
 export default function FormBuilder({ workspace, _nextI18Next, isEditMode = false }: { isEditMode?: boolean; workspace: WorkspaceDto; _nextI18Next: any }) {
     const dispatch = useAppDispatch();
@@ -53,11 +52,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
     const onBlurCallbackRef = useRef<any>(null);
-<<<<<<< HEAD
     const { headerImages, resetImages } = useFormBuilderAtom();
-=======
-    const {headerImages, resetImages} = useFormBuilderAtom();
->>>>>>> bbb77085 (Add logo and cover image in `Preview modal`)
 
     const { backspaceCount, setBackspaceCount } = useFormBuilderState();
 
@@ -189,11 +184,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         </>
     );
     useEffect(() => {
-<<<<<<< HEAD
         resetImages();
-=======
-        resetImages()
->>>>>>> bbb77085 (Add logo and cover image in `Preview modal`)
         onBlurCallbackRef.current = throttle(onBlurCallback, 100);
         document.addEventListener('blur', onBlurCallback);
 
@@ -207,16 +198,9 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             eventBus.removeListener(EventBusEventType.FormBuilder.Publish, onFormPublish);
             eventBus.removeListener(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
             document.removeEventListener('blur', onBlurCallback);
-<<<<<<< HEAD
             resetImages();
         };
     }, []);
-=======
-            resetImages()
-
-        };
-    },[]);
->>>>>>> bbb77085 (Add logo and cover image in `Preview modal`)
 
     return (
         <div>
