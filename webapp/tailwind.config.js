@@ -17,7 +17,11 @@ module.exports = {
             blur: {
                 dashboardBackground: '105px'
             },
+
             colors: {
+                dropdown: {
+                    shadow: 'rgba(19, 73, 179, 0.25)'
+                },
                 new: {
                     black: {
                         100: '#F6F6F6',
@@ -33,7 +37,9 @@ module.exports = {
                         DEFAULT: '#2E2E2E'
                     },
                     blue: {
-                        100: '#F2F7FF'
+                        100: '#F2F7FF',
+                        200: '#B8D5FF',
+                        500: '#0764EB'
                     }
                 },
                 // brand: 'rgb(var(--color-brand) / <alpha-value>)',

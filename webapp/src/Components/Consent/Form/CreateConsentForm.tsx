@@ -6,6 +6,7 @@ import ConsentAddInput from '@Components/Consent/ConsentAdd';
 import { CheckBox } from '@mui/icons-material';
 import cn from 'classnames';
 
+import { dataRetention, formPurpose, thirdPartySharing } from '@app/data/consent';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 
 import ConsentInput from '../ConsentInput';
@@ -17,12 +18,7 @@ export default function CreateConsentForm({ className }: CreateConsentFormProps)
         return (
             <div className="space-y-5">
                 <div className="h4-new">Purpose of this form:</div>
-                <ConsentAddInput
-                    title="Select or Add Purpose"
-                    placeholder="Select or Add Purpose"
-                    hint={`Help users understand your form's intent! Specify its purpose
-(e.g., marketing, analytics) for transparent consent.`}
-                />
+                <ConsentAddInput title={formPurpose.title} placeholder="Select or Add Purpose" hint={formPurpose.hint} options={formPurpose.options} />
             </div>
         );
     };
@@ -31,12 +27,7 @@ export default function CreateConsentForm({ className }: CreateConsentFormProps)
         return (
             <div className="space-y-5">
                 <div className="h4-new">Third-Party Integration:</div>
-                <ConsentAddInput
-                    title="Select or Add Third-Party Integrations"
-                    placeholder="Select or add third-party apps"
-                    hint={`Let users know if you're using any third-party apps for form data 
-(e.g., Google Sheets, Google Forms) for transparent consent.`}
-                />
+                <ConsentAddInput title={thirdPartySharing.title} placeholder="Select or add third-party apps" hint={thirdPartySharing.hint} options={thirdPartySharing.options} />
             </div>
         );
     };
@@ -44,15 +35,25 @@ export default function CreateConsentForm({ className }: CreateConsentFormProps)
     const getDataRetentionDetails = () => {
         return (
             <div className="space-y-5">
+                <div className="h4-new">For how long data will be stored:</div>
+                <ConsentAddInput title={dataRetention.title} placeholder="Select a Data Retention options" hint={dataRetention.hint} options={dataRetention.options} />
+            </div>
+        );
+    };
+
+    const getResponderRightDetails = () => {
+        return (
+            <div className="space-y-5">
                 <div className="space-y-5">
-                    <div className="h4-new">For how long data will be stored:</div>
-                    <ConsentAddInput title="Data Retention options" placeholder="Select a Data Retention options" hint={`Inform users about data retention. Customize how long user data will be stored and whether users can request deletion.`} />
+                    <div className="h4-new">{`Responder's Rights`}</div>
+                    <div className="flex space-x-2">
+                        <CheckBox sx={{ color: '#0764EB' }} />{' '}
+                        <div className="space-y-2">
+                            <div className="h6-new">Request deletion of their data</div>
+                            <p className="p2">This field allows you to specify whether you will allow users to request the deletion of their data and other actions.</p>
+                        </div>
+                    </div>
                 </div>
-                <Divider />
-                <div className="flex items-center space-x-2">
-                    <CheckBox sx={{ color: '#0764EB' }} /> <p className="p2">Allow users to request deletion of their data.</p>
-                </div>
-                <Divider />
             </div>
         );
     };
@@ -70,10 +71,10 @@ export default function CreateConsentForm({ className }: CreateConsentFormProps)
                 {getFormPurposeDetails()}
                 {getThirdPartyIntegrationDetails()}
                 {getDataRetentionDetails()}
-
+                {getResponderRightDetails()}
                 <div>
                     <div className="h4-new">Terms and Conditions</div>
-                    <ConsentInput id="terms-and-conditions" required type="file" title="Insert Link to Your Terms And Conditions" placeholder="Insert link here" className="mt-5" />
+                    <ConsentInput type="file" title="Insert Link to Your Terms And Conditions" placeholder="Insert link here" className="mt-5" />
                 </div>
             </div>
             <FormButton className="w-[192px] mt-[60px]">Done</FormButton>
