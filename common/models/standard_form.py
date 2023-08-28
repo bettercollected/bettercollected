@@ -319,6 +319,8 @@ class StandardForm(BaseModel):
     form_id: Optional[str]
     type: Optional[str]
     title: Optional[str]
+    logo: Optional[str]
+    cover_image: Optional[str]
     description: Optional[str]
     button_text: Optional[str]
     fields: Optional[List[StandardFormField]]
