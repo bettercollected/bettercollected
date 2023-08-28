@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { Close } from '@app/components/icons/close';
 import { Hint } from '@app/components/icons/hint';
-import consentPageInformation from '@app/data/consent-information';
+import { consentPageInformation } from '@app/data/consent';
 
 export default function ConsentInformationPanel() {
     const [isOpen, setOpen] = useState(true);

@@ -32,7 +32,6 @@ const ConsentInput = forwardRef<HTMLDivElement, ConsentInputProps>((props, ref) 
             <TextField
                 id={id}
                 ref={ref}
-                type={type}
                 variant="outlined"
                 inputMode={inputMode || 'text'}
                 inputProps={
