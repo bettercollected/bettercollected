@@ -460,5 +460,4 @@ p {
 .dropdown-scrollbar {
     margin-right: 4px;
     top: 72px;
-    overflow-y: scroll; /* Ensure that scrollbar appears only when needed */
 }

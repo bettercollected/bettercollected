@@ -17,7 +17,7 @@ interface AutoCompleteInputProps extends OnlyClassNameInterface {
     required?: boolean;
 }
 
-const AutoCompleteInput = forwardRef<HTMLDivElement, AutoCompleteInputProps>(({ title, placeholder = '', required = false, options, className }, ref) => {
+const AutoCompleteInput = forwardRef<HTMLDivElement, AutoCompleteInputProps>(({ title, dropdownTitle, placeholder = '', required = false, options, className }, ref) => {
     const [selected, setSelected] = useState(false);
     const [query, setQuery] = useState('');
 
@@ -45,9 +45,11 @@ const AutoCompleteInput = forwardRef<HTMLDivElement, AutoCompleteInputProps>(({ 
                         </div>
                         <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0" afterLeave={() => setQuery('')}>
                             <Combobox.Options className="absolute mt-3 max-h-[321px] w-full leading-6 rounded-lg bg-white shadow-lg shadow-dropdown-shadow border border-blue-200 z-50">
-                                <div className="py-4 px-6 leading-5 flex justify-between items-center border-b border-black-200">
-                                    <div className="p2 !text-black-800">Purpose Of the Form</div> <DropdownCloseIcon />
-                                </div>
+                                {dropdownTitle && (
+                                    <div className="py-4 px-6 leading-5 flex justify-between items-center border-b border-black-200">
+                                        <div className="p2 !text-black-800">{dropdownTitle}</div> <DropdownCloseIcon />
+                                    </div>
+                                )}
                                 <div className="py-4">
                                     <div className="dropdown-scrollbar px-6 overflow-auto max-h-[150px] space-y-1">
                                         {filteredoptions.length === 0 && query !== '' ? (
