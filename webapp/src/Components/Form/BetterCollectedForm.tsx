@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 
 import Image from 'next/image';
 import {useRouter} from 'next/router';
@@ -36,6 +36,8 @@ import {contentEditableClassNames} from '@app/utils/formBuilderBlockUtils';
 import {validateFormFieldAnswer} from '@app/utils/validationUtils';
 
 import useFormAtom from './atom';
+import PoweredBy from "@app/components/ui/powered-by";
+import Logo from "@app/components/ui/logo";
 
 export interface FormFieldProps {
     field: StandardFormFieldDto;
@@ -113,6 +115,8 @@ export default function BetterCollectedForm({
     const router = useRouter();
     const {files, resetFormFiles} = useFormAtom();
 
+    const [isFormSubmitted, setIsFormSubmitted] = useState(false)
+
     useEffect(() => {
         dispatch(resetFillForm());
 
@@ -139,17 +143,15 @@ export default function BetterCollectedForm({
 
         if (!isResponseValid) {
             dispatch(setInvalidFields(invalidFields));
-            // toast('All required fields are not filled yet.', { type: 'error' });
             return;
         }
         if (preview) {
-            toast('Response Submitted', {type: 'success'});
-            closeModal && closeModal();
+            setIsFormSubmitted(true)
             return;
         }
 
         const formData = new FormData();
-        console.log(files);
+
         // Append files to formData
         files.forEach((fileObj) => {
             formData.append('files', fileObj.file, fileObj.fileName);
@@ -168,8 +170,8 @@ export default function BetterCollectedForm({
         if (response?.data) {
             toast('Response Submitted', {type: 'success'});
             resetFormFiles();
-            const workspaceUrl = isCustomDomain ? `https://${workspace.customDomain}` : `/${workspace.workspaceName}`;
-            router.push(workspaceUrl);
+            dispatch(resetFillForm());
+            setIsFormSubmitted(true)
         } else {
             toast('Error submitting response', {type: 'error'});
         }
@@ -180,11 +182,28 @@ export default function BetterCollectedForm({
         };
     });
 
+    if (isFormSubmitted) {
+        return (
+            <div className="flex w-full gap-4 flex-col items-center justify-center h-full">
+                <div className="  rounded-full text-[28px] px-2 font-bold bg-green-200 text-green-800">
+                    ✓
+                </div>
+                <div className="h3 font-bold">
+                    Thank you for completing this form!
+                </div>
+                <div className="text-gray-600">
+                    Made with bettercollected, a privacy-friendly form builder
+                </div>
+            </div>
+        )
+    }
+
+
     return (
-        <div>
+        <div className="w-full bg-white">
             {form?.coverImage && (
                 <div
-                    className={`relative z-0  ${isPreview ? "w-full" : "w-screen -mx-5"} aspect-banner-mobile lg:aspect-banner-desktop`}>
+                    className={`relative z-0 w-full flex aspect-banner-mobile lg:aspect-banner-desktop`}>
                     <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75"/>
                 </div>
             )}

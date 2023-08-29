@@ -1,13 +1,10 @@
 import * as React from 'react';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import CircleOutlinedIcon from '@Components/Common/Icons/CircleOutlinedIcon';
 import CoverIcon from '@Components/Common/Icons/CoverIcon';
-import PageIcon from '@Components/Common/Icons/PageIcon';
 import PlusIcon from '@Components/Common/Icons/Plus';
 import PublishIcon from '@Components/Common/Icons/PublishIcon';
-import SettingsIcon from '@Components/Common/Icons/Settings';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import AppBar from '@mui/material/AppBar';
 import IconButton from '@mui/material/IconButton';
@@ -16,6 +13,7 @@ import Toolbar from '@mui/material/Toolbar';
 import {alpha, styled} from '@mui/material/styles';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+import LoadingIcon from "@Components/Common/Icons/Loading";
 
 const Search = styled('div')(({theme}) => ({
     position: 'relative',
@@ -64,17 +62,18 @@ interface IFormBuilderMenuBarProps {
     onAddFormCover: React.MouseEventHandler<HTMLButtonElement>;
     onPreview: React.MouseEventHandler<HTMLButtonElement>;
     onFormPublish: React.MouseEventHandler<HTMLButtonElement>;
+    isUpdating?: boolean
 }
 
 const optionButtonClassName = 'flex flex-col text-black-700 !p-2 !md:p-3 !px-3 !md:px-5 border-1 h-full hover-none border-solid border-gray-500 md:gap-2 md:flex-row rounded-none ';
 
 export default function FormBuilderMenuBar({
                                                onInsert,
-                                               onAddNewPage,
                                                onAddFormLogo,
                                                onAddFormCover,
                                                onPreview,
-                                               onFormPublish
+                                               onFormPublish,
+                                               isUpdating
                                            }: IFormBuilderMenuBarProps) {
     const {t} = useBuilderTranslation();
     return (
@@ -120,7 +119,12 @@ export default function FormBuilderMenuBar({
                 <Divider orientation="vertical" flexItem/>
                 {/*<Tooltip title={t('PUBLISH.DEFAULT')}>*/}
                 <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onFormPublish}>
-                    <PublishIcon/>
+                    {
+                        isUpdating ?
+                            <LoadingIcon/>
+                            :
+                            <PublishIcon/>
+                    }
                     <span className=" text-black-700">{t('PUBLISH.DEFAULT')}</span>
                 </IconButton>
                 {/*</Tooltip>*/}

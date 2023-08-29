@@ -66,8 +66,8 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
 
     const {backspaceCount, setBackspaceCount} = useFormBuilderState();
 
-    const [postCreateForm] = useCreateFormMutation();
-    const [patchForm] = usePatchFormMutation();
+    const [postCreateForm, {isLoading: posting}] = useCreateFormMutation();
+    const [patchForm, {isLoading: patching}] = usePatchFormMutation();
 
     const [imagesRemoved, setImagesRemoved] = useState<{ logo: boolean, cover: boolean }>({logo: false, cover: false})
 
@@ -234,7 +234,8 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
     return (
         <div>
             <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo}
-                                onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish}/>
+                                onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish}
+                                isUpdating={posting || patching}/>
             {
                 showCover &&
                 <FormCoverComponent setIsCoverClicked={setShowCover} imagesRemoved={imagesRemoved}
