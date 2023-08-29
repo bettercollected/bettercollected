@@ -58,7 +58,7 @@ export default function CreateConsentForm({ className }: CreateConsentFormProps)
     );
 
     return (
-        <form className={cn('ml-[267px] w-[508px]', className)}>
+        <form className={cn(className)}>
             <div className="space-y-20">
                 <div className="space-y-4">
                     <div className="h4">Form Purpose and Data Usage</div>

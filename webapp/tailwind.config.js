@@ -40,6 +40,9 @@ module.exports = {
                         100: '#F2F7FF',
                         200: '#B8D5FF',
                         500: '#0764EB'
+                    },
+                    pink: {
+                        DEFAULT: '#FE3678'
                     }
                 },
                 // brand: 'rgb(var(--color-brand) / <alpha-value>)',
