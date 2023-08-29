@@ -2,8 +2,8 @@ import React from 'react';
 
 import BackButtonMenuBar from '@Components/Common/BackButtonMenuBar';
 import AttentionText from '@Components/Consent/AttentionText';
+import ConsentBuilder from '@Components/Consent/Builder/ConsentBuilder';
 import ConsentInformationPanel from '@Components/Consent/ConsentInformationPanel';
-import CreateConsentForm from '@Components/Consent/Form/CreateConsentForm';
 
 import Layout from '@app/layouts/_layout';
 
@@ -15,7 +15,7 @@ export default function CreateConsent() {
                 <div className="mt-12">
                     <div className="ml-[267px] w-[508px] mt-6">
                         <AttentionText className="mt-12" text={`Design your form responder's consent page`} />
-                        <CreateConsentForm className="mt-10 pb-20" />
+                        <ConsentBuilder className="mt-10 pb-20" />
                     </div>
                 </div>
                 <ConsentInformationPanel />
