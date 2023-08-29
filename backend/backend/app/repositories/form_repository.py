@@ -157,6 +157,8 @@ class FormRepository:
         form_document = await FormDocument.find_one({"form_id": str(form_id)})
         form_document.fields = form.fields
         form_document.title = form.title
+        form_document.logo = form.logo
+        form_document.cover_image = form.cover_image
         form_document.description = form.description
         form_document.button_text = form.button_text
         return await form_document.save()

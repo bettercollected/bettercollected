@@ -45,8 +45,8 @@ export default function FormBuilderPreviewModal({ publish }: { publish: () => vo
             previewForm.settings = {
                 responseDataOwnerField: builderState.settings?.responseDataOwnerField || ''
             };
-            previewForm.coverImage = headerImages.coverImage ? URL.createObjectURL(headerImages?.coverImage) : undefined;
-            previewForm.logo = headerImages.logo ? URL.createObjectURL(headerImages.logo) : undefined;
+            previewForm.coverImage = headerImages.coverImage ? URL.createObjectURL(headerImages?.coverImage) : builderState?.coverImage;
+            previewForm.logo = headerImages.logo ? URL.createObjectURL(headerImages.logo) : builderState?.logo;
             setFormToRender(previewForm);
         }
     }, [builderState, headerImages]);
@@ -73,7 +73,7 @@ export default function FormBuilderPreviewModal({ publish }: { publish: () => vo
                     Publish
                 </div>
             </div>
-            <div className="h-screen overflow-auto min-h-screen w-full pt-14 pb-6 px-5">
+            <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6 px-5">
                 <BetterCollectedForm form={formToRender} enabled={true} preview={true} closeModal={closeModal} />
             </div>
         </div>

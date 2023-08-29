@@ -40,6 +40,7 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
 
     const constants = {
         welcomeBack: t(signInScreen.welcomeBack),
+        signUp: t(signUpScreen.signUp),
         signInToContinue: t(signInScreen.signInToContinue),
         heading3: t(signInScreen.signIn),
         subHeading2: t(signInScreen.continueWIth),
@@ -93,9 +94,9 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
     };
 
     return (
-        <form className={` w-full ${isModal ? ' mt-16' : 'mt-[132px]'}`} onSubmit={isCreator ? handleEmailInputForCreator : handleEmailInputForResponder}>
+        <form className={` w-full ${isModal ? ' mt-16' : ''}`} onSubmit={isCreator ? handleEmailInputForCreator : handleEmailInputForResponder}>
             <div className="flex flex-col gap-3">
-                <span className="h4 ">{isSignup ? 'Sign Up' : constants.welcomeBack}</span>
+                <span className="h4 ">{(isSignup || isModal) ? constants.signUp : constants.welcomeBack}</span>
                 {isModal ? <span className="body4 sm:w-[410px]">{constants.descriptionInModal}</span> : <span className="body4 text-black-800">{isSignup ? constants.signUpToContinue : constants.signInToContinue}</span>}
             </div>
             <div className="flex gap-[20px] mt-10 w-full">
@@ -118,12 +119,12 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                 </FormProviderContext.Consumer>
             </div>
 
-            <Divider orientation="horizontal" flexItem className={'body4 !text-black-700 m-10'}>
+            <Divider orientation="horizontal" flexItem className={'body4 !text-black-700 my-10'}>
                 {constants.orSignInUsing}
             </Divider>
             <p className="text-base font-semibold mb-3 mt-[44px] text-black-900">{constants.emailInputLabel}</p>
             <BetterInput type={'email'} required={true} placeholder={constants.enterYourEmail} value={email} onChange={handleEmailInput} />
-            <Button type={'submit'} variant="solid" isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={`body1 w-full mt-6 ${isModal ? 'mb-10' : 'mb-40'}`} size={'extraMedium'}>
+            <Button type={'submit'} variant="solid" isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={`body1 w-full mt-6 ${isModal ? 'mb-10' : ''}`} size={'extraMedium'}>
                 {constants.sendCodeButton}
             </Button>
         </form>
