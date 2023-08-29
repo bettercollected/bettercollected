@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
@@ -25,6 +26,7 @@ import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
+import { metaDataTitle } from '@app/constants/locales/meta-data-title';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -33,6 +35,7 @@ import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 const formTableStyles = {
     ...dataTableCustomStyles,
@@ -78,6 +81,8 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     const onRowCLicked = (form: StandardFormDto) => {
         router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}`);
     };
+
+    const { workspaceName } = useAppSelector(selectWorkspace);
 
     const dataTableFormColumns = [
         {
@@ -201,6 +206,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
 
     return (
         <SidebarLayout>
+            <NextSeo title={t(localesCommon.forms) + ' | ' + workspaceName} noindex={true} nofollow={true} />
             {workspaceForms?.isLoading && (
                 <div className=" w-full py-10 flex justify-center">
                     <Loader />
@@ -218,7 +224,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                                         router.push(`/${workspace.workspaceName}/dashboard/forms/create`);
                                     }}
                                 >
-                                    Create Form
+                                    {t(metaDataTitle.createForm)}
                                 </Button>
                             )}
                             <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
