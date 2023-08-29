@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
 import { toast } from 'react-toastify';
@@ -19,7 +20,9 @@ import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceInvitationDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import Login from '@app/pages/login';
+import { useAppSelector } from '@app/store/hooks';
 import { useRespondToWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export default function Id({ workspace, user, invitation }: { workspace: WorkspaceDto; user: UserStatus; invitation: WorkspaceInvitationDto }) {
@@ -27,6 +30,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
     const { t } = useTranslation();
     const [rejected, setRejected] = useState(false);
     const router = useRouter();
+    const { workspaceName } = useAppSelector(selectWorkspace);
 
     const onAccept = async () => {
         await handleResponse('ACCEPTED');
@@ -70,6 +74,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
     if (rejected) {
         return (
             <div className=" py-10 flex items-center flex-col">
+                <NextSeo title={t(invitationConstant.title) + ' | ' + workspaceName} noindex={true} nofollow={true} />;
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
                 <div className="rounded-lg bg-white mt-36  flex flex-col items-center w-full p-10 md:max-w-[502px]">Request Rejected</div>
             </div>
@@ -79,6 +84,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
     if (!invitation) {
         return (
             <div className=" py-10 flex items-center flex-col">
+                <NextSeo title={t(invitationConstant.title) + ' | ' + workspaceName} noindex={true} nofollow={true} />;
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
                 <div className="rounded-lg bg-white mt-36  flex flex-col items-center w-full p-10 md:max-w-[620px]">{t(workspaceConstant.invitationNotFound)}</div>
             </div>
@@ -87,6 +93,7 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
 
     return (
         <div className=" py-10 px-4 w-full">
+            <NextSeo title={t(invitationConstant.title) + ' | ' + workspaceName} noindex={true} nofollow={true} />;
             <AuthNavbar showHamburgerIcon={false} showPlans={false} />
             <div className="rounded w-full mt-36 flex flex-col items-center ">
                 <div className="md:max-w-[620px] flex flex-col">
