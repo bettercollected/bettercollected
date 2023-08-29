@@ -8,7 +8,7 @@ import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 interface ICustomContentEditableProps {
     id: string;
     tagName: string;
-    type: FormBuilderTagNames;
+    type: FormBuilderTagNames | string;
     showHideHolder?: boolean;
     placeholder: string;
     value: any;

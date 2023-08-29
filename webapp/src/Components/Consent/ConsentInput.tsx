@@ -19,7 +19,7 @@ const getIcon = (position: 'start' | 'end', type?: React.HTMLInputTypeAttribute)
 };
 
 const ConsentInput = forwardRef<HTMLDivElement, ConsentInputProps>((props, ref) => {
-    const { id, title, type = 'text', required = false, placeholder, inputProps, inputMode, className, ...otherProps } = props;
+    const { id, title, type = 'text', required = false, multiline, placeholder, inputProps, inputMode, className, ...otherProps } = props;
 
     const { t } = useBuilderTranslation();
     return (

@@ -1,4 +1,4 @@
-import React, { Fragment, forwardRef, useState } from 'react';
+import React, { Fragment, forwardRef, useEffect, useState } from 'react';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { Combobox, Transition } from '@headlessui/react';
@@ -15,13 +15,20 @@ interface AutoCompleteInputProps extends OnlyClassNameInterface {
     placeholder?: string;
     options: string[];
     required?: boolean;
+    onSelect?: () => void;
 }
 
-const AutoCompleteInput = forwardRef<HTMLDivElement, AutoCompleteInputProps>(({ title, dropdownTitle, placeholder = '', required = false, options, className }, ref) => {
+const AutoCompleteInput = forwardRef<HTMLDivElement, AutoCompleteInputProps>(({ title, dropdownTitle, placeholder = '', required = false, onSelect, options, className }, ref) => {
     const [selected, setSelected] = useState(false);
     const [query, setQuery] = useState('');
 
     const filteredoptions = query === '' ? options : options.filter((option) => option.toLowerCase().replace(/\s+/g, '').includes(query.toLowerCase().replace(/\s+/g, '')));
+
+    useEffect(() => {
+        if (selected) {
+            onSelect && onSelect();
+        }
+    }, [selected]);
     return (
         <div className={cn('w-full', className)} ref={ref}>
             <Combobox value={selected} onChange={setSelected}>
