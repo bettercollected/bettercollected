@@ -1,4 +1,5 @@
 export const buttonConstant = {
+    edit: 'BUTTON.EDIT',
     add: 'BUTTON.ADD',
     save: 'BUTTON.SAVE',
     saving: 'BUTTON.SAVING',
