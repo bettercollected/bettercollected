@@ -1,15 +1,19 @@
-import {useTranslation} from 'next-i18next';
-import {useRouter} from 'next/router';
+import { useTranslation } from 'next-i18next';
+import { NextSeo } from 'next-seo';
+import { useRouter } from 'next/router';
 
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import {HomeIcon} from '@app/components/icons/home';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import {breadcrumbsItems} from '@app/constants/locales/breadcrumbs-items';
-import {useBreakpoint} from '@app/lib/hooks/use-breakpoint';
-import {getAuthUserPropsWithWorkspace} from '@app/lib/serverSideProps';
-import {useGetWorkspaceSubmissionQuery} from '@app/store/workspaces/api';
-import {toEndDottedStr} from '@app/utils/stringUtils';
+import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
+import { metaDataTitle } from '@app/constants/locales/meta-data-title';
+import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
+import { useAppSelector } from '@app/store/hooks';
+import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function SubmissionDashboard(props: any) {
     const {workspace, sub_id} = props;
@@ -29,6 +33,7 @@ export default function SubmissionDashboard(props: any) {
             shallow: true
         });
     };
+    const { workspaceName } = useAppSelector(selectWorkspace);
 
     const breadcrumbsItem = [
         {
@@ -43,6 +48,7 @@ export default function SubmissionDashboard(props: any) {
 
     return (
         <DashboardLayout>
+            <NextSeo title={t(metaDataTitle.submissions) + ' | ' + workspaceName} noindex={true} nofollow={true} />;
             {isLoading || isError ? (
                 <FullScreenLoader/>
             ) : (

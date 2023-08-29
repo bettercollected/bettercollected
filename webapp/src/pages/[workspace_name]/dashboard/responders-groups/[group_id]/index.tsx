@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
 import { FormIcon } from '@Components/Common/Icons/FormIcon';
@@ -79,6 +80,7 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
 
     return (
         <DashboardLayout>
+            <NextSeo title={data?.name + ' | ' + workspace.workspaceName} noindex={true} nofollow={true} />;
             {isLoading && workspaceForms.isLoading && (
                 <div className=" w-full py-10 flex justify-center">
                     <Loader />

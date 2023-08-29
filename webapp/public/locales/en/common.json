@@ -42,6 +42,7 @@
         "DELETE": "Delete",
         "DELETE_ACCOUNT": " Delete Account",
         "DONE": "Done",
+        "EDIT": "Edit",
         "GETIN": " Get In",
         "GOOGLE_SIGNIN": "Sign in with Google",
         "IMPORT_FORMS": "Import Forms",
@@ -334,6 +335,7 @@
     "INVALID_DOMAIN": "Invalid domain",
     "INVALID_WORKSPACE_HANDLE": "Invalid Workspace Handle",
     "INVITATION": {
+        "TITLE": "Inviation",
         "TITLE_1": "You have been invited to",
         "TITLE_2": "Join workspace and start collaborating",
         "LINK_EXPIRY": "This link will expire in 7 days.",
@@ -352,8 +354,14 @@
     "LINK_TO_PRIVACY_POLICY": "Link to Privacy Policy",
     "LINK_TO_TERMS_OF_SERVICES": "Link to Terms of Service",
     "LOGOUT_MESSAGE": "Are you sure you want to logout?",
+
+    "EDIT_FORM": "Edit Form",
+    "CREATE_FORM": "Create Form",
+    "SUBMISSIONS": "Submissions",
+
     "MANAGE": "Manage",
     "MANAGE_WORKSPACE": "Manage Workspace",
+    "MANAGE_URLS": "Manage URLs",
     "MEMBER": "Member",
     "MEMBERS": {
         "DEFAULT": "Members",
@@ -479,7 +487,7 @@
         "ENTER_CODE_PLACEHOLDER": "eg: 000000",
         "BACK_BUTTON_TITLE": "Back",
         "DIDNOT_RECEIVE_CODE": "Did not receive code?",
-        "MODAL":{"DESCRIPTION":"You will only be able to see responses done with the email you sign in with."}
+        "MODAL": { "DESCRIPTION": "You will only be able to see responses done with the email you sign in with." }
     },
     "SIGNUP_SCREEN": {
         "LOGO_DESCRIPTION": "Privacy-friendly form builder",
@@ -488,7 +496,7 @@
         "ENTER_OTP_CODE": "Enter OTP Code",
         "ENTER_CODE_PLACEHOLDER": "eg: 000000",
         "SIGNUP_AGREEMENT_DESCRIPTION": "By signing up, you agree to our",
-        "SIGNUP_TO_CONTINUE":"You can sign up by simply signing in with Google or Typeform, or using your email.",
+        "SIGNUP_TO_CONTINUE": "You can sign up by simply signing in with Google or Typeform, or using your email.",
         "FEATURES": {
             "TITLE": "We’re a privacy-focused form builder platform",
             "OTP_TITLE": "Become a better data collector.",

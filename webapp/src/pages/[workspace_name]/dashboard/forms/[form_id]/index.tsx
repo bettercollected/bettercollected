@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
 import Preview from '@Components/Common/Icons/Preview';
@@ -33,6 +34,7 @@ import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;
+
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
     const locale = props._nextI18Next.initialLocale === 'en' ? '' : `${props._nextI18Next.initialLocale}/`;
@@ -97,6 +99,7 @@ export default function FormPage(props: any) {
 
     return (
         <SidebarLayout>
+            <NextSeo title={form.title} noindex={true} nofollow={true} />
             <div className="w-full   my-2 ">
                 <BreadcrumbsRenderer items={breadcrumbsItem} />
                 <div className="flex items-center justify-between">
