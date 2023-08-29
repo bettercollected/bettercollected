@@ -1,18 +1,19 @@
 import React from 'react';
 
 import FormButton from '@Components/Common/Input/Button/FormButton';
-import ConsentAddInput from '@Components/Consent/ConsentAdd';
+import ConsentAddInput from '@Components/Consent/Builder/ConsentAdd';
 import { CheckBox } from '@mui/icons-material';
 import cn from 'classnames';
 
 import { dataRetention, formPurpose, thirdPartySharing } from '@app/data/consent';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 
-import ConsentInput from '../ConsentInput';
+import ConsentInput from '../Builder/ConsentInput';
+import ConsentCheckbox from '../Form/ConsentCheckbox';
 
-interface CreateConsentFormProps extends OnlyClassNameInterface {}
+interface ConsentBuilderProps extends OnlyClassNameInterface {}
 
-export default function CreateConsentForm({ className }: CreateConsentFormProps) {
+export default function ConsentBuilder({ className }: ConsentBuilderProps) {
     const formPurposeDetails = (
         <>
             <div className="space-y-5">
@@ -71,6 +72,7 @@ export default function CreateConsentForm({ className }: CreateConsentFormProps)
                 {thirdPartyIntegrationDetails}
                 {dataRetentionDetails}
                 {responderRightDetails}
+                <ConsentCheckbox text="Marketing" />
                 <div>
                     <div className="h4-new">Terms and Conditions</div>
                     <ConsentInput type="file" title="Insert Link to Your Terms And Conditions" placeholder="Insert link here" className="mt-5" />

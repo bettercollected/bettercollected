@@ -7,8 +7,8 @@ import { Hint } from '@app/components/icons/hint';
 import { useModal } from '@app/components/modal-views/context';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 
-import ConsentInput from '../Common/Input/AutoCompleteInput';
-import AutoCompleteInput from '../Common/Input/AutoCompleteInput';
+import ConsentInput from '../../Common/Input/AutoCompleteInput';
+import AutoCompleteInput from '../../Common/Input/AutoCompleteInput';
 
 interface ConsentAddInputProps extends OnlyClassNameInterface {
     title?: string;
