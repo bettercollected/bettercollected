@@ -1,16 +1,14 @@
 import React from 'react';
 
 import FormButton from '@Components/Common/Input/Button/FormButton';
-import ConsentAddInput from '@Components/Consent/Builder/ConsentAdd';
 import { CheckBox } from '@mui/icons-material';
 import cn from 'classnames';
 
 import { dataRetention, formPurpose, thirdPartySharing } from '@app/data/consent';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 
-import ConsentInput from '../Builder/ConsentInput';
-import ConsentCheckbox from '../Form/ConsentCheckbox';
-import HintBox from '../Form/Hint';
+import ConsentAddInput from './ConsentAdd';
+import ConsentInput from './ConsentInput';
 
 interface ConsentBuilderProps extends OnlyClassNameInterface {}
 
@@ -73,7 +71,6 @@ export default function ConsentBuilder({ className }: ConsentBuilderProps) {
                 {thirdPartyIntegrationDetails}
                 {dataRetentionDetails}
                 {responderRightDetails}
-                <ConsentCheckbox text="Marketing" />
                 <div>
                     <div className="h4-new">Terms and Conditions</div>
                     <ConsentInput type="file" title="Insert Link to Your Terms And Conditions" placeholder="Insert link here" className="mt-5" />

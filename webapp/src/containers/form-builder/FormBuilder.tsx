@@ -57,6 +57,11 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
 
     const router = useRouter();
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
+<<<<<<< HEAD
+=======
+    const onBlurCallbackRef = useRef<any>(null);
+    const { headerImages, resetImages } = useFormBuilderAtom();
+>>>>>>> d287c254 (Add misising closing tag in bettercollected form)
 
     const [showLogo, setShowLogo] = useState(false);
     const [showCover, setShowCover] = useState(false);
@@ -228,8 +233,14 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
             eventBus.removeListener(EventBusEventType.FormBuilder.Publish, onFormPublish);
             eventBus.removeListener(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
             document.removeEventListener('blur', onBlurCallback);
+<<<<<<< HEAD
         };
     }, [builderState]);
+=======
+            resetImages();
+        };
+    }, []);
+>>>>>>> d287c254 (Add misising closing tag in bettercollected form)
 
     return (
         <div>
