@@ -167,7 +167,7 @@ export default function SingleFormPage(props: any) {
                 {form?.settings?.provider === 'typeform' &&
                     <Widget id={form?.formId} style={{height: '100vh'}} className="my-form"/>}
                 {form?.settings?.provider === 'self' && (
-                    <div className="flex !bg-white justify-center w-full pb-6 items-center">
+                    <div className="flex !bg-white justify-center h-full w-full pb-6 items-center">
                         <BetterCollectedForm form={form} enabled={true} isCustomDomain={hasCustomDomain}/>
                     </div>
                 )}
