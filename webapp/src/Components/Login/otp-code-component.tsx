@@ -110,8 +110,8 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
     };
 
     return (
-        <>
-            <div className={`flex items-center cursor-pointer gap-1 hover:text-brand ${isModal ? ' mt-10' : ' mt-[48px]'}`} onClick={handleGoBackOnStepOne}>
+        <div className='w-full'>
+            <div className={`absolute flex items-center cursor-pointer gap-1 hover:text-brand ${isModal ? 'top-16' : ' top-24'}`} onClick={handleGoBackOnStepOne}>
                 <Back />
                 <p className={'hover:text-brand'}>{constants.backButtonTitle}</p>
             </div>
@@ -125,7 +125,7 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
                     {constants.signInButton}
                 </Button>
             </form>
-            <div className={`flex items-center gap-2  text-black-900 ${isModal ? 'mb-[182px]' : ' mb-64'}`}>
+            <div className={`flex items-center gap-2  text-black-900 ${isModal ? 'mb-[84px]' : 'mb-16'}`}>
                 <p className="body4">{constants.didnotReceiveCode}</p>
                 <>
                     {counter !== 0 && (
@@ -135,7 +135,7 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
                     )}
                     {counter === 0 && (
                         <p
-                            className="body4 cursor-pointer underline text-brand-500"
+                            className="body4 cursor-pointer underline !text-brand-500"
                             onClick={async () => {
                                 await resendOtpCode();
                             }}
@@ -145,6 +145,6 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
                     )}
                 </>
             </div>
-        </>
+        </div>
     );
 }
