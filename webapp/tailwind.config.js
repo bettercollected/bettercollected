@@ -43,6 +43,9 @@ module.exports = {
                     },
                     pink: {
                         DEFAULT: '#FE3678'
+                    },
+                    orange: {
+                        DEFAULT: '#FFA716'
                     }
                 },
                 // brand: 'rgb(var(--color-brand) / <alpha-value>)',

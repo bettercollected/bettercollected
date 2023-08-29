@@ -10,6 +10,7 @@ import { OnlyClassNameInterface } from '@app/models/interfaces';
 
 import ConsentInput from '../Builder/ConsentInput';
 import ConsentCheckbox from '../Form/ConsentCheckbox';
+import HintBox from '../Form/Hint';
 
 interface ConsentBuilderProps extends OnlyClassNameInterface {}
 
