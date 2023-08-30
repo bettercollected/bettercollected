@@ -25,6 +25,9 @@ import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
 import useUndoRedo from '@app/lib/use-undo-redo';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
+import { resetConsentState } from '@app/store/consent/actions';
+import { selectConsentState } from '@app/store/consent/selectors';
+import { IConsentState } from '@app/store/consent/types';
 import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setFields } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
@@ -47,6 +50,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const router = useRouter();
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
+    const consentState: IConsentState = useAppSelector(selectConsentState);
 
     const [showLogo, setShowLogo] = useState(false);
     const [showCover, setShowCover] = useState(false);
@@ -145,6 +149,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         publishRequest.fields = fields;
         publishRequest.settings = builderState.settings;
         publishRequest.buttonText = builderState.buttonText;
+        publishRequest.consent = consentState.consents;
         if (imagesRemoved.logo) publishRequest.logo = '';
         if (imagesRemoved.cover) publishRequest.cover_image = '';
         formData.append('form_body', JSON.stringify(publishRequest));
@@ -156,6 +161,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             toast('Form saved!', { type: 'success' });
             if (!isEditMode) router.push(`/${locale}${workspace?.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`);
             dispatch(setBuilderState({ isFormDirty: false }));
+            dispatch(resetConsentState());
         }
         return response;
     };
