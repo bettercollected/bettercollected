@@ -7,6 +7,7 @@ import cn from 'classnames';
 import { AddIcon } from '@app/components/icons/add';
 import { ArrowDown } from '@app/components/icons/arrow-down';
 import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
+import { ConsentPurposeModalMode } from '@app/components/modal-views/modals/consent-purpose-modal-view';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 
 interface AutoCompleteInputProps extends OnlyClassNameInterface {
@@ -15,18 +16,19 @@ interface AutoCompleteInputProps extends OnlyClassNameInterface {
     placeholder?: string;
     options: string[];
     required?: boolean;
-    onSelect?: () => void;
+    onSelect?: (selection: string, mode?: ConsentPurposeModalMode) => void;
 }
 
 const AutoCompleteInput = forwardRef<HTMLDivElement, AutoCompleteInputProps>(({ title, dropdownTitle, placeholder = '', required = false, onSelect, options, className }, ref) => {
-    const [selected, setSelected] = useState(false);
+    const [selected, setSelected] = useState('');
     const [query, setQuery] = useState('');
 
     const filteredoptions = query === '' ? options : options.filter((option) => option.toLowerCase().replace(/\s+/g, '').includes(query.toLowerCase().replace(/\s+/g, '')));
 
     useEffect(() => {
-        if (selected) {
-            onSelect && onSelect();
+        if (selected.length !== 0) {
+            onSelect && onSelect(selected);
+            setSelected('');
         }
     }, [selected]);
     return (
@@ -74,9 +76,15 @@ const AutoCompleteInput = forwardRef<HTMLDivElement, AutoCompleteInputProps>(({ 
                                         )}
                                     </div>
                                     <div className="px-6">
-                                        <AppButton className="flex space-x-2 items-center justify-center !w-full mt-4">
+                                        <AppButton
+                                            className="flex space-x-2 items-center justify-center !w-full mt-4"
+                                            onClick={(event: any) => {
+                                                event.preventDefault();
+                                                onSelect && onSelect('', 'create');
+                                            }}
+                                        >
                                             <AddIcon />
-                                            <span>Add New</span>
+                                            <span>Create New</span>
                                         </AppButton>
                                     </div>
                                 </div>

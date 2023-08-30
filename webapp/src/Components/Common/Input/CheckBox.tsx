@@ -14,8 +14,10 @@ export default function CheckBox({ ...props }: CheckboxProps) {
                 padding: '0px',
                 '&.Mui-disabled': {
                     border: '1px',
-                    padding: '0px',
-                    color: '#DBDBDB'
+                    padding: '0px'
+                },
+                '&.Mui-hover': {
+                    color: 'white'
                 }
             }}
             {...props}

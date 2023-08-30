@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-import { Autocomplete } from '@mui/material';
 import cn from 'classnames';
 
 import { Hint } from '@app/components/icons/hint';
 import { useModal } from '@app/components/modal-views/context';
+import { ConsentPurposeModalMode } from '@app/components/modal-views/modals/consent-purpose-modal-view';
+import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 
-import ConsentInput from '../../Common/Input/AutoCompleteInput';
 import AutoCompleteInput from '../../Common/Input/AutoCompleteInput';
 
 interface ConsentAddInputProps extends OnlyClassNameInterface {
@@ -15,10 +15,17 @@ interface ConsentAddInputProps extends OnlyClassNameInterface {
     placeholder?: string;
     hint?: string;
     options: string[];
+    category: ConsentCategoryType;
+    consentType: ConsentType;
 }
 
-export default function ConsentAddInput({ className, title, placeholder = '', hint, options }: ConsentAddInputProps) {
+export default function ConsentAddInput({ className, title, placeholder = '', hint, options, category, consentType }: ConsentAddInputProps) {
     const { openModal } = useModal();
+
+    const handleSelect = (selection: string, mode: ConsentPurposeModalMode = 'add') => {
+        console.log(selection);
+        openModal('CONSENT_PURPOSE_MODAL_VIEW', { category, selection, type: consentType, mode });
+    };
     return (
         <div className={cn('rounded-lg p-5 bg-new-black-200', className)}>
             {hint && (
@@ -27,16 +34,7 @@ export default function ConsentAddInput({ className, title, placeholder = '', hi
                     <div className="ml-10 p2 !text-new-black-800">{hint}</div>
                 </div>
             )}
-            <AutoCompleteInput
-                dropdownTitle="Purpose Of The Form"
-                title={title}
-                placeholder={placeholder}
-                className="!cursor-pointer"
-                options={options}
-                onSelect={() => {
-                    openModal('CONSENT_PURPOSE_MODAL_VIEW');
-                }}
-            />
+            <AutoCompleteInput dropdownTitle="Purpose Of The Form" title={title} placeholder={placeholder} className="!cursor-pointer" options={options} onSelect={handleSelect} />
         </div>
     );
 }
