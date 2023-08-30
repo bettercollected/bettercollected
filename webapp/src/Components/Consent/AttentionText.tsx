@@ -8,5 +8,5 @@ interface AttentionTextProps extends OnlyClassNameInterface {
     text: string;
 }
 export default function AttentionText({ text, className }: AttentionTextProps) {
-    return <div className={cn('h5-new font-semibold leading-6 !text-new-pink', className)}>{text}</div>;
+    return <div className={cn('h5-new font-semibold leading-6 !text-new-pink xs:!text-sm', className)}>{text}</div>;
 }

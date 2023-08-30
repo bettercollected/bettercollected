@@ -37,14 +37,14 @@ const AutoCompleteInput = forwardRef<HTMLDivElement, AutoCompleteInputProps>(({ 
                 {({ open }) => (
                     <div className="relative mt-1">
                         {title && (
-                            <div className="h5-new mb-3">
+                            <div className="h5-new mb-3 xs:!text-sm">
                                 {title} {required && <span className="text-pink ml-2">*</span>}
                             </div>
                         )}
                         <div className="relative w-full cursor-default border-none overflow-hidden rounded-md  bg-white text-left group">
                             <Combobox.Input
                                 placeholder={placeholder}
-                                className="w-full rounded-md border border-black-300 focus:border-blue-500 p-3 text-base leading-6 text-gray-900 placeholder:text-black-400 focus:ring-0"
+                                className="w-full rounded-md border border-black-300 focus:border-blue-500 p-3 text-base xs:!text-sm leading-6 text-gray-900 placeholder:text-black-400 focus:ring-0"
                                 displayValue={(option: string) => (option ? option : '')}
                                 onChange={(event) => setQuery(event.target.value)}
                             />
@@ -53,14 +53,14 @@ const AutoCompleteInput = forwardRef<HTMLDivElement, AutoCompleteInputProps>(({ 
                             </Combobox.Button>
                         </div>
                         <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0" afterLeave={() => setQuery('')}>
-                            <Combobox.Options className="absolute mt-3 max-h-[321px] w-full leading-6 rounded-lg bg-white shadow-lg shadow-dropdown-shadow border border-blue-200 z-50">
+                            <Combobox.Options className="absolute mt-3 max-h-[321px] w-full leading-6 rounded-lg bg-white shadow-lg shadow-dropdown-shadow border border-blue-200 z-50 xs:!text-sm">
                                 {dropdownTitle && (
-                                    <div className="py-4 px-6 leading-5 flex justify-between items-center border-b border-black-200">
+                                    <div className="py-4 px-6 xs:px-3 leading-5 flex justify-between items-center border-b border-black-200">
                                         <div className="p2 !text-black-800">{dropdownTitle}</div> <DropdownCloseIcon />
                                     </div>
                                 )}
                                 <div className="py-4">
-                                    <div className="dropdown-scrollbar px-6 overflow-auto max-h-[150px] space-y-1">
+                                    <div className="dropdown-scrollbar px-6 xs:px-3 overflow-auto max-h-[150px] space-y-1">
                                         {filteredoptions.length === 0 && query !== '' ? (
                                             <div className="relative cursor-default select-none py-2 px-4 text-gray-700">Nothing found.</div>
                                         ) : (
@@ -75,7 +75,7 @@ const AutoCompleteInput = forwardRef<HTMLDivElement, AutoCompleteInputProps>(({ 
                                             ))
                                         )}
                                     </div>
-                                    <div className="px-6">
+                                    <div className="px-6 xs:px-3">
                                         <AppButton
                                             className="flex space-x-2 items-center justify-center !w-full mt-4"
                                             onClick={(event: any) => {
