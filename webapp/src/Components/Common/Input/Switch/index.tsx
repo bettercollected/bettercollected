@@ -19,6 +19,7 @@ const MuiSwitch = styled((props: CustomSwitchProps) => <Switch focusVisibleClass
         width: thumbSize ? thumbSize * 2 + 2 : 42,
         height: thumbSize ? thumbSize + 4 : 26,
         padding: 0,
+
         '& .MuiSwitch-switchBase': {
             padding: 0,
             margin: 2,

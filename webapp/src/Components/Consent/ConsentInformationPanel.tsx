@@ -24,7 +24,7 @@ export default function ConsentInformationPanel() {
             </div>
         );
     return (
-        <div className="bg-new-blue-100 px-6 py-5 h-full w-[397px] space-y-10 fixed right-0">
+        <div className="bg-new-blue-100 px-6 xs:px-[15px] py-5 h-full w-[397px] space-y-10 fixed right-0">
             <div className="space-y-4 relative">
                 <Close className="absolute right-0 -top-2 cursor-pointer" onClick={() => setOpen(false)} />
                 <div className="h5-new">{consentPageInformation.title}</div>
