@@ -1,3 +1,5 @@
+import { ConsentCategoryType } from '@app/models/enums/consentEnum';
+
 const consentPageInformation = {
     title: 'What is this page?',
     description: "This page is your opportunity to communicate directly with your form responders about the purpose of the form and the data you collect. It's like a digital handshake, establishing trust and transparency.",
@@ -12,7 +14,8 @@ const formPurpose = {
     hint: `Help users understand your form's intent! Specify its purpose
     (e.g., marketing, analytics) for transparent consent.`,
     title: 'Select or Add Purpose',
-    options: ['Marketing', 'Analytics', 'Feedback', 'Data Entry']
+    options: ['Marketing', 'Analytics', 'Feedback', 'Data Entry'],
+    category: ConsentCategoryType.PurposeOfTheForm
 };
 
 const thirdPartySharing = {

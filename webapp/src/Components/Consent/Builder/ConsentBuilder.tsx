@@ -1,41 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import FormButton from '@Components/Common/Input/Button/FormButton';
-import { CheckBox } from '@mui/icons-material';
+import CheckBox from '@Components/Common/Input/CheckBox';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import cn from 'classnames';
 
-import { dataRetention, formPurpose, thirdPartySharing } from '@app/data/consent';
+import { formPurpose } from '@app/data/consent';
+import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
+import { setAddConsent, setPrivacyPoilicy } from '@app/store/consent/actions';
+import { selectConsentState } from '@app/store/consent/selectors';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 import ConsentAddInput from './ConsentAdd';
+import ConsentBuilderField from './ConsentBuilderField';
 import ConsentInput from './ConsentInput';
 
 interface ConsentBuilderProps extends OnlyClassNameInterface {}
 
 export default function ConsentBuilder({ className }: ConsentBuilderProps) {
+    const consentState = useAppSelector(selectConsentState);
+    const [isDeletionRequestChecked, setIsDeletionRequestChecked] = useState(true);
+    const dispatch = useAppDispatch();
+
+    const getFilteredConsents = (category: ConsentCategoryType) => {
+        return consentState.consents.map((consent, idx) => consent.category === category && <ConsentBuilderField key={consent.id} className={`${idx === 0 && 'border-y'}`} consent={consent} />);
+    };
     const formPurposeDetails = (
         <>
-            <div className="space-y-5">
-                <div className="h4-new">Purpose of this form:</div>
-                <ConsentAddInput title={formPurpose.title} placeholder="Select or Add Purpose" hint={formPurpose.hint} options={formPurpose.options} />
-            </div>
-        </>
-    );
-
-    const thirdPartyIntegrationDetails = (
-        <>
-            <div className="space-y-5">
-                <div className="h4-new">Third-Party Integration:</div>
-                <ConsentAddInput title={thirdPartySharing.title} placeholder="Select or add third-party apps" hint={thirdPartySharing.hint} options={thirdPartySharing.options} />
-            </div>
-        </>
-    );
-
-    const dataRetentionDetails = (
-        <>
-            <div className="space-y-5">
-                <div className="h4-new">For how long data will be stored:</div>
-                <ConsentAddInput title={dataRetention.title} placeholder="Select a Data Retention options" hint={dataRetention.hint} options={dataRetention.options} />
+            <div>
+                <div className="h4-new pb-5">Purpose of this form:</div>
+                {getFilteredConsents(formPurpose.category)}
+                <ConsentAddInput className="mt-5" title={formPurpose.title} placeholder="Select or Add Purpose" hint={formPurpose.hint} options={formPurpose.options} category={ConsentCategoryType.PurposeOfTheForm} consentType={ConsentType.Checkbox} />
             </div>
         </>
     );
@@ -46,7 +42,12 @@ export default function ConsentBuilder({ className }: ConsentBuilderProps) {
                 <div className="space-y-5">
                     <div className="h4-new">{`Responder's Rights`}</div>
                     <div className="flex space-x-2">
-                        <CheckBox sx={{ color: '#0764EB' }} />{' '}
+                        <CheckBox
+                            checked={isDeletionRequestChecked}
+                            onChange={(event, checked) => {
+                                setIsDeletionRequestChecked(checked);
+                            }}
+                        />
                         <div className="space-y-2">
                             <div className="h6-new">Request deletion of their data</div>
                             <p className="p2">This field allows you to specify whether you will allow users to request the deletion of their data and other actions.</p>
@@ -57,6 +58,9 @@ export default function ConsentBuilder({ className }: ConsentBuilderProps) {
         </>
     );
 
+    const onSubmit = () => {
+        dispatch(setAddConsent({ id: uuidv4(), type: ConsentType.Info, category: ConsentCategoryType.RespondersRights }));
+    };
     return (
         <form className={cn(className)}>
             <div className="space-y-20">
@@ -68,12 +72,18 @@ export default function ConsentBuilder({ className }: ConsentBuilderProps) {
                     </div>
                 </div>
                 {formPurposeDetails}
-                {thirdPartyIntegrationDetails}
-                {dataRetentionDetails}
                 {responderRightDetails}
                 <div>
-                    <div className="h4-new">Terms and Conditions</div>
-                    <ConsentInput type="file" title="Insert Link to Your Terms And Conditions" placeholder="Insert link here" className="mt-5" />
+                    <div className="h4-new">Privacy Policy</div>
+                    <ConsentInput
+                        type="file"
+                        title="Insert Link to Your Terms And Conditions"
+                        placeholder="Insert link here"
+                        className="mt-5"
+                        onChange={(event: any) => {
+                            dispatch(setPrivacyPoilicy(event.target.value));
+                        }}
+                    />
                 </div>
             </div>
             <FormButton className="w-[192px] mt-[60px]">Done</FormButton>
