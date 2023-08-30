@@ -8,11 +8,14 @@ import cn from 'classnames';
 import { formPurpose } from '@app/data/consent';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
+import { IConsentOption } from '@app/models/types/consentTypes';
 import { setAddConsent, setPrivacyPoilicy } from '@app/store/consent/actions';
+import { useGetAllWorkspaceConsentsQuery } from '@app/store/consent/api';
 import { selectConsentState } from '@app/store/consent/selectors';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
-import ConsentAddInput from './ConsentAdd';
+import ConsentAddInput from './ConsentAddInput';
 import ConsentBuilderField from './ConsentBuilderField';
 import ConsentInput from './ConsentInput';
 
@@ -20,11 +23,16 @@ interface ConsentBuilderProps extends OnlyClassNameInterface {}
 
 export default function ConsentBuilder({ className }: ConsentBuilderProps) {
     const consentState = useAppSelector(selectConsentState);
+    const workspace = useAppSelector(selectWorkspace);
+    const { data } = useGetAllWorkspaceConsentsQuery(workspace.id);
     const [isDeletionRequestChecked, setIsDeletionRequestChecked] = useState(true);
     const dispatch = useAppDispatch();
 
     const getFilteredConsents = (category: ConsentCategoryType) => {
-        return consentState.consents.map((consent, idx) => consent.category === category && <ConsentBuilderField key={consent.id} className={`${idx === 0 && 'border-y'}`} consent={consent} />);
+        return consentState.consents.map((consent, idx) => consent.category === category && <ConsentBuilderField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} />);
+    };
+    const getConsentOptions = () => {
+        return [...(data !== undefined ? data.map((consent) => ({ ...consent, consentId: '', isRecentlyAdded: true } as IConsentOption)) : []), ...formPurpose.options];
     };
     const formPurposeDetails = (
         <>
@@ -36,7 +44,7 @@ export default function ConsentBuilder({ className }: ConsentBuilderProps) {
                     title={formPurpose.title}
                     placeholder="Select or Add Purpose"
                     hint={formPurpose.hint}
-                    options={formPurpose.options}
+                    options={getConsentOptions()}
                     category={ConsentCategoryType.PurposeOfTheForm}
                     consentType={ConsentType.Checkbox}
                 />
@@ -67,7 +75,7 @@ export default function ConsentBuilder({ className }: ConsentBuilderProps) {
     );
 
     const onSubmit = () => {
-        dispatch(setAddConsent({ id: uuidv4(), type: ConsentType.Info, category: ConsentCategoryType.RespondersRights }));
+        dispatch(setAddConsent({ consentId: uuidv4(), type: ConsentType.Info, category: ConsentCategoryType.RespondersRights }));
     };
     return (
         <form className={cn(className)}>

@@ -1,4 +1,4 @@
-import { ConsentCategoryType } from '@app/models/enums/consentEnum';
+import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 
 const consentPageInformation = {
     title: 'What is this page?',
@@ -14,7 +14,12 @@ const formPurpose = {
     hint: `Help users understand your form's intent! Specify its purpose
     (e.g., marketing, analytics) for transparent consent.`,
     title: 'Select or Add Purpose',
-    options: ['Marketing', 'Analytics', 'Feedback', 'Data Entry'],
+    options: [
+        { title: 'Marketing', type: ConsentType.Checkbox, category: ConsentCategoryType.PurposeOfTheForm },
+        { title: 'Analytics', type: ConsentType.Checkbox, category: ConsentCategoryType.PurposeOfTheForm },
+        { title: 'Feedback', type: ConsentType.Checkbox, category: ConsentCategoryType.PurposeOfTheForm },
+        { title: 'Data Entry', type: ConsentType.Checkbox, category: ConsentCategoryType.PurposeOfTheForm }
+    ],
     category: ConsentCategoryType.PurposeOfTheForm
 };
 
