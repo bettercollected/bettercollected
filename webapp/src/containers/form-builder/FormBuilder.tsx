@@ -56,8 +56,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const { backspaceCount, setBackspaceCount } = useFormBuilderState();
 
-    const [postCreateForm] = useCreateFormMutation();
-    const [patchForm] = usePatchFormMutation();
+    const [postCreateForm, { isLoading: posting }] = useCreateFormMutation();
+    const [patchForm, { isLoading: patching }] = usePatchFormMutation();
 
     const [imagesRemoved, setImagesRemoved] = useState<{ logo: boolean; cover: boolean }>({ logo: false, cover: false });
 
@@ -219,7 +219,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     return (
         <div>
-            <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} />
+            <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo} onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} isUpdating={posting || patching} />
             {showCover && <FormCoverComponent setIsCoverClicked={setShowCover} imagesRemoved={imagesRemoved} setImagesRemoved={setImagesRemoved} />}
             <div className="h-full w-full max-w-4xl mx-auto py-10">
                 {showLogo && <FormLogoComponent setIsLogoClicked={setShowLogo} classname={showCover ? '-mt-[90px]' : ''} imagesRemoved={imagesRemoved} setImagesRemoved={setImagesRemoved} />}

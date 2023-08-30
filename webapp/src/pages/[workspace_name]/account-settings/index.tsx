@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { NextSeo } from 'next-seo';
 
 import { Button } from '@mui/material';
 
@@ -14,15 +15,18 @@ import { profileMenu } from '@app/constants/locales/profile-menu';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFullNameFromUser } from '@app/utils/userUtils';
 
 export default function AccountSettings(props: any) {
     const { t } = useTranslation();
     const authStatus: UserStatus = useAppSelector(selectAuth);
     const { openModal } = useModal();
+    const { workspaceName } = useAppSelector(selectWorkspace);
 
     return (
         <DashboardLayout>
+            <NextSeo title={t(profileMenu.accountSettings) + ' | ' + workspaceName} noindex={true} nofollow={true} />
             <div className="my-4">
                 <h4 className="h4">{t(profileMenu.accountSettings)}</h4>
                 <div className="mt-[30px] flex gap-4 mb-10">
