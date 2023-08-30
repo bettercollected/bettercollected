@@ -17,7 +17,11 @@ module.exports = {
             blur: {
                 dashboardBackground: '105px'
             },
+
             colors: {
+                dropdown: {
+                    shadow: 'rgba(19, 73, 179, 0.25)'
+                },
                 new: {
                     black: {
                         100: '#F6F6F6',
@@ -31,6 +35,17 @@ module.exports = {
                         900: '#2E2E2E',
 
                         DEFAULT: '#2E2E2E'
+                    },
+                    blue: {
+                        100: '#F2F7FF',
+                        200: '#B8D5FF',
+                        500: '#0764EB'
+                    },
+                    pink: {
+                        DEFAULT: '#FE3678'
+                    },
+                    orange: {
+                        DEFAULT: '#FFA716'
                     }
                 },
                 // brand: 'rgb(var(--color-brand) / <alpha-value>)',
@@ -78,6 +93,9 @@ module.exports = {
                 orange: {
                     500: '#EB8E07',
                     DEFAULT: '#EB8E07'
+                },
+                pink: {
+                    DEFAULT: '#FE3678'
                 }
             },
             spacing: {

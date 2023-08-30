@@ -1,8 +1,9 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 
 import Image from 'next/image';
-import {useRouter} from 'next/router';
+import { useRouter } from 'next/router';
 
+import FormButton from '@Components/Common/Input/Button/FormButton';
 import MarkdownText from '@Components/Common/Markdown';
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
@@ -15,29 +16,22 @@ import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
 import cn from 'classnames';
-import {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';
-import {StandardFormDto, StandardFormFieldDto, StandardFormResponseDto} from '@app/models/dtos/form';
-import {FormBuilderTagNames} from '@app/models/enums/formBuilder';
-import {
-    resetFillForm,
-    selectAnswers,
-    selectFormResponderOwnerField,
-    selectInvalidFields,
-    setDataResponseOwnerField,
-    setInvalidFields
-} from '@app/store/fill-form/slice';
-import {FormValidationError} from '@app/store/fill-form/type';
-import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {useSubmitResponseMutation} from '@app/store/workspaces/api';
-import {selectWorkspace} from '@app/store/workspaces/slice';
-import {contentEditableClassNames} from '@app/utils/formBuilderBlockUtils';
-import {validateFormFieldAnswer} from '@app/utils/validationUtils';
+import Logo from '@app/components/ui/logo';
+import PoweredBy from '@app/components/ui/powered-by';
+import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setInvalidFields } from '@app/store/fill-form/slice';
+import { FormValidationError } from '@app/store/fill-form/type';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useSubmitResponseMutation } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
+import { validateFormFieldAnswer } from '@app/utils/validationUtils';
 
 import useFormAtom from './atom';
-import PoweredBy from "@app/components/ui/powered-by";
-import Logo from "@app/components/ui/logo";
 
 export interface FormFieldProps {
     field: StandardFormFieldDto;
@@ -57,31 +51,30 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
         case FormBuilderTagNames.LAYOUT_LABEL:
             return <div className={'!mt-3 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_MARKDOWN:
-            return <MarkdownText text={field.value ?? ''}/>;
+            return <MarkdownText text={field.value ?? ''} />;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
         case FormBuilderTagNames.INPUT_EMAIL:
         case FormBuilderTagNames.INPUT_NUMBER:
         case FormBuilderTagNames.INPUT_LINK:
-            return <ShortText enabled={enabled} field={field} ans={answer}/>;
+            return <ShortText enabled={enabled} field={field} ans={answer} />;
         case FormBuilderTagNames.INPUT_DATE:
-            return <ShortText enabled={enabled} field={field} ans={answer}
-                              helperText={field?.properties?.placeholder}/>;
+            return <ShortText enabled={enabled} field={field} ans={answer} helperText={field?.properties?.placeholder} />;
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
-            return <PhoneNumber enabled={enabled} field={field} ans={answer}/>;
+            return <PhoneNumber enabled={enabled} field={field} ans={answer} />;
         case FormBuilderTagNames.INPUT_LONG_TEXT:
-            return <LongText field={field} ans={answer} enabled={enabled}/>;
+            return <LongText field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
-            return <MultipleChoiceField field={field} ans={answer} enabled={enabled}/>;
+            return <MultipleChoiceField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_CHECKBOXES:
-            return <CheckboxField field={field} ans={answer} enabled={enabled}/>;
+            return <CheckboxField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_DROPDOWN:
-            return <DropdownField field={field} ans={answer} enabled={enabled}/>;
+            return <DropdownField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_RANKING:
-            return <RankingField field={field} ans={answer} enabled={enabled}/>;
+            return <RankingField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_MEDIA:
-            return <FileUpload field={field} ans={answer} enabled={enabled}/>;
+            return <FileUpload field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_RATING:
-            return <RatingField field={field} ans={answer} enabled={enabled}/>;
+            return <RatingField field={field} ans={answer} enabled={enabled} />;
         default:
             return <></>;
     }
@@ -97,15 +90,7 @@ interface IBetterCollectedFormProps {
     isPreview?: boolean;
 }
 
-export default function BetterCollectedForm({
-                                                form,
-                                                enabled = false,
-                                                response,
-                                                isCustomDomain = false,
-                                                preview = false,
-                                                closeModal,
-                                                isPreview = false
-                                            }: IBetterCollectedFormProps) {
+export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, preview = false, closeModal, isPreview = false }: IBetterCollectedFormProps) {
     const dispatch = useAppDispatch();
     const [submitResponse] = useSubmitResponseMutation();
     const answers = useAppSelector(selectAnswers);
@@ -113,9 +98,9 @@ export default function BetterCollectedForm({
     const invalidFields = useAppSelector(selectInvalidFields);
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
-    const {files, resetFormFiles} = useFormAtom();
+    const { files, resetFormFiles } = useFormAtom();
 
-    const [isFormSubmitted, setIsFormSubmitted] = useState(false)
+    const [isFormSubmitted, setIsFormSubmitted] = useState(false);
 
     useEffect(() => {
         dispatch(resetFillForm());
@@ -146,7 +131,7 @@ export default function BetterCollectedForm({
             return;
         }
         if (preview) {
-            setIsFormSubmitted(true)
+            setIsFormSubmitted(true);
             return;
         }
 
@@ -166,14 +151,14 @@ export default function BetterCollectedForm({
         };
         formData.append('response', JSON.stringify(postBody));
         console.log(formData);
-        const response: any = await submitResponse({workspaceId: workspace.id, formId: form?.formId, body: formData});
+        const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: formData });
         if (response?.data) {
-            toast('Response Submitted', {type: 'success'});
+            toast('Response Submitted', { type: 'success' });
             resetFormFiles();
             dispatch(resetFillForm());
-            setIsFormSubmitted(true)
+            setIsFormSubmitted(true);
         } else {
-            toast('Error submitting response', {type: 'error'});
+            toast('Error submitting response', { type: 'error' });
         }
     };
     useEffect(() => {
@@ -185,26 +170,18 @@ export default function BetterCollectedForm({
     if (isFormSubmitted) {
         return (
             <div className="flex w-full gap-4 flex-col items-center justify-center h-full">
-                <div className="  rounded-full text-[28px] px-2 font-bold bg-green-200 text-green-800">
-                    ✓
-                </div>
-                <div className="h3 font-bold">
-                    Thank you for completing this form!
-                </div>
-                <div className="text-gray-600">
-                    Made with bettercollected, a privacy-friendly form builder
-                </div>
+                <div className="  rounded-full text-[28px] px-2 font-bold bg-green-200 text-green-800">✓</div>
+                <div className="h3 font-bold">Thank you for completing this form!</div>
+                <div className="text-gray-600">Made with bettercollected, a privacy-friendly form builder</div>
             </div>
-        )
+        );
     }
-
 
     return (
         <div className="w-full bg-white">
             {form?.coverImage && (
-                <div
-                    className={`relative z-0 w-full flex aspect-banner-mobile lg:aspect-banner-desktop`}>
-                    <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75"/>
+                <div className={`relative z-0  ${isPreview ? 'w-full' : 'w-screen -mx-5'} aspect-banner-mobile lg:aspect-banner-desktop`}>
+                    <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75" />
                 </div>
             )}
             <form
@@ -217,32 +194,54 @@ export default function BetterCollectedForm({
                 onSubmit={onSubmitForm}
             >
                 {form?.logo && (
-                    <div
-                        className={`relative  ${form?.coverImage ? '-top-20' : ''} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
-                        <Image height={100} width={100} objectFit="cover" src={form.logo} alt="logo"
-                               className="rounded-lg hover:bg-black-100"/>
+                    <div className={`relative  ${form?.coverImage ? '-top-20' : ''} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
+                        <Image height={100} width={100} objectFit="cover" src={form.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
                     </div>
                 )}
                 <div className="mb-7">
                     <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
                     {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
                 </div>
-
-                <div className="flex flex-col w-full gap-2">
-                    {form?.fields.map((field: StandardFormFieldDto) => (
-                        <div key={field?.id} className="relative w-full">
-                            {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
-                            <FieldValidations field={field} inValidations={invalidFields[field?.id]}/>
+                <>
+                    {form?.coverImage && (
+                        <div className="relative z-0 -mx-5 w-screen aspect-banner-mobile lg:aspect-banner-desktop">
+                            <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75" />
                         </div>
-                    ))}
-                    <div>
-                        <button
-                            className={cn('mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-black-900  !font-semibold ', enabled ? 'cursor-pointer' : 'cursor-not-allowed')}
-                            type="submit" disabled={!enabled}>
-                            {form?.buttonText || 'Submit'}
-                        </button>
-                    </div>
-                </div>
+                    )}
+                    <form
+                        className="w-full max-w-[700px] mx-auto px-10 py-10 bg-white flex rounded-lg flex-col items-start "
+                        onKeyDown={(event: any) => {
+                            if (!event.shiftKey && event.key === 'Enter') {
+                                event.preventDefault();
+                            }
+                        }}
+                        onSubmit={onSubmitForm}
+                    >
+                        {form?.logo && (
+                            <div className={`relative  ${form?.coverImage ? '-top-20' : ''} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
+                                <Image height={100} width={100} objectFit="cover" src={form.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
+                            </div>
+                        )}
+                        <div className="mb-7">
+                            <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
+                            {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
+                        </div>
+
+                        <div className="flex flex-col w-full gap-2">
+                            {form?.fields.map((field: StandardFormFieldDto) => (
+                                <div key={field?.id} className="relative w-full">
+                                    {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
+                                    <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
+                                </div>
+                            ))}
+                            <div>
+                                <button className={cn('mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-black-900  !font-semibold ', enabled ? 'cursor-pointer' : 'cursor-not-allowed')} type="submit" disabled={!enabled}>
+                                    {form?.buttonText || 'Submit'}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </>
             </form>
         </div>
     );
