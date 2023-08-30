@@ -387,7 +387,7 @@ async def delete_form_response(
         response_id: PydanticObjectId,
         user: User,
 ):
-    await self.workspace_user_service.check_user_has_access_in_workspace(
+    await self._workspace_user_service.check_user_has_access_in_workspace(
         workspace_id=workspace_id, user=user
     )
     return await self.form_response_service.delete_form_response(
