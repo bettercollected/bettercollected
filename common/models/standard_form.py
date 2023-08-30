@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Optional
 from beanie import PydanticObjectId
 from pydantic import BaseModel, Field
 
+from common.models.consent import Consent, ConsentResponse
+
 
 class EmbedProvider(str, enum.Enum):
     YOUTUBE = "youtube"
@@ -324,6 +326,7 @@ class StandardForm(BaseModel):
     description: Optional[str]
     button_text: Optional[str]
     fields: Optional[List[StandardFormField]]
+    consent: Optional[List[Consent]]
     state: Optional[State] = Field(State())
     settings: Optional[StandardFormSettings] = StandardFormSettings()
     published_at: Optional[dt.datetime]
@@ -367,6 +370,7 @@ class StandardFormResponse(BaseModel):
     created_at: Optional[dt.datetime]
     updated_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
+    consent: Optional[List[ConsentResponse]]
     state: Optional[ResponseState] = Field(None)
     dataOwnerIdentifierType: Optional[str]
     dataOwnerIdentifier: Optional[str]
