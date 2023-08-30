@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Close } from '@app/components/icons/close';
 import { Hint } from '@app/components/icons/hint';
 import { consentPageInformation } from '@app/data/consent';
+import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 
 export default function ConsentInformationPanel() {
-    const [isOpen, setOpen] = useState(true);
+    const [isOpen, setOpen] = useState(false);
+    const breakpoint = useBreakpoint();
 
     const getTitleDescription = (title = '', description: string) => {
         return (
@@ -16,15 +18,21 @@ export default function ConsentInformationPanel() {
         );
     };
 
+    useEffect(() => {
+        if (breakpoint !== 'xs' && !isOpen) {
+            setOpen(true);
+        }
+    }, [breakpoint, isOpen]);
+
     if (!isOpen)
         return (
-            <div className="flex space-x-1 cursor-pointer fixed right-0 items-center py-6 px-6" onClick={() => setOpen(true)}>
+            <div className="flex space-x-1 cursor-pointer fixed right-0 items-center pt-3 px-6" onClick={() => setOpen(true)}>
                 <Hint />
                 <span className="p2 !text-new-black-800">What is this page?</span>
             </div>
         );
     return (
-        <div className="bg-new-blue-100 px-6 xs:px-[15px] py-5 h-full w-[397px] space-y-10 fixed right-0">
+        <div className="bg-new-blue-100 px-6 xs:px-4 py-5 h-full w-[397px] space-y-10 fixed right-0">
             <div className="space-y-4 relative">
                 <Close className="absolute right-0 -top-2 cursor-pointer" onClick={() => setOpen(false)} />
                 <div className="h5-new">{consentPageInformation.title}</div>
