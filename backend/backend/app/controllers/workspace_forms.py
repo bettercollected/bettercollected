@@ -124,7 +124,7 @@ class WorkspaceFormsRouter(Routable):
         response = await self.workspace_form_service.submit_response(
             workspace_id=workspace_id, form_id=form_id, response=parsed_response, form_files=form_files, user=user
         )
-        return response.id
+        return response.response_id
 
     @get("/files/{file_id}")
     def get_file_downloadable_link(self, file_id: str):
