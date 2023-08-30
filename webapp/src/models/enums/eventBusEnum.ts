@@ -10,9 +10,16 @@ enum MarkdownEventBusEventType {
     LastLine = 'last_line'
 }
 
+enum HistoryEventBusEventType {
+    Undo = 'undo',
+    Redo = 'redo',
+    UndoRedoStart = 'undo_redo_start',
+    UndoRedoCompleted = 'undo_redo_completed'
+}
 const EventBusEventType = {
     FormBuilder: FormBuilderEventBusEventType,
-    MarkdownEditor: MarkdownEventBusEventType
+    MarkdownEditor: MarkdownEventBusEventType,
+    History: HistoryEventBusEventType
 };
 
 export default EventBusEventType;

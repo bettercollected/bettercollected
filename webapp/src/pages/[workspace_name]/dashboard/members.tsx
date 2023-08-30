@@ -1,4 +1,5 @@
 import { useTranslation } from 'next-i18next';
+import { NextSeo } from 'next-seo';
 
 import MembersIcon from '@Components/Common/Icons/Members';
 
@@ -9,9 +10,11 @@ import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import { members } from '@app/constants/locales/members';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function ManageMembers({ workspace }: any) {
     const { t } = useTranslation();
+    const { workspaceName } = useAppSelector(selectWorkspace);
     const paramTabs = [
         {
             icon: <MembersIcon />,
@@ -26,6 +29,7 @@ export default function ManageMembers({ workspace }: any) {
     ];
     return (
         <DashboardLayout>
+            <NextSeo title={t(members.default) + ' | ' + workspaceName} noindex={true} nofollow={true} />
             <div className="flex justify-between">
                 <div className="h4">{t(members.default)}</div>
             </div>

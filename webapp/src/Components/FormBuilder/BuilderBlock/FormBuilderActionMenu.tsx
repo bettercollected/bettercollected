@@ -12,9 +12,9 @@ const FormBuilderActionMenu = ({ id, provided, className = '', index }: any) => 
     const asyncDispatch = useAppAsyncDispatch();
 
     return (
-        <div className={`builder-block-actions absolute -top-10 md:top-0 md:-left-1 flex justify-start items-center rounded-sm h-10 w-fit p-[0.5px] bg-white md:bg-transparent mr-4 ${className}`}>
+        <div className={`builder-block-actions absolute left-1 top-0 flex justify-start items-center rounded-sm h-10 w-fit p-[0.5px] bg-white md:bg-transparent mr-4 ${className}`}>
             <div
-                className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400"
+                className="items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400 hidden md:flex"
                 onClick={() => {
                     asyncDispatch(resetBuilderMenuState()).then(() => {
                         openModal('FORM_BUILDER_ADD_FIELD_VIEW', { index });

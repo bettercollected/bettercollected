@@ -17,7 +17,37 @@ module.exports = {
             blur: {
                 dashboardBackground: '105px'
             },
+
             colors: {
+                dropdown: {
+                    shadow: 'rgba(19, 73, 179, 0.25)'
+                },
+                new: {
+                    black: {
+                        100: '#F6F6F6',
+                        200: '#EEEEEE',
+                        300: '#DBDBDB',
+                        400: '#CED4DA',
+                        500: '#ADB5BD',
+                        600: '#6C757D',
+                        700: '#495057',
+                        800: '#4D4D4D',
+                        900: '#2E2E2E',
+
+                        DEFAULT: '#2E2E2E'
+                    },
+                    blue: {
+                        100: '#F2F7FF',
+                        200: '#B8D5FF',
+                        500: '#0764EB'
+                    },
+                    pink: {
+                        DEFAULT: '#FE3678'
+                    },
+                    orange: {
+                        DEFAULT: '#FFA716'
+                    }
+                },
                 // brand: 'rgb(var(--color-brand) / <alpha-value>)',
                 dark: '#1c1917',
                 success: '#B5F4AF',
@@ -63,6 +93,9 @@ module.exports = {
                 orange: {
                     500: '#EB8E07',
                     DEFAULT: '#EB8E07'
+                },
+                pink: {
+                    DEFAULT: '#FE3678'
                 }
             },
             spacing: {
@@ -96,14 +129,16 @@ module.exports = {
                 card: '0px 2px 6px rgba(0, 0, 0, 0.06)',
                 transaction: '0px 8px 16px rgba(17, 24, 39, 0.06)',
                 formCard: '0px 0px 30px rgba(3, 3, 80, 0.08)',
-                button: '0px 2px 4px rgba(0, 0, 0, 0.06), 0px 4px 6px rgba(0, 0, 0, 0.1)'
+                button: '0px 2px 4px rgba(0, 0, 0, 0.06), 0px 4px 6px rgba(0, 0, 0, 0.1)',
+                logoCard: '0px 0px 40px 0px rgba(19, 73, 179, 0.25)'
             },
             dropShadow: {
                 paper: '0px 0px 15px rgba(0, 0, 0, 0.15)',
                 main: '0px 4px 8px rgba(0, 0, 0, 0.08)'
             },
             backgroundImage: {
-                'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))'
+                'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                'sign-in': "url('/images/background.png')"
             },
             animation: {
                 blink: 'blink 1.4s infinite both;',

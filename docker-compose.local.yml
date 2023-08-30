@@ -25,3 +25,13 @@ services:
             - db
         depends_on:
             - mongodb
+
+    nginx:
+        image: nginx
+        networks:
+            - frontend
+        volumes:
+            - ./nginx-deployment.conf:/etc/nginx/conf.d/nginx.conf:ro
+        ports:
+            - '3001:3001'
+            - '3002:3002'

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 
 import DragHandleIcon from '@Components/Common/Icons/DragHandle';
 import PlusIcon from '@Components/Common/Icons/Plus';
@@ -9,9 +9,11 @@ import { GridCloseIcon } from '@mui/x-data-grid';
 import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react-beautiful-dnd';
 import { useDispatch } from 'react-redux';
 
+import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
+import useUndoRedo from '@app/lib/use-undo-redo';
 import { setActiveChoice, setAddNewChoice, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
+import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 import { reorder } from '@app/utils/arrayUtils';
 import { createNewChoice } from '@app/utils/formBuilderBlockUtils';
@@ -24,19 +26,28 @@ interface IMultipleChoiceProps {
 
 export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
     const dispatch = useDispatch();
+    const { handleUserTypingEnd } = useUserTypingDetection();
+    const { isUndoRedoInProgress } = useUndoRedo();
+
+    const builderState: IBuilderState = useAppSelector(selectBuilderState);
 
     const handleChoiceValueChange = (id: string, value: string) => {
+        if (isUndoRedoInProgress) return;
         dispatch(
             setUpdateField({
                 ...field,
-                // @ts-ignore
-                properties: { ...field.properties, choices: { ...field.properties?.choices, [id]: { ...field.properties?.choices[id], id, value } } }
+                properties: {
+                    ...field.properties,
+                    // @ts-ignore
+                    choices: { ...field.properties?.choices, [id]: { ...field.properties?.choices[id], id, value } }
+                }
             })
         );
+        handleUserTypingEnd();
     };
-    const addChoice = () => {
+    const addChoice = (index: number) => {
         //@ts-ignore
-        dispatch(setAddNewChoice(createNewChoice(field.properties?.activeChoiceIndex + 1)));
+        dispatch(setAddNewChoice(createNewChoice(index + 1)));
     };
     const deleteChoice = (id: string) => {
         const choices = { ...field.properties?.choices };
@@ -79,7 +90,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
                                                     <div className="flex items-center gap-2 justify-center">
                                                         <div
                                                             onClick={() => {
-                                                                addChoice();
+                                                                addChoice(index);
                                                             }}
                                                             className="flex items-center justify-center rounded z-[10] text-gray-500 bg-gray-200 h-5 w-5 cursor-pointer"
                                                         >
@@ -107,7 +118,12 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
                                                             handleChoiceValueChange(choice.id, event.target.value);
                                                         }}
                                                         onFocusCallback={() => {
-                                                            dispatch(setActiveChoice({ id: choice.id, position: choice.position }));
+                                                            dispatch(
+                                                                setActiveChoice({
+                                                                    id: choice.id,
+                                                                    position: choice.position
+                                                                })
+                                                            );
                                                         }}
                                                         // @ts-ignore
                                                         value={field?.properties?.choices[choice?.id]?.value || ''}

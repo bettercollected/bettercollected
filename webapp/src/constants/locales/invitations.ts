@@ -1,5 +1,6 @@
 export const invitationConstant = {
     expiryLink: 'INVITATION.LINK_EXPIRY',
+    title: 'INVITATION.TITLE',
     title1: 'INVITATION.TITLE_1',
     title2: 'INVITATION.TITLE_2',
     list: {

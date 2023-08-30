@@ -1,16 +1,17 @@
 import React from 'react';
 
 import EndAdornmentInputField from '@Components/FormBuilder/EndAdornmentInputFIeld';
+import FileUpload from '@Components/FormBuilder/FileUpload';
 import HeaderInputBlock from '@Components/FormBuilder/HeaderInputBlock';
 import LongText from '@Components/FormBuilder/LongText';
 import MultipleChoice from '@Components/FormBuilder/MultipleChoice';
 import RatingField from '@Components/FormBuilder/RatingField';
 import LabelTagValidator from '@Components/HOCs/LabelTagValidator';
 import MultipleChoiceKeyEventListener from '@Components/Listeners/MultipleChoiceKeyListener';
-import { useDispatch } from 'react-redux';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setActiveField } from '@app/store/form-builder/actions';
+import { useAppDispatch } from '@app/store/hooks';
 
 import MarkdownEditor from '../MarkdownEditor';
 
@@ -22,7 +23,7 @@ interface IFormBuilderBlockContent {
 }
 
 export default function FormBuilderBlockContent({ type, position, field, id }: IFormBuilderBlockContent) {
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
 
     const renderBlockContent = (position: number) => {
         switch (type) {
@@ -55,6 +56,8 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
                 );
             case FormBuilderTagNames.INPUT_RATING:
                 return <RatingField field={field} id={id} />;
+            case FormBuilderTagNames.INPUT_MEDIA:
+                return <FileUpload id={id} />;
             default:
                 return null;
         }

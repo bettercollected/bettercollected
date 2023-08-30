@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import MarkdownText from '@Components/Common/Markdown';
 import { toast } from 'react-toastify';
 
 import ReactContentEditable from '@app/components/inline-editable';
@@ -61,7 +62,7 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
                     <Tooltip title={trimTooltipTitle(fullWorkspaceName)}>
                         <h4 className="h4 w-fit">{strippedWorkspaceTitle}</h4>
                     </Tooltip>
-                    {/* <MarkdownText scrollTitle={fullWorkspaceName} description={workspace.description} contentStripLength={280} markdownClassName="text-black-700 " textClassName="text-black-700 body3" /> */}
+                    <MarkdownText className="max-w-[700px] overflow-hidden" text={workspace.description} />
                 </div>
             </div>
         );

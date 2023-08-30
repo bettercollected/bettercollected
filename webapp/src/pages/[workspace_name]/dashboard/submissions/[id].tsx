@@ -1,39 +1,44 @@
 import { useTranslation } from 'next-i18next';
+import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
 import FormRenderer from '@app/components/form/renderer/form-renderer';
-import { HomeIcon } from '@app/components/icons/home';
+import {HomeIcon} from '@app/components/icons/home';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
+import { metaDataTitle } from '@app/constants/locales/meta-data-title';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
+import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { toEndDottedStr } from '@app/utils/stringUtils';
 
 export default function SubmissionDashboard(props: any) {
-    const { workspace, sub_id } = props;
+    const {workspace, sub_id} = props;
 
     const id = sub_id;
 
-    const { isLoading, isError, data } = useGetWorkspaceSubmissionQuery({
+    const {isLoading, isError, data} = useGetWorkspaceSubmissionQuery({
         workspace_id: workspace?.id ?? '',
         submission_id: id
     });
 
     const breakpoint = useBreakpoint();
     const router = useRouter();
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const handleRemoveSubmissionId = () => {
         router.push(router.asPath.substring(0, router.asPath.lastIndexOf('/')), undefined, {
             shallow: true
         });
     };
+    const { workspaceName } = useAppSelector(selectWorkspace);
 
     const breadcrumbsItem = [
         {
             title: t(breadcrumbsItems.responses),
-            icon: <HomeIcon className="w-4 h-4 mr-2" />,
+            icon: <HomeIcon className="w-4 h-4 mr-2"/>,
             onClick: handleRemoveSubmissionId
         },
         {
@@ -43,13 +48,14 @@ export default function SubmissionDashboard(props: any) {
 
     return (
         <DashboardLayout>
+            <NextSeo title={t(metaDataTitle.submissions) + ' | ' + workspaceName} noindex={true} nofollow={true} />;
             {isLoading || isError ? (
-                <FullScreenLoader />
+                <FullScreenLoader/>
             ) : (
                 <>
                     {/* TODO: For viewing individual submission fix this later */}
                     {/* <BreadcrumbRenderer breadcrumbsItem={breadcrumbsItem} /> */}
-                    <FormRenderer form={data?.form} response={data?.response} />
+                    <FormRenderer form={data?.form} response={data?.response} preview/>
                 </>
             )}
         </DashboardLayout>

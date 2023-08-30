@@ -1,4 +1,4 @@
-import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback } from 'react';
+import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback, useEffect } from 'react';
 
 import FormBuilderBlockContent from '@Components/FormBuilder/BuilderBlock/FormBuilderBlockContent';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
@@ -8,7 +8,7 @@ import { v4 } from 'uuid';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setMoveField } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderMenuState, setBuilderState, setMoveField, setUpdateCommandField, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldProperties, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -111,7 +111,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                     onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => onKeyDownCallback(event, provided)}
                     {...provided.draggableProps}
                 >
-                    <div className={`builder-block px-5 min-h-[40px] flex items-center md:px-[89px]`}>
+                    <div className={`builder-block px-12 min-h-[40px] flex items-center md:px-[89px]`}>
                         <FormBuilderActionMenu
                             index={item.position}
                             id={item.id}
@@ -150,28 +150,19 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                                                 // @ts-ignore
                                                 if (event.nativeEvent.inputType === 'deleteContentBackward' && getLastItem(builderState.fields[builderState.activeFieldId]?.value ?? '') === '/') {
                                                     dispatch(
-                                                        setBuilderState({
-                                                            isFormDirty: true,
-                                                            menus: {
-                                                                ...builderState.menus,
-                                                                commands: {
-                                                                    isOpen: false,
-                                                                    atFieldUuid: '',
-                                                                    position: 'down'
-                                                                }
+                                                        setBuilderMenuState({
+                                                            // isFormDirty: true,
+
+                                                            ...builderState.menus,
+                                                            commands: {
+                                                                isOpen: false,
+                                                                atFieldUuid: '',
+                                                                position: 'down'
                                                             }
                                                         })
                                                     );
                                                 }
-                                                dispatch(
-                                                    setBuilderState({
-                                                        isFormDirty: true,
-                                                        fields: {
-                                                            ...builderState.fields,
-                                                            [item.id]: { ...item, value: event.currentTarget.innerText }
-                                                        }
-                                                    })
-                                                );
+                                                dispatch(setUpdateCommandField({ ...builderState.fields[builderState.activeFieldId], value: event.currentTarget.innerText }));
                                             });
                                         }}
                                     />

@@ -1,20 +1,26 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 
+import FormButton from '@Components/Common/Input/Button/FormButton';
 import MarkdownText from '@Components/Common/Markdown';
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
 import FieldValidations from '@Components/Form/FieldValidations';
+import FileUpload from '@Components/Form/FileUpload';
 import LongText from '@Components/Form/LongText';
 import MultipleChoiceField from '@Components/Form/MultipleChoiceField';
 import PhoneNumber from '@Components/Form/PhoneNumber';
 import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
+import cn from 'classnames';
 import { toast } from 'react-toastify';
 
 import Button from '@app/components/ui/button';
+import Logo from '@app/components/ui/logo';
+import PoweredBy from '@app/components/ui/powered-by';
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setInvalidFields } from '@app/store/fill-form/slice';
@@ -24,6 +30,8 @@ import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 import { validateFormFieldAnswer } from '@app/utils/validationUtils';
+
+import useFormAtom from './atom';
 
 export interface FormFieldProps {
     field: StandardFormFieldDto;
@@ -63,6 +71,8 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
             return <DropdownField field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_RANKING:
             return <RankingField field={field} ans={answer} enabled={enabled} />;
+        case FormBuilderTagNames.INPUT_MEDIA:
+            return <FileUpload field={field} ans={answer} enabled={enabled} />;
         case FormBuilderTagNames.INPUT_RATING:
             return <RatingField field={field} ans={answer} enabled={enabled} />;
         default:
@@ -77,9 +87,10 @@ interface IBetterCollectedFormProps {
     response?: StandardFormResponseDto;
     preview?: boolean;
     closeModal?: () => void;
+    isPreview?: boolean;
 }
 
-export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, preview = false, closeModal }: IBetterCollectedFormProps) {
+export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, preview = false, closeModal, isPreview = false }: IBetterCollectedFormProps) {
     const dispatch = useAppDispatch();
     const [submitResponse] = useSubmitResponseMutation();
     const answers = useAppSelector(selectAnswers);
@@ -87,6 +98,9 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const invalidFields = useAppSelector(selectInvalidFields);
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
+    const { files, resetFormFiles } = useFormAtom();
+
+    const [isFormSubmitted, setIsFormSubmitted] = useState(false);
 
     useEffect(() => {
         dispatch(resetFillForm());
@@ -114,59 +128,121 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
         if (!isResponseValid) {
             dispatch(setInvalidFields(invalidFields));
-            // toast('All required fields are not filled yet.', { type: 'error' });
             return;
         }
         if (preview) {
-            toast('Response Submitted', { type: 'success' });
-            closeModal && closeModal();
+            setIsFormSubmitted(true);
             return;
         }
+
+        const formData = new FormData();
+
+        // Append files to formData
+        files.forEach((fileObj) => {
+            formData.append('files', fileObj.file, fileObj.fileName);
+            formData.append('file_field_ids', fileObj.fieldId);
+            formData.append('file_ids', fileObj.fileId);
+        });
+
         const postBody = {
             form_id: form?.formId,
             answers: answers,
             dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
         };
-        const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: postBody });
+        formData.append('response', JSON.stringify(postBody));
+        console.log(formData);
+        const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: formData });
         if (response?.data) {
             toast('Response Submitted', { type: 'success' });
-            const workspaceUrl = isCustomDomain ? `https://${workspace.customDomain}` : `/${workspace.workspaceName}`;
-            router.push(workspaceUrl);
+            resetFormFiles();
+            dispatch(resetFillForm());
+            setIsFormSubmitted(true);
         } else {
             toast('Error submitting response', { type: 'error' });
         }
     };
+    useEffect(() => {
+        return () => {
+            resetFillForm();
+        };
+    });
+
+    if (isFormSubmitted) {
+        return (
+            <div className="flex w-full gap-4 flex-col items-center justify-center h-full">
+                <div className="  rounded-full text-[28px] px-2 font-bold bg-green-200 text-green-800">✓</div>
+                <div className="h3 font-bold">Thank you for completing this form!</div>
+                <div className="text-gray-600">Made with bettercollected, a privacy-friendly form builder</div>
+            </div>
+        );
+    }
 
     return (
-        <form
-            className="w-full max-w-[700px] mx-auto px-10 py-10 bg-white flex rounded-lg flex-col items-start "
-            onKeyDown={(event: any) => {
-                if (!event.shiftKey && event.key === 'Enter') {
-                    event.preventDefault();
-                }
-            }}
-            onSubmit={onSubmitForm}
-        >
-            <div className="mb-7">
-                <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
-                {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
-            </div>
-
-            <div className="flex flex-col w-full gap-2">
-                {form?.fields.map((field: StandardFormFieldDto) => (
-                    <div key={field?.id} className="relative w-full">
-                        {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
-                        <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
-                    </div>
-                ))}
-                {enabled && (
-                    <div>
-                        <Button className="mt-10 bg-black-900 hover:bg-black-800" type="submit" disabled={!enabled}>
-                            Submit
-                        </Button>
+        <div className="w-full bg-white">
+            {form?.coverImage && (
+                <div className={`relative z-0  ${isPreview ? 'w-full' : 'w-screen -mx-5'} aspect-banner-mobile lg:aspect-banner-desktop`}>
+                    <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75" />
+                </div>
+            )}
+            <form
+                className="w-full max-w-[700px] mx-auto px-10 py-10 bg-white flex rounded-lg flex-col items-start "
+                onKeyDown={(event: any) => {
+                    if (!event.shiftKey && event.key === 'Enter') {
+                        event.preventDefault();
+                    }
+                }}
+                onSubmit={onSubmitForm}
+            >
+                {form?.logo && (
+                    <div className={`relative  ${form?.coverImage ? '-top-20' : ''} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
+                        <Image height={100} width={100} objectFit="cover" src={form.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
                     </div>
                 )}
-            </div>
-        </form>
+                <div className="mb-7">
+                    <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
+                    {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
+                </div>
+                <>
+                    {form?.coverImage && (
+                        <div className="relative z-0 -mx-5 w-screen aspect-banner-mobile lg:aspect-banner-desktop">
+                            <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75" />
+                        </div>
+                    )}
+                    <form
+                        className="w-full max-w-[700px] mx-auto px-10 py-10 bg-white flex rounded-lg flex-col items-start "
+                        onKeyDown={(event: any) => {
+                            if (!event.shiftKey && event.key === 'Enter') {
+                                event.preventDefault();
+                            }
+                        }}
+                        onSubmit={onSubmitForm}
+                    >
+                        {form?.logo && (
+                            <div className={`relative  ${form?.coverImage ? '-top-20' : ''} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
+                                <Image height={100} width={100} objectFit="cover" src={form.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
+                            </div>
+                        )}
+                        <div className="mb-7">
+                            <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
+                            {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
+                        </div>
+
+                        <div className="flex flex-col w-full gap-2">
+                            {form?.fields.map((field: StandardFormFieldDto) => (
+                                <div key={field?.id} className="relative w-full">
+                                    {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
+                                    <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
+                                </div>
+                            ))}
+                            <div>
+                                <button className={cn('mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-black-900  !font-semibold ', enabled ? 'cursor-pointer' : 'cursor-not-allowed')} type="submit" disabled={!enabled}>
+                                    {form?.buttonText || 'Submit'}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </>
+            </form>
+        </div>
     );
 }

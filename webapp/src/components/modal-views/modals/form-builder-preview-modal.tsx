@@ -1,23 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 
 import EditIcon from '@Components/Common/Icons/Edit';
+import UploadIcon from '@Components/Common/Icons/FormBuilder/UploadIcon';
 import Share from '@Components/Common/Icons/Share';
 import Button from '@Components/Common/Input/Button';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
+import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 
-import { formConstant } from '@app/constants/locales/form';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { IFormFieldState } from '@app/store/form-builder/types';
-import { initialIBuilderState } from '@app/store/forms/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { getFormUrl } from '@app/utils/urlUtils';
+import uploadImage from '@app/assets/images/upload.png';
+import Back from '@app/components/icons/back';
+import Image from '@app/components/ui/image';
+import {formConstant} from '@app/constants/locales/form';
+import {selectBuilderState} from '@app/store/form-builder/selectors';
+import {IFormFieldState} from '@app/store/form-builder/types';
+import {initialIBuilderState} from '@app/store/forms/slice';
+import {useAppSelector} from '@app/store/hooks';
+import {getFormUrl} from '@app/utils/urlUtils';
 
-import { useFullScreenModal } from '../full-screen-modal-context';
+import {useFullScreenModal} from '../full-screen-modal-context';
+import PoweredBy from "@app/components/ui/powered-by";
+import {useCreateFormMutation, usePatchFormMutation, workspacesApi} from "@app/store/workspaces/api";
+import LoadingIcon from "@Components/Common/Icons/Loading";
 
-export default function FormBuilderPreviewModal({ publish }: { publish: () => void }) {
+export default function FormBuilderPreviewModal({publish}: { publish: () => void }) {
     const [formToRender, setFormToRender] = useState(initialIBuilderState);
-    const { closeModal } = useFullScreenModal();
+    const {closeModal} = useFullScreenModal();
     const builderState = useAppSelector(selectBuilderState);
+    const {headerImages} = useFormBuilderAtom();
+
+    const updateRequest = useAppSelector(state1 => state1.workspacesApi.mutations)
+
+    const isLoading = updateRequest && updateRequest[Object.keys(updateRequest)[Object.keys(updateRequest).length - 1]]?.status === "pending"
 
     useEffect(() => {
         if (builderState) {
@@ -29,50 +42,54 @@ export default function FormBuilderPreviewModal({ publish }: { publish: () => vo
                 if (field.properties?.choices) {
                     return {
                         ...field,
-                        properties: { ...field.properties, choices: Object.values(field.properties?.choices) }
+                        properties: {...field.properties, choices: Object.values(field.properties?.choices)}
                     };
                 }
                 return field;
             });
             previewForm.fields = fields;
+            previewForm.buttonText = builderState.buttonText;
             previewForm.settings = {
                 responseDataOwnerField: builderState.settings?.responseDataOwnerField || ''
             };
+            previewForm.coverImage = headerImages.coverImage ? URL.createObjectURL(headerImages?.coverImage) : builderState?.coverImage;
+            previewForm.logo = headerImages.logo ? URL.createObjectURL(headerImages.logo) : builderState?.logo;
             setFormToRender(previewForm);
+
         }
-    }, [builderState]);
+    }, [builderState, headerImages]);
 
     return (
-        <div className="relative w-full   !bg-brand-100 ">
-            <div className="flex fixed z-[10000] bg-transparent top-6 right-10 gap-4 w-fit">
-                <Button
-                    variant="contained"
-                    className="w-fit capitalize bg-brand-500 px-4 gap-2 py-2 "
+        <div className=" w-full">
+            <div
+                className="fixed z-[10000] h-[46px] border-b border-black-300 shadow px-5 !bg-white flex justify-between items-center top-0 right-0 left-0 gap-4">
+                <div
+                    className="flex items-center gap-2 text-black-800 text-[14px] cursor-pointer"
                     onClick={() => {
                         closeModal();
                     }}
-                    size="small"
                 >
-                    <span>
-                        <EditIcon />
-                    </span>
-                    Edit Form
-                </Button>
-
-                <Button
-                    variant="outlined"
-                    className="w-fit capitalize bg-brand-100 text-brand-500 px-4 gap-2 py-2 "
+                    <Back/>
+                    Back to Editor
+                </div>
+                <div
+                    className="flex gap-2 items-center cursor-pointer"
                     onClick={() => {
                         publish();
                     }}
-                    size="small"
                 >
-                    Publish Form
-                </Button>
+                    {
+                        isLoading ?
+                            <LoadingIcon/> :
+                            <UploadIcon/>
+                    }
+                    Publish
+                </div>
             </div>
-            <div className="h-screen overflow-auto 2xl:pt-6 min-h-screen w-full pt-28 pb-6 px-5">
-                <BetterCollectedForm form={formToRender} enabled={true} preview={true} closeModal={closeModal} />
+            <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6">
+                <BetterCollectedForm form={formToRender} enabled={true} preview={true} closeModal={closeModal}/>
             </div>
+            <PoweredBy/>
         </div>
     );
 }
