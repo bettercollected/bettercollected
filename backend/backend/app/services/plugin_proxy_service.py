@@ -41,15 +41,15 @@ class PluginProxyService:
 
             if response.status_code == HTTPStatus.NOT_FOUND:
                 raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND, content=response.content
+                    status_code=HTTPStatus.NOT_FOUND, content=response.json()
                 )
             if response.status_code == HTTPStatus.UNAUTHORIZED:
                 raise HTTPException(
-                    status_code=HTTPStatus.UNAUTHORIZED, content=response.content
+                    status_code=HTTPStatus.UNAUTHORIZED, content=response.json()
                 )
             if response.status_code == HTTPStatus.FORBIDDEN:
                 raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN, content=response.content
+                    status_code=HTTPStatus.FORBIDDEN, content=response.json()
                 )
             if response.status_code != HTTPStatus.OK:
                 raise HTTPException(

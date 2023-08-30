@@ -1,6 +1,5 @@
 from http import HTTPStatus
 
-import loguru
 from google.auth.exceptions import RefreshError
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -63,7 +62,6 @@ class GoogleService:
                     content="Form not found is Google forms",
                 )
             if e.status_code == HTTPStatus.FORBIDDEN:
-                loguru.logger.error("FormId: " + form_id + ", Content: " + e.reason)
                 raise HTTPException(
                     status_code=HTTPStatus.UNAUTHORIZED, content=e.reason
                 )

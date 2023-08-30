@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { NextSeo } from 'next-seo';
 
 import SearchInput from '@Components/Common/Search/SearchInput';
 
@@ -11,7 +12,9 @@ import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceAllSubmissionsQuery, useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 
 export default function DeletionRequests({ workspace }: { workspace: WorkspaceDto }) {
@@ -32,8 +35,11 @@ export default function DeletionRequests({ workspace }: { workspace: WorkspaceDt
         }
     };
     const { data, isLoading } = useGetWorkspaceAllSubmissionsQuery(query);
+    const { workspaceName } = useAppSelector(selectWorkspace);
+
     return (
         <DashboardLayout>
+            <NextSeo title={t(formConstant.deletionRequests) + ' | ' + workspaceName} noindex={true} nofollow={true} />
             {isLoading && (
                 <div className=" w-full py-10 flex justify-center">
                     <Loader />

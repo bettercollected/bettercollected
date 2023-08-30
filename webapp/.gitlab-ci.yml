@@ -1,8 +1,10 @@
 stages:
-#    - test
     - build
+    - test
     - deploy
 
+variables:
+    CYPRESS_CACHE_FOLDER: '$CI_PROJECT_DIR/cache/Cypress'
 
 build develop:
     stage: build
@@ -100,17 +102,22 @@ deploy release:
     only:
         - release
 
-#cypress-tests:
-#    stage: test
-#
-#    image: cypress/base
-#
-#    tags:
-#        - docker
-#
-#    script:
-#        - yarn install --frozen-lockfile
-#        - yarn run runHeadless
-#
-#    variables:
-#        CYPRESS_baseUrl: "https://admin.bettercollected.com/login"
+cypress-tests:
+    stage: test
+
+    image: cypress/base:18.16.1
+
+    tags:
+        - docker
+    cache:
+        paths:
+            - node_modules/
+            - cache/Cypress/
+
+    script:
+        - printenv
+        - yarn install --frozen-lockfile
+        - yarn runHeadless
+
+    variables:
+        CYPRESS_baseUrl: 'https://admin.bettercollected.com/login'

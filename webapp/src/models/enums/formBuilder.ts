@@ -48,6 +48,7 @@ export enum FormBuilderTagNames {
     INPUT_FILE_UPLOAD = 'input_file_upload',
     INPUT_RANKING = 'input_ranking',
     INPUT_MATRIX = 'input_matrix',
+    INPUT_MEDIA = 'input_file_upload',
 
     EMBED_IMAGE = 'embed_image',
     EMBED_VIDEO = 'embed_video',
@@ -75,7 +76,8 @@ export enum FormBuilderTagNames {
     QUESTION_RATING = 'question_rating',
     QUESTION_LINEAR_SCALE = 'question_linear_scale',
     QUESTION_FILE_UPLOAD = 'question_file_upload',
-    QUESTION_INPUT_MATRIX = 'question_matrix'
+    QUESTION_INPUT_MATRIX = 'question_matrix',
+    QUESTION_INPUT_MEDIA = 'question_file_upload',
 }
 
 export function getFormBuilderTagNameFromString(value: string) {

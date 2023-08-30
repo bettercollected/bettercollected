@@ -8,7 +8,7 @@ import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 interface ICustomContentEditableProps {
     id: string;
     tagName: string;
-    type: FormBuilderTagNames;
+    type: FormBuilderTagNames | string;
     showHideHolder?: boolean;
     placeholder: string;
     value: any;
@@ -245,30 +245,13 @@ function CustomContentEditable({ id, tagName, type, placeholder, value, position
         if (onKeyDownCallback) onKeyDownCallback(event);
     };
 
-    // useEffect(() => {
-    //     if (showPlaceHolder) contentEditableRef.current?.setAttribute('data-placeholder', placeholder);
-
-    //     // Set the cursor position to 0 when the page loads
-    //     const range = document.createRange();
-
-    //     if (contentEditableRef?.current) {
-    //         range.selectNodeContents(contentEditableRef.current);
-    //         range.collapse(true);
-    //     }
-    //     const selection = window.getSelection();
-    //     if (selection) {
-    //         selection.removeAllRanges();
-    //         selection.addRange(range);
-    //     }
-    // }, [position, isOpen, placeholder, showPlaceHolder]);
-
     return (
         <ContentEditable
             id={id}
             contentEditable
             spellCheck={false}
             innerRef={contentEditableRef}
-            html={value}
+            html={value || ''}
             tagName={tagName}
             data-placeholder={!showHideHolder ? placeholder : ''}
             data-position={position}

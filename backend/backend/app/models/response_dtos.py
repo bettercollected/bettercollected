@@ -1,7 +1,10 @@
 from typing import Optional, Dict, List
 
+from fastapi import UploadFile
 from fastapi_camelcase import CamelModel
+from pydantic import BaseModel
 
+from backend.app.models.dtos.consent import ConsentResponseCamelModel
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
@@ -81,7 +84,15 @@ class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):
     form_title: Optional[str]
     status: Optional[str]
     form_imported_by: Optional[str]
+    consent: Optional[List[ConsentResponseCamelModel]]
     deletion_status: Optional[DeletionRequestStatus]
+
+
+class FormFileResponse(BaseModel):
+    file_id: str
+    field_id: str
+    filename: str
+    file: UploadFile
 
 
 class WorkspaceFormPatchResponse(CamelModel):

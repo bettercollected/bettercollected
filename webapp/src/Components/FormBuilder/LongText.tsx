@@ -1,4 +1,6 @@
-import { ChangeEvent, useEffect, useRef } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+
+import { debounce } from 'lodash';
 
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { FieldRequired } from '@Components/UI/FieldRequired';
@@ -6,18 +8,24 @@ import { Notes } from '@mui/icons-material';
 import { useDispatch } from 'react-redux';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
+import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
+import useUndoRedo from '@app/lib/use-undo-redo';
 import { setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
-import { useAppSelector } from '@app/store/hooks';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 export default function LongText({ field, id, position }: { field: IFormFieldState; id: any; position: number }) {
-    const dispatch = useDispatch();
     const { setBackspaceCount } = useFormBuilderState();
+    const dispatch = useAppDispatch();
+    const { handleUserTypingEnd } = useUserTypingDetection();
+    const { isUndoRedoInProgress } = useUndoRedo();
 
-    const onChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const onChange = (event: any) => {
+        if (isUndoRedoInProgress) return;
         setBackspaceCount(0);
         dispatch(setUpdateField({ ...field, properties: { ...field.properties, placeholder: event.target.value } }));
+        handleUserTypingEnd();
     };
 
     return (

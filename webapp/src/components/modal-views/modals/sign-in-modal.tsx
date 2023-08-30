@@ -61,7 +61,7 @@ export function SignInModal(props: MyLoginProps) {
                         </div>
                     </div>
                 </div>
-                <div className="flex flex-col order-1 !bg-brand-100 xl:order-2 items-start justify-start xl:justify-center px-8 py-7 xl:p-[28px] h-screen xl:h-[687px] w-screen xl:w-[547px]">
+                <div className="flex flex-col order-1 !bg-brand-100 xl:order-2 items-start justify-between py-5 px-8 xl:py-[28px] h-screen xl:h-[687px] w-screen xl:w-[547px]">
                     <Logo isLink={false} />
                     {!email ? <OtpEmailInput isCreator={props.isCreator} setEmail={setEmail} isModal={true} /> : <OtpCodeComponent email={email} setEmail={setEmail} isCreator={props.isCreator} isModal={true} />}
                     <TermsAndCondition />

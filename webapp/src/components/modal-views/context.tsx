@@ -29,7 +29,8 @@ export type MODAL_VIEW =
     | 'ADD_REGEX'
     | 'DELETE_RESPONSE'
     | 'FORM_BUILDER_SPOTLIGHT_VIEW'
-    | 'FORM_BUILDER_ADD_FIELD_VIEW';
+    | 'FORM_BUILDER_ADD_FIELD_VIEW'
+    | 'CONSENT_PURPOSE_MODAL_VIEW';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 

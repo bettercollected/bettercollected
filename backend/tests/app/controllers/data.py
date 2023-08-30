@@ -3,8 +3,6 @@ from beanie import PydanticObjectId
 from common.models.user import User
 
 formData = {
-    # "formId": "string",
-    "type": "string",
     "title": "string",
     "description": "string",
     "fields": [
@@ -33,8 +31,6 @@ formData = {
         "responseDataOwnerField": "string",
         "provider": "string",
     },
-    "publishedAt": "2023-07-12T15:01:24.352Z",
-    "responses": 0,
 }
 
 formData_2 = {"title": "search_form"}

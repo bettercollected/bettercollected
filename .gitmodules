@@ -1,0 +1,12 @@
+[submodule "integrations/google/common"]
+	path = integrations/google/common
+	url = git@github.com:bettercollected/bettercollected-common.git
+[submodule "integrations/typeform/common"]
+	path = integrations/typeform/common
+	url = git@github.com:bettercollected/bettercollected-common.git
+[submodule "auth/common"]
+	path = auth/common
+	url = git@github.com:bettercollected/bettercollected-common.git
+[submodule "backend/common"]
+	path = backend/common
+	url = git@github.com:bettercollected/bettercollected-common.git

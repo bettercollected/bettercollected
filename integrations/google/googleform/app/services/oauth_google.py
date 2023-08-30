@@ -8,7 +8,6 @@ import requests
 from google.auth.exceptions import RefreshError
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from loguru import logger
 from oauthlib.oauth1 import InvalidClientError
 from oauthlib.oauth2 import InvalidGrantError
 from pydantic import EmailStr
@@ -278,7 +277,7 @@ class OauthGoogleService:
             )
         except InvalidGrantError:
             raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_OAUTH_INVALID_GRANT
+                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_OAUTH_INVALID_GRANT
             )
 
     @staticmethod

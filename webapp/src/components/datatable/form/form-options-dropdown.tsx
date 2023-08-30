@@ -161,7 +161,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 <ListItemIcon>
                     <EditIcon width={20} height={20} className="text-black-900" />
                 </ListItemIcon>
-                Edit
+                {t(buttonConstant.edit)}
             </MenuItem>
         </ActiveLink>
     );

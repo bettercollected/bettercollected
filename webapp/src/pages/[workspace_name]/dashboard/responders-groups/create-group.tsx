@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
 import { Typography } from '@mui/material';
@@ -119,6 +120,7 @@ export default function CreateGroup() {
     };
     return (
         <DashboardLayout>
+            <NextSeo title={t(groupConstant.createGroup) + ' | ' + workspace.workspaceName} noindex={true} nofollow={true} />;
             <div className="flex flex-col relative -mt-6 md:max-w-[700px] xl:max-w-[1000px]">
                 <div className="absolute top-10 right-0">
                     <Button isLoading={isLoading} disabled={!groupInfo.name || (groupInfo.emails?.length === 0 && groupInfo.regex?.length === 0)} onClick={handleCreateGroup}>

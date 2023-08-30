@@ -2,6 +2,7 @@ import { builder } from './builderSlice';
 
 export const {
     addDuplicateField,
+    setTyping,
     resetForm,
     setEditForm,
     setActiveChoice,
@@ -17,5 +18,6 @@ export const {
     setMoveField,
     setCommandMenuPosition,
     setDeleteChoice,
-    setAddNewChoice
+    setAddNewChoice,
+    setUpdateCommandField
 } = builder.actions;
