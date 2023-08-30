@@ -23,15 +23,15 @@ export default function ConsentBuilderField({ consent, className }: ConsentBuild
 
     const handleRemoveConsent = (event: any) => {
         event.stopPropagation();
-        dispatch(setRemoveConsent(consent.id));
+        dispatch(setRemoveConsent(consent.consentId));
     };
     const handleModalOpen = () => {
-        const modalProps: ConsentPurposeModalProps = { category: consent.category!, selection: consent.title, type: consent.type!, description: consent.description, required: consent.required, consentId: consent.id, mode: 'update' };
+        const modalProps: ConsentPurposeModalProps = { consent, mode: 'update' };
         openModal('CONSENT_PURPOSE_MODAL_VIEW', modalProps);
     };
 
     return (
-        <div id={`item-${consent.id}`} className={cn('space-y-2 p-5 border-b border-new-black-300 hover:bg-new-black-200 hover:cursor-pointer group', className)} onClick={handleModalOpen}>
+        <div id={`item-${consent.consentId}`} className={cn('space-y-2 p-5 border-b border-new-black-300 hover:bg-new-black-200 hover:cursor-pointer group', className)} onClick={handleModalOpen}>
             <div className="flex items-center justify-between">
                 <div className="flex space-x-2 ">
                     {consent.type === 'checkbox' && <CheckBox disabled className="!m-0" />}

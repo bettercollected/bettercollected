@@ -119,10 +119,10 @@ input.spin-button-hidden::-webkit-inner-spin-button {
     @apply text-[24px] font-semibold leading-[36px] text-black-900;
 }
 .h4 {
-    @apply text-[24px] font-semibold leading-[36px] text-black-900 xs:!text-[21px];
+    @apply text-[21px] font-semibold leading-[36px] text-black-900 sm:text-[24px];
 }
 .h4-new {
-    @apply text-[20px] font-semibold leading-[30px] text-black-900 xs:!text-[18px];
+    @apply text-[18px] font-semibold leading-[30px] text-black-900 sm:text-[20px];
 }
 .h5 {
     @apply text-[20px] font-semibold leading-[30px] text-black-900;
@@ -135,7 +135,7 @@ input.spin-button-hidden::-webkit-inner-spin-button {
     @apply text-[16px] font-semibold leading-[24px] text-black-900;
 }
 .h5-new {
-    @apply text-[16px] font-semibold leading-[24px] text-black-900 xs:!text-sm;
+    @apply text-sm font-semibold leading-[24px] text-black-900 sm:text-[16px];
 }
 .sh1 {
     leading-trim: both;
@@ -190,7 +190,7 @@ p {
 
 .p2 {
     leading-trim: both;
-    @apply text-[14px] font-normal leading-[21px] text-black-900 xs:!text-xs;
+    @apply text-xs font-normal leading-[21px] text-black-900 sm:text-[14px];
 }
 .navbar {
     @apply fixed top-0 flex h-16 w-full items-center justify-center border border-x-0 border-t-0 border-b-[1px] border-brand-200 bg-brand-100 lg:h-[84px];
