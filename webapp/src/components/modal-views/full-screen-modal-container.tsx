@@ -11,10 +11,11 @@ import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
+import CreateConsentFullModalView from './full-screnn-modals/create-consent-full-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
 
-function renderModalContent(view: UPGRADE_MODAL_VIEW | string, modalProps: any) {
+function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
     switch (view) {
         case 'LOGIN_VIEW':
             return <LoginView {...modalProps} />; // Done
@@ -26,6 +27,8 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW | string, modalProps: any) 
             return <UpgradeToProModal {...modalProps} />;
         case 'WORKSPACE_PREVIEW':
             return <WorkspacePreviewModal />;
+        case 'CREATE_CONSENT_FULL_MODAL_VIEW':
+            return <CreateConsentFullModalView />;
         default:
             return <></>;
     }
@@ -62,7 +65,10 @@ export default function FullScreenModalContainer() {
                         data-testid="modal-view"
                         className={`relative min-h-screen flex flex-col items-center content-center !w-full  z-50  ${view === 'UPGRADE_TO_PRO' || view === 'FORM_BUILDER_PREVIEW' ? '!bg-white' : ''} text-left align-middle md:w-fit`}
                     >
-                        {view && renderModalContent(view, modalProps)}
+                        {
+                            //@ts-ignore
+                            view && renderModalContent(view, modalProps)
+                        }
                     </div>
                 </Transition.Child>
             </Dialog>
