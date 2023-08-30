@@ -109,7 +109,8 @@ const FormCoverComponent = (props: IFormCoverComponent) => {
                             <div className="relative z-0 w-full aspect-banner-mobile lg:aspect-banner-desktop"
                                  onMouseEnter={handleOnMouseEnter} onMouseLeave={handleOnMouseLeave}>
                                 {getImageComponent(builderState?.coverImage || "")}</div> :
-                            <EmptyCoverItems onClickUpdateButton={onClickUpdateButton}/>
+                            <EmptyCoverItems onClickUpdateButton={onClickUpdateButton}
+                                             onClickRemoveButton={onClickRemoveButton}/>
                     }
                 </>
             )}
@@ -123,14 +124,21 @@ const HoveredButtons = ({onClickUpdateButton, onClickRemoveButton}: any) => {
     return (
         <div
             className="absolute z-10 bottom-6 right-8 cursor-pointer flex gap-4 justify-end font-semibold  text-black-100">
-            <Button size="small" className="!text-black-900 !font-semibold hover:opacity-80 !bg-black-100 focus:!ring-0"
-                    onClick={onClickRemoveButton}>
-                Remove Cover
-            </Button>
-            <Button size="small" className="!font-semibold hover:opacity-80 !bg-black-900 focus:!ring-0"
-                    onClick={onClickUpdateButton}>
-                <span className="text-black-100 text-xs sm:text-sm">Update New Cover</span>
-            </Button>
+            {
+                onClickRemoveButton &&
+                <Button size="small"
+                        className="!text-black-900 !font-semibold hover:opacity-80 !bg-black-100 focus:!ring-0"
+                        onClick={onClickRemoveButton}>
+                    Remove Cover
+                </Button>
+            }
+            {
+                onClickUpdateButton &&
+                <Button size="small" className="!font-semibold hover:opacity-80 !bg-black-900 focus:!ring-0"
+                        onClick={onClickUpdateButton}>
+                    <span className="text-black-100 text-xs sm:text-sm">Update New Cover</span>
+                </Button>
+            }
         </div>
     );
 };
@@ -179,12 +187,31 @@ const DragImagePositionComponent = ({imageURL, showButtonsOnHOver, onClickCancel
     );
 };
 
-const EmptyCoverItems = ({onClickUpdateButton}: { onClickUpdateButton: () => void }) => {
+const EmptyCoverItems = ({onClickUpdateButton, onClickRemoveButton}: {
+    onClickUpdateButton: () => void,
+    onClickRemoveButton: () => void
+}) => {
     return (
-        <div className="flex flex-col items-center" onClick={onClickUpdateButton}>
-            <Upload/>
-            <h1 className="body1 !font-semibold">Upload Banner Image</h1>
-            <h1 className="body4">5:1 aspect ratio recommended</h1>
+        <div className="relative w-full h-full">
+            <div className="flex flex-col items-center justify-center h-full">
+                <div className="flex flex-col items-center cursor-pointer" onClick={onClickUpdateButton}>
+                    <Upload/>
+                    <h1 className="body1 !font-semibold">Upload Banner Image</h1>
+                    <h1 className="body4">5:1 aspect ratio recommended</h1>
+                </div>
+
+            </div>
+            {
+                onClickRemoveButton &&
+                <div className="absolute z-10 bottom-6 right-8 ">
+                    <Button size="small"
+                            className="!text-black-900 !font-semibold hover:opacity-80 !bg-black-100 focus:!ring-0"
+                            onClick={onClickRemoveButton}>
+                        Remove Cover
+                    </Button>
+                </div>
+            }
         </div>
+
     );
 };
