@@ -118,7 +118,7 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
                     color="inherit"
                     className={optionButtonClassName}
                     onClick={() => {
-                        openModal('CREATE_CONSENT_FULL_MODAL_VIEW');
+                        openModal('CREATE_CONSENT_FULL_MODAL_VIEW', { onFormPublish });
                     }}
                 >
                     {isUpdating ? <LoadingIcon /> : <PublishIcon />}

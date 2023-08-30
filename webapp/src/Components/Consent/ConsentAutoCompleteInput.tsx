@@ -23,7 +23,7 @@ interface ConsentAutoCompleteInputProps extends OnlyClassNameInterface {
 
 const ConsentAutoCompleteInput = forwardRef<HTMLDivElement, ConsentAutoCompleteInputProps>(({ title, dropdownTitle, placeholder = '', required = false, onSelect, options, className }, ref) => {
     const [selected, setSelected] = useState(null);
-    const [open, setOpen] = useState(true);
+    const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
 
     const filteredoptions = query === '' ? options : options.filter((option) => option.title?.toLowerCase().replace(/\s+/g, '').includes(query.toLowerCase().replace(/\s+/g, '')));
@@ -62,7 +62,7 @@ const ConsentAutoCompleteInput = forwardRef<HTMLDivElement, ConsentAutoCompleteI
                             <Combobox.Options className="absolute mt-3 max-h-[321px] w-full leading-6 rounded-lg bg-white shadow-lg shadow-dropdown-shadow border border-blue-200 z-50 xs:!text-sm">
                                 {dropdownTitle && (
                                     <div className="py-4 sm:px-6 px-3 leading-5 flex justify-between items-center border-b border-black-200">
-                                        <div className="p2 !text-black-800">{dropdownTitle}</div> <DropdownCloseIcon />
+                                        <div className="p2 !text-black-800">{dropdownTitle}</div> <DropdownCloseIcon onClick={toggleOpen} />
                                     </div>
                                 )}
                                 <div className="py-4">

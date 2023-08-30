@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 
 import FormButton from '@Components/Common/Input/Button/FormButton';
 import CheckBox from '@Components/Common/Input/CheckBox';
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import cn from 'classnames';
 
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { formPurpose } from '@app/data/consent';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { IConsentOption } from '@app/models/types/consentTypes';
-import { setAddConsent, setPrivacyPoilicy } from '@app/store/consent/actions';
+import { setAddConsent, setPrivacyPoilicy, setResponderRights } from '@app/store/consent/actions';
 import { useGetAllWorkspaceConsentsQuery } from '@app/store/consent/api';
 import { selectConsentState } from '@app/store/consent/selectors';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -19,17 +19,20 @@ import ConsentAddInput from './ConsentAddInput';
 import ConsentBuilderField from './ConsentBuilderField';
 import ConsentInput from './ConsentInput';
 
-interface ConsentBuilderProps extends OnlyClassNameInterface {}
+interface ConsentBuilderProps extends OnlyClassNameInterface {
+    onFormPublish: any;
+}
 
-export default function ConsentBuilder({ className }: ConsentBuilderProps) {
+export default function ConsentBuilder({ className, onFormPublish }: ConsentBuilderProps) {
     const consentState = useAppSelector(selectConsentState);
     const workspace = useAppSelector(selectWorkspace);
     const { data } = useGetAllWorkspaceConsentsQuery(workspace.id);
     const [isDeletionRequestChecked, setIsDeletionRequestChecked] = useState(true);
     const dispatch = useAppDispatch();
+    const { closeModal } = useFullScreenModal();
 
     const getFilteredConsents = (category: ConsentCategoryType) => {
-        return consentState.consents.map((consent, idx) => consent.category === category && <ConsentBuilderField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} />);
+        return consentState.consents.map((consent, idx) => consent?.category === category && <ConsentBuilderField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} />);
     };
     const getConsentOptions = () => {
         return [...(data !== undefined ? data.map((consent) => ({ ...consent, consentId: '', isRecentlyAdded: true } as IConsentOption)) : []), ...formPurpose.options];
@@ -74,11 +77,16 @@ export default function ConsentBuilder({ className }: ConsentBuilderProps) {
         </>
     );
 
-    const onSubmit = () => {
-        dispatch(setAddConsent({ consentId: uuidv4(), type: ConsentType.Info, category: ConsentCategoryType.RespondersRights }));
+    const onSubmit = async (event: any) => {
+        event.preventDefault();
+        try {
+            dispatch(setResponderRights());
+            await onFormPublish();
+            closeModal();
+        } catch (e) {}
     };
     return (
-        <form className={cn(className)}>
+        <form className={cn(className)} onSubmit={onSubmit}>
             <div className="space-y-20 xs:space-y-[70px]">
                 <div className="space-y-4">
                     <div className="h4">Form Purpose and Data Usage</div>

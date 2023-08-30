@@ -88,7 +88,7 @@ export default function ConsentPurposeModalView() {
                 <ContentEditable className="h3-new m-0 p-0 w-full cursor-text focus-visible:border-0 focus-visible:outline-none px-7 md:px-10" html={purposeTitle} data-placeholder="Add Purpose" onChange={handlePurposeTitleChange} />
 
                 <div className="space-y-2 px-7 md:px-10">
-                    <div className="h5-new xs:!text-sm">Brief description of your purpose</div>
+                    <div className="h5-new">Brief description of your purpose</div>
                     <TextArea placeholder="Enter text here" minRows={4} value={purposeDescription} onChange={handleDescriptionChange} />
                 </div>
 

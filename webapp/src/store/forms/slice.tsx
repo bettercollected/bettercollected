@@ -25,6 +25,7 @@ export const initialIBuilderState: StandardFormDto = {
         roles: [],
         plan: Plan.FREE
     },
+    consent: [],
     fields: [],
     modifiedTime: '',
     groups: [],
