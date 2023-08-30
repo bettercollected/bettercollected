@@ -67,8 +67,6 @@ export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     };
 
     const downloadFormFile = async () => {
-        if (!enabled) return;
-
         const payload = await getFileDownloadableLink({ workspace_id: workspace.id, file_id: fileMetaData.id });
         if (payload.data) {
             downloadFile(payload.data, fileMetaData.name ?? fileMetaData.id);

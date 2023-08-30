@@ -28,13 +28,14 @@ import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
 import AddMembersModal from './modals/add-members-modal';
 import AddRegexModal from './modals/add-regex-modal';
+import ConsentPurposeModalView from './modals/consent-purpose-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
 import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
 import UserDeletionModal from './modals/user-deletion-modal';
 
-function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
+function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
         case 'REQUEST_FOR_DELETION_VIEW':
             return <RequestForDeletionView {...modalProps} />;
@@ -84,6 +85,8 @@ function renderModalContent(view: MODAL_VIEW | string, modalProps: any) {
             return <FormBuilderAddFieldModal {...modalProps} />;
         case 'FORM_BUILDER_SPOTLIGHT_VIEW':
             return <FormBuilderSpotlightModal {...modalProps} />;
+        case 'CONSENT_PURPOSE_MODAL_VIEW':
+            return <ConsentPurposeModalView />;
         default:
             return <></>;
     }
@@ -93,6 +96,7 @@ export default function ModalContainer() {
     const router = useRouter();
     const { view, isOpen, closeModal, modalProps } = useModal();
 
+    console.log({ isOpen });
     const dispatch = useAppDispatch();
 
     const closeModalHandler = useCallback(() => {
@@ -130,8 +134,11 @@ export default function ModalContainer() {
                 </div>
 
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
-                    <div data-testid="modal-view" className="relative z-50 inline-block w-full text-left align-middle md:w-fit">
-                        {view && renderModalContent(view, modalProps)}
+                    <div data-testid="modal-view" className="relative z-50 inline-block w-full text-left align-middle md:w-fit ">
+                        {
+                            //@ts-ignore
+                            view && renderModalContent(view, modalProps)
+                        }
                     </div>
                 </Transition.Child>
             </Dialog>

@@ -5,6 +5,7 @@ import { NextSeo } from 'next-seo';
 
 import FormBuilderContainerWrapper from '@Components/HOCs/FormBuilderContainerWrapper';
 import FormBuilderKeyListener from '@Components/Listeners/FormBuilderKeyListener';
+import HistoryKeyListener from '@Components/Listeners/HistoryKeyListener';
 
 import environments from '@app/configs/environments';
 import { metaDataTitle } from '@app/constants/locales/meta-data-title';
@@ -43,12 +44,14 @@ export default function EditFromPage(props: any) {
 
     return (
         <FormBuilderContainerWrapper>
-            <FormBuilderKeyListener>
-                <NextSeo title={title || t(metaDataTitle.editForm)} noindex={true} nofollow={true} />
-                <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
-                    <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} isEditMode />
-                </Layout>
-            </FormBuilderKeyListener>
+            <HistoryKeyListener>
+                <FormBuilderKeyListener>
+                    <NextSeo title={title || t(metaDataTitle.editForm)} noindex={true} nofollow={true} />
+                    <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
+                        <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} isEditMode />
+                    </Layout>
+                </FormBuilderKeyListener>
+            </HistoryKeyListener>
         </FormBuilderContainerWrapper>
     );
 }
