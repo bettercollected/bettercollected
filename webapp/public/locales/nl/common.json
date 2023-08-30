@@ -413,7 +413,7 @@
         "DESCRIPTION": "Veilige betalingen verwerkt met Stripe.",
         "NO_RISK": "Geen risico. Op elk moment annuleren",
         "TITLE": "Upgraden naar PRO",
-        "FOR_UNLIMITED_IMPORT": "voor onbeperkt importeren van formulieren en nog veel meer functies.",
+        "FOR_UNLIMITED_IMPORT": "Voor onbeperkte formulieren en nog veel meer functies.",
         "FOR_THIS_FEATURE": " voor deze functie"
     },
     "PRIVACY_POLICY": {
@@ -545,7 +545,7 @@
     },
     "TOOLTIP": {
         "DELETION_REQUEST": "verwijderingsverzoeken",
-        "FORM_IMPORTED": "formulieren geïmporteerd",
+        "FORM_IMPORTED": "formulieren",
         "FORM_RESPONSES": "antwoorden invullen",
         "OUT_OF_LIMITED_FORM": "van de beperkte 100 formulieren",
         "PREVIEW_WORKSPACE": "Bekijk een voorbeeld van uw werkruimte",
