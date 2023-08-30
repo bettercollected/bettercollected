@@ -3,6 +3,7 @@ from typing import Optional, List
 
 from fastapi_camelcase import CamelModel
 
+from backend.app.models.dtos.consent import ConsentCamelModel
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
 from backend.app.models.dtos.workspace_member_dto import FormImporterDetails
 from backend.app.models.response_dtos import (
@@ -21,6 +22,7 @@ class MinifiedForm(CamelModel):
     settings: Optional[WorkspaceFormSettingsCamelModal]
     created_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
+    consent: Optional[List[ConsentCamelModel]]
     responses: Optional[int]
     deletion_requests: Optional[int]
     groups: Optional[List[ResponderGroupDto]]

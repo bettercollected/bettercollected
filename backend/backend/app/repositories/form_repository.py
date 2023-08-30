@@ -161,4 +161,5 @@ class FormRepository:
         form_document.cover_image = form.cover_image
         form_document.description = form.description
         form_document.button_text = form.button_text
+        form_document.consent = form.consent
         return await form_document.save()
