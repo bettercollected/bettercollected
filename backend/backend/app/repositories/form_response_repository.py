@@ -247,7 +247,7 @@ class FormResponseRepository(BaseRepository):
                 response_document.answers[k] = v.dict()
             response_document.answers = crypto_service.encrypt(
                 workspace_id=workspace_id,
-                form_id=response_document.form_id,
+                form_id=form_id,
                 data=json.dumps(response_document.answers),
             )
         response_document.form_id = str(form_id)

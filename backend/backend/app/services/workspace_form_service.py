@@ -246,11 +246,11 @@ class WorkspaceFormService:
         return self._aws_service.generate_presigned_url(key)
 
     async def create_form(
-        self, workspace_id: PydanticObjectId,
-        form: StandardForm,
-        user: User,
-        logo: UploadFile = None,
-        cover_image: UploadFile = None,
+            self, workspace_id: PydanticObjectId,
+            form: StandardForm,
+            user: User,
+            logo: UploadFile = None,
+            cover_image: UploadFile = None,
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -286,13 +286,13 @@ class WorkspaceFormService:
         return saved_form
 
     async def update_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        form: StandardForm,
-        user: User,
-        logo: UploadFile = None,
-        cover_image: UploadFile = None
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            form: StandardForm,
+            user: User,
+            logo: UploadFile = None,
+            cover_image: UploadFile = None
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -313,8 +313,7 @@ class WorkspaceFormService:
             )
             await workspace_form.save()
 
-        existing_form = await self.form_service.get_form_by_id(form_id=str(form_id), workspace_id=workspace_id,
-                                                               user=user)
+        existing_form = await self.form_service.get_form_document_by_id(str(form_id))
 
         if logo:
             logo_url = await self._aws_service.upload_file_to_s3(
@@ -347,12 +346,13 @@ class WorkspaceFormService:
         return response
 
     async def submit_response(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        response: StandardFormResponse,
-        form_files: list[FormFileResponse],
-        user: User,
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            response: StandardFormResponse,
+            user: User,
+            form_files: list[FormFileResponse] = None,
+
     ):
         if form_files:
             response = await self.upload_files_to_s3_and_update_url(form_files, response)
@@ -379,19 +379,18 @@ class WorkspaceFormService:
             form_id=form_id, response=response, workspace_id=workspace_id
         )
 
-
-async def delete_form_response(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        response_id: PydanticObjectId,
-        user: User,
-):
-    await self._workspace_user_service.check_user_has_access_in_workspace(
-        workspace_id=workspace_id, user=user
-    )
-    return await self.form_response_service.delete_form_response(
-        form_id=form_id, response_id=response_id
-    )
+    async def delete_form_response(
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            response_id: PydanticObjectId,
+            user: User,
+    ):
+        await self.workspace_user_service.check_user_has_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        return await self.form_response_service.delete_form_response(
+            form_id=form_id, response_id=response_id
+        )
 
 # async def upload_images_of_form
