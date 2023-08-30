@@ -224,10 +224,10 @@ export default function SingleFormPage(props: any) {
             {/*        </div>*/}
             {/*    </div>*/}
             {/*)}*/}
-            <div className={'absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0'}>
+            <div className={'absolute left-0 right-0 top-0 bottom-0 !bg-white !p-0 !m-0'}>
                 {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (
-                    <div className="flex !bg-white justify-center h-full w-full pb-6 items-center">
+                    <div className="flex !bg-white justify-center overflow-auto h-full w-full pb-6">
                         <BetterCollectedForm form={form} enabled={true} isCustomDomain={hasCustomDomain}/>
                     </div>
                 )}
