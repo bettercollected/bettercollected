@@ -15,6 +15,7 @@ from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
 from backend.app.repositories.user_tags_repository import UserTagsRepository
+from backend.app.repositories.workspace_consent_repo import WorkspaceConsentRepo
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
 from backend.app.repositories.workspace_repository import WorkspaceRepository
@@ -34,6 +35,7 @@ from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
+from backend.app.services.workspace_consent_service import WorkspaceConsentService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_members_service import WorkspaceMembersService
 from backend.app.services.workspace_responders_service import WorkspaceRespondersService
@@ -226,6 +228,12 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_service=workspace_user_service,
         form_response_service=form_response_service,
     )
+    workspace_consent_repo = providers.Singleton(WorkspaceConsentRepo)
+
+    workspace_consent_service = providers.Singleton(WorkspaceConsentService,
+                                                    workspace_user_service=workspace_user_service,
+                                                    workspace_consent_repo=workspace_consent_repo
+                                                    )
 
 
 container = AppContainer()
