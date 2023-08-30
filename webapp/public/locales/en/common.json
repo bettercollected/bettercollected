@@ -420,7 +420,7 @@
         "DESCRIPTION": "Secure payments processed with Stripe.",
         "NO_RISK": "No risk. Cancel anytime",
         "TITLE": "Upgrade to PRO",
-        "FOR_UNLIMITED_IMPORT": "for unlimited form import and many more features.",
+        "FOR_UNLIMITED_IMPORT": "for unlimited form and many more features.",
         "FOR_THIS_FEATURE": " for this feature"
     },
     "PRIVACY_POLICY": {
@@ -556,7 +556,7 @@
     },
     "TOOLTIP": {
         "DELETION_REQUEST": "deletion requests",
-        "FORM_IMPORTED": "forms imported",
+        "FORM_IMPORTED": "forms",
         "FORM_RESPONSES": "form responses",
         "OUT_OF_LIMITED_FORM": "out of limited 100 forms",
         "PREVIEW_WORKSPACE": "Preview your workspace",
