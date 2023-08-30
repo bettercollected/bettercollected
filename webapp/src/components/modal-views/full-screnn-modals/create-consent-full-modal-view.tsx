@@ -5,12 +5,13 @@ import AttentionText from '@Components/Consent/AttentionText';
 import ConsentBuilder from '@Components/Consent/Builder/ConsentBuilder';
 import ConsentInformationPanel from '@Components/Consent/ConsentInformationPanel';
 
-import Layout from '@app/layouts/_layout';
+import { useFullScreenModal } from '../full-screen-modal-context';
 
-export default function CreateConsent() {
+export default function CreateConsentFullModalView() {
+    const { closeModal } = useFullScreenModal();
     return (
-        <div className="flex min-w-screen bg-white">
-            <BackButtonMenuBar text="Back to Form" />
+        <div className="flex w-full !bg-white">
+            <BackButtonMenuBar text="Back to Form" onBack={closeModal} />
             <div className="mt-12">
                 <div className="mx-[15px] sm:mx-[40px] md:ml-[120px] xl:ml-[267px] w-fit md:w-[508px] mt-6">
                     <AttentionText className="mt-12" text={`Design your form responder's consent page`} />
