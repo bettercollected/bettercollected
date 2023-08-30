@@ -163,3 +163,10 @@ class FormRepository:
         form_document.button_text = form.button_text
         form_document.consent = form.consent
         return await form_document.save()
+
+    async def get_form_document_by_id(self, form_id: str):
+        return await FormDocument.find_one({"form_id": form_id})
+
+
+
+
