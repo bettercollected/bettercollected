@@ -11,7 +11,8 @@ import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
-import CreateConsentFullModalView from './full-screnn-modals/create-consent-full-modal-view';
+import ConsentFullModalView from './full-screen-modals/consent-full-modal-view';
+import CreateConsentFullModalView from './full-screen-modals/create-consent-full-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
 
@@ -29,6 +30,8 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
             return <WorkspacePreviewModal />;
         case 'CREATE_CONSENT_FULL_MODAL_VIEW':
             return <CreateConsentFullModalView />;
+        case 'CONSENT_FULL_MODAL_VIEW':
+            return <ConsentFullModalView />;
         default:
             return <></>;
     }

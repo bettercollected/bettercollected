@@ -1,7 +1,7 @@
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 
 export interface IConsentField {
-    id: string;
+    consentId: string;
     title?: string;
     description?: string;
     required?: boolean;
@@ -14,3 +14,9 @@ export interface IConsentState {
     consents: IConsentField[];
     privacy_policy?: string;
 }
+
+export interface IConsentAnswer extends IConsentField {
+    accepted?: boolean;
+}
+
+export interface ConsentAnswerDto extends IConsentAnswer {}
