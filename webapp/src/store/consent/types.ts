@@ -14,3 +14,9 @@ export interface IConsentState {
     consents: IConsentField[];
     privacy_policy?: string;
 }
+
+export interface IConsentAnswer extends IConsentField {
+    accepted?: boolean;
+}
+
+export interface ConsentAnswerDto extends IConsentAnswer {}

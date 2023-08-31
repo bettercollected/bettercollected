@@ -5,15 +5,20 @@ import cn from 'classnames';
 
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { IConsentField } from '@app/store/consent/types';
+import { selectConsentAnswers } from '@app/store/fill-form/selectors';
+import { addConsentAnswer, selectAnswer } from '@app/store/fill-form/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 interface ConsentFieldProps extends OnlyClassNameInterface {
     consent: IConsentField;
 }
 export default function ConsentField({ consent, className }: ConsentFieldProps) {
+    const dispatch = useAppDispatch();
     const [isChecked, setIsChecked] = useState(false);
 
     const handleCheckSelection = (event: any, checked: boolean) => {
         setIsChecked(checked);
+        dispatch(addConsentAnswer({ ...consent, accepted: checked }));
     };
     return (
         <div className={cn('space-y-2 p-5 border-b border-new-black-300', className)}>
