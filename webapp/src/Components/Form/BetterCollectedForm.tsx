@@ -25,6 +25,7 @@ import Logo from '@app/components/ui/logo';
 import PoweredBy from '@app/components/ui/powered-by';
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { ConsentAnswerDto } from '@app/store/consent/types';
 import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setInvalidFields } from '@app/store/fill-form/slice';
 import { FormValidationError } from '@app/store/fill-form/type';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -117,6 +118,33 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         dispatch(setDataResponseOwnerField(form?.settings?.responseDataOwnerField || ''));
     }, [dispatch, form]);
 
+    const onFormSubmitCallback = async (consentAnswers: Record<string, ConsentAnswerDto>) => {
+        const formData = new FormData();
+
+        // Append files to formData
+        files.forEach((fileObj) => {
+            formData.append('files', fileObj.file, fileObj.fileName);
+            formData.append('file_field_ids', fileObj.fieldId);
+            formData.append('file_ids', fileObj.fileId);
+        });
+
+        const postBody = {
+            form_id: form?.formId,
+            answers: answers,
+            consent: Object.values(consentAnswers),
+            dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
+        };
+        formData.append('response', JSON.stringify(postBody));
+
+        const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: formData });
+        if (response?.data) {
+            resetFormFiles();
+            dispatch(resetFillForm());
+            setIsFormSubmitted(true);
+        } else {
+            toast('Error submitting response', { type: 'error' });
+        }
+    };
     const onSubmitForm = async (event: any) => {
         event.preventDefault();
         const invalidFields: Record<string, Array<FormValidationError>> = {};
@@ -137,32 +165,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             setIsFormSubmitted(true);
             return;
         }
-
-        const formData = new FormData();
-
-        // Append files to formData
-        files.forEach((fileObj) => {
-            formData.append('files', fileObj.file, fileObj.fileName);
-            formData.append('file_field_ids', fileObj.fieldId);
-            formData.append('file_ids', fileObj.fileId);
-        });
-
-        const postBody = {
-            form_id: form?.formId,
-            answers: answers,
-            dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
-        };
-        formData.append('response', JSON.stringify(postBody));
-        openModal('CONSENT_FULL_MODAL_VIEW', { form: form });
-
-        // const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: formData });
-        // if (response?.data) {
-        //     resetFormFiles();
-        //     dispatch(resetFillForm());
-        //     setIsFormSubmitted(true);
-        // } else {
-        //     toast('Error submitting response', { type: 'error' });
-        // }
+        openModal('CONSENT_FULL_MODAL_VIEW', { form: form, onFormSubmit: onFormSubmitCallback });
     };
     useEffect(() => {
         return () => {

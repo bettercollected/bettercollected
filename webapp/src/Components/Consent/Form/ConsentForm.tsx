@@ -6,6 +6,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import cn from 'classnames';
 import { toast } from 'react-toastify';
 
+import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { formPurpose } from '@app/data/consent';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -17,6 +18,7 @@ import { useGetAllWorkspaceConsentsQuery } from '@app/store/consent/api';
 import { consent } from '@app/store/consent/consentSlice';
 import { selectConsentState } from '@app/store/consent/selectors';
 import { selectConsentAnswers } from '@app/store/fill-form/selectors';
+import { resetFillForm } from '@app/store/fill-form/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -32,6 +34,7 @@ interface ConsentBuilderProps extends OnlyClassNameInterface {
 export default function ConsentForm({ className, onFormSubmit, form }: ConsentBuilderProps) {
     const dispatch = useAppDispatch();
     const { closeModal } = useFullScreenModal();
+    const { openModal } = useModal();
     const workspace = useAppSelector(selectWorkspace);
     const consentAnswers = useAppSelector(selectConsentAnswers);
     const [error, setError] = useState(false);
@@ -82,14 +85,10 @@ export default function ConsentForm({ className, onFormSubmit, form }: ConsentBu
         event.preventDefault();
         if (validateConsents(consentAnswers, form.consent)) {
             setError(false);
+            openModal('CONSENT_CONFIRMATION_MODAL_VIEW', { onFormSubmit, consentAnswers });
         } else {
             setError(true);
         }
-        // try {
-        //     dispatch(setResponderRights());
-        //     await onFormSubmit();
-        //     closeModal();
-        // } catch (e) {}
     };
     return (
         <form className={cn(className)} onSubmit={onSubmit}>
