@@ -18,7 +18,7 @@ export const consent = createSlice({
         },
 
         setResponderRights: (state) => {
-            const consentField = { consentId: uuidv4(), type: ConsentType.Info, category: ConsentCategoryType.RespondersRights };
+            const consentField = { consentId: uuidv4(), type: ConsentType.Info, category: ConsentCategoryType.RespondersRights, title: 'Responder Rights' };
             const newConsentsWithoutUpdatedResponderRights = state.consents.filter((consent) => consent.category !== ConsentCategoryType.RespondersRights);
             return { ...state, consents: [...newConsentsWithoutUpdatedResponderRights, consentField] };
         },

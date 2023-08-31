@@ -50,11 +50,6 @@ export default function SubmissionDashboard(props: any) {
         }
     ];
 
-    useEffect(() => {
-        if (data) {
-            dispatch(setForm(data?.form));
-        }
-    }, [data]);
     return (
         <DashboardLayout>
             <NextSeo title={t(metaDataTitle.submissions) + ' | ' + workspaceName} noindex={true} nofollow={true} />;

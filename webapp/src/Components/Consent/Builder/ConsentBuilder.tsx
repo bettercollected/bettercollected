@@ -9,7 +9,7 @@ import { formPurpose } from '@app/data/consent';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { IConsentOption } from '@app/models/types/consentTypes';
-import { setAddConsent, setPrivacyPoilicy, setResponderRights } from '@app/store/consent/actions';
+import { resetConsentState, setAddConsent, setPrivacyPoilicy, setResponderRights } from '@app/store/consent/actions';
 import { useGetAllWorkspaceConsentsQuery } from '@app/store/consent/api';
 import { selectConsentState } from '@app/store/consent/selectors';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -81,7 +81,8 @@ export default function ConsentBuilder({ className, onFormPublish }: ConsentBuil
         event.preventDefault();
         try {
             dispatch(setResponderRights());
-            await onFormPublish();
+            await onFormPublish(consentState.consents);
+            dispatch(resetConsentState());
             closeModal();
         } catch (e) {}
     };
@@ -90,7 +91,7 @@ export default function ConsentBuilder({ className, onFormPublish }: ConsentBuil
             <div className="space-y-20 xs:space-y-[70px]">
                 <div className="space-y-4">
                     <div className="h4">Form Purpose and Data Usage</div>
-                    <div className="p2 !text-new-black-800 xs:!text-xs">
+                    <div className="p2 !text-new-black-800">
                         {`We want to make sure you're fully informed about how your data will be used before you proceed with our form. Our commitment to transparency means that we've included a consent page to provide you with important details. Here's what you
         can find on the consent page:`}
                     </div>
