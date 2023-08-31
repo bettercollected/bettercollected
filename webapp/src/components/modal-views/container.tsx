@@ -28,6 +28,7 @@ import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
 import AddMembersModal from './modals/add-members-modal';
 import AddRegexModal from './modals/add-regex-modal';
+import ConsentConfirmationModaView from './modals/consent-confirmation-modal-view';
 import ConsentPurposeModalView from './modals/consent-purpose-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
@@ -87,6 +88,8 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <FormBuilderSpotlightModal {...modalProps} />;
         case 'CONSENT_PURPOSE_MODAL_VIEW':
             return <ConsentPurposeModalView />;
+        case 'CONSENT_CONFIRMATION_MODAL_VIEW':
+            return <ConsentConfirmationModaView {...modalProps} />;
         default:
             return <></>;
     }
