@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 
 import FormButton from '@Components/Common/Input/Button/FormButton';
 import CheckBox from '@Components/Common/Input/CheckBox';
+import ErrorIcon from '@mui/icons-material/Error';
 import cn from 'classnames';
+import { toast } from 'react-toastify';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { formPurpose } from '@app/data/consent';
@@ -14,9 +16,11 @@ import { setAddConsent, setPrivacyPoilicy, setResponderRights } from '@app/store
 import { useGetAllWorkspaceConsentsQuery } from '@app/store/consent/api';
 import { consent } from '@app/store/consent/consentSlice';
 import { selectConsentState } from '@app/store/consent/selectors';
+import { selectConsentAnswers } from '@app/store/fill-form/selectors';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { validateConsents } from '@app/utils/validations/consent/consentValidation';
 
 import ConsentField from './ConsentField';
 
@@ -29,6 +33,8 @@ export default function ConsentForm({ className, onFormSubmit, form }: ConsentBu
     const dispatch = useAppDispatch();
     const { closeModal } = useFullScreenModal();
     const workspace = useAppSelector(selectWorkspace);
+    const consentAnswers = useAppSelector(selectConsentAnswers);
+    const [error, setError] = useState(false);
 
     const getFilteredConsents = (category: ConsentCategoryType) => {
         return form.consent.map((consent, idx) => consent?.category === category && <ConsentField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} />);
@@ -74,11 +80,16 @@ export default function ConsentForm({ className, onFormSubmit, form }: ConsentBu
     };
     const onSubmit = async (event: any) => {
         event.preventDefault();
-        try {
-            dispatch(setResponderRights());
-            await onFormSubmit();
-            closeModal();
-        } catch (e) {}
+        if (validateConsents(consentAnswers, form.consent)) {
+            setError(false);
+        } else {
+            setError(true);
+        }
+        // try {
+        //     dispatch(setResponderRights());
+        //     await onFormSubmit();
+        //     closeModal();
+        // } catch (e) {}
     };
     return (
         <form className={cn(className)} onSubmit={onSubmit}>
@@ -95,7 +106,17 @@ that we've included a consent page to provide you with important details.`}
                 {renderResponderRights()}
                 {dataAccessDetails}
             </div>
-            <FormButton className="w-[192px] mt-[60px]">Done</FormButton>
+            <div className="mt-[60px] space-y-3">
+                {error && (
+                    <div className="p2 !text-new-pink items-center !font-normal">
+                        <span className="mr-2">
+                            <ErrorIcon />
+                        </span>
+                        Please agree to all required consents.
+                    </div>
+                )}
+                <FormButton className="w-[192px]">Done</FormButton>
+            </div>
         </form>
     );
 }
