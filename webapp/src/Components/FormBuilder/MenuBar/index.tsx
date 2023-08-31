@@ -113,14 +113,7 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
                 {/*</Tooltip>*/}
                 <Divider orientation="vertical" flexItem />
                 {/*<Tooltip title={t('PUBLISH.DEFAULT')}>*/}
-                <IconButton
-                    size="small"
-                    color="inherit"
-                    className={optionButtonClassName}
-                    onClick={() => {
-                        openModal('CREATE_CONSENT_FULL_MODAL_VIEW', { onFormPublish });
-                    }}
-                >
+                <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onFormPublish}>
                     {isUpdating ? <LoadingIcon /> : <PublishIcon />}
                     <span className=" text-black-700">{t('PUBLISH.DEFAULT')}</span>
                 </IconButton>

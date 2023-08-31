@@ -153,8 +153,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
         };
         formData.append('response', JSON.stringify(postBody));
-        console.log(formData);
-        openModal('CONSENT_FULL_MODAL_VIEW');
+        openModal('CONSENT_FULL_MODAL_VIEW', { form: form });
 
         // const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: formData });
         // if (response?.data) {

@@ -27,7 +27,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { resetConsentState } from '@app/store/consent/actions';
 import { selectConsentState } from '@app/store/consent/selectors';
-import { IConsentState } from '@app/store/consent/types';
+import { IConsentField, IConsentState } from '@app/store/consent/types';
 import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setFields } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
@@ -43,6 +43,7 @@ import useFormBuilderState from './context';
 export default function FormBuilder({ workspace, _nextI18Next, isEditMode = false }: { isEditMode?: boolean; workspace: WorkspaceDto; _nextI18Next: any }) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
+    const { openModal } = useFullScreenModal();
     const { t } = useBuilderTranslation();
     const { handleUserTypingEnd } = useUserTypingDetection();
     const { isUndoRedoInProgress } = useUndoRedo();
@@ -128,7 +129,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         }
     };
 
-    const onFormSave = async (isPublishClicked = false) => {
+    const onFormSave = async (isPublishClicked = false, consent: IConsentField[] = []) => {
         const apiCall = !isEditMode ? postCreateForm : patchForm;
         console.log(headerImages);
 
@@ -149,7 +150,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         publishRequest.fields = fields;
         publishRequest.settings = builderState.settings;
         publishRequest.buttonText = builderState.buttonText;
-        publishRequest.consent = consentState.consents;
+        publishRequest.consent = consent;
         if (imagesRemoved.logo) publishRequest.logo = '';
         if (imagesRemoved.cover) publishRequest.cover_image = '';
         formData.append('form_body', JSON.stringify(publishRequest));
@@ -161,14 +162,21 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             toast('Form saved!', { type: 'success' });
             if (!isEditMode) router.push(`/${locale}${workspace?.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`);
             dispatch(setBuilderState({ isFormDirty: false }));
-            dispatch(resetConsentState());
         }
         return response;
     };
 
     const onFormPublish = async () => {
-        const response = await onFormSave(true);
-        onFormPublishRedirect(response);
+        if (!isEditMode) {
+            const onFormPublishCallback = async (consent: IConsentField[]) => {
+                const response = await onFormSave(true, consent);
+                onFormPublishRedirect(response);
+            };
+            openModal('CREATE_CONSENT_FULL_MODAL_VIEW', { onFormPublish: onFormPublishCallback });
+        } else {
+            const response = await onFormSave(true);
+            onFormPublishRedirect(response);
+        }
     };
 
     const openTagSelector = (event: any) => {
@@ -211,12 +219,10 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         document.addEventListener('blur', onBlurCallback);
 
         // Listens events from the HOCs
-        eventBus.on(EventBusEventType.FormBuilder.Save, onFormSave);
         eventBus.on(EventBusEventType.FormBuilder.Publish, onFormPublish);
         eventBus.on(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
 
         return () => {
-            eventBus.removeListener(EventBusEventType.FormBuilder.Save, onFormSave);
             eventBus.removeListener(EventBusEventType.FormBuilder.Publish, onFormPublish);
             eventBus.removeListener(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
             document.removeEventListener('blur', onBlurCallback);
