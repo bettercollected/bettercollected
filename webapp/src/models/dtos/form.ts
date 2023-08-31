@@ -3,6 +3,7 @@ import { ValidationType } from '@Components/FormBuilder/FieldOptions/types';
 import { UserDto } from '@app/models/dtos/UserDto';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { IConsentField } from '@app/store/consent/types';
 import { IFormFieldValidation } from '@app/store/form-builder/types';
 
 import { FileMetadata } from '../types/fileTypes';
@@ -51,11 +52,12 @@ export interface StandardFormDto {
         roles?: Array<string>;
     };
     importerDetails: UserStatus;
+    consent: Array<IConsentField>;
     fields: Array<StandardFormFieldDto>;
     createdTime?: string | Date;
     modifiedTime?: string | Date;
-    coverImage?: string
-    logo?: string
+    coverImage?: string;
+    logo?: string;
 }
 
 export interface StandardFormResponseDto {

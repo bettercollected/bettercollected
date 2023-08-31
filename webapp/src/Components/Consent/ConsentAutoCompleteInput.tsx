@@ -8,59 +8,65 @@ import { AddIcon } from '@app/components/icons/add';
 import { ArrowDown } from '@app/components/icons/arrow-down';
 import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
 import { ConsentPurposeModalMode } from '@app/components/modal-views/modals/consent-purpose-modal-view';
+import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
+import { IConsentOption } from '@app/models/types/consentTypes';
 
-interface AutoCompleteInputProps extends OnlyClassNameInterface {
+interface ConsentAutoCompleteInputProps extends OnlyClassNameInterface {
     dropdownTitle?: string;
     title?: string;
     placeholder?: string;
-    options: string[];
+    options: IConsentOption[];
     required?: boolean;
-    onSelect?: (selection: string, mode?: ConsentPurposeModalMode) => void;
+    onSelect?: (selection: IConsentOption, mode?: ConsentPurposeModalMode) => void;
 }
 
-const AutoCompleteInput = forwardRef<HTMLDivElement, AutoCompleteInputProps>(({ title, dropdownTitle, placeholder = '', required = false, onSelect, options, className }, ref) => {
-    const [selected, setSelected] = useState('');
+const ConsentAutoCompleteInput = forwardRef<HTMLDivElement, ConsentAutoCompleteInputProps>(({ title, dropdownTitle, placeholder = '', required = false, onSelect, options, className }, ref) => {
+    const [selected, setSelected] = useState(null);
+    const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
 
-    const filteredoptions = query === '' ? options : options.filter((option) => option.toLowerCase().replace(/\s+/g, '').includes(query.toLowerCase().replace(/\s+/g, '')));
+    const filteredoptions = query === '' ? options : options.filter((option) => option.title?.toLowerCase().replace(/\s+/g, '').includes(query.toLowerCase().replace(/\s+/g, '')));
 
+    const toggleOpen = () => {
+        setOpen(!open);
+    };
     useEffect(() => {
-        if (selected.length !== 0) {
+        if (selected) {
             onSelect && onSelect(selected);
-            setSelected('');
+            setSelected(null);
         }
     }, [selected]);
     return (
         <div className={cn('w-full', className)} ref={ref}>
             <Combobox value={selected} onChange={setSelected}>
-                {({ open }) => (
+                {({}) => (
                     <div className="relative mt-1">
                         {title && (
-                            <div className="h5-new mb-3 xs:!text-sm">
+                            <div className="h5-new mb-3">
                                 {title} {required && <span className="text-pink ml-2">*</span>}
                             </div>
                         )}
                         <div className="relative w-full cursor-default border-none overflow-hidden rounded-md  bg-white text-left group">
                             <Combobox.Input
                                 placeholder={placeholder}
-                                className="w-full rounded-md border border-black-300 focus:border-blue-500 p-3 text-base xs:!text-sm leading-6 text-gray-900 placeholder:text-black-400 focus:ring-0"
+                                className="w-full rounded-md border border-black-300 focus:border-blue-500 p-3 sm:text-base text-sm leading-6 text-gray-900 placeholder:text-black-400 focus:ring-0"
                                 displayValue={(option: string) => (option ? option : '')}
                                 onChange={(event) => setQuery(event.target.value)}
                             />
                             <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-                                <ArrowDown aria-hidden="true" className={`${open && 'rotate-180'} transition delay-150 ease-in-out`} />
+                                <ArrowDown aria-hidden="true" className={`${open && 'rotate-180'} transition delay-150 ease-in-out`} onClick={toggleOpen} />
                             </Combobox.Button>
                         </div>
-                        <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0" afterLeave={() => setQuery('')}>
+                        <Transition show={open} as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0" afterLeave={() => setQuery('')}>
                             <Combobox.Options className="absolute mt-3 max-h-[321px] w-full leading-6 rounded-lg bg-white shadow-lg shadow-dropdown-shadow border border-blue-200 z-50 xs:!text-sm">
                                 {dropdownTitle && (
-                                    <div className="py-4 px-6 xs:px-3 leading-5 flex justify-between items-center border-b border-black-200">
-                                        <div className="p2 !text-black-800">{dropdownTitle}</div> <DropdownCloseIcon />
+                                    <div className="py-4 sm:px-6 px-3 leading-5 flex justify-between items-center border-b border-black-200">
+                                        <div className="p2 !text-black-800">{dropdownTitle}</div> <DropdownCloseIcon onClick={toggleOpen} />
                                     </div>
                                 )}
                                 <div className="py-4">
-                                    <div className="dropdown-scrollbar px-6 xs:px-3 overflow-auto max-h-[150px] space-y-1">
+                                    <div className="dropdown-scrollbar sm:px-6 px-3 overflow-auto max-h-[150px] space-y-1">
                                         {filteredoptions.length === 0 && query !== '' ? (
                                             <div className="relative cursor-default select-none py-2 px-4 text-gray-700">Nothing found.</div>
                                         ) : (
@@ -68,19 +74,22 @@ const AutoCompleteInput = forwardRef<HTMLDivElement, AutoCompleteInputProps>(({ 
                                                 <Combobox.Option key={idx} className={({ active }) => `relative p1 !text-black-800 rounded-sm cursor-default select-none py-2 px-4 ${active ? 'bg-black-200' : 'text-black-800'}`} value={option}>
                                                     {({ selected, active }) => (
                                                         <>
-                                                            <span className={`block truncate `}>{option}</span>
+                                                            <span className={`block truncate `} onClick={toggleOpen}>
+                                                                {option.title} <span className="ml-1 !text-new-pink p2">{option.isRecentlyAdded && '(Recently Added)'}</span>
+                                                            </span>
                                                         </>
                                                     )}
                                                 </Combobox.Option>
                                             ))
                                         )}
                                     </div>
-                                    <div className="px-6 xs:px-3">
+                                    <div className="sm:px-6 px-3">
                                         <AppButton
                                             className="flex space-x-2 items-center justify-center !w-full mt-4"
                                             onClick={(event: any) => {
                                                 event.preventDefault();
-                                                onSelect && onSelect('', 'create');
+                                                onSelect && onSelect({ type: ConsentType.Checkbox, category: ConsentCategoryType.PurposeOfTheForm }, 'create');
+                                                toggleOpen();
                                             }}
                                         >
                                             <AddIcon />
@@ -97,5 +106,5 @@ const AutoCompleteInput = forwardRef<HTMLDivElement, AutoCompleteInputProps>(({ 
     );
 });
 
-AutoCompleteInput.displayName = 'ConsentAutoCompleteInput';
-export default AutoCompleteInput;
+ConsentAutoCompleteInput.displayName = 'ConsentConsentAutoCompleteInput';
+export default ConsentAutoCompleteInput;
