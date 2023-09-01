@@ -233,6 +233,7 @@ class StandardFormSettings(BaseModel):
     response_data_owner_field: Optional[str]
     response_data_owner_fields: Optional[List[str]]
     screens: Optional[Dict[str, List[Dict[str, Any]]]]
+    privacy_policy_url: Optional[str]
     # If responses are set to editable then it can be used for tracking responses
     is_response_editable: Optional[bool]
     # State whether the form is accepting new responses
