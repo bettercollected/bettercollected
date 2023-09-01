@@ -13,7 +13,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { IConsentOption } from '@app/models/types/consentTypes';
-import { setAddConsent, setPrivacyPoilicy, setResponderRights } from '@app/store/consent/actions';
+import { setAddConsent, setPrivacyPolicy, setResponderRights } from '@app/store/consent/actions';
 import { useGetAllWorkspaceConsentsQuery } from '@app/store/consent/api';
 import { consent } from '@app/store/consent/consentSlice';
 import { selectConsentState } from '@app/store/consent/selectors';
@@ -85,7 +85,7 @@ export default function ConsentForm({ className, onFormSubmit, form }: ConsentBu
         event.preventDefault();
         if (validateConsents(consentAnswers, form.consent)) {
             setError(false);
-            openModal('CONSENT_CONFIRMATION_MODAL_VIEW', { onFormSubmit, consentAnswers });
+            openModal('CONSENT_CONFIRMATION_MODAL_VIEW', { onFormSubmit, consentAnswers, privacyPolicyUrl: form?.settings?.privacyPolicyUrl });
         } else {
             setError(true);
         }

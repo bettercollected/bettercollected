@@ -37,6 +37,7 @@ class WorkspaceFormSettings(BaseModel):
     private: Optional[bool] = False
     response_data_owner_field: Optional[str]
     provider: Optional[str]
+    privacy_policy_url: Optional[str]
 
 
 class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):

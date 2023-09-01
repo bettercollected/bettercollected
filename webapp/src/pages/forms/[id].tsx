@@ -216,14 +216,6 @@ export default function SingleFormPage(props: any) {
                     ]
                 }}
             />
-            {/*{back && (*/}
-            {/*    <div className=" absolute  mt-5   px-5 lg:px-20 w-auto z-10 hover:!-translate-y-0 focus:-translate-y-0">*/}
-            {/*        <div className="flex items-center gap-2  cursor-pointer" onClick={() => goToForms()}>*/}
-            {/*            <ChevronLeft height={24} width={24} />*/}
-            {/*            <span className="sh1">{t(localesCommon.forms)}</span>*/}
-            {/*        </div>*/}
-            {/*    </div>*/}
-            {/*)}*/}
             <div className={'absolute left-0 right-0 top-0 bottom-0 !bg-white !p-0 !m-0'}>
                 {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (

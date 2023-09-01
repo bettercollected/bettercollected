@@ -53,6 +53,7 @@ workspace_settings = {
     "pinned": True,
     "customUrl": "custom_url",
     "private": True,
+    "privacyPolicyUrl": None,
     "responseDataOwnerField": "customUser",
 }
 

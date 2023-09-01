@@ -272,6 +272,7 @@ class WorkspaceFormService:
         workspace_form_settings = WorkspaceFormSettings(
             custom_url=form.form_id,
             provider="self",
+            privacy_policy_url=form.settings.privacy_policy_url if form.settings else "",
             response_data_owner_field=form.settings.response_data_owner_field
             if form.settings
             else "",
@@ -307,10 +308,13 @@ class WorkspaceFormService:
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found in workspace"
             )
         workspace_form = workspace_forms[0]
-        if form.settings and form.settings.response_data_owner_field is not None:
-            workspace_form.settings.response_data_owner_field = (
-                form.settings.response_data_owner_field
-            )
+        if form.settings:
+            if form.settings.response_data_owner_field is not None:
+                workspace_form.settings.response_data_owner_field = (
+                    form.settings.response_data_owner_field
+                )
+            if form.settings.privacy_policy_url is not None:
+                workspace_form.settings.privacy_policy_url = form.settings.privacy_policy_url
             await workspace_form.save()
 
         existing_form = await self.form_service.get_form_document_by_id(str(form_id))
