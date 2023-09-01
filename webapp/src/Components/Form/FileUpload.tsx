@@ -98,7 +98,7 @@ export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     };
 
     return (
-        <div className="space-y-3 w-[541px]">
+        <div className="space-y-3 w-full md:w-[541px]">
             {(!ans?.file_metadata || enabled) && (
                 <div
                     tabIndex={0}
