@@ -11,21 +11,12 @@ interface TermsAndConditionProps extends OnlyClassNameInterface {
     children?: any;
 }
 
-interface TitleProps extends OnlyClassNameInterface {
-    title: string;
-}
+interface TitleProps extends React.PropsWithChildren {}
 
-interface DescriptionProps {
-    description: string;
-}
+interface DescriptionProps extends React.PropsWithChildren {}
 
-const Title: React.FC<TitleProps> = ({ title, className }) => <div className={cn('h6-new', className)}>{title}</div>;
-
-const Description: React.FC<DescriptionProps> = ({ description }) => (
-    <div className="space-y-2">
-        <p className="p2">{description}</p>
-    </div>
-);
+const Title: React.FC<React.PropsWithChildren> = ({ children }) => <div className={cn('h6-new')}>{children}</div>;
+const Description: React.FC<React.PropsWithChildren> = ({ children }) => <p className="p2">{children}</p>;
 
 const TermsAndCondition: React.FC<TermsAndConditionProps> & {
     Title: React.FC<TitleProps>;

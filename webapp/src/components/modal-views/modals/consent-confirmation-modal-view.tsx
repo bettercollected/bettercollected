@@ -6,6 +6,7 @@ import HintBox from '@Components/Consent/Form/HintBox';
 import TermsAndCondition from '@Components/Consent/TermsAndCondition';
 
 import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
+import AnchorLink from '@app/components/ui/links/anchor-link';
 import useForm from '@app/lib/hooks/use-form';
 import { ConsentCategoryType } from '@app/models/enums/consentEnum';
 import { IConsentAnswer } from '@app/store/consent/types';
@@ -32,8 +33,8 @@ export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswe
         if (formPurpose) {
             return (
                 <TermsAndCondition onAgree={(checked) => setFormPurposeTermChecked(checked)}>
-                    <TermsAndCondition.Title title={`I have reviewed all the form's purposes.`} />
-                    <TermsAndCondition.Description description={`This confirms whether you've taken a moment to go through the stated intentions of the form before proceeding.`} />
+                    <TermsAndCondition.Title>{`I have reviewed all the form's purposes.`}</TermsAndCondition.Title>
+                    <TermsAndCondition.Description>{`This confirms whether you've taken a moment to go through the stated intentions of the form before proceeding.`} </TermsAndCondition.Description>
                 </TermsAndCondition>
             );
         }
@@ -70,8 +71,13 @@ export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswe
                 />
                 {renderPurposeTermsAndConditon()}
                 <TermsAndCondition onAgree={(checked) => setPrivacyTermChecked(checked)}>
-                    <TermsAndCondition.Title title={`I agree to the privacy policy.`} />
-                    <TermsAndCondition.Description description={`By checking this box, you indicate your acceptance and understanding of the provided terms and conditions.`} />
+                    <TermsAndCondition.Title>
+                        I agree to the{' '}
+                        <AnchorLink href="" className="text-new-blue-500">
+                            privacy policy
+                        </AnchorLink>
+                    </TermsAndCondition.Title>
+                    <TermsAndCondition.Description>{`By checking this box, you indicate your acceptance and understanding of the provided terms and conditions.`}</TermsAndCondition.Description>
                 </TermsAndCondition>
             </div>
             <div className="p-10">
