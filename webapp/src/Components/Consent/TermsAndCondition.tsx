@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import CheckBox from '@Components/Common/Input/CheckBox';
 import cn from 'classnames';
@@ -7,7 +7,7 @@ import { OnlyClassNameInterface } from '@app/models/interfaces';
 
 interface TermsAndConditionProps extends OnlyClassNameInterface {
     selected?: boolean;
-    onAgree?: any;
+    onAgree?: (checked: boolean) => void;
     children?: any;
 }
 
@@ -31,10 +31,13 @@ const TermsAndCondition: React.FC<TermsAndConditionProps> & {
     Title: React.FC<TitleProps>;
     Description: React.FC<DescriptionProps>;
 } = ({ selected = true, className, onAgree, children }) => {
+    const handleCheckedChange = (_: any, checked: boolean) => {
+        onAgree && onAgree(checked);
+    };
     return (
         <div className={cn('space-y-2 p-5 border-b border-new-black-300', className)}>
             <div className="flex space-x-2 items-center">
-                <CheckBox className="!m-0" checked={selected} />
+                <CheckBox className="!m-0" defaultChecked={selected} onChange={handleCheckedChange} />
                 {React.Children.map(children, (child) => {
                     if (React.isValidElement(child) && child.type === Title) {
                         return child;

@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 
 import FormButton from '@Components/Common/Input/Button/FormButton';
 import CheckBox from '@Components/Common/Input/CheckBox';
-import ErrorIcon from '@mui/icons-material/Error';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import cn from 'classnames';
 
+import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { formPurpose } from '@app/data/consent';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
@@ -17,6 +18,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { validateConsentBuilder } from '@app/utils/validations/consent/consentBuilderValidation';
 
+import ErrorText from '../ErrorText';
 import ConsentAddInput from './ConsentAddInput';
 import ConsentBuilderField from './ConsentBuilderField';
 import ConsentInput from './ConsentInput';
@@ -32,6 +34,7 @@ export default function ConsentBuilder({ className, onFormPublish }: ConsentBuil
     const [isDeletionRequestChecked, setIsDeletionRequestChecked] = useState(true);
     const dispatch = useAppDispatch();
     const { closeModal } = useFullScreenModal();
+    const { openModal } = useModal();
     const [error, setError] = useState(false);
 
     const getFilteredConsents = (category: ConsentCategoryType) => {
@@ -84,12 +87,8 @@ export default function ConsentBuilder({ className, onFormPublish }: ConsentBuil
         event.preventDefault();
         if (validateConsentBuilder(consentState)) {
             setError(false);
-            try {
-                dispatch(setResponderRights());
-                await onFormPublish(consentState.consents);
-                dispatch(resetConsentState());
-                closeModal();
-            } catch (e) {}
+            const responderRightsConsentField = { consentId: uuidv4(), type: ConsentType.Info, category: ConsentCategoryType.RespondersRights, title: 'Responder Rights' };
+            openModal('CONSENT_BUILDER_CONFIRMATION_MODAL_VIEW', { onFormPublish, consents: [...consentState.consents, isDeletionRequestChecked && responderRightsConsentField] });
         } else {
             setError(true);
         }
@@ -121,14 +120,7 @@ export default function ConsentBuilder({ className, onFormPublish }: ConsentBuil
                 </div>
             </div>
             <div className="mt-[60px] space-y-3">
-                {error && (
-                    <div className="p2 !text-new-pink items-center !font-normal">
-                        <span className="mr-2">
-                            <ErrorIcon />
-                        </span>
-                        Please fill to all required consents.
-                    </div>
-                )}
+                {error && <ErrorText text=" Please fill to all required consents." />}
                 <FormButton className="w-[192px]">Done</FormButton>
             </div>{' '}
         </form>
