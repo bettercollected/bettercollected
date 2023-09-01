@@ -178,10 +178,11 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     }
 
     return (
-        <div className="w-full !bg-white">
+        <div className="w-full bg-white">
             {form?.coverImage && (
-                <div className="relative z-0 -mx-5 w-screen aspect-banner-mobile lg:aspect-banner-desktop">
-                    <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75" />
+                <div
+                    className={`relative z-0 w-full flex aspect-banner-mobile lg:aspect-banner-desktop`}>
+                    <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75"/>
                 </div>
             )}
             <form
