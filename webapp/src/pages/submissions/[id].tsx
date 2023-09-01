@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import Button from '@Components/Common/Input/Button';
+import HintBox from '@Components/Consent/Form/HintBox';
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { ChevronLeft } from '@mui/icons-material';
@@ -13,6 +14,7 @@ import { toast } from 'react-toastify';
 
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
@@ -42,6 +44,7 @@ export default function Submission(props: any) {
     const router = useRouter();
     const breakpoint = useBreakpoint();
     const { openModal, closeModal } = useModal();
+    const fullScreenModal = useFullScreenModal();
 
     const [requestWorkspaceSubmissionDeletion] = useRequestWorkspaceSubmissionDeletionMutation();
 
@@ -51,7 +54,7 @@ export default function Submission(props: any) {
     });
 
     const form: any = data ?? [];
-
+    console.log(form);
     const handleRequestForDeletion = async () => {
         if (workspace && workspace.id && submissionId) {
             try {
@@ -130,7 +133,7 @@ export default function Submission(props: any) {
                         <div className="bg-white rounded-xl w-full">
                             <FormRenderer form={form.form} response={form.response} preview />
                         </div>
-                        <div className="flex flex-row-reverse justify-between lg:justify-start gap-10  lg:flex-col basis-1/4 ">
+                        <div className="flex flex-col-reverse justify-between lg:justify-start gap-10  lg:flex-col basis-1/4 ">
                             <div>
                                 <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
                                     <Button
@@ -147,6 +150,13 @@ export default function Submission(props: any) {
                                     </Button>
                                 </Tooltip>
                             </div>
+                            <HintBox
+                                className="w-fit md:w-[400px]"
+                                title="View Your Data Usage Permissions"
+                                description={`Review the permissions you've previously granted for data usage.`}
+                                linkText="Data Permission Details"
+                                onLinkClick={() => fullScreenModal.openModal('CONSENT_FULL_MODAL_VIEW', { isPreview: true, form: form.response })}
+                            />
                             <div>
                                 <div className="body4 pb-2 text-black-700">{t(localesCommon.lastSubmittedAt)}</div>
                                 <div className="text-black-900 body3">{submittedAt}</div>
