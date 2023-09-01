@@ -30,7 +30,7 @@ export default function ConsentFullModalView({ onFormSubmit, form, isPreview = f
                             <AttentionText className="mt-12" text={`Your data, your control. We value your privacy.`} />
                         </>
                     )}
-                    <ConsentForm className="mt-10 pb-20 " onFormSubmit={onFormSubmit} form={form!} />
+                    <ConsentForm className="mt-10 pb-20 " onFormSubmit={onFormSubmit} form={form!} isPreview={isPreview} />
                 </div>
             </div>
             {!isPreview && <ConsentInformationPanel />}

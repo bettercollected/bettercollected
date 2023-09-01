@@ -147,7 +147,7 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
                         disabled={isPreview}
                         title="Insert Link to Your Terms And Conditions"
                         required
-                        placeholder={isPreview ? 'link here' : 'Insert link here'}
+                        placeholder={isPreview ? form?.settings?.privacyPolicyUrl : 'Insert link here'}
                         className="mt-5"
                         onChange={(event: any) => {
                             dispatch(setPrivacyPolicy(event.target.value));
