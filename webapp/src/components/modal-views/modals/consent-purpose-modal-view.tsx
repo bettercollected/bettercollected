@@ -55,7 +55,6 @@ export default function ConsentPurposeModalView() {
             type: consentPurposeModalProps?.consent.type,
             title: purposeTitle
         };
-        debugger;
         if (consentPurposeModalProps?.mode === 'create') {
             createWorkspaceConsent({ workspaceId: workspace.id, consent: consentField }).catch(() => {
                 toast.error('Failed to create workspace');

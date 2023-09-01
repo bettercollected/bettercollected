@@ -1,30 +1,36 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import ErrorText from '@Components/Consent/ErrorText';
 import HintBox from '@Components/Consent/Form/HintBox';
 import TermsAndCondition from '@Components/Consent/TermsAndCondition';
 
-import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
+import {DropdownCloseIcon} from '@app/components/icons/dropdown-close';
 import AnchorLink from '@app/components/ui/links/anchor-link';
 import useForm from '@app/lib/hooks/use-form';
-import { ConsentCategoryType } from '@app/models/enums/consentEnum';
-import { IConsentAnswer } from '@app/store/consent/types';
-import { resetFillForm } from '@app/store/fill-form/slice';
-import { useAppDispatch } from '@app/store/hooks';
+import {ConsentCategoryType} from '@app/models/enums/consentEnum';
+import {IConsentAnswer} from '@app/store/consent/types';
+import {resetFillForm} from '@app/store/fill-form/slice';
+import {useAppDispatch} from '@app/store/hooks';
 
-import { useModal } from '../context';
-import { useFullScreenModal } from '../full-screen-modal-context';
+import {useModal} from '../context';
+import {useFullScreenModal} from '../full-screen-modal-context';
 
 export interface ConsentConfirmationModalProps {
     onFormSubmit: any;
     consentAnswers: Record<string, IConsentAnswer>;
+    privacyPolicyUrl?: string
 }
-export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswers }: ConsentConfirmationModalProps) {
-    const { closeModal } = useModal();
+
+export default function ConsentConfirmationModaView({
+                                                        onFormSubmit,
+                                                        consentAnswers,
+                                                        privacyPolicyUrl
+                                                    }: ConsentConfirmationModalProps) {
+    const {closeModal} = useModal();
     const fullScreenModal = useFullScreenModal();
     const dispatch = useAppDispatch();
-    const { isLoading, error, setError, setLoading } = useForm();
+    const {isLoading, error, setError, setLoading} = useForm();
     const [formPurposeTermChecked, setFormPurposeTermChecked] = useState(true);
     const [privacyTermChecked, setPrivacyTermChecked] = useState(true);
 
@@ -60,7 +66,7 @@ export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswe
         <form onSubmit={onSubmit} className="bg-white rounded-2xl w-fit md:w-[476px] h-content">
             <div className="flex justify-between py-4 px-6 border-b border-black-200">
                 <div className="p2 !text-black-800">Purpose Of The Form</div>
-                <DropdownCloseIcon className="cursor-pointer" onClick={closeModal} />
+                <DropdownCloseIcon className="cursor-pointer" onClick={closeModal}/>
             </div>
             <div className="pt-5 px-6">
                 <HintBox
@@ -73,7 +79,8 @@ export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswe
                 <TermsAndCondition onAgree={(checked) => setPrivacyTermChecked(checked)}>
                     <TermsAndCondition.Title>
                         I agree to the{' '}
-                        <AnchorLink href="" className="text-new-blue-500">
+                        <AnchorLink href={privacyPolicyUrl || ""} target="_blank" referrerPolicy="no-referrer"
+                                    className="text-new-blue-500">
                             privacy policy
                         </AnchorLink>
                     </TermsAndCondition.Title>
@@ -81,7 +88,7 @@ export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswe
                 </TermsAndCondition>
             </div>
             <div className="p-10">
-                {error && <ErrorText text="Please accept all terms and conditions before proceeding." />}
+                {error && <ErrorText text="Please accept all terms and conditions before proceeding."/>}
                 <AppButton type="submit" isLoading={isLoading} className="bg-new-blue-500 !w-full !py-3">
                     Confirm & Submit
                 </AppButton>

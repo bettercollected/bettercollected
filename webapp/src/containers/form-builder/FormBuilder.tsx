@@ -140,9 +140,8 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
         }
     };
 
-    const onFormSave = async (isPublishClicked = false, consent: IConsentField[] = [], privacy_policy = "") => {
+    const onFormSave = async (isPublishClicked = false, consent: IConsentField[] = [], privacyPolicyUrl = "") => {
         const apiCall = !isEditMode ? postCreateForm : patchForm;
-        console.log(headerImages);
 
         const formData = new FormData();
         if (headerImages.coverImage) formData.append('cover_image', headerImages.coverImage);
@@ -161,7 +160,7 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
         publishRequest.fields = fields;
         publishRequest.settings = {
             ...builderState.settings,
-            privacyPolicyUrl: privacy_policy
+            privacyPolicyUrl: privacyPolicyUrl
         };
         publishRequest.buttonText = builderState.buttonText;
         publishRequest.consent = consent;
@@ -182,8 +181,8 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
 
     const onFormPublish = async () => {
         if (!isEditMode) {
-            const onFormPublishCallback = async (consent: IConsentField[], privacy_policy = "") => {
-                const response = await onFormSave(true, consent, privacy_policy);
+            const onFormPublishCallback = async (consent: IConsentField[], privacyPolicyUrl = "") => {
+                const response = await onFormSave(true, consent, privacyPolicyUrl);
                 onFormPublishRedirect(response);
             };
             openModal('CREATE_CONSENT_FULL_MODAL_VIEW', {onFormPublish: onFormPublishCallback});
