@@ -25,7 +25,7 @@ export default function ConsentBuilderConfirmationModaView({ onFormPublish, cons
     const fullScreenModal = useFullScreenModal();
     const dispatch = useAppDispatch();
     const { isLoading, error, setError, setLoading } = useForm();
-    const [formPurposeTermChecked, setFormPurposeTermChecked] = useState(false);
+    const [formPurposeTermChecked, setFormPurposeTermChecked] = useState(true);
 
     const handleFormPurposeTermChange = (checked: boolean) => {
         setFormPurposeTermChecked(checked);
@@ -71,7 +71,7 @@ export default function ConsentBuilderConfirmationModaView({ onFormPublish, cons
                 {formPurposeTermsAndConditonDetails}
             </div>
             <div className="p-10">
-                {error && <ErrorText text=" Please fill to all required consents." />}
+                {error && <ErrorText text="Please accept all terms and conditions before proceeding." />}
                 <AppButton isLoading={isLoading} type="submit" className="bg-new-blue-500 !w-full !py-3">
                     Confirm & Publish
                 </AppButton>
