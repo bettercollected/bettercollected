@@ -13,7 +13,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { IConsentOption } from '@app/models/types/consentTypes';
-import { setAddConsent, setPrivacyPoilicy, setResponderRights } from '@app/store/consent/actions';
+import { setAddConsent, setPrivacyPolicy, setResponderRights } from '@app/store/consent/actions';
 import { useGetAllWorkspaceConsentsQuery } from '@app/store/consent/api';
 import { consent } from '@app/store/consent/consentSlice';
 import { selectConsentState } from '@app/store/consent/selectors';
