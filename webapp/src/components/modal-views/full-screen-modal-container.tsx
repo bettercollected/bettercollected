@@ -29,9 +29,9 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
         case 'WORKSPACE_PREVIEW':
             return <WorkspacePreviewModal />;
         case 'CREATE_CONSENT_FULL_MODAL_VIEW':
-            return <CreateConsentFullModalView />;
+            return <CreateConsentFullModalView {...modalProps} />;
         case 'CONSENT_FULL_MODAL_VIEW':
-            return <ConsentFullModalView />;
+            return <ConsentFullModalView {...modalProps} />;
         default:
             return <></>;
     }
