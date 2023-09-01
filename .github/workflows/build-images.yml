@@ -3,10 +3,53 @@ name: Build Docker Images
 on:
   push:
     branches:
-      - '**'
+      - "**"
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code with submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.10.12
+
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip
+          restore-keys: ${{ runner.os }}-pip
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Install dependencies
+        run: |
+          poetry --version
+          poetry install --no-interaction
+        working-directory: backend
+
+      - name: Run test cases on backend
+        id: test-backend
+        env:
+          AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+          AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+          SCHEDULAR_ENABLED: "False"
+          API_ENABLE_FORM_CREATION: "True"
+          MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
+        run: |
+          poetry run pytest --github-report
+        working-directory: backend
+
   build:
+    needs: test
+
     strategy:
       matrix:
         service:
@@ -23,7 +66,7 @@ jobs:
       - name: Checkout code with submodules
         uses: actions/checkout@v2
         with:
-          submodules: 'recursive'
+          submodules: "recursive"
 
       - name: Set up Docker
         uses: docker/login-action@v1
