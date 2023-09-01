@@ -30,7 +30,7 @@ export const consent = createSlice({
             const updatedConsents = state.consents.filter((consent) => consent.consentId !== action.payload);
             return { ...state, consents: [...updatedConsents] };
         },
-        setPrivacyPoilicy: (state, action: PayloadAction<string>) => {
+        setPrivacyPolicy: (state, action: PayloadAction<string>) => {
             return { ...state, privacy_policy: action.payload };
         },
         resetConsentState: () => {
