@@ -2,7 +2,7 @@ import React from 'react';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import HintBox from '@Components/Consent/Form/HintBox';
-import TermsAndCondition from '@Components/Consent/Form/TermsAndCondition';
+import TermsAndCondition from '@Components/Consent/TermsAndCondition';
 
 import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
 import { ConsentCategoryType } from '@app/models/enums/consentEnum';
