@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import FormButton from '@Components/Common/Input/Button/FormButton';
 import CheckBox from '@Components/Common/Input/CheckBox';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import ErrorIcon from '@mui/icons-material/Error';
 import cn from 'classnames';
 
 import { useModal } from '@app/components/modal-views/context';
@@ -19,6 +18,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { validateConsentBuilder } from '@app/utils/validations/consent/consentBuilderValidation';
 
+import ErrorText from '../ErrorText';
 import ConsentAddInput from './ConsentAddInput';
 import ConsentBuilderField from './ConsentBuilderField';
 import ConsentInput from './ConsentInput';
@@ -120,14 +120,7 @@ export default function ConsentBuilder({ className, onFormPublish }: ConsentBuil
                 </div>
             </div>
             <div className="mt-[60px] space-y-3">
-                {error && (
-                    <div className="p2 !text-new-pink items-center !font-normal">
-                        <span className="mr-2">
-                            <ErrorIcon />
-                        </span>
-                        Please fill to all required consents.
-                    </div>
-                )}
+                {error && <ErrorText text=" Please fill to all required consents." />}
                 <FormButton className="w-[192px]">Done</FormButton>
             </div>{' '}
         </form>

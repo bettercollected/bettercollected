@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
+import ErrorText from '@Components/Consent/ErrorText';
 import HintBox from '@Components/Consent/Form/HintBox';
 import TermsAndCondition from '@Components/Consent/TermsAndCondition';
 
 import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
+import useForm from '@app/lib/hooks/use-form';
 import { ConsentCategoryType } from '@app/models/enums/consentEnum';
 import { resetConsentState } from '@app/store/consent/actions';
 import { IConsentAnswer, IConsentField } from '@app/store/consent/types';
@@ -22,10 +24,14 @@ export default function ConsentBuilderConfirmationModaView({ onFormPublish, cons
     const { closeModal } = useModal();
     const fullScreenModal = useFullScreenModal();
     const dispatch = useAppDispatch();
-    const [isLoading, setLoading] = useState(false);
+    const { isLoading, error, setError, setLoading } = useForm();
+    const [formPurposeTermChecked, setFormPurposeTermChecked] = useState(false);
 
+    const handleFormPurposeTermChange = (checked: boolean) => {
+        setFormPurposeTermChecked(checked);
+    };
     const formPurposeTermsAndConditonDetails = (
-        <TermsAndCondition>
+        <TermsAndCondition onAgree={handleFormPurposeTermChange}>
             <TermsAndCondition.Title title={`I have mentioned all the form's purposes.`} />
             <TermsAndCondition.Description description={`This confirms that you have clearly mentioned all the purposes for which data is being collected in your forms.`} />
         </TermsAndCondition>
@@ -33,14 +39,21 @@ export default function ConsentBuilderConfirmationModaView({ onFormPublish, cons
 
     const onSubmit = async (event: any) => {
         event.preventDefault();
+
+        if (!formPurposeTermChecked) {
+            setError(true);
+            return;
+        }
         setLoading(true);
         try {
             await onFormPublish(consents);
             closeModal();
             fullScreenModal.closeModal();
             dispatch(resetConsentState());
-        } catch (e) {}
-        setLoading(false);
+        } catch (error) {
+        } finally {
+            setLoading(false);
+        }
     };
     return (
         <form onSubmit={onSubmit} className="bg-white rounded-2xl w-fit md:w-[476px] h-content">
@@ -58,6 +71,7 @@ export default function ConsentBuilderConfirmationModaView({ onFormPublish, cons
                 {formPurposeTermsAndConditonDetails}
             </div>
             <div className="p-10">
+                {error && <ErrorText text=" Please fill to all required consents." />}
                 <AppButton isLoading={isLoading} type="submit" className="bg-new-blue-500 !w-full !py-3">
                     Confirm & Publish
                 </AppButton>
