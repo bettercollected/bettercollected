@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import FormButton from '@Components/Common/Input/Button/FormButton';
 import CheckBox from '@Components/Common/Input/CheckBox';
@@ -29,9 +29,10 @@ import ConsentField from './ConsentField';
 interface ConsentBuilderProps extends OnlyClassNameInterface {
     onFormSubmit: any;
     form: StandardFormDto;
+    isPreview?: boolean;
 }
 
-export default function ConsentForm({ className, onFormSubmit, form }: ConsentBuilderProps) {
+export default function ConsentForm({ className, onFormSubmit, form, isPreview = false }: ConsentBuilderProps) {
     const dispatch = useAppDispatch();
     const { closeModal } = useFullScreenModal();
     const { openModal } = useModal();
@@ -40,7 +41,7 @@ export default function ConsentForm({ className, onFormSubmit, form }: ConsentBu
     const [error, setError] = useState(false);
 
     const getFilteredConsents = (category: ConsentCategoryType) => {
-        return form.consent.map((consent, idx) => consent?.category === category && <ConsentField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} />);
+        return form.consent.map((consent, idx) => consent?.category === category && <ConsentField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} disabled={isPreview} />);
     };
 
     const dataAccessDetails = (
@@ -90,6 +91,7 @@ export default function ConsentForm({ className, onFormSubmit, form }: ConsentBu
             setError(true);
         }
     };
+
     return (
         <form className={cn(className)} onSubmit={onSubmit}>
             <div className="space-y-20 xs:space-y-[70px]">
@@ -105,17 +107,19 @@ that we've included a consent page to provide you with important details.`}
                 {renderResponderRights()}
                 {dataAccessDetails}
             </div>
-            <div className="mt-[60px] space-y-3">
-                {error && (
-                    <div className="p2 !text-new-pink items-center !font-normal">
-                        <span className="mr-2">
-                            <ErrorIcon />
-                        </span>
-                        Please agree to all required consents.
-                    </div>
-                )}
-                <FormButton className="w-[192px]">Done</FormButton>
-            </div>
+            {!isPreview && (
+                <div className="mt-[60px] space-y-3">
+                    {error && (
+                        <div className="p2 !text-new-pink items-center !font-normal">
+                            <span className="mr-2">
+                                <ErrorIcon />
+                            </span>
+                            Please agree to all required consents.
+                        </div>
+                    )}
+                    <FormButton className="w-[192px]">Done</FormButton>
+                </div>
+            )}
         </form>
     );
 }
