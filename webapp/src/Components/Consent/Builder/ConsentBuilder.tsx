@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 import FormButton from '@Components/Common/Input/Button/FormButton';
 import CheckBox from '@Components/Common/Input/CheckBox';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import ErrorIcon from '@mui/icons-material/Error';
 import cn from 'classnames';
 
@@ -85,8 +86,9 @@ export default function ConsentBuilder({ className, onFormPublish }: ConsentBuil
         if (validateConsentBuilder(consentState)) {
             setError(false);
             try {
-                dispatch(setResponderRights());
-                await onFormPublish(consentState.consents);
+                debugger;
+                const responderRightsConsentField = { consentId: uuidv4(), type: ConsentType.Info, category: ConsentCategoryType.RespondersRights, title: 'Responder Rights' };
+                await onFormPublish([...consentState.consents, isDeletionRequestChecked && responderRightsConsentField]);
                 dispatch(resetConsentState());
                 closeModal();
             } catch (e) {}
