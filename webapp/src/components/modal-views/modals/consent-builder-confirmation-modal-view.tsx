@@ -32,8 +32,8 @@ export default function ConsentBuilderConfirmationModaView({ onFormPublish, cons
     };
     const formPurposeTermsAndConditonDetails = (
         <TermsAndCondition onAgree={handleFormPurposeTermChange}>
-            <TermsAndCondition.Title title={`I have mentioned all the form's purposes.`} />
-            <TermsAndCondition.Description description={`This confirms that you have clearly mentioned all the purposes for which data is being collected in your forms.`} />
+            <TermsAndCondition.Title>{`I have mentioned all the form's purposes.`}</TermsAndCondition.Title>
+            <TermsAndCondition.Description>{`This confirms that you have clearly mentioned all the purposes for which data is being collected in your forms.`}</TermsAndCondition.Description>
         </TermsAndCondition>
     );
 
