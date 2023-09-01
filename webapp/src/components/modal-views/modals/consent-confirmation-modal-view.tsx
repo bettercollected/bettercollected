@@ -25,8 +25,8 @@ export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswe
     const fullScreenModal = useFullScreenModal();
     const dispatch = useAppDispatch();
     const { isLoading, error, setError, setLoading } = useForm();
-    const [formPurposeTermChecked, setFormPurposeTermChecked] = useState(false);
-    const [privacyTermChecked, setPrivacyTermChecked] = useState(false);
+    const [formPurposeTermChecked, setFormPurposeTermChecked] = useState(true);
+    const [privacyTermChecked, setPrivacyTermChecked] = useState(true);
 
     const renderPurposeTermsAndConditon = () => {
         const formPurpose = Object.values(consentAnswers).filter((answer) => answer.category === ConsentCategoryType.PurposeOfTheForm).length !== 0;
@@ -81,7 +81,7 @@ export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswe
                 </TermsAndCondition>
             </div>
             <div className="p-10">
-                {error && <ErrorText text=" Please fill to all required consents." />}
+                {error && <ErrorText text="Please accept all terms and conditions before proceeding." />}
                 <AppButton type="submit" isLoading={isLoading} className="bg-new-blue-500 !w-full !py-3">
                     Confirm & Submit
                 </AppButton>
