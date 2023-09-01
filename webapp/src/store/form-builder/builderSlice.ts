@@ -1,15 +1,15 @@
-import {uuidv4} from '@mswjs/interceptors/lib/utils/uuid';
-import {PayloadAction, createAsyncThunk, createSlice} from '@reduxjs/toolkit';
-import {persistReducer} from 'redux-persist';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import undoable, {excludeAction, includeAction} from 'redux-undo';
-import {v4} from 'uuid';
+import undoable, { excludeAction, includeAction } from 'redux-undo';
+import { v4 } from 'uuid';
 
-import {FormBuilderTagNames} from '@app/models/enums/formBuilder';
-import {IBuilderMenuState, IBuilderState, IChoiceFieldState, IFormFieldState} from '@app/store/form-builder/types';
-import {convertProxyToObject} from '@app/utils/reduxUtils';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { IBuilderMenuState, IBuilderState, IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
+import { convertProxyToObject } from '@app/utils/reduxUtils';
 
-import {getInitialPropertiesForFieldType} from './utils';
+import { getInitialPropertiesForFieldType } from './utils';
 
 const firstFieldId = v4();
 
@@ -19,11 +19,11 @@ const initialState: IBuilderState = {
     description: '',
     buttonText: 'Submit',
     menus: {
-        spotlightField: {isOpen: false, afterFieldUuid: ''},
-        commands: {isOpen: false, atFieldUuid: '', position: 'down'},
-        fieldSettings: {isOpen: false, atFieldUuid: ''},
-        pipingFields: {isOpen: false, atFieldUuid: ''},
-        pipingFieldSettings: {isOpen: false, uuid: ''}
+        spotlightField: { isOpen: false, afterFieldUuid: '' },
+        commands: { isOpen: false, atFieldUuid: '', position: 'down' },
+        fieldSettings: { isOpen: false, atFieldUuid: '' },
+        pipingFields: { isOpen: false, atFieldUuid: '' },
+        pipingFieldSettings: { isOpen: false, uuid: '' }
     },
     fields: {
         [firstFieldId]: {
@@ -42,7 +42,7 @@ const initialState: IBuilderState = {
     activeChoiceIndex: 0
 };
 
-export const setIsFormDirtyAsync = createAsyncThunk('form/setIsFormDirtyAsync', async (isDirty, {getState}) => {
+export const setIsFormDirtyAsync = createAsyncThunk('form/setIsFormDirtyAsync', async (isDirty, { getState }) => {
     // Perform async logic here, e.g., making an API call or any other asynchronous operation
     // You can access the current state using `getState()`
 
@@ -79,7 +79,7 @@ export const builder = createSlice({
             };
         },
         setActiveChoice: (state, action: PayloadAction<{ id: string; position: number }>) => {
-            const {id, position} = action.payload;
+            const { id, position } = action.payload;
             state.activeChoiceId = id;
             state.activeChoiceIndex = position;
         },
@@ -94,10 +94,10 @@ export const builder = createSlice({
         setAddNewChoice: (state: IBuilderState, action: { payload: IChoiceFieldState; type: string }) => {
             const activeField = state.fields[state.activeFieldId];
             const newChoices = Object.values(convertProxyToObject(activeField.properties?.choices || {}));
-            newChoices.splice(action.payload.position, 0, {...action.payload});
+            newChoices.splice(action.payload.position, 0, { ...action.payload });
             const choices: any = {};
             newChoices.forEach((choice: any, index: number) => {
-                choices[choice.id] = {...choice, position: index};
+                choices[choice.id] = { ...choice, position: index };
             });
             return {
                 ...state,
@@ -141,16 +141,16 @@ export const builder = createSlice({
             if (state.menus?.commands)
                 return {
                     ...state,
-                    menus: {...state.menus, commands: {...state.menus?.commands, position: action.payload}}
+                    menus: { ...state.menus, commands: { ...state.menus?.commands, position: action.payload } }
                 };
         },
         setBuilderMenuState: (state: IBuilderState, action: { payload: Partial<IBuilderMenuState>; type: string }) => {
-            const menus = {...state.menus, ...action.payload};
-            return {...state, menus};
+            const menus = { ...state.menus, ...action.payload };
+            return { ...state, menus };
         },
         resetBuilderMenuState: (state: IBuilderState) => {
-            const menus = {...state.menus, ...initialState.menus};
-            return {...state, menus};
+            const menus = { ...state.menus, ...initialState.menus };
+            return { ...state, menus };
         },
         setAddNewField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             const fieldsToAdd: Array<IFormFieldState> = [];
@@ -180,14 +180,14 @@ export const builder = createSlice({
             fieldsArray.splice(action?.payload?.position + (action?.payload?.replace ? 0 : 1), action?.payload?.replace ? 1 : 0, ...fieldsToAdd);
             const newFieldsMap: any = {};
             fieldsArray.forEach((field: IFormFieldState, index: number) => {
-                newFieldsMap[field.id] = {...field, position: index};
+                newFieldsMap[field.id] = { ...field, position: index };
             });
-            return {...state, activeFieldId: newField.id, fields: newFieldsMap};
+            return { ...state, activeFieldId: newField.id, fields: newFieldsMap };
         },
         addDuplicateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             // TODO: fix duplicate for shortcut keys
             const fieldsArray = [...Object.values(state.fields)];
-            fieldsArray.splice(action?.payload?.position, 0, {...action.payload});
+            fieldsArray.splice(action?.payload?.position, 0, { ...action.payload });
             const newFieldsMap: any = {};
             fieldsArray.forEach((field: IFormFieldState, index: number) => {
                 newFieldsMap[field.id] = field;
@@ -219,7 +219,7 @@ export const builder = createSlice({
         setFields: (state: IBuilderState, action: { payload: Array<IFormFieldState>; type: string }) => {
             const fields: Record<string, IFormFieldState> = {};
             action.payload.forEach((field: IFormFieldState, position: number) => {
-                fields[field.id] = {...field, position};
+                fields[field.id] = { ...field, position };
             });
             return {
                 ...state,
@@ -227,7 +227,7 @@ export const builder = createSlice({
             };
         },
         setDeleteField: (state: IBuilderState, action: { payload: string; type: string }) => {
-            const fields = {...state.fields};
+            const fields = { ...state.fields };
             delete fields[action.payload];
             const fieldsArray = [...Object.values(fields)];
             const newFieldsMap: any = {};
@@ -245,9 +245,9 @@ export const builder = createSlice({
                 const choices: any = {};
 
                 field?.properties?.choices?.map((choice: IChoiceFieldState, index: number) => {
-                    choices[choice.id] = {...choice, position: index};
+                    choices[choice.id] = { ...choice, position: index };
                 });
-                fields[field.id] = {...field, position: index, properties: {...field.properties, choices: choices}};
+                fields[field.id] = { ...field, position: index, properties: { ...field.properties, choices: choices } };
             });
             return {
                 ...state,
@@ -274,8 +274,8 @@ export const builder = createSlice({
             };
         },
         setMoveField: (state: IBuilderState, action: PayloadAction<{ oldIndex: number; newIndex: number }>) => {
-            const {oldIndex, newIndex} = action.payload;
-            const fields = {...state.fields};
+            const { oldIndex, newIndex } = action.payload;
+            const fields = { ...state.fields };
             const fieldsArray = [...Object.values(fields)];
             const movedField = fieldsArray.splice(oldIndex, 1)[0];
             fieldsArray.splice(newIndex, 0, movedField);
@@ -309,11 +309,12 @@ const builderPersistReducer = persistReducer(
 
 const undoableReducer = undoable(builderPersistReducer, {
     neverSkipReducer: true,
+    ignoreInitialState: true,
     filter: function filterActions(action, currentState, previousHistory) {
         if (currentState.isTyping) return false;
         return [builder.actions.setAddNewField.type, builder.actions.setAddNewChoice.type, builder.actions.setTyping.type].includes(action.type);
     }
 });
 
-const reducerObj = {reducerPath: builder.name, reducer: undoableReducer};
+const reducerObj = { reducerPath: builder.name, reducer: undoableReducer };
 export default reducerObj;
