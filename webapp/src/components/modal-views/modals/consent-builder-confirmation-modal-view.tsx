@@ -19,13 +19,13 @@ import {useFullScreenModal} from '../full-screen-modal-context';
 export interface ConsentBuilderConfirmationModalProps {
     onFormPublish: any;
     consents: IConsentField[];
-    privacy_policy: string
+    privacyPolicyUrl: string
 }
 
 export default function ConsentBuilderConfirmationModaView({
                                                                onFormPublish,
                                                                consents,
-                                                               privacy_policy
+                                                               privacyPolicyUrl
                                                            }: ConsentBuilderConfirmationModalProps) {
     const {closeModal} = useModal();
     const fullScreenModal = useFullScreenModal();
@@ -52,7 +52,7 @@ export default function ConsentBuilderConfirmationModaView({
         }
         setLoading(true);
         try {
-            await onFormPublish(consents, privacy_policy);
+            await onFormPublish(consents, privacyPolicyUrl);
             closeModal();
             fullScreenModal.closeModal();
             dispatch(resetConsentState());

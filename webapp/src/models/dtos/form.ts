@@ -1,13 +1,13 @@
-import { ValidationType } from '@Components/FormBuilder/FieldOptions/types';
+import {ValidationType} from '@Components/FormBuilder/FieldOptions/types';
 
-import { UserDto } from '@app/models/dtos/UserDto';
-import { UserStatus } from '@app/models/dtos/UserStatus';
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { IConsentField } from '@app/store/consent/types';
-import { IFormFieldValidation } from '@app/store/form-builder/types';
+import {UserDto} from '@app/models/dtos/UserDto';
+import {UserStatus} from '@app/models/dtos/UserStatus';
+import {FormBuilderTagNames} from '@app/models/enums/formBuilder';
+import {IConsentField} from '@app/store/consent/types';
+import {IFormFieldValidation} from '@app/store/form-builder/types';
 
-import { FileMetadata } from '../types/fileTypes';
-import { ResponderGroupDto } from './groups';
+import {FileMetadata} from '../types/fileTypes';
+import {ResponderGroupDto} from './groups';
 
 export interface StandardFormFieldDto {
     id: string;
@@ -21,9 +21,9 @@ export interface StandardFormFieldDto {
     description?: string | null;
     type:
         | {
-              type: string;
-              options: Array<any>;
-          }
+        type: string;
+        options: Array<any>;
+    }
         | any;
     isMediaContent?: boolean;
     mediaContent?: boolean;
@@ -50,6 +50,7 @@ export interface StandardFormDto {
         private?: boolean;
         provider: string;
         roles?: Array<string>;
+        privacyPolicyUrl?: string;
     };
     importerDetails: UserStatus;
     consent: Array<IConsentField>;

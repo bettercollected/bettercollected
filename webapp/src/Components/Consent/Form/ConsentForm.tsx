@@ -85,7 +85,7 @@ export default function ConsentForm({ className, onFormSubmit, form }: ConsentBu
         event.preventDefault();
         if (validateConsents(consentAnswers, form.consent)) {
             setError(false);
-            openModal('CONSENT_CONFIRMATION_MODAL_VIEW', { onFormSubmit, consentAnswers });
+            openModal('CONSENT_CONFIRMATION_MODAL_VIEW', { onFormSubmit, consentAnswers, privacyPolicyUrl: form?.settings?.privacyPolicyUrl });
         } else {
             setError(true);
         }
