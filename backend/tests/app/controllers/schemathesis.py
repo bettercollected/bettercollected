@@ -2,7 +2,9 @@ import schemathesis
 from schemathesis.checks import not_a_server_error
 from hypothesis import settings
 
-schema = schemathesis.from_uri("https://bettercollected-admin.sireto.dev/api/v1/openapi.json")
+schema = schemathesis.from_uri(
+    "https://bettercollected-admin.sireto.dev/api/v1/openapi.json"
+)
 
 
 @schema.parametrize()
