@@ -66,7 +66,7 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
         if (formPurposes) {
             return (
                 <div>
-                    <div className="h4-new pb-5 xs:pb-[17px]">Purpose of this form:</div>
+                    <div className="h4-new pb-5 xs:pb-[17px]">Purpose Of This Form:</div>
                     {getFilteredConsents(formPurpose.category)}
                     {!isPreview && (
                         <ConsentAddInput
@@ -148,7 +148,7 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
                     <ConsentInput
                         type="file"
                         disabled={isPreview}
-                        title="Insert Link to Your Terms And Conditions"
+                        title="Insert link to your privacy policy"
                         required
                         placeholder={isPreview ? form?.settings?.privacyPolicyUrl : 'Insert link here'}
                         className="mt-5"
