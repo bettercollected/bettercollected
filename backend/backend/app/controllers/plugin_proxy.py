@@ -45,7 +45,7 @@ class PluginProxy(BasePluginRoute):
         self,
         form_id: str,
         email: str,
-        provider: str | FormProvider,
+        provider: FormProvider,
         request: Request,
         user: User = Depends(get_logged_user),
     ):
@@ -95,7 +95,7 @@ class PluginProxy(BasePluginRoute):
         request: Request,
         form_id: str,
         email: str,
-        provider: str | FormProvider,
+        provider: FormProvider,
         request_body: Dict[str, Any] = Body(...),
         user: User = Depends(get_logged_user),
     ):
@@ -106,7 +106,7 @@ class PluginProxy(BasePluginRoute):
         request: Request,
         form_id: str,
         email: str,
-        provider: str | FormProvider,
+        provider: FormProvider,
         user: User = Depends(get_logged_user),
     ):
         raise HTTPException(status_code=HTTPStatus.NOT_IMPLEMENTED)
@@ -116,7 +116,7 @@ class PluginProxy(BasePluginRoute):
         request: Request,
         form_id: str,
         email: str,
-        provider: str | FormProvider,
+        provider: FormProvider,
         user: User = Depends(get_logged_user),
     ):
         raise HTTPException(status_code=HTTPStatus.NOT_IMPLEMENTED)
@@ -127,7 +127,7 @@ class PluginProxy(BasePluginRoute):
         form_id: str,
         email: str,
         response_id: str,
-        provider: str | FormProvider,
+        provider: FormProvider,
         user: User = Depends(get_logged_user),
     ):
         raise HTTPException(status_code=HTTPStatus.NOT_IMPLEMENTED)
@@ -138,7 +138,7 @@ class PluginProxy(BasePluginRoute):
         form_id: str,
         email: str,
         response_id: str,
-        provider: str | FormProvider,
+        provider: FormProvider,
         user: User = Depends(get_logged_user),
     ):
         raise HTTPException(status_code=HTTPStatus.NOT_IMPLEMENTED)

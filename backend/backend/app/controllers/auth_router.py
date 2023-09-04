@@ -25,6 +25,7 @@ from backend.app.services.user_service import (
     get_refresh_token,
 )
 from backend.config import settings
+from common.enums.form_provider import FormProvider
 from common.models.user import User, UserLoginWithOTP
 
 log = logging.getLogger(__name__)
@@ -60,6 +61,7 @@ class AuthRoutes(Routable):
         "/otp/validate",
         responses={
             503: {"description": "Requested Source not available."},
+            401:{"description": "Invalid Otp Code"}
         },
     )
     async def _validate_otp(self, login_details: UserLoginWithOTP, response: Response):
@@ -132,7 +134,7 @@ class AuthRoutes(Routable):
             503: {"description": "Requested Source not available."},
         },
     )
-    async def _basic_auth(self, provider: str, request: Request, creator: bool = False):
+    async def _basic_auth(self, provider: FormProvider, request: Request, creator: bool = False):
         client_referer_url = request.headers.get("referer")
         basic_auth_url = await self.auth_service.get_basic_auth_url(
             provider, client_referer_url, creator=creator
@@ -146,7 +148,7 @@ class AuthRoutes(Routable):
         },
     )
     async def _basic_auth_callback(
-        self, provider: str, code: Optional[str] = None, state: Optional[str] = None
+        self, provider: FormProvider, code: Optional[str] = None, state: Optional[str] = None
     ):
         if not state or not code:
             return {"message": "You cancelled the authorization request."}
