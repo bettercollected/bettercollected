@@ -250,10 +250,6 @@ class WorkspaceFormService:
     async def generate_presigned_file_url(
         self,
         key: str,
-        form_id,
-        response_id: PydanticObjectId,
-        user: User,
-        workspace_id: PydanticObjectId,
     ):
         # await self.workspace_user_service.check_is_admin_in_workspace(
         #     workspace_id=workspace_id, user=user
@@ -309,7 +305,9 @@ class WorkspaceFormService:
         workspace_form_settings = WorkspaceFormSettings(
             custom_url=form.form_id,
             provider="self",
-            privacy_policy_url=form.settings.privacy_policy_url if form.settings else "",
+            privacy_policy_url=form.settings.privacy_policy_url
+            if form.settings
+            else "",
             response_data_owner_field=form.settings.response_data_owner_field
             if form.settings
             else "",
@@ -351,7 +349,9 @@ class WorkspaceFormService:
                     form.settings.response_data_owner_field
                 )
             if form.settings.privacy_policy_url is not None:
-                workspace_form.settings.privacy_policy_url = form.settings.privacy_policy_url
+                workspace_form.settings.privacy_policy_url = (
+                    form.settings.privacy_policy_url
+                )
             await workspace_form.save()
 
         existing_form = await self.form_service.get_form_document_by_id(str(form_id))
