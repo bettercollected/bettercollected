@@ -14,17 +14,44 @@ from common.models.user import User
 
 @router(prefix="/{workspace_id}/consent", tags=["Workspace Consent"])
 class WorkspaceConsent(Routable):
-    def __init__(self, workspace_consent_service: WorkspaceConsentService = container.workspace_consent_service(),
-                 *args, **kwargs):
+    def __init__(
+        self,
+        workspace_consent_service: WorkspaceConsentService = container.workspace_consent_service(),
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
-        self.workspace_consent_service: WorkspaceConsentService = workspace_consent_service
+        self.workspace_consent_service: WorkspaceConsentService = (
+            workspace_consent_service
+        )
 
-    @get("", response_model=List[ConsentCamelModel])
-    async def get_workspace_consents(self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)):
-        return await self.workspace_consent_service.get_workspace_consents(workspace_id=workspace_id, user=user)
+    @get(
+        "",
+        response_model=List[ConsentCamelModel],
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
+    async def get_workspace_consents(
+        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+    ):
+        return await self.workspace_consent_service.get_workspace_consents(
+            workspace_id=workspace_id, user=user
+        )
 
-    @post("", response_model=ConsentCamelModel)
-    async def create_workspace_consent(self, workspace_id: PydanticObjectId, consent: ConsentCamelModel,
-                                       user: User = Depends(get_logged_user)):
-        return await self.workspace_consent_service.create_workspace_consent(workspace_id=workspace_id, consent=consent,
-                                                                             user=user)
+    @post(
+        "",
+        response_model=ConsentCamelModel,
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
+    async def create_workspace_consent(
+        self,
+        workspace_id: PydanticObjectId,
+        consent: ConsentCamelModel,
+        user: User = Depends(get_logged_user),
+    ):
+        return await self.workspace_consent_service.create_workspace_consent(
+            workspace_id=workspace_id, consent=consent, user=user
+        )

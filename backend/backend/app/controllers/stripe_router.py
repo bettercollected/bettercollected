@@ -20,11 +20,16 @@ class StripeRoutes(Routable):
         super().__init__(*args, **kwargs)
         self.stripe_service = stripe_service
 
-    @get("/plans")
+    @get("/plans", responses={503: {"message": "Requested Source not available."}})
     async def plans(self):
         return await self.stripe_service.get_plans()
 
-    @get("/session/create/checkout")
+    @get(
+        "/session/create/checkout",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def checkout(
         self,
         price_id: str,
@@ -33,12 +38,18 @@ class StripeRoutes(Routable):
         redirect_url = await self.stripe_service.create_checkout_session(user, price_id)
         return RedirectResponse(redirect_url)
 
-    @get("/session/create/portal")
+    @get(
+        "/session/create/portal",
+        responses={
+            401: {"description": "Authorization token is missing."},
+            503: {"message": "Requested Source not available."},
+        },
+    )
     async def customer_portal(self, user: User = Depends(get_logged_user)):
         redirect_url = await self.stripe_service.create_portal_session(user)
         return RedirectResponse(redirect_url)
 
-    @post("/webhooks")
+    @post("/webhooks", responses={503: {"message": "Requested Source not available."}})
     async def webhooks(self, request: Request, response: Response):
         auth_response = await self.stripe_service.webhooks(request)
         response.content = auth_response.content
