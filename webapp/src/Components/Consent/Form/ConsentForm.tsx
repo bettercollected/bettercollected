@@ -21,6 +21,7 @@ import { selectConsentAnswers } from '@app/store/fill-form/selectors';
 import { resetFillForm } from '@app/store/fill-form/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { validateConsents } from '@app/utils/validations/consent/consentValidation';
 
@@ -33,10 +34,9 @@ interface ConsentBuilderProps extends OnlyClassNameInterface {
 }
 
 export default function ConsentForm({ className, onFormSubmit, form, isPreview = false }: ConsentBuilderProps) {
-    const dispatch = useAppDispatch();
-    const { closeModal } = useFullScreenModal();
     const { openModal } = useModal();
     const workspace = useAppSelector(selectWorkspace);
+    const { data } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
     const consentAnswers = useAppSelector(selectConsentAnswers);
     const [error, setError] = useState(false);
 
@@ -49,7 +49,9 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
             <div className="space-y-5">
                 <div className="h4-new">{`Who can access your data?`}</div>
                 <div className="border-y border-new-black-300 py-5 space-y-2">
-                    <div className="h6-new">{workspace.workspaceName} with 10 members</div>
+                    <div className="h6-new">
+                        {workspace.workspaceName} with {data?.length} members
+                    </div>
                     <ul className="space-y-3 list-disc !px-5">
                         <li className="p2">We will only collect and use your data as described in privacy policy.</li>
                         <li className="p2">We will not sell or share your data with any other third parties without your consent.</li>

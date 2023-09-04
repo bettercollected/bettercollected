@@ -108,7 +108,7 @@ export default function FormSettingsTab() {
             <FormSettingsCard>
                 <p className="sh3">{t(formConstant.settings.visibility.title)}</p>
                 <RadioGroup className="flex flex-col gap-6" defaultValue={form?.settings?.private ? 'Private' : 'Public'}>
-                    <div className="flex flex-cospanl">
+                    <div className="flex flex-col">
                         <FormControlLabel
                             onChange={() => onPrivateChanged({ f: form })}
                             value="Public"
