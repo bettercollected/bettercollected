@@ -1,7 +1,7 @@
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 
 const consentPageInformation = {
-    title: 'What is this page?',
+    title: 'What Is This Page?',
     description: "This page is your opportunity to communicate directly with your form responders about the purpose of the form and the data you collect. It's like a digital handshake, establishing trust and transparency.",
     importanceTitle: 'Why Should You Care?',
     importanceDescription: [
@@ -13,7 +13,7 @@ const consentPageInformation = {
 const formPurpose = {
     hint: `Help users understand your form's intent! Specify its purpose
     (e.g., marketing, analytics) for transparent consent.`,
-    title: 'Select or Add Purpose',
+    title: 'Select or Add purpose',
     options: [
         { title: 'Marketing', type: ConsentType.Checkbox, category: ConsentCategoryType.PurposeOfTheForm },
         { title: 'Analytics', type: ConsentType.Checkbox, category: ConsentCategoryType.PurposeOfTheForm },
@@ -26,7 +26,7 @@ const formPurpose = {
 const thirdPartySharing = {
     hint: `Let users know if you're using any third-party apps for form data 
     (e.g., Google Sheets, Google Forms) for transparent consent.`,
-    title: 'Select or Add Third-Party Integrations',
+    title: 'Select or Add third-Party integrations',
     options: ['No Third-Party', 'Google Sheets', 'Mailchimp', 'Google Analytics']
 };
 
