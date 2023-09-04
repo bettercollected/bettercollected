@@ -174,7 +174,6 @@ class TestWorkspaceFormSubmission:
         workspace_form_response_1: Coroutine[Any, Any, dict],
         workspace_form_response: Coroutine[Any, Any, dict],
         get_get_form_responses_url: str,
-
     ):
         response_ids = [
             workspace_form_response["response_id"],
