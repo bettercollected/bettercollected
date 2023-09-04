@@ -87,7 +87,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                                     cursor: 'grabbing'
                                 }}
                             >
-                                <img style={{ width: '100%', height: '100%', objectFit: 'fill' }} src={image} alt="test" />
+                                <img style={{ width: '100%', height: '100%', objectFit: 'cover' }} src={image} alt="test" />
                             </TransformComponent>
                         );
                     }}
