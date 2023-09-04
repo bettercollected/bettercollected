@@ -15,23 +15,26 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 type ConsentType = 'info' | 'checkbox';
 
 interface ConsentBuilderFieldProps extends OnlyClassNameInterface {
+    disabled?: boolean;
     consent: IConsentField;
 }
-export default function ConsentBuilderField({ consent, className }: ConsentBuilderFieldProps) {
+export default function ConsentBuilderField({ consent, className, disabled = false }: ConsentBuilderFieldProps) {
     const dispatch = useAppDispatch();
     const { openModal } = useModal();
 
     const handleRemoveConsent = (event: any) => {
         event.stopPropagation();
+        if (disabled) return;
         dispatch(setRemoveConsent(consent.consentId));
     };
     const handleModalOpen = () => {
+        if (disabled) return;
         const modalProps: ConsentPurposeModalProps = { consent, mode: 'update' };
         openModal('CONSENT_PURPOSE_MODAL_VIEW', modalProps);
     };
 
     return (
-        <div id={`item-${consent.consentId}`} className={cn('space-y-2 p-5 border-b border-new-black-300 hover:bg-new-black-200 hover:cursor-pointer group', className)} onClick={handleModalOpen}>
+        <div id={`item-${consent.consentId}`} className={cn('space-y-2 p-5 border-b border-new-black-300 hover:bg-new-black-200 hover:cursor-pointer group', className, disabled && 'hover:cursor-default hover:bg-white')} onClick={handleModalOpen}>
             <div className="flex items-center justify-between">
                 <div className="flex space-x-2 ">
                     {consent.type === 'checkbox' && <CheckBox disabled className="!m-0" />}
@@ -40,7 +43,7 @@ export default function ConsentBuilderField({ consent, className }: ConsentBuild
                     </div>
                 </div>
 
-                <DropdownCloseIcon className="hidden group-hover:block" onClick={handleRemoveConsent} />
+                <DropdownCloseIcon className={cn('hidden group-hover:block', disabled && 'group-hover:hidden')} onClick={handleRemoveConsent} />
             </div>
 
             {consent.description !== '' && (

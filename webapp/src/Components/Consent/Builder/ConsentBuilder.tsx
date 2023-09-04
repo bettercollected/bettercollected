@@ -42,7 +42,7 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
 
     const getFilteredConsents = (category: ConsentCategoryType) => {
         if (isPreview) {
-            return form?.consent.map((consent, idx) => consent?.category === category && <ConsentBuilderField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} />);
+            return form?.consent.map((consent, idx) => consent?.category === category && <ConsentBuilderField key={consent.consentId} disabled={isPreview} className={`${idx === 0 && 'border-y'}`} consent={consent} />);
         }
         return consentState.consents.map((consent, idx) => consent?.category === category && <ConsentBuilderField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} />);
     };
@@ -91,6 +91,7 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
                     <div className="h4-new">{`Responder's Rights`}</div>
                     <div className="flex space-x-2">
                         <CheckBox
+                            id="responder-rights"
                             disabled={isPreview}
                             checked={isDeletionRequestChecked}
                             onChange={(event, checked) => {
@@ -98,7 +99,9 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
                             }}
                         />
                         <div className="space-y-2">
-                            <div className="h6-new">Request deletion of their data</div>
+                            <label htmlFor="responder-rights" className="h6-new cursor-pointer">
+                                Request deletion of their data
+                            </label>
                             <p className="p2">This field allows you to specify whether you will allow users to request the deletion of their data and other actions.</p>
                         </div>
                     </div>
