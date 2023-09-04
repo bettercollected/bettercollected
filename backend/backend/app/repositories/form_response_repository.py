@@ -236,7 +236,10 @@ class FormResponseRepository(BaseRepository):
         ).delete()
 
     async def save_form_response(
-        self, form_id: PydanticObjectId, response: StandardFormResponse, workspace_id: PydanticObjectId
+        self,
+        form_id: PydanticObjectId,
+        response: StandardFormResponse,
+        workspace_id: PydanticObjectId,
     ):
         response_document = FormResponseDocument(**response.dict())
         response_document.response_id = str(PydanticObjectId())

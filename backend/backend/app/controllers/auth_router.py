@@ -37,21 +37,42 @@ class AuthRoutes(Routable):
         super().__init__(*args, **kwargs)
         self.auth_service = auth_service
 
-    @get("/status", response_model=UserStatusDto)
+    @get(
+        "/status",
+        response_model=UserStatusDto,
+        responses={
+            401: {"message": "Authorization token is missing."},
+        },
+    )
     async def status(self, user: User = Depends(get_logged_user)):
         return await self.auth_service.get_user_status(user)
 
-    @post("/creator/otp/send")
+    @post(
+        "/creator/otp/send",
+        responses={
+            503: {"description": "Requested Source not available."},
+        },
+    )
     async def send_otp_for_creator(self, receiver_email: EmailStr):
         return await self.auth_service.send_otp_for_creator(receiver_email)
 
-    @post("/otp/validate")
+    @post(
+        "/otp/validate",
+        responses={
+            503: {"description": "Requested Source not available."},
+        },
+    )
     async def _validate_otp(self, login_details: UserLoginWithOTP, response: Response):
         user = await self.auth_service.validate_otp(login_details)
         set_tokens_to_response(user, response)
         return "Logged In successfully"
 
-    @post("/refresh")
+    @post(
+        "/refresh",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def _refresh_access_token(
         self, response: Response, user=Depends(get_logged_user)
     ):
@@ -60,7 +81,12 @@ class AuthRoutes(Routable):
         set_access_token_to_response(user=User(**user_response), response=response)
         return response
 
-    @get("/{provider_name}/oauth")
+    @get(
+        "/{provider_name}/oauth",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def _oauth_provider(
         self,
         provider_name: str,
@@ -73,7 +99,12 @@ class AuthRoutes(Routable):
         )
         return RedirectResponse(oauth_url)
 
-    @get("/{provider_name}/oauth/callback")
+    @get(
+        "/{provider_name}/oauth/callback",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def _auth_callback(
         self,
         request: Request,
@@ -95,7 +126,12 @@ class AuthRoutes(Routable):
             return response
         return {"message": "Token saved successfully."}
 
-    @get("/{provider}/basic")
+    @get(
+        "/{provider}/basic",
+        responses={
+            503: {"description": "Requested Source not available."},
+        },
+    )
     async def _basic_auth(self, provider: str, request: Request, creator: bool = False):
         client_referer_url = request.headers.get("referer")
         basic_auth_url = await self.auth_service.get_basic_auth_url(
@@ -103,7 +139,12 @@ class AuthRoutes(Routable):
         )
         return RedirectResponse(basic_auth_url)
 
-    @get("/{provider}/basic/callback")
+    @get(
+        "/{provider}/basic/callback",
+        responses={
+            503: {"description": "Requested Source not available."},
+        },
+    )
     async def _basic_auth_callback(
         self, provider: str, code: Optional[str] = None, state: Optional[str] = None
     ):
@@ -117,13 +158,23 @@ class AuthRoutes(Routable):
             set_tokens_to_response(User(**user), response)
         return response
 
-    @get("/logout")
+    @get(
+        "/logout",
+        responses={
+            401: {"description": "RefreshToken is missing."},
+        },
+    )
     async def logout(self, request: Request, response: Response):
         await add_refresh_token_to_blacklist(request=request)
         delete_token_cookie(response=response)
         return "Logged out successfully!!!"
 
-    @delete("/user")
+    @delete(
+        "/user",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def delete_user(
         self,
         request: Request,
@@ -138,7 +189,12 @@ class AuthRoutes(Routable):
         await add_refresh_token_to_blacklist(request=request)
         return "User Deleted Successfully"
 
-    @post("/user/delete/workflow")
+    @post(
+        "/user/delete/workflow",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def add_workflow_to_delete_user(
         self,
         response: Response,

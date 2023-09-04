@@ -13,7 +13,12 @@ class TemporalRouter(Routable):
         super().__init__(*args, **kwargs)
         self.form_schedular = form_schedular
 
-    @post("/import/{workspace_id}/form/{form_id}")
+    @post(
+        "/import/{workspace_id}/form/{form_id}",
+        responses={
+            403: {"description": "You are not allowed to perform this action."},
+        },
+    )
     async def import_form_to_workspace(
         self, workspace_id: PydanticObjectId, form_id: str, api_key=Depends(get_api_key)
     ):

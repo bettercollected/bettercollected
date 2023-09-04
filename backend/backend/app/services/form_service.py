@@ -217,6 +217,5 @@ class FormService:
     async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
         return await self._form_repo.update_form(form_id=form_id, form=form)
 
-    async def get_form_document_by_id(self, form_id:str):
+    async def get_form_document_by_id(self, form_id: str):
         return await self._form_repo.get_form_document_by_id(form_id)
-

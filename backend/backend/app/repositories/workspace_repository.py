@@ -61,7 +61,10 @@ class WorkspaceRepository(BaseRepository):
             }
         )
         if not workspace:
-            raise HTTPException(HTTPStatus.NOT_FOUND)
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                content="The page you are looking is unavailable.",
+            )
         return workspace
 
     async def get_user_workspaces(self, owner_id: str):
