@@ -43,10 +43,10 @@ class FormPluginProviderService:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
             )
-        if user.is_admin():
-            return provider
-        if provider.enabled:
-            return {"provider_name": provider.provider_name}
+        if user is None or not user.is_admin():
+            if provider.enabled:
+                return {"provider_name": provider.provider_name}
+        return provider
 
     async def get_provider_if_enabled(self, provider_name):
         provider = await self._form_provider_repo.get(provider_name)

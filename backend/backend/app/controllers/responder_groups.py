@@ -25,7 +25,12 @@ class ResponderGroupsRouter(Routable):
         super().__init__(*args, **kwargs)
         self.responder_groups_service = responder_groups_service
 
-    @get("")
+    @get(
+        "",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def get_groups_in_workspace(
         self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
     ):
@@ -33,7 +38,12 @@ class ResponderGroupsRouter(Routable):
             workspace_id=workspace_id, user=user
         )
 
-    @post("")
+    @post(
+        "",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     @user_tag(tag=UserTagType.GROUP_CREATED)
     async def create(
         self,
@@ -49,7 +59,12 @@ class ResponderGroupsRouter(Routable):
             workspace_id, name, emails, user, form_id, description, regex
         )
 
-    @get("/{group_id}")
+    @get(
+        "/{group_id}",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def get_user_group(
         self,
         workspace_id: PydanticObjectId,
@@ -60,7 +75,13 @@ class ResponderGroupsRouter(Routable):
             workspace_id=workspace_id, group_id=group_id, user=user
         )
 
-    @patch("/{group_id}", summary="Update Responder Group")
+    @patch(
+        "/{group_id}",
+        summary="Update Responder Group",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def update_user_group(
         self,
         workspace_id: PydanticObjectId,
@@ -81,7 +102,12 @@ class ResponderGroupsRouter(Routable):
             regex=regex,
         )
 
-    @patch("/{group_id}/emails")
+    @patch(
+        "/{group_id}/emails",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def add_emails_to_group(
         self,
         workspace_id: PydanticObjectId,
@@ -93,7 +119,12 @@ class ResponderGroupsRouter(Routable):
             workspace_id=workspace_id, group_id=group_id, emails=emails, user=user
         )
 
-    @delete("/{group_id}/emails")
+    @delete(
+        "/{group_id}/emails",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def delete_emails_from_group(
         self,
         workspace_id: PydanticObjectId,
@@ -106,7 +137,12 @@ class ResponderGroupsRouter(Routable):
         )
         return "Removed emails"
 
-    @delete("/{group_id}")
+    @delete(
+        "/{group_id}",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def delete_responder_group(
         self,
         workspace_id: PydanticObjectId,

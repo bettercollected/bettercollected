@@ -35,6 +35,9 @@ class WorkspaceResponsesRouter(CustomRoutable):
     @get(
         "/forms/{form_id}/submissions",
         response_model=Page[StandardFormResponseCamelModel],
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
     )
     async def _get_workspace_form_responses(
         self,
@@ -50,7 +53,13 @@ class WorkspaceResponsesRouter(CustomRoutable):
         )
         return responses
 
-    @get("/all-submissions", response_model=Page[StandardFormResponseCamelModel | Any])
+    @get(
+        "/all-submissions",
+        response_model=Page[StandardFormResponseCamelModel | Any],
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def _get_all_workspace_responses(
         self,
         workspace_id: PydanticObjectId,
@@ -68,7 +77,13 @@ class WorkspaceResponsesRouter(CustomRoutable):
         )
         return responses
 
-    @get("/submissions", response_model=Page[StandardFormResponseCamelModel])
+    @get(
+        "/submissions",
+        response_model=Page[StandardFormResponseCamelModel],
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def _get_user_submissions_in_workspace(
         self,
         workspace_id: PydanticObjectId,
@@ -81,7 +96,12 @@ class WorkspaceResponsesRouter(CustomRoutable):
         return submissions
 
     # TODO : Insert form id here/ Make uniform endpoints
-    @get("/submissions/{submission_id}")
+    @get(
+        "/submissions/{submission_id}",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def _get_workspace_form_response(
         self,
         workspace_id: PydanticObjectId,
@@ -92,7 +112,12 @@ class WorkspaceResponsesRouter(CustomRoutable):
             workspace_id, submission_id, user
         )
 
-    @delete("/submissions/{submission_id}")
+    @delete(
+        "/submissions/{submission_id}",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     @user_tag_from_workspace(tag=UserTagType.DELETION_REQUEST_RECEIVED)
     async def _request_workspace_form_response_delete(
         self,

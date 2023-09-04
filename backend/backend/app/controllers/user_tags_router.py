@@ -20,7 +20,13 @@ class UserTagsRoutes(Routable):
         super().__init__(*args, **kwargs)
         self.user_tags_service: UserTagsService = user_tags_service
 
-    @get("/", response_model=List[UserTagsDto])
+    @get(
+        "/",
+        response_model=List[UserTagsDto],
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def get_user_tags(
         self,
         user: User = Depends(get_logged_user),
@@ -29,7 +35,13 @@ class UserTagsRoutes(Routable):
             raise ForbiddenException()
         return await self.user_tags_service.get_user_tags()
 
-    @get("/details", response_model=List[UserTagsDetailsDto])
+    @get(
+        "/details",
+        response_model=List[UserTagsDetailsDto],
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def get_user_tags_details(self, user: User = Depends(get_logged_user)):
         if not user.is_admin():
             raise ForbiddenException()
