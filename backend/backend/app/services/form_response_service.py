@@ -248,7 +248,10 @@ class FormResponseService:
         return response
 
     async def submit_form_response(
-        self, form_id: PydanticObjectId, response: StandardFormResponse, workspace_id: PydanticObjectId
+        self,
+        form_id: PydanticObjectId,
+        response: StandardFormResponse,
+        workspace_id: PydanticObjectId,
     ):
         return await self._form_response_repo.save_form_response(
             form_id=form_id, response=response, workspace_id=workspace_id

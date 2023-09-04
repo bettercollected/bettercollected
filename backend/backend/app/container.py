@@ -174,7 +174,7 @@ class AppContainer(containers.DeclarativeContainer):
         responder_groups_service=responder_groups_service,
         user_tags_service=user_tags_service,
         temporal_service=temporal_service,
-        aws_service=aws_service
+        aws_service=aws_service,
     )
     workspace_service: WorkspaceService = providers.Singleton(
         WorkspaceService,
@@ -230,10 +230,11 @@ class AppContainer(containers.DeclarativeContainer):
     )
     workspace_consent_repo = providers.Singleton(WorkspaceConsentRepo)
 
-    workspace_consent_service = providers.Singleton(WorkspaceConsentService,
-                                                    workspace_user_service=workspace_user_service,
-                                                    workspace_consent_repo=workspace_consent_repo
-                                                    )
+    workspace_consent_service = providers.Singleton(
+        WorkspaceConsentService,
+        workspace_user_service=workspace_user_service,
+        workspace_consent_repo=workspace_consent_repo,
+    )
 
 
 container = AppContainer()
