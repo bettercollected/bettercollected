@@ -47,7 +47,7 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
     const dataAccessDetails = (
         <>
             <div className="space-y-5">
-                <div className="h4-new">{`Who can access your data?`}</div>
+                <div className="h4-new">{`Who Can Access Your Data?`}</div>
                 <div className="border-y border-new-black-300 py-5 space-y-2">
                     <div className="h6-new">
                         {workspace.workspaceName} with {data?.length} members
@@ -66,7 +66,7 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
         if (responderRight) {
             return (
                 <div className="space-y-5">
-                    <div className="h4-new">{`Your Rights`}</div>
+                    <div className="h4-new">{`Allow deletion request to responder?`}</div>
                     <div className="h6-new border-y border-new-black-300 py-5">You can request for deletion of your data at any time</div>
                 </div>
             );
@@ -101,8 +101,7 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
                     <div className="h4">Form Purpose and Data Usage</div>
                     <div className="p2 !text-new-black-800 ">
                         {`We want to make sure you're fully informed about how your data will be used
-before you proceed with our form. Our commitment to transparency means
-that we've included a consent page to provide you with important details.`}
+before you proceed with our form.`}
                     </div>
                 </div>
                 {renderFormPurposes()}

@@ -247,7 +247,7 @@ class WorkspaceFormService:
         await self.form_service.delete_forms(form_ids=form_ids)
         return await self.workspace_form_repository.delete_forms(form_ids=form_ids)
 
-    async def generate_presigned_file_url(
+    def generate_presigned_file_url(
         self,
         key: str,
     ):
