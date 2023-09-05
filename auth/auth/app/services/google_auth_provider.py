@@ -20,6 +20,8 @@ from oauthlib.oauth2 import InvalidGrantError
 
 from starlette.requests import Request
 
+from cryptography.fernet import InvalidToken
+
 crypto: Crypto = Crypto(settings.AUTH_AES_HEX_KEY)
 google_settings = settings.google_settings
 
@@ -61,7 +63,11 @@ class GoogleAuthProvider(BaseAuthProvider):
         authorization_response = (
             tmp if tmp[0:5] == "https" else tmp.replace(tmp[0:4], "https", 1)
         )
-        state_decrypted = crypto.decrypt(state)
+        state_decrypted = ""
+        try:
+            state_decrypted = crypto.decrypt(state)
+        except InvalidToken:
+            raise HTTPException(401, "Bad request, Invalid token")
         state_json = json.loads(state_decrypted)
         credentials = self.fetch_basic_token(
             auth_code=authorization_response, state=state
@@ -85,6 +91,7 @@ class GoogleAuthProvider(BaseAuthProvider):
         )
         state_json["user"] = user.dict()
         return state_json
+
 
     def fetch_basic_token(self, auth_code: str, state):
         flow = google_auth_oauthlib.flow.Flow.from_client_config(
