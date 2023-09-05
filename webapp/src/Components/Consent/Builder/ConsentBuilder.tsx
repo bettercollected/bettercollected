@@ -44,7 +44,22 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
         if (isPreview) {
             return form?.consent.map((consent, idx) => consent?.category === category && <ConsentBuilderField key={consent.consentId} disabled={isPreview} className={`${idx === 0 && 'border-y'}`} consent={consent} />);
         }
-        return consentState.consents.map((consent, idx) => consent?.category === category && <ConsentBuilderField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} />);
+        return [
+            <ConsentBuilderField
+                key="consent_data_collection"
+                disabled
+                className="border-y"
+                consent={{
+                    consentId: 'consent_data_collection',
+                    title: 'Data Collection',
+                    description: 'We gather data from the responses you provide in our forms.',
+                    type: ConsentType.Checkbox,
+                    required: true,
+                    category: ConsentCategoryType.PurposeOfTheForm
+                }}
+            />,
+            ...consentState.consents.map((consent, idx) => consent?.category === category && <ConsentBuilderField key={consent.consentId} consent={consent} />)
+        ];
     };
     const getConsentOptions = () => {
         return [
