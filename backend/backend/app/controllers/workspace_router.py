@@ -93,6 +93,7 @@ class WorkspaceRouter(Routable):
         "/check-handle-availability/{workspace_name}",
         response_model=str,
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -107,6 +108,7 @@ class WorkspaceRouter(Routable):
         "/suggest-handle/{workspace_name}",
         response_model=List[str],
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -123,6 +125,7 @@ class WorkspaceRouter(Routable):
     @patch(
         "/{workspace_id}",
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -162,6 +165,7 @@ class WorkspaceRouter(Routable):
     @delete(
         "/{workspace_id}/custom-domain",
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -176,6 +180,7 @@ class WorkspaceRouter(Routable):
         "/{workspace_id}/stats",
         response_model=WorkspaceStatsDto,
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )

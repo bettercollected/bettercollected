@@ -90,6 +90,7 @@ class WorkspaceFormsRouter(Routable):
         "/{form_id}",
         response_model=MinifiedForm,
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -119,7 +120,7 @@ class WorkspaceFormsRouter(Routable):
         )
         return StandardFormCamelModel(**response.dict())
 
-    @post("/{form_id}/response")
+    @post("/{form_id}/response", responses={400: {"description": "Bad Request"}})
     async def respond_to_form(
         self,
         workspace_id: PydanticObjectId,
@@ -169,6 +170,7 @@ class WorkspaceFormsRouter(Routable):
     @delete(
         "/{form_id}/response/{response_id}",
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -200,7 +202,11 @@ class WorkspaceFormsRouter(Routable):
         )
         return forms
 
-    @get("/{form_id}", response_model=MinifiedForm)
+    @get(
+        "/{form_id}",
+        response_model=MinifiedForm,
+        responses={400: {"description": "Bad Request"}},
+    )
     async def _get_form_by_id(
         self,
         workspace_id: PydanticObjectId,
@@ -213,6 +219,7 @@ class WorkspaceFormsRouter(Routable):
     @patch(
         "/{form_id}/settings",
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -232,6 +239,7 @@ class WorkspaceFormsRouter(Routable):
         "/{form_id}/groups/add",
         summary="Add form in group",
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -251,6 +259,7 @@ class WorkspaceFormsRouter(Routable):
         "/{form_id}/groups",
         summary="Delete form from group",
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -268,6 +277,7 @@ class WorkspaceFormsRouter(Routable):
     @post(
         "/import/{provider}",
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -288,6 +298,7 @@ class WorkspaceFormsRouter(Routable):
     @delete(
         "/{form_id}",
         responses={
+            404: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )

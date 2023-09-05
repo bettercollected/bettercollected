@@ -106,7 +106,7 @@ class ResponderGroupsRouter(Routable):
     @patch(
         "/{group_id}/emails",
         responses={
-            400:{"description": "Bad request"},
+            400: {"description": "Bad request"},
             401: {"description": "Authorization token is missing."},
         },
     )

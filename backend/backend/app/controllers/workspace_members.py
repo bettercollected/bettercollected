@@ -49,6 +49,7 @@ class WorkspaceMembersRouter(Routable):
     @delete(
         "/{user_id}",
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -98,6 +99,7 @@ class WorkspaceMembersRouter(Routable):
         "/invitations/{invitation_token}",
         response_model=WorkspaceInvitationDto,
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -114,6 +116,7 @@ class WorkspaceMembersRouter(Routable):
     @delete(
         "/invitations/{invitation_token}",
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -132,6 +135,7 @@ class WorkspaceMembersRouter(Routable):
     @post(
         "/invitations/{invitation_token}",
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
