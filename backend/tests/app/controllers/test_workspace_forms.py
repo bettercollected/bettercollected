@@ -82,7 +82,9 @@ class TestWorkspaceForm:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
     ):
         response = client.post(
-            workspace_form_common_url, cookies=test_user_cookies, json=formData
+            workspace_form_common_url,
+            cookies=test_user_cookies,
+            data={"form_body": json.dumps(formData)},
         )
 
         actual_form_id = dict(response.json())["formId"]
@@ -101,7 +103,9 @@ class TestWorkspaceForm:
         test_user_cookies_1: dict[str, str],
     ):
         unauthorized_client = client.post(
-            workspace_form_common_url, cookies=test_user_cookies_1, json=formData
+            workspace_form_common_url,
+            cookies=test_user_cookies_1,
+            data={"form_body": json.dumps(formData)},
         )
 
         expected_response_message = MESSAGE_FORBIDDEN
@@ -207,7 +211,7 @@ class TestWorkspaceForm:
         update_form = client.patch(
             workspace_form_url,
             cookies=test_user_cookies,
-            json={"description": "updated_form"},
+            data={"form_body": json.dumps({"description": "updated_form"})},
         )
 
         expected_updated_form_description = "updated_form"
@@ -224,7 +228,7 @@ class TestWorkspaceForm:
         unauthorized_client = client.patch(
             workspace_form_url,
             cookies=test_user_cookies_1,
-            json={"description": "updated_form"},
+            data={"form_body": json.dumps({"description": "updated_form"})},
         )
 
         expected_response_message = MESSAGE_FORBIDDEN
@@ -242,12 +246,16 @@ class TestWorkspaceForm:
         submit_response_url = f"{workspace_form_url}/response"
 
         response = client.post(
-            submit_response_url, cookies=test_user_cookies, json=formResponse
+            submit_response_url,
+            cookies=test_user_cookies,
+            data={"response": json.dumps(formResponse)},
         )
 
-        expected_user_email = testUser.sub
-        actual_user_email = response.json()["dataOwnerIdentifier"]
-        assert actual_user_email == expected_user_email
+        actual_user_id = response.json()
+        expected_user_id = (
+            await FormResponseDocument.find_one({"response_id": actual_user_id})
+        ).response_id
+        assert actual_user_id == expected_user_id
 
     async def test_submit_non_workspace_form_response(
         self,
@@ -259,7 +267,9 @@ class TestWorkspaceForm:
         submit_response_url = f"{workspace_form_common_url}/{form.id}/response"
 
         response = client.post(
-            submit_response_url, cookies=test_user_cookies, json=formResponse
+            submit_response_url,
+            cookies=test_user_cookies,
+            data={"response": json.dumps(formResponse)},
         )
 
         expected_response_message = "Form not found"

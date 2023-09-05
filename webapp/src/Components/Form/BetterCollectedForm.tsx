@@ -15,14 +15,17 @@ import PhoneNumber from '@Components/Form/PhoneNumber';
 import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
+import ThankYouPage from '@Components/Form/ThankYouPage';
 import cn from 'classnames';
 import { toast } from 'react-toastify';
 
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import Button from '@app/components/ui/button';
 import Logo from '@app/components/ui/logo';
 import PoweredBy from '@app/components/ui/powered-by';
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { ConsentAnswerDto } from '@app/store/consent/types';
 import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setInvalidFields } from '@app/store/fill-form/slice';
 import { FormValidationError } from '@app/store/fill-form/type';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -92,6 +95,7 @@ interface IBetterCollectedFormProps {
 
 export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, preview = false, closeModal, isPreview = false }: IBetterCollectedFormProps) {
     const dispatch = useAppDispatch();
+    const { openModal } = useFullScreenModal();
     const [submitResponse] = useSubmitResponseMutation();
     const answers = useAppSelector(selectAnswers);
     const responseDataOwnerField = useAppSelector(selectFormResponderOwnerField);
@@ -114,6 +118,33 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         dispatch(setDataResponseOwnerField(form?.settings?.responseDataOwnerField || ''));
     }, [dispatch, form]);
 
+    const onFormSubmitCallback = async (consentAnswers: Record<string, ConsentAnswerDto>) => {
+        const formData = new FormData();
+
+        // Append files to formData
+        files.forEach((fileObj) => {
+            formData.append('files', fileObj.file, fileObj.fileName);
+            formData.append('file_field_ids', fileObj.fieldId);
+            formData.append('file_ids', fileObj.fileId);
+        });
+
+        const postBody = {
+            form_id: form?.formId,
+            answers: answers,
+            consent: Object.values(consentAnswers),
+            dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
+        };
+        formData.append('response', JSON.stringify(postBody));
+
+        const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: formData });
+        if (response?.data) {
+            resetFormFiles();
+            dispatch(resetFillForm());
+            setIsFormSubmitted(true);
+        } else {
+            toast('Error submitting response', { type: 'error' });
+        }
+    };
     const onSubmitForm = async (event: any) => {
         event.preventDefault();
         const invalidFields: Record<string, Array<FormValidationError>> = {};
@@ -134,32 +165,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             setIsFormSubmitted(true);
             return;
         }
-
-        const formData = new FormData();
-
-        // Append files to formData
-        files.forEach((fileObj) => {
-            formData.append('files', fileObj.file, fileObj.fileName);
-            formData.append('file_field_ids', fileObj.fieldId);
-            formData.append('file_ids', fileObj.fileId);
-        });
-
-        const postBody = {
-            form_id: form?.formId,
-            answers: answers,
-            dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
-        };
-        formData.append('response', JSON.stringify(postBody));
-        console.log(formData);
-        const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: formData });
-        if (response?.data) {
-            toast('Response Submitted', { type: 'success' });
-            resetFormFiles();
-            dispatch(resetFillForm());
-            setIsFormSubmitted(true);
-        } else {
-            toast('Error submitting response', { type: 'error' });
-        }
+        openModal('CONSENT_FULL_MODAL_VIEW', { form: form, onFormSubmit: onFormSubmitCallback });
     };
     useEffect(() => {
         return () => {
@@ -168,20 +174,15 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     });
 
     if (isFormSubmitted) {
-        return (
-            <div className="flex w-full gap-4 flex-col items-center justify-center h-full">
-                <div className="  rounded-full text-[28px] px-2 font-bold bg-green-200 text-green-800">✓</div>
-                <div className="h3 font-bold">Thank you for completing this form!</div>
-                <div className="text-gray-600">Made with bettercollected, a privacy-friendly form builder</div>
-            </div>
-        );
+        return <ThankYouPage isPreview={isPreview} />;
     }
 
     return (
         <div className="w-full bg-white">
             {form?.coverImage && (
-                <div className={`relative z-0  ${isPreview ? 'w-full' : 'w-screen -mx-5'} aspect-banner-mobile lg:aspect-banner-desktop`}>
-                    <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75" />
+                <div
+                    className={`relative z-0 w-full flex aspect-banner-mobile lg:aspect-banner-desktop`}>
+                    <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75"/>
                 </div>
             )}
             <form
@@ -202,46 +203,20 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                     <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
                     {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
                 </div>
-                <>
-                    {form?.coverImage && (
-                        <div className="relative z-0 -mx-5 w-screen aspect-banner-mobile lg:aspect-banner-desktop">
-                            <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75" />
-                        </div>
-                    )}
-                    <form
-                        className="w-full max-w-[700px] mx-auto px-10 py-10 bg-white flex rounded-lg flex-col items-start "
-                        onKeyDown={(event: any) => {
-                            if (!event.shiftKey && event.key === 'Enter') {
-                                event.preventDefault();
-                            }
-                        }}
-                        onSubmit={onSubmitForm}
-                    >
-                        {form?.logo && (
-                            <div className={`relative  ${form?.coverImage ? '-top-20' : ''} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
-                                <Image height={100} width={100} objectFit="cover" src={form.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
-                            </div>
-                        )}
-                        <div className="mb-7">
-                            <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
-                            {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
-                        </div>
 
-                        <div className="flex flex-col w-full gap-2">
-                            {form?.fields.map((field: StandardFormFieldDto) => (
-                                <div key={field?.id} className="relative w-full">
-                                    {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
-                                    <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
-                                </div>
-                            ))}
-                            <div>
-                                <button className={cn('mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-black-900  !font-semibold ', enabled ? 'cursor-pointer' : 'cursor-not-allowed')} type="submit" disabled={!enabled}>
-                                    {form?.buttonText || 'Submit'}
-                                </button>
-                            </div>
+                <div className="flex flex-col w-full gap-2">
+                    {form?.fields.map((field: StandardFormFieldDto) => (
+                        <div key={field?.id} className="relative w-full">
+                            {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
+                            <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
                         </div>
-                    </form>
-                </>
+                    ))}
+                    <div>
+                        <button className={cn('mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-black-900  !font-semibold ', enabled ? 'cursor-pointer' : 'cursor-not-allowed')} type="submit" disabled={!enabled}>
+                            {form?.buttonText || 'Submit'}
+                        </button>
+                    </div>
+                </div>
             </form>
         </div>
     );

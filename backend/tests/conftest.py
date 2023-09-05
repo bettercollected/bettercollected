@@ -182,7 +182,7 @@ def mock_aiohttp_post_request(
     workspace_form_response: Coroutine[Any, Any, dict],
 ):
     async def mock_post(*args, **kwargs):
-        responses = StandardFormResponse(**workspace_form_response)
+        responses = StandardFormResponse(**formResponse)
         form = StandardForm(**dict(workspace_form))
         return FormImportResponse(form=form, responses=[responses])
 
@@ -200,15 +200,9 @@ def mock_aiohttp_post_request_for_pro(
         form = await container.workspace_form_service().create_form(
             workspace_pro.id, StandardForm(**formData), proUser
         )
-        responses = await container.workspace_form_service().submit_response(
-            workspace_pro.id,
-            form.form_id,
-            StandardFormResponse(**formResponse),
-            proUser,
-        )
         return FormImportResponse(
             form=StandardForm(**form.dict()),
-            responses=[StandardFormResponse(**responses.dict())],
+            responses=[StandardFormResponse(**formResponse)],
         )
 
     yield patch(

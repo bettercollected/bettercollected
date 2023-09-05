@@ -166,14 +166,14 @@ class TestWorkspaceFormSubmission:
         assert request_response_deletion.status_code == 403
         assert actual_response == expected_response
 
-    def test_get_workspace_form_responses(
+    async def test_get_workspace_form_responses(
         self,
         client: TestClient,
-        get_get_form_responses_url: str,
         test_user_cookies: dict[str, str],
         workspace_form: Coroutine[Any, Any, FormDocument],
         workspace_form_response_1: Coroutine[Any, Any, dict],
         workspace_form_response: Coroutine[Any, Any, dict],
+        get_get_form_responses_url: str,
     ):
         response_ids = [
             workspace_form_response["response_id"],

@@ -161,5 +161,8 @@ class FormRepository:
         form_document.cover_image = form.cover_image
         form_document.description = form.description
         form_document.button_text = form.button_text
-        form_document.consent = form.consent
+        form_document.consent = form.consent if form.consent else form_document.consent
         return await form_document.save()
+
+    async def get_form_document_by_id(self, form_id: str):
+        return await FormDocument.find_one({"form_id": form_id})

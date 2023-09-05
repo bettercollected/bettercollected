@@ -22,7 +22,7 @@ export default function ConsentInformationPanel() {
         if (breakpoint !== 'xs' && !isOpen) {
             setOpen(true);
         }
-    }, [breakpoint, isOpen]);
+    }, [breakpoint]);
 
     if (!isOpen)
         return (
