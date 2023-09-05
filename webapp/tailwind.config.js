@@ -39,6 +39,7 @@ module.exports = {
                     blue: {
                         100: '#F2F7FF',
                         200: '#B8D5FF',
+                        300: '#A2C5F8',
                         500: '#0764EB'
                     },
                     pink: {
@@ -260,7 +261,8 @@ module.exports = {
                 'banner-desktop': '5.14285714 / 1',
                 'banner-mobile': '3 / 1',
                 'editable-banner-desktop': '3.9886363636 / 1',
-                'editable-banner-mobile': '2 / 1'
+                'editable-banner-mobile': '2 / 1',
+                thank_you_cover: '59 / 10'
             }
         }
     },

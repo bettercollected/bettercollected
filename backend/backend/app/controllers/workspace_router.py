@@ -25,7 +25,13 @@ class WorkspaceRouter(Routable):
         super().__init__(*args, **kwargs)
         self.workspace_service: WorkspaceService = container.workspace_service()
 
-    @get("")
+    @get(
+        "",
+        responses={
+            422: {"description": "Provide only one query"},
+            404: {"description": "The page you are looking is unavailable."},
+        },
+    )
     async def _get_workspace_by_query(
         self,
         workspace_name: Optional[str] = None,
@@ -41,7 +47,12 @@ class WorkspaceRouter(Routable):
         query = workspace_name if workspace_name else custom_domain
         return await self.workspace_service.get_workspace_by_query(query, user)
 
-    @post("")
+    @post(
+        "",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def _create_workspace(
         self,
         title=Form(None),
@@ -60,7 +71,12 @@ class WorkspaceRouter(Routable):
             user=user,
         )
 
-    @get("/mine")
+    @get(
+        "/mine",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def _get_mine_workspaces(
         self, user: User = Depends(get_logged_user)
     ) -> List[WorkspaceResponseDto]:
@@ -73,7 +89,13 @@ class WorkspaceRouter(Routable):
             workspace_id=workspace_id
         )
 
-    @get("/check-handle-availability/{workspace_name}", response_model=str)
+    @get(
+        "/check-handle-availability/{workspace_name}",
+        response_model=str,
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def check_handle_availability(
         self, workspace_name: str, user: User = Depends(get_user_if_logged_in)
     ):
@@ -81,7 +103,13 @@ class WorkspaceRouter(Routable):
             workspace_name
         )
 
-    @get("/suggest-handle/{workspace_name}", response_model=List[str])
+    @get(
+        "/suggest-handle/{workspace_name}",
+        response_model=List[str],
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def suggest_handles(
         self, workspace_name: str, user: User = Depends(get_user_if_logged_in)
     ):
@@ -92,7 +120,12 @@ class WorkspaceRouter(Routable):
         )
         return suggestion_list
 
-    @patch("/{workspace_id}")
+    @patch(
+        "/{workspace_id}",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def patch_workspace(
         self,
         workspace_id: PydanticObjectId,
@@ -126,7 +159,12 @@ class WorkspaceRouter(Routable):
             workspace_id, receiver_email
         )
 
-    @delete("/{workspace_id}/custom-domain")
+    @delete(
+        "/{workspace_id}/custom-domain",
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def delete_custom_domain_of_workspace(
         self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
     ):
@@ -134,7 +172,13 @@ class WorkspaceRouter(Routable):
             workspace_id=workspace_id, user=user
         )
 
-    @get("/{workspace_id}/stats", response_model=WorkspaceStatsDto)
+    @get(
+        "/{workspace_id}/stats",
+        response_model=WorkspaceStatsDto,
+        responses={
+            401: {"description": "Authorization token is missing."},
+        },
+    )
     async def get_workspace_stats(
         self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
     ):

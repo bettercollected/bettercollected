@@ -236,7 +236,10 @@ class FormResponseRepository(BaseRepository):
         ).delete()
 
     async def save_form_response(
-        self, form_id: PydanticObjectId, response: StandardFormResponse, workspace_id: PydanticObjectId
+        self,
+        form_id: PydanticObjectId,
+        response: StandardFormResponse,
+        workspace_id: PydanticObjectId,
     ):
         response_document = FormResponseDocument(**response.dict())
         response_document.response_id = str(PydanticObjectId())
@@ -247,7 +250,7 @@ class FormResponseRepository(BaseRepository):
                 response_document.answers[k] = v.dict()
             response_document.answers = crypto_service.encrypt(
                 workspace_id=workspace_id,
-                form_id=response_document.form_id,
+                form_id=form_id,
                 data=json.dumps(response_document.answers),
             )
         response_document.form_id = str(form_id)

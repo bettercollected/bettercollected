@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { PayloadAction, createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
@@ -6,10 +6,15 @@ import { AnswerDto } from '@app/models/dtos/form';
 import { FormValidationError } from '@app/store/fill-form/type';
 import { RootState } from '@app/store/store';
 
+import { IConsentAnswer, IConsentField, IConsentState } from '../consent/types';
+
 interface FillIBuilderState {
     id: string;
     answers: {
         [fieldId: string]: AnswerDto;
+    };
+    consentAnswers: {
+        [consentId: string]: IConsentAnswer;
     };
     invalidFields: Record<string, Array<FormValidationError>>;
     responseDataOwnerField: string;
@@ -18,6 +23,7 @@ interface FillIBuilderState {
 const initialState: FillIBuilderState = {
     id: '',
     answers: {},
+    consentAnswers: {},
     invalidFields: {},
     responseDataOwnerField: ''
 };
@@ -37,6 +43,9 @@ const slice = createSlice({
                     [action.payload.field.id]: action.payload
                 }
             };
+        },
+        addConsentAnswer: (state, action: PayloadAction<IConsentAnswer>) => {
+            return { ...state, consentAnswers: { ...state.consentAnswers, [action.payload.consentId]: action.payload } };
         },
         deleteAnswer: (state, action) => {
             delete state.answers[action.payload.field.id];
@@ -64,7 +73,7 @@ const fillFormReducer = persistReducer(
     slice.reducer
 );
 
-export const { setDataResponseOwnerField, resetFillForm, setInvalidFields, deleteAnswer, addAnswer } = slice.actions;
+export const { setDataResponseOwnerField, resetFillForm, setInvalidFields, deleteAnswer, addAnswer, addConsentAnswer } = slice.actions;
 
 const reducerObj = { reducerPath: slice.name, reducer: fillFormReducer };
 

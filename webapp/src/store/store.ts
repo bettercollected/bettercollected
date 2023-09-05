@@ -18,11 +18,12 @@ import { workspacesApi } from '@app/store/workspaces/api';
 import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitations-api';
 import workspaceSlice from '@app/store/workspaces/slice';
 
+import { consentApi } from './consent/api';
 import consentSlice from './consent/consentSlice';
 
 // Add more middlewares here
 // const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
-const middlewares = [authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
+const middlewares = [authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware, consentApi.middleware];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
@@ -38,7 +39,8 @@ const reducers = {
     [providerApi.reducerPath]: providerApi.reducer,
     [plansApi.reducerPath]: plansApi.reducer,
     [workspacesApi.reducerPath]: workspacesApi.reducer,
-    [consentSlice.reducerPath]: consentSlice.reducer
+    [consentSlice.reducerPath]: consentSlice.reducer,
+    [consentApi.reducerPath]: consentApi.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);

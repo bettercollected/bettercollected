@@ -25,7 +25,9 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
 import Globe from '../icons/flags/globe';
+import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
 import FormLinkUpdateView from '../ui/form-link-update-view';
+import AnchorLink from '../ui/links/anchor-link';
 import UpgradeToPro from '../ui/upgrade-to-pro';
 
 export default function FormSettingsTab() {
@@ -35,6 +37,7 @@ export default function FormSettingsTab() {
     const workspace = useAppSelector((state) => state.workspace);
     const dispatch = useAppDispatch();
     const { openModal } = useModal();
+    const fullScreenModal = useFullScreenModal();
     const isCustomDomain = !!workspace.customDomain;
     const customUrl = form?.settings?.customUrl || '';
     const clientHost = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms`;
@@ -146,7 +149,22 @@ export default function FormSettingsTab() {
                     </div>
                 </FormSettingsCard>
             )}
-
+            <FormSettingsCard>
+                <div className="flex items-center space-x-5">
+                    <div className="space-y-2">
+                        <div className="body1">Form Purpose and Data Usage</div>
+                        <div className="text-sm !text-black-700">{`This page is to help you to provide you with a clear understanding of how how your information is handled in our form. Our aim is to ensure you're fully informed and comfortable with how we handle your data.`}</div>
+                    </div>
+                    <span
+                        className="h6-new !text-new-blue-500 w-60 cursor-pointer"
+                        onClick={() => {
+                            fullScreenModal.openModal('CREATE_CONSENT_FULL_MODAL_VIEW', { form, isPreview: true });
+                        }}
+                    >
+                        See Details
+                    </span>
+                </div>
+            </FormSettingsCard>
             <div className="my-6">
                 <Button
                     style={{ textTransform: 'none' }}

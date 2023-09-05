@@ -30,7 +30,9 @@ export type MODAL_VIEW =
     | 'DELETE_RESPONSE'
     | 'FORM_BUILDER_SPOTLIGHT_VIEW'
     | 'FORM_BUILDER_ADD_FIELD_VIEW'
-    | 'CONSENT_PURPOSE_MODAL_VIEW';
+    | 'CONSENT_PURPOSE_MODAL_VIEW'
+    | 'CONSENT_CONFIRMATION_MODAL_VIEW'
+    | 'CONSENT_BUILDER_CONFIRMATION_MODAL_VIEW';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 
