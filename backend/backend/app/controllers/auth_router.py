@@ -61,7 +61,7 @@ class AuthRoutes(Routable):
         "/otp/validate",
         responses={
             503: {"description": "Requested Source not available."},
-            401:{"description": "Invalid Otp Code"}
+            401: {"description": "Invalid Otp Code"},
         },
     )
     async def _validate_otp(self, login_details: UserLoginWithOTP, response: Response):
@@ -132,13 +132,15 @@ class AuthRoutes(Routable):
         "/{provider}/basic",
         responses={
             503: {"description": "Requested Source not available."},
-            200:{
+            200: {
                 "description": "Redirect to another URL",
                 "content": {"text/html": {}},
-            }
+            },
         },
     )
-    async def _basic_auth(self, provider: FormProvider, request: Request, creator: bool = False):
+    async def _basic_auth(
+        self, provider: FormProvider, request: Request, creator: bool = False
+    ):
         client_referer_url = request.headers.get("referer")
         basic_auth_url = await self.auth_service.get_basic_auth_url(
             provider, client_referer_url, creator=creator
@@ -148,11 +150,15 @@ class AuthRoutes(Routable):
     @get(
         "/{provider}/basic/callback",
         responses={
+            401: {"description": "Bad request, Invalid token"},
             503: {"description": "Requested Source not available."},
         },
     )
     async def _basic_auth_callback(
-        self, provider: FormProvider, code: Optional[str] = None, state: Optional[str] = None
+        self,
+        provider: FormProvider,
+        code: Optional[str] = None,
+        state: Optional[str] = None,
     ):
         if not state or not code:
             return {"message": "You cancelled the authorization request."}

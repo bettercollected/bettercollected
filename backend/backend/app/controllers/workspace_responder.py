@@ -50,6 +50,7 @@ class WorkspaceRespondersController(Routable):
     @get(
         "/tags",
         responses={
+            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )

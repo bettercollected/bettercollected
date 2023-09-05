@@ -29,6 +29,7 @@ class WorkspaceConsent(Routable):
         "",
         response_model=List[ConsentCamelModel],
         responses={
+            400: {"description": "Bad request"},
             401: {"description": "Authorization token is missing."},
         },
     )

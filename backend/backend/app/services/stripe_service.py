@@ -1,5 +1,6 @@
 from fastapi import Request
 
+from backend.app.exceptions import HTTPException
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.workspace_service import WorkspaceService
@@ -49,7 +50,10 @@ class StripeService:
             content=body,
             timeout=60000000,
         )
-        json_response = response.json()
+        try:
+            json_response = response.json()
+        except AttributeError:
+            raise HTTPException(400, response["_message"])
         user = json_response.get("user") if json_response else None
         if user:
             downgrade = json_response.get("downgrade")
