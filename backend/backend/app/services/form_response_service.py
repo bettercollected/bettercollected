@@ -5,6 +5,7 @@ from typing import List, Sequence
 from beanie import PydanticObjectId
 from fastapi_pagination import Page
 
+from backend.app.constants.consents import default_consent_responses
 from backend.app.exceptions import HTTPException
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
@@ -147,6 +148,8 @@ class FormResponseService:
             raise HTTPException(403, "You are not authorized to perform this action.")
 
         response = StandardFormResponseCamelModel(**response.dict())
+        if response.consent is None:
+            response.consent = default_consent_responses
         if deletion_request is not None:
             response.deletion_status = deletion_request.status
         form = StandardFormCamelModel(**form.dict())
