@@ -91,7 +91,7 @@ class AuthRoutes(Routable):
     )
     async def _oauth_provider(
         self,
-        provider_name: str,
+        provider_name: FormProvider,
         request: Request,
         user=Depends(get_logged_user),
     ):
@@ -132,6 +132,10 @@ class AuthRoutes(Routable):
         "/{provider}/basic",
         responses={
             503: {"description": "Requested Source not available."},
+            302:{
+                "description": "Redirect to another URL",
+                "content": {"text/html": {}},
+            }
         },
     )
     async def _basic_auth(self, provider: FormProvider, request: Request, creator: bool = False):
@@ -139,7 +143,7 @@ class AuthRoutes(Routable):
         basic_auth_url = await self.auth_service.get_basic_auth_url(
             provider, client_referer_url, creator=creator
         )
-        return RedirectResponse(basic_auth_url)
+        return RedirectResponse(basic_auth_url, status_code=302)
 
     @get(
         "/{provider}/basic/callback",
