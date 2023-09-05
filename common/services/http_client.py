@@ -15,7 +15,7 @@ class HttpClient(AsyncClient):
         try:
             response = await super().get(*args, **kwargs)
             if response.status_code != 200:
-                raise HTTPException(response.status_code, response.json())
+                raise HTTPException(response.status_code, response.json() or "Error Occurred")
             return response.json()
         except ConnectError:
             raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content='Requested Source not available.')
@@ -24,7 +24,7 @@ class HttpClient(AsyncClient):
         try:
             response = await super().post(*args, **kwargs)
             if response.status_code != 200:
-                raise HTTPException(response.status_code, response.json())
+                raise HTTPException(response.status_code, response.json() or "Error Occurred")
             return response.json()
         except ConnectError:
             raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content='Requested Source not available.')
