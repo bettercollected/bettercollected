@@ -62,6 +62,7 @@ class ResponderGroupsRouter(Routable):
     @get(
         "/{group_id}",
         responses={
+            400: {"description": "Bad request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -105,6 +106,7 @@ class ResponderGroupsRouter(Routable):
     @patch(
         "/{group_id}/emails",
         responses={
+            400:{"description": "Bad request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -122,6 +124,7 @@ class ResponderGroupsRouter(Routable):
     @delete(
         "/{group_id}/emails",
         responses={
+            400: {"description": "Bad request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -140,6 +143,7 @@ class ResponderGroupsRouter(Routable):
     @delete(
         "/{group_id}",
         responses={
+            400: {"description": "Bad request"},
             401: {"description": "Authorization token is missing."},
         },
     )
