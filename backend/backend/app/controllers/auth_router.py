@@ -132,7 +132,7 @@ class AuthRoutes(Routable):
         "/{provider}/basic",
         responses={
             503: {"description": "Requested Source not available."},
-            302:{
+            200:{
                 "description": "Redirect to another URL",
                 "content": {"text/html": {}},
             }
@@ -143,7 +143,7 @@ class AuthRoutes(Routable):
         basic_auth_url = await self.auth_service.get_basic_auth_url(
             provider, client_referer_url, creator=creator
         )
-        return RedirectResponse(basic_auth_url, status_code=302)
+        return RedirectResponse(basic_auth_url)
 
     @get(
         "/{provider}/basic/callback",
