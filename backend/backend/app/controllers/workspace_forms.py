@@ -154,7 +154,7 @@ class WorkspaceFormsRouter(Routable):
         return response.response_id
 
     @get(
-        "files/{file_id}",
+        "/files/{file_id}",
         responses={
             401: {"description": "Authorization token is missing."},
         },
