@@ -49,7 +49,13 @@ class StripeRoutes(Routable):
         redirect_url = await self.stripe_service.create_portal_session(user)
         return RedirectResponse(redirect_url)
 
-    @post("/webhooks", responses={503: {"message": "Requested Source not available."}})
+    @post(
+        "/webhooks",
+        responses={
+            503: {"message": "Requested Source not available."},
+            400: {"message": "Unable to extract timestamp and signatures from header"},
+        },
+    )
     async def webhooks(self, request: Request, response: Response):
         auth_response = await self.stripe_service.webhooks(request)
         response.content = auth_response.content
