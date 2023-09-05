@@ -6,6 +6,7 @@ from beanie import PydanticObjectId
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
 
+from backend.app.constants.consents import default_consents
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
@@ -20,17 +21,18 @@ from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
+from common.models.consent import Consent, ConsentType, ConsentCategory
 from common.models.standard_form import StandardForm
 from common.models.user import User
 
 
 class FormService:
     def __init__(
-        self,
-        workspace_user_repo: WorkspaceUserRepository,
-        form_repo: FormRepository,
-        workspace_form_repo: WorkspaceFormRepository,
-        user_tags_service: UserTagsService,
+            self,
+            workspace_user_repo: WorkspaceUserRepository,
+            form_repo: FormRepository,
+            workspace_form_repo: WorkspaceFormRepository,
+            user_tags_service: UserTagsService,
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
@@ -38,7 +40,7 @@ class FormService:
         self.user_tags_service = user_tags_service
 
     async def get_forms_in_workspace(
-        self, workspace_id, sort, user
+            self, workspace_id, sort, user
     ) -> Page[MinifiedForm]:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -81,7 +83,7 @@ class FormService:
         return await response.json()
 
     async def search_form_in_workspace(
-        self, workspace_id: PydanticObjectId, query: str, user: User
+            self, workspace_id: PydanticObjectId, query: str, user: User
     ):
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id, is_not_admin=True, user=user
@@ -108,7 +110,7 @@ class FormService:
         return [MinifiedForm(**form) for form in forms]
 
     async def get_form_by_id(
-        self, workspace_id: PydanticObjectId, form_id: str, user: User
+            self, workspace_id: PydanticObjectId, form_id: str, user: User
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -152,7 +154,10 @@ class FormService:
         form[0]["importer_details"] = FormImporterDetails(
             **user_info, id=user_info.get("_id")
         )
-        return MinifiedForm(**form[0])
+        minified_form = MinifiedForm(**form[0])
+        if minified_form.consent is None:
+            minified_form.consent = default_consents
+        return minified_form
 
     async def save_form(self, form: StandardForm):
         existing_form = await FormDocument.find_one({"form_id": form.form_id})
@@ -167,11 +172,11 @@ class FormService:
         return await self._form_repo.save_form(form_document)
 
     async def patch_settings_in_workspace_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        settings: SettingsPatchDto,
-        user: User,
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            settings: SettingsPatchDto,
+            user: User,
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user

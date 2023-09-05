@@ -1,4 +1,5 @@
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
+import { ConsentAnswerDto } from '@app/store/consent/types';
 
 const consentPageInformation = {
     title: 'What Is This Page?',
@@ -15,6 +16,7 @@ const formPurpose = {
     (e.g., marketing, analytics) for transparent consent.`,
     title: 'Select or Add purpose',
     options: [
+        { title: 'Data Collection', type: ConsentType.Checkbox, category: ConsentCategoryType.PurposeOfTheForm },
         { title: 'Marketing', type: ConsentType.Checkbox, category: ConsentCategoryType.PurposeOfTheForm },
         { title: 'Analytics', type: ConsentType.Checkbox, category: ConsentCategoryType.PurposeOfTheForm },
         { title: 'Feedback', type: ConsentType.Checkbox, category: ConsentCategoryType.PurposeOfTheForm },
@@ -35,4 +37,5 @@ const dataRetention = {
     title: 'Data Retention options',
     options: ['For a certain number of days', 'Until a certain date', 'Forever']
 };
+
 export { consentPageInformation, formPurpose, thirdPartySharing, dataRetention };
