@@ -1,43 +1,40 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
+import ConsentModalTopBar from '@Components/Consent/ConsentModalTopBar';
 import ErrorText from '@Components/Consent/ErrorText';
 import HintBox from '@Components/Consent/Form/HintBox';
 import TermsAndCondition from '@Components/Consent/TermsAndCondition';
 
-import {DropdownCloseIcon} from '@app/components/icons/dropdown-close';
+import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
 import useForm from '@app/lib/hooks/use-form';
-import {ConsentCategoryType} from '@app/models/enums/consentEnum';
-import {resetConsentState} from '@app/store/consent/actions';
-import {IConsentAnswer, IConsentField} from '@app/store/consent/types';
-import {resetFillForm} from '@app/store/fill-form/slice';
-import {useAppDispatch} from '@app/store/hooks';
+import { ConsentCategoryType } from '@app/models/enums/consentEnum';
+import { resetConsentState } from '@app/store/consent/actions';
+import { IConsentAnswer, IConsentField } from '@app/store/consent/types';
+import { resetFillForm } from '@app/store/fill-form/slice';
+import { useAppDispatch } from '@app/store/hooks';
 
-import {useModal} from '../context';
-import {useFullScreenModal} from '../full-screen-modal-context';
+import { useModal } from '../context';
+import { useFullScreenModal } from '../full-screen-modal-context';
 
 export interface ConsentBuilderConfirmationModalProps {
     onFormPublish: any;
     consents: IConsentField[];
-    privacyPolicyUrl: string
+    privacyPolicyUrl: string;
 }
 
-export default function ConsentBuilderConfirmationModaView({
-                                                               onFormPublish,
-                                                               consents,
-                                                               privacyPolicyUrl
-                                                           }: ConsentBuilderConfirmationModalProps) {
-    const {closeModal} = useModal();
+export default function ConsentBuilderConfirmationModaView({ onFormPublish, consents, privacyPolicyUrl }: ConsentBuilderConfirmationModalProps) {
+    const { closeModal } = useModal();
     const fullScreenModal = useFullScreenModal();
     const dispatch = useAppDispatch();
-    const {isLoading, error, setError, setLoading} = useForm();
+    const { isLoading, error, setError, setLoading } = useForm();
     const [formPurposeTermChecked, setFormPurposeTermChecked] = useState(true);
 
     const handleFormPurposeTermChange = (checked: boolean) => {
         setFormPurposeTermChecked(checked);
     };
     const formPurposeTermsAndConditonDetails = (
-        <TermsAndCondition onAgree={handleFormPurposeTermChange}>
+        <TermsAndCondition onAgree={handleFormPurposeTermChange} className="border-b border-new-black-300 p-5">
             <TermsAndCondition.Title>{`I have mentioned all the form's purposes.`}</TermsAndCondition.Title>
             <TermsAndCondition.Description>{`This confirms that you have clearly mentioned all the purposes for which data is being collected in your forms.`}</TermsAndCondition.Description>
         </TermsAndCondition>
@@ -63,10 +60,7 @@ export default function ConsentBuilderConfirmationModaView({
     };
     return (
         <form onSubmit={onSubmit} className="bg-white rounded-2xl w-fit md:w-[476px] h-content">
-            <div className="flex justify-between py-4 px-6 border-b border-black-200">
-                <div className="p2 !text-black-800">Purpose Of The Form</div>
-                <DropdownCloseIcon className="cursor-pointer" onClick={closeModal}/>
-            </div>
+            <ConsentModalTopBar />
             <div className="pt-5 px-6">
                 <HintBox
                     size="small"

@@ -16,17 +16,12 @@ interface ConsentAddInputProps extends OnlyClassNameInterface {
     placeholder?: string;
     hint?: string;
     options: IConsentOption[];
-    category: ConsentCategoryType;
-    consentType: ConsentType;
+    dropdownTitle: string;
+    showCreateNewOptionButton?: boolean;
+    onSelect?: (selection: IConsentOption, mode?: ConsentPurposeModalMode) => void;
 }
 
-export default function ConsentAddInput({ className, title, placeholder = '', hint, options, category, consentType }: ConsentAddInputProps) {
-    const { openModal } = useModal();
-
-    const handleSelect = (selection: IConsentOption, mode: ConsentPurposeModalMode = 'add') => {
-        const modalProps: ConsentPurposeModalProps = { consent: selection, mode };
-        openModal('CONSENT_PURPOSE_MODAL_VIEW', modalProps);
-    };
+export default function ConsentAddInput({ className, hint, ...inputOptions }: ConsentAddInputProps) {
     return (
         <div className={cn('rounded-lg p-5 bg-new-black-200', className)}>
             {hint && (
@@ -35,7 +30,7 @@ export default function ConsentAddInput({ className, title, placeholder = '', hi
                     <div className="ml-10 p2 !text-new-black-800">{hint}</div>
                 </div>
             )}
-            <ConsentAutoCompleteInput dropdownTitle="Purpose Of The Form" title={title} placeholder={placeholder} className="!cursor-pointer" options={options} onSelect={handleSelect} />
+            <ConsentAutoCompleteInput className="!cursor-pointer" {...inputOptions} />
         </div>
     );
 }

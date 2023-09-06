@@ -31,6 +31,7 @@ import AddRegexModal from './modals/add-regex-modal';
 import ConsentBuilderConfirmationModaView from './modals/consent-builder-confirmation-modal-view';
 import ConsentConfirmationModaView from './modals/consent-confirmation-modal-view';
 import ConsentPurposeModalView from './modals/consent-purpose-modal-view';
+import ConsentRetentionModalView from './modals/consent-retention-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
@@ -93,6 +94,8 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <ConsentConfirmationModaView {...modalProps} />;
         case 'CONSENT_BUILDER_CONFIRMATION_MODAL_VIEW':
             return <ConsentBuilderConfirmationModaView {...modalProps} />;
+        case 'CONSENT_RETENTION_MODAL_VIEW':
+            return <ConsentRetentionModalView {...modalProps} />;
         default:
             return <></>;
     }

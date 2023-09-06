@@ -18,10 +18,11 @@ interface ConsentAutoCompleteInputProps extends OnlyClassNameInterface {
     placeholder?: string;
     options: IConsentOption[];
     required?: boolean;
+    showCreateNewOptionButton?: boolean;
     onSelect?: (selection: IConsentOption, mode?: ConsentPurposeModalMode) => void;
 }
 
-const ConsentAutoCompleteInput = forwardRef<HTMLDivElement, ConsentAutoCompleteInputProps>(({ title, dropdownTitle, placeholder = '', required = false, onSelect, options, className }, ref) => {
+const ConsentAutoCompleteInput = forwardRef<HTMLDivElement, ConsentAutoCompleteInputProps>(({ title, dropdownTitle, placeholder = '', required = false, onSelect, options, className, showCreateNewOptionButton = false }, ref) => {
     const [selected, setSelected] = useState(null);
     const [isOptionsVisible, setOptionsVisible] = useState(true);
     const [query, setQuery] = useState('');
@@ -102,12 +103,14 @@ const ConsentAutoCompleteInput = forwardRef<HTMLDivElement, ConsentAutoCompleteI
                                                 ))
                                             )}
                                         </div>
-                                        <div className="sm:px-6 px-3">
-                                            <AppButton className="flex space-x-2 items-center justify-center !w-full mt-4" onClick={handleCreateNew}>
-                                                <AddIcon />
-                                                <span>Create New</span>
-                                            </AppButton>
-                                        </div>
+                                        {showCreateNewOptionButton && (
+                                            <div className="sm:px-6 px-3">
+                                                <AppButton className="flex space-x-2 items-center justify-center !w-full mt-4" onClick={handleCreateNew}>
+                                                    <AddIcon />
+                                                    <span>Create New</span>
+                                                </AppButton>
+                                            </div>
+                                        )}
                                     </div>
                                 </Combobox.Options>
                             </Transition>

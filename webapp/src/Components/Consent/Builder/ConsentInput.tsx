@@ -7,21 +7,24 @@ import { ArrowDown } from '@app/components/icons/arrow-down';
 import { LinkHorizontalIcon } from '@app/components/icons/link-horizontal-icon';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 
-type ConsentInputProps = TextFieldProps & { title?: string; required?: boolean };
-
-const getIcon = (position: 'start' | 'end', type?: React.HTMLInputTypeAttribute) => {
-    if (type === 'text' && position === 'end') {
-        return <ArrowDown />;
-    } else if (type === 'file' && position === 'start') {
-        return <LinkHorizontalIcon />;
-    }
-    return null;
-};
+type ConsentInputProps = TextFieldProps & { title?: string; required?: boolean; showIcon?: boolean };
 
 const ConsentInput = forwardRef<HTMLDivElement, ConsentInputProps>((props, ref) => {
-    const { id, title, type = 'text', required = false, multiline, placeholder, inputProps, inputMode, className, ...otherProps } = props;
+    const { id, title, type = 'text', required = false, multiline, placeholder, inputProps, inputMode, className, showIcon = true, ...otherProps } = props;
 
     const { t } = useBuilderTranslation();
+
+    const getIcon = (position: 'start' | 'end' | '') => {
+        if (!showIcon) return null;
+
+        if (type === 'text' && position === 'end') {
+            return <ArrowDown />;
+        } else if (type === 'file' && position === 'start') {
+            return <LinkHorizontalIcon />;
+        }
+        return null;
+    };
+
     return (
         <div className={cn('space-y-3', className)}>
             {title && (
@@ -49,7 +52,7 @@ const ConsentInput = forwardRef<HTMLDivElement, ConsentInputProps>((props, ref) 
                         }
                     }
                 }
-                InputProps={{ sx: { ':before': { content: 'none' } }, startAdornment: getIcon('start', type), endAdornment: getIcon('end', type) }}
+                InputProps={{ sx: { ':before': { content: 'none' } }, startAdornment: getIcon('start'), endAdornment: getIcon('end') }}
                 size="small"
                 className={cn('!mb-0 !bg-white w-full !text-black-300 ')}
                 {...otherProps}
