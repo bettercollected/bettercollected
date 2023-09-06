@@ -410,6 +410,7 @@
     },
     "POWERED_BY": "Mogelijk gemaakt door:",
     "PRICING_PLAN": {
+        "PAGE_TITLE":"Plannen en Prijzen",
         "DESCRIPTION": "Veilige betalingen verwerkt met Stripe.",
         "NO_RISK": "Geen risico. Op elk moment annuleren",
         "TITLE": "Upgraden naar PRO",
