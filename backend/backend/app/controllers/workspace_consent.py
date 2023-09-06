@@ -12,7 +12,13 @@ from backend.app.services.workspace_consent_service import WorkspaceConsentServi
 from common.models.user import User
 
 
-@router(prefix="/{workspace_id}/consent", tags=["Workspace Consent"])
+@router(
+    prefix="/{workspace_id}/consent",
+    tags=["Workspace Consent"],
+    responses={
+        400: {"description": "Bad request"},
+    },
+)
 class WorkspaceConsent(Routable):
     def __init__(
         self,
@@ -29,7 +35,6 @@ class WorkspaceConsent(Routable):
         "",
         response_model=List[ConsentCamelModel],
         responses={
-            400: {"description": "Bad request"},
             401: {"description": "Authorization token is missing."},
         },
     )
