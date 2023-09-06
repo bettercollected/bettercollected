@@ -7,7 +7,7 @@ import cn from 'classnames';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import { formPurpose } from '@app/data/consent';
+import { dataRetention, formPurpose } from '@app/data/consent';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
@@ -23,6 +23,8 @@ import ErrorText from '../ErrorText';
 import ConsentAddInput from './ConsentAddInput';
 import ConsentBuilderField from './ConsentBuilderField';
 import ConsentInput from './ConsentInput';
+import DataRetentionBuilder from './DataRetentionBuilder';
+import FormPurposeBuilder from './FormPurposeBuilder';
 
 interface ConsentBuilderProps extends OnlyClassNameInterface {
     onFormPublish?: any;
@@ -36,32 +38,11 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
     const { data } = useGetAllWorkspaceConsentsQuery(workspace.id);
     const [isDeletionRequestChecked, setIsDeletionRequestChecked] = useState(true);
     const dispatch = useAppDispatch();
-    const { closeModal } = useFullScreenModal();
-    const { openModal } = useModal();
     const [error, setError] = useState(false);
+    const { openModal } = useModal();
 
-    const getFilteredConsents = (category: ConsentCategoryType) => {
-        if (isPreview) {
-            return form?.consent.map((consent, idx) => consent?.category === category && <ConsentBuilderField key={consent.consentId} disabled={isPreview} className={`${idx === 0 && 'border-y'}`} consent={consent} />);
-        }
-        return [
-            <ConsentBuilderField
-                key="consent_data_collection"
-                disabled
-                className="border-y"
-                consent={{
-                    consentId: 'consent_data_collection',
-                    title: 'Data Collection',
-                    description: 'We gather data from the responses you provide in our forms.',
-                    type: ConsentType.Checkbox,
-                    required: true,
-                    category: ConsentCategoryType.PurposeOfTheForm
-                }}
-            />,
-            ...consentState.consents.map((consent, idx) => consent?.category === category && <ConsentBuilderField key={consent.consentId} consent={consent} />)
-        ];
-    };
-    const getConsentOptions = () => {
+    const getConsentOptions = (category: ConsentCategoryType) => {
+        const allConsentOptions = [...formPurpose.options, ...dataRetention.options];
         return [
             ...(data !== undefined
                 ? data.map(
@@ -73,30 +54,8 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
                           } as IConsentOption)
                   )
                 : []),
-            ...formPurpose.options
-        ];
-    };
-    const renderFormPurposes = () => {
-        const formPurposes = form?.consent.filter((consent) => consent.category === ConsentCategoryType.PurposeOfTheForm).length !== 0;
-        if (formPurposes) {
-            return (
-                <div>
-                    <div className="h4-new pb-5 xs:pb-[17px]">Purpose Of This Form:</div>
-                    {getFilteredConsents(formPurpose.category)}
-                    {!isPreview && (
-                        <ConsentAddInput
-                            className="mt-5 xs:mt-[17px]"
-                            title={formPurpose.title}
-                            placeholder="Select or Add Purpose"
-                            hint={formPurpose.hint}
-                            options={getConsentOptions()}
-                            category={ConsentCategoryType.PurposeOfTheForm}
-                            consentType={ConsentType.Checkbox}
-                        />
-                    )}
-                </div>
-            );
-        }
+            ...allConsentOptions
+        ].filter((option) => option.category === category);
     };
 
     const responderRightDetails = (
@@ -156,7 +115,8 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
         can find on the consent page:`}
                     </div>
                 </div>
-                {renderFormPurposes()}
+                <FormPurposeBuilder isPreview={isPreview} options={getConsentOptions(ConsentCategoryType.PurposeOfTheForm)} />
+                <DataRetentionBuilder isPreview={isPreview} options={getConsentOptions(ConsentCategoryType.DataRetention)} />
                 {responderRightDetails}
                 <div>
                     <div className="h4-new">Privacy Policy</div>
