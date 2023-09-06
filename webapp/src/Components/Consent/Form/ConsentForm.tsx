@@ -8,7 +8,7 @@ import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import { formPurpose } from '@app/data/consent';
+import { dataRetention, formPurpose } from '@app/data/consent';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
@@ -84,6 +84,17 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
             );
         }
     };
+    const renderDataRetention = () => {
+        const isDataRetentionAvailable = form.consent.filter((consent) => consent.category === ConsentCategoryType.DataRetention).length !== 0;
+        if (isDataRetentionAvailable) {
+            return (
+                <div>
+                    <div className="h4-new pb-5">For How Long Data Will Be Stored</div>
+                    {getFilteredConsents(dataRetention.category)}
+                </div>
+            );
+        }
+    };
     const onSubmit = async (event: any) => {
         event.preventDefault();
         if (validateConsents(consentAnswers, form.consent)) {
@@ -105,6 +116,7 @@ before you proceed with our form.`}
                     </div>
                 </div>
                 {renderFormPurposes()}
+                {renderDataRetention()}
                 {renderResponderRights()}
                 {dataAccessDetails}
             </div>

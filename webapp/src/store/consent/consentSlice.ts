@@ -7,7 +7,16 @@ import { IConsentField, IConsentState } from './types';
 
 const initialState: IConsentState = {
     form_id: '',
-    consents: []
+    consents: [
+        {
+            consentId: 'consent_data_collection',
+            title: 'Data Collection',
+            description: 'We gather data from the responses you provide in our forms.',
+            type: ConsentType.Checkbox,
+            required: true,
+            category: ConsentCategoryType.PurposeOfTheForm
+        }
+    ]
 };
 export const consent = createSlice({
     name: 'consent',

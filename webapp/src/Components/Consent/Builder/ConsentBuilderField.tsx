@@ -19,7 +19,6 @@ interface ConsentBuilderFieldProps extends OnlyClassNameInterface {
 }
 export default function ConsentBuilderField({ consent, className, disabled = false, onClick }: ConsentBuilderFieldProps) {
     const dispatch = useAppDispatch();
-    const { openModal } = useModal();
 
     const handleRemoveConsent = (event: any) => {
         event.stopPropagation();
