@@ -10,7 +10,11 @@ from auth.config import settings
 from common.configs.crypto import Crypto
 from common.models.user import User
 
+from cryptography.fernet import InvalidToken
+
 import requests
+
+
 
 crypto = Crypto(settings.AUTH_AES_HEX_KEY)
 
@@ -32,7 +36,10 @@ class TypeformAuthProvider(BaseAuthProvider):
     async def basic_auth_callback(
         self, code: str, state: str, *args, **kwargs
     ) -> (bool, str):
-        state_decrypted = crypto.decrypt(state)
+        try:
+            state_decrypted = crypto.decrypt(state)
+        except (InvalidToken, ValueError):
+            raise HTTPException(400, "Bad request")
         state_json = json.loads(state_decrypted)
         data = {
             "grant_type": "authorization_code",
@@ -43,7 +50,10 @@ class TypeformAuthProvider(BaseAuthProvider):
         }
         typeform_response = requests.post(typeform_settings.token_uri, data=data)
         if state is not None:
-            state = json.loads(crypto.decrypt(state))
+            try:
+                state = json.loads(crypto.decrypt(state))
+            except (InvalidToken, ValueError):
+                raise HTTPException(400, "Bad request")
 
         token_response = typeform_response.json()
         if (
