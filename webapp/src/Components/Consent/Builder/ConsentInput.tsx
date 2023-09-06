@@ -19,7 +19,7 @@ const ConsentInput = forwardRef<HTMLDivElement, ConsentInputProps>((props, ref) 
 
         if (type === 'text' && position === 'end') {
             return <ArrowDown />;
-        } else if (type === 'file' && position === 'start') {
+        } else if (type === 'url' && position === 'start') {
             return <LinkHorizontalIcon />;
         }
         return null;
@@ -35,6 +35,7 @@ const ConsentInput = forwardRef<HTMLDivElement, ConsentInputProps>((props, ref) 
             <TextField
                 id={id}
                 ref={ref}
+                type={type}
                 variant="outlined"
                 inputMode={inputMode || 'text'}
                 inputProps={
