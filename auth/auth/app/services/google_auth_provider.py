@@ -66,8 +66,8 @@ class GoogleAuthProvider(BaseAuthProvider):
         state_decrypted = ""
         try:
             state_decrypted = crypto.decrypt(state)
-        except InvalidToken:
-            raise HTTPException(401, "Bad request, Invalid token")
+        except (InvalidToken, ValueError):
+            raise HTTPException(400, "Bad request")
         state_json = json.loads(state_decrypted)
         credentials = self.fetch_basic_token(
             auth_code=authorization_response, state=state
