@@ -11,7 +11,6 @@ import AnchorLink from '@app/components/ui/links/anchor-link';
 import { FileMetadata } from '@app/models/types/fileTypes';
 import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useLazyGetFormFileDownloadableLinkQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { downloadFile, generateFileMetaData } from '@app/utils/fileUtils';
 
@@ -23,7 +22,6 @@ export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     const inputFileRef = useRef<HTMLInputElement | null>(null);
     const { addFile } = useFormAtom();
     const workspace = useAppSelector(selectWorkspace);
-    const [getFileDownloadableLink, result] = useLazyGetFormFileDownloadableLinkQuery();
     const [fileMetaData, setFileMetadata] = useState<FileMetadata>(ans?.file_metadata ?? { id: uuidv4() });
     const dispatch = useAppDispatch();
 
@@ -67,10 +65,9 @@ export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     };
 
     const downloadFormFile = async () => {
-        const payload = await getFileDownloadableLink({ workspace_id: workspace.id, file_id: fileMetaData.id });
-        if (payload.data) {
-            downloadFile(payload.data, fileMetaData.name ?? fileMetaData.id);
-        } else {
+        try {
+            downloadFile(ans?.file_metadata?.url, fileMetaData.name ?? fileMetaData.id);
+        } catch (err) {
             toast('Error downloading file', { type: 'error' });
         }
     };
