@@ -19,9 +19,10 @@ import { useGetPlansQuery } from '@app/store/plans/api';
 
 export interface IUpgradeToProModal {
     featureText?: string;
+    isPage?: boolean;
 }
 
-export default function UpgradeToProModal({ featureText }: IUpgradeToProModal) {
+export default function UpgradeToProModal({ featureText , isPage=false}: IUpgradeToProModal) {
     const { closeModal } = useFullScreenModal();
 
     const { data, isLoading } = useGetPlansQuery();
@@ -56,15 +57,15 @@ export default function UpgradeToProModal({ featureText }: IUpgradeToProModal) {
     ];
 
     return (
-        <div className="relative h-full overflow-auto pt-20 !bg-white ">
-            <Close
+        <div className={`relative h-full overflow-auto !bg-white ${isPage?'':'pt-20'}`}>
+            {!isPage && <Close
                 className="absolute cursor-pointer text-black-600 top-10 right-10"
                 height={40}
                 width={40}
                 onClick={() => {
                     closeModal();
                 }}
-            />
+            />}
             <div className="container p-10  w-full h-full mx-auto flex flex-col items-center justify-center">
                 <div className="flex  pb-10 items-center">
                     <Logo />
