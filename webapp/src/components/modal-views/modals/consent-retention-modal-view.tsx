@@ -18,13 +18,13 @@ export interface ConsentRetentionModalProps {
 }
 export default function ConsentRetentionModalView({ type }: ConsentRetentionModalProps) {
     const [isChecked, setIsChecked] = useState(false);
-    const [days, setDays] = useState<number | null>(null);
-    const [date, setDate] = useState<string | null>(null);
+    const [days, setDays] = useState<string>();
+    const [date, setDate] = useState<string>();
     const { closeModal } = useModal();
 
     const dispatch = useAppDispatch();
     const handleDayChange = (event: any) => {
-        setDays(event.target.value);
+        setDays(event.target.value.toString());
     };
     const handleDateChange = (event: any) => {
         setDate(event.target.value);
@@ -32,7 +32,9 @@ export default function ConsentRetentionModalView({ type }: ConsentRetentionModa
 
     const handleSubmit = (event: any) => {
         event.preventDefault();
-        if (!isChecked) return;
+        const isDaysInValid = type === 'days' && (days === undefined || days === '');
+        const isDateInValid = type === 'date' && (date === undefined || date === '');
+        if (!isChecked || isDaysInValid || isDateInValid) return;
 
         let consentField: IConsentField = {
             consentId: uuidv4(),
@@ -44,12 +46,17 @@ export default function ConsentRetentionModalView({ type }: ConsentRetentionModa
         if (type === 'days') {
             consentField.title = `For ${days} days`;
             consentField.description = `Your data will be deleted after ${days} days`;
+            consentField.expirationDate = days;
+            consentField.retentionType = 'days';
         } else if (type === 'date') {
             consentField.title = `For ${date}`;
             consentField.description = `Your data will be deleted after ${date}`;
+            consentField.expirationDate = date;
+            consentField.retentionType = 'date';
         } else {
             consentField.title = `Forever`;
             consentField.description = `Your data will stay forever`;
+            consentField.retentionType = 'forever  ';
         }
 
         dispatch(setAddConsent(consentField));

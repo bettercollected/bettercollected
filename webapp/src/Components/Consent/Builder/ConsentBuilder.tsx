@@ -57,6 +57,10 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
             ...allConsentOptions
         ].filter((option) => option.category === category);
     };
+    const getFilteredConsents = (category: ConsentCategoryType) => {
+        const filteredConsents = isPreview ? form?.consent?.filter((consent) => consent?.category === category) : consentState.consents.filter((consent) => consent?.category === category);
+        return filteredConsents || [];
+    };
 
     const responderRightDetails = (
         <>
@@ -115,8 +119,8 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
         can find on the consent page:`}
                     </div>
                 </div>
-                <FormPurposeBuilder isPreview={isPreview} options={getConsentOptions(ConsentCategoryType.PurposeOfTheForm)} />
-                <DataRetentionBuilder isPreview={isPreview} options={getConsentOptions(ConsentCategoryType.DataRetention)} />
+                <FormPurposeBuilder isPreview={isPreview} form={form} options={getConsentOptions(ConsentCategoryType.PurposeOfTheForm)} consents={getFilteredConsents(ConsentCategoryType.PurposeOfTheForm)} />
+                <DataRetentionBuilder form={form} isPreview={isPreview} options={getConsentOptions(ConsentCategoryType.DataRetention)} consents={getFilteredConsents(ConsentCategoryType.DataRetention)} />
                 {responderRightDetails}
                 <div>
                     <div className="h4-new">Privacy Policy</div>
