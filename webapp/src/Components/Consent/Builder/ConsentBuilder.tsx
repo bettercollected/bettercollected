@@ -121,7 +121,7 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
                 <div>
                     <div className="h4-new">Privacy Policy</div>
                     <ConsentInput
-                        type="file"
+                        type="url"
                         disabled={isPreview}
                         title="Insert link to your privacy policy"
                         required
