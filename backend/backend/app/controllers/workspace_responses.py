@@ -21,6 +21,9 @@ from common.models.user import User
 @router(
     prefix="/workspaces/{workspace_id}",
     tags=["Workspace Form Submissions"],
+    responses={
+        400: {"description": "Bad Request"},
+    },
 )
 class WorkspaceResponsesRouter(CustomRoutable):
     def __init__(
@@ -36,7 +39,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
         "/forms/{form_id}/submissions",
         response_model=Page[StandardFormResponseCamelModel],
         responses={
-            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -58,7 +60,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
         "/all-submissions",
         response_model=Page[StandardFormResponseCamelModel | Any],
         responses={
-            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -83,7 +84,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
         "/submissions",
         response_model=Page[StandardFormResponseCamelModel],
         responses={
-            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -102,7 +102,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
     @get(
         "/submissions/{submission_id}",
         responses={
-            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -119,7 +118,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
     @delete(
         "/submissions/{submission_id}",
         responses={
-            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
