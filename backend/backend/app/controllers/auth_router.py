@@ -32,7 +32,7 @@ log = logging.getLogger(__name__)
 
 
 # TODO Extract out separate interface for oauth and use it
-@router(prefix="/auth", tags=["Auth"])
+@router(prefix="/auth", tags=["Auth"], responses={400: {"description": "Bad request"}})
 class AuthRoutes(Routable):
     def __init__(self, auth_service=container.auth_service(), *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -150,7 +150,6 @@ class AuthRoutes(Routable):
     @get(
         "/{provider}/basic/callback",
         responses={
-            401: {"description": "Bad request, Invalid token"},
             503: {"description": "Requested Source not available."},
         },
     )

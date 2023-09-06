@@ -14,7 +14,13 @@ from backend.app.services.user_service import get_logged_user
 from common.models.user import User
 
 
-@router(prefix="/{workspace_id}/responder-groups", tags=["Responders Group"])
+@router(
+    prefix="/{workspace_id}/responder-groups",
+    tags=["Responders Group"],
+    responses={
+        400: {"description": "Bad request"},
+    },
+)
 class ResponderGroupsRouter(Routable):
     def __init__(
         self,
@@ -62,7 +68,6 @@ class ResponderGroupsRouter(Routable):
     @get(
         "/{group_id}",
         responses={
-            400: {"description": "Bad request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -106,7 +111,6 @@ class ResponderGroupsRouter(Routable):
     @patch(
         "/{group_id}/emails",
         responses={
-            400: {"description": "Bad request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -124,7 +128,6 @@ class ResponderGroupsRouter(Routable):
     @delete(
         "/{group_id}/emails",
         responses={
-            400: {"description": "Bad request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -143,7 +146,6 @@ class ResponderGroupsRouter(Routable):
     @delete(
         "/{group_id}",
         responses={
-            400: {"description": "Bad request"},
             401: {"description": "Authorization token is missing."},
         },
     )
