@@ -19,7 +19,13 @@ from backend.app.services.workspace_service import WorkspaceService
 from common.models.user import User
 
 
-@router(prefix="/workspaces", tags=["Workspaces"])
+@router(
+    prefix="/workspaces",
+    tags=["Workspaces"],
+    responses={
+        400: {"description": "Bad Request"},
+    },
+)
 class WorkspaceRouter(Routable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -83,7 +89,12 @@ class WorkspaceRouter(Routable):
         workspaces = await self.workspace_service.get_mine_workspaces(user)
         return workspaces
 
-    @get("/{workspace_id}")
+    @get(
+        "/{workspace_id}",
+        responses={
+            400: {"description": "Bad request"},
+        },
+    )
     async def _get_workspace_by_id(self, workspace_id: PydanticObjectId):
         return await self.workspace_service.get_workspace_by_id(
             workspace_id=workspace_id
@@ -93,7 +104,6 @@ class WorkspaceRouter(Routable):
         "/check-handle-availability/{workspace_name}",
         response_model=str,
         responses={
-            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -108,7 +118,6 @@ class WorkspaceRouter(Routable):
         "/suggest-handle/{workspace_name}",
         response_model=List[str],
         responses={
-            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -125,7 +134,6 @@ class WorkspaceRouter(Routable):
     @patch(
         "/{workspace_id}",
         responses={
-            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -165,7 +173,6 @@ class WorkspaceRouter(Routable):
     @delete(
         "/{workspace_id}/custom-domain",
         responses={
-            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
@@ -180,7 +187,6 @@ class WorkspaceRouter(Routable):
         "/{workspace_id}/stats",
         response_model=WorkspaceStatsDto,
         responses={
-            400: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
