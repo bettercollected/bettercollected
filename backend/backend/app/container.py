@@ -122,6 +122,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_repo=form_response_repo,
         workspace_form_repo=workspace_form_repo,
         workspace_user_repo=workspace_user_repo,
+        aws_service=aws_service,
     )
 
     workspace_user_service: WorkspaceUserService = providers.Singleton(

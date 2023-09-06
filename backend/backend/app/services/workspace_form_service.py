@@ -247,34 +247,6 @@ class WorkspaceFormService:
         await self.form_service.delete_forms(form_ids=form_ids)
         return await self.workspace_form_repository.delete_forms(form_ids=form_ids)
 
-    def generate_presigned_file_url(
-        self,
-        key: str,
-    ):
-        # await self.workspace_user_service.check_is_admin_in_workspace(
-        #     workspace_id=workspace_id, user=user
-        # )
-        #
-        # response = await FormResponseDocument.find_one({"response_id": response_id})
-        # form = await FormDocument.find_one({"form_id": form_id})
-        # workspace_form = await WorkspaceFormDocument.find_one(
-        #     {
-        #         "workspace_id": workspace_id,
-        #         "form_id": form.form_id,
-        #     }
-        # )
-        #
-        # if not workspace_form:
-        #     raise HTTPException(404, "Form not found in this workspace")
-        #
-        # if not response:
-        #     raise HTTPException(404, "Response not found in this workspace")
-        #
-        # if not response.dataOwnerIdentifier == user.sub:
-        #     raise HTTPException(403, "You are not authorized to perform this action.")
-
-        return self._aws_service.generate_presigned_url(key)
-
     async def create_form(
         self,
         workspace_id: PydanticObjectId,

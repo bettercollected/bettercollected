@@ -22,6 +22,7 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from backend.app.services.aws_service import AWSS3Service
 from common.constants import MESSAGE_FORBIDDEN
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
@@ -34,10 +35,12 @@ class FormResponseService:
         form_response_repo: FormResponseRepository,
         workspace_form_repo: WorkspaceFormRepository,
         workspace_user_repo: WorkspaceUserRepository,
+        aws_service: AWSS3Service,
     ):
         self._form_response_repo = form_response_repo
         self._workspace_form_repo = workspace_form_repo
         self._workspace_user_repo = workspace_user_repo
+        self._aws_service = aws_service
 
     async def get_all_workspace_responses(
         self,
@@ -155,11 +158,19 @@ class FormResponseService:
         form = StandardFormCamelModel(**form.dict())
         form.settings = workspace_form.settings
         response.form_title = form.title
+        decrypted_response = self.decrypt_form_response(
+            workspace_id=workspace_id, response=response
+        )
+        for key, decrypted_answer in decrypted_response.answers.items():
+            if decrypted_answer["file_metadata"] is not None:
+                file_url = self._aws_service.generate_presigned_url(
+                    decrypted_answer["file_metadata"]["id"]
+                )
+                decrypted_response.answers[key]["file_metadata"]["url"] = file_url
+
         return {
             "form": form,
-            "response": self.decrypt_form_response(
-                workspace_id=workspace_id, response=response
-            ),
+            "response": decrypted_response,
         }
 
     async def request_for_response_deletion(
