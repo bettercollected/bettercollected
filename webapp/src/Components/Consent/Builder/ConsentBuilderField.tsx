@@ -6,6 +6,7 @@ import cn from 'classnames';
 import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
 import { useModal } from '@app/components/modal-views/context';
 import { ConsentPurposeModalProps } from '@app/components/modal-views/modals/consent-purpose-modal-view';
+import { ConsentCategoryType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { setRemoveConsent } from '@app/store/consent/actions';
 import { consent } from '@app/store/consent/consentSlice';
@@ -26,6 +27,21 @@ export default function ConsentBuilderField({ consent, className, disabled = fal
         dispatch(setRemoveConsent(consent.consentId));
     };
 
+    if (consent.category === ConsentCategoryType.DataRetention) {
+        return (
+            <div className="space-y-3">
+                <div id={`item-${consent.consentId}`} className={cn('flex items-center justify-between space-y-2 p-5 rounded-lg  bg-new-black-200 group', className, disabled && 'hover:cursor-default hover:bg-white')}>
+                    <div className="h6-new">{consent.title}</div>
+                    <DropdownCloseIcon className={cn('!m-0 hover:cursor-pointer', disabled && 'group-hover:hidden')} onClick={handleRemoveConsent} />
+                </div>
+                {consent.responseRetentionType !== 'forever' && (
+                    <p className="p2 !text-new-pink">
+                        {`Responders data will be automatically deleted after ${consent.responseExpiration}`} {consent.responseRetentionType === 'days' && ' days.'}
+                    </p>
+                )}
+            </div>
+        );
+    }
     return (
         <div
             id={`item-${consent.consentId}`}
@@ -41,8 +57,7 @@ export default function ConsentBuilderField({ consent, className, disabled = fal
                         {consent.title} {consent.required && <span className="ml-2 text-new-pink">*</span>}
                     </div>
                 </div>
-
-                <DropdownCloseIcon className={cn('hidden group-hover:block', disabled && 'group-hover:hidden')} onClick={handleRemoveConsent} />
+                <DropdownCloseIcon className={cn('!m-0 hidden group-hover:block', disabled && 'group-hover:hidden')} onClick={handleRemoveConsent} />
             </div>
 
             {consent.description !== '' && (

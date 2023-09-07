@@ -1,6 +1,7 @@
+import datetime
 from _socket import gaierror
 from http import HTTPStatus
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from aiohttp import ServerDisconnectedError, ClientConnectorError
 from beanie import PydanticObjectId
@@ -11,32 +12,36 @@ from backend.app.models.enum.update_status import UpdateStatus
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
+from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
 from common.constants import MESSAGE_FORBIDDEN
+from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from common.services.jwt_service import JwtService
 
 
 class FormSchedular:
     def __init__(
-        self,
-        form_provider_service: FormPluginProviderService,
-        form_import_service: FormImportService,
-        jwt_service: JwtService,
-        temporal_service: TemporalService,
+            self,
+            form_provider_service: FormPluginProviderService,
+            form_import_service: FormImportService,
+            jwt_service: JwtService,
+            temporal_service: TemporalService,
+            form_response_service: FormResponseService
     ):
         self.form_provider_service = form_provider_service
         self.form_import_service = form_import_service
         self.jwt_service = jwt_service
         self.temporal_service = temporal_service
+        self.form_response_service = form_response_service
 
     async def update_form(
-        self,
-        *,
-        form_id,
-        workspace_id: PydanticObjectId = None,
+            self,
+            *,
+            form_id,
+            workspace_id: PydanticObjectId = None,
     ):
         workspace_form = await WorkspaceFormDocument.find_one(
             {"form_id": form_id, "workspace_id": workspace_id}
@@ -126,12 +131,12 @@ class FormSchedular:
         await workspace_form.save()
 
     async def perform_conversion_request(
-        self,
-        *,
-        provider: str,
-        raw_form: Dict[str, Any],
-        convert_responses: bool = True,
-        cookies: Dict = None,
+            self,
+            *,
+            provider: str,
+            raw_form: Dict[str, Any],
+            convert_responses: bool = True,
+            cookies: Dict = None,
     ):
         return await self.perform_request(
             provider=provider,
@@ -143,14 +148,14 @@ class FormSchedular:
         )
 
     async def perform_request(
-        self,
-        *,
-        provider: str,
-        append_url: str,
-        method: str,
-        cookies: Dict,
-        params: Dict = None,
-        json: Dict = None,
+            self,
+            *,
+            provider: str,
+            append_url: str,
+            method: str,
+            cookies: Dict,
+            params: Dict = None,
+            json: Dict = None,
     ):
         provider_url = await self.form_provider_service.get_provider_url(provider)
         # TODO Perform request from containers http client
@@ -193,3 +198,12 @@ class FormSchedular:
             params={"user_ids": user_ids},
         )
         return await response.json()
+
+    async def delete_expired_responses(self):
+        current_date_str = datetime.date.today()
+        current_date = datetime.strptime(current_date_str, '%Y-%m-%d')
+        responses: List[StandardFormResponse] = await self.form_response_service.get_all_expiring_forms_responses()
+        for response in responses:
+            response_expiration = datetime.strptime(response.expiration, '%Y-%m-%d')
+            if current_date >= response_expiration:
+                await self.form_response_service.delete_response(response_id=response.response_id)

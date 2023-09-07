@@ -1,5 +1,5 @@
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, post
+from classy_fastapi import Routable, post, delete
 from fastapi import Depends
 
 from backend.app.container import container
@@ -24,8 +24,14 @@ class TemporalRouter(Routable):
         },
     )
     async def import_form_to_workspace(
-        self, workspace_id: PydanticObjectId, form_id: str, api_key=Depends(get_api_key)
+            self, workspace_id: PydanticObjectId, form_id: str, api_key=Depends(get_api_key)
     ):
         await self.form_schedular.update_form(
             workspace_id=workspace_id, form_id=form_id
         )
+
+    @post(
+        "/delete/submissions"
+    )
+    async def delete_expired_submissions(self):
+        await self.form_schedular.delete_expired_responses()

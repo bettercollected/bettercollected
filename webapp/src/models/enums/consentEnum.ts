@@ -10,4 +10,4 @@ export enum ConsentCategoryType {
     RespondersRights = 'responder_rights'
 }
 
-export type RetentionType = 'days' | 'date' | 'forever  ';
+export type ResponseRetentionType = 'days' | 'date' | 'forever';
