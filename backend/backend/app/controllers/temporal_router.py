@@ -33,5 +33,5 @@ class TemporalRouter(Routable):
     @post(
         "/delete/submissions"
     )
-    async def delete_expired_submissions(self):
+    async def delete_expired_submissions(self, api_key=Depends(get_api_key)):
         await self.form_schedular.delete_expired_responses()
