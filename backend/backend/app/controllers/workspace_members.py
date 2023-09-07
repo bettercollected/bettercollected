@@ -21,9 +21,7 @@ from common.models.user import User
 @router(
     prefix="/workspaces/{workspace_id}/members",
     tags=["Workspace Members and Invitations"],
-    responses={
-        400: {"description": "Bad Request"},
-    },
+    responses={400: {"description": "Bad Request"}, 404: {"description": "Not Found"}},
 )
 class WorkspaceMembersRouter(Routable):
     def __init__(

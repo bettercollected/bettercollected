@@ -9,7 +9,9 @@ from backend.app.services.stripe_service import StripeService
 from backend.app.services.user_service import get_logged_user
 
 
-@router(prefix="/stripe", tags=["Stripe"])
+@router(
+    prefix="/stripe", tags=["Stripe"], responses={404: {"description": "Not Found"}}
+)
 class StripeRoutes(Routable):
     def __init__(
         self,
