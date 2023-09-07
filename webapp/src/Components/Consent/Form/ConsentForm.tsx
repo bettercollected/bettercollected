@@ -66,7 +66,7 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
         if (responderRight) {
             return (
                 <div className="space-y-5">
-                    <div className="h4-new">{`Allow deletion request to responder?`}</div>
+                    <div className="h4-new">{`Your Rights`}</div>
                     <div className="h6-new border-y border-new-black-300 py-5">You can request for deletion of your data at any time</div>
                 </div>
             );

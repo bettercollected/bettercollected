@@ -417,6 +417,7 @@
     },
     "POWERED_BY": "Powered by:",
     "PRICING_PLAN": {
+        "PAGE_TITLE": "Plans and Pricing",
         "DESCRIPTION": "Secure payments processed with Stripe.",
         "NO_RISK": "No risk. Cancel anytime",
         "TITLE": "Upgrade to PRO",

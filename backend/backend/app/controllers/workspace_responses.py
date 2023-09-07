@@ -21,6 +21,9 @@ from common.models.user import User
 @router(
     prefix="/workspaces/{workspace_id}",
     tags=["Workspace Form Submissions"],
+    responses={
+        400: {"description": "Bad Request"},
+    },
 )
 class WorkspaceResponsesRouter(CustomRoutable):
     def __init__(

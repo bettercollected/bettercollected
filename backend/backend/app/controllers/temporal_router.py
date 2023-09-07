@@ -16,6 +16,7 @@ class TemporalRouter(Routable):
     @post(
         "/import/{workspace_id}/form/{form_id}",
         responses={
+            400: {"description": "Bad request"},
             403: {"description": "You are not allowed to perform this action."},
         },
     )

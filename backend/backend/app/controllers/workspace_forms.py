@@ -30,7 +30,13 @@ from common.models.standard_form import StandardForm
 from common.models.user import User
 
 
-@router(prefix="/workspaces/{workspace_id}/forms", tags=["Workspace Forms"])
+@router(
+    prefix="/workspaces/{workspace_id}/forms",
+    tags=["Workspace Forms"],
+    responses={
+        400: {"description": "Bad request"},
+    },
+)
 class WorkspaceFormsRouter(Routable):
     def __init__(
         self,
@@ -153,19 +159,6 @@ class WorkspaceFormsRouter(Routable):
         )
         return response.response_id
 
-    @get(
-        "/files/{file_id}",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
-    )
-    def get_file_downloadable_link(
-        self,
-        file_id: str,
-        user: User = Depends(get_logged_user),
-    ):
-        return self.workspace_form_service.generate_presigned_file_url(file_id)
-
     @delete(
         "/{form_id}/response/{response_id}",
         responses={
@@ -200,7 +193,10 @@ class WorkspaceFormsRouter(Routable):
         )
         return forms
 
-    @get("/{form_id}", response_model=MinifiedForm)
+    @get(
+        "/{form_id}",
+        response_model=MinifiedForm,
+    )
     async def _get_form_by_id(
         self,
         workspace_id: PydanticObjectId,
@@ -288,6 +284,7 @@ class WorkspaceFormsRouter(Routable):
     @delete(
         "/{form_id}",
         responses={
+            404: {"description": "Bad Request"},
             401: {"description": "Authorization token is missing."},
         },
     )
