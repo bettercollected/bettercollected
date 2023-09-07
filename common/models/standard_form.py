@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from beanie import PydanticObjectId
 from pydantic import BaseModel, Field
 
-from common.models.consent import Consent, ConsentResponse
+from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
 
 
 class EmbedProvider(str, enum.Enum):
@@ -372,6 +372,8 @@ class StandardFormResponse(BaseModel):
     updated_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
     consent: Optional[List[ConsentResponse]]
+    expiration: Optional[str]
+    expiration_type: Optional[ResponseRetentionType]
     state: Optional[ResponseState] = Field(None)
     dataOwnerIdentifierType: Optional[str]
     dataOwnerIdentifier: Optional[str]

@@ -17,6 +17,12 @@ class ConsentCategory(str, enum.Enum):
     RESPONDERS_RIGHTS = "responder_rights"
 
 
+class ResponseRetentionType(str, enum.Enum):
+    DAYS = "days"
+    DATE = "date"
+    FOREVER = "forever"
+
+
 class Consent(BaseModel):
     consent_id: Optional[str]
     title: str
