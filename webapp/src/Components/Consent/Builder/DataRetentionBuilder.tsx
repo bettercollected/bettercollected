@@ -30,6 +30,7 @@ export default function DataRetentionBuilder({ form, isPreview, options, consent
         } else if (selectionIndex === 1) {
             const modalProps: ConsentRetentionModalProps = { type: 'date' };
             openModal('CONSENT_RETENTION_MODAL_VIEW', modalProps);
+        } else {
         }
     };
 
@@ -41,7 +42,7 @@ export default function DataRetentionBuilder({ form, isPreview, options, consent
             {consents?.map((consent, idx) => (
                 <ConsentBuilderField key={consent.consentId} disabled={isPreview || consent.consentId === 'consent_data_collection'} className={`${idx === 0 && 'border-y'}`} consent={consent} />
             ))}
-            {!isPreview && (
+            {!isPreview && consents.length === 0 && (
                 <ConsentAddInput className="mt-5 xs:mt-[17px]" title={dataRetention.title} placeholder="Select a Data Retention options" hint={dataRetention.hint} options={options} dropdownTitle="Data Retention Options" onSelect={handleSelect} />
             )}
         </div>

@@ -1,4 +1,4 @@
-import { ConsentCategoryType, ConsentType, RetentionType } from '@app/models/enums/consentEnum';
+import { ConsentCategoryType, ConsentType, ResponseRetentionType } from '@app/models/enums/consentEnum';
 
 export interface IConsentField {
     consentId: string;
@@ -7,8 +7,8 @@ export interface IConsentField {
     required?: boolean;
     type?: ConsentType;
     category?: ConsentCategoryType;
-    expirationDate?: string;
-    retentionType?: RetentionType;
+    responseExpiration?: string;
+    responseRetentionType?: ResponseRetentionType;
 }
 
 export interface IConsentState {

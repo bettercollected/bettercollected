@@ -6,7 +6,7 @@ import ConsentModalTopBar from '@Components/Consent/ConsentModalTopBar';
 import TermsAndCondition from '@Components/Consent/TermsAndCondition';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 
-import { ConsentCategoryType, ConsentType, RetentionType } from '@app/models/enums/consentEnum';
+import { ConsentCategoryType, ConsentType, ResponseRetentionType } from '@app/models/enums/consentEnum';
 import { setAddConsent } from '@app/store/consent/actions';
 import { IConsentField } from '@app/store/consent/types';
 import { useAppDispatch } from '@app/store/hooks';
@@ -14,7 +14,7 @@ import { useAppDispatch } from '@app/store/hooks';
 import { useModal } from '../context';
 
 export interface ConsentRetentionModalProps {
-    type: RetentionType;
+    type: ResponseRetentionType;
 }
 export default function ConsentRetentionModalView({ type }: ConsentRetentionModalProps) {
     const [isChecked, setIsChecked] = useState(false);
@@ -46,17 +46,17 @@ export default function ConsentRetentionModalView({ type }: ConsentRetentionModa
         if (type === 'days') {
             consentField.title = `For ${days} days`;
             consentField.description = `Your data will be deleted after ${days} days`;
-            consentField.expirationDate = days;
-            consentField.retentionType = 'days';
+            consentField.responseExpiration = days;
+            consentField.responseRetentionType = 'days';
         } else if (type === 'date') {
             consentField.title = `For ${date}`;
             consentField.description = `Your data will be deleted after ${date}`;
-            consentField.expirationDate = date;
-            consentField.retentionType = 'date';
+            consentField.responseExpiration = date;
+            consentField.responseRetentionType = 'date';
         } else {
             consentField.title = `Forever`;
             consentField.description = `Your data will stay forever`;
-            consentField.retentionType = 'forever  ';
+            consentField.responseRetentionType = 'forever';
         }
 
         dispatch(setAddConsent(consentField));
@@ -83,8 +83,7 @@ export default function ConsentRetentionModalView({ type }: ConsentRetentionModa
                     selected={false}
                     className=""
                 >
-                    {`I understand that responders data will be automatically deleted after
-[customizable time period].`}
+                    {`I understand that responders data will be automatically deleted after ${type === 'days' ? days + ' days.' : date}`}
                 </TermsAndCondition>
                 <AppButton type="submit" className="py-3 px-8 !bg-new-blue-500 md:w-[192px]">
                     Done
