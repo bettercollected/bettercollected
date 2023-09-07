@@ -53,13 +53,15 @@ async def update_all_scheduled_forms(scheduler: AsyncIOScheduler):
 
 async def migrate_schedule_to_temporal():
     temporal_service = container.temporal_service()
+    form_response_service = container.form_response_service()
     workspace_forms = await WorkspaceFormDocument.find().to_list()
+    expiring_form_responses = await form_response_service.get_all_expiring_forms_responses()
     for workspace_form in workspace_forms:
         if (
-            workspace_form.settings.provider
-            != "self"
-            # and workspace_form.last_update_status != UpdateStatus.NOT_FOUND
-            # and workspace_form.last_update_status != UpdateStatus.INVALID_GRANT
+                workspace_form.settings.provider
+                != "self"
+                # and workspace_form.last_update_status != UpdateStatus.NOT_FOUND
+                # and workspace_form.last_update_status != UpdateStatus.INVALID_GRANT
         ):
             try:
                 await temporal_service.add_scheduled_job_for_importing_form(
@@ -70,6 +72,15 @@ async def migrate_schedule_to_temporal():
             except HTTPException as e:
                 logger.info("Temporal Service Unavailable")
                 return
+
+    for expiring_form_response in expiring_form_responses:
+        try:
+            await temporal_service.add_scheduled_job_for_deleting_expired_responses(
+                response_id=expiring_form_response.response_id)
+            logger.info("Add job for deletion response: " + expiring_form_response.response_id)
+        except HTTPException as e:
+            logger.info("Temporal Service Unavailable")
+            return
 
 
 async def init_schedulers(scheduler: AsyncIOScheduler):

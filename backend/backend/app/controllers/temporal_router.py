@@ -31,7 +31,7 @@ class TemporalRouter(Routable):
         )
 
     @post(
-        "/delete/submissions"
+        "/delete/submissions/{submission_id}"
     )
-    async def delete_expired_submissions(self, api_key=Depends(get_api_key)):
-        await self.form_schedular.delete_expired_responses()
+    async def delete_expired_submissions(self, submission_id: PydanticObjectId, api_key=Depends(get_api_key)):
+        await self.form_schedular.delete_response_if_expired(submission_id=submission_id)

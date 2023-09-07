@@ -273,14 +273,17 @@ class FormResponseRepository(BaseRepository):
         )
         return str(response_id)
 
-    async def get_all_expiring_response(self):
-        return await FormResponseDocument.find_all(
-            (FormResponseDocument.expiration_type != ResponseRetentionType.FOREVER) &
-            (FormResponseDocument.expiration_type is not None)
-        )
+    async def get_all_expiring_responses(self):
+        return await FormResponseDocument.find({
+            "expiration_type": {"$in": ["date", "days"]}}
+        ).to_list()
 
-    async def delete_response(self, response_id: PydanticObjectId):
-        await FormResponseDeletionRequest.find(
+    async def delete_response(self, response: StandardFormResponse):
+        response_document = FormResponseDocument(**response.dict())
+        await response_document.delete()
+        return str(response_document.response_id)
+
+    async def get_response(self, response_id: PydanticObjectId):
+        return await FormResponseDeletionRequest.find(
             {"response_id": str(response_id)}
-        ).delete()
-        return str(response_id)
+        )
