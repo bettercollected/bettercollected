@@ -6,6 +6,7 @@ from beanie import PydanticObjectId
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
 
+from backend.app.constants.consents import default_consents
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
@@ -20,6 +21,7 @@ from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
+from common.models.consent import Consent, ConsentType, ConsentCategory
 from common.models.standard_form import StandardForm
 from common.models.user import User
 
@@ -152,7 +154,10 @@ class FormService:
         form[0]["importer_details"] = FormImporterDetails(
             **user_info, id=user_info.get("_id")
         )
-        return MinifiedForm(**form[0])
+        minified_form = MinifiedForm(**form[0])
+        if minified_form.consent is None:
+            minified_form.consent = default_consents
+        return minified_form
 
     async def save_form(self, form: StandardForm):
         existing_form = await FormDocument.find_one({"form_id": form.form_id})

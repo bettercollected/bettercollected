@@ -1,4 +1,5 @@
 export const pricingPlan = {
+    pageTitle:'PRICING_PLAN.PAGE_TITLE',
     title: 'PRICING_PLAN.TITLE',
     description: 'PRICING_PLAN.DESCRIPTION',
     noRisk: 'PRICING_PLAN.NO_RISK',

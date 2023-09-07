@@ -204,12 +204,6 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
-        getFormFileDownloadableLink: builder.query<string, IGetWorkspaceFileUrlQuery>({
-            query: (query) => ({
-                url: `/workspaces/${query.workspace_id}/forms/files/${query.file_id}`,
-                method: 'GET'
-            })
-        }),
         getFormsSubmissions: builder.query<Page<StandardFormResponseDto>, IGetFormSubmissionsQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspaceId}/forms/${query.formId}/submissions`,
@@ -498,5 +492,4 @@ export const {
     useDeleteResponderFromGroupMutation,
     useDeleteGroupFormMutation,
     useUpdateResponderGroupMutation,
-    useLazyGetFormFileDownloadableLinkQuery
 } = workspacesApi;

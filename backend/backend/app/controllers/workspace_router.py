@@ -19,7 +19,13 @@ from backend.app.services.workspace_service import WorkspaceService
 from common.models.user import User
 
 
-@router(prefix="/workspaces", tags=["Workspaces"])
+@router(
+    prefix="/workspaces",
+    tags=["Workspaces"],
+    responses={
+        400: {"description": "Bad Request"},
+    },
+)
 class WorkspaceRouter(Routable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -83,7 +89,12 @@ class WorkspaceRouter(Routable):
         workspaces = await self.workspace_service.get_mine_workspaces(user)
         return workspaces
 
-    @get("/{workspace_id}")
+    @get(
+        "/{workspace_id}",
+        responses={
+            400: {"description": "Bad request"},
+        },
+    )
     async def _get_workspace_by_id(self, workspace_id: PydanticObjectId):
         return await self.workspace_service.get_workspace_by_id(
             workspace_id=workspace_id

@@ -1,0 +1,18 @@
+name: Test endpoints using schemathesis
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  schemathesis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure schemathesis using action
+        uses: schemathesis/action@v1
+        with:
+          schema: 'https://bettercollected-admin.sireto.dev/api/v1/openapi.json'
+          max-examples: 30
+          version: 'latest'
