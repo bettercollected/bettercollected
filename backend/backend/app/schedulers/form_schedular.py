@@ -199,11 +199,9 @@ class FormSchedular:
         )
         return await response.json()
 
-    async def delete_expired_responses(self):
+    async def delete_response(self, submission_id: PydanticObjectId):
         current_date_str = datetime.date.today()
         current_date = datetime.strptime(current_date_str, '%Y-%m-%d')
-        responses: List[StandardFormResponse] = await self.form_response_service.get_all_expiring_forms_responses()
-        for response in responses:
-            response_expiration = datetime.strptime(response.expiration, '%Y-%m-%d')
-            if current_date >= response_expiration:
-                await self.form_response_service.delete_response(response_id=response.response_id)
+        response: StandardFormResponse = await self.form_response_service.get_response_by_id(response_id=submission_id)
+        if current_date >= response.expiration:
+            await self.form_response_service.delete_response(response=response)

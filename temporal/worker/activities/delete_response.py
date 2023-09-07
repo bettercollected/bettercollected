@@ -2,6 +2,7 @@ import json
 
 from temporalio import activity, workflow
 
+from models.delete_response import DeleteResponseParams
 from settings.application import settings
 import requests
 from configs.crypto import crypto
@@ -9,12 +10,10 @@ from models.user_tokens import UserTokens
 
 
 @activity.defn(name="delete_response")
-async def delete_user(token: str):
-    decrypted_token = crypto.decrypt(token)
-    user_token = UserTokens(**json.loads(decrypted_token))
-    cookies = {"Authorization": user_token.access_token, "RefreshToken": user_token.refresh_token}
+async def delete_response(delete_response_params: DeleteResponseParams):
     headers = {"api_key": settings.api_key}
-    response = requests.delete(url=settings.server_url + "/auth/user", cookies=cookies, headers=headers)
-    if response.status_code != 200:
-        raise RuntimeError("Could not delete user")
-    return "User Deleted Successfully"
+    response = requests.post(
+        url=settings.server_url
+            + f"/temporal/submissions/{delete_response_params.response_id}",
+        headers=headers
+    )
