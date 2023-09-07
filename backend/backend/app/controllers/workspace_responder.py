@@ -20,9 +20,7 @@ from common.models.user import User
 @router(
     prefix="/workspaces/{workspace_id}/responders",
     tags=["Workspace Responders"],
-    responses={
-        400: {"description": "Bad Request"},
-    },
+    responses={400: {"description": "Bad Request"}, 404: {"description": "Not Found"}},
 )
 class WorkspaceRespondersController(Routable):
     def __init__(

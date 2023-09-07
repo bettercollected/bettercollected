@@ -33,9 +33,7 @@ from common.models.user import User
 @router(
     prefix="/workspaces/{workspace_id}/forms",
     tags=["Workspace Forms"],
-    responses={
-        400: {"description": "Bad request"},
-    },
+    responses={400: {"description": "Bad request"}, 404: {"description": "Not Found"}},
 )
 class WorkspaceFormsRouter(Routable):
     def __init__(
