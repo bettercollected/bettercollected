@@ -34,7 +34,12 @@ export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswe
     const renderPurposeTermsAndConditon = () => {
         const formPurpose = Object.values(consentAnswers).filter((answer) => answer.category === ConsentCategoryType.PurposeOfTheForm).length !== 0;
         if (formPurpose) {
-            return <TermsAndCondition onAgree={(checked) => setFormPurposeTermChecked(checked)} className="border-b border-new-black-300 p-5"></TermsAndCondition>;
+            return (
+                <TermsAndCondition onAgree={(checked) => setFormPurposeTermChecked(checked)} className="border-b border-new-black-300 p-5">
+                    <TermsAndCondition.Title> {`I have reviewed all the form's purposes.`}</TermsAndCondition.Title>
+                    <TermsAndCondition.Description>{`This confirms whether you've taken a moment to go through the stated intentions of the form before proceeding.`}</TermsAndCondition.Description>
+                </TermsAndCondition>
+            );
         }
     };
     const onSubmit = async (event: any) => {

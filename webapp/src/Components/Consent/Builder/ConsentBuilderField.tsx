@@ -4,8 +4,6 @@ import CheckBox from '@Components/Common/Input/CheckBox';
 import cn from 'classnames';
 
 import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
-import { useModal } from '@app/components/modal-views/context';
-import { ConsentPurposeModalProps } from '@app/components/modal-views/modals/consent-purpose-modal-view';
 import { ConsentCategoryType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { setRemoveConsent } from '@app/store/consent/actions';
@@ -17,36 +15,36 @@ interface ConsentBuilderFieldProps extends OnlyClassNameInterface {
     disabled?: boolean;
     consent: IConsentField;
     onClick?: (consent: IConsentField) => void;
+    hint?: string;
+    onRemoveCallback?: () => void;
 }
-export default function ConsentBuilderField({ consent, className, disabled = false, onClick }: ConsentBuilderFieldProps) {
+export default function ConsentBuilderField({ consent, className, hint, disabled = false, onClick, onRemoveCallback }: ConsentBuilderFieldProps) {
     const dispatch = useAppDispatch();
 
     const handleRemoveConsent = (event: any) => {
         event.stopPropagation();
         if (disabled) return;
+        onRemoveCallback && onRemoveCallback();
         dispatch(setRemoveConsent(consent.consentId));
     };
 
     if (consent.category === ConsentCategoryType.DataRetention) {
         return (
             <div className="space-y-3">
-                <div id={`item-${consent.consentId}`} className={cn('flex items-center justify-between space-y-2 p-5 rounded-lg  bg-new-black-200 group', className, disabled && 'hover:cursor-default hover:bg-white')}>
+                <div id={`item-${consent.consentId}`} className={cn('flex items-center justify-between space-y-2 p-5 rounded-lg  bg-new-black-200 group', className, disabled && 'hover:cursor-default')}>
                     <div className="h6-new">{consent.title}</div>
-                    <DropdownCloseIcon className={cn('!m-0 hover:cursor-pointer', disabled && 'group-hover:hidden')} onClick={handleRemoveConsent} />
+                    <DropdownCloseIcon className={cn('!m-0 hover:cursor-pointer', disabled && 'hidden')} onClick={handleRemoveConsent} />
                 </div>
-                {consent.responseRetentionType !== 'forever' && (
-                    <p className="p2 !text-new-pink">
-                        {`Responders data will be automatically deleted after ${consent.responseExpiration}`} {consent.responseRetentionType === 'days' && ' days.'}
-                    </p>
-                )}
+                {hint && hint !== '' && <p className="p2 !text-new-pink">{hint}</p>}
             </div>
         );
     }
     return (
         <div
             id={`item-${consent.consentId}`}
-            className={cn('space-y-2 p-5 border-b border-new-black-300 hover:bg-new-black-200 hover:cursor-pointer group', className, disabled && 'hover:cursor-default hover:bg-white')}
+            className={cn('space-y-2 p-5 border-b border-new-black-300 hover:bg-new-black-200 hover:cursor-pointer group', className, disabled && 'hover:cursor-default hover:!bg-white')}
             onClick={() => {
+                if (disabled) return;
                 onClick && onClick(consent);
             }}
         >

@@ -7,7 +7,7 @@ import TermsAndCondition from '@Components/Consent/TermsAndCondition';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 
 import { ConsentCategoryType, ConsentType, ResponseRetentionType } from '@app/models/enums/consentEnum';
-import { setAddConsent } from '@app/store/consent/actions';
+import { setAddConsent, setResponseRetention } from '@app/store/consent/actions';
 import { IConsentField } from '@app/store/consent/types';
 import { useAppDispatch } from '@app/store/hooks';
 
@@ -46,19 +46,12 @@ export default function ConsentRetentionModalView({ type }: ConsentRetentionModa
         if (type === 'days') {
             consentField.title = `For ${days} days`;
             consentField.description = `Your data will be deleted after ${days} days`;
-            consentField.responseExpiration = days;
-            consentField.responseRetentionType = 'days';
+            dispatch(setResponseRetention({ expiration: days, expirationType: 'days' }));
         } else if (type === 'date') {
             consentField.title = `For ${date}`;
             consentField.description = `Your data will be deleted after ${date}`;
-            consentField.responseExpiration = date;
-            consentField.responseRetentionType = 'date';
-        } else {
-            consentField.title = `Forever`;
-            consentField.description = `Your data will stay forever`;
-            consentField.responseRetentionType = 'forever';
+            dispatch(setResponseRetention({ expiration: date, expirationType: 'date' }));
         }
-
         dispatch(setAddConsent(consentField));
         closeModal();
     };
