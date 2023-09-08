@@ -31,6 +31,7 @@ import { FormValidationError } from '@app/store/fill-form/type';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { formatDateAndAddDays } from '@app/utils/dateUtils';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 import { validateFormFieldAnswer } from '@app/utils/validationUtils';
 
@@ -127,11 +128,16 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             formData.append('file_field_ids', fileObj.fieldId);
             formData.append('file_ids', fileObj.fileId);
         });
+        const currentDate = new Date();
+        const responseExpirationType = form?.settings?.responseExpirationType;
+        const responseExpiration = form?.settings?.responseExpiration;
 
         const postBody = {
             form_id: form?.formId,
             answers: answers,
             consent: Object.values(consentAnswers),
+            expiration: responseExpirationType === 'days' ? formatDateAndAddDays(currentDate, parseInt(responseExpiration!)) : responseExpiration,
+            expirationType: responseExpirationType,
             dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
         };
         formData.append('response', JSON.stringify(postBody));
@@ -180,9 +186,8 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     return (
         <div className="w-full bg-white">
             {form?.coverImage && (
-                <div
-                    className={`relative z-0 w-full flex aspect-banner-mobile lg:aspect-banner-desktop`}>
-                    <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75"/>
+                <div className={`relative z-0 w-full flex aspect-banner-mobile lg:aspect-banner-desktop`}>
+                    <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75" />
                 </div>
             )}
             <form

@@ -6,6 +6,8 @@ export enum ConsentType {
 export enum ConsentCategoryType {
     PurposeOfTheForm = 'purpose_of_the_form',
     // ThirdPartyIntegrations = 'third_party_integrations',
-    // DataRetention = 'data_retention',
+    DataRetention = 'data_retention',
     RespondersRights = 'responder_rights'
 }
+
+export type ResponseRetentionType = 'days' | 'date' | 'forever';
