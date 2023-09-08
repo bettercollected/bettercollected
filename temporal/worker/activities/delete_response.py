@@ -4,9 +4,9 @@ from temporalio import activity, workflow
 
 from models.delete_response import DeleteResponseParams
 from settings.application import settings
-import requests
-from configs.crypto import crypto
-from models.user_tokens import UserTokens
+
+with workflow.unsafe.imports_passed_through():
+    import requests
 
 
 @activity.defn(name="delete_response")

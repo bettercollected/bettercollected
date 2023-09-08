@@ -5,6 +5,7 @@ from fastapi import Depends
 from backend.app.container import container
 from backend.app.router import router
 from backend.app.services.user_service import get_api_key
+from common.utils import logger
 
 
 @router(prefix="/temporal", tags=["Temporal Router"])
@@ -33,5 +34,5 @@ class TemporalRouter(Routable):
     @post(
         "/delete/submissions/{submission_id}"
     )
-    async def delete_expired_submissions(self, submission_id: PydanticObjectId, api_key=Depends(get_api_key)):
-        await self.form_schedular.delete_response_if_expired(submission_id=submission_id)
+    async def delete_expired_submissions(self, submission_id: str, api_key=Depends(get_api_key)):
+        return await self.form_schedular.delete_response(submission_id=submission_id)

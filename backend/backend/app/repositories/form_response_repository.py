@@ -278,12 +278,11 @@ class FormResponseRepository(BaseRepository):
             "expiration_type": {"$in": ["date", "days"]}}
         ).to_list()
 
-    async def delete_response(self, response: StandardFormResponse):
-        response_document = FormResponseDocument(**response.dict())
-        await response_document.delete()
-        return str(response_document.response_id)
+    async def delete_response(self, response_id: str):
+        await FormResponseDocument.find_one({"response_id": response_id}).delete()
+        return response_id
 
-    async def get_response(self, response_id: PydanticObjectId):
-        return await FormResponseDeletionRequest.find(
-            {"response_id": str(response_id)}
+    async def get_response(self, response_id: str):
+        return await FormResponseDocument.find_one(
+            {"response_id": response_id}
         )
