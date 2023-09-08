@@ -36,6 +36,7 @@ import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
 import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
 import UserDeletionModal from './modals/user-deletion-modal';
+import FormBuilderTipsModalView from './modals/form-builder-tips-modal-view';
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
@@ -87,6 +88,8 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <FormBuilderAddFieldModal {...modalProps} />;
         case 'FORM_BUILDER_SPOTLIGHT_VIEW':
             return <FormBuilderSpotlightModal {...modalProps} />;
+        case 'FORM_BUILDER_TIPS_MODAL_VIEW':
+            return <FormBuilderTipsModalView {...modalProps} />;
         case 'CONSENT_PURPOSE_MODAL_VIEW':
             return <ConsentPurposeModalView />;
         case 'CONSENT_CONFIRMATION_MODAL_VIEW':

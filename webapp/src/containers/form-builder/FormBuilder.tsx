@@ -54,6 +54,7 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
     const {openModal} = useFullScreenModal();
+    const {openModal: openHalfScreenModal} = useModal();
     const {t} = useBuilderTranslation();
     const {handleUserTypingEnd} = useUserTypingDetection();
     const {isUndoRedoInProgress} = useUndoRedo();
@@ -108,6 +109,14 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
             fullScreenModal.openModal('FORM_BUILDER_PREVIEW', {publish: onFormPublish});
         });
     };
+
+    const onClickSettings = ()=>{
+        openModal('FORM_SETTINGS_FULL_MODAL_VIEW');
+    }
+
+    const onClickTips = ()=>{
+        openHalfScreenModal('FORM_BUILDER_TIPS_MODAL_VIEW');
+    }
 
     const onBlurCallback = useCallback(
         (event: FocusEvent) => {
@@ -248,7 +257,8 @@ export default function FormBuilder({workspace, _nextI18Next, isEditMode = false
     return (
         <div>
             <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo}
-                                onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish}
+                                onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} onClickSettings={onClickSettings}
+                                onClickTips={onClickTips}
                                 isUpdating={posting || patching}/>
             {showCover && <FormCoverComponent setIsCoverClicked={setShowCover} imagesRemoved={imagesRemoved}
                                               setImagesRemoved={setImagesRemoved}/>}
