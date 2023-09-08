@@ -3,7 +3,7 @@ import React from 'react';
 import { Tooltip as MuiTooltip, PopperProps, SxProps, Theme } from '@mui/material';
 
 interface ITooltipProps {
-    title: string;
+    title: React.ReactNode;
     children: React.ReactElement;
     className?: string;
     onClick?: any;
