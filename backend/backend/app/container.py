@@ -152,7 +152,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_import_service=form_import_service,
         jwt_service=jwt_service,
         temporal_service=temporal_service,
-        form_response_service=form_response_service
+        form_response_service=form_response_service,
     )
 
     responder_groups_service = providers.Singleton(
