@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 @router(
     prefix="/auth",
     tags=["Auth"],
-    responses={400: {"description": "Bad request"}, 404: {"description": "Not Found"}},
+    responses={400: {"description": "Bad request"}, 404: {"description": "Not Found"}, 405: {"description": "Method not allowed"}},
 )
 class AuthRoutes(Routable):
     def __init__(self, auth_service=container.auth_service(), *args, **kwargs):

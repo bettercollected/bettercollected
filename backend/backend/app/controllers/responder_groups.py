@@ -17,7 +17,9 @@ from common.models.user import User
 @router(
     prefix="/{workspace_id}/responder-groups",
     tags=["Responders Group"],
-    responses={400: {"description": "Bad request"}, 404: {"description": "Not Found"}},
+    responses={400: {"description": "Bad request"}, 404: {"description": "Not Found"},
+               405: {"description": "Method not allowed"}
+               },
 )
 class ResponderGroupsRouter(Routable):
     def __init__(

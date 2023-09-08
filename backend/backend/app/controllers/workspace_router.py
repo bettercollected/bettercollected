@@ -22,7 +22,9 @@ from common.models.user import User
 @router(
     prefix="/workspaces",
     tags=["Workspaces"],
-    responses={400: {"description": "Bad Request"}, 404: {"description": "Not Found"}},
+    responses={400: {"description": "Bad Request"}, 404: {"description": "Not Found"},
+               405: {"description": "Method not allowed"}
+               },
 )
 class WorkspaceRouter(Routable):
     def __init__(self, *args, **kwargs):

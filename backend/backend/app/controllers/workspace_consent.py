@@ -15,7 +15,9 @@ from common.models.user import User
 @router(
     prefix="/{workspace_id}/consent",
     tags=["Workspace Consent"],
-    responses={400: {"description": "Bad request"}, 404: {"description": "Not Found"}},
+    responses={400: {"description": "Bad request"}, 404: {"description": "Not Found"},
+               405: {"description": "Method not allowed"}
+               },
 )
 class WorkspaceConsent(Routable):
     def __init__(
