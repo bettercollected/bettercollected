@@ -89,7 +89,7 @@ export default function FormBuilderPreviewModal({publish}: { publish: () => void
             <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6">
                 <BetterCollectedForm form={formToRender} enabled={true} preview={true} closeModal={closeModal}/>
             </div>
-            <PoweredBy/>
+            <PoweredBy isFormCreatorPortal={true}/>
         </div>
     );
 }
