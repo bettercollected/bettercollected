@@ -19,6 +19,8 @@ class TemporalRouter(Routable):
             400: {"description": "Bad request"},
             403: {"description": "You are not allowed to perform this action."},
             404: {"description": "Not Found"},
+    405: {"description": "Method not allowed"}
+
         },
     )
     async def import_form_to_workspace(

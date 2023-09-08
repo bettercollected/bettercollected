@@ -17,7 +17,10 @@ from common.models.user import User
 log = logging.getLogger(__name__)
 
 
-@router(prefix="/providers", tags=["Form Providers"])
+@router(prefix="/providers", tags=["Form Providers"], responses={
+    404: {"description": "Not Found"},
+    405: {"description": "Method not allowed"}
+})
 class PluginProviderRouter(Routable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
