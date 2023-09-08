@@ -15,6 +15,8 @@ import { alpha, styled } from '@mui/material/styles';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+import SettingsIcon from '@Components/Common/Icons/Settings';
+import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
 
 const Search = styled('div')(({ theme }) => ({
     position: 'relative',
@@ -63,12 +65,14 @@ interface IFormBuilderMenuBarProps {
     onAddFormCover: React.MouseEventHandler<HTMLButtonElement>;
     onPreview: React.MouseEventHandler<HTMLButtonElement>;
     onFormPublish: React.MouseEventHandler<HTMLButtonElement>;
+    onClickSettings: React.MouseEventHandler<HTMLButtonElement>;
+    onClickTips: React.MouseEventHandler<HTMLButtonElement>;
     isUpdating?: boolean;
 }
 
 const optionButtonClassName = 'flex flex-col text-black-700 !p-2 !md:p-3 !px-3 !md:px-5 border-1 h-full hover-none border-solid border-gray-500 md:gap-2 md:flex-row rounded-none ';
 
-export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormCover, onPreview, onFormPublish, isUpdating }: IFormBuilderMenuBarProps) {
+export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormCover, onPreview, onFormPublish, onClickSettings, onClickTips, isUpdating }: IFormBuilderMenuBarProps) {
     const { t } = useBuilderTranslation();
     const { openModal } = useFullScreenModal();
     return (
@@ -106,6 +110,16 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
                 <Divider orientation="vertical" flexItem />
 
                 {/*<Tooltip title={t('PREVIEW.DEFAULT')}>*/}
+                <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onClickTips}>
+                    <InfoIcon />
+                    <span className=" text-black-700 ">Tips</span>
+                </IconButton>
+                <Divider orientation="vertical" flexItem />
+                {/* <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onClickSettings}>
+                    <SettingsIcon />
+                    <span className=" text-black-700 ">Settings</span>
+                </IconButton> */}
+                <Divider orientation="vertical" flexItem />
                 <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onPreview}>
                     <VisibilityOutlinedIcon />
                     <span className=" text-black-700 ">{t('PREVIEW.DEFAULT')}</span>
