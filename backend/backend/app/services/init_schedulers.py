@@ -73,14 +73,14 @@ async def migrate_schedule_to_temporal():
                 logger.info("Temporal Service Unavailable")
                 return
 
-    for expiring_form_response in expiring_form_responses:
-        try:
-            await temporal_service.add_scheduled_job_for_deleting_response(
-                response=expiring_form_response)
-            logger.info("Add job for deletion response: " + expiring_form_response.response_id)
-        except HTTPException as e:
-            logger.info("Temporal Service Unavailable")
-            return
+    # for expiring_form_response in expiring_form_responses:
+    #     try:
+    #         await temporal_service.add_scheduled_job_for_deleting_response(
+    #             response=expiring_form_response)
+    #         logger.info("Add job for deletion response: " + expiring_form_response.response_id)
+    #     except HTTPException as e:
+    #         logger.info("Temporal Service Unavailable")
+    #         return
 
 
 async def init_schedulers(scheduler: AsyncIOScheduler):

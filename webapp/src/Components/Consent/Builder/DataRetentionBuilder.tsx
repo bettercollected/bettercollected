@@ -52,7 +52,7 @@ export default function DataRetentionBuilder({ form, isPreview, options, consent
     if (!isDataRetentionAvailable) return <></>;
     return (
         <div>
-            <div className="h4-new pb-5 xs:pb-[17px]">For How Long Data Will Be Stored</div>
+            <div className="h4-new pb-5 xs:pb-[17px]">For How Long Data Will Be Stored?</div>
             {consents?.map((consent, idx) => (
                 <ConsentBuilderField
                     key={consent.consentId}
