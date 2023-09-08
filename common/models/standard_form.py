@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from beanie import PydanticObjectId
 from pydantic import BaseModel, Field
 
-from common.models.consent import Consent, ConsentResponse
+from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
 
 
 class EmbedProvider(str, enum.Enum):
@@ -234,6 +234,8 @@ class StandardFormSettings(BaseModel):
     response_data_owner_fields: Optional[List[str]]
     screens: Optional[Dict[str, List[Dict[str, Any]]]]
     privacy_policy_url: Optional[str]
+    response_expiration: Optional[str]
+    response_expiration_type: Optional[ResponseRetentionType]
     # If responses are set to editable then it can be used for tracking responses
     is_response_editable: Optional[bool]
     # State whether the form is accepting new responses
@@ -357,7 +359,7 @@ class ResponseState(BaseModel):
     choices_total_point: Optional[float] = Field(None)
 
 
-class StandardFormResponse(BaseModel):
+class   StandardFormResponse(BaseModel):
     """
     Data transfer object for a standard form response.
     """
@@ -372,6 +374,8 @@ class StandardFormResponse(BaseModel):
     updated_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
     consent: Optional[List[ConsentResponse]]
+    expiration: Optional[str]
+    expiration_type: Optional[ResponseRetentionType]
     state: Optional[ResponseState] = Field(None)
     dataOwnerIdentifierType: Optional[str]
     dataOwnerIdentifier: Optional[str]
