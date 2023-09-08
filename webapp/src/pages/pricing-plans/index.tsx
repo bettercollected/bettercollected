@@ -1,18 +1,20 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { NextSeo } from 'next-seo';
-import { useTranslation } from 'next-i18next';
 
-import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
+import UpgradeToProContainer from '@app/containers/upgrade-to-pro';
 
 const PricingPlan = () => {
-    const {t} = useTranslation()
+    const { t } = useTranslation();
     return (
         <>
             <NextSeo title={t(pricingPlan.pageTitle)} noindex={false} nofollow={false} />
-            <UpgradeToProModal isPage={true} />;
+            <div className="relative h-full overflow-auto !bg-white ">
+                <UpgradeToProContainer />;
+            </div>
         </>
     );
 };
