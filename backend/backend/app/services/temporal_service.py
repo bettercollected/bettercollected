@@ -117,9 +117,9 @@ class TemporalService:
             loguru.logger.error(e)
 
     async def add_scheduled_job_for_deleting_response(self, response: StandardFormResponse):
-        expiration_date = get_formatted_date_from_str(response.expiration)
         if not settings.schedular_settings.ENABLED:
             return
+        expiration_date = get_formatted_date_from_str(response.expiration)
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             await self.client.create_schedule(
