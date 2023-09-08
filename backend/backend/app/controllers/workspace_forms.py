@@ -26,9 +26,11 @@ from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.config import settings
+from common.models.consent import ResponseRetentionType
 from common.models.form_import import FormImportRequestBody
 from common.models.standard_form import StandardForm, StandardFormSettings
 from common.models.user import User
+from loguru import logger
 
 
 @router(
@@ -160,7 +162,9 @@ class WorkspaceFormsRouter(Routable):
             form_files=form_files,
             user=user,
         )
-        await self._temporal_service.add_scheduled_job_for_deleting_response(response=response)
+        if parsed_response.expiration_type is not ResponseRetentionType.FOREVER:
+            await self._temporal_service.add_scheduled_job_for_deleting_response(response=response)
+            logger.info("Add job for deletion response: " + response.response_id)
         return response.response_id
 
     @get(
