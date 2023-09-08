@@ -201,4 +201,6 @@ class FormSchedular:
         return await response.json()
 
     async def delete_response(self, submission_id: str):
-        return await self.form_response_service.delete_response(response_id=submission_id)
+        response = await self.form_response_service.delete_response(response_id=submission_id)
+        await self.temporal_service.delete_response_delete_schedule(response_id=submission_id)
+        return response
