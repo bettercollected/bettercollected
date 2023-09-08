@@ -1,22 +1,24 @@
-import FormBuilderBackspaceIcon from '@Components/Common/Icons/FormBuilderBackspaceIcon';
-import FormBuilderDeleteIcon from '@Components/Common/Icons/FormBuilderDeleteIcon';
-import FormBuilderDuplicateIcon from '@Components/Common/Icons/FormBuilderDuplicateIcon';
-import FormBuilderEnterIcon from '@Components/Common/Icons/FormBuilderEnterIcon';
-import FormBuilderEscapeIcon from '@Components/Common/Icons/FormBuilderEscapeIcon';
-import FormBuilderSlashIcon from '@Components/Common/Icons/FormBuilderSlashIcon';
-import FormBuilderSpotlightIcon from '@Components/Common/Icons/FormBuilderSpotlightIcon';
-import KeyboardArrowDownIcon from '@Components/Common/Icons/KeyboardArrowDownIcon';
-import KeyboardArrowUpIcon from '@Components/Common/Icons/KeyboardArrowUpIcon';
+import React from 'react';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 
-export const tipsList = () => {
+interface ITipElement {
+    Icon: React.ReactElement;
+    TextComponent: React.ReactElement;
+}
+
+interface ITipListProps {
+    className: string;
+    listNumber?: number;
+}
+
+export const TipList = ({ className, listNumber }: ITipListProps) => {
     const isMac = typeof window !== 'undefined' ? navigator.userAgent.toUpperCase().indexOf('MAC') >= 0 : false;
     const commandKeyString = isMac ? 'Command' : 'Ctrl';
 
     const { t } = useBuilderTranslation();
 
-    const tips = [
+    const tipsItems = [
         {
             Icon: <div className="h6-new !text-black-800">/</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.COMMAND')}</div>
@@ -39,34 +41,45 @@ export const tipsList = () => {
         },
 
         {
-            Icon: <div className="h6-new !text-black-800">Ctrl + K</div>,
+            Icon: <div className="h6-new !text-black-800">{commandKeyString} + K</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_K')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">Ctrl + P</div>,
+            Icon: <div className="h6-new !text-black-800">{commandKeyString} + P</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_P')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">Ctrl + D</div>,
+            Icon: <div className="h6-new !text-black-800">{commandKeyString} + D</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_D')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">Ctrl + I</div>,
+            Icon: <div className="h6-new !text-black-800">{commandKeyString} + I</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_I')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">Ctrl + &darr;</div>,
+            Icon: <div className="h6-new !text-black-800">{commandKeyString} + &darr;</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_DOWN')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">Ctrl + &uarr;</div>,
+            Icon: <div className="h6-new !text-black-800">{commandKeyString} + &uarr;</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_UP')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">Ctrl + Delete</div>,
+            Icon: <div className="h6-new !text-black-800">{commandKeyString} + Delete</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_DELETE')}</div>
         }
     ];
-
-    return tips;
+    const tips = tipsItems.slice(0, listNumber);
+    return (
+        <>
+            {tips.map((tip: ITipElement, index) => {
+                return (
+                    <div key={index} className={className}>
+                        <div className="flex items-center w-24 justify-end">{tip.Icon}</div>
+                        <div className="body4 flex items-center">{tip.TextComponent}</div>
+                    </div>
+                );
+            })}
+        </>
+    );
 };
