@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import MuiSwitch from '@Components/Common/Input/Switch';
 import TextArea from '@Components/Common/Input/TextArea';
+import ConsentModalTopBar from '@Components/Consent/ConsentModalTopBar';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import ContentEditable from 'react-contenteditable';
 import { toast } from 'react-toastify';
@@ -79,10 +80,7 @@ export default function ConsentPurposeModalView() {
 
     return (
         <div className="bg-white rounded-2xl w-fit md:w-[621px] h-content">
-            <div className="flex justify-between py-4 px-6 border-b border-black-200">
-                <div className="p2 !text-black-800">Purpose Of The Form</div>
-                <DropdownCloseIcon className="cursor-pointer" onClick={closeModal} />
-            </div>
+            <ConsentModalTopBar />
             <div className="pt-4 md:pt-6 pb-7 md:pb-10 space-y-7 md:space-y-10">
                 <ContentEditable className="h3-new m-0 p-0 w-full cursor-text focus-visible:border-0 focus-visible:outline-none px-7 md:px-10" html={purposeTitle} data-placeholder="Add Purpose" onChange={handlePurposeTitleChange} />
 
