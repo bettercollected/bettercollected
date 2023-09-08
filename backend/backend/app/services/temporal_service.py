@@ -13,17 +13,20 @@ from temporalio.client import (
     ScheduleIntervalSpec,
     ScheduleUpdateInput,
     ScheduleUpdate,
-    ScheduleAlreadyRunningError,
+    ScheduleAlreadyRunningError, ScheduleCalendarSpec,
 )
 from temporalio.common import RetryPolicy
 from temporalio.exceptions import WorkflowAlreadyStartedError
 from temporalio.service import RPCError
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.dataclasses.DeleteResponseParams import DeleteResponseParams
 from backend.app.models.dataclasses.ImportFormParams import ImportFormParams
 from backend.app.models.dataclasses.user_tokens import UserTokens
+from backend.app.utils.date_utils import get_formatted_date_from_str
 from backend.config import settings
 from common.configs.crypto import Crypto
+from common.models.standard_form import StandardFormResponse
 from common.utils.asyncio_run import asyncio_run
 
 
@@ -113,27 +116,27 @@ class TemporalService:
         except Exception as e:
             loguru.logger.error(e)
 
-    async def add_scheduled_job_for_deleting_expired_responses(self, response_id: PydanticObjectId):
+    async def add_scheduled_job_for_deleting_response(self, response: StandardFormResponse):
+        expiration_date = get_formatted_date_from_str(response.expiration)
         if not settings.schedular_settings.ENABLED:
             return
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             await self.client.create_schedule(
-                "delete_response_" + str(response_id),
+                "delete_response_" + str(response.response_id),
                 schedule=Schedule(
                     action=ScheduleActionStartWorkflow(
                         "delete_response_workflow",
-                        id="delete_response",
+                        id="delete_response_" + response.response_id,
+                        arg=DeleteResponseParams(
+                            response_id=str(response.response_id),
+                        ),
                         task_queue=settings.temporal_settings.worker_queue,
                     ),
                     spec=ScheduleSpec(
-                        intervals=[
-                            ScheduleIntervalSpec(
-                                every=timedelta(
-                                    days=settings.schedular_settings.INTERVAL_DAYS
-                                )
-                            )
-                        ],
+                        cron_expressions=[
+                            f"0 0 0 {expiration_date.day} {expiration_date.month} {expiration_date.weekday()} {expiration_date.year}"
+                        ]
                     ),
                 ),
             )

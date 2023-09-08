@@ -17,6 +17,7 @@ from backend.app.services.temporal_service import TemporalService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
 from common.constants import MESSAGE_FORBIDDEN
+from common.models.consent import ResponseRetentionType
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from common.services.jwt_service import JwtService
@@ -199,9 +200,5 @@ class FormSchedular:
         )
         return await response.json()
 
-    async def delete_response(self, submission_id: PydanticObjectId):
-        current_date_str = datetime.date.today()
-        current_date = datetime.strptime(current_date_str, '%Y-%m-%d')
-        response: StandardFormResponse = await self.form_response_service.get_response_by_id(response_id=submission_id)
-        if current_date >= response.expiration:
-            await self.form_response_service.delete_response(response=response)
+    async def delete_response(self, submission_id: str):
+        return await self.form_response_service.delete_response(response_id=submission_id)
