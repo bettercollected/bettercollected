@@ -10,9 +10,10 @@ import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
 import useForm from '@app/lib/hooks/use-form';
 import { ConsentCategoryType } from '@app/models/enums/consentEnum';
 import { resetConsentState } from '@app/store/consent/actions';
+import { selectConsentState } from '@app/store/consent/selectors';
 import { IConsentAnswer, IConsentField } from '@app/store/consent/types';
 import { resetFillForm } from '@app/store/fill-form/slice';
-import { useAppDispatch } from '@app/store/hooks';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 import { useModal } from '../context';
 import { useFullScreenModal } from '../full-screen-modal-context';
@@ -29,6 +30,7 @@ export default function ConsentBuilderConfirmationModaView({ onFormPublish, cons
     const dispatch = useAppDispatch();
     const { isLoading, error, setError, setLoading } = useForm();
     const [formPurposeTermChecked, setFormPurposeTermChecked] = useState(true);
+    const { responseExpirationType, responseExpiration } = useAppSelector(selectConsentState);
 
     const handleFormPurposeTermChange = (checked: boolean) => {
         setFormPurposeTermChecked(checked);
@@ -49,7 +51,7 @@ export default function ConsentBuilderConfirmationModaView({ onFormPublish, cons
         }
         setLoading(true);
         try {
-            await onFormPublish(consents, privacyPolicyUrl);
+            await onFormPublish({ consent: consents, privacyPolicyUrl, responseExpiration, responseExpirationType });
             closeModal();
             fullScreenModal.closeModal();
             dispatch(resetConsentState());

@@ -7,14 +7,14 @@ export interface IConsentField {
     required?: boolean;
     type?: ConsentType;
     category?: ConsentCategoryType;
-    responseExpiration?: string;
-    responseRetentionType?: ResponseRetentionType;
 }
 
 export interface IConsentState {
     form_id: string;
     consents: IConsentField[];
     privacy_policy?: string;
+    responseExpiration?: string;
+    responseExpirationType: ResponseRetentionType;
 }
 
 export interface IConsentAnswer extends IConsentField {

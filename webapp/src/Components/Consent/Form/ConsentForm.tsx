@@ -41,7 +41,7 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
     const [error, setError] = useState(false);
 
     const getFilteredConsents = (category: ConsentCategoryType) => {
-        return form.consent.map((consent, idx) => consent?.category === category && <ConsentField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} disabled={isPreview} />);
+        return form.consent.filter((consent) => consent?.category === category).map((consent, idx) => <ConsentField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} disabled={isPreview} />);
     };
 
     const dataAccessDetails = (

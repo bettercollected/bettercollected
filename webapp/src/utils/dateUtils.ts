@@ -39,3 +39,10 @@ export const toLocaleStringFromDateString = (date: string) =>
         minute: 'numeric',
         hour12: true
     });
+
+export function formatDateAndAddDays(date: Date, daysToAdd: number) {
+    const modifiedDate = new Date(date);
+    modifiedDate.setDate(modifiedDate.getDate() + daysToAdd);
+    const formattedDate = modifiedDate.toISOString().slice(0, 10);
+    return formattedDate;
+}

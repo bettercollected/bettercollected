@@ -37,7 +37,7 @@ export default function FormPurposeBuilder({ form, isPreview, options, consents 
 
     return (
         <div>
-            <div className="h4-new pb-5 xs:pb-[17px]">Purpose Of This Form:</div>
+            <div className="h4-new pb-5 xs:pb-[17px]">Purpose Of This Form</div>
             {consents?.map((consent, idx) => (
                 <ConsentBuilderField key={consent.consentId} disabled={isPreview || consent.consentId === 'consent_data_collection'} className={`${idx === 0 && 'border-y'}`} consent={consent} onClick={handleModalOpen} />
             ))}
