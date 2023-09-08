@@ -129,13 +129,14 @@ class TemporalService:
                         "delete_response_workflow",
                         id="delete_response_" + response.response_id,
                         arg=DeleteResponseParams(
-                            response_id=str(response.response_id),
+                            response_id=response.response_id,
                         ),
                         task_queue=settings.temporal_settings.worker_queue,
+                        retry_policy=RetryPolicy(maximum_attempts=4)
                     ),
                     spec=ScheduleSpec(
                         cron_expressions=[
-                            f"0 0 0 {expiration_date.day} {expiration_date.month} {expiration_date.weekday()} {expiration_date.year}"
+                            f"0 0 0 {expiration_date.day} {expiration_date.month} {expiration_date.isoweekday()} {expiration_date.year}"
                         ]
                     ),
                 ),
@@ -156,6 +157,25 @@ class TemporalService:
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             schedule_id = "import_" + str(workspace_id) + "_" + form_id
+            schedule_handle = self.client.get_schedule_handle(schedule_id)
+            await schedule_handle.delete()
+
+        except HTTPException:
+            pass
+        except RPCError as e:
+            loguru.logger.info(
+                "No schedule found for id:" + str(schedule_id) + " to delete"
+            )
+            pass
+
+    async def delete_response_delete_schedule(
+            self, response_id: str
+    ):
+        if not settings.schedular_settings.ENABLED:
+            return
+        try:
+            await self.check_temporal_client_and_try_to_connect_if_not_connected()
+            schedule_id = "delete_response_" + response_id
             schedule_handle = self.client.get_schedule_handle(schedule_id)
             await schedule_handle.delete()
 

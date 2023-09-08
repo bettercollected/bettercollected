@@ -58,9 +58,17 @@ export default function ConsentRetentionModalView({ type }: ConsentRetentionModa
 
     const renderInputComponent = () => {
         if (type === 'days') {
-            return <ConsentInput type="number" showIcon={false} title="For how many days you want to store user data" placeholder="Enter number of days" onChange={handleDayChange} />;
+            return <ConsentInput type="number" showIcon={false} title="For how many days you want to store user data" placeholder="Enter number of days" onChange={handleDayChange} InputProps={{ inputProps: { min: 1 } }} />;
         }
-        return <ConsentInput type="date" title="Choose a specific date until which data will be retained" placeholder="Select date" onChange={handleDateChange} />;
+        return (
+            <ConsentInput
+                type="date"
+                title="Choose a specific date until which data will be retained"
+                placeholder="Select date"
+                onChange={handleDateChange}
+                InputProps={{ inputProps: { min: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10) } }}
+            />
+        );
     };
 
     return (

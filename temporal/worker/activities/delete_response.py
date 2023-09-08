@@ -14,6 +14,6 @@ async def delete_response(delete_response_params: DeleteResponseParams):
     headers = {"api_key": settings.api_key}
     response = requests.post(
         url=settings.server_url
-            + f"/temporal/submissions/{delete_response_params.response_id}",
+            + f"/temporal/delete/submissions/{delete_response_params.response_id}",
         headers=headers
     )
