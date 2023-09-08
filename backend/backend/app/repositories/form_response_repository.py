@@ -28,10 +28,10 @@ from common.services.crypto_service import crypto_service
 class FormResponseRepository(BaseRepository):
     @staticmethod
     async def get_form_responses(
-            form_ids,
-            extra_find_query: Dict[str, Any] = None,
-            filter_query: FormResponseFilterQuery = None,
-            sort: SortRequest = None,
+        form_ids,
+        extra_find_query: Dict[str, Any] = None,
+        filter_query: FormResponseFilterQuery = None,
+        sort: SortRequest = None,
     ) -> Page[StandardFormResponseCamelModel]:
         find_query = {"form_id": {"$in": form_ids}, "answers": {"$exists": True}}
         if extra_find_query is not None:
@@ -59,10 +59,10 @@ class FormResponseRepository(BaseRepository):
         return await fastapi_pagination.ext.beanie.paginate(form_responses_query)
 
     async def get_workspace_responders(
-            self,
-            form_ids: List[str],
-            filter_query: FormResponseFilterQuery = None,
-            sort: SortRequest = None,
+        self,
+        form_ids: List[str],
+        filter_query: FormResponseFilterQuery = None,
+        sort: SortRequest = None,
     ):
         find_query = {"form_id": {"$in": form_ids}}
 
@@ -137,12 +137,12 @@ class FormResponseRepository(BaseRepository):
         return form_responses
 
     async def list(
-            self,
-            form_ids: List[str],
-            request_for_deletion: bool,
-            filter_query: FormResponseFilterQuery = None,
-            sort: SortRequest = None,
-            data_subjects: bool = None,
+        self,
+        form_ids: List[str],
+        request_for_deletion: bool,
+        filter_query: FormResponseFilterQuery = None,
+        sort: SortRequest = None,
+        data_subjects: bool = None,
     ) -> Page[StandardFormResponseCamelModel]:
         if data_subjects:
             return await self.get_workspace_responders(
@@ -162,7 +162,7 @@ class FormResponseRepository(BaseRepository):
             )
 
     async def get_user_submissions(
-            self, form_ids, user: User, request_for_deletion: bool = False
+        self, form_ids, user: User, request_for_deletion: bool = False
     ):
         extra_find_query = {
             "dataOwnerIdentifier": user.sub,
@@ -215,7 +215,7 @@ class FormResponseRepository(BaseRepository):
         pass
 
     async def update(
-            self, item_id: str, item: FormResponseDocument
+        self, item_id: str, item: FormResponseDocument
     ) -> StandardFormResponse:
         pass
 
@@ -237,15 +237,15 @@ class FormResponseRepository(BaseRepository):
         ).delete()
 
     async def save_form_response(
-            self,
-            form_id: PydanticObjectId,
-            response: StandardFormResponse,
-            workspace_id: PydanticObjectId,
+        self,
+        form_id: PydanticObjectId,
+        response: StandardFormResponse,
+        workspace_id: PydanticObjectId,
     ):
         response_document = FormResponseDocument(**response.dict())
         response_document.response_id = str(PydanticObjectId())
         if workspace_id and type(
-                response_document.answers == StandardFormResponseAnswer
+            response_document.answers == StandardFormResponseAnswer
         ):
             for k, v in response_document.answers.items():
                 response_document.answers[k] = v.dict()
@@ -259,7 +259,7 @@ class FormResponseRepository(BaseRepository):
         return await response_document.save()
 
     async def delete_form_response(
-            self, form_id: PydanticObjectId, response_id: PydanticObjectId
+        self, form_id: PydanticObjectId, response_id: PydanticObjectId
     ):
         await FormResponseDocument.find(
             {"form_id": str(form_id), "response_id": str(response_id)}
@@ -274,8 +274,8 @@ class FormResponseRepository(BaseRepository):
         return str(response_id)
 
     async def get_all_expiring_responses(self):
-        return await FormResponseDocument.find({
-            "expiration_type": {"$in": ["date", "days"]}}
+        return await FormResponseDocument.find(
+            {"expiration_type": {"$in": ["date", "days"]}}
         ).to_list()
 
     async def delete_response(self, response_id: str):
@@ -283,6 +283,4 @@ class FormResponseRepository(BaseRepository):
         return response_id
 
     async def get_response(self, response_id: str):
-        return await FormResponseDocument.find_one(
-            {"response_id": response_id}
-        )
+        return await FormResponseDocument.find_one({"response_id": response_id})

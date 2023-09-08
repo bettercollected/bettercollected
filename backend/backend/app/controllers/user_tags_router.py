@@ -12,9 +12,11 @@ from backend.app.services.user_tags_service import UserTagsService
 from common.models.user import User
 
 
-@router(prefix="/user/tags", tags=["User Tags"], responses={
-    405: {"description": "Method not allowed"}
-})
+@router(
+    prefix="/user/tags",
+    tags=["User Tags"],
+    responses={405: {"description": "Method not allowed"}},
+)
 class UserTagsRoutes(Routable):
     def __init__(
         self, user_tags_service=container.user_tags_service(), *args, **kwargs

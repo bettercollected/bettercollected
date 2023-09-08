@@ -21,9 +21,12 @@ from common.models.user import User
 @router(
     prefix="/workspaces/{workspace_id}/members",
     tags=["Workspace Members and Invitations"],
-    responses={400: {"description": "Bad Request"}, 404: {"description": "Not Found"},
-               405: {"description": "Method not allowed"}
-               },
+    responses={
+        400: {"description": "Bad Request"},
+        401: {"description": "Authorization token is missing."},
+        404: {"description": "Not Found"},
+        405: {"description": "Method not allowed"},
+    },
 )
 class WorkspaceMembersRouter(Routable):
     def __init__(
@@ -38,9 +41,6 @@ class WorkspaceMembersRouter(Routable):
     @get(
         "",
         response_model=List[WorkspaceMemberDto],
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def get_workspace_members(
         self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
@@ -51,9 +51,6 @@ class WorkspaceMembersRouter(Routable):
 
     @delete(
         "/{user_id}",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def delete_workspace_member(
         self,
@@ -68,9 +65,6 @@ class WorkspaceMembersRouter(Routable):
     @get(
         "/invitations",
         response_model=Page[WorkspaceInvitationDto],
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def get_workspace_invitations(
         self,
@@ -83,9 +77,6 @@ class WorkspaceMembersRouter(Routable):
 
     @post(
         "/invitations",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def create_a_workspace_invitation(
         self,
@@ -100,9 +91,6 @@ class WorkspaceMembersRouter(Routable):
     @get(
         "/invitations/{invitation_token}",
         response_model=WorkspaceInvitationDto,
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def get_invitation_by_token(
         self,
@@ -116,9 +104,6 @@ class WorkspaceMembersRouter(Routable):
 
     @delete(
         "/invitations/{invitation_token}",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def delete_invitation_by_token(
         self,
@@ -134,9 +119,6 @@ class WorkspaceMembersRouter(Routable):
 
     @post(
         "/invitations/{invitation_token}",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def respond_to_invitation_request(
         self,

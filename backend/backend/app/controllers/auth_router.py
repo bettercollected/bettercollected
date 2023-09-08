@@ -35,7 +35,12 @@ log = logging.getLogger(__name__)
 @router(
     prefix="/auth",
     tags=["Auth"],
-    responses={400: {"description": "Bad request"}, 404: {"description": "Not Found"}, 405: {"description": "Method not allowed"}},
+    responses={
+        400: {"description": "Bad request"},
+        401: {"message": "Authorization token is missing."},
+        404: {"description": "Not Found"},
+        405: {"description": "Method not allowed"},
+    },
 )
 class AuthRoutes(Routable):
     def __init__(self, auth_service=container.auth_service(), *args, **kwargs):
@@ -45,9 +50,6 @@ class AuthRoutes(Routable):
     @get(
         "/status",
         response_model=UserStatusDto,
-        responses={
-            401: {"message": "Authorization token is missing."},
-        },
     )
     async def status(self, user: User = Depends(get_logged_user)):
         return await self.auth_service.get_user_status(user)
@@ -65,7 +67,6 @@ class AuthRoutes(Routable):
         "/otp/validate",
         responses={
             503: {"description": "Requested Source not available."},
-            401: {"description": "Invalid Otp Code"},
         },
     )
     async def _validate_otp(self, login_details: UserLoginWithOTP, response: Response):
@@ -75,9 +76,6 @@ class AuthRoutes(Routable):
 
     @post(
         "/refresh",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def _refresh_access_token(
         self, response: Response, user=Depends(get_logged_user)
@@ -89,9 +87,6 @@ class AuthRoutes(Routable):
 
     @get(
         "/{provider_name}/oauth",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def _oauth_provider(
         self,
@@ -107,9 +102,6 @@ class AuthRoutes(Routable):
 
     @get(
         "/{provider_name}/oauth/callback",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def _auth_callback(
         self,
@@ -175,9 +167,6 @@ class AuthRoutes(Routable):
 
     @get(
         "/logout",
-        responses={
-            401: {"description": "RefreshToken is missing."},
-        },
     )
     async def logout(self, request: Request, response: Response):
         await add_refresh_token_to_blacklist(request=request)
@@ -186,9 +175,6 @@ class AuthRoutes(Routable):
 
     @delete(
         "/user",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def delete_user(
         self,
@@ -206,9 +192,6 @@ class AuthRoutes(Routable):
 
     @post(
         "/user/delete/workflow",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def add_workflow_to_delete_user(
         self,

@@ -21,9 +21,12 @@ from common.models.user import User
 @router(
     prefix="/workspaces/{workspace_id}",
     tags=["Workspace Form Submissions"],
-    responses={400: {"description": "Bad Request"}, 404: {"description": "Not Found"},
-               405: {"description": "Method not allowed"}
-               },
+    responses={
+        400: {"description": "Bad Request"},
+        401: {"description": "Authorization token is missing."},
+        404: {"description": "Not Found"},
+        405: {"description": "Method not allowed"},
+    },
 )
 class WorkspaceResponsesRouter(CustomRoutable):
     def __init__(
@@ -38,9 +41,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
     @get(
         "/forms/{form_id}/submissions",
         response_model=Page[StandardFormResponseCamelModel],
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def _get_workspace_form_responses(
         self,
@@ -59,9 +59,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
     @get(
         "/all-submissions",
         response_model=Page[StandardFormResponseCamelModel | Any],
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def _get_all_workspace_responses(
         self,
@@ -83,9 +80,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
     @get(
         "/submissions",
         response_model=Page[StandardFormResponseCamelModel],
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def _get_user_submissions_in_workspace(
         self,
@@ -101,9 +95,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
     # TODO : Insert form id here/ Make uniform endpoints
     @get(
         "/submissions/{submission_id}",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def _get_workspace_form_response(
         self,
@@ -117,9 +108,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
 
     @delete(
         "/submissions/{submission_id}",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     @user_tag_from_workspace(tag=UserTagType.DELETION_REQUEST_RECEIVED)
     async def _request_workspace_form_response_delete(

@@ -15,9 +15,12 @@ from common.models.user import User
 @router(
     prefix="/{workspace_id}/consent",
     tags=["Workspace Consent"],
-    responses={400: {"description": "Bad request"}, 404: {"description": "Not Found"},
-               405: {"description": "Method not allowed"}
-               },
+    responses={
+        400: {"description": "Bad request"},
+        401: {"description": "Authorization token is missing."},
+        404: {"description": "Not Found"},
+        405: {"description": "Method not allowed"},
+    },
 )
 class WorkspaceConsent(Routable):
     def __init__(
@@ -34,9 +37,6 @@ class WorkspaceConsent(Routable):
     @get(
         "",
         response_model=List[ConsentCamelModel],
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def get_workspace_consents(
         self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
@@ -48,9 +48,6 @@ class WorkspaceConsent(Routable):
     @post(
         "",
         response_model=ConsentCamelModel,
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def create_workspace_consent(
         self,

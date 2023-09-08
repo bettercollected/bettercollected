@@ -13,7 +13,8 @@ from temporalio.client import (
     ScheduleIntervalSpec,
     ScheduleUpdateInput,
     ScheduleUpdate,
-    ScheduleAlreadyRunningError, ScheduleCalendarSpec,
+    ScheduleAlreadyRunningError,
+    ScheduleCalendarSpec,
 )
 from temporalio.common import RetryPolicy
 from temporalio.exceptions import WorkflowAlreadyStartedError
@@ -80,7 +81,7 @@ class TemporalService:
             )
 
     async def add_scheduled_job_for_importing_form(
-            self, workspace_id: PydanticObjectId, form_id: str
+        self, workspace_id: PydanticObjectId, form_id: str
     ):
         if not settings.schedular_settings.ENABLED:
             return
@@ -116,7 +117,9 @@ class TemporalService:
         except Exception as e:
             loguru.logger.error(e)
 
-    async def add_scheduled_job_for_deleting_response(self, response: StandardFormResponse):
+    async def add_scheduled_job_for_deleting_response(
+        self, response: StandardFormResponse
+    ):
         if not settings.schedular_settings.ENABLED:
             return
         expiration_date = get_formatted_date_from_str(response.expiration)
@@ -132,7 +135,7 @@ class TemporalService:
                             response_id=response.response_id,
                         ),
                         task_queue=settings.temporal_settings.worker_queue,
-                        retry_policy=RetryPolicy(maximum_attempts=4)
+                        retry_policy=RetryPolicy(maximum_attempts=4),
                     ),
                     spec=ScheduleSpec(
                         cron_expressions=[
@@ -150,7 +153,7 @@ class TemporalService:
             loguru.logger.error(e)
 
     async def delete_form_import_schedule(
-            self, workspace_id: PydanticObjectId, form_id: str
+        self, workspace_id: PydanticObjectId, form_id: str
     ):
         if not settings.schedular_settings.ENABLED:
             return
@@ -168,9 +171,7 @@ class TemporalService:
             )
             pass
 
-    async def delete_response_delete_schedule(
-            self, response_id: str
-    ):
+    async def delete_response_delete_schedule(self, response_id: str):
         if not settings.schedular_settings.ENABLED:
             return
         try:
@@ -189,7 +190,7 @@ class TemporalService:
 
     def update_schedule_interval(self, interval: timedelta):
         async def update_interval_to_default(
-                update_input: ScheduleUpdateInput,
+            update_input: ScheduleUpdateInput,
         ) -> ScheduleUpdate:
             schedule_spec = update_input.description.schedule.spec
             if isinstance(schedule_spec, ScheduleSpec):
@@ -199,7 +200,7 @@ class TemporalService:
         return update_interval_to_default
 
     async def update_interval_of_schedule(
-            self, workspace_id: PydanticObjectId, form_id: str, interval: timedelta
+        self, workspace_id: PydanticObjectId, form_id: str, interval: timedelta
     ):
         handle = self.client.get_schedule_handle(
             "import_" + str(workspace_id) + "_" + form_id

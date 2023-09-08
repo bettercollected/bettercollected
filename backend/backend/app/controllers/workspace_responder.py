@@ -20,9 +20,12 @@ from common.models.user import User
 @router(
     prefix="/workspaces/{workspace_id}/responders",
     tags=["Workspace Responders"],
-    responses={400: {"description": "Bad Request"}, 404: {"description": "Not Found"},
-               405: {"description": "Method not allowed"}
-               },
+    responses={
+        400: {"description": "Bad Request"},
+        401: {"description": "Authorization token is missing."},
+        404: {"description": "Not Found"},
+        405: {"description": "Method not allowed"},
+    },
 )
 class WorkspaceRespondersController(Routable):
     def __init__(
@@ -37,9 +40,6 @@ class WorkspaceRespondersController(Routable):
     @get(
         "",
         response_model=Page[WorkspaceResponderResponse],
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def get_workspace_responders(
         self,
@@ -55,9 +55,6 @@ class WorkspaceRespondersController(Routable):
 
     @get(
         "/tags",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def get_all_workspace_tags(
         self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
@@ -68,9 +65,6 @@ class WorkspaceRespondersController(Routable):
 
     @post(
         "/tags",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def create_workspace_tag(
         self,
@@ -84,9 +78,6 @@ class WorkspaceRespondersController(Routable):
 
     @patch(
         "",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def patch_workspace_responder_with_email(
         self,
