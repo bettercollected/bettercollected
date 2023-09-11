@@ -1,7 +1,7 @@
 enum FormBuilderEventBusEventType {
     StopPropagation = 'stop_propagation',
     Save = 'form_save',
-    Publish = 'publish',
+    Preview = 'preview',
     OpenTagSelector = 'open_tag_selector'
 }
 
