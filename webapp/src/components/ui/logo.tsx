@@ -29,7 +29,7 @@ const Logo = ({ className, isLink = true, isClientDomain = false, isCustomDomain
     const locale = router?.locale === 'en' ? '' : `${router?.locale}/`;
     const isProAndIsWorkspaceAdmin = user ? user?.id === workspace?.ownerId && user?.plan === 'PRO' : false;
 
-    const customDomainUrl = isFooter ? 'https://admin.bettercollected.com/pricing-plans' : '/';
+    const customDomainUrl = isFooter ? '' : '/';
     const clientDomainUrl = `/${workspace?.workspaceName}`;
     const adminDomainUrl = `/${locale}${workspace?.workspaceName}/dashboard`;
 
