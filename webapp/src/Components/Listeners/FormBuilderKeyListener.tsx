@@ -121,7 +121,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     event.preventDefault();
                     event.stopPropagation();
 
-                    eventBus.emit(EventBusEventType.FormBuilder.Publish);
+                    eventBus.emit(EventBusEventType.FormBuilder.Preview);
                 }
             });
         },

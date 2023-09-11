@@ -244,11 +244,11 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         document.addEventListener('blur', onBlurCallback);
 
         // Listens events from the HOCs
-        eventBus.on(EventBusEventType.FormBuilder.Publish, onFormPublish);
+        eventBus.on(EventBusEventType.FormBuilder.Preview, onPreview);
         eventBus.on(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
 
         return () => {
-            eventBus.removeListener(EventBusEventType.FormBuilder.Publish, onFormPublish);
+            eventBus.removeListener(EventBusEventType.FormBuilder.Preview, onPreview);
             eventBus.removeListener(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
             document.removeEventListener('blur', onBlurCallback);
         };
