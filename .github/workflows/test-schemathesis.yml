@@ -1,9 +1,8 @@
 name: Test endpoints using schemathesis
 
 on:
-  push:
-    branches:
-      - "**"
+  schedule:
+  - cron: "40 14 * * *"
 
 jobs:
   schemathesis:
@@ -16,3 +15,4 @@ jobs:
           schema: 'https://bettercollected-admin.sireto.dev/api/v1/openapi.json'
           max-examples: 30
           version: 'latest'
+          report: false
