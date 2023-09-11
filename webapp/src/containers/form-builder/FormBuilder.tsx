@@ -44,11 +44,11 @@ import useFormBuilderState from './context';
 export default function FormBuilder({ workspace, _nextI18Next, isEditMode = false }: { isEditMode?: boolean; workspace: WorkspaceDto; _nextI18Next: any }) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
-    const {openModal} = useFullScreenModal();
-    const {openModal: openHalfScreenModal} = useModal();
-    const {t} = useBuilderTranslation();
-    const {handleUserTypingEnd} = useUserTypingDetection();
-    const {isUndoRedoInProgress} = useUndoRedo();
+    const { openModal } = useFullScreenModal();
+    const { openModal: openHalfScreenModal } = useModal();
+    const { t } = useBuilderTranslation();
+    const { handleUserTypingEnd } = useUserTypingDetection();
+    const { isUndoRedoInProgress } = useUndoRedo();
     const builderDragDropRef = useRef<HTMLDivElement | null>(null);
 
     const router = useRouter();
@@ -100,13 +100,13 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         });
     };
 
-    const onClickSettings = ()=>{
+    const onClickSettings = () => {
         openModal('FORM_SETTINGS_FULL_MODAL_VIEW');
-    }
+    };
 
-    const onClickTips = ()=>{
+    const onClickTips = () => {
         openHalfScreenModal('FORM_BUILDER_TIPS_MODAL_VIEW');
-    }
+    };
 
     const onBlurCallback = useCallback(
         (event: FocusEvent) => {
@@ -256,14 +256,20 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     return (
         <div>
-            <FormBuilderMenuBar onInsert={onInsert} onAddNewPage={onAddNewPage} onAddFormLogo={onAddFormLogo}
-                                onAddFormCover={onAddFormCover} onPreview={onPreview} onFormPublish={onFormPublish} onClickSettings={onClickSettings}
-                                onClickTips={onClickTips}
-                                isUpdating={posting || patching}/>
-            {showCover && <FormCoverComponent setIsCoverClicked={setShowCover} imagesRemoved={imagesRemoved}
-                                              setImagesRemoved={setImagesRemoved}/>}
+            <FormBuilderMenuBar
+                onInsert={onInsert}
+                onAddNewPage={onAddNewPage}
+                onAddFormLogo={onAddFormLogo}
+                onAddFormCover={onAddFormCover}
+                onPreview={onPreview}
+                onFormPublish={onFormPublish}
+                onClickSettings={onClickSettings}
+                onClickTips={onClickTips}
+                isUpdating={posting || patching}
+            />
+            {showCover && <FormCoverComponent setIsCoverClicked={setShowCover} imagesRemoved={imagesRemoved} setImagesRemoved={setImagesRemoved} />}
             <div className="h-full w-full max-w-4xl mx-auto py-10">
-                {showLogo && <FormLogoComponent setIsLogoClicked={setShowLogo} classname={showCover ? '-mt-[90px]' : ''} imagesRemoved={imagesRemoved} setImagesRemoved={setImagesRemoved} />}
+                {showLogo && <FormLogoComponent setIsLogoClicked={setShowLogo} className={showCover ? '-mt-[90px]' : ''} imagesRemoved={imagesRemoved} setImagesRemoved={setImagesRemoved} />}
                 <div className="flex flex-col gap-4 px-5 md:px-[89px]">
                     {builderTitleAndDescriptionList.map((b: IBuilderTitleAndDescriptionObj) => (
                         <CustomContentEditable
