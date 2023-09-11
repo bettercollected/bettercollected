@@ -31,7 +31,7 @@ import { FormValidationError } from '@app/store/fill-form/type';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { formatDateAndAddDays } from '@app/utils/dateUtils';
+import { getApiFormattedDateTime } from '@app/utils/dateUtils';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 import { validateFormFieldAnswer } from '@app/utils/validationUtils';
 
@@ -128,7 +128,6 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             formData.append('file_field_ids', fileObj.fieldId);
             formData.append('file_ids', fileObj.fileId);
         });
-        const currentDate = new Date();
         const responseExpirationType = form?.settings?.responseExpirationType;
         const responseExpiration = form?.settings?.responseExpiration;
 
@@ -136,7 +135,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             form_id: form?.formId,
             answers: answers,
             consent: Object.values(consentAnswers),
-            expiration: responseExpirationType === 'days' ? formatDateAndAddDays(currentDate, parseInt(responseExpiration!)) : responseExpiration,
+            expiration: responseExpirationType === 'days' ? getApiFormattedDateTime('', parseInt(responseExpiration!), 24) : getApiFormattedDateTime(responseExpiration, 0, 24),
             expirationType: responseExpirationType,
             dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
         };

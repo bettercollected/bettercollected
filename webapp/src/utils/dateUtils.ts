@@ -40,9 +40,20 @@ export const toLocaleStringFromDateString = (date: string) =>
         hour12: true
     });
 
-export function formatDateAndAddDays(date: Date, daysToAdd: number) {
-    const modifiedDate = new Date(date);
-    modifiedDate.setDate(modifiedDate.getDate() + daysToAdd);
-    const formattedDate = modifiedDate.toISOString().slice(0, 10);
-    return formattedDate;
+/**
+ * Formats a date and time in the "yyyy-mm-dd:hh:mm:ss" format, optionally adding days and hours.
+ *
+ * **/
+export function getApiFormattedDateTime(dtStr = '', daysToAdd = 0, hoursToAdd = 0) {
+    const currentDateTime = new Date();
+    currentDateTime.setDate(currentDateTime.getDate() + daysToAdd);
+    currentDateTime.setHours(currentDateTime.getHours() + hoursToAdd);
+
+    if (dtStr.length === 0) {
+        const formattedDateTime = `${currentDateTime.toISOString().slice(0, 19).replace('T', ':')}`;
+        return formattedDateTime;
+    } else {
+        const timeString = currentDateTime.toLocaleTimeString('en-US', { hour12: false });
+        return `${dtStr}:${timeString}`;
+    }
 }
