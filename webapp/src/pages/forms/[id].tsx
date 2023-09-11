@@ -22,6 +22,9 @@ import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
+import { selectAuthStatus } from '@app/store/auth/selectors';
+import { useAppSelector } from '@app/store/hooks';
+import { Plan } from '@app/models/dtos/UserStatus';
 
 export default function SingleFormPage(props: any) {
     const { back, slug, hasCustomDomain, workspace } = props;
@@ -41,6 +44,8 @@ export default function SingleFormPage(props: any) {
 
     const responderUri = form?.settings?.embedUrl || '';
     const { t } = useTranslation();
+
+    const auth = useAppSelector(selectAuthStatus);
 
     // @ts-ignore
     if (error && error?.status === 401) {
@@ -224,7 +229,7 @@ export default function SingleFormPage(props: any) {
                     </div>
                 )}
             </div>
-            <PoweredBy />
+            {auth?.plan === Plan.FREE && <PoweredBy />}
         </Layout>
     );
 }
