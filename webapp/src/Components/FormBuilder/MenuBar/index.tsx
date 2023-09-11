@@ -15,8 +15,10 @@ import {alpha, styled} from '@mui/material/styles';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import {useBreakpoint} from "@app/lib/hooks/use-breakpoint";
 import CustomPopover from "@Components/Common/CustomPopover";
-import SettingsIcon from '@Components/Common/Icons/Settings';
 import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
+import cn from "classnames";
+import {DragHandle} from "@mui/icons-material";
+import Hamburger from "@app/components/ui/hamburger";
 
 const Search = styled('div')(({theme}) => ({
     position: 'relative',
@@ -70,13 +72,12 @@ interface IFormBuilderMenuBarProps {
     isUpdating?: boolean;
 }
 
-const optionButtonClassName = 'flex text-black-700  text-sm lg:text-normal !lg:p-2 !lg:p-3 lg:!px-3 !lg:px-5 border-1 h-full  lg:w-fit w-full hover-none border-solid border-gray-500 md:gap-2 rounded-none ';
 
 export default function FormBuilderMenuBar({
                                                onInsert,
                                                onAddFormLogo,
                                                onAddFormCover,
-    onClickSettings, onClickTips,
+                                               onClickSettings, onClickTips,
                                                onPreview,
                                                onFormPublish,
                                                isUpdating
@@ -85,9 +86,14 @@ export default function FormBuilderMenuBar({
 
     const breakpoint = useBreakpoint()
 
+    const collapseMenu = ["2xs", "xs", "sm", "md"].indexOf(breakpoint) !== -1
+
+    const optionButtonClassName = 'flex text-black-700  text-sm lg:text-normal justify-start px-5 !py-3 !lg:p-2 !lg:p-3 lg:!px-3 !lg:px-5 border-1   lg:w-fit w-full hover-none border-solid border-gray-500 md:gap-2 rounded-none ' + (collapseMenu ? "h-fit" : "h-[64px]");
+
 
     const Actions = () => (
-        <Toolbar className=" !px-0 lg:px-6 divide-y divide-black-200 lg:divide-y-0  flex flex-col lg:flex-row body4 w-fit justify-center">
+        <Toolbar
+            className=" !px-0 lg:px-6 divide-y divide-black-200 lg:divide-y-0  flex flex-col lg:flex-row body4 w-full justify-center">
             <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
             <IconButton color="inherit" className={optionButtonClassName} onClick={onInsert}>
                 <PlusIcon/>
@@ -105,18 +111,21 @@ export default function FormBuilderMenuBar({
             </IconButton>
             <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
             <div className="hidden lg:flex lg:w-20"/>
+            <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
 
             <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onClickTips}>
-                <InfoIcon />
+                <InfoIcon/>
                 <span className=" text-black-700 ">Tips</span>
             </IconButton>
-            <Divider orientation="vertical" flexItem />
             {/* <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onClickSettings}>
                     <SettingsIcon />
                     <span className=" text-black-700 ">Settings</span>
                 </IconButton> */}
-            <Divider orientation="vertical" flexItem />
             <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
+            {
+                !collapseMenu &&
+                <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
+            }
             <IconButton color="inherit" className={optionButtonClassName} onClick={onPreview}>
                 <VisibilityOutlinedIcon/>
                 <span className=" text-black-700 ">{t('PREVIEW.DEFAULT')}</span>
@@ -135,7 +144,7 @@ export default function FormBuilderMenuBar({
     return (
         <AppBar
             position="static"
-            className="border-b-[1px] !min-h-[40px] bg-gradient-to-b from-white to-white/80 sticky items-center justify-center flex top-[68px] z-[1000] shadow-inner backdrop-blur border-black-400"
+            className="border-b-[1px] !min-h-[40px]  bg-gradient-to-b from-white to-white/80 sticky items-center justify-center flex top-[68px] z-[1000] shadow-inner backdrop-blur border-black-400"
             sx={{
                 borderRadius: 0,
                 background: 'inherit',
@@ -144,8 +153,16 @@ export default function FormBuilderMenuBar({
             }}
         >
             {
-                ["2xs", "xs", "sm", "md"].indexOf(breakpoint) !== -1 ?
-                    <CustomPopover content={<Actions/>}>Actions</CustomPopover>
+                collapseMenu ?
+                    <CustomPopover content={
+                        <div className="min-w-[200px]"><Actions/></div>
+
+                    }>
+                        <div
+                            className="h-16 flex gap-2 items-center rounded px-5 hover:cursor-pointer hover:bg-black-200">
+                            <Hamburger/> Actions
+                        </div>
+                    </CustomPopover>
                     : <Actions/>
             }
         </AppBar>

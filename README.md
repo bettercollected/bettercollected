@@ -1,129 +1,110 @@
-# DEVELOPERS GUIDE
+# DEPLOYMENT GUIDE
 
-This document explains the development guide to the new users participating in the development of the project.
+This document explains the deployment guide for the users to see the deployed project locally.
 
-### Directory Structure
-1. `auth`:  the auth service
-2. `backend`: the backend service
-3. `common`: common module used across multiple projects
-4. `integrations`: form builder integrations used in bettercollected 
-   1. `google`
-   2. `typeform`
-5. `temporal`: Services related to temporal
-   1. `worker` 
+## Sin in Options
 
+### Google
+Users have to fill out some of the env variables themselves on `.env.deployment` before running the docker file.
+For using `Google forms` you need to set up certain environment variables, for that create a project in `Google Cloud Platform` and fill the following environment variables.
 
-## Setup
-
-#### Prerequisites
-1. Python version `3.10` installed 
-2. Poetry installed globally
-3. Node version `16.18.0 or higher`
-
-(**Note:** You can use nvm and pyenv to manage multiple versions of node and python respectively)
-
-You can simply run the following command 
+```dotenv
+   GOOGLE_CLIENT_ID=
+   GOOGLE_PROJECT_ID=
+   GOOGLE_CLIENT_SECRET=
 ```
-./install.sh 
+ 
+#### Steps to create a client in Google:
+
+##### Important Note: Steps 5, 6 and 11 are needed only if you want to run Google form integration.
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/) and sign in to your account.
+2. Create a new project by clicking on the dropdown menu at the top of the screen and selecting "New Project".
+3. Enter a name for your project and click on the "Create" button.
+4. Once your project is created, select it from the dropdown menu at the top of the screen.
+5. In the left sidebar, click on the "APIs & Services" option.
+6. Click on the "Enabled APIs & Services", and enable "Google Forms API" and "Google Drive API".
+7. Click on the "Credentials" tab.
+8. Click on the "Create Credentials" button and select "OAuth client ID" from the dropdown menu.
+9. Select "Web App" as the application type and enter a name for your OAuth client ID.
+10. Add Redirect URIs: `http://localhost:8000/api/v1/auth/google/basic/callback`  Also, add three JavaScript origins: `http://localhost:3000`, `http://localhost:3001`, and `http://localhost:3002`.
+
+    **Note**: Add a redirect URI if you want to use import functionality i.e. `http://localhost:8000/api/v1/auth/google/oauth/callback`
+
+11. Click on the "Create" button.
+12. Click on the "OAuth consent screen". From here, you can add new test users and add different scopes. The required scopes for our application to run are: `auth/userinfo.email`, `auth/userinfo.profile`, `openid`, `auth/forms.body.readonly`, `auth/forms.responses.readonly`, and `auth/drive.metadata.readonly`.
+13. In the "OAuth client ID" page, you can find your client ID and client secret.
+14. Click on the "Download" button to download your client secret as a JSON file.
+    Once you have generated your client secret, you can use it in your application to authenticate with Google APIs.
+
+### Typeform
+
+Similarly for using `Typeform` you need to set up certain environment variables and for that create a `Typeform` account and add your app in `Developer apps` to get the value for following environment variables.
+
+```dotenv
+   TYPEFORM_CLIENT_ID=
+   TYPEFORM_CLIENT_SECRET=
 ```
 
-### Configure Nginx locally to map the path for `ADMIN_HOST`, `CLIENT_HOST`, and `CUSTOM_DOMAIN` to load all of them at once.
+#### Steps to create a client in Typeform:
 
-This can be done in two ways:
-
-#### 1. Using Docker compose
-
-If you do not have nginx installed in your system then you can simply use the `nginx` service in `docker-compose.local.yml`.
-
-
-#### 2. Using locally installed Nginx
-
-1. Install `nginx` with `sudo apt install nginx`.
-2. Check if the `nginx` service is running or not with `systemctl status nginx`. If it's not running, start the service by running `systemctl start nginx`.
-3. Next step is to update the config files for nginx. Run `touch /etc/nginx/conf.d/default.conf` and `nano /etc/nginx/conf.d/default.conf` (The config names can be anything). After that paste the following in that config and save it.
-
-    ```
-    server {
-        listen 3001;
-
-        location / {
-            proxy_pass http://localhost:3000;
-            proxy_set_header Host $host:$server_port;
-        }
-    }
-    ```
-
-    <br/>
-    In the same way, create another config file with a name `custom-domain-bettercollected.conf` and paste the following in this config and save it.
-
-    ```
-    server {
-        listen 3002;
-
-        location / {
-            proxy_pass http://localhost:3000;
-            proxy_set_header Host $host:$server_port;
-        }
-    }
-    ```
-
-4. After adding the config, restart the nginx with `systemctl restart nginx`.
-5. After this, you'll be able to see `ADMIN_HOST` in `localhost:3000`, `CLIENT_HOST` in `localhost:3001/{workspace_handle}`, and `CUSTOM_DOMAIN` in `localhost:3002`.
-
-### Default and Custom Domain Configuration
-
-1. To go `CLIENT_HOST` as the default domain, navigate to `localhost:3001/{workspace_handle}`.
-2. To go to the Custom Domain, follow the process below
-    - Update a workspaces' custom domain e.g. `localhost:3002` to set up localhost:3002 as a custom domain (This also needs to be saved in database inside `allowed_origins` in a new document)
-    - Run the app in `localhost:3002` and you can access your custom domain at `localhost:3002`
+1. Go to the [Admin Typeform's Developer Apps](https://admin.typeform.com/).
+2. Go to Developer apps from the dashboard and "Register a new app".
+3. Fill up the details and set the "Redirect URIs": `http://localhost:8000/api/v1/auth/typeform/basic/callback` and `https://localhost:8000/api/v1/auth/typeform/oauth/callback`.
+4. Once you register the new app, you'll see a `secret`. You need to save this secret some place safe as you'll not see this again.
+5. You can see the `client_id` whenever you want to.
 
 
-### Run database using docker
+### Email Sign In
 
-Since All repositories depend on mongo database, so you will need to run mongo before running `Backend` and `Auth` repositories. To run the database
-use following command to run the docker container from this webapp repository.
+There is an option to log in by using email. So, credentials for a mail client is required to use this feature.
+Update the following env variable in `.env.deployment`:
 
-```
-    docker compose -f "docker-compose.local.yml" up --build -d
+```dotenv
+    #Mail
+    MAIL_USER=
+    MAIL_PASSWORD=
+    MAIL_SMTP_SERVER=
+    MAIL_SMTP_PORT=
+    MAIL_SENDER=
 ```
 
 
-This will create and seed required databases to run all backend.
+## COMMANDs
 
-### Alternative for database
+ You can either run this project without `GoogleForm` and `Typeform` or you can run them optionally or run both. Below are the commands to run the docker container from this webapp repository.
 
-If you want to use an existing deployment of mongodb, make sure that you seed the data that has been seeded with `seed-data.js` in `bettercollected_backend` database manually as given below.
+ Since `deploy` file is in current working directory so you can run following below commands based on your preferences.
 
-1. Use CLI or `MongoDB Compass` to connect to MongoDB . `MongoDB Compass` is preferred [Installation Link](https://www.mongodb.com/try/download/compass).
-2. Inside `bettercollected_backend` database, go to `allowed_origins` collection, if not present, you can create it manually.
-3. Add individual document for `localhost:3000`, `localhost:3001`, and `localhost:3002` with a field like:
-    ```
-     "origin":"http://localhost:3000"  # Replace 3000 with 3001 and 3002
-    ```
-4. Also go to 'forms_plugin_configs' collection, if not present create it manually.
-5And then add individual document for `google` and `typeform` with a field like:
-    ```
-        "enabled":"true"
-        "provider_name":"typeform"      # Replace typeform with `google`
-        "provider_url":"http://localhost:8002/api/v1"       # Replace `8002` with `8003`
-        "auth_callback_url":"http://localhost:8002/api/v1/typeform/oauth/callback"      # Replace typeform with `google` and replace `8002` with `8003`
-        "type":"oauth2"
-    ```
+ #### Run with both Googleform and Typeform Integrations
 
+ ```
+    ./deploy both
+ ```
 
-## Running all services locally
+  #### Run without both Googleform and Typeform Integrations
 
-You can simply run all the required services by using the following command
-```shell
-./run.sh
-```
+ ```
+    ./deploy 
+ ```
 
-Or, you can individually run each service by navigating to it and running the same above command.
+#### Run with Googleform 
 
-### Walk through `README.md`
+ ```
+    ./deploy googleform
+ ```
 
-1.  Use python version `3.10` , if you don't have then install using pyenv with command `pyenv install version_number` and set it global with `pyenv global version_number`.
-2.  Walk through `README.md` of all the individual services.
-3.  Also, inside each repository set up for "common" submodule with command if not already up to date:
-    `git submodule update --init --recursive --remote`
-    And then navigate to common submodule `cd common` and checkout master branch `git checkout master && git pull` and `cd ..`.
+  #### Run with Typeform
+
+ ```
+    ./deploy typeform
+ ```
+
+ #### And finally you can stop all running services using the following command:
+ 
+ ```
+   ./deploy down
+ ```
+
+**Note**: For developer/contributor guide look into `DEVELOPERS_GUIDE.md`
+
