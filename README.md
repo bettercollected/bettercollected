@@ -2,7 +2,9 @@
 
 This document explains the deployment guide for the users to see the deployed project locally.
 
-## Sin in Options
+####  Important note: Change the keys in .env.deployment if you are planning to deploy it in production
+
+## Sign in Options (Optional)
 
 ### Google
 Users have to fill out some of the env variables themselves on `.env.deployment` before running the docker file.
@@ -16,7 +18,7 @@ For using `Google forms` you need to set up certain environment variables, for t
  
 #### Steps to create a client in Google:
 
-##### Important Note: Steps 5, 6 and 11 are needed only if you want to run Google form integration.
+##### Important Note: Steps 5, 6 and 12 are needed only if you want to run Google form integration.
 
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/) and sign in to your account.
 2. Create a new project by clicking on the dropdown menu at the top of the screen and selecting "New Project".
@@ -37,7 +39,7 @@ For using `Google forms` you need to set up certain environment variables, for t
 14. Click on the "Download" button to download your client secret as a JSON file.
     Once you have generated your client secret, you can use it in your application to authenticate with Google APIs.
 
-### Typeform
+### Typeform (Optional)
 
 Similarly for using `Typeform` you need to set up certain environment variables and for that create a `Typeform` account and add your app in `Developer apps` to get the value for following environment variables.
 
@@ -55,10 +57,10 @@ Similarly for using `Typeform` you need to set up certain environment variables 
 5. You can see the `client_id` whenever you want to.
 
 
-### Email Sign In
+### Email Sign In (Required*)
 
-There is an option to log in by using email. So, credentials for a mail client is required to use this feature.
-Update the following env variable in `.env.deployment`:
+Credentials for a mail client is required to use this feature.
+Update the following env variables in `.env.deployment`:
 
 ```dotenv
     #Mail
@@ -67,6 +69,20 @@ Update the following env variable in `.env.deployment`:
     MAIL_SMTP_SERVER=
     MAIL_SMTP_PORT=
     MAIL_SENDER=
+```
+
+**Using Gmail as Sender**
+
+Create an app password in google. You can follow the steps here to create it: [Sign in with app passwords
+](https://support.google.com/accounts/answer/185833) 
+
+```dotenv
+MAIL_USERNAME=<GMAIL_USERNAME>
+MAIL_PASSWORD=<APP_PASSWORD>
+MAIL_FROM=<SENDER_ADDRESS>
+MAIL_PORT=587
+MAIL_SERVER=smtp.gmail.com
+MAIL_FROM_NAME=<TITLE_FOR_MAIL>
 ```
 
 
