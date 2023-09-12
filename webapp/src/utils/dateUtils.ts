@@ -44,9 +44,8 @@ export const toLocaleStringFromDateString = (date: string) =>
  * Formats a date and time in the "yyyy-mm-dd:hh:mm:ss" format, optionally adding days and hours.
  *
  * **/
-export function getApiFormattedDateTime(dtStr = '', daysToAdd = 0, hoursToAdd = 0) {
+export function getApiFormattedDateTime(dtStr = '', hoursToAdd = 0) {
     const currentDateTime = new Date();
-    currentDateTime.setDate(currentDateTime.getDate() + daysToAdd);
     currentDateTime.setHours(currentDateTime.getHours() + hoursToAdd);
 
     if (dtStr.length === 0) {
