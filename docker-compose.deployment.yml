@@ -28,6 +28,11 @@ services:
       TYPEFORM_ENABLED: ${TYPEFORM_ENABLED}
     depends_on:
       - mongodb
+      - backend
+    restart: on-failure
+
+
+
 
   # If you want to run webapp locally without using docker-compose,
   # you will also need to run nginx locally and not from docker-compose
@@ -99,9 +104,9 @@ services:
       - .env.deployment
     ports:
       - '8000:8000'
-
     depends_on:
       - temporal
+      - mongodb
 
   auth:
     image: bettercollected/auth:nightly

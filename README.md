@@ -35,7 +35,7 @@ MAIL_FROM_NAME=<TITLE_FOR_MAIL>
 ```
 
 
-### Google (Optional)
+### Google
 Users have to fill out some of the env variables themselves on `.env.deployment` before running the docker file.
 For using `Google forms` you need to set up certain environment variables, for that create a project in `Google Cloud Platform` and fill the following environment variables.
 
@@ -68,7 +68,7 @@ For using `Google forms` you need to set up certain environment variables, for t
 14. Click on the "Download" button to download your client secret as a JSON file.
     Once you have generated your client secret, you can use it in your application to authenticate with Google APIs.
 
-### Typeform (Optional)
+### Typeform
 
 Similarly for using `Typeform` you need to set up certain environment variables and for that create a `Typeform` account and add your app in `Developer apps` to get the value for following environment variables.
 
