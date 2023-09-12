@@ -4,9 +4,38 @@ This document explains the deployment guide for the users to see the deployed pr
 
 ####  Important note: Change the keys in .env.deployment if you are planning to deploy it in production
 
-## Sign in Options (Optional)
+## Sign in Options 
 
-### Google
+### Email Sign In (Required*)
+
+Credentials for a mail client is required to use this feature.
+Update the following env variables in `.env.deployment`:
+
+```dotenv
+    #Mail
+    MAIL_USER=
+    MAIL_PASSWORD=
+    MAIL_SMTP_SERVER=
+    MAIL_SMTP_PORT=
+    MAIL_SENDER=
+```
+
+**Using Gmail as Sender**
+
+Create an app password in google. You can follow the steps here to create it: [Sign in with app passwords
+](https://support.google.com/accounts/answer/185833)
+
+```dotenv
+MAIL_USERNAME=<GMAIL_USERNAME>
+MAIL_PASSWORD=<APP_PASSWORD>
+MAIL_FROM=<SENDER_ADDRESS>
+MAIL_PORT=587
+MAIL_SERVER=smtp.gmail.com
+MAIL_FROM_NAME=<TITLE_FOR_MAIL>
+```
+
+
+### Google (Optional)
 Users have to fill out some of the env variables themselves on `.env.deployment` before running the docker file.
 For using `Google forms` you need to set up certain environment variables, for that create a project in `Google Cloud Platform` and fill the following environment variables.
 
@@ -55,35 +84,6 @@ Similarly for using `Typeform` you need to set up certain environment variables 
 3. Fill up the details and set the "Redirect URIs": `http://localhost:8000/api/v1/auth/typeform/basic/callback` and `https://localhost:8000/api/v1/auth/typeform/oauth/callback`.
 4. Once you register the new app, you'll see a `secret`. You need to save this secret some place safe as you'll not see this again.
 5. You can see the `client_id` whenever you want to.
-
-
-### Email Sign In (Required*)
-
-Credentials for a mail client is required to use this feature.
-Update the following env variables in `.env.deployment`:
-
-```dotenv
-    #Mail
-    MAIL_USER=
-    MAIL_PASSWORD=
-    MAIL_SMTP_SERVER=
-    MAIL_SMTP_PORT=
-    MAIL_SENDER=
-```
-
-**Using Gmail as Sender**
-
-Create an app password in google. You can follow the steps here to create it: [Sign in with app passwords
-](https://support.google.com/accounts/answer/185833) 
-
-```dotenv
-MAIL_USERNAME=<GMAIL_USERNAME>
-MAIL_PASSWORD=<APP_PASSWORD>
-MAIL_FROM=<SENDER_ADDRESS>
-MAIL_PORT=587
-MAIL_SERVER=smtp.gmail.com
-MAIL_FROM_NAME=<TITLE_FOR_MAIL>
-```
 
 
 ## COMMANDs
