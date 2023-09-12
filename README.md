@@ -6,7 +6,7 @@ This document explains the deployment guide for the users to see the deployed pr
 
 ## Sign in Options 
 
-### Email Sign In (Required*)
+### Email Sign In
 
 Credentials for a mail client is required to use this feature.
 Update the following env variables in `.env.deployment`:
