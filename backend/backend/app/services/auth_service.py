@@ -9,6 +9,7 @@ from starlette.requests import Request
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.enum.user_tag_enum import UserTagType
+from backend.app.schemas.user_tags import UserTagsDocument
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.plugin_proxy_service import PluginProxyService
@@ -52,6 +53,9 @@ class AuthService:
                 params={"user_id": user.id},
                 timeout=60,
             )
+            response_data["tags"] = await self.user_tags_service.get_user_tags_by_id(
+                user_id=user.id
+            )
             return response_data
         except ReadTimeout as e:
             raise HTTPException(
@@ -71,7 +75,9 @@ class AuthService:
         )
         return {"message": "Otp sent successfully"}
 
-    async def validate_otp(self, login_details: UserLoginWithOTP):
+    async def validate_otp(
+        self, login_details: UserLoginWithOTP, prospective_pro_user: bool
+    ):
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + "/auth/otp/validate",
             params={"email": login_details.email, "otp_code": login_details.otp_code},
@@ -82,11 +88,19 @@ class AuthService:
                 user_id=User(**user).id, tag=UserTagType.NEW_USER
             )
             await workspaces_service.create_workspace(User(**user))
+            if prospective_pro_user:
+                await self.user_tags_service.add_user_tag(
+                    user_id=User(**user).id, tag=UserTagType.PROSPECTIVE_PRO_USER
+                )
             return User(**user)
         elif user and Roles.FORM_RESPONDER in user.get("roles"):
             await self.user_tags_service.add_user_tag(
                 user_id=User(**user).id, tag=UserTagType.NEW_USER
             )
+            if prospective_pro_user:
+                await self.user_tags_service.add_user_tag(
+                    user_id=User(**user).id, tag=UserTagType.PROSPECTIVE_PRO_USER
+                )
             return User(**user)
         else:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, content="Invalid Otp Code")
@@ -134,11 +148,19 @@ class AuthService:
         return user, state
 
     async def get_basic_auth_url(
-        self, provider: str, client_referer_url: str, creator: bool = False
+        self,
+        provider: str,
+        client_referer_url: str,
+        creator: bool = False,
+        prospective_pro_user: bool = False,
     ):
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + f"/auth/{provider}/basic",
-            params={"client_referer_url": client_referer_url, "creator": creator},
+            params={
+                "client_referer_url": client_referer_url,
+                "creator": creator,
+                "prospective_pro_user": prospective_pro_user,
+            },
         )
         return response_data.get("auth_url")
 
@@ -151,9 +173,13 @@ class AuthService:
         user = response_data.get("user")
         if user and Roles.FORM_CREATOR in user.get("roles"):
             await self.user_tags_service.add_user_tag(
-                user_id=User(**user).id, tag=UserTagType.NEW_USER
+                user_id=user.get("id"), tag=UserTagType.NEW_USER
             )
             await workspaces_service.create_workspace(User(**user))
+            if response_data.get("prospective_pro_user"):
+                await self.user_tags_service.add_user_tag(
+                    user_id=User(**user).id, tag=UserTagType.PROSPECTIVE_PRO_USER
+                )
         return user, response_data.get("client_referer_url", "")
 
     async def delete_user(self, user: User):
