@@ -51,10 +51,11 @@ export const authApi = createApi({
             invalidatesTags: [AUTH_OTP_TAGS]
         }),
         postVerifyOtp: builder.mutation<any, VerifyOtp>({
-            query: (body) => ({
+            query: (data) => ({
                 url: '/auth/otp/validate',
                 method: 'POST',
-                body
+                body: data.body,
+                params: data.params
             }),
             invalidatesTags: [AUTH_OTP_TAGS]
         }),
