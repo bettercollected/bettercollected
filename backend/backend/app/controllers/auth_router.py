@@ -69,8 +69,15 @@ class AuthRoutes(Routable):
             503: {"description": "Requested Source not available."},
         },
     )
-    async def _validate_otp(self, login_details: UserLoginWithOTP, response: Response):
-        user = await self.auth_service.validate_otp(login_details)
+    async def _validate_otp(
+        self,
+        login_details: UserLoginWithOTP,
+        response: Response,
+        prospective_pro_user: bool = False,
+    ):
+        user = await self.auth_service.validate_otp(
+            login_details, prospective_pro_user=prospective_pro_user
+        )
         set_tokens_to_response(user, response)
         return "Logged In successfully"
 
@@ -135,11 +142,18 @@ class AuthRoutes(Routable):
         },
     )
     async def _basic_auth(
-        self, provider: FormProvider, request: Request, creator: bool = False
+        self,
+        provider: FormProvider,
+        request: Request,
+        creator: bool = False,
+        prospective_pro_user: bool = False,
     ):
         client_referer_url = request.headers.get("referer")
         basic_auth_url = await self.auth_service.get_basic_auth_url(
-            provider, client_referer_url, creator=creator
+            provider,
+            client_referer_url,
+            creator=creator,
+            prospective_pro_user=prospective_pro_user,
         )
         return RedirectResponse(basic_auth_url)
 

@@ -17,3 +17,4 @@ class UserStatusDto(CamelModel):
     plan: Optional[Plans] = Plans.FREE
     stripe_customer_id: Optional[str]
     stripe_payment_id: Optional[str]
+    tags: List[str]

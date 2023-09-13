@@ -17,6 +17,7 @@ import { IntegrationFormProviders } from '@app/models/dtos/provider';
 import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 import { capitalize } from '@app/utils/stringUtils';
+import { useRouter } from 'next/router';
 
 interface OtpEmailInputPropType {
     isCreator: boolean;
@@ -37,6 +38,8 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
     const [postSendOtpForCreator, creatorResponse] = usePostSendOtpForCreatorMutation();
 
     const [email, setEmail] = useState('');
+
+    const { fromProPlan } = useRouter().query;
 
     const constants = {
         welcomeBack: t(signInScreen.welcomeBack),
@@ -112,6 +115,7 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                                         url={`${environments.API_ENDPOINT_HOST}/auth/${provider.providerName}/basic`}
                                         text={`Sign in with ${capitalize(provider.providerName)}`}
                                         creator={isCreator}
+                                        fromProPlan={fromProPlan}
                                     />
                                 ))}
                         </div>

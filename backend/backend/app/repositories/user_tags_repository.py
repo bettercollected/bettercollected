@@ -22,7 +22,10 @@ class UserTagsRepository(BaseRepository):
     async def delete(self, item_id: str, provider: FormProvider):
         pass
 
-    async def list(self, **kwargs) -> List[UserTagsDto]:
+    async def get_tags_by_id(self, user_id: str):
+        return await UserTagsDocument.find_one({"user_id": PydanticObjectId(user_id)})
+
+    async def list(self, **kwargs) -> List[UserTagsDocument]:
         return await UserTagsDocument.find().to_list()
 
     async def insert_user_tag(self, user_id: str, tag: UserTagType):

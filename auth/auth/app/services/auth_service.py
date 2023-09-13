@@ -78,11 +78,11 @@ class AuthService:
         )
 
     async def get_basic_auth_url(
-        self, provider: str, client_referer_url: str, creator: bool
+        self, provider: str, client_referer_url: str, creator: bool, prospective_pro_user: bool
     ):
         url = await self.auth_provider_factory.get_auth_provider(
             provider
-        ).get_basic_auth_url(client_referer_url, creator=creator)
+        ).get_basic_auth_url(client_referer_url, creator=creator, prospective_pro_user=prospective_pro_user)
         return {"auth_url": url}
 
     async def validate_otp(self, email, otp_code):

@@ -15,6 +15,8 @@ import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
 import { upgradeConst } from '@app/constants/locales/upgrade';
+import { selectAuthStatus } from '@app/store/auth/selectors';
+import { useAppSelector } from '@app/store/hooks';
 import { useGetPlansQuery } from '@app/store/plans/api';
 
 export interface IUpgradeToProModal {
@@ -25,6 +27,7 @@ export default function UpgradeToProContainer({ featureText }: IUpgradeToProModa
     const { data, isLoading } = useGetPlansQuery();
     const { t } = useTranslation();
     const [activePlan, setActivePlan] = useState<any>();
+    const auth = useAppSelector(selectAuthStatus);
 
     useEffect(() => {
         if (data && Array.isArray(data) && data.length > 0) setActivePlan(data[0]);
@@ -52,6 +55,8 @@ export default function UpgradeToProContainer({ featureText }: IUpgradeToProModa
             color: '#D9FFD6'
         }
     ];
+
+    const url = auth === null ? '/login?fromProPlan=true' : `${environments.API_ENDPOINT_HOST}/stripe/session/create/checkout?price_id=${activePlan?.price_id}`;
 
     return (
         <div className="container p-10  w-full h-full mx-auto flex flex-col items-center justify-center">
@@ -81,7 +86,7 @@ export default function UpgradeToProContainer({ featureText }: IUpgradeToProModa
                 ))}
 
             {data && (
-                <ActiveLink className="mt-10" href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/checkout?price_id=${activePlan?.price_id}`}>
+                <ActiveLink className="mt-10" href={url}>
                     <Button size="medium">{t(buttonConstant.continue)}</Button>
                 </ActiveLink>
             )}

@@ -44,6 +44,8 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
     const [postSendOtp] = usePostSendOtpMutation();
     const [postSendOtpForCreator] = usePostSendOtpForCreatorMutation();
 
+    const { fromProPlan } = router.query;
+
     const constants = {
         subHeading2: t(signInScreen.continueWIth),
         button: t(signInScreen.signUp),
@@ -105,12 +107,16 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
             email: props.email,
             otp_code: otp
         };
-        const res = await postVerifyOtp(req);
+        const data = {
+            body: req,
+            params: { prospective_pro_user: fromProPlan }
+        };
+        const res = await postVerifyOtp(data);
         await handleResponseToast(res);
     };
 
     return (
-        <div className='w-full'>
+        <div className="w-full">
             <div className={`absolute flex items-center cursor-pointer gap-1 hover:text-brand ${isModal ? 'top-16' : ' top-24'}`} onClick={handleGoBackOnStepOne}>
                 <Back />
                 <p className={'hover:text-brand'}>{constants.backButtonTitle}</p>
