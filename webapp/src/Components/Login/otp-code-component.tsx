@@ -44,7 +44,7 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
     const [postSendOtp] = usePostSendOtpMutation();
     const [postSendOtpForCreator] = usePostSendOtpForCreatorMutation();
 
-    const { prospectiveProUser } = useRouter().query;
+    const { fromProPlan } = router.query;
 
     const constants = {
         subHeading2: t(signInScreen.continueWIth),
@@ -109,7 +109,7 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
         };
         const data = {
             body: req,
-            params: { prospective_pro_user: prospectiveProUser }
+            params: { prospective_pro_user: fromProPlan }
         };
         const res = await postVerifyOtp(data);
         await handleResponseToast(res);
