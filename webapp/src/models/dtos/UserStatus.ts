@@ -15,5 +15,5 @@ export interface UserStatus {
     profileImage?: string;
     isAdmin?: boolean;
     isLoading?: boolean;
-    tags: Array<string>;
+    tags?: Array<string>;
 }
