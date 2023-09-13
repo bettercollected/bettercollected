@@ -36,8 +36,8 @@ import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
 import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
-import UserDeletionModal from './modals/user-deletion-modal';
 import FormBuilderTipsModalView from './modals/form-builder-tips-modal-view';
+import UserDeletionModal from './modals/user-deletion-modal';
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {

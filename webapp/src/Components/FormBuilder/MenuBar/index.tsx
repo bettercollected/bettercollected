@@ -1,26 +1,27 @@
 import * as React from 'react';
 
+import CustomPopover from '@Components/Common/CustomPopover';
 import Divider from '@Components/Common/DataDisplay/Divider';
 import CircleOutlinedIcon from '@Components/Common/Icons/CircleOutlinedIcon';
 import CoverIcon from '@Components/Common/Icons/CoverIcon';
+import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
 import LoadingIcon from '@Components/Common/Icons/Loading';
 import PlusIcon from '@Components/Common/Icons/Plus';
 import PublishIcon from '@Components/Common/Icons/PublishIcon';
+import { DragHandle } from '@mui/icons-material';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import AppBar from '@mui/material/AppBar';
 import IconButton from '@mui/material/IconButton';
 import InputBase from '@mui/material/InputBase';
 import Toolbar from '@mui/material/Toolbar';
-import {alpha, styled} from '@mui/material/styles';
-import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
-import {useBreakpoint} from "@app/lib/hooks/use-breakpoint";
-import CustomPopover from "@Components/Common/CustomPopover";
-import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
-import cn from "classnames";
-import {DragHandle} from "@mui/icons-material";
-import Hamburger from "@app/components/ui/hamburger";
+import { alpha, styled } from '@mui/material/styles';
+import cn from 'classnames';
 
-const Search = styled('div')(({theme}) => ({
+import Hamburger from '@app/components/ui/hamburger';
+import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+
+const Search = styled('div')(({ theme }) => ({
     position: 'relative',
     borderRadius: theme.shape.borderRadius,
     backgroundColor: alpha(theme.palette.common.white, 0.15),
@@ -36,7 +37,7 @@ const Search = styled('div')(({theme}) => ({
     }
 }));
 
-const SearchIconWrapper = styled('div')(({theme}) => ({
+const SearchIconWrapper = styled('div')(({ theme }) => ({
     padding: theme.spacing(0, 2),
     height: '100%',
     position: 'absolute',
@@ -46,7 +47,7 @@ const SearchIconWrapper = styled('div')(({theme}) => ({
     justifyContent: 'center'
 }));
 
-const StyledInputBase = styled(InputBase)(({theme}) => ({
+const StyledInputBase = styled(InputBase)(({ theme }) => ({
     color: 'inherit',
     '& .MuiInputBase-input': {
         padding: theme.spacing(1, 1, 1, 0),
@@ -72,75 +73,62 @@ interface IFormBuilderMenuBarProps {
     isUpdating?: boolean;
 }
 
+export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormCover, onClickSettings, onClickTips, onPreview, onFormPublish, isUpdating }: IFormBuilderMenuBarProps) {
+    const { t } = useBuilderTranslation();
 
-export default function FormBuilderMenuBar({
-                                               onInsert,
-                                               onAddFormLogo,
-                                               onAddFormCover,
-                                               onClickSettings, onClickTips,
-                                               onPreview,
-                                               onFormPublish,
-                                               isUpdating
-                                           }: IFormBuilderMenuBarProps) {
-    const {t} = useBuilderTranslation();
+    const breakpoint = useBreakpoint();
 
-    const breakpoint = useBreakpoint()
+    const collapseMenu = ['2xs', 'xs', 'sm', 'md'].indexOf(breakpoint) !== -1;
 
-    const collapseMenu = ["2xs", "xs", "sm", "md"].indexOf(breakpoint) !== -1
-
-    const optionButtonClassName = 'flex text-black-700  text-sm lg:text-normal justify-start px-5 !py-3 !lg:p-2 !lg:p-3 lg:!px-3 !lg:px-5 border-1   lg:w-fit w-full hover-none border-solid border-gray-500 md:gap-2 rounded-none ' + (collapseMenu ? "h-fit" : "h-[64px]");
-
+    const optionButtonClassName =
+        'flex text-black-700  text-sm lg:text-normal justify-start px-5 !py-3 !lg:p-2 !lg:p-3 lg:!px-3 !lg:px-5 border-1   lg:w-fit w-full hover-none border-solid border-gray-500 md:gap-2 rounded-none ' + (collapseMenu ? 'h-fit' : 'h-[64px]');
 
     const Actions = () => (
-        <Toolbar
-            className=" !px-0 lg:px-6 divide-y divide-black-200 lg:divide-y-0  flex flex-col lg:flex-row body4 w-full justify-center">
-            <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
+        <Toolbar className=" !px-0 lg:px-6 divide-y divide-black-200 lg:divide-y-0  flex flex-col lg:flex-row body4 w-full justify-center">
+            <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             <IconButton color="inherit" className={optionButtonClassName} onClick={onInsert}>
-                <PlusIcon/>
+                <PlusIcon />
                 <span className=" text-black-700">{t('INSERT.DEFAULT')}</span>
             </IconButton>
-            <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
+            <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             <IconButton color="inherit" className={optionButtonClassName} onClick={onAddFormLogo}>
-                <CircleOutlinedIcon/>
+                <CircleOutlinedIcon />
                 <span className="text-black-700 ">Logo</span>
             </IconButton>
-            <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
+            <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             <IconButton color="inherit" className={optionButtonClassName} onClick={onAddFormCover}>
-                <CoverIcon/>
+                <CoverIcon />
                 <span className="text-black-700">Cover</span>
             </IconButton>
-            <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
-            <div className="hidden lg:flex lg:w-20"/>
-            <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
+            <Divider orientation="vertical" className="hidden lg:flex" flexItem />
+            <div className="hidden lg:flex lg:w-20" />
+            <Divider orientation="vertical" className="hidden lg:flex" flexItem />
 
             <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onClickTips}>
-                <InfoIcon/>
+                <InfoIcon />
                 <span className=" text-black-700 ">Tips</span>
             </IconButton>
             {/* <IconButton size="small" color="inherit" className={optionButtonClassName} onClick={onClickSettings}>
                     <SettingsIcon />
                     <span className=" text-black-700 ">Settings</span>
                 </IconButton> */}
-            <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
-            {
-                !collapseMenu &&
-                <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
-            }
+            <Divider orientation="vertical" className="hidden lg:flex" flexItem />
+            {!collapseMenu && <Divider orientation="vertical" className="hidden lg:flex" flexItem />}
             <IconButton color="inherit" className={optionButtonClassName} onClick={onPreview}>
-                <VisibilityOutlinedIcon/>
+                <VisibilityOutlinedIcon />
                 <span className=" text-black-700 ">{t('PREVIEW.DEFAULT')}</span>
             </IconButton>
             {/*</Tooltip>*/}
-            <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
+            <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             {/*<Tooltip title={t('PUBLISH.DEFAULT')}>*/}
             <IconButton color="inherit" className={optionButtonClassName} onClick={onFormPublish}>
-                {isUpdating ? <LoadingIcon/> : <PublishIcon/>}
+                {isUpdating ? <LoadingIcon /> : <PublishIcon />}
                 <span className=" text-black-700">{t('PUBLISH.DEFAULT')}</span>
             </IconButton>
             {/*</Tooltip>*/}
-            <Divider orientation="vertical" className="hidden lg:flex" flexItem/>
+            <Divider orientation="vertical" className="hidden lg:flex" flexItem />
         </Toolbar>
-    )
+    );
     return (
         <AppBar
             position="static"
@@ -152,19 +140,21 @@ export default function FormBuilderMenuBar({
                 boxShadow: 'inherit'
             }}
         >
-            {
-                collapseMenu ?
-                    <CustomPopover content={
-                        <div className="min-w-[200px]"><Actions/></div>
-
-                    }>
-                        <div
-                            className="h-16 flex gap-2 items-center rounded px-5 hover:cursor-pointer hover:bg-black-200">
-                            <Hamburger/> Actions
+            {collapseMenu ? (
+                <CustomPopover
+                    content={
+                        <div className="min-w-[200px]">
+                            <Actions />
                         </div>
-                    </CustomPopover>
-                    : <Actions/>
-            }
+                    }
+                >
+                    <div className="h-16 flex gap-2 items-center rounded px-5 hover:cursor-pointer hover:bg-black-200">
+                        <Hamburger /> Actions
+                    </div>
+                </CustomPopover>
+            ) : (
+                <Actions />
+            )}
         </AppBar>
     );
 }

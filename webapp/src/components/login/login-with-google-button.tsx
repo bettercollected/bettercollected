@@ -16,22 +16,18 @@ ConnectWithProviderButton.defaultProps = {
 };
 
 export default function ConnectWithProviderButton(props: ConnectWithProviderButtonProps) {
-    const {url, text, type, creator, disabled, fromProPlan} = props;
+    const { url, text, type, creator, disabled, fromProPlan } = props;
 
     if (disabled)
         return (
             <div className="!w-full rounded flex items-center justify-center">
-                <ProviderLoginButton disabled={disabled} label={text} type={type} onClick={() => {
-                }}/>
+                <ProviderLoginButton disabled={disabled} label={text} type={type} onClick={() => {}} />
             </div>
         );
 
     return (
-        <a href={`${url}${creator ? '?creator=true' : ''}${fromProPlan ? '&prospective_pro_user=true' : ''}`}
-           referrerPolicy="unsafe-url"
-           className={`w-full flex items-center justify-start`}>
-            <ProviderLoginButton className="!w-full rounded" disabled={disabled} label={text} type={type} onClick={() => {
-            }}/>
+        <a href={`${url}${creator ? '?creator=true' : ''}${fromProPlan ? '&prospective_pro_user=true' : ''}`} referrerPolicy="unsafe-url" className={`w-full flex items-center justify-start`}>
+            <ProviderLoginButton className="!w-full rounded" disabled={disabled} label={text} type={type} onClick={() => {}} />
         </a>
     );
 }

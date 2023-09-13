@@ -1,23 +1,23 @@
-import React, {Dispatch, SetStateAction, useState} from 'react';
+import React, { Dispatch, SetStateAction, useState } from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import Divider from '@mui/material/Divider';
-import {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
 
 import FormProviderContext from '@app/Contexts/FormProviderContext';
 import BetterInput from '@app/components/Common/input';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
 import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
-import {formResponderLogin} from '@app/constants/locales/form-responder-login';
-import {signInScreen} from '@app/constants/locales/signin-screen';
-import {signUpScreen} from '@app/constants/locales/signup-screen';
-import {IntegrationFormProviders} from '@app/models/dtos/provider';
-import {usePostSendOtpForCreatorMutation, usePostSendOtpMutation} from '@app/store/auth/api';
-import {useAppSelector} from '@app/store/hooks';
-import {capitalize} from '@app/utils/stringUtils';
-import { useRouter } from 'next/router';
+import { formResponderLogin } from '@app/constants/locales/form-responder-login';
+import { signInScreen } from '@app/constants/locales/signin-screen';
+import { signUpScreen } from '@app/constants/locales/signup-screen';
+import { IntegrationFormProviders } from '@app/models/dtos/provider';
+import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation } from '@app/store/auth/api';
+import { useAppSelector } from '@app/store/hooks';
+import { capitalize } from '@app/utils/stringUtils';
 
 interface OtpEmailInputPropType {
     isCreator: boolean;
@@ -27,13 +27,13 @@ interface OtpEmailInputPropType {
 }
 
 export default function OtpEmailInput(props: OtpEmailInputPropType) {
-    const {isCreator, isModal, isSignup} = props;
+    const { isCreator, isModal, isSignup } = props;
 
     const workspace = useAppSelector((state) => state.workspace);
 
-    const {t} = useTranslation();
+    const { t } = useTranslation();
 
-    const [postSendOtp, {isLoading}] = usePostSendOtpMutation();
+    const [postSendOtp, { isLoading }] = usePostSendOtpMutation();
 
     const [postSendOtpForCreator, creatorResponse] = usePostSendOtpForCreatorMutation();
 
@@ -68,10 +68,10 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
 
     const handleResponseToast = (res: any) => {
         if (!!res?.data) {
-            toast(constants.otpSuccessMessage, {type: 'success'});
+            toast(constants.otpSuccessMessage, { type: 'success' });
             props.setEmail(email);
         } else {
-            toast(constants.otpFailureMessage, {type: 'error'});
+            toast(constants.otpFailureMessage, { type: 'error' });
         }
     };
 
@@ -97,27 +97,23 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
     };
 
     return (
-        <form className={` w-full ${isModal ? ' mt-16' : ''}`}
-              onSubmit={isCreator ? handleEmailInputForCreator : handleEmailInputForResponder}>
+        <form className={` w-full ${isModal ? ' mt-16' : ''}`} onSubmit={isCreator ? handleEmailInputForCreator : handleEmailInputForResponder}>
             <div className="flex flex-col gap-3">
-                <span className="h4 ">{(isSignup || isModal) ? constants.signUp : constants.welcomeBack}</span>
-                {isModal ? <span className="body4 sm:w-[410px]">{constants.descriptionInModal}</span> : <span
-                    className="body4 text-black-800">{isSignup ? constants.signUpToContinue : constants.signInToContinue}</span>}
+                <span className="h4 ">{isSignup || isModal ? constants.signUp : constants.welcomeBack}</span>
+                {isModal ? <span className="body4 sm:w-[410px]">{constants.descriptionInModal}</span> : <span className="body4 text-black-800">{isSignup ? constants.signUpToContinue : constants.signInToContinue}</span>}
             </div>
             <div className="flex gap-[20px] mt-10 w-full">
-
                 <div className="flex flex-col sm:flex-row gap-4 lg:gap-6 w-full justify-center items-center">
-                    {["google", "typeform"]
-                        .map((provider: string) => (
-                            <ConnectWithProviderButton
-                                key={provider}
-                                type={provider === 'typeform' ? 'typeform' : 'dark'}
-                                url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/basic`}
-                                text={`Sign in with ${capitalize(provider)}`}
-                                creator={isCreator}
-                                fromProPlan={fromProPlan}
-                            />
-                        ))}
+                    {['google', 'typeform'].map((provider: string) => (
+                        <ConnectWithProviderButton
+                            key={provider}
+                            type={provider === 'typeform' ? 'typeform' : 'dark'}
+                            url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/basic`}
+                            text={`Sign in with ${capitalize(provider)}`}
+                            creator={isCreator}
+                            fromProPlan={fromProPlan}
+                        />
+                    ))}
                 </div>
             </div>
 
@@ -125,10 +121,8 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                 {constants.orSignInUsing}
             </Divider>
             <p className="text-base font-semibold mb-3 mt-[44px] text-black-900">{constants.emailInputLabel}</p>
-            <BetterInput type={'email'} required={true} placeholder={constants.enterYourEmail} value={email}
-                         onChange={handleEmailInput}/>
-            <Button type={'submit'} variant="solid" isLoading={isCreator ? creatorResponse.isLoading : isLoading}
-                    className={`body1 w-full mt-6 ${isModal ? 'mb-10' : ''}`} size={'extraMedium'}>
+            <BetterInput type={'email'} required={true} placeholder={constants.enterYourEmail} value={email} onChange={handleEmailInput} />
+            <Button type={'submit'} variant="solid" isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={`body1 w-full mt-6 ${isModal ? 'mb-10' : ''}`} size={'extraMedium'}>
                 {constants.sendCodeButton}
             </Button>
         </form>

@@ -83,7 +83,7 @@ export default function LoginLayout(props: MyLoginProps) {
                     {email ? <OtpCodeContent isSignup={isSignup} constants={constants} /> : <OtpEmailContent isSignup={isSignup} constants={constants} />}
                 </div>
                 <div className="relative flex flex-col order-1 lg:order-2 items-start justify-between px-8 py-7 lg:py-8 xl:pl-[90px] xl:pr-28 min-h-fit sm:min-h-screen w-full lg:max-w-[50%]">
-                    <div className='mb-20 lg:mb-0'>
+                    <div className="mb-20 lg:mb-0">
                         <Logo isLink={false} />
                         <h1 className="body4 !text-black-800 mt-2">{constants.signUpLogoSubTitle}</h1>
                     </div>

@@ -13,6 +13,7 @@ import Back from '@app/components/icons/back';
 import Image from '@app/components/ui/image';
 import PoweredBy from '@app/components/ui/powered-by';
 import { formConstant } from '@app/constants/locales/form';
+import { Plan } from '@app/models/dtos/UserStatus';
 import { selectAuthStatus } from '@app/store/auth/selectors';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
@@ -22,7 +23,6 @@ import { useCreateFormMutation, usePatchFormMutation, workspacesApi } from '@app
 import { getFormUrl } from '@app/utils/urlUtils';
 
 import { useFullScreenModal } from '../full-screen-modal-context';
-import { Plan } from '@app/models/dtos/UserStatus';
 
 export default function FormBuilderPreviewModal({ publish }: { publish: () => void }) {
     const [formToRender, setFormToRender] = useState(initialIBuilderState);
