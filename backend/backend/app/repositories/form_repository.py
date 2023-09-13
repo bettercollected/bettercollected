@@ -1,9 +1,12 @@
 from typing import List
 
 from beanie import PydanticObjectId
+from beanie.odm.enums import SortDirection
 from beanie.odm.queries.aggregation import AggregationQuery
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.enum.FormVersion import FormVersion
+from backend.app.schemas.form_versions import FormVersions
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 from common.models.standard_form import StandardForm
@@ -166,3 +169,16 @@ class FormRepository:
 
     async def get_form_document_by_id(self, form_id: str):
         return await FormDocument.find_one({"form_id": form_id})
+
+    async def get_latest_version_of_form(self, form_id: PydanticObjectId):
+        return await FormVersions.find({"form_id": form_id}).sort(("version", SortDirection.DESCENDING)).first_or_none()
+
+    async def get_form_by_by_version(self, form_id: PydanticObjectId, version: FormVersion | int):
+        if version == FormVersion.latest:
+            return await self.get_latest_version_of_form(form_id=form_id)
+        return await FormVersions.find_one({"form_id": form_id, "version": version})
+
+    async def publish_form(self, form: FormDocument, version: int):
+        new_form_version = FormVersions(**form.dict(), version=version)
+        new_form_version.id = None
+        return await new_form_version.save()

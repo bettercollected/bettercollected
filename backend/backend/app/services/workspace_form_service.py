@@ -12,12 +12,6 @@ from backend.app.models.response_dtos import FormFileResponse
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
-from backend.app.schemas.standard_form import FormDocument
-from backend.app.schemas.standard_form_response import (
-    FormResponseDocument,
-    FormResponseDeletionRequest,
-)
-from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
@@ -439,5 +433,13 @@ class WorkspaceFormService:
             form_id=form_id, response_id=response_id
         )
 
+    async def publish_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User):
+        await self.workspace_user_service.check_user_has_access_in_workspace(
+            workspace_id=workspace_id,
+            user=user
+        )
+        return await self.form_service.publish_form(
+            form_id=form_id
+        )
 
 # async def upload_images_of_form

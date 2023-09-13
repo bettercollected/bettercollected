@@ -25,6 +25,7 @@ class WorkspaceFormSettingsCamelModal(WorkspaceFormSettings, CamelModel):
 class StandardFormCamelModel(StandardForm, CamelModel):
     settings: Optional[WorkspaceFormSettingsCamelModal]
     responses: Optional[int] = 0
+    version: Optional[int]
 
 
 class StandardChoice(CamelModel):

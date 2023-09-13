@@ -12,7 +12,7 @@ from pymongo.errors import (
 from backend.app.exceptions import HTTPException
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
+from common.constants import MESSAGE_DATABASE_EXCEPTION
 from common.models.user import User
 
 
@@ -69,13 +69,13 @@ class WorkspaceFormRepository:
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
 
-    async def get_form_ids_in_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        is_not_admin: bool = False,
-        user: User = None,
-        match_query: Dict[str, Any] = None,
-    ):
+    async def get_workspace_forms_in_workspace(self,
+                                               workspace_id: PydanticObjectId,
+                                               is_not_admin: bool = False,
+                                               user: User = None,
+                                               match_query: Dict[str, Any] = None,
+                                               id_only: bool = False
+                                               ) -> List[WorkspaceFormDocument]:
         try:
             query = {"workspace_id": workspace_id}
             if is_not_admin and not user:
@@ -140,18 +140,31 @@ class WorkspaceFormRepository:
                         },
                     ]
                 )
-            aggregation_pipeline.extend([{"$project": {"form_id": 1, "_id": 0}}])
+            if id_only:
+                aggregation_pipeline.extend([{"$project": {"form_id": 1, "_id": 0}}])
             workspace_forms = (
                 await WorkspaceFormDocument.find(query)
                 .aggregate(aggregation_pipeline)
                 .to_list()
             )
-            return list(set([a["form_id"] for a in workspace_forms]))
+            return workspace_forms
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
+
+    async def get_form_ids_in_workspace(
+        self,
+        workspace_id: PydanticObjectId,
+        is_not_admin: bool = False,
+        user: User = None,
+        match_query: Dict[str, Any] = None,
+    ):
+        workspace_forms = await self.get_workspace_forms_in_workspace(workspace_id=workspace_id,
+                                                                      is_not_admin=is_not_admin, user=user,
+                                                                      match_query=match_query, id_only=True)
+        return list(set([a["form_id"] for a in workspace_forms]))
 
     async def get_workspace_form_with_custom_slug_form_id(
         self, workspace_id: PydanticObjectId, custom_url: str
