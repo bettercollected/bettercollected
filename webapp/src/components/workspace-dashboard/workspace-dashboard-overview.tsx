@@ -113,7 +113,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                         </Tooltip>
                         {data?.map((user: WorkspaceMembersDto) => (
                             <div key={user.email}>
-                                <AuthAccountProfileImage image={user.profileImage} name={getFullNameFromUser(user)} size={40} />
+                                <AuthAccountProfileImage image={user.profileImage} name={user?.firstName || user?.lastName || user?.email} size={40} />
                             </div>
                         ))}
                     </div>

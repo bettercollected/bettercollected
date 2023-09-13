@@ -63,7 +63,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
 
     const newMenuContent = menuContent ?? (
         <>
-            <AuthAccountProfileImage size={['xs', '2xs'].indexOf(screenSize) === -1 ? 36 : 28} image={user?.profileImage} name={profileName ?? ''} />
+            <AuthAccountProfileImage size={['xs', '2xs'].indexOf(screenSize) === -1 ? 36 : 28} image={user?.profileImage} name={user?.firstName || user?.lastName || user.email} />
             {['xs', '2xs', 'sm'].indexOf(screenSize) === -1 && (profileName?.trim() || user?.email || '')}
         </>
     );
