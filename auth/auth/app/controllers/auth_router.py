@@ -58,10 +58,10 @@ class AuthRoutes(Routable):
 
     @get("/{provider_name}/basic")
     async def _basic_auth(
-        self, provider_name: str, client_referer_url, creator: bool = False
+        self, provider_name: str, client_referer_url, creator: bool = False, prospective_pro_user: bool =False
     ):
         basic_auth_url = await self.auth_service.get_basic_auth_url(
-            provider_name, client_referer_url, creator
+            provider_name, client_referer_url, creator, prospective_pro_user
         )
         return basic_auth_url
 

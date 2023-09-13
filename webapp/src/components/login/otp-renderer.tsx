@@ -40,7 +40,11 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
             return;
         }
         const response = { email: email, otp_code: otp };
-        await postVerifyOtp(response)
+        const data = {
+            body: response,
+            params: { prospective_pro_user: '' }
+        };
+        await postVerifyOtp(data)
             .then(async () => await trigger())
             .then(() => closeModal())
             .catch((err) => toast.error(err, { toastId: ToastId.ERROR_TOAST }));
