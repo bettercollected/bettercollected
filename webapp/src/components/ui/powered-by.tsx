@@ -11,7 +11,6 @@ interface IPoweredByProps {
 }
 
 export default function PoweredBy({ isFormCreatorPortal }: IPoweredByProps) {
-
     const componentsProps = {
         tooltip: {
             sx: {
@@ -23,7 +22,7 @@ export default function PoweredBy({ isFormCreatorPortal }: IPoweredByProps) {
                 borderRadius: '4px',
                 minWidth: '303px',
                 '& .MuiTooltip-arrow': {
-                    color: '#2E2E2E',
+                    color: '#2E2E2E'
                 }
             }
         }
