@@ -42,8 +42,9 @@ client_config = {
 class GoogleAuthProvider(BaseAuthProvider):
     async def get_basic_auth_url(self, client_referer_url: str, *args, **kwargs):
         creator = kwargs.get("creator", False)
+        prospective_pro_user = kwargs.get("prospective_pro_user", False)
         state_json = json.dumps(
-            {"client_referer_url": client_referer_url, "creator": creator}
+            {"client_referer_url": client_referer_url, "creator": creator, "prospective_pro_user": prospective_pro_user}
         )
         state = crypto.encrypt(state_json)
         flow = google_auth_oauthlib.flow.Flow.from_client_config(

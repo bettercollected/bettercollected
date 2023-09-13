@@ -23,7 +23,11 @@ typeform_settings = settings.typeform_settings
 
 class TypeformAuthProvider(BaseAuthProvider):
     async def get_basic_auth_url(self, client_referer_url: str, *args, **kwargs) -> str:
-        state_json = json.dumps({"client_referer_url": client_referer_url})
+        creator = kwargs.get("creator", False)
+        prospective_pro_user = kwargs.get("prospective_pro_user", False)
+        state_json = json.dumps(
+            {"client_referer_url": client_referer_url, "creator": creator, "prospective_pro_user": prospective_pro_user}
+        )
         state = crypto.encrypt(state_json)
         authorization_url = typeform_settings.auth_uri.format(
             state=state,
@@ -70,8 +74,11 @@ class TypeformAuthProvider(BaseAuthProvider):
         if not user_response:
             return state_json
         name: str = user_response.get("alias").split()
+        creator = state_json.get("creator", False)
         user_document = await UserRepository.save_user(
-            user_response.get("email"), first_name=name[0], last_name=name[-1]
+            user_response.get("email"),
+            creator=creator,
+            first_name=name[0], last_name=name[-1]
         )
         user = User(
             id=str(user_document.id),
