@@ -146,7 +146,7 @@ export default function ImportErrorView({provider}: ImportErrorViewProps) {
                     }
                 />
             </div>
-            <div>
+            <div className="w-[230px]">
                 <ConnectWithProviderButton disabled={!isConsentGiven} type={defaultContent.type}
                                            url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/oauth`}
                                            text={`Authorize ${_.capitalize(provider)}`} creator/>
