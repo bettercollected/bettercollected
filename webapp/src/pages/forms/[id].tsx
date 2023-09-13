@@ -19,12 +19,12 @@ import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
+import { Plan } from '@app/models/dtos/UserStatus';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
-import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 import { selectAuthStatus } from '@app/store/auth/selectors';
 import { useAppSelector } from '@app/store/hooks';
-import { Plan } from '@app/models/dtos/UserStatus';
+import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
+import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 
 export default function SingleFormPage(props: any) {
     const { back, slug, hasCustomDomain, workspace } = props;
@@ -225,7 +225,7 @@ export default function SingleFormPage(props: any) {
                 {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (
                     <div className="flex !bg-white justify-center overflow-auto h-full w-full pb-6">
-                        <BetterCollectedForm form={form} enabled={true} isCustomDomain={hasCustomDomain}/>
+                        <BetterCollectedForm form={form} enabled={true} isCustomDomain={hasCustomDomain} />
                     </div>
                 )}
             </div>

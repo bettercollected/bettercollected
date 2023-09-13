@@ -1,15 +1,9 @@
 version: '3.7'
-networks:
-  db:
-  backend:
-  frontend:
 volumes:
   mongo-data:
 services:
   mongodb:
     image: mongo:latest
-    networks:
-      - db
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
@@ -21,8 +15,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.deployment.mongo-seed
-    networks:
-      - db
     environment:
       GOOGLE_ENABLED: ${GOOGLE_ENABLED}
       TYPEFORM_ENABLED: ${TYPEFORM_ENABLED}
@@ -39,8 +31,6 @@ services:
   webapp:
     image: bettercollected/webapp:nightly
     # image: bettercollected/webapp:nightly
-    networks:
-      - frontend
     environment:
       INTERNAL_DOCKER_API_ENDPOINT_HOST: http://backend:8000/api/v1
       API_ENDPOINT_HOST: http://localhost:8000/api/v1
@@ -69,10 +59,14 @@ services:
       - POSTGRES_PWD=temporal
       - POSTGRES_SEEDS=postgresql
     image: temporalio/auto-setup
-
+    ports:
+      - "7234:7233"
 
   worker:
     image: bettercollected/temporal-worker:nightly
+    environment:
+      TEMPORAL_SERVER_URL: temporal:7233
+
     env_file:
       - .env.deployment
     depends_on:
@@ -81,8 +75,6 @@ services:
   # You may need to setup nginx locally with same configs provided inside `./nginx.conf`
   nginx:
     image: nginx
-    networks:
-      - frontend
     volumes:
       - ./nginx-deployment.conf:/etc/nginx/conf.d/nginx-deployment.conf:ro
     ports:
@@ -93,10 +85,6 @@ services:
   backend:
     image: bettercollected/backend:nightly
     # image: bettercollected/backend:nightly
-    networks:
-      - backend
-      - db
-      - frontend
     environment:
       AUTH_BASE_URL: http://auth:8000/api/v1
       AUTH_CALLBACK_URI: http://auth:8000/api/v1/auth/callback
@@ -111,9 +99,6 @@ services:
   auth:
     image: bettercollected/auth:nightly
     # image: bettercollected/auth:nightly
-    networks:
-      - backend
-      - db
     environment:
       TYPEFORM_REDIRECT_URI: "http://localhost:8000/api/v1/auth/typeform/basic/callback"
       TYPEFORM_SCOPE: "accounts:read"
@@ -127,18 +112,11 @@ services:
   integrations-typeform:
     image: bettercollected/integrations-typeform:nightly
     # image: bettercollected/integrations-typeform:nightly
-    networks:
-      - backend
-      - db
     env_file:
       - .env.deployment
 
   integrations-googleform:
-    image: bettercollected/integrations-googleform:nightly
-    # image: bettercollected/integrations-googleform:nightly
-    networks:
-      - backend
-      - db
+    image: bettercollected/integrations-google:nightly
     env_file:
       - .env.deployment
 

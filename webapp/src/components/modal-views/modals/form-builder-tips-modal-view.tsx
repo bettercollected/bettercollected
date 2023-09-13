@@ -13,7 +13,7 @@ const FormBuilderTipsModalView = () => {
         <div className="h-[465px] md:w-[792px] bg-white rounded-2xl overflow-hidden">
             <div className="px-6 flex justify-between py-4">
                 <h1>Tips</h1>
-                <Close onClick={() => closeModal()} className="cursor-pointer"/>
+                <Close onClick={() => closeModal()} className="cursor-pointer" />
             </div>
             <Divider />
             <div className="p-4 md:p-6 flex flex-col">

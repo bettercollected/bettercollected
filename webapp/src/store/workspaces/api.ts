@@ -491,5 +491,5 @@ export const {
     useAddFormOnGroupMutation,
     useDeleteResponderFromGroupMutation,
     useDeleteGroupFormMutation,
-    useUpdateResponderGroupMutation,
+    useUpdateResponderGroupMutation
 } = workspacesApi;

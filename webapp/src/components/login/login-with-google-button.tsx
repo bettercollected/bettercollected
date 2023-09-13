@@ -20,14 +20,14 @@ export default function ConnectWithProviderButton(props: ConnectWithProviderButt
 
     if (disabled)
         return (
-            <div className="mx-auto w-full flex items-center justify-center">
+            <div className="!w-full rounded flex items-center justify-center">
                 <ProviderLoginButton disabled={disabled} label={text} type={type} onClick={() => {}} />
             </div>
         );
 
     return (
         <a href={`${url}${creator ? '?creator=true' : ''}${fromProPlan ? '&prospective_pro_user=true' : ''}`} referrerPolicy="unsafe-url" className={`w-full flex items-center justify-start`}>
-            <ProviderLoginButton className={'!w-full !rounded !gap-2 !flex !justify-start'} disabled={disabled} label={text} type={type} onClick={() => {}} />
+            <ProviderLoginButton className="!w-full rounded" disabled={disabled} label={text} type={type} onClick={() => {}} />
         </a>
     );
 }
