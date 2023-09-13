@@ -77,7 +77,7 @@ export enum FormBuilderTagNames {
     QUESTION_LINEAR_SCALE = 'question_linear_scale',
     QUESTION_FILE_UPLOAD = 'question_file_upload',
     QUESTION_INPUT_MATRIX = 'question_matrix',
-    QUESTION_INPUT_MEDIA = 'question_file_upload',
+    QUESTION_INPUT_MEDIA = 'question_file_upload'
 }
 
 export function getFormBuilderTagNameFromString(value: string) {

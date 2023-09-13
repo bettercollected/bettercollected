@@ -1,7 +1,8 @@
 import * as React from 'react';
+
 import Popover from '@mui/material/Popover';
 
-export default function CustomPopover({children, content}: any) {
+export default function CustomPopover({ children, content }: any) {
     const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
 
     const handleClick = (event: any) => {
@@ -17,10 +18,7 @@ export default function CustomPopover({children, content}: any) {
 
     return (
         <div>
-            <div onClick={handleClick}>
-
-                {children}
-            </div>
+            <div onClick={handleClick}>{children}</div>
             <Popover
                 id={id}
                 open={open}
@@ -28,7 +26,7 @@ export default function CustomPopover({children, content}: any) {
                 onClose={handleClose}
                 anchorOrigin={{
                     vertical: 'bottom',
-                    horizontal: 'left',
+                    horizontal: 'left'
                 }}
             >
                 {content}
