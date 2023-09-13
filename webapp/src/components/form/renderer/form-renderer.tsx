@@ -338,8 +338,15 @@ export default function FormRenderer({ form, response, enabled, preview = false 
                     </div>
                     {form?.fields?.map((question: StandardFormFieldDto, idx: number) => {
                         return (
+<<<<<<< Updated upstream
                             <div key={question?.id + idx} className={`p-6 bg-white relative rounded-lg border border-solid`}>
                                 {question?.validations?.required && <div className="absolute top-5 right-5 text-red-500">*</div>}
+=======
+                            <div key={question?.id + idx}
+                                 className={`px-6 py-3 bg-white relative rounded-lg`}>
+                                {question?.validations?.required &&
+                                    <div className="absolute top-5 right-5 text-red-500">*</div>}
+>>>>>>> Stashed changes
                                 {renderQuestionField(question, response?.answers)}
                             </div>
                         );
