@@ -39,7 +39,7 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
 
     const [email, setEmail] = useState('');
 
-    const { prospectiveProUser } = useRouter().query;
+    const { fromProPlan } = useRouter().query;
 
     const constants = {
         welcomeBack: t(signInScreen.welcomeBack),
@@ -115,7 +115,7 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                                         url={`${environments.API_ENDPOINT_HOST}/auth/${provider.providerName}/basic`}
                                         text={`Sign in with ${capitalize(provider.providerName)}`}
                                         creator={isCreator}
-                                        prospectiveProUser={prospectiveProUser}
+                                        fromProPlan={fromProPlan}
                                     />
                                 ))}
                         </div>

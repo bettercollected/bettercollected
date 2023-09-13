@@ -6,7 +6,7 @@ interface ConnectWithProviderButtonProps {
     type?: 'light' | 'dark' | 'typeform';
     creator?: boolean;
     disabled?: boolean;
-    prospectiveProUser?: string | string[] | undefined;
+    fromProPlan?: string | string[] | undefined;
 }
 
 ConnectWithProviderButton.defaultProps = {
@@ -16,7 +16,7 @@ ConnectWithProviderButton.defaultProps = {
 };
 
 export default function ConnectWithProviderButton(props: ConnectWithProviderButtonProps) {
-    const { url, text, type, creator, disabled, prospectiveProUser } = props;
+    const { url, text, type, creator, disabled, fromProPlan } = props;
 
     if (disabled)
         return (
@@ -26,7 +26,7 @@ export default function ConnectWithProviderButton(props: ConnectWithProviderButt
         );
 
     return (
-        <a href={`${url}${creator ? '?creator=true' : ''}${prospectiveProUser ? '&prospective_pro_user=true' : ''}`} referrerPolicy="unsafe-url" className={`w-full flex items-center justify-start`}>
+        <a href={`${url}${creator ? '?creator=true' : ''}${fromProPlan ? '&prospective_pro_user=true' : ''}`} referrerPolicy="unsafe-url" className={`w-full flex items-center justify-start`}>
             <ProviderLoginButton className={'!w-full !rounded !gap-2 !flex !justify-start'} disabled={disabled} label={text} type={type} onClick={() => {}} />
         </a>
     );

@@ -56,7 +56,7 @@ export default function UpgradeToProContainer({ featureText }: IUpgradeToProModa
         }
     ];
 
-    const url = auth === null ? '/login?prospectiveProUser=true' : `${environments.API_ENDPOINT_HOST}/stripe/session/create/checkout?price_id=${activePlan?.price_id}`;
+    const url = auth === null ? '/login?fromProPlan=true' : `${environments.API_ENDPOINT_HOST}/stripe/session/create/checkout?price_id=${activePlan?.price_id}`;
 
     return (
         <div className="container p-10  w-full h-full mx-auto flex flex-col items-center justify-center">
