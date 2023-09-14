@@ -16,11 +16,11 @@ interface CreateConsentFullModalProps {
     form?: StandardFormDto;
     isPreview?: boolean;
 }
+
 export default function CreateConsentFullModalView({ onFormPublish, form, isPreview = false }: CreateConsentFullModalProps) {
     const { closeModal } = useFullScreenModal();
-    console.log({ form });
     return (
-        <div className={cn('flex w-full min-h-screen !bg-white', isPreview && '!bg-transparent pt-40 overflow-hidden')}>
+        <div className={cn('flex flex-col  w-full min-h-screen !bg-white', isPreview && '!bg-transparent pt-40 overflow-hidden')}>
             {!isPreview && <BackButtonMenuBar text="Back to Form" onBack={closeModal} />}
             {isPreview && (
                 <div className="bg-white w-16 h-16 fixed top-20 z-[3000] right-10 shadow-lg rounded-full flex items-center justify-center cursor-pointer" onClick={closeModal}>

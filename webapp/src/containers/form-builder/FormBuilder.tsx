@@ -1,17 +1,16 @@
-import React, { FormEvent, HTMLAttributes, MouseEventHandler, useCallback, useEffect, useRef, useState } from 'react';
+import React, { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useRouter } from 'next/router';
+
+import _ from 'lodash';
 
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
 import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import { FormCoverComponent, FormLogoComponent } from '@Components/FormBuilder/Header';
-import MarkdownEditor from '@Components/FormBuilder/MarkdownEditor';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
 import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import { SetStateAction } from 'jotai';
 import { DragStart, DragUpdate, DropResult, ResponderProvided } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 import { batch } from 'react-redux';
@@ -26,13 +25,13 @@ import useUndoRedo from '@app/lib/use-undo-redo';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { ResponseRetentionType } from '@app/models/enums/consentEnum';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
-import { resetConsentState } from '@app/store/consent/actions';
 import { selectConsentState } from '@app/store/consent/selectors';
 import { IConsentField, IConsentState } from '@app/store/consent/types';
 import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setFields } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
+import { initFormState } from '@app/store/forms/slice';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateFormMutation, usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
@@ -163,7 +162,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             responseExpiration: responseExpiration,
             responseExpirationType: responseExpirationType
         };
-        debugger;
         publishRequest.buttonText = builderState.buttonText;
         publishRequest.consent = consent;
         if (imagesRemoved.logo) publishRequest.logo = '';
@@ -180,6 +178,14 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         }
         return response;
     };
+
+    // const autoSave = useMemo(() => {
+    //     return _.debounce(onFormSave, 2000);
+    // }, []);
+    //
+    // useEffect(() => {
+    //     autoSave();
+    // }, [builderState.fields, builderState.title, builderState.description, builderState.buttonText]);
 
     const onFormPublish = async () => {
         if (!isEditMode) {
