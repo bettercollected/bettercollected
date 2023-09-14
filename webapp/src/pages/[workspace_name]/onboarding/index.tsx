@@ -1,19 +1,24 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { FormEvent, useEffect, useRef, useState } from 'react';
 
 import { GetServerSidePropsContext } from 'next';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import AppTextField from '@Components/Common/Input/AppTextField';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import UploadLogo from '@Components/Common/UploadLogo';
 import { ChevronLeft } from '@mui/icons-material';
 import cn from 'classnames';
 import AvatarEditor from 'react-avatar-editor';
 import { toast } from 'react-toastify';
 
-import BetterInput from '@app/components/Common/input';
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import AuthNavbar from '@app/components/auth/navbar';
+import { InfoIcon } from '@app/components/icons/info-icon';
 import { useModal } from '@app/components/modal-views/context';
 import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import Logo from '@app/components/ui/logo';
 import WorkSpaceLogoUi from '@app/components/ui/workspace-logo-ui';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -37,7 +42,7 @@ interface FormDataDto {
     title: string;
     description: string;
     workspaceLogo: any;
-    workspaceName: null | string;
+    workspaceName: string | null;
 }
 
 interface onBoardingProps {
@@ -78,22 +83,23 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
     const profileEditorRef = useRef<AvatarEditor>(null);
     const dispatch = useAppDispatch();
     const [isError, setError] = useState(false);
-    const [workspaceNameSuggestions, setWorkspaceNameSuggestions] = useState<Array<string>>([]);
+    const [workspaceNameSuggestion, setWorkspaceNameSuggestion] = useState<string>('');
     const [isWorkspaceNameAvailable, setIsWorkspaceNameAvailable] = useState<boolean | null>(null);
     const profileName = getFullNameFromUser(user);
     const [stepCount, setStepCount] = useState(createWorkspace ? 1 : 0);
     const [patchExistingWorkspace, { isLoading, isSuccess }] = usePatchExistingWorkspaceMutation();
     const [trigger] = useLazyGetWorkspaceNameSuggestionsQuery();
-    const [getWorkspaceAvailability] = useLazyGetWorkspaceNameAvailabilityQuery();
+    const [getWorkspaceAvailability, { isLoading: isCheckingHandleName }] = useLazyGetWorkspaceNameAvailabilityQuery();
     const [createWorkspaceRequest, data] = useCreateWorkspaceMutation();
     const workspaceName: string | null = (workspace?.workspaceName as string) === (workspace?.ownerId as string) ? null : (workspace?.workspaceName as string);
     const [formData, setFormData] = useState<FormDataDto>({
         title: workspace?.title.toLowerCase() !== 'untitled' ? workspace?.title || '' : '',
-        workspaceName: workspaceName,
         description: workspace?.description ?? '',
-        workspaceLogo: workspace?.profileImage ?? null
+        workspaceLogo: workspace?.profileImage ?? null,
+        workspaceName: workspaceName
     });
 
+    console.log(formData);
     useEffect(() => {
         if (formData.workspaceName === null) return;
 
@@ -145,11 +151,12 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         if (!!e.target.value) {
             const { isSuccess, data } = await trigger(e.target.value.toLowerCase());
             if (isSuccess) {
-                setWorkspaceNameSuggestions(data);
+                const suggestion = data[Math.floor(Math.random() * 4) + 1];
+                setWorkspaceNameSuggestion(suggestion);
                 return;
             }
         }
-        setWorkspaceNameSuggestions([]);
+        setWorkspaceNameSuggestion('');
         return;
     };
 
@@ -179,6 +186,20 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
             });
             closeModal();
         }
+    };
+
+    const handleUploadLogo = (logo: File) => {
+        setFormData({
+            ...formData,
+            workspaceLogo: logo
+        });
+    };
+
+    const handleRemoveLogo = () => {
+        setFormData({
+            ...formData,
+            workspaceLogo: ''
+        });
     };
 
     const onClickDone = async (skip: boolean = false) => {
@@ -229,22 +250,35 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         if (response.data) {
             toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
             dispatch(setWorkspace(response.data));
-            router.replace(`/${response?.data?.workspaceName}/dashboard`);
+            router.replace(`/${response.data?.workspaceName}/dashboard`);
         }
     };
 
+    const checkErrorTypeForHandleName = (string: string | null): any => {
+        if (string == '') return 'Please fill the handle name';
+        else if (string?.includes(' ')) return 'Spaces are not allowed in this field';
+        else return 'Handle name already taken. Try another.';
+    };
+
     const StepZeroContent = (
-        <div className="flex flex-col mt-[24px] justify-center items-center">
-            <AuthAccountProfileImage image={user?.profileImage} name={profileName} size={143} />
-            <p className="pt-6 text-center text-black-900 h4">
-                {t(localesCommon.hey)} {user?.firstName}! <br /> {t(onBoarding.welcomeMessage)}
-            </p>
-            <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">{t(onBoarding.description)}</p>
-            <Button size="large" className="mt-10 mb-4" onClick={increaseStep}>
-                {t(buttonConstant.createWorkspace)}
-            </Button>
-            <p className="body2 !text-black-600 italic">{t(onBoarding.timeMessage)}</p>
-        </div>
+        <>
+            <div className="flex flex-col gap-2 justify-center items-center mt-[60px]">
+                <Logo isLink={false} />
+                <p className="text-black-800 text-xs"> Privacy-friendly form builder</p>
+            </div>
+            <div className="flex flex-col mt-[120px] items-center w-full h-full">
+                <AuthAccountProfileImage image={user?.profileImage} name={user?.firstName || user?.lastName || user?.email} size={100} typography="!text-6xl" />
+                <p className="pt-10 text-center text-black-900 text-2xl font-semibold">
+                    {t(localesCommon.hey)} {user?.firstName || user?.email}!
+                </p>
+                <p className="pt-3 text-black-800 text-base">{t(onBoarding.welcomeMessage)}</p>
+                {/* <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">{t(onBoarding.description)}</p> */}
+                <AppButton className="mt-6 !py-3 px-8 bg-new-blue-500 hover:bg-brand-600" onClick={increaseStep}>
+                    Add Your Organization
+                </AppButton>
+                {/* <p className="body2 !text-black-600 italic">{t(onBoarding.timeMessage)}</p> */}
+            </div>
+        </>
     );
     const AddWorkspaceHeader = (
         <div className="flex justify-between items-center">
@@ -257,153 +291,59 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         </div>
     );
     const StepOneContent = (
-        <div className="md:w-[454px] w-full  p-10 bg-white rounded">
-            {AddWorkspaceHeader}
-            <div className="pl-2">
-                <p className="mt-7 mb-8 h4 text-black-900">{t(onBoarding.addWorkspace)}</p>
-                <p className=" mb-3 body1 text-black-900">
-                    {t(workspaceConstant.title)}
-                    <span className="text-red-500">*</span>
-                </p>
-                <BetterInput
-                    InputProps={{
-                        sx: {
-                            height: '46px',
-                            borderColor: '#0764EB !important'
-                        }
-                    }}
-                    id="title"
-                    error={formData.title === '' && isError}
-                    placeholder={t(placeHolder.workspaceTitle)}
-                    className="w-full !mb-0"
-                    value={formData.title}
-                    onChange={handleOnchange}
-                    onBlur={fetchSuggestionsForWorkspaceHandle}
-                />
-                {formData.title === '' && isError && <p className="body4 !text-red-500 mt-2 h-[10px]">{t(validationMessage.workspaceTitle)}</p>}
-
-                {/* workspace handle */}
-                <p className=" mb-3 mt-6 body1 text-black-900">
-                    {t(workspaceConstant.handle)}
-                    <span className="text-red-500">*</span>
-                </p>
-                <BetterInput
-                    InputProps={{
-                        sx: {
-                            height: '46px',
-                            borderColor: '#0764EB !important'
-                        },
-                        endAdornment: (
-                            <div className={'min-w-fit italic'}>
-                                {isWorkspaceNameAvailable === null || formData.workspaceName === workspace?.workspaceName ? (
-                                    <></>
-                                ) : isWorkspaceNameAvailable ? (
-                                    <p className={'text-green-600 text-xs md:text-sm'}>&#10004; {t(onBoarding.workspaceNameAvailable)}</p>
-                                ) : (
-                                    <p className={'text-red-600 text-xs md:text-sm'}>&#10007; {t(onBoarding.workspaceNameNotAvailable)}</p>
-                                )}
-                            </div>
-                        )
-                    }}
-                    id="workspaceName"
-                    error={formData.workspaceName === '' && isError}
-                    placeholder={t(placeHolder.enterWorkspaceHandle)}
-                    className="w-full !mb-0"
-                    value={!formData.workspaceName ? '' : formData.workspaceName}
-                    onChange={handleOnchange}
-                />
-                {formData.workspaceName === '' && isError && <p className="body4 !text-red-500 !mb-4 h-[10px]">{t(validationMessage.workspaceName)}</p>}
-                {isError && checkIfInvalidCharactersPresentInHandler() && <p className="body4 !text-red-500 !mb-4 !text-xs h-[10px]">{t(validationMessage.workspaceNameInvalidCharacter)}</p>}
-
-                <div className={'flex italic items-center flex-wrap'}>
-                    {workspaceNameSuggestions.length ? <p className={'text-sm'}>{t(onBoarding.suggestions)}&nbsp;</p> : <></>}
-                    {workspaceNameSuggestions
-                        .filter((w) => w !== formData.workspaceName)
-                        .map((suggestion, idx) => (
-                            <p key={suggestion} className={'text-sm text-blue-500 cursor-pointer'} onClick={() => setWorkspaceSuggestionToWorkspaceNameField(suggestion)}>
-                                {suggestion}
-                                {idx === workspaceNameSuggestions.filter((w) => w !== formData.workspaceName).length - 1 ? <></> : <span>,&nbsp;</span>}
-                            </p>
-                        ))}
-                </div>
-
-                {/* workspace description */}
-
-                <p className={cn('mb-3 body1 text-black-900', formData.title === '' && isError ? 'mt-[24px]' : 'mt-[42px]')}>{t(localesCommon.description)}</p>
-                <BetterInput
-                    inputProps={{ maxLength: 280 }}
-                    className="!border-solid !border-gray-300 !text-gray-900 !body3 !rounded !w-full"
-                    size="medium"
-                    rows={4}
-                    multiline
-                    onChange={handleOnchange}
-                    value={formData.description}
-                    id="description"
-                    name="description"
-                    placeholder={t(placeHolder.description)}
-                />
-            </div>
-            <div className="flex justify-end mt-8">
-                <Button
-                    size="medium"
-                    onClick={async () => {
-                        if (formData.title !== '' && formData.workspaceName !== '' && !checkIfInvalidCharactersPresentInHandler() && (await getAvailabilityStatusOfWorkspaceName(formData.workspaceName))) {
-                            increaseStep();
-                        } else {
-                            setError(true);
-                        }
-                    }}
-                >
-                    {t(buttonConstant.next)}
-                </Button>
-            </div>
-        </div>
-    );
-    const StepTwoContent = (
-        <div className="md:w-[454px] w-full  p-10 bg-white rounded">
-            {AddWorkspaceHeader}
-            <p className="mt-7 mb-8  h4 text-brand-900">{t(onBoarding.addWorkspaceLogo)}</p>
-            {/* <div className="flex md:flex-row flex-col gap-4 items-center">
-                <AuthAccountProfileImage image={formProvider.workspaceLogo && URL.createObjectURL(formProvider.workspaceLogo)} name={profileName} size={143} typography="h1" /> */}
-            <WorkSpaceLogoUi
-                workspaceLogoRef={workspaceLogoRef}
-                onChange={handleFile}
-                onClick={() => workspaceLogoRef.current?.click()}
-                image={formData.workspaceLogo && (formData.workspaceLogo.toString().startsWith('https') ? formData.workspaceLogo : URL.createObjectURL(formData.workspaceLogo))}
-                profileName={profileName}
-            ></WorkSpaceLogoUi>
-            {/* </div> */}
-            <div className="flex justify-between mt-8 items-center">
-                <div
-                    className="text-brand-500 hover:underline hover:cursor-pointer"
-                    onClick={async () => {
-                        await onClickDone(true);
-                    }}
-                >
-                    {t(buttonConstant.skip)}
-                </div>
-
-                <Button
-                    size="medium"
-                    onClick={async () => {
+        <div className="bg-white w-full flex flex-col items-center px-4 md:px-0">
+            <AuthNavbar showPlans={false} showHamburgerIcon />
+            <div className="flex flex-col relative mt-32">
+                <div className="h3-new">Add Your Organization</div>
+                <UploadLogo logoImageUrl={workspace?.profileImage ?? ''} className="mt-12" onUpload={handleUploadLogo} onRemove={handleRemoveLogo} />
+                <form
+                    className="mt-12 md:w-[541px] space-y-8 "
+                    onSubmit={async (event: FormEvent) => {
+                        event.preventDefault();
                         await onClickDone();
                     }}
-                    isLoading={isLoading || data?.isLoading}
                 >
-                    {t(buttonConstant.done)}
-                </Button>
+                    <AppTextField required title="Organization Name" id="title" placeholder="Enter name of your workspace" value={formData.title} onChange={handleOnchange} onBlur={fetchSuggestionsForWorkspaceHandle} />
+                    <div>
+                        <AppTextField required title="Handle Name" id="workspaceName" placeholder="Enter workspace handle name" value={formData.workspaceName} onChange={handleOnchange} isError={!isWorkspaceNameAvailable}>
+                            <AppTextField.Description>
+                                Use smallcase for your handle name (eg: abc) <br />
+                                https://bettercollected-admin.sireto.dev/<span className="text-pink-500">{formData.workspaceName}</span>/dashboard
+                            </AppTextField.Description>
+                        </AppTextField>
+                        {isWorkspaceNameAvailable || isWorkspaceNameAvailable == null || isCheckingHandleName ? (
+                            <></>
+                        ) : (
+                            <>
+                                <div className={'text-red-600 text-xs md:text-sm !mt-2 flex items-center gap-1'}>
+                                    <InfoIcon className="w-4 h-4" /> {checkErrorTypeForHandleName(formData.workspaceName)}
+                                </div>
+                                {workspaceNameSuggestion && (
+                                    <div className={'flex items-center flex-wrap !mt-2'}>
+                                        <p className={'text-sm'}>Available: &nbsp; </p>
+                                        <p className={'text-sm font-semibold text-blue-500 cursor-pointer'} onClick={() => setWorkspaceSuggestionToWorkspaceNameField(workspaceNameSuggestion)}>
+                                            {` ${workspaceNameSuggestion}`}
+                                        </p>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+
+                    <AppTextField title="Add Your Organization Description" id="description" placeholder="Write Description" multiline value={formData.description} onChange={handleOnchange} />
+                    <AppButton className="!w-full bg-new-blue-500 !py-3 !px-8 !mt-12 hover:bg-brand-600" type="submit">
+                        Add Now
+                    </AppButton>
+                </form>
             </div>
         </div>
     );
 
     if (isSuccess) return <FullScreenLoader />;
     return (
-        <Layout showNavbar showAuthAccount={!!createWorkspace} isCustomDomain>
-            <div className=" flex flex-col my-[40px] items-center">
-                {stepCount === 0 && StepZeroContent}
-                {stepCount === 1 && StepOneContent}
-                {stepCount === 2 && StepTwoContent}
-            </div>
-        </Layout>
+        <div className="flex flex-col w-full min-w-0 bg-white h-screen items-center overflow-auto pb-20">
+            {stepCount === 0 && StepZeroContent}
+            {stepCount === 1 && StepOneContent}
+        </div>
     );
 }
