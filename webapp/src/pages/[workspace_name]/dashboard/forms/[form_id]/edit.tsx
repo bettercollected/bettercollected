@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 
-import FormBuilderContainerWrapper from '@Components/HOCs/FormBuilderContainerWrapper';
 import FormBuilderKeyListener from '@Components/Listeners/FormBuilderKeyListener';
 import HistoryKeyListener from '@Components/Listeners/HistoryKeyListener';
 
@@ -43,16 +42,14 @@ export default function EditFromPage(props: any) {
     }, [form]);
 
     return (
-        <FormBuilderContainerWrapper>
-            <HistoryKeyListener>
-                <FormBuilderKeyListener>
-                    <NextSeo title={title || t(metaDataTitle.editForm)} noindex={true} nofollow={true} />
-                    <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
-                        <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} isEditMode />
-                    </Layout>
-                </FormBuilderKeyListener>
-            </HistoryKeyListener>
-        </FormBuilderContainerWrapper>
+        <HistoryKeyListener>
+            <FormBuilderKeyListener>
+                <NextSeo title={title || t(metaDataTitle.editForm)} noindex={true} nofollow={true} />
+                <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
+                    <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} isEditMode />
+                </Layout>
+            </FormBuilderKeyListener>
+        </HistoryKeyListener>
     );
 }
 

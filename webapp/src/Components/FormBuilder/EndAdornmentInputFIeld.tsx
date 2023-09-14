@@ -1,23 +1,17 @@
-import { ChangeEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-
-import { debounce } from 'lodash';
+import { useRef } from 'react';
 
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { AlternateEmail, DateRange, LocalPhone, Numbers, ShortText } from '@mui/icons-material';
 import LinkIcon from '@mui/icons-material/Link';
-import { log } from 'console';
 import { useDispatch } from 'react-redux';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
-import eventBus from '@app/lib/event-bus';
 import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
 import useUndoRedo from '@app/lib/use-undo-redo';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setTyping, setUpdateField } from '@app/store/form-builder/actions';
-import { selectBuilderFutureState, selectBuilderState } from '@app/store/form-builder/selectors';
+import { setUpdateField } from '@app/store/form-builder/actions';
 import { IFormFieldState } from '@app/store/form-builder/types';
-import { useAppSelector } from '@app/store/hooks';
 
 interface IEndAdornmentInputFieldProps {
     field: IFormFieldState;
