@@ -20,8 +20,8 @@ export default function AuthAccountProfileImage({ size, image, name = ' ', class
     if (image) return <Avatar sx={{ width: size, height: size, borderRadius: 1, ...style }} variant="rounded" src={image} className={`rounded overflow-hidden !mr-0 ${className}`} />;
 
     return (
-        <Avatar sx={{ width: size, height: size, borderRadius: 1, ...style }} variant="rounded" className={`rounded bg-brand-400 overflow-hidden ${className}`}>
-            <span className={cn('!text-white', typography)}>{name[0]?.toUpperCase()}</span>
+        <Avatar sx={{ width: size, height: size, borderRadius: 1, ...style }} variant="rounded" className={`rounded bg-green-500 overflow-hidden ${className}`}>
+            <span className={cn('!text-white font-semibold', typography)}>{name[0]?.toUpperCase()}</span>
         </Avatar>
     );
 }
