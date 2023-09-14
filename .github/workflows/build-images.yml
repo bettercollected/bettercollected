@@ -12,7 +12,7 @@ on:
 
 jobs:
   test:
-    runs-on: office-server
+    runs-on: self-hosted
     steps:
       - name: Checkout code with submodules
         uses: actions/checkout@v2
@@ -63,7 +63,7 @@ jobs:
           - integrations/typeform
           - webapp
           - temporal/worker
-    runs-on: office-server
+    runs-on: self-hosted
     steps:
       - name: Checkout code with submodules
         uses: actions/checkout@v2
@@ -99,8 +99,7 @@ jobs:
           - webapp
           - temporal/worker
 
-    runs-on: office-server
-
+    runs-on: self-hosted
     steps:
       - name: Checkout code with submodules
         uses: actions/checkout@v2
