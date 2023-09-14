@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+import { useRouter } from 'next/router';
+
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import ConsentModalTopBar from '@Components/Consent/ConsentModalTopBar';
 import ErrorText from '@Components/Consent/ErrorText';
@@ -13,29 +15,26 @@ import { resetConsentState } from '@app/store/consent/actions';
 import { selectConsentState } from '@app/store/consent/selectors';
 import { IConsentAnswer, IConsentField } from '@app/store/consent/types';
 import { resetFillForm } from '@app/store/fill-form/slice';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { usePublishFormMutation } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import { useModal } from '../context';
 import { useFullScreenModal } from '../full-screen-modal-context';
 
-export interface ConsentBuilderConfirmationModalProps {
-    onFormPublish: any;
-    consents: IConsentField[];
-    privacyPolicyUrl: string;
-}
-
-export default function ConsentBuilderConfirmationModaView({ onFormPublish, consents, privacyPolicyUrl }: ConsentBuilderConfirmationModalProps) {
-    const { closeModal } = useModal();
-    const fullScreenModal = useFullScreenModal();
-    const dispatch = useAppDispatch();
-    const { isLoading, error, setError, setLoading } = useForm();
+export default function ConsentBuilderConfirmationModalView() {
+    const router = useRouter();
+    const { error, setError } = useForm();
     const [formPurposeTermChecked, setFormPurposeTermChecked] = useState(true);
-    const { responseExpirationType, responseExpiration } = useAppSelector(selectConsentState);
+    const [publishForm, { isLoading }] = usePublishFormMutation();
+    const builderState = useAppSelector(selectBuilderState);
+    const workspace = useAppSelector(selectWorkspace);
 
     const handleFormPurposeTermChange = (checked: boolean) => {
         setFormPurposeTermChecked(checked);
     };
-    const formPurposeTermsAndConditonDetails = (
+    const formPurposeTermsAndConditionDetails = (
         <TermsAndCondition onAgree={handleFormPurposeTermChange} className="border-b border-new-black-300 p-5">
             <TermsAndCondition.Title>{`I have mentioned all the form's purposes.`}</TermsAndCondition.Title>
             <TermsAndCondition.Description>{`This confirms that you have clearly mentioned all the purposes for which data is being collected in your forms.`}</TermsAndCondition.Description>
@@ -44,21 +43,16 @@ export default function ConsentBuilderConfirmationModaView({ onFormPublish, cons
 
     const onSubmit = async (event: any) => {
         event.preventDefault();
-
         if (!formPurposeTermChecked) {
             setError(true);
             return;
         }
-        setLoading(true);
         try {
-            await onFormPublish({ consent: consents, privacyPolicyUrl, responseExpiration, responseExpirationType });
-            closeModal();
-            fullScreenModal.closeModal();
-            dispatch(resetConsentState());
-        } catch (error) {
-        } finally {
-            setLoading(false);
-        }
+            const response: any = await publishForm({ workspaceId: workspace.id, formId: builderState.id });
+            if (response.data) {
+                router.push(`/${workspace.workspaceName}/dashboard/forms/${builderState.id}`);
+            }
+        } catch (error) {}
     };
     return (
         <form onSubmit={onSubmit} className="bg-white rounded-2xl w-fit md:w-[476px] h-content">
@@ -70,7 +64,7 @@ export default function ConsentBuilderConfirmationModaView({ onFormPublish, cons
                     title={`You care about your Responders' data`}
                     description={`Make sure you have clearly mentioned all the purposes for which data is being collected in your form, as well as all third-party apps integrated with your platform.`}
                 />
-                {formPurposeTermsAndConditonDetails}
+                {formPurposeTermsAndConditionDetails}
             </div>
             <div className="p-10">
                 {error && <ErrorText text="Please accept all terms and conditions before proceeding." />}
