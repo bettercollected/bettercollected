@@ -6,7 +6,7 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspaceStatsDto';
-import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFileUrlQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
+import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
@@ -117,11 +117,17 @@ export const workspacesApi = createApi({
                         returnValue['clientFormItems'] = fieldItems;
                     }
                 }
-
                 return returnValue;
             }
         }),
-
+        publishForm: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/publish`,
+                method: 'POST',
+                body: request.body
+            }),
+            invalidatesTags: [FORM_TAG]
+        }),
         createForm: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms`,
@@ -491,5 +497,6 @@ export const {
     useAddFormOnGroupMutation,
     useDeleteResponderFromGroupMutation,
     useDeleteGroupFormMutation,
-    useUpdateResponderGroupMutation
+    useUpdateResponderGroupMutation,
+    usePublishFormMutation
 } = workspacesApi;

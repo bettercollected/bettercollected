@@ -23,17 +23,15 @@ import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
 import useUndoRedo from '@app/lib/use-undo-redo';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { ResponseRetentionType } from '@app/models/enums/consentEnum';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { selectConsentState } from '@app/store/consent/selectors';
-import { IConsentField, IConsentState } from '@app/store/consent/types';
+import { IConsentState } from '@app/store/consent/types';
 import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setFields } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
-import { initFormState } from '@app/store/forms/slice';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useCreateFormMutation, usePatchFormMutation } from '@app/store/workspaces/api';
+import { usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
 import { throttle } from '@app/utils/throttleUtils';
@@ -51,6 +49,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
     const builderDragDropRef = useRef<HTMLDivElement | null>(null);
 
     const router = useRouter();
+
+    const { form_id } = router.query;
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
     const consentState: IConsentState = useAppSelector(selectConsentState);
 
@@ -62,7 +62,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
 
     const { backspaceCount, setBackspaceCount } = useFormBuilderState();
 
-    const [postCreateForm, { isLoading: posting }] = useCreateFormMutation();
     const [patchForm, { isLoading: patching }] = usePatchFormMutation();
 
     const [imagesRemoved, setImagesRemoved] = useState<{ logo: boolean; cover: boolean }>({ logo: false, cover: false });
@@ -82,8 +81,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
             modal.openModal('FORM_BUILDER_ADD_FIELD_VIEW');
         });
     };
-
-    const onAddNewPage = () => {};
 
     const onAddFormLogo = () => {
         setShowLogo(true);
@@ -124,23 +121,11 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         [builderState, backspaceCount]
     );
 
-    const onFormPublishRedirect = (response: any) => {
-        const redirectUrl = !isEditMode ? `/${workspace?.workspaceName}/dashboard` : `/${locale}${workspace?.workspaceName}/dashboard/forms/${builderState.id}`;
-        const createUpdateText = !isEditMode ? 'creat' : 'updat';
-
-        if (response?.data) {
-            toast(`Form ${createUpdateText}ed!!`, { type: 'success' });
-            asyncDispatch(setBuilderState({ isFormDirty: false })).then(async () => {
-                await router.push(redirectUrl);
-            });
-        } else {
-            toast(`Error ${createUpdateText}ing form`, { type: 'error' });
-        }
+    const onFormPublish = () => {
+        openModal('CREATE_CONSENT_FULL_MODAL_VIEW');
     };
 
-    const onFormSave = async (isPublishClicked = false, consent: IConsentField[] = [], privacyPolicyUrl = '', responseExpiration = '', responseExpirationType: ResponseRetentionType = 'forever') => {
-        const apiCall = !isEditMode ? postCreateForm : patchForm;
-
+    const onFormSave = async () => {
         const formData = new FormData();
         if (headerImages.coverImage) formData.append('cover_image', headerImages.coverImage);
         if (headerImages.logo) formData.append('logo', headerImages.logo);
@@ -158,64 +143,37 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         publishRequest.fields = fields;
         publishRequest.settings = {
             ...builderState.settings,
-            privacyPolicyUrl: privacyPolicyUrl,
-            responseExpiration: responseExpiration,
-            responseExpirationType: responseExpirationType
+            privacyPolicyUrl: consentState.privacy_policy,
+            responseExpiration: consentState.responseExpiration,
+            responseExpirationType: consentState.responseExpirationType
         };
         publishRequest.buttonText = builderState.buttonText;
-        publishRequest.consent = consent;
+        publishRequest.consent = consentState.consents;
         if (imagesRemoved.logo) publishRequest.logo = '';
         if (imagesRemoved.cover) publishRequest.cover_image = '';
         formData.append('form_body', JSON.stringify(publishRequest));
-        const apiObj: any = { workspaceId: workspace.id, body: formData };
-        if (isEditMode) apiObj['formId'] = builderState?.id;
-
-        const response: any = await apiCall(apiObj);
-        if (response?.data && !isPublishClicked) {
+        const apiObj: any = { formId: form_id, workspaceId: workspace.id, body: formData };
+        const response: any = await patchForm(apiObj);
+        if (response?.data) {
             toast('Form saved!', { type: 'success' });
             if (!isEditMode) router.push(`/${locale}${workspace?.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`);
-            dispatch(setBuilderState({ isFormDirty: false }));
         }
         return response;
     };
 
-    // const autoSave = useMemo(() => {
-    //     return _.debounce(onFormSave, 2000);
-    // }, []);
-    //
-    // useEffect(() => {
-    //     autoSave();
-    // }, [builderState.fields, builderState.title, builderState.description, builderState.buttonText]);
+    const autoSave = useMemo(() => {
+        return _.debounce(onFormSave, 2000);
+    }, []);
 
-    const onFormPublish = async () => {
-        if (!isEditMode) {
-            const onFormPublishCallback = async ({
-                consent,
-                privacyPolicyUrl = '',
-                responseExpirationType,
-                responseExpiration
-            }: {
-                consent: IConsentField[];
-                privacyPolicyUrl?: string;
-                responseExpirationType?: ResponseRetentionType;
-                responseExpiration?: string;
-            }) => {
-                const response = await onFormSave(true, consent, privacyPolicyUrl, responseExpiration, responseExpirationType);
-                onFormPublishRedirect(response);
-            };
-            openModal('CREATE_CONSENT_FULL_MODAL_VIEW', { onFormPublish: onFormPublishCallback });
-        } else {
-            const response = await onFormSave(true);
-            onFormPublishRedirect(response);
-        }
-    };
+    useEffect(() => {
+        autoSave();
+    }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages.coverImage, headerImages.logo, consentState]);
 
     const openTagSelector = (event: any) => {
         const viewportHeight = window.innerHeight;
         const boundingRect = event.target.getBoundingClientRect();
         const bottomPosition = boundingRect.bottom ?? 0;
 
-        // 300 is the height of the FormBuilderTagSelector
         dispatch(
             setBuilderState({
                 isFormDirty: true,
@@ -264,14 +222,14 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         <div>
             <FormBuilderMenuBar
                 onInsert={onInsert}
-                onAddNewPage={onAddNewPage}
+                onAddNewPage={() => {}}
                 onAddFormLogo={onAddFormLogo}
                 onAddFormCover={onAddFormCover}
                 onPreview={onPreview}
                 onFormPublish={onFormPublish}
                 onClickSettings={onClickSettings}
                 onClickTips={onClickTips}
-                isUpdating={posting || patching}
+                isUpdating={patching}
             />
             {showCover && <FormCoverComponent setIsCoverClicked={setShowCover} imagesRemoved={imagesRemoved} setImagesRemoved={setImagesRemoved} />}
             <div className="h-full w-full max-w-4xl mx-auto py-10">

@@ -12,12 +12,11 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { useFullScreenModal } from '../full-screen-modal-context';
 
 interface CreateConsentFullModalProps {
-    onFormPublish: any;
     form?: StandardFormDto;
     isPreview?: boolean;
 }
 
-export default function CreateConsentFullModalView({ onFormPublish, form, isPreview = false }: CreateConsentFullModalProps) {
+export default function CreateConsentFullModalView({ form, isPreview = false }: CreateConsentFullModalProps) {
     const { closeModal } = useFullScreenModal();
     return (
         <div className={cn('flex flex-col  w-full min-h-screen !bg-white', isPreview && '!bg-transparent pt-40 overflow-hidden')}>
@@ -30,7 +29,7 @@ export default function CreateConsentFullModalView({ onFormPublish, form, isPrev
             <div className={cn('mt-12 w-full bg-white min-h-screen', isPreview && 'rounded-t-3xl !mt-0 !pt-12 overflow-y-auto scroll-mt-6')}>
                 <div className="mx-[15px] sm:mx-[40px] md:ml-[120px] xl:ml-[267px] w-fit md:w-[508px] mt-6">
                     {!isPreview && <AttentionText className="mt-12" text={`Design your form responder's consent page`} />}
-                    <ConsentBuilder className="mt-10 pb-20" onFormPublish={onFormPublish} isPreview={isPreview} form={form} />
+                    <ConsentBuilder className="mt-10 pb-20" isPreview={isPreview} form={form} />
                 </div>
             </div>
             {!isPreview && <ConsentInformationPanel />}
