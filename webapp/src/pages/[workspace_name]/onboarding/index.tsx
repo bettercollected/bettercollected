@@ -99,9 +99,13 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         workspaceName: workspaceName
     });
 
-    console.log(formData);
+    const [emptyTitleAlert, setEmptyTitleAlert] = useState(false);
+    const [emptyWorkspaceNameAlert, setEmptyWorkspaceNameAlert] = useState(false);
     useEffect(() => {
         if (formData.workspaceName === null) return;
+        if (formData.workspaceName) {
+            setEmptyWorkspaceNameAlert(false);
+        }
 
         async function getAvailability() {
             return await getAvailabilityStatusOfWorkspaceName(formData.workspaceName as string);
@@ -110,6 +114,12 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
         getAvailability().then((res) => setIsWorkspaceNameAvailable(res));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formData.workspaceName]);
+
+    useEffect(() => {
+        if (formData.title) {
+            setEmptyTitleAlert(false);
+        }
+    }, [formData.title]);
 
     const increaseStep = () => {
         setStepCount(stepCount + 1);
@@ -255,6 +265,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
     };
 
     const checkErrorTypeForHandleName = (string: string | null): any => {
+        if (emptyWorkspaceNameAlert) return;
         if (string == '') return 'Please fill the handle name';
         else if (string?.includes(' ')) return 'Spaces are not allowed in this field';
         else return 'Handle name already taken. Try another.';
@@ -300,23 +311,44 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                     className="mt-12 md:w-[541px] space-y-8 "
                     onSubmit={async (event: FormEvent) => {
                         event.preventDefault();
-                        await onClickDone();
+                        if (formData.title && formData.workspaceName) {
+                            await onClickDone();
+                        }
+                        if (!formData.title) {
+                            setEmptyTitleAlert(true);
+                        }
+                        if (!formData.workspaceName) {
+                            setEmptyWorkspaceNameAlert(true);
+                        }
+                        return;
                     }}
                 >
-                    <AppTextField required title="Organization Name" id="title" placeholder="Enter name of your workspace" value={formData.title} onChange={handleOnchange} onBlur={fetchSuggestionsForWorkspaceHandle} />
                     <div>
-                        <AppTextField required title="Handle Name" id="workspaceName" placeholder="Enter workspace handle name" value={formData.workspaceName} onChange={handleOnchange} isError={!isWorkspaceNameAvailable}>
+                        <AppTextField title="Organization Name" id="title" placeholder="Enter name of your workspace" value={formData.title} onChange={handleOnchange} onBlur={fetchSuggestionsForWorkspaceHandle} isError={emptyTitleAlert} />
+                        {emptyTitleAlert && !formData.title ? (
+                            <div className={'text-red-600 text-xs md:text-sm !mt-2 flex items-center gap-1'}>
+                                <InfoIcon className="w-4 h-4" /> Please fill the Organization name.
+                            </div>
+                        ) : (
+                            <></>
+                        )}
+                    </div>
+
+                    <div>
+                        <AppTextField title="Handle Name" id="workspaceName" placeholder="Enter workspace handle name" value={formData.workspaceName} onChange={handleOnchange} isError={isWorkspaceNameAvailable === false || emptyWorkspaceNameAlert}>
                             <AppTextField.Description>
                                 Use smallcase for your handle name (eg: abc) <br />
                                 https://bettercollected-admin.sireto.dev/<span className="text-pink-500">{formData.workspaceName}</span>/dashboard
                             </AppTextField.Description>
                         </AppTextField>
-                        {isWorkspaceNameAvailable || isWorkspaceNameAvailable == null || isCheckingHandleName ? (
+
+                        {!emptyWorkspaceNameAlert && (isWorkspaceNameAvailable || isWorkspaceNameAvailable == null || isCheckingHandleName) ? (
                             <></>
                         ) : (
                             <>
                                 <div className={'text-red-600 text-xs md:text-sm !mt-2 flex items-center gap-1'}>
-                                    <InfoIcon className="w-4 h-4" /> {checkErrorTypeForHandleName(formData.workspaceName)}
+                                    <InfoIcon className="w-4 h-4" />
+                                    {emptyWorkspaceNameAlert ? ' Please fill the handle name' : checkErrorTypeForHandleName(formData.workspaceName)}
                                 </div>
                                 {workspaceNameSuggestion && (
                                     <div className={'flex items-center flex-wrap !mt-2'}>
