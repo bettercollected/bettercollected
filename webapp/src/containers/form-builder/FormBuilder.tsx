@@ -1,4 +1,4 @@
-import React, { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
@@ -14,7 +14,6 @@ import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 import { DragStart, DragUpdate, DropResult, ResponderProvided } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 import { batch } from 'react-redux';
-import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
@@ -125,7 +124,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         openModal('CREATE_CONSENT_FULL_MODAL_VIEW');
     };
 
-    const onFormSave = async () => {
+    const onFormSave = async (builderState: any, consentState: any, headerImages: any) => {
         const formData = new FormData();
         if (headerImages.coverImage) formData.append('cover_image', headerImages.coverImage);
         if (headerImages.logo) formData.append('logo', headerImages.logo);
@@ -153,20 +152,16 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         if (imagesRemoved.cover) publishRequest.cover_image = '';
         formData.append('form_body', JSON.stringify(publishRequest));
         const apiObj: any = { formId: form_id, workspaceId: workspace.id, body: formData };
-        const response: any = await patchForm(apiObj);
-        if (response?.data) {
-            toast('Form saved!', { type: 'success' });
-            if (!isEditMode) router.push(`/${locale}${workspace?.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`);
-        }
-        return response;
+        return await patchForm(apiObj);
     };
 
-    const autoSave = useMemo(() => {
-        return _.debounce(onFormSave, 2000);
-    }, []);
+    const saveFormDebounced = useCallback(
+        _.debounce((builderState, consentState, headerImages) => onFormSave(builderState, consentState, headerImages), 2000),
+        []
+    );
 
     useEffect(() => {
-        autoSave();
+        saveFormDebounced(builderState, consentState, headerImages);
     }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages.coverImage, headerImages.logo, consentState]);
 
     const openTagSelector = (event: any) => {
