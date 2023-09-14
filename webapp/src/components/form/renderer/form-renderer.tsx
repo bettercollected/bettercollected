@@ -331,7 +331,7 @@ export default function FormRenderer({ form, response, enabled, preview = false 
             {form?.settings?.provider === 'self' ? (
                 <BetterCollectedForm form={form} response={response} enabled={enabled} isPreview={preview} />
             ) : (
-                <div className="flex flex-col gap-4 max-w-[700px]">
+                <div className="flex flex-col gap-4 max-w-[700px] !bg-white rounded">
                     <div className="p-6 bg-white rounded-lg flex flex-col gap-4">
                         <h1 className="font-semibold h4">{form?.title}</h1>
                         {/* {form?.description && <MarkdownText description={form?.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />} */}

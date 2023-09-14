@@ -134,6 +134,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         const postBody = {
             form_id: form?.formId,
             answers: answers,
+            form_version: form?.version || 1,
             consent: Object.values(consentAnswers),
             expiration: responseExpirationType === 'days' ? getApiFormattedDateTime('', 24 * parseInt(responseExpiration!)) : getApiFormattedDateTime(responseExpiration, 24),
             expirationType: responseExpirationType,

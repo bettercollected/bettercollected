@@ -1,31 +1,23 @@
 import React, { useEffect, useState } from 'react';
 
-import EditIcon from '@Components/Common/Icons/Edit';
 import UploadIcon from '@Components/Common/Icons/FormBuilder/UploadIcon';
 import LoadingIcon from '@Components/Common/Icons/Loading';
-import Share from '@Components/Common/Icons/Share';
-import Button from '@Components/Common/Input/Button';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 
-import uploadImage from '@app/assets/images/upload.png';
 import Back from '@app/components/icons/back';
-import Image from '@app/components/ui/image';
 import PoweredBy from '@app/components/ui/powered-by';
-import { formConstant } from '@app/constants/locales/form';
 import { Plan } from '@app/models/dtos/UserStatus';
 import { selectAuthStatus } from '@app/store/auth/selectors';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
-import { initialIBuilderState } from '@app/store/forms/slice';
+import { initFormState } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useCreateFormMutation, usePatchFormMutation, workspacesApi } from '@app/store/workspaces/api';
-import { getFormUrl } from '@app/utils/urlUtils';
 
 import { useFullScreenModal } from '../full-screen-modal-context';
 
 export default function FormBuilderPreviewModal({ publish }: { publish: () => void }) {
-    const [formToRender, setFormToRender] = useState(initialIBuilderState);
+    const [formToRender, setFormToRender] = useState(initFormState);
     const { closeModal } = useFullScreenModal();
     const builderState = useAppSelector(selectBuilderState);
     const { headerImages } = useFormBuilderAtom();

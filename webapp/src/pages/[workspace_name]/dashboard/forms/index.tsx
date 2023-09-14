@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
+import CreateFormButton from '@Components/Common/CreateFormButton';
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import UserDetails from '@Components/Common/DataDisplay/UserDetails';
@@ -217,16 +218,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                     <h1 className="sh1">{t(localesCommon.forms)}</h1>
                     <div className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
                         <div className="flex gap-3">
-                            {environments.ENABLE_FORM_BUILDER && (
-                                <Button
-                                    variant="solid"
-                                    onClick={() => {
-                                        router.push(`/${workspace.workspaceName}/dashboard/forms/create`);
-                                    }}
-                                >
-                                    {t(metaDataTitle.createForm)}
-                                </Button>
-                            )}
+                            <CreateFormButton />
                             <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
                         </div>
                     </div>

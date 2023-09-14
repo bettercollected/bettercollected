@@ -108,7 +108,6 @@ export default function ModalContainer() {
     const router = useRouter();
     const { view, isOpen, closeModal, modalProps } = useModal();
 
-    console.log({ isOpen });
     const dispatch = useAppDispatch();
 
     const closeModalHandler = useCallback(() => {
