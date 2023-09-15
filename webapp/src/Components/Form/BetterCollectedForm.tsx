@@ -130,15 +130,23 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         const responseExpirationType = form?.settings?.responseExpirationType;
         const responseExpiration = form?.settings?.responseExpiration;
 
+        let responseExpirationTime = '';
+        if (responseExpirationType === 'date') {
+            responseExpirationTime = new Date(responseExpiration || '').toISOString();
+        } else if (responseExpirationType === 'days') {
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + parseInt(responseExpiration || ''));
+            responseExpirationTime = expiryDate.toISOString();
+        }
+
         const postBody = {
             form_id: form?.formId,
             answers: answers,
             consent: Object.values(consentAnswers),
-            expiration: responseExpirationType === 'days' ? getApiFormattedDateTime('', 24 * parseInt(responseExpiration!)) : getApiFormattedDateTime(responseExpiration, 24),
+            expiration: responseExpirationTime,
             expirationType: responseExpirationType,
             dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
         };
-        debugger;
 
         formData.append('response', JSON.stringify(postBody));
 
