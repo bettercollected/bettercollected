@@ -35,7 +35,7 @@ export default function ConsentConfirmationModalView({ onFormSubmit, consentAnsw
         const formPurpose = Object.values(consentAnswers).filter((answer) => answer.category === ConsentCategoryType.PurposeOfTheForm).length !== 0;
         if (formPurpose) {
             return (
-                <TermsAndCondition onAgree={(checked) => setFormPurposeTermChecked(checked)} className="border-b border-new-black-300 p-5">
+                <TermsAndCondition selected={formPurposeTermChecked} onAgree={(checked) => setFormPurposeTermChecked(checked)} className="border-b border-new-black-300 p-5">
                     <TermsAndCondition.Title> {`I have reviewed all the form's purposes.`}</TermsAndCondition.Title>
                     <TermsAndCondition.Description>{`This confirms whether you've taken a moment to go through the stated intentions of the form before proceeding.`}</TermsAndCondition.Description>
                 </TermsAndCondition>
@@ -70,7 +70,7 @@ export default function ConsentConfirmationModalView({ onFormSubmit, consentAnsw
                     description={`This page ensures you've seen and understood the data usage you're granting. Your trust is essential, and we're here to protect your information.`}
                 />
                 {renderPurposeTermsAndConditon()}
-                <TermsAndCondition onAgree={(checked) => setPrivacyTermChecked(checked)} className="border-b border-new-black-300 p-5">
+                <TermsAndCondition selected={privacyTermChecked} onAgree={(checked) => setPrivacyTermChecked(checked)} className="border-b border-new-black-300 p-5">
                     <TermsAndCondition.Title>
                         I agree to the{' '}
                         <AnchorLink href={privacyPolicyUrl || ''} target="_blank" referrerPolicy="no-referrer" className="text-new-blue-500">

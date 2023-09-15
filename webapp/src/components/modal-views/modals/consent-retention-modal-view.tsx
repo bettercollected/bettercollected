@@ -32,12 +32,18 @@ export default function ConsentRetentionModalView({ type }: ConsentRetentionModa
     const handleDateChange = (event: any) => {
         setDate(event.target.value);
     };
-
     useEffect(() => {
-        if (ref.current) {
-            ref.current.focus();
-        }
+        const blockEscape = (event: KeyboardEvent) => {
+            if (event.key == 'Escape') {
+                event.stopPropagation();
+            }
+        };
+        document.addEventListener('keydown', blockEscape);
+        return () => {
+            document.removeEventListener('keydown', blockEscape);
+        };
     }, []);
+
     const handleSubmit = (event: any) => {
         event.preventDefault();
         const isDaysInValid = type === 'days' && (days === undefined || days === '');
@@ -91,7 +97,7 @@ export default function ConsentRetentionModalView({ type }: ConsentRetentionModa
                     onAgree={(checked) => {
                         setIsChecked(checked);
                     }}
-                    selected={false}
+                    selected={isChecked}
                     className=""
                 >
                     {`I understand that responders data will be automatically deleted after ${type === 'days' ? days + ' days.' : date}`}

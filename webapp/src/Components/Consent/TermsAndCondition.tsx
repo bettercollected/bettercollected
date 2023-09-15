@@ -12,6 +12,7 @@ interface TermsAndConditionProps extends OnlyClassNameInterface {
     onAgree?: (checked: boolean) => void;
     children?: any;
     type?: TermsAndConditionType;
+    defaultSelected?: boolean;
 }
 
 interface TitleProps extends React.PropsWithChildren {}
@@ -24,15 +25,15 @@ const Description: React.FC<React.PropsWithChildren> = ({ children }) => <p clas
 const TermsAndCondition: React.FC<TermsAndConditionProps> & {
     Title: React.FC<TitleProps>;
     Description: React.FC<DescriptionProps>;
-} = ({ selected = true, className, onAgree, children, type = 'title_and_description' }) => {
-    const handleCheckedChange = (_: any, checked: boolean) => {
-        onAgree && onAgree(checked);
+} = ({ selected, className, onAgree, children, type = 'title_and_description' }) => {
+    const handleCheckedChange = () => {
+        onAgree && onAgree(!selected);
     };
 
     if (type === 'normal') {
         return (
             <div className={cn('flex space-x-2', className)}>
-                <CheckBox className="!m-0" defaultChecked={selected} onChange={handleCheckedChange} />
+                <CheckBox className="!m-0" checked={selected} onClick={handleCheckedChange} />
                 <p className="p2">{children}</p>
             </div>
         );
@@ -40,7 +41,7 @@ const TermsAndCondition: React.FC<TermsAndConditionProps> & {
     return (
         <div className={cn('space-y-2', className)}>
             <div className="flex space-x-2 items-center">
-                <CheckBox className="!m-0" defaultChecked={selected} onChange={handleCheckedChange} />
+                <CheckBox className="!m-0" checked={selected} onClick={handleCheckedChange} />
                 {React.Children.map(children, (child) => {
                     if (React.isValidElement(child) && child.type === Title) {
                         return child;

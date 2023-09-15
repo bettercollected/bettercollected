@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import ConsentModalTopBar from '@Components/Consent/ConsentModalTopBar';
@@ -24,7 +24,7 @@ export interface ConsentBuilderConfirmationModalProps {
     privacyPolicyUrl: string;
 }
 
-export default function ConsentBuilderConfirmationModaView({ onFormPublish, consents, privacyPolicyUrl }: ConsentBuilderConfirmationModalProps) {
+export default function ConsentBuilderConfirmationModalView({ onFormPublish, consents, privacyPolicyUrl }: ConsentBuilderConfirmationModalProps) {
     const { closeModal } = useModal();
     const fullScreenModal = useFullScreenModal();
     const dispatch = useAppDispatch();
@@ -35,13 +35,18 @@ export default function ConsentBuilderConfirmationModaView({ onFormPublish, cons
     const handleFormPurposeTermChange = (checked: boolean) => {
         setFormPurposeTermChecked(checked);
     };
-    const formPurposeTermsAndConditonDetails = (
-        <TermsAndCondition onAgree={handleFormPurposeTermChange} className="border-b border-new-black-300 p-5">
-            <TermsAndCondition.Title>{`I have mentioned all the form's purposes.`}</TermsAndCondition.Title>
-            <TermsAndCondition.Description>{`This confirms that you have clearly mentioned all the purposes for which data is being collected in your forms.`}</TermsAndCondition.Description>
-        </TermsAndCondition>
-    );
 
+    useEffect(() => {
+        const blockEscape = (event: KeyboardEvent) => {
+            if (event.key == 'Escape') {
+                event.stopPropagation();
+            }
+        };
+        document.addEventListener('keydown', blockEscape);
+        return () => {
+            document.removeEventListener('keydown', blockEscape);
+        };
+    }, []);
     const onSubmit = async (event: any) => {
         event.preventDefault();
 
@@ -70,7 +75,10 @@ export default function ConsentBuilderConfirmationModaView({ onFormPublish, cons
                     title={`You care about your Responders' data`}
                     description={`Make sure you have clearly mentioned all the purposes for which data is being collected in your form, as well as all third-party apps integrated with your platform.`}
                 />
-                {formPurposeTermsAndConditonDetails}
+                <TermsAndCondition selected={formPurposeTermChecked} onAgree={handleFormPurposeTermChange} className="border-b border-new-black-300 p-5">
+                    <TermsAndCondition.Title>{`I have mentioned all the form's purposes.`}</TermsAndCondition.Title>
+                    <TermsAndCondition.Description>{`This confirms that you have clearly mentioned all the purposes for which data is being collected in your forms.`}</TermsAndCondition.Description>
+                </TermsAndCondition>
             </div>
             <div className="p-10">
                 {error && <ErrorText text="Please accept all terms and conditions before proceeding." />}
