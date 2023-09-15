@@ -135,6 +135,8 @@ jobs:
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:latest
             docker push bettercollected/${SERVICE_TAG}:latest
           fi
+          echo GITHUB_REF_NAME
+          echo ${{ vars.GITHUB_REF_NAME }}
           if [[ "${{ github.ref }}" = "refs/tags/*" ]]; then
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:release
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:${{ vars.GITHUB_REF_NAME }}
@@ -151,11 +153,14 @@ jobs:
           if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
             DOCKER_HOST=${{ vars.DEVELOP_HOST }}
             DOCKER_STACK=${{ vars.DEVELOP_STACK }}
+            docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
           fi
+          echo GITHUB_REF_NAME
+          echo ${{ vars.GITHUB_REF_NAME }}
           if [[ "${{ github.ref }}" = "refs/tags/*" ]]; then
             DOCKER_HOST=${{ vars.PROD_HOST }}
             DOCKER_STACK=${{ vars.PROD_STACK }}
+            docker service update --image  bettercollected/${SERVICE_TAG}:${{ vars.GITHUB_REF_NAME }} ${DOCKER_STACK}_${SERVICE_TAG}
           fi
-          docker service update --image  bettercollected/${SERVICE_TAG}:${{ vars.GITHUB_REF_NAME }} ${DOCKER_STACK}_${SERVICE_TAG}
 
 
