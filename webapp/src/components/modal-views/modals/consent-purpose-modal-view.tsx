@@ -35,6 +35,17 @@ export default function ConsentPurposeModalView() {
     const [isRequired, setIsRequired] = useState(consentPurposeModalProps?.consent.required ?? false);
     const dispatch = useAppDispatch();
 
+    useEffect(() => {
+        const blockEscape = (event: KeyboardEvent) => {
+            if (event.key == 'Escape') {
+                event.stopPropagation();
+            }
+        };
+        document.addEventListener('keydown', blockEscape);
+        return () => {
+            document.removeEventListener('keydown', blockEscape);
+        };
+    }, []);
     const handlePurposeTitleChange = (event: any) => {
         setPurposeTitle(event.target.value);
     };

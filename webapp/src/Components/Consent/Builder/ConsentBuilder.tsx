@@ -110,7 +110,7 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
         }
     };
     return (
-        <form className={cn(className)} onSubmit={onSubmit}>
+        <form className={cn(className)}>
             <div className="space-y-20 xs:space-y-[70px]">
                 <div className="space-y-4">
                     <div className="h4">Form Purpose and Data Usage</div>
@@ -140,7 +140,9 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
             {!isPreview && (
                 <div className="mt-[60px] space-y-3">
                     {error && <ErrorText text=" Please fill to all required consents." />}
-                    <FormButton className="w-[192px]">Done</FormButton>
+                    <FormButton type="button" onClick={onSubmit} className="w-[192px]">
+                        Done
+                    </FormButton>
                 </div>
             )}
         </form>
