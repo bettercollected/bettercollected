@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import Pro from '@Components/Common/Icons/Pro';
 
@@ -18,12 +19,14 @@ import { upgradeConst } from '@app/constants/locales/upgrade';
 import { selectAuthStatus } from '@app/store/auth/selectors';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetPlansQuery } from '@app/store/plans/api';
+import mockUseRouter from '@app/utils/__test_utils__/mock-use-router';
 
 export interface IUpgradeToProModal {
     featureText?: string;
+    isModal?: boolean;
 }
 
-export default function UpgradeToProContainer({ featureText }: IUpgradeToProModal) {
+export default function UpgradeToProContainer({ featureText, isModal = true }: IUpgradeToProModal) {
     const { data, isLoading } = useGetPlansQuery();
     const { t } = useTranslation();
     const [activePlan, setActivePlan] = useState<any>();
@@ -58,13 +61,24 @@ export default function UpgradeToProContainer({ featureText }: IUpgradeToProModa
 
     const url = auth === null ? '/login?fromProPlan=true' : `${environments.API_ENDPOINT_HOST}/stripe/session/create/checkout?price_id=${activePlan?.price_id}`;
 
+    const router = useRouter();
+    const onClickProTag = () => {
+        if (isModal) return;
+        if (auth === null) {
+            router.push('https://bettercollected.com');
+        } else {
+            router.push('/login');
+        }
+    };
     return (
         <div className="container p-10  w-full h-full mx-auto flex flex-col items-center justify-center">
-            <div className="flex  pb-10 items-center">
-                <Logo />
-                <div className="flex items-center rounded ml-1 gap-[2px] h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
-                    <Pro width={12} height={12} />
-                    <span className="leading-none">Pro</span>
+            <div className={`w-fit ${!isModal ? 'cursor-pointer' : ''}`} onClick={onClickProTag}>
+                <div className="flex pb-10 items-center pointer-events-none">
+                    <Logo />
+                    <div className="flex items-center rounded ml-1 gap-[2px] h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
+                        <Pro width={12} height={12} />
+                        <span className="leading-none">Pro</span>
+                    </div>
                 </div>
             </div>
 

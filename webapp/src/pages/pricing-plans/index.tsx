@@ -13,7 +13,7 @@ const PricingPlan = () => {
         <>
             <NextSeo title={t(pricingPlan.pageTitle)} noindex={false} nofollow={false} />
             <div className="relative h-full overflow-auto !bg-white ">
-                <UpgradeToProContainer />;
+                <UpgradeToProContainer isModal={false} />;
             </div>
         </>
     );
