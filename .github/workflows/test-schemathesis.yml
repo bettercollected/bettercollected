@@ -6,7 +6,7 @@ on:
 
 jobs:
   schemathesis:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Configure schemathesis using action
