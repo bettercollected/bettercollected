@@ -121,7 +121,6 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
     const onFormSubmitCallback = async (consentAnswers: Record<string, ConsentAnswerDto>) => {
         const formData = new FormData();
-
         // Append files to formData
         files.forEach((fileObj) => {
             formData.append('files', fileObj.file, fileObj.fileName);
@@ -139,6 +138,8 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             expirationType: responseExpirationType,
             dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
         };
+        debugger;
+
         formData.append('response', JSON.stringify(postBody));
 
         const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: formData });

@@ -31,7 +31,6 @@ export default function MultipleChoiceKeyEventListener({ children, field }: { ch
                     if (choices[activeChoiceId].value !== '') {
                         const newChoice = createNewChoice(activeChoiceIndex + 1);
                         dispatch(setAddNewChoice(newChoice));
-                        console.log('newChoice', newChoice);
 
                         setTimeout(() => document.getElementById(`choice-${newChoice.id}`)?.focus(), 1);
                     } else if (choices[activeChoiceId].value === '' && Object.values(choices).length > 1) {
