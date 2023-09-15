@@ -23,7 +23,7 @@ export interface ConsentConfirmationModalProps {
     privacyPolicyUrl?: string;
 }
 
-export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswers, privacyPolicyUrl }: ConsentConfirmationModalProps) {
+export default function ConsentConfirmationModalView({ onFormSubmit, consentAnswers, privacyPolicyUrl }: ConsentConfirmationModalProps) {
     const { closeModal } = useModal();
     const fullScreenModal = useFullScreenModal();
     const dispatch = useAppDispatch();
