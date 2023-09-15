@@ -5,7 +5,7 @@ on:
     branches:
       - "**"
   schedule:
-    - cron: '*/1 * * * *' 
+    - cron: '*/10 * * * *' 
 
 jobs:
   schemathesis:
