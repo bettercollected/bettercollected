@@ -1,22 +1,31 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 import Image from 'next/image';
 
-import { Close } from '@mui/icons-material';
 import cn from 'classnames';
 
 import Camera from '@app/components/icons/camera';
+import { Close } from '@app/components/icons/close';
 import Button from '@app/components/ui/button';
 
 interface IUploadLogo {
     className?: string;
+    logoImageUrl?: string;
     onUpload?: (file: File) => void;
     onRemove?: () => void;
 }
 
-const UploadLogo = ({ className, onUpload, onRemove }: IUploadLogo) => {
+const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl }: IUploadLogo) => {
     const [showDropdown, setShowDropdown] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+    const logoRef = useRef<HTMLInputElement | null>(null);
+
+    React.useEffect(() => {
+        if (logoImageUrl) {
+            setLogoUrl(logoImageUrl);
+        }
+    }, []);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files && event.target.files[0];
@@ -28,13 +37,16 @@ const UploadLogo = ({ className, onUpload, onRemove }: IUploadLogo) => {
     const onRemoveLogo = () => {
         setShowDropdown(false);
         setLogoUrl(null);
+        if (logoRef.current) {
+            logoRef.current.value = '';
+        }
         onRemove && onRemove();
     };
 
     return (
         <div className={`relative z-50  ${className}`}>
-            <div className={cn('rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center items-s gap-3 cursor-pointer hover:shadow-logoCard bg-new-black-800')} onClick={() => setShowDropdown(!showDropdown)}>
-                <input id="form_logo" type="file" hidden onChange={handleFileChange} />
+            <div className={cn('rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center items-s gap-3 cursor-pointer hover:shadow-hover', logoUrl ? '' : 'bg-new-black-800')} onClick={() => setShowDropdown(!showDropdown)}>
+                <input ref={logoRef} id="form_logo" type="file" hidden onChange={handleFileChange} />
                 {logoUrl ? (
                     <Image height={100} width={100} objectFit="cover" src={logoUrl} alt="logo" className="rounded-lg hover:bg-black-100" />
                 ) : (
@@ -45,7 +57,7 @@ const UploadLogo = ({ className, onUpload, onRemove }: IUploadLogo) => {
                 )}
             </div>
             {showDropdown && (
-                <div className="flex flex-col absolute z-40 shadow-logoCard sm:h-[166px] sm:w-[330px] top-[116px] bg-white p-4 rounded-lg gap-2">
+                <div className="flex flex-col absolute z-40 shadow-logoCard sm:h-[166px] w-full sm:w-[330px] top-[116px] bg-white p-4 rounded-lg gap-2">
                     <div className="flex justify-between !font-semibold mb-4">
                         <h1 className="body1 text-black-900">Logo</h1>
                         <Close
@@ -56,9 +68,9 @@ const UploadLogo = ({ className, onUpload, onRemove }: IUploadLogo) => {
                         />
                     </div>
 
-                    <label htmlFor="form_logo" className="w-full rounded py-3 px-4 h-[36px] body4 bg-black-900 font-semibold hover:opacity-80 flex justify-center items-center">
+                    <div onClick={() => logoRef.current?.click()} className="w-full rounded py-3 px-4 h-[36px] body4 bg-black-900 font-semibold hover:opacity-80 flex justify-center items-center cursor-pointer">
                         <span className="text-black-100 text-xs sm:text-sm">Update New Logo</span>
-                    </label>
+                    </div>
                     <Button size="small" className="!text-black-900 font-semibold !bg-black-300 hover:bg-black-400 focus:!ring-0" onClick={onRemoveLogo}>
                         Remove Logo
                     </Button>
