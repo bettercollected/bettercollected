@@ -1,6 +1,9 @@
 name: Test endpoints using schemathesis
 
 on:
+  push:
+    branches:
+      - "**"
   schedule:
     - cron: '*/1 * * * *' 
 
