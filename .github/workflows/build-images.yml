@@ -122,7 +122,7 @@ jobs:
           docker build -t bettercollected/${SERVICE_TAG}:${{ github.sha }} ${{ matrix.service }}
           docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
 
-      - name: Add Nightly and Latest Tags
+      - name: Add Nightly, Latest and Release Tags
         env:
           SERVICE_TAG: ${{ matrix.service }}
         run: |
@@ -135,3 +135,27 @@ jobs:
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:latest
             docker push bettercollected/${SERVICE_TAG}:latest
           fi
+          if [[ "${{ github.ref }}" = "refs/tags/*" ]]; then
+            docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:release
+            docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:${{ vars.GITHUB_REF_NAME }}
+            docker push bettercollected/${SERVICE_TAG}:release
+            docker push bettercollected/${SERVICE_TAG}:${{ vars.GITHUB_REF_NAME }}
+          fi
+
+      - name: Deploy built Image
+        id: docker_deploy
+        env:
+          SERVICE_TAG: ${{ matrix.service }}
+        run: |
+          SERVICE_TAG=${SERVICE_TAG//\//-}
+          if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
+            DOCKER_HOST=${{ vars.DEVELOP_HOST }}
+            DOCKER_STACK=${{ vars.DEVELOP_STACK }}
+          fi
+          if [[ "${{ github.ref }}" = "refs/tags/*" ]]; then
+            DOCKER_HOST=${{ vars.PROD_HOST }}
+            DOCKER_STACK=${{ vars.PROD_STACK }}
+          fi
+          docker service update --image  bettercollected/${SERVICE_TAG}:${{ vars.GITHUB_REF_NAME }} ${DOCKER_STACK}_${SERVICE_TAG}
+
+
