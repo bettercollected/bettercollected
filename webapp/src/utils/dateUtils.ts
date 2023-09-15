@@ -49,8 +49,7 @@ export function getApiFormattedDateTime(dtStr = '', hoursToAdd = 0) {
     currentDateTime.setHours(currentDateTime.getHours() + hoursToAdd);
 
     if (dtStr.length === 0) {
-        const formattedDateTime = `${currentDateTime.toISOString().slice(0, 19).replace('T', ':')}`;
-        return formattedDateTime;
+        return `${currentDateTime.toISOString().slice(0, 19).replace('T', ':')}`;
     } else {
         const timeString = currentDateTime.toLocaleTimeString('en-US', { hour12: false });
         return `${dtStr}:${timeString}`;
