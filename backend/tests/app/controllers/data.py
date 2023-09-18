@@ -55,6 +55,8 @@ workspace_settings = {
     "private": True,
     "privacyPolicyUrl": None,
     "responseDataOwnerField": "customUser",
+    "responseExpiration": None,
+    "responseExpirationType": None,
 }
 
 workspace_tag = {"title": "BetterCollected-Team"}

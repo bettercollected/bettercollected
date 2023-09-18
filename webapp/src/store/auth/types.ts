@@ -5,6 +5,11 @@ export const AUTH_LOG_OUT = 'AUTH_LOG_OUT';
 export const AUTH_OTP_TAGS = 'AUTH_OTP_TAGS';
 
 export interface VerifyOtp {
-    email: string;
-    otp_code: string;
+    body: {
+        email: string;
+        otp_code: string;
+    };
+    params: {
+        prospective_pro_user?: string | string[] | undefined;
+    };
 }

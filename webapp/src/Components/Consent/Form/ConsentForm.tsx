@@ -8,7 +8,7 @@ import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import { formPurpose } from '@app/data/consent';
+import { dataRetention, formPurpose } from '@app/data/consent';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
@@ -41,13 +41,13 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
     const [error, setError] = useState(false);
 
     const getFilteredConsents = (category: ConsentCategoryType) => {
-        return form.consent.map((consent, idx) => consent?.category === category && <ConsentField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} disabled={isPreview} />);
+        return form.consent.filter((consent) => consent?.category === category).map((consent, idx) => <ConsentField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} disabled={isPreview} />);
     };
 
     const dataAccessDetails = (
         <>
             <div className="space-y-5">
-                <div className="h4-new">{`Who Can Access Your Data?`}</div>
+                <div className="h3-new">{`Who Can Access Your Data?`}</div>
                 <div className="border-y border-new-black-300 py-5 space-y-2">
                     <div className="h6-new">
                         {workspace.workspaceName} with {data?.length} members
@@ -66,8 +66,8 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
         if (responderRight) {
             return (
                 <div className="space-y-5">
-                    <div className="h4-new">{`Your Rights`}</div>
-                    <div className="h6-new border-y border-new-black-300 py-5">You can request for deletion of your data at any time</div>
+                    <div className="h3-new">{`Your Rights`}</div>
+                    <div className="h5-newborder-y border-new-black-300 py-5">You can request for deletion of your data at any time</div>
                 </div>
             );
         }
@@ -78,8 +78,19 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
         if (formPurposes) {
             return (
                 <div>
-                    <div className="h4-new pb-5">Purpose of this form:</div>
+                    <div className="h3-new pb-5">Purpose of this form:</div>
                     {getFilteredConsents(formPurpose.category)}
+                </div>
+            );
+        }
+    };
+    const renderDataRetention = () => {
+        const isDataRetentionAvailable = form.consent.filter((consent) => consent.category === ConsentCategoryType.DataRetention).length !== 0;
+        if (isDataRetentionAvailable) {
+            return (
+                <div>
+                    <div className="h3-new pb-5">For How Long Data Will Be Stored</div>
+                    {getFilteredConsents(dataRetention.category)}
                 </div>
             );
         }
@@ -105,6 +116,7 @@ before you proceed with our form.`}
                     </div>
                 </div>
                 {renderFormPurposes()}
+                {renderDataRetention()}
                 {renderResponderRights()}
                 {dataAccessDetails}
             </div>

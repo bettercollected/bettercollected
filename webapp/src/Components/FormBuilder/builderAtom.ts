@@ -5,33 +5,33 @@ interface HeaderImagesAtom {
     logo: File | null;
 }
 
-const initHeaderImages={
+const initHeaderImages = {
     coverImage: null,
-    logo : null
-}
+    logo: null
+};
 
 const headerImageAtom = atom<HeaderImagesAtom>(initHeaderImages);
 
 export default function useFormBuilderAtom() {
     const [headerImages, setHeaderImages] = useAtom(headerImageAtom);
 
-    const setCoverImage = (file :File | null)=>{
+    const setCoverImage = (file: File | null) => {
         setHeaderImages({
             ...headerImages,
-            coverImage : file
-        })
-    }
+            coverImage: file
+        });
+    };
 
-    const setLogoImage = (file :File | null)=>{
+    const setLogoImage = (file: File | null) => {
         setHeaderImages({
             ...headerImages,
-            logo : file
-        })
-    }
+            logo: file
+        });
+    };
 
-    const resetImages = ()=>{
-        setHeaderImages(initHeaderImages)
-    }
+    const resetImages = () => {
+        setHeaderImages(initHeaderImages);
+    };
 
     return { headerImages, setCoverImage, setLogoImage, resetImages };
 }

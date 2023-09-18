@@ -5,6 +5,8 @@ from beanie import PydanticObjectId
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
 
+from common.models.consent import ResponseRetentionType
+
 
 class WorkspaceRequestDto(BaseModel):
     """Model for creating or updating a workspace."""
@@ -38,6 +40,8 @@ class WorkspaceFormSettings(BaseModel):
     response_data_owner_field: Optional[str]
     provider: Optional[str]
     privacy_policy_url: Optional[str]
+    response_expiration: Optional[str]
+    response_expiration_type: Optional[ResponseRetentionType]
 
 
 class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):

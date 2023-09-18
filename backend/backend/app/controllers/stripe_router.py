@@ -9,7 +9,15 @@ from backend.app.services.stripe_service import StripeService
 from backend.app.services.user_service import get_logged_user
 
 
-@router(prefix="/stripe", tags=["Stripe"])
+@router(
+    prefix="/stripe",
+    tags=["Stripe"],
+    responses={
+        401: {"description": "Authorization token is missing."},
+        404: {"description": "Not Found"},
+        405: {"description": "Method not allowed"},
+    },
+)
 class StripeRoutes(Routable):
     def __init__(
         self,
@@ -26,9 +34,6 @@ class StripeRoutes(Routable):
 
     @get(
         "/session/create/checkout",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def checkout(
         self,
@@ -41,7 +46,6 @@ class StripeRoutes(Routable):
     @get(
         "/session/create/portal",
         responses={
-            401: {"description": "Authorization token is missing."},
             503: {"message": "Requested Source not available."},
         },
     )

@@ -116,12 +116,12 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     event.preventDefault();
                     event.stopPropagation();
 
-                    eventBus.emit(EventBusEventType.FormBuilder.Save);
+                    // eventBus.emit(EventBusEventType.FormBuilder.Save);
                 } else if ((event.key === 'P' || event.key === 'p') && !event.shiftKey && (event.ctrlKey || event.metaKey)) {
                     event.preventDefault();
                     event.stopPropagation();
 
-                    eventBus.emit(EventBusEventType.FormBuilder.Publish);
+                    eventBus.emit(EventBusEventType.FormBuilder.Preview);
                 }
             });
         },

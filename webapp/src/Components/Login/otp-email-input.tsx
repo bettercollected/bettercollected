@@ -1,6 +1,7 @@
 import React, { Dispatch, SetStateAction, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import Divider from '@mui/material/Divider';
 import { toast } from 'react-toastify';
@@ -37,6 +38,8 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
     const [postSendOtpForCreator, creatorResponse] = usePostSendOtpForCreatorMutation();
 
     const [email, setEmail] = useState('');
+
+    const { fromProPlan } = useRouter().query;
 
     const constants = {
         welcomeBack: t(signInScreen.welcomeBack),
@@ -96,27 +99,22 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
     return (
         <form className={` w-full ${isModal ? ' mt-16' : ''}`} onSubmit={isCreator ? handleEmailInputForCreator : handleEmailInputForResponder}>
             <div className="flex flex-col gap-3">
-                <span className="h4 ">{(isSignup || isModal) ? constants.signUp : constants.welcomeBack}</span>
+                <span className="h4 ">{isSignup || isModal ? constants.signUp : constants.welcomeBack}</span>
                 {isModal ? <span className="body4 sm:w-[410px]">{constants.descriptionInModal}</span> : <span className="body4 text-black-800">{isSignup ? constants.signUpToContinue : constants.signInToContinue}</span>}
             </div>
             <div className="flex gap-[20px] mt-10 w-full">
-                <FormProviderContext.Consumer>
-                    {(formProviders: Array<IntegrationFormProviders>) => (
-                        <div className="flex flex-col sm:flex-row gap-4 lg:gap-6 w-full justify-center items-center">
-                            {Array.from(formProviders)
-                                .reverse()
-                                .map((provider: IntegrationFormProviders) => (
-                                    <ConnectWithProviderButton
-                                        key={provider.providerName}
-                                        type={provider.providerName === 'typeform' ? 'typeform' : 'dark'}
-                                        url={`${environments.API_ENDPOINT_HOST}/auth/${provider.providerName}/basic`}
-                                        text={`Sign in with ${capitalize(provider.providerName)}`}
-                                        creator={isCreator}
-                                    />
-                                ))}
-                        </div>
-                    )}
-                </FormProviderContext.Consumer>
+                <div className="flex flex-col sm:flex-row gap-4 lg:gap-6 w-full justify-center items-center">
+                    {['google', 'typeform'].map((provider: string) => (
+                        <ConnectWithProviderButton
+                            key={provider}
+                            type={provider === 'typeform' ? 'typeform' : 'dark'}
+                            url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/basic`}
+                            text={`Sign in with ${capitalize(provider)}`}
+                            creator={isCreator}
+                            fromProPlan={fromProPlan}
+                        />
+                    ))}
+                </div>
             </div>
 
             <Divider orientation="horizontal" flexItem className={'body4 !text-black-700 my-10'}>

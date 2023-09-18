@@ -19,6 +19,9 @@ from common.models.user import User
     tags=["Responders Group"],
     responses={
         400: {"description": "Bad request"},
+        401: {"description": "Authorization token is missing."},
+        404: {"description": "Not Found"},
+        405: {"description": "Method not allowed"},
     },
 )
 class ResponderGroupsRouter(Routable):
@@ -33,9 +36,6 @@ class ResponderGroupsRouter(Routable):
 
     @get(
         "",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def get_groups_in_workspace(
         self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
@@ -46,9 +46,6 @@ class ResponderGroupsRouter(Routable):
 
     @post(
         "",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     @user_tag(tag=UserTagType.GROUP_CREATED)
     async def create(
@@ -67,9 +64,6 @@ class ResponderGroupsRouter(Routable):
 
     @get(
         "/{group_id}",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def get_user_group(
         self,
@@ -84,9 +78,6 @@ class ResponderGroupsRouter(Routable):
     @patch(
         "/{group_id}",
         summary="Update Responder Group",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def update_user_group(
         self,
@@ -110,9 +101,6 @@ class ResponderGroupsRouter(Routable):
 
     @patch(
         "/{group_id}/emails",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def add_emails_to_group(
         self,
@@ -127,9 +115,6 @@ class ResponderGroupsRouter(Routable):
 
     @delete(
         "/{group_id}/emails",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def delete_emails_from_group(
         self,
@@ -145,9 +130,6 @@ class ResponderGroupsRouter(Routable):
 
     @delete(
         "/{group_id}",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def delete_responder_group(
         self,

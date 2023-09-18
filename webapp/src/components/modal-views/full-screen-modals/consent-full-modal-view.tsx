@@ -20,8 +20,10 @@ export default function ConsentFullModalView({ onFormSubmit, form, isPreview = f
     const { closeModal } = useFullScreenModal();
 
     return (
-        <div className="flex w-full min-h-screen !bg-white">
-            <BackButtonMenuBar text="Back to Form" onBack={closeModal} />
+        <div className="flex flex-col w-full min-h-screen !bg-white max-h-screen overflow-auto">
+            <div className="absolute top-0 left-0 w-full bg-white z-[100] ">
+                <BackButtonMenuBar text="Back to Form" onBack={closeModal} />
+            </div>
             <div className="mt-12">
                 <div className="mx-[15px] sm:mx-[40px] md:ml-[120px] xl:ml-[267px] w-fit md:w-[508px] mt-6">
                     {!isPreview && (

@@ -34,8 +34,13 @@ const thirdPartySharing = {
 
 const dataRetention = {
     hint: `Inform users about data retention. Customize how long user data will be stored and whether users can request deletion.`,
-    title: 'Data Retention options',
-    options: ['For a certain number of days', 'Until a certain date', 'Forever']
+    title: 'Data retention options',
+    options: [
+        { title: 'For a certain number of days', type: ConsentType.Info, category: ConsentCategoryType.DataRetention },
+        { title: 'Until a certain date', type: ConsentType.Info, category: ConsentCategoryType.DataRetention },
+        { title: 'Forever', type: ConsentType.Info, category: ConsentCategoryType.DataRetention }
+    ],
+    category: ConsentCategoryType.DataRetention
 };
 
 export { consentPageInformation, formPurpose, thirdPartySharing, dataRetention };
