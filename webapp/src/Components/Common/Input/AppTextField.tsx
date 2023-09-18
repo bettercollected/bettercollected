@@ -20,7 +20,7 @@ const AppTextField: React.FC<AppTextFieldProps> & { Description: React.FC<React.
     return (
         <div className={cn('', className)}>
             {title && (
-                <div className="h5-new mb-2">
+                <div className="h4-new mb-2">
                     {title} {required && <span className="text-pink ml-2">*</span>}
                 </div>
             )}

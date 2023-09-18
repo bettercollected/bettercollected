@@ -30,7 +30,7 @@ export default function BuilderTips() {
                 <Close onClick={handleCloseIcon} className="cursor-pointer" />
             </div>
             <TipList className="flex flex-row gap-8" listNumber={5} />
-            <h1 className="h6-new !text-brand mt-8 cursor-pointer" onClick={() => openModal('FORM_BUILDER_TIPS_MODAL_VIEW')}>
+            <h1 className="h5-new!text-brand mt-8 cursor-pointer" onClick={() => openModal('FORM_BUILDER_TIPS_MODAL_VIEW')}>
                 Show All
             </h1>
         </div>

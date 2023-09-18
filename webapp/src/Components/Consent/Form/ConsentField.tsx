@@ -32,7 +32,7 @@ export default function ConsentField({ consent, className, disabled = false }: C
         <div className={cn('space-y-2 p-5 border-b border-new-black-300', className)}>
             <div className="flex space-x-2 items-center">
                 {consent.type === 'checkbox' && <CheckBox id={consent.consentId} className="!m-0" checked={isChecked} disabled={disabled} onClick={handleCheckSelection} />}
-                <label htmlFor={consent.consentId} className="h6-new cursor-pointer">
+                <label htmlFor={consent.consentId} className="h5-newcursor-pointer">
                     {consent.title} {consent.required && <span className="ml-2 text-new-pink">*</span>}
                 </label>
             </div>
