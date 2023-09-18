@@ -5,6 +5,8 @@ on:
     branches:
       - develop
       - master
+    tags:
+      - "*"
   pull_request:
     branches:
       - master
@@ -122,7 +124,7 @@ jobs:
           docker build -t bettercollected/${SERVICE_TAG}:${{ github.sha }} ${{ matrix.service }}
           docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
 
-      - name: Add Nightly and Latest Tags
+      - name: Add Nightly, Latest and Release Tags
         env:
           SERVICE_TAG: ${{ matrix.service }}
         run: |
@@ -135,3 +137,45 @@ jobs:
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:latest
             docker push bettercollected/${SERVICE_TAG}:latest
           fi
+          echo GITHUB_REF_NAME
+          echo ${{ github.ref_name }}
+          if [[ "${{ github.ref }}" = "refs/tags/*" ]]; then
+            docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:release
+            docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:${{ github.ref_name }}
+            docker push bettercollected/${SERVICE_TAG}:release
+            docker push bettercollected/${SERVICE_TAG}:${{ github.ref_name }}
+          fi
+
+  deploy_services:
+    if: github.event_name != 'pull_request'
+    needs: build_and_push
+    strategy:
+      matrix:
+        service:
+          - auth
+          - backend
+          - integrations/google
+          - integrations/typeform
+          - webapp
+          - temporal/worker
+
+    runs-on: self-hosted
+    steps:
+      - name: Deploy built Image
+        id: docker_deploy
+        env:
+          SERVICE_TAG: ${{ matrix.service }}
+        run: |
+          SERVICE_TAG=${SERVICE_TAG//\//-}
+          if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
+            DOCKER_HOST=${{ vars.DEVELOP_HOST }}
+            DOCKER_STACK=${{ vars.DEVELOP_STACK }}
+            docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
+          fi
+          if [[ "${{ github.ref }}" = "refs/tags/*" ]]; then
+            DOCKER_HOST=${{ vars.PROD_HOST }}
+            DOCKER_STACK=${{ vars.PROD_STACK }}
+            docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
+          fi
+
+

@@ -58,7 +58,6 @@ export default function ShortText({ ans, enabled, field, helperText }: IShortTex
 
     useEffect(() => {
         if (responseDataOwnerField === field?.id && auth) {
-            console.log(auth, responseDataOwnerField, field.id);
             const answer = {} as AnswerDto;
             answer.field = { id: field.id };
             answer.email = auth.email;

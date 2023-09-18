@@ -110,33 +110,34 @@ input.spin-button-hidden::-webkit-inner-spin-button {
 .h2 {
     @apply text-[48px] font-semibold leading-[72px] text-black-900;
 }
+.h2-new {
+    @apply text-[24px] font-semibold leading-[36px] text-black-900;
+}
 
 .h3 {
     @apply text-[36px] font-semibold leading-[54px] text-black-900;
 }
-
 .h3-new {
-    @apply text-[24px] font-semibold leading-[36px] text-black-900;
+    @apply text-[20px] font-semibold leading-[30px] text-black-900;
 }
+
 .h4 {
     @apply text-[24px] font-semibold leading-[36px] text-black-900;
 }
 .h4-new {
-    @apply text-[20px] font-semibold leading-[30px] text-black-900;
+    @apply text-[16px] font-semibold leading-[24px] text-black-900;
 }
 .h5 {
     @apply text-[20px] font-semibold leading-[30px] text-black-900;
 }
-
-.h6-new {
+.h5-new {
     @apply text-[14px] font-semibold leading-[21px] text-black-900;
 }
+
 .h6 {
     @apply text-[16px] font-semibold leading-[24px] text-black-900;
 }
-.h5-new {
-    @apply text-[16px] font-semibold leading-[24px] text-black-900;
-}
+
 .sh1 {
     leading-trim: both;
     @apply text-[20px] font-semibold leading-[30px] text-black-900;

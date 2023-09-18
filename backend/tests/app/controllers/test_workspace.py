@@ -199,7 +199,7 @@ class TestWorkspaces:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
     ):
-        check_handle_url = f"{common_url}/check-handle-availability/sireto"
+        check_handle_url = f"{common_url}/{workspace.id}/check-handle-availability/sireto"
 
         check_handle_availability = client.get(
             check_handle_url, cookies=test_user_cookies
@@ -213,9 +213,10 @@ class TestWorkspaces:
         self,
         client: TestClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_1: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
     ):
-        check_handle_url = f"{common_url}/check-handle-availability/{testUser.id}"
+        check_handle_url = f"{common_url}/{workspace.id}/check-handle-availability/{workspace_1.workspace_name}"
 
         check_handle_availability = client.get(
             check_handle_url, cookies=test_user_cookies
@@ -231,7 +232,7 @@ class TestWorkspaces:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
     ):
-        suggest_handles_url = f"{common_url}/suggest-handle/test"
+        suggest_handles_url = f"{common_url}/{workspace.id}/suggest-handle/test"
 
         suggest_handle = client.get(suggest_handles_url, cookies=test_user_cookies)
 

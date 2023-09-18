@@ -66,7 +66,7 @@ export default function ConsentBuilder({ className, isPreview = false, form }: C
         <>
             <div className="space-y-5">
                 <div className="space-y-5">
-                    <div className="h4-new">{`Responder's Rights`}</div>
+                    <div className="h3-new">{`Responder's Rights`}</div>
                     <div className="flex space-x-2">
                         <CheckBox
                             id="responder-rights"
@@ -77,7 +77,7 @@ export default function ConsentBuilder({ className, isPreview = false, form }: C
                             }}
                         />
                         <div className="space-y-2">
-                            <label htmlFor="responder-rights" className="h6-new cursor-pointer">
+                            <label htmlFor="responder-rights" className="h5-newcursor-pointer">
                                 Request deletion of their data
                             </label>
                             <p className="p2">This field allows you to specify whether you will allow users to request the deletion of their data and other actions.</p>
@@ -109,7 +109,7 @@ export default function ConsentBuilder({ className, isPreview = false, form }: C
         }
     };
     return (
-        <form className={cn(className)} onSubmit={onSubmit}>
+        <form className={cn(className)}>
             <div className="space-y-20 xs:space-y-[70px]">
                 <div className="space-y-4">
                     <div className="h4">Form Purpose and Data Usage</div>
@@ -122,7 +122,7 @@ export default function ConsentBuilder({ className, isPreview = false, form }: C
                 <DataRetentionBuilder form={form} isPreview={isPreview} options={getConsentOptions(ConsentCategoryType.DataRetention)} consents={getFilteredConsents(ConsentCategoryType.DataRetention)} />
                 {responderRightDetails}
                 <div>
-                    <div className="h4-new">Privacy Policy</div>
+                    <div className="h3-new">Privacy Policy</div>
                     <ConsentInput
                         type="url"
                         disabled={isPreview}
@@ -139,7 +139,9 @@ export default function ConsentBuilder({ className, isPreview = false, form }: C
             {!isPreview && (
                 <div className="mt-[60px] space-y-3">
                     {error && <ErrorText text=" Please fill to all required consents." />}
-                    <FormButton className="w-[192px]">Done</FormButton>
+                    <FormButton type="button" onClick={onSubmit} className="w-[192px]">
+                        Done
+                    </FormButton>
                 </div>
             )}
         </form>

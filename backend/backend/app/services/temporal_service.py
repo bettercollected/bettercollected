@@ -14,7 +14,6 @@ from temporalio.client import (
     ScheduleUpdateInput,
     ScheduleUpdate,
     ScheduleAlreadyRunningError,
-    ScheduleCalendarSpec,
 )
 from temporalio.common import RetryPolicy
 from temporalio.exceptions import WorkflowAlreadyStartedError

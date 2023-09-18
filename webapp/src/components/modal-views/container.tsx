@@ -29,7 +29,7 @@ import AddGroupOnForm from './modals/add-group-form-modal';
 import AddMembersModal from './modals/add-members-modal';
 import AddRegexModal from './modals/add-regex-modal';
 import ConsentBuilderConfirmationModalView from './modals/consent-builder-confirmation-modal-view';
-import ConsentConfirmationModaView from './modals/consent-confirmation-modal-view';
+import ConsentConfirmationModalView from './modals/consent-confirmation-modal-view';
 import ConsentPurposeModalView from './modals/consent-purpose-modal-view';
 import ConsentRetentionModalView from './modals/consent-retention-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
@@ -94,7 +94,7 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
         case 'CONSENT_PURPOSE_MODAL_VIEW':
             return <ConsentPurposeModalView />;
         case 'CONSENT_CONFIRMATION_MODAL_VIEW':
-            return <ConsentConfirmationModaView {...modalProps} />;
+            return <ConsentConfirmationModalView {...modalProps} />;
         case 'CONSENT_BUILDER_CONFIRMATION_MODAL_VIEW':
             return <ConsentBuilderConfirmationModalView {...modalProps} />;
         case 'CONSENT_RETENTION_MODAL_VIEW':

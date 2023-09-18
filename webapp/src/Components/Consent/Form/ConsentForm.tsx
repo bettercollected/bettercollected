@@ -47,7 +47,7 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
     const dataAccessDetails = (
         <>
             <div className="space-y-5">
-                <div className="h4-new">{`Who Can Access Your Data?`}</div>
+                <div className="h3-new">{`Who Can Access Your Data?`}</div>
                 <div className="border-y border-new-black-300 py-5 space-y-2">
                     <div className="h6-new">
                         {workspace.workspaceName} with {data?.length} members
@@ -66,8 +66,8 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
         if (responderRight) {
             return (
                 <div className="space-y-5">
-                    <div className="h4-new">{`Your Rights`}</div>
-                    <div className="h6-new border-y border-new-black-300 py-5">You can request for deletion of your data at any time</div>
+                    <div className="h3-new">{`Your Rights`}</div>
+                    <div className="h5-newborder-y border-new-black-300 py-5">You can request for deletion of your data at any time</div>
                 </div>
             );
         }
@@ -78,7 +78,7 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
         if (formPurposes) {
             return (
                 <div>
-                    <div className="h4-new pb-5">Purpose of this form:</div>
+                    <div className="h3-new pb-5">Purpose of this form:</div>
                     {getFilteredConsents(formPurpose.category)}
                 </div>
             );
@@ -89,7 +89,7 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
         if (isDataRetentionAvailable) {
             return (
                 <div>
-                    <div className="h4-new pb-5">For How Long Data Will Be Stored</div>
+                    <div className="h3-new pb-5">For How Long Data Will Be Stored</div>
                     {getFilteredConsents(dataRetention.category)}
                 </div>
             );
