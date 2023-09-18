@@ -83,7 +83,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
             leaveDelay={0}
             open={open}
             closeOnClick={false}
-            className="!p-[2px]"
+            className="!p-[0px]"
             tabIndex={-1}
             onClick={(event: React.MouseEvent<HTMLElement>) => {
                 event.stopPropagation();
@@ -104,8 +104,8 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
             id="block-options-menu"
             menuTitle={t('COMPONENTS.OPTIONS.TOOLTIP_TITLE')}
             menuContent={
-                <div className="flex items-center h-9 w-9 justify-center cursor-pointer rounded-sm p-1 text-neutral-400" {...provided.dragHandleProps} tabIndex={-1}>
-                    <DragHandleIcon tabIndex={-1} width={40} height={40} />
+                <div className="flex items-center w-9 justify-center cursor-pointer rounded-sm text-neutral-400" {...provided.dragHandleProps} tabIndex={-1}>
+                    <DragHandleIcon tabIndex={-1} width={24} height={24} />
                 </div>
             }
         >

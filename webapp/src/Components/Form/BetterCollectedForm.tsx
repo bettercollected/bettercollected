@@ -46,14 +46,14 @@ export interface FormFieldProps {
 const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?: any) => {
     switch (field?.type) {
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
-            return <div className={contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
+            // return <div className={contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_HEADER3:
         case FormBuilderTagNames.LAYOUT_HEADER1:
         case FormBuilderTagNames.LAYOUT_HEADER4:
         case FormBuilderTagNames.LAYOUT_HEADER2:
-            return <div className={'!mt-8 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
+            // return <div className={'!mt-8 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_LABEL:
-            return <div className={'!mt-3 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
+            return <div className={contentEditableClassNames(false, field?.type) + ' mt-6 '}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_MARKDOWN:
             return <MarkdownText text={field.value ?? ''} />;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
@@ -208,12 +208,12 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 onSubmit={onSubmitForm}
             >
                 {form?.logo && (
-                    <div className={`relative  ${form?.coverImage ? '-top-20' : ''} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
+                    <div className={`relative mt-5 ${form?.coverImage ? '-top-12' : ''} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
                         <Image height={100} width={100} objectFit="cover" src={form.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
                     </div>
                 )}
-                <div className="mb-7">
-                    <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
+                <div className={`mb-6 ${form?.logo?'mt-12':'mt-2'}`}>
+                    <div className="text-[24px] mb-2 font-semibold text-black-900">{form?.title}</div>
                     {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
                 </div>
 
