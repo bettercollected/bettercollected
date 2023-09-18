@@ -12,7 +12,7 @@ export default function ConsentInformationPanel() {
     const getTitleDescription = (title = '', description: string) => {
         return (
             <div className="space-y-2">
-                {title.length !== 0 && <div className="h5-new">{title}</div>}
+                {title.length !== 0 && <div className="h4-new">{title}</div>}
                 <p className="p2 !text-new-black-800">{description}</p>
             </div>
         );
@@ -35,11 +35,11 @@ export default function ConsentInformationPanel() {
         <div className="bg-new-blue-100 px-6 xs:px-4 py-5 h-full w-[397px] space-y-10  z-[1000] absolute right-0">
             <div className="space-y-4 relative">
                 <Close className="absolute right-0 -top-2 cursor-pointer" onClick={() => setOpen(false)} />
-                <div className="h5-new">{consentPageInformation.title}</div>
+                <div className="h4-new">{consentPageInformation.title}</div>
                 {getTitleDescription('', consentPageInformation.description)}
             </div>
             <div className="space-y-4">
-                <div className="h5-new">{consentPageInformation.importanceTitle}</div>
+                <div className="h4-new">{consentPageInformation.importanceTitle}</div>
                 {consentPageInformation.importanceDescription.map((description) => getTitleDescription(description.title, description.description))}
             </div>
         </div>

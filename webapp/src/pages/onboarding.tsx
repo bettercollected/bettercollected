@@ -10,7 +10,7 @@ export default function OnBoardingPage() {
             <BackButtonMenuBar text="Back" />
             <div className="pt-10 w-full h-full flex flex-col items-center">
                 <div className="flex flex-col items-start">
-                    <div className="h3-new">Add Your Organization</div>
+                    <div className="h2-new">Add Your Organization</div>
                     <UploadLogo className="mt-12" />
                     <form className="mt-8 w-[541px] space-y-10">
                         <AppTextField required title="Organization Name" placeholder="Enter name of your workspace" />

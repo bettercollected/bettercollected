@@ -20,52 +20,52 @@ export const TipList = ({ className, listNumber }: ITipListProps) => {
 
     const tipsItems = [
         {
-            Icon: <div className="h6-new !text-black-800">/</div>,
+            Icon: <div className="h5-new!text-black-800">/</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.COMMAND')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">Enter</div>,
+            Icon: <div className="h5-new!text-black-800">Enter</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.ENTER')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">{commandKeyString} + I</div>,
+            Icon: <div className="h5-new!text-black-800">{commandKeyString} + I</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_I')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">{commandKeyString} + K</div>,
+            Icon: <div className="h5-new!text-black-800">{commandKeyString} + K</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_K')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">Backspace</div>,
+            Icon: <div className="h5-new!text-black-800">Backspace</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.BACKSPACE')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">{commandKeyString} + Delete</div>,
+            Icon: <div className="h5-new!text-black-800">{commandKeyString} + Delete</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_DELETE')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">{commandKeyString} + P</div>,
+            Icon: <div className="h5-new!text-black-800">{commandKeyString} + P</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_P')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">{commandKeyString} + D</div>,
+            Icon: <div className="h5-new!text-black-800">{commandKeyString} + D</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_D')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">{commandKeyString} + &uarr;</div>,
+            Icon: <div className="h5-new!text-black-800">{commandKeyString} + &uarr;</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_UP')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">{commandKeyString} + &darr;</div>,
+            Icon: <div className="h5-new!text-black-800">{commandKeyString} + &darr;</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.CTRL_DOWN')}</div>
         },
 
         {
-            Icon: <div className="h6-new !text-black-800">&uarr;</div>,
+            Icon: <div className="h5-new!text-black-800">&uarr;</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.UP')}</div>
         },
         {
-            Icon: <div className="h6-new !text-black-800">&darr;</div>,
+            Icon: <div className="h5-new!text-black-800">&darr;</div>,
             TextComponent: <div className="!text-black-800">{t('TIPS.ACTIONS.DOWN')}</div>
         }
     ];
