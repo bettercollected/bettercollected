@@ -25,7 +25,7 @@ export default function HintBox({ title, description, className, size = 'normal'
             <div className="relative">
                 <Hint className="absolute" fillColor={iconColor} />
                 <div className="ml-10">
-                    <div className={cn('h5-new', titleClassName)}>{title}</div>
+                    <div className={cn('h4-new', titleClassName)}>{title}</div>
                     <div className="p2 !text-new-black-800 mt-3">{description}</div>
                     {linkText && (
                         <div className="p2 !text-new-blue-500 mt-4 cursor-pointer" onClick={onLinkClick}>

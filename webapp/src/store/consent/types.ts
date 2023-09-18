@@ -1,4 +1,4 @@
-import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
+import { ConsentCategoryType, ConsentType, ResponseRetentionType } from '@app/models/enums/consentEnum';
 
 export interface IConsentField {
     consentId: string;
@@ -13,6 +13,8 @@ export interface IConsentState {
     form_id: string;
     consents: IConsentField[];
     privacy_policy?: string;
+    responseExpiration?: string;
+    responseExpirationType: ResponseRetentionType;
 }
 
 export interface IConsentAnswer extends IConsentField {

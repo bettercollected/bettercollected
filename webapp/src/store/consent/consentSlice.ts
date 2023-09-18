@@ -1,13 +1,30 @@
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { PayloadAction, createSlice } from '@reduxjs/toolkit';
 
-import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
+import { ConsentCategoryType, ConsentType, ResponseRetentionType } from '@app/models/enums/consentEnum';
 
 import { IConsentField, IConsentState } from './types';
 
 const initialState: IConsentState = {
     form_id: '',
-    consents: []
+    consents: [
+        {
+            consentId: 'consent_data_collection',
+            title: 'Data Collection',
+            description: 'We gather data from the responses you provide in our forms.',
+            type: ConsentType.Checkbox,
+            required: true,
+            category: ConsentCategoryType.PurposeOfTheForm
+        },
+        {
+            consentId: 'response_data_retention',
+            title: 'Forever',
+            type: ConsentType.Info,
+            category: ConsentCategoryType.DataRetention
+        }
+    ],
+    responseExpiration: '',
+    responseExpirationType: 'forever'
 };
 export const consent = createSlice({
     name: 'consent',
@@ -32,6 +49,12 @@ export const consent = createSlice({
         },
         setPrivacyPolicy: (state, action: PayloadAction<string>) => {
             return { ...state, privacy_policy: action.payload };
+        },
+        setResponseRetention: (state, action: PayloadAction<{ expiration?: string; expirationType: ResponseRetentionType }>) => {
+            return { ...state, responseExpiration: action.payload.expiration, responseExpirationType: action.payload.expirationType };
+        },
+        resetResponseRetention: (state) => {
+            return { ...state, responseExpiration: '', responseExpirationType: 'forever' };
         },
         resetConsentState: () => {
             return { ...initialState };

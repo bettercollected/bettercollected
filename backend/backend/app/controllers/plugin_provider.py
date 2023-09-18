@@ -17,7 +17,15 @@ from common.models.user import User
 log = logging.getLogger(__name__)
 
 
-@router(prefix="/providers", tags=["Form Providers"])
+@router(
+    prefix="/providers",
+    tags=["Form Providers"],
+    responses={
+        401: {"description": "Authorization token is missing."},
+        404: {"description": "Not Found"},
+        405: {"description": "Method not allowed"},
+    },
+)
 class PluginProviderRouter(Routable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,9 +41,6 @@ class PluginProviderRouter(Routable):
         "",
         status_code=HTTPStatus.CREATED,
         dependencies=[Depends(get_logged_admin)],
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def _add_provider(self, provider: FormProviderConfigDto):
         # TODO: Check admin user
@@ -45,9 +50,6 @@ class PluginProviderRouter(Routable):
         "/{provider_name}",
         status_code=HTTPStatus.ACCEPTED,
         dependencies=[Depends(get_logged_admin)],
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def _update_provider(
         self, provider_name: FormProvider, provider: FormProviderConfigDto

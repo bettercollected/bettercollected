@@ -29,19 +29,19 @@ const Logo = ({ className, isLink = true, isClientDomain = false, isCustomDomain
     const locale = router?.locale === 'en' ? '' : `${router?.locale}/`;
     const isProAndIsWorkspaceAdmin = user ? user?.id === workspace?.ownerId && user?.plan === 'PRO' : false;
 
-    const customDomainUrl = isFooter ? 'https://bettercollected.com' : '/';
+    const customDomainUrl = isFooter ? '' : '/';
     const clientDomainUrl = `/${workspace?.workspaceName}`;
     const adminDomainUrl = `/${locale}${workspace?.workspaceName}/dashboard`;
 
     const url = isCustomDomain ? customDomainUrl : isClientDomain ? clientDomainUrl : adminDomainUrl;
 
     const logo = (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ">
             {/*<div className={`text-[20px] sm:text-[28px] font-semibold leading-8 ${className}`}>*/}
             {/*    <span className="text-brand-500">better</span>*/}
             {/*    <span className="text-black-900">collected.</span>*/}
             {/*</div>*/}
-            <BetterCollectedLogo />
+            <BetterCollectedLogo className={className} />
             {isProAndIsWorkspaceAdmin && showProTag && (
                 <div className="flex items-center rounded gap-[2px] h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
                     <Pro width={12} height={12} />

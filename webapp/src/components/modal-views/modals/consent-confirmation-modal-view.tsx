@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
+import ConsentModalTopBar from '@Components/Consent/ConsentModalTopBar';
 import ErrorText from '@Components/Consent/ErrorText';
 import HintBox from '@Components/Consent/Form/HintBox';
 import TermsAndCondition from '@Components/Consent/TermsAndCondition';
@@ -22,7 +23,7 @@ export interface ConsentConfirmationModalProps {
     privacyPolicyUrl?: string;
 }
 
-export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswers, privacyPolicyUrl }: ConsentConfirmationModalProps) {
+export default function ConsentConfirmationModalView({ onFormSubmit, consentAnswers, privacyPolicyUrl }: ConsentConfirmationModalProps) {
     const { closeModal } = useModal();
     const fullScreenModal = useFullScreenModal();
     const dispatch = useAppDispatch();
@@ -34,9 +35,9 @@ export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswe
         const formPurpose = Object.values(consentAnswers).filter((answer) => answer.category === ConsentCategoryType.PurposeOfTheForm).length !== 0;
         if (formPurpose) {
             return (
-                <TermsAndCondition onAgree={(checked) => setFormPurposeTermChecked(checked)}>
-                    <TermsAndCondition.Title>{`I have reviewed all the form's purposes.`}</TermsAndCondition.Title>
-                    <TermsAndCondition.Description>{`This confirms whether you've taken a moment to go through the stated intentions of the form before proceeding.`} </TermsAndCondition.Description>
+                <TermsAndCondition selected={formPurposeTermChecked} onAgree={(checked) => setFormPurposeTermChecked(checked)} className="border-b border-new-black-300 p-5">
+                    <TermsAndCondition.Title> {`I have reviewed all the form's purposes.`}</TermsAndCondition.Title>
+                    <TermsAndCondition.Description>{`This confirms whether you've taken a moment to go through the stated intentions of the form before proceeding.`}</TermsAndCondition.Description>
                 </TermsAndCondition>
             );
         }
@@ -60,10 +61,7 @@ export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswe
     };
     return (
         <form onSubmit={onSubmit} className="bg-white rounded-2xl w-fit md:w-[476px] h-content">
-            <div className="flex justify-between py-4 px-6 border-b border-black-200">
-                <div className="p2 !text-black-800">Purpose Of The Form</div>
-                <DropdownCloseIcon className="cursor-pointer" onClick={closeModal} />
-            </div>
+            <ConsentModalTopBar />
             <div className="pt-5 px-6">
                 <HintBox
                     size="small"
@@ -72,7 +70,7 @@ export default function ConsentConfirmationModaView({ onFormSubmit, consentAnswe
                     description={`This page ensures you've seen and understood the data usage you're granting. Your trust is essential, and we're here to protect your information.`}
                 />
                 {renderPurposeTermsAndConditon()}
-                <TermsAndCondition onAgree={(checked) => setPrivacyTermChecked(checked)}>
+                <TermsAndCondition selected={privacyTermChecked} onAgree={(checked) => setPrivacyTermChecked(checked)} className="border-b border-new-black-300 p-5">
                     <TermsAndCondition.Title>
                         I agree to the{' '}
                         <AnchorLink href={privacyPolicyUrl || ''} target="_blank" referrerPolicy="no-referrer" className="text-new-blue-500">

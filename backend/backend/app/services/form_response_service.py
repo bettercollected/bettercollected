@@ -236,6 +236,12 @@ class FormResponseService:
         )
         return responses_page
 
+    async def get_all_expiring_forms_responses(self):
+        return await self._form_response_repo.get_all_expiring_responses()
+
+    async def get_response_by_id(self, response_id: str):
+        return await self._form_response_repo.get_response(response_id=response_id)
+
     def decrypt_form_responses(
         self,
         workspace_id: PydanticObjectId,
@@ -277,3 +283,6 @@ class FormResponseService:
         return await self._form_response_repo.delete_form_response(
             form_id=form_id, response_id=response_id
         )
+
+    async def delete_response(self, response_id: str):
+        return await self._form_response_repo.delete_response(response_id=response_id)

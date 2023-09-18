@@ -38,7 +38,7 @@
     "src/**/*.jsx",
     "src/**/*.ts",
     "src/**/*.tsx"
-  ],
+, "src/Components/Consent/ConsentModalTopBar.tsx"  ],
   "exclude": [
     "node_modules",
     "build",

@@ -28,13 +28,15 @@ import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
 import AddMembersModal from './modals/add-members-modal';
 import AddRegexModal from './modals/add-regex-modal';
-import ConsentBuilderConfirmationModaView from './modals/consent-builder-confirmation-modal-view';
-import ConsentConfirmationModaView from './modals/consent-confirmation-modal-view';
+import ConsentBuilderConfirmationModalView from './modals/consent-builder-confirmation-modal-view';
+import ConsentConfirmationModalView from './modals/consent-confirmation-modal-view';
 import ConsentPurposeModalView from './modals/consent-purpose-modal-view';
+import ConsentRetentionModalView from './modals/consent-retention-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
 import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
+import FormBuilderTipsModalView from './modals/form-builder-tips-modal-view';
 import UserDeletionModal from './modals/user-deletion-modal';
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
@@ -87,12 +89,16 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <FormBuilderAddFieldModal {...modalProps} />;
         case 'FORM_BUILDER_SPOTLIGHT_VIEW':
             return <FormBuilderSpotlightModal {...modalProps} />;
+        case 'FORM_BUILDER_TIPS_MODAL_VIEW':
+            return <FormBuilderTipsModalView {...modalProps} />;
         case 'CONSENT_PURPOSE_MODAL_VIEW':
             return <ConsentPurposeModalView />;
         case 'CONSENT_CONFIRMATION_MODAL_VIEW':
-            return <ConsentConfirmationModaView {...modalProps} />;
+            return <ConsentConfirmationModalView {...modalProps} />;
         case 'CONSENT_BUILDER_CONFIRMATION_MODAL_VIEW':
-            return <ConsentBuilderConfirmationModaView {...modalProps} />;
+            return <ConsentBuilderConfirmationModalView {...modalProps} />;
+        case 'CONSENT_RETENTION_MODAL_VIEW':
+            return <ConsentRetentionModalView {...modalProps} />;
         default:
             return <></>;
     }
@@ -102,7 +108,6 @@ export default function ModalContainer() {
     const router = useRouter();
     const { view, isOpen, closeModal, modalProps } = useModal();
 
-    console.log({ isOpen });
     const dispatch = useAppDispatch();
 
     const closeModalHandler = useCallback(() => {
@@ -140,7 +145,7 @@ export default function ModalContainer() {
                 </div>
 
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
-                    <div data-testid="modal-view" className="relative z-50 inline-block w-full text-left align-middle md:w-fit ">
+                    <div data-testid="modal-view" className="relative z-50 inline-block w-full text-left align-middle md:w-fit max-h-[95vh]">
                         {
                             //@ts-ignore
                             view && renderModalContent(view, modalProps)

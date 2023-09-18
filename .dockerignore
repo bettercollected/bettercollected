@@ -1,0 +1,7 @@
+.git*
+auth
+backend
+common
+integrations
+temporal
+webapp

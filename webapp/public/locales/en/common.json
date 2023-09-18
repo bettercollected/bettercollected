@@ -385,13 +385,26 @@
     "NO_IMAGE": "No image available",
     "OF": "of",
     "ONBOARDING": {
+        "PRIVACY_FRIENDLY": "Privacy-friendly form builder",
+        "ADD_YOUR_ORGANIZATION": "Add Your Organization",
         "ADD_WORKSPACE": "Add your workspace",
         "DESCRIPTION": "Please create your workspace so that your team know you are here.",
         "TIME_MESSAGE": "It will only take few minutes",
-        "WELCOME_MESSAGE": "Welcome to BetterCollected.",
+        "WELCOME_MESSAGE": "Welcome to betterCollected.",
         "SUGGESTIONS": "suggestions:",
         "AVAILABLE": "Available",
-        "NOT_AVAILABLE": "Not Available"
+        "NOT_AVAILABLE": "Not Available",
+        "USE_SMALLCASE": "Use smallcase for your handle name",
+        "ERROR": {
+            "FILL_ORGANIZATION_NAME": "Please fill the organization name.",
+            "FILL_HANDLE_NAME": "Please fill the handle name",
+            "SPACE_NOT_ALLOWED":"Spaces are not allowed in this field",
+            "ALLOWED_CHARACTERS":"Allowed characters a-z, 0-9 and _",
+            "HANDLE_NAME_ALREADY_TAKEN":"Handle name already taken. Try another."
+        },
+        "BUTTON": {
+            "ADD_NOW": "Add Now"
+        }
     },
     "OR": "Or",
     "OTP_RENDERER": {

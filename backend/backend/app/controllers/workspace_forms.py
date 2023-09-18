@@ -22,12 +22,15 @@ from backend.app.models.response_dtos import (
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.router import router
 from backend.app.services.form_service import FormService
+from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.config import settings
+from common.models.consent import ResponseRetentionType
 from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm
+from common.models.standard_form import StandardForm, StandardFormSettings
 from common.models.user import User
+from loguru import logger
 
 
 @router(
@@ -35,18 +38,23 @@ from common.models.user import User
     tags=["Workspace Forms"],
     responses={
         400: {"description": "Bad request"},
+        401: {"description": "Authorization token is missing."},
+        404: {"description": "Not Found"},
+        405: {"description": "Method not allowed"},
     },
 )
 class WorkspaceFormsRouter(Routable):
     def __init__(
         self,
         form_service: FormService = container.form_service(),
+        temporal_service: TemporalService = container.temporal_service(),
         workspace_form_service: WorkspaceFormService = container.workspace_form_service(),
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
         self._form_service = form_service
+        self._temporal_service = temporal_service
         self.workspace_form_service = workspace_form_service
 
     @get("", response_model=Page[MinifiedForm])
@@ -64,9 +72,6 @@ class WorkspaceFormsRouter(Routable):
     @post(
         "",
         response_model=MinifiedForm,
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def create_form(
         self,
@@ -95,9 +100,6 @@ class WorkspaceFormsRouter(Routable):
     @patch(
         "/{form_id}",
         response_model=MinifiedForm,
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def patch_form(
         self,
@@ -157,13 +159,15 @@ class WorkspaceFormsRouter(Routable):
             form_files=form_files,
             user=user,
         )
+        if parsed_response.expiration_type not in [ResponseRetentionType.FOREVER, None]:
+            await self._temporal_service.add_scheduled_job_for_deleting_response(
+                response=response
+            )
+            logger.info("Add job for deletion response: " + response.response_id)
         return response.response_id
 
     @delete(
         "/{form_id}/response/{response_id}",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def delete_form_response(
         self,
@@ -208,9 +212,6 @@ class WorkspaceFormsRouter(Routable):
 
     @patch(
         "/{form_id}/settings",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def patch_settings_for_workspace(
         self,
@@ -227,9 +228,6 @@ class WorkspaceFormsRouter(Routable):
     @patch(
         "/{form_id}/groups/add",
         summary="Add form in group",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     @user_tag(tag=UserTagType.FORM_ADDED_TO_GROUP)
     async def patch_groups_for_form(
@@ -246,9 +244,6 @@ class WorkspaceFormsRouter(Routable):
     @delete(
         "/{form_id}/groups",
         summary="Delete form from group",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     async def delete_group_from_workspace(
         self,
@@ -263,9 +258,6 @@ class WorkspaceFormsRouter(Routable):
 
     @post(
         "/import/{provider}",
-        responses={
-            401: {"description": "Authorization token is missing."},
-        },
     )
     @user_tag(tag=UserTagType.FORM_IMPORTED)
     async def _import_form_to_workspace(
@@ -285,7 +277,6 @@ class WorkspaceFormsRouter(Routable):
         "/{form_id}",
         responses={
             404: {"description": "Bad Request"},
-            401: {"description": "Authorization token is missing."},
         },
     )
     async def _delete_form_from_workspace(

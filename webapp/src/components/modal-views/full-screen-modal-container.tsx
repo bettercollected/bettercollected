@@ -13,6 +13,7 @@ import { Transition } from '@app/components/ui/transition';
 
 import ConsentFullModalView from './full-screen-modals/consent-full-modal-view';
 import CreateConsentFullModalView from './full-screen-modals/create-consent-full-modal-view';
+import FormSettingFullModalView from './full-screen-modals/form-setting-full-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
 
@@ -32,6 +33,8 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
             return <CreateConsentFullModalView {...modalProps} />;
         case 'CONSENT_FULL_MODAL_VIEW':
             return <ConsentFullModalView {...modalProps} />;
+        case 'FORM_SETTINGS_FULL_MODAL_VIEW':
+            return <FormSettingFullModalView {...modalProps} />;
         default:
             return <></>;
     }

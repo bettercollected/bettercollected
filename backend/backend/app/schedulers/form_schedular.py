@@ -1,6 +1,7 @@
+import datetime
 from _socket import gaierror
 from http import HTTPStatus
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from aiohttp import ServerDisconnectedError, ClientConnectorError
 from beanie import PydanticObjectId
@@ -11,10 +12,13 @@ from backend.app.models.enum.update_status import UpdateStatus
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
+from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
 from common.constants import MESSAGE_FORBIDDEN
+from common.models.consent import ResponseRetentionType
+from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from common.services.jwt_service import JwtService
 
@@ -26,11 +30,13 @@ class FormSchedular:
         form_import_service: FormImportService,
         jwt_service: JwtService,
         temporal_service: TemporalService,
+        form_response_service: FormResponseService,
     ):
         self.form_provider_service = form_provider_service
         self.form_import_service = form_import_service
         self.jwt_service = jwt_service
         self.temporal_service = temporal_service
+        self.form_response_service = form_response_service
 
     async def update_form(
         self,
@@ -193,3 +199,12 @@ class FormSchedular:
             params={"user_ids": user_ids},
         )
         return await response.json()
+
+    async def delete_response(self, submission_id: str):
+        response = await self.form_response_service.delete_response(
+            response_id=submission_id
+        )
+        await self.temporal_service.delete_response_delete_schedule(
+            response_id=submission_id
+        )
+        return response

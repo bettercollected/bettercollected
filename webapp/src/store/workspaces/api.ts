@@ -162,13 +162,13 @@ export const workspacesApi = createApi({
         }),
         getWorkspaceNameSuggestions: builder.query<any, any>({
             query: (request) => ({
-                url: `/workspaces/suggest-handle/${request}`,
+                url: `/workspaces/${request.workspaceId}/suggest-handle/${request.title}`,
                 method: 'GET'
             })
         }),
         getWorkspaceNameAvailability: builder.query<any, any>({
             query: (request) => ({
-                url: `/workspaces/check-handle-availability/${request}`,
+                url: `/workspaces/${request.workspaceId}/check-handle-availability/${request.title}`,
                 method: 'GET'
             })
         }),
@@ -491,5 +491,5 @@ export const {
     useAddFormOnGroupMutation,
     useDeleteResponderFromGroupMutation,
     useDeleteGroupFormMutation,
-    useUpdateResponderGroupMutation,
+    useUpdateResponderGroupMutation
 } = workspacesApi;

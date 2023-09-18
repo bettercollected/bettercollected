@@ -19,6 +19,7 @@ from backend.app.schemas.standard_form_response import (
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 from common.base.repo import BaseRepository
 from common.enums.form_provider import FormProvider
+from common.models.consent import ResponseRetentionType
 from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
 from common.models.user import User
 from common.services.crypto_service import crypto_service
@@ -271,3 +272,15 @@ class FormResponseRepository(BaseRepository):
             }
         )
         return str(response_id)
+
+    async def get_all_expiring_responses(self):
+        return await FormResponseDocument.find(
+            {"expiration_type": {"$in": ["date", "days"]}}
+        ).to_list()
+
+    async def delete_response(self, response_id: str):
+        await FormResponseDocument.find_one({"response_id": response_id}).delete()
+        return response_id
+
+    async def get_response(self, response_id: str):
+        return await FormResponseDocument.find_one({"response_id": response_id})
