@@ -2,7 +2,7 @@ name: Test endpoints using schemathesis
 
 on:
   schedule:
-    - cron: "*/1 * * * *"
+    - cron: "*/10 * * * *"
 
 jobs:
   schemathesis:
