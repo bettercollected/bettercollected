@@ -168,14 +168,10 @@ jobs:
         run: |
           SERVICE_TAG=${SERVICE_TAG//\//-}
           if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
-            DOCKER_HOST=${{ vars.DEVELOP_HOST }}
-            DOCKER_STACK=${{ vars.DEVELOP_STACK }}
-            docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
+            DOCKER_HOST=${{ vars.DEVELOP_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${{ vars.DEVELOP_STACK }}_${SERVICE_TAG}
           fi
           if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-            DOCKER_HOST=${{ vars.PROD_HOST }}
-            DOCKER_STACK=${{ vars.PROD_STACK }}
-            docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
+            DOCKER_HOST=${{ vars.PROD_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${{ vars.PROD_STACK }}_${SERVICE_TAG}
           fi
 
 
