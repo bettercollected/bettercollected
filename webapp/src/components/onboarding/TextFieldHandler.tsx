@@ -1,16 +1,19 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import _ from 'lodash';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
 
 import environments from '@app/configs/environments';
+import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { FormDataDto } from '@app/containers/Onboarding';
+import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceNameAvailabilityQuery } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import { InfoIcon } from '../icons/info-icon';
-import { useTranslation } from 'next-i18next';
-import { onBoarding } from '@app/constants/locales/onboarding-screen';
 
 interface ITextFieldHandler {
     formData: FormDataDto;
@@ -22,6 +25,7 @@ interface ITextFieldHandler {
 const TextFieldHandler = ({ formData, workspaceNameSuggestion, setFormData, errorWorkspaceName }: ITextFieldHandler) => {
     const [getWorkspaceAvailability, { isLoading: isCheckingHandleName }] = useLazyGetWorkspaceNameAvailabilityQuery();
     const { t } = useTranslation();
+    const workspace = useAppSelector(selectWorkspace);
 
     useEffect(() => {
         if (errorWorkspaceName) {
@@ -49,7 +53,11 @@ const TextFieldHandler = ({ formData, workspaceNameSuggestion, setFormData, erro
     );
 
     const getAvailabilityStatusOfWorkspaceName = async (workspace_name: string | null) => {
-        const { isSuccess, data } = await getWorkspaceAvailability(workspace_name);
+        const request = {
+            workspaceId: workspace.id,
+            title: workspace_name
+        };
+        const { isSuccess, data } = await getWorkspaceAvailability(request);
         if (isSuccess) {
             return data === 'True';
         }
