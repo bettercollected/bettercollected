@@ -13,13 +13,13 @@ import { toast } from 'react-toastify';
 import AuthNavbar from '@app/components/auth/navbar';
 import { InfoIcon } from '@app/components/icons/info-icon';
 import TextFieldHandler from '@app/components/onboarding/TextFieldHandler';
+import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppDispatch } from '@app/store/hooks';
 import { useCreateWorkspaceMutation, useLazyGetWorkspaceNameAvailabilityQuery, useLazyGetWorkspaceNameSuggestionsQuery, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
-import { onBoarding } from '@app/constants/locales/onboarding-screen';
 
 interface onBoardingProps {
     workspace?: WorkspaceDto;
@@ -134,7 +134,11 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
 
     const fetchSuggestionsForWorkspaceHandle = async (e: any) => {
         if (!!e.target.value) {
-            const { isSuccess, data } = await trigger(e.target.value.toLowerCase());
+            const request = {
+                workspaceId: workspace?.id,
+                title: e.target.value.toLowerCase()
+            };
+            const { isSuccess, data } = await trigger(request);
             if (isSuccess) {
                 const suggestion = data[Math.floor(Math.random() * 4) + 1];
                 setWorkspaceNameSuggestion(suggestion);
@@ -173,10 +177,10 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
                             <></>
                         )}
                     </div>
-                    <TextFieldHandler formData={formData} workspaceNameSuggestion={workspaceNameSuggestion} setFormData={setFormData} errorWorkspaceName={errorWorkspaceName}/>
+                    <TextFieldHandler formData={formData} workspaceNameSuggestion={workspaceNameSuggestion} setFormData={setFormData} errorWorkspaceName={errorWorkspaceName} />
                     <AppTextField title="Add Your Organization Description" id="description" placeholder="Write Description" multiline value={formData.description} onChange={handleOnchange} />
                     <AppButton className="!w-full bg-new-blue-500 !py-3 !px-8 !mt-12 hover:bg-brand-600" type="submit">
-                    {t(onBoarding.addNowButton)}
+                        {t(onBoarding.addNowButton)}
                     </AppButton>
                 </form>
             </div>
