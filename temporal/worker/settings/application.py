@@ -11,6 +11,7 @@ class ApplicationSettings(BaseSettings):
     api_key: str = "random_api_key"
     aes_hex_key: str = ""
     worker_queue: str = "default"
+    workers: int = 10
 
 
 settings = ApplicationSettings()

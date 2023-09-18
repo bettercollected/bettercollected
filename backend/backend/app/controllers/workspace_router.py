@@ -95,26 +95,27 @@ class WorkspaceRouter(Routable):
         )
 
     @get(
-        "/check-handle-availability/{workspace_name}",
+        "/{workspace_id}/check-handle-availability/{workspace_name}",
         response_model=str,
     )
     async def check_handle_availability(
-        self, workspace_name: str, user: User = Depends(get_user_if_logged_in)
+        self, workspace_name: str, workspace_id: PydanticObjectId, user: User = Depends(get_user_if_logged_in)
     ):
         return await self.workspace_service.check_if_workspace_handle_is_unique(
-            workspace_name
+            workspace_name, workspace_id
         )
 
     @get(
-        "/suggest-handle/{workspace_name}",
+        "/{workspace_id}/suggest-handle/{workspace_name}",
         response_model=List[str],
     )
     async def suggest_handles(
-        self, workspace_name: str, user: User = Depends(get_user_if_logged_in)
+        self, workspace_name: str,workspace_id: PydanticObjectId, user: User = Depends(get_user_if_logged_in)
     ):
         suggestion_list = (
             await self.workspace_service.generateUniqueNamesFromTheWorkspaceHandle(
-                workspace_name
+                workspace_name,
+                workspace_id
             )
         )
         return suggestion_list

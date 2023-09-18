@@ -1,13 +1,11 @@
 version: '3.7'
-networks:
-    db:
+
 volumes:
     mongo-data:
+
 services:
     mongodb:
         image: mongo:latest
-        networks:
-            - db
         environment:
             MONGO_INITDB_ROOT_USERNAME: root
             MONGO_INITDB_ROOT_PASSWORD: root
@@ -21,17 +19,16 @@ services:
         build:
             context: .
             dockerfile: Dockerfile.local.mongo-seed
-        networks:
-            - db
+
         depends_on:
             - mongodb
+        restart: on-failure
+        
 
     nginx:
         image: nginx
-        networks:
-            - frontend
         volumes:
-            - ./nginx-deployment.conf:/etc/nginx/conf.d/nginx.conf:ro
+            - ./nginx-local.conf:/etc/nginx/conf.d/nginx.conf:ro
         ports:
             - '3001:3001'
             - '3002:3002'

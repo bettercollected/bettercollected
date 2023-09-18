@@ -227,7 +227,7 @@ class WorkspaceFormsRouter(Routable):
         return form
 
     @get(
-        "/{form_id}/{version}",
+        "/{form_id}/versions/{version}",
         response_model=MinifiedForm
     )
     async def get_form_with_version(self, workspace_id: PydanticObjectId, form_id: str,

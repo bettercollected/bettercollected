@@ -71,24 +71,25 @@ class UserRepository:
         profile_image: Optional[str] = None,
     ) -> UserDocument:
         user_document = await UserRepository.get_user_by_email(email)
+        roles = [Roles.FORM_RESPONDER]
+        if creator:
+            roles.append(Roles.FORM_CREATOR)
         if not user_document:
-            roles = [Roles.FORM_RESPONDER]
-            if creator:
-                roles.append(Roles.FORM_CREATOR)
             user_document = UserDocument(
                 email=email,
                 roles=roles,
                 otp_code=otp_code,
                 otp_expiry=otp_expiry,
             )
-            user_document = await user_document.save()
-        if creator and Roles.FORM_CREATOR not in user_document.roles:
-            user_document.roles.append(Roles.FORM_CREATOR)
-            await user_document.save()
+        if user_document.roles:
+            if creator and Roles.FORM_CREATOR not in user_document.roles:
+                user_document.roles.append(Roles.FORM_CREATOR)
+        else:
+            user_document.roles = roles
         if not (
-            user_document.first_name
-            and user_document.last_name
-            and user_document.profile_image
+                user_document.first_name
+                and user_document.last_name
+                and user_document.profile_image
         ) and (first_name or last_name or profile_image):
             user_document.first_name = (
                 first_name if first_name else user_document.first_name
@@ -99,8 +100,7 @@ class UserRepository:
             user_document.profile_image = (
                 profile_image if profile_image else user_document.profile_image
             )
-            user_document = await user_document.save()
-        return user_document
+        return await user_document.save()
 
     @staticmethod
     async def clear_user_otp(user: UserDocument):

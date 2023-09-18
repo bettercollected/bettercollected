@@ -242,11 +242,12 @@ class WorkspaceService:
         saved_workspace = await workspace_document.save()
         return WorkspaceResponseDto(**saved_workspace.dict())
 
-    async def generateUniqueNamesFromTheWorkspaceHandle(self, handle: str):
+    async def generateUniqueNamesFromTheWorkspaceHandle(self, handle: str, workspace_id: PydanticObjectId):
         suggestions = []
         clean_workspace_name = re.sub(r"\W+", "", handle)
         is_valid_workspace_handle = await self.check_if_workspace_handle_is_unique(
-            clean_workspace_name
+            clean_workspace_name,
+            workspace_id
         )
         if is_valid_workspace_handle:
             suggestions.append(clean_workspace_name)
@@ -254,7 +255,8 @@ class WorkspaceService:
         while 1:
             workspace_suggestion = clean_workspace_name + str(i)
             is_valid_workspace_handle = await self.check_if_workspace_handle_is_unique(
-                workspace_suggestion
+                workspace_suggestion,
+                workspace_id
             )
             if is_valid_workspace_handle:
                 suggestions.append(workspace_suggestion)
@@ -263,9 +265,10 @@ class WorkspaceService:
             i += 1
         return suggestions
 
-    async def check_if_workspace_handle_is_unique(self, title: str):
-        workspace_title = await WorkspaceDocument.find_one({"workspace_name": title})
-        if workspace_title:
+    async def check_if_workspace_handle_is_unique(self, title: str, workspace_id: PydanticObjectId):
+        current_workspace = await WorkspaceDocument.find_one({"_id": workspace_id})
+        available_workspace = await WorkspaceDocument.find_one({"workspace_name": title})
+        if available_workspace and not available_workspace == current_workspace:
             return False
         return True
 

@@ -28,7 +28,7 @@ const ConsentInput = forwardRef<HTMLDivElement, ConsentInputProps>((props, ref) 
     return (
         <div className={cn('space-y-3', className)}>
             {title && (
-                <div className="h5-new">
+                <div className="h4-new">
                     {title} {required && <span className="text-pink ml-2">*</span>}
                 </div>
             )}

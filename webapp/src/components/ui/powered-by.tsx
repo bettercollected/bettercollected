@@ -45,12 +45,10 @@ export default function PoweredBy({ isFormCreatorPortal }: IPoweredByProps) {
                     </Tooltip>
                 </AnchorLink>
             ) : (
-                <AnchorLink href={'/pricing-plans'} target="_blank" className="w-fit outline-none">
-                    <div className="px-3 fixed bottom-10 right-20 py-2 flex gap-2 bg-white items-center rounded shadow-hover cursor-pointer">
-                        <span className="body3 text-black-700">Powered by:</span>
-                        <Logo showProTag={false} isLink={false} isCustomDomain className="h-[14px] w-fit" />
-                    </div>
-                </AnchorLink>
+                <div className="px-3 fixed bottom-10 right-20 py-2 flex gap-2 bg-white items-center rounded shadow-hover cursor-pointer">
+                    <span className="body3 text-black-700">Powered by:</span>
+                    <Logo showProTag={false} isLink={false} isCustomDomain className="h-[14px] w-fit" />
+                </div>
             )}
         </>
     );

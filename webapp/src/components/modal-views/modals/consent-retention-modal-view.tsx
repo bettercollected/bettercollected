@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import ConsentInput from '@Components/Consent/Builder/ConsentInput';
@@ -16,11 +16,14 @@ import { useModal } from '../context';
 export interface ConsentRetentionModalProps {
     type: ResponseRetentionType;
 }
+
 export default function ConsentRetentionModalView({ type }: ConsentRetentionModalProps) {
     const [isChecked, setIsChecked] = useState(false);
     const [days, setDays] = useState<string>();
     const [date, setDate] = useState<string>();
     const { closeModal } = useModal();
+
+    const ref = useRef<HTMLInputElement>(null);
 
     const dispatch = useAppDispatch();
     const handleDayChange = (event: any) => {
@@ -29,6 +32,17 @@ export default function ConsentRetentionModalView({ type }: ConsentRetentionModa
     const handleDateChange = (event: any) => {
         setDate(event.target.value);
     };
+    useEffect(() => {
+        const blockEscape = (event: KeyboardEvent) => {
+            if (event.key == 'Escape') {
+                event.stopPropagation();
+            }
+        };
+        document.addEventListener('keydown', blockEscape);
+        return () => {
+            document.removeEventListener('keydown', blockEscape);
+        };
+    }, []);
 
     const handleSubmit = (event: any) => {
         event.preventDefault();
@@ -58,10 +72,12 @@ export default function ConsentRetentionModalView({ type }: ConsentRetentionModa
 
     const renderInputComponent = () => {
         if (type === 'days') {
-            return <ConsentInput type="number" showIcon={false} title="For how many days you want to store user data" placeholder="Enter number of days" onChange={handleDayChange} InputProps={{ inputProps: { min: 1 } }} />;
+            return <ConsentInput ref={ref} type="number" autoFocus showIcon={false} title="For how many days you want to store user data" placeholder="Enter number of days" onChange={handleDayChange} InputProps={{ inputProps: { min: 1 } }} />;
         }
         return (
             <ConsentInput
+                autoFocus
+                ref={ref}
                 type="date"
                 title="Choose a specific date until which data will be retained"
                 placeholder="Select date"
@@ -81,7 +97,7 @@ export default function ConsentRetentionModalView({ type }: ConsentRetentionModa
                     onAgree={(checked) => {
                         setIsChecked(checked);
                     }}
-                    selected={false}
+                    selected={isChecked}
                     className=""
                 >
                     {`I understand that responders data will be automatically deleted after ${type === 'days' ? days + ' days.' : date}`}

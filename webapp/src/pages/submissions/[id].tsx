@@ -54,7 +54,6 @@ export default function Submission(props: any) {
     });
 
     const form: any = data ?? [];
-    console.log(form);
     const handleRequestForDeletion = async () => {
         if (workspace && workspace.id && submissionId) {
             try {

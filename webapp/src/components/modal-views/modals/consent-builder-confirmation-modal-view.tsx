@@ -1,27 +1,17 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 
-import { useRouter } from 'next/router';
+import {useRouter} from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import ConsentModalTopBar from '@Components/Consent/ConsentModalTopBar';
 import ErrorText from '@Components/Consent/ErrorText';
 import HintBox from '@Components/Consent/Form/HintBox';
 import TermsAndCondition from '@Components/Consent/TermsAndCondition';
-
-import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
 import useForm from '@app/lib/hooks/use-form';
-import { ConsentCategoryType } from '@app/models/enums/consentEnum';
-import { resetConsentState } from '@app/store/consent/actions';
-import { selectConsentState } from '@app/store/consent/selectors';
-import { IConsentAnswer, IConsentField } from '@app/store/consent/types';
-import { resetFillForm } from '@app/store/fill-form/slice';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { usePublishFormMutation } from '@app/store/workspaces/api';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-
-import { useModal } from '../context';
-import { useFullScreenModal } from '../full-screen-modal-context';
+import {selectBuilderState} from '@app/store/form-builder/selectors';
+import {useAppSelector} from '@app/store/hooks';
+import {usePublishFormMutation} from '@app/store/workspaces/api';
+import {selectWorkspace} from '@app/store/workspaces/slice';
 
 export default function ConsentBuilderConfirmationModalView() {
     const router = useRouter();
@@ -41,6 +31,17 @@ export default function ConsentBuilderConfirmationModalView() {
         </TermsAndCondition>
     );
 
+    useEffect(() => {
+        const blockEscape = (event: KeyboardEvent) => {
+            if (event.key == 'Escape') {
+                event.stopPropagation();
+            }
+        };
+        document.addEventListener('keydown', blockEscape);
+        return () => {
+            document.removeEventListener('keydown', blockEscape);
+        };
+    }, []);
     const onSubmit = async (event: any) => {
         event.preventDefault();
         if (!formPurposeTermChecked) {
@@ -64,7 +65,10 @@ export default function ConsentBuilderConfirmationModalView() {
                     title={`You care about your Responders' data`}
                     description={`Make sure you have clearly mentioned all the purposes for which data is being collected in your form, as well as all third-party apps integrated with your platform.`}
                 />
-                {formPurposeTermsAndConditionDetails}
+                <TermsAndCondition selected={formPurposeTermChecked} onAgree={handleFormPurposeTermChange} className="border-b border-new-black-300 p-5">
+                    <TermsAndCondition.Title>{`I have mentioned all the form's purposes.`}</TermsAndCondition.Title>
+                    <TermsAndCondition.Description>{`This confirms that you have clearly mentioned all the purposes for which data is being collected in your forms.`}</TermsAndCondition.Description>
+                </TermsAndCondition>
             </div>
             <div className="p-10">
                 {error && <ErrorText text="Please accept all terms and conditions before proceeding." />}
