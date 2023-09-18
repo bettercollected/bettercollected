@@ -268,7 +268,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                 isUpdating={posting || patching}
             />
             {showCover && <FormCoverComponent setIsCoverClicked={setShowCover} imagesRemoved={imagesRemoved} setImagesRemoved={setImagesRemoved} />}
-            <div className="h-full w-full max-w-4xl mx-auto py-10">
+            <div className="h-full w-full max-w-4xl mx-auto py-12">
                 {showLogo && <FormLogoComponent setIsLogoClicked={setShowLogo} className={showCover ? '-mt-[90px]' : ''} imagesRemoved={imagesRemoved} setImagesRemoved={setImagesRemoved} />}
                 <div className="flex flex-col gap-2 px-5 md:px-[89px]">
                     {builderTitleAndDescriptionList.map((b: IBuilderTitleAndDescriptionObj) => (
@@ -301,7 +301,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
                         componentAttrs={{ setBackspaceCount }}
                         droppableId="form-builder"
                         droppableItems={Object.values(builderState.fields || {})}
-                        droppableClassName="pt-8"
+                        droppableClassName="pt-6"
                         onDragStartHandlerCallback={(start: DragStart, provided: ResponderProvided) => {}}
                         onDragUpdateHandlerCallback={(update: DragUpdate, provided: ResponderProvided) => {}}
                         onDragEndHandlerCallback={(result: DropResult, provided: ResponderProvided) => {
