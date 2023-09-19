@@ -247,3 +247,11 @@ def mock_create_invitation_request():
         return httpx.Response(200, json={"data": "Mail sent successfully!!"})
 
     return patch("httpx.AsyncClient.get", side_effect=send_email_for_invitation)
+
+
+@pytest.fixture()
+def mock_get_workspace_by_query():
+    def get_workspace_by_query(*args, **kwargs):
+        return httpx.Response(200, json={"workspace_owner": proUser.dict()})
+
+    return patch("httpx.AsyncClient.get", side_effect=get_workspace_by_query)
