@@ -16,6 +16,7 @@ export interface IGetWorkspaceSubmissionQuery {
 export interface ISearchWorkspaceFormsQuery {
     workspace_id: string;
     query: string;
+    published?: boolean;
 }
 
 export interface IPatchFormSettingsRequest {
