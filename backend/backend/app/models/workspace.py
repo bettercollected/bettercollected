@@ -52,3 +52,4 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     dashboard_access: Optional[bool]
     disabled: Optional[bool]
     default: Optional[bool]
+    is_pro: Optional[bool]
