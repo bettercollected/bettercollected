@@ -64,7 +64,7 @@ class WorkspaceFormsRouter(Routable):
         workspace_id: PydanticObjectId,
         sort: SortRequest = Depends(),
         user: User = Depends(get_user_if_logged_in),
-        published: bool = False
+        published: bool = False,
     ) -> Page[MinifiedForm]:
         forms = await self._form_service.get_forms_in_workspace(
             workspace_id=workspace_id, sort=sort, published=published, user=user
@@ -129,16 +129,15 @@ class WorkspaceFormsRouter(Routable):
         )
         return StandardFormCamelModel(**response.dict())
 
-    @post(
-        "/{form_id}/publish",
-        response_model=MinifiedForm
-    )
-    async def publish_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
-                           user: User = Depends(get_logged_user)):
+    @post("/{form_id}/publish", response_model=MinifiedForm)
+    async def publish_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ):
         form = await self.workspace_form_service.publish_form(
-            workspace_id=workspace_id,
-            form_id=form_id,
-            user=user
+            workspace_id=workspace_id, form_id=form_id, user=user
         )
         form_dict = form.dict()
         form_dict["form_id"] = str(form_id)
@@ -227,14 +226,17 @@ class WorkspaceFormsRouter(Routable):
         form = await self._form_service.get_form_by_id(workspace_id, form_id, user)
         return form
 
-    @get(
-        "/{form_id}/versions/{version}",
-        response_model=MinifiedForm
-    )
-    async def get_form_with_version(self, workspace_id: PydanticObjectId, form_id: str,
-                                    version: FormVersion | int, user: User = Depends(get_user_if_logged_in)):
-        return await self._form_service.get_form_by_version(workspace_id=workspace_id, form_id=form_id, version=version,
-                                                            user=user)
+    @get("/{form_id}/versions/{version}", response_model=MinifiedForm)
+    async def get_form_with_version(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        version: FormVersion | int,
+        user: User = Depends(get_user_if_logged_in),
+    ):
+        return await self._form_service.get_form_by_version(
+            workspace_id=workspace_id, form_id=form_id, version=version, user=user
+        )
 
     @patch(
         "/{form_id}/settings",
