@@ -95,30 +95,29 @@ class FormService:
         return await response.json()
 
     async def search_form_in_workspace(
-        self, workspace_id: PydanticObjectId, query: str, user: User
+        self, workspace_id: PydanticObjectId, query: str, published: bool, user: User
     ):
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id, is_not_admin=True, user=user
         )
         forms = await self._form_repo.search_form_in_workspace(
-            workspace_id=workspace_id, form_ids=form_ids, query=query
+            workspace_id=workspace_id, form_ids=form_ids, query=query, published=published
         )
 
-        user_ids = [form["imported_by"] for form in forms]
-
-        user_details = (
-            {"users_info": []}
-            if not user_ids
-            else await self.fetch_user_details(user_ids=user_ids)
-        )
-
-        for form in forms:
-            for user_info in user_details["users_info"]:
-                if form["imported_by"] == user.id:
-                    form["importer_details"] = FormImporterDetails(
-                        **user_info, id=form["imported_by"]
-                    )
-                    break
+        if published:
+            user_ids = [form["imported_by"] for form in forms]
+            user_details = (
+                {"users_info": []}
+                if not user_ids
+                else await self.fetch_user_details(user_ids=user_ids)
+            )
+            for form in forms:
+                for user_info in user_details["users_info"]:
+                    if form["imported_by"] == user.id:
+                        form["importer_details"] = FormImporterDetails(
+                            **user_info, id=form["imported_by"]
+                        )
+                        break
         return [MinifiedForm(**form) for form in forms]
 
     async def get_form_by_id(

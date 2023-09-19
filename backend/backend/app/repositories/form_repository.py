@@ -112,21 +112,21 @@ class FormRepository:
             {"$sort": {"version": -1}},
             {"$group": {"_id": "$form_id", "latestVersion": {"$first": "$$ROOT"}}},
             {"$replaceRoot": {"newRoot": "$latestVersion"}},
-            # {
-            #     "$lookup": {
-            #         "from": "workspace_forms",
-            #         "localField": "form_id",
-            #         "foreignField": "form_id",
-            #         "as": "workspace_form",
-            #     }
-            # },
-            # {"$unwind": "$workspace_form"},
-            # {"$match": {"workspace_form.workspace_id": workspace_id}},
-            # {
-            #     "$set": {
-            #         "settings": "$workspace_form.settings",
-            #     }
-            # },
+            {
+                "$lookup": {
+                    "from": "workspace_forms",
+                    "localField": "form_id",
+                    "foreignField": "form_id",
+                    "as": "workspace_form",
+                }
+            },
+            {"$unwind": "$workspace_form"},
+            {"$match": {"workspace_form.workspace_id": workspace_id}},
+            {
+                "$set": {
+                    "settings": "$workspace_form.settings",
+                }
+            },
         ]
         aggregation_pipeline.extend(create_filter_pipeline(sort=sort))
         form_versions_query = FormVersionsDocument.find(
@@ -135,10 +135,13 @@ class FormRepository:
         return form_versions_query
 
     async def search_form_in_workspace(
-        self, workspace_id: PydanticObjectId, form_ids: List[str], query: str
+        self, workspace_id: PydanticObjectId, form_ids: List[str], query: str, published: bool = False
     ):
+        query_document = FormDocument
+        if published:
+            query_document = FormVersionsDocument
         return (
-            await FormDocument.find(
+            await query_document.find(
                 {
                     "form_id": {"$in": form_ids},
                     "$or": [
