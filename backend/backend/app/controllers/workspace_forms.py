@@ -64,9 +64,10 @@ class WorkspaceFormsRouter(Routable):
         workspace_id: PydanticObjectId,
         sort: SortRequest = Depends(),
         user: User = Depends(get_user_if_logged_in),
+        published: bool = False
     ) -> Page[MinifiedForm]:
         forms = await self._form_service.get_forms_in_workspace(
-            workspace_id, sort, user
+            workspace_id=workspace_id, sort=sort, published=published, user=user
         )
         return forms
 
