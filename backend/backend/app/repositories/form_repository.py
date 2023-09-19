@@ -105,25 +105,13 @@ class FormRepository:
         return forms
 
     @staticmethod
-    def get_published_forms_in_workspace(workspace_id: PydanticObjectId, form_id_list: List[str],
-                                         sort=None):
+    def get_published_forms_in_workspace(
+        workspace_id: PydanticObjectId, form_id_list: List[str], sort=None
+    ):
         aggregation_pipeline = [
-            {
-                '$sort': {
-                    'version': -1
-                }
-            }, {
-                '$group': {
-                    '_id': '$form_id',
-                    'latestVersion': {
-                        '$first': '$$ROOT'
-                    }
-                }
-            }, {
-                '$replaceRoot': {
-                    'newRoot': '$latestVersion'
-                }
-            },
+            {"$sort": {"version": -1}},
+            {"$group": {"_id": "$form_id", "latestVersion": {"$first": "$$ROOT"}}},
+            {"$replaceRoot": {"newRoot": "$latestVersion"}},
             # {
             #     "$lookup": {
             #         "from": "workspace_forms",
@@ -141,8 +129,9 @@ class FormRepository:
             # },
         ]
         aggregation_pipeline.extend(create_filter_pipeline(sort=sort))
-        form_versions_query = FormVersionsDocument.find({"form_id": {"$in": form_id_list}}).aggregate(
-            aggregation_pipeline=aggregation_pipeline)
+        form_versions_query = FormVersionsDocument.find(
+            {"form_id": {"$in": form_id_list}}
+        ).aggregate(aggregation_pipeline=aggregation_pipeline)
         return form_versions_query
 
     async def search_form_in_workspace(
@@ -212,13 +201,20 @@ class FormRepository:
         return await FormDocument.find_one({"form_id": form_id})
 
     async def get_latest_version_of_form(self, form_id: PydanticObjectId):
-        return await FormVersionsDocument.find({"form_id": form_id}).sort(
-            ("version", SortDirection.DESCENDING)).first_or_none()
+        return (
+            await FormVersionsDocument.find({"form_id": form_id})
+            .sort(("version", SortDirection.DESCENDING))
+            .first_or_none()
+        )
 
-    async def get_form_by_by_version(self, form_id: PydanticObjectId, version: FormVersion | int):
+    async def get_form_by_by_version(
+        self, form_id: PydanticObjectId, version: FormVersion | int
+    ):
         if version == FormVersion.latest:
             return await self.get_latest_version_of_form(form_id=form_id)
-        return await FormVersionsDocument.find_one({"form_id": form_id, "version": version})
+        return await FormVersionsDocument.find_one(
+            {"form_id": form_id, "version": version}
+        )
 
     async def publish_form(self, form: FormDocument, version: int):
         new_form_version = FormVersionsDocument(**form.dict(), version=version)

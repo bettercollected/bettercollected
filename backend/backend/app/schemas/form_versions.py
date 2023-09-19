@@ -21,5 +21,8 @@ class FormVersionsDocument(MongoDocument, StandardForm):
             dt.time: lambda o: dt.time.isoformat(o),
         }
         indexes = [
-            IndexModel([("form_id", pymongo.DESCENDING), ("version", pymongo.DESCENDING)], unique=True)
+            IndexModel(
+                [("form_id", pymongo.DESCENDING), ("version", pymongo.DESCENDING)],
+                unique=True,
+            )
         ]

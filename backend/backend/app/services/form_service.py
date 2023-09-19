@@ -41,7 +41,11 @@ class FormService:
         self.user_tags_service = user_tags_service
 
     async def get_forms_in_workspace(
-        self, workspace_id: PydanticObjectId, sort: SortRequest, published: bool, user: User
+        self,
+        workspace_id: PydanticObjectId,
+        sort: SortRequest,
+        published: bool,
+        user: User,
     ) -> Page[MinifiedForm]:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -180,9 +184,10 @@ class FormService:
                 if existing_form.created_at
                 else datetime.utcnow()
             )
-        existing_form_version = await FormVersionsDocument.find_one({"form_id": form.form_id})
-        form_version_document = FormVersionsDocument(**form
-                                                     .dict(), version=1)
+        existing_form_version = await FormVersionsDocument.find_one(
+            {"form_id": form.form_id}
+        )
+        form_version_document = FormVersionsDocument(**form.dict(), version=1)
         if existing_form_version:
             form_version_document.id = existing_form_version.id
             form_version_document.created_at = (
@@ -249,23 +254,41 @@ class FormService:
 
     async def publish_form(self, form_id: PydanticObjectId):
         form = await self._form_repo.get_form_document_by_id(str(form_id))
-        latest_published_form = await self._form_repo.get_latest_version_of_form(form_id)
+        latest_published_form = await self._form_repo.get_latest_version_of_form(
+            form_id
+        )
         if not self.has_form_been_updated(form, latest_published_form):
             return latest_published_form
-        return await self._form_repo.publish_form(form=form, version=(
-            latest_published_form.version + 1) if latest_published_form else 1)
+        return await self._form_repo.publish_form(
+            form=form,
+            version=(latest_published_form.version + 1) if latest_published_form else 1,
+        )
 
-    def has_form_been_updated(self, form: FormDocument, latest_version: FormVersionsDocument):
+    def has_form_been_updated(
+        self, form: FormDocument, latest_version: FormVersionsDocument
+    ):
         if not latest_version:
             return True
-        if form.title == latest_version.title and form.description == latest_version.description \
-            and form.consent == latest_version.consent and form.fields == latest_version.fields \
-            and form.logo == latest_version.logo and form.cover_image == latest_version.cover_image \
-            and form.button_text == latest_version.button_text and form.state == latest_version.state:
+        if (
+            form.title == latest_version.title
+            and form.description == latest_version.description
+            and form.consent == latest_version.consent
+            and form.fields == latest_version.fields
+            and form.logo == latest_version.logo
+            and form.cover_image == latest_version.cover_image
+            and form.button_text == latest_version.button_text
+            and form.state == latest_version.state
+        ):
             return False
         return True
 
-    async def get_form_by_version(self, workspace_id: PydanticObjectId, form_id: str, version: str | int, user: User):
+    async def get_form_by_version(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        version: str | int,
+        user: User,
+    ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
@@ -279,19 +302,20 @@ class FormService:
                     content="Private Form Login to continue",
                 )
 
-        workspace_forms = await self._workspace_form_repo.get_workspace_forms_in_workspace(
-            workspace_id=workspace_id,
-            is_not_admin=not is_admin,
-            user=user,
-            match_query={
-                "$or": [{"form_id": form_id}, {"settings.custom_url": form_id}]
-            },
+        workspace_forms = (
+            await self._workspace_form_repo.get_workspace_forms_in_workspace(
+                workspace_id=workspace_id,
+                is_not_admin=not is_admin,
+                user=user,
+                match_query={
+                    "$or": [{"form_id": form_id}, {"settings.custom_url": form_id}]
+                },
+            )
         )
 
         if not workspace_forms:
             return HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                content="Form not found"
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found"
             )
         workspace_form = workspace_forms[0]
         if workspace_form["settings"]["provider"] != "self":
@@ -307,7 +331,9 @@ class FormService:
                 )
             return form[0]
         else:
-            form = await self._form_repo.get_form_by_by_version(form_id=PydanticObjectId(form_id), version=version)
+            form = await self._form_repo.get_form_by_by_version(
+                form_id=PydanticObjectId(form_id), version=version
+            )
             if not form:
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"

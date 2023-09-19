@@ -433,13 +433,13 @@ class WorkspaceFormService:
             form_id=form_id, response_id=response_id
         )
 
-    async def publish_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User):
+    async def publish_form(
+        self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User
+    ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
-            workspace_id=workspace_id,
-            user=user
+            workspace_id=workspace_id, user=user
         )
-        return await self.form_service.publish_form(
-            form_id=form_id
-        )
+        return await self.form_service.publish_form(form_id=form_id)
+
 
 # async def upload_images_of_form

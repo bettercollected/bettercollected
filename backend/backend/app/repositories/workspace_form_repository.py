@@ -69,13 +69,14 @@ class WorkspaceFormRepository:
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
 
-    async def get_workspace_forms_in_workspace(self,
-                                               workspace_id: PydanticObjectId,
-                                               is_not_admin: bool = False,
-                                               user: User = None,
-                                               match_query: Dict[str, Any] = None,
-                                               id_only: bool = False
-                                               ) -> List[WorkspaceFormDocument]:
+    async def get_workspace_forms_in_workspace(
+        self,
+        workspace_id: PydanticObjectId,
+        is_not_admin: bool = False,
+        user: User = None,
+        match_query: Dict[str, Any] = None,
+        id_only: bool = False,
+    ) -> List[WorkspaceFormDocument]:
         try:
             query = {"workspace_id": workspace_id}
             if is_not_admin and not user:
@@ -161,9 +162,13 @@ class WorkspaceFormRepository:
         user: User = None,
         match_query: Dict[str, Any] = None,
     ):
-        workspace_forms = await self.get_workspace_forms_in_workspace(workspace_id=workspace_id,
-                                                                      is_not_admin=is_not_admin, user=user,
-                                                                      match_query=match_query, id_only=True)
+        workspace_forms = await self.get_workspace_forms_in_workspace(
+            workspace_id=workspace_id,
+            is_not_admin=is_not_admin,
+            user=user,
+            match_query=match_query,
+            id_only=True,
+        )
         return list(set([a["form_id"] for a in workspace_forms]))
 
     async def get_workspace_form_with_custom_slug_form_id(
