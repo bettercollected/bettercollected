@@ -61,15 +61,29 @@ class WorkspaceService:
 
     async def get_workspace_by_query(self, query: str, user: User):
         workspace = await self._workspace_repo.get_workspace_by_query(query)
+        is_workspace_owner_pro = await self.check_if_workspace_user_is_pro(workspace.owner_id)
         if user:
             try:
                 await self._workspace_user_service.check_user_has_access_in_workspace(
                     workspace_id=workspace.id, user=user
                 )
-                return WorkspaceResponseDto(**workspace.dict(), dashboard_access=True)
+                return WorkspaceResponseDto(**workspace.dict(), dashboard_access=True, is_pro=is_workspace_owner_pro)
             except HTTPException:
                 pass
-        return WorkspaceResponseDto(**workspace.dict())
+        return WorkspaceResponseDto(**workspace.dict(), is_pro=is_workspace_owner_pro)
+
+    async def check_if_workspace_user_is_pro(self, owner_id: str):
+        workspace_owner = await self.http_client.get(
+            settings.auth_settings.BASE_URL + "/auth/status",
+            params={
+                "user_id": owner_id,
+            },
+            timeout=180,
+        )
+        if workspace_owner["plan"] == Plans.FREE:
+            return False
+        else:
+            return True
 
     async def create_non_default_workspace(
         self,
