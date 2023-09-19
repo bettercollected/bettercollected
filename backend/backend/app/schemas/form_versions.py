@@ -1,7 +1,6 @@
 import datetime as dt
 
 import pymongo
-from beanie import PydanticObjectId
 from pymongo import IndexModel
 
 from backend.app.handlers.database import entity
@@ -10,9 +9,9 @@ from common.models.standard_form import StandardForm
 
 
 @entity
-class FormVersions(MongoDocument, StandardForm):
+class FormVersionsDocument(MongoDocument, StandardForm):
     version: int
-    form_id: PydanticObjectId
+    form_id: str
 
     class Settings:
         name = "form_versions"

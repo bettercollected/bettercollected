@@ -12,12 +12,13 @@ from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
 )
 from backend.app.models.enum.user_tag_enum import UserTagType
+from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
-from backend.app.schemas.form_versions import FormVersions
+from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
@@ -40,7 +41,7 @@ class FormService:
         self.user_tags_service = user_tags_service
 
     async def get_forms_in_workspace(
-        self, workspace_id, sort, user
+        self, workspace_id: PydanticObjectId, sort: SortRequest, published: bool, user: User
     ) -> Page[MinifiedForm]:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -48,30 +49,37 @@ class FormService:
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id, not is_admin, user
         )
-        forms_query = self._form_repo.get_forms_in_workspace_query(
-            workspace_id=workspace_id,
-            form_id_list=workspace_form_ids,
-            is_admin=is_admin,
-            sort=sort,
-        )
+        if published:
+            forms_query = self._form_repo.get_published_forms_in_workspace(
+                workspace_id=workspace_id,
+                form_id_list=workspace_form_ids,
+                sort=sort,
+            )
+        else:
+            forms_query = self._form_repo.get_forms_in_workspace_query(
+                workspace_id=workspace_id,
+                form_id_list=workspace_form_ids,
+                is_admin=is_admin,
+                sort=sort,
+            )
 
         forms_page = await paginate(forms_query)
 
-        user_ids = [form.imported_by for form in forms_page.items]
+        if not published:
+            user_ids = [form.imported_by for form in forms_page.items]
+            user_details = (
+                {"users_info": []}
+                if not user_ids
+                else await self.fetch_user_details(user_ids=user_ids)
+            )
 
-        user_details = (
-            {"users_info": []}
-            if not user_ids
-            else await self.fetch_user_details(user_ids=user_ids)
-        )
-
-        for form in forms_page.items:
-            for user_info in user_details.get("users_info", []):
-                if form.imported_by == user_info["_id"]:
-                    form.importer_details = FormImporterDetails(
-                        **user_info, id=form.imported_by
-                    )
-                    break
+            for form in forms_page.items:
+                for user_info in user_details.get("users_info", []):
+                    if form.imported_by == user_info["_id"]:
+                        form.importer_details = FormImporterDetails(
+                            **user_info, id=form.imported_by
+                        )
+                        break
 
         return forms_page
 
@@ -172,6 +180,17 @@ class FormService:
                 if existing_form.created_at
                 else datetime.utcnow()
             )
+        existing_form_version = await FormVersionsDocument.find_one({"form_id": form.form_id})
+        form_version_document = FormVersionsDocument(**form
+                                                     .dict(), version=1)
+        if existing_form_version:
+            form_version_document.id = existing_form_version.id
+            form_version_document.created_at = (
+                existing_form_version.created_at
+                if existing_form_version.created_at
+                else datetime.utcnow()
+            )
+        await form_version_document.save()
         return await self._form_repo.save_form(form_document)
 
     async def patch_settings_in_workspace_form(
@@ -236,7 +255,7 @@ class FormService:
         return await self._form_repo.publish_form(form=form, version=(
             latest_published_form.version + 1) if latest_published_form else 1)
 
-    def has_form_been_updated(self, form: FormDocument, latest_version: FormVersions):
+    def has_form_been_updated(self, form: FormDocument, latest_version: FormVersionsDocument):
         if not latest_version:
             return True
         if form.title == latest_version.title and form.description == latest_version.description \
