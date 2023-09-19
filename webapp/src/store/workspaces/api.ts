@@ -197,6 +197,7 @@ export const workspacesApi = createApi({
                 url: `/workspaces/${body.workspace_id}/forms${!!body.form_id ? `/${body.form_id}` : ''}`,
                 method: 'GET',
                 params: {
+                    published: !!body.published,
                     page: body.page,
                     size: body.size
                 }
@@ -293,8 +294,12 @@ export const workspacesApi = createApi({
         }),
         searchWorkspaceForms: builder.mutation<Array<StandardFormDto>, ISearchWorkspaceFormsQuery>({
             query: (query) => ({
-                url: `/workspaces/${query.workspace_id}/forms/search?query=${query.query}`,
-                method: 'POST'
+                url: `/workspaces/${query.workspace_id}/forms/search`,
+                method: 'POST',
+                params: {
+                    query: query.query,
+                    published: !!query?.published
+                }
             })
         }),
         patchFormSettings: builder.mutation<any, IPatchFormSettingsRequest>({

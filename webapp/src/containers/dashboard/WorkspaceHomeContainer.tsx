@@ -49,8 +49,6 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
 
     if (!workspace) return <FullScreenLoader />;
 
-    const isFormCreator = isSuccess && data?.id === workspace?.ownerId;
-
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
         const domain = !!workspace.customDomain ? workspace.customDomain : environments.CLIENT_DOMAIN;
