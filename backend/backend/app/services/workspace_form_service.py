@@ -348,6 +348,10 @@ class WorkspaceFormService:
                 workspace_form.settings.privacy_policy_url = (
                     form.settings.privacy_policy_url
                 )
+            if form.settings.response_expiration is not None:
+                workspace_form.settings.response_expiration = form.settings.response_expiration
+            if form.settings.response_expiration_type is not None:
+                workspace_form.settings.response_expiration_type = form.settings.response_expiration_type
             await workspace_form.save()
 
         existing_form = await self.form_service.get_form_document_by_id(str(form_id))
