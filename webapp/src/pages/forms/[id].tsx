@@ -29,7 +29,11 @@ import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 export default function SingleFormPage(props: any) {
     const { back, slug, hasCustomDomain, workspace } = props;
 
-    const { data, isLoading, error } = useGetWorkspaceFormQuery({ workspace_id: workspace.id, custom_url: slug });
+    const { data, isLoading, error } = useGetWorkspaceFormQuery({
+        workspace_id: workspace.id,
+        custom_url: slug,
+        published: true
+    });
 
     const router = useRouter();
     const form: StandardFormDto | undefined = data;
