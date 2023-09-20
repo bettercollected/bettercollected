@@ -6,6 +6,7 @@ import LoadingIcon from '@Components/Common/Icons/Loading';
 import Share from '@Components/Common/Icons/Share';
 import Button from '@Components/Common/Input/Button';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
+import ThankYouPage from '@Components/Form/ThankYouPage';
 import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 
 import uploadImage from '@app/assets/images/upload.png';
@@ -15,6 +16,7 @@ import PoweredBy from '@app/components/ui/powered-by';
 import { formConstant } from '@app/constants/locales/form';
 import { Plan } from '@app/models/dtos/UserStatus';
 import { selectAuthStatus } from '@app/store/auth/selectors';
+import { selectConsentState } from '@app/store/consent/selectors';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { initialIBuilderState } from '@app/store/forms/slice';
@@ -23,18 +25,20 @@ import { useCreateFormMutation, usePatchFormMutation, workspacesApi } from '@app
 import { getFormUrl } from '@app/utils/urlUtils';
 
 import { useFullScreenModal } from '../full-screen-modal-context';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
-export default function FormBuilderPreviewModal({ publish }: { publish: () => void }) {
+export default function FormBuilderPreviewModal({ publish, isFormSubmitted = false }: { publish: () => void; isFormSubmitted: boolean }) {
     const [formToRender, setFormToRender] = useState(initialIBuilderState);
     const { closeModal } = useFullScreenModal();
     const builderState = useAppSelector(selectBuilderState);
+    const consentState = useAppSelector(selectConsentState);
     const { headerImages } = useFormBuilderAtom();
 
     const updateRequest = useAppSelector((state1) => state1.workspacesApi.mutations);
 
     const isLoading = updateRequest && updateRequest[Object.keys(updateRequest)[Object.keys(updateRequest).length - 1]]?.status === 'pending';
 
-    const auth = useAppSelector(selectAuthStatus);
+    const workspace = useAppSelector(selectWorkspace);
 
     useEffect(() => {
         if (builderState) {
@@ -58,6 +62,7 @@ export default function FormBuilderPreviewModal({ publish }: { publish: () => vo
             };
             previewForm.coverImage = headerImages.coverImage ? URL.createObjectURL(headerImages?.coverImage) : builderState?.coverImage;
             previewForm.logo = headerImages.logo ? URL.createObjectURL(headerImages.logo) : builderState?.logo;
+            previewForm.consent = consentState.consents;
             setFormToRender(previewForm);
         }
     }, [builderState, headerImages]);
@@ -84,10 +89,8 @@ export default function FormBuilderPreviewModal({ publish }: { publish: () => vo
                     Publish
                 </div>
             </div>
-            <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6">
-                <BetterCollectedForm form={formToRender} enabled={true} preview={true} closeModal={closeModal} />
-            </div>
-            {auth?.plan === Plan.FREE && <PoweredBy isFormCreatorPortal={true} />}
+            <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6">{isFormSubmitted ? <ThankYouPage isDisabled={true} /> : <BetterCollectedForm form={formToRender} enabled={true} isPreview={true} closeModal={closeModal} />}</div>
+            {!workspace?.isPro && <PoweredBy isFormCreatorPortal={true} />}
         </div>
     );
 }
