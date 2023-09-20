@@ -45,8 +45,6 @@ export default function SingleFormPage(props: any) {
     const responderUri = form?.settings?.embedUrl || '';
     const { t } = useTranslation();
 
-    const auth = useAppSelector(selectAuthStatus);
-
     // @ts-ignore
     if (error && error?.status === 401) {
         return (
@@ -229,7 +227,7 @@ export default function SingleFormPage(props: any) {
                     </div>
                 )}
             </div>
-            {auth?.plan === Plan.FREE && <PoweredBy />}
+            {!workspace?.isPro && <PoweredBy />}
         </Layout>
     );
 }

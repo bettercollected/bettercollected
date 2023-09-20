@@ -95,8 +95,8 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
     );
 
     const getMarginTop = () => {
-        if (item.type === FormBuilderTagNames.LAYOUT_LABEL) return 'mt-2';
-        if (item.type === FormBuilderTagNames.LAYOUT_HEADER1 || item.type === FormBuilderTagNames.LAYOUT_HEADER2 || item.type === FormBuilderTagNames.LAYOUT_HEADER3 || item.type === FormBuilderTagNames.LAYOUT_HEADER4) return 'mt-4';
+        if (item.type === FormBuilderTagNames.LAYOUT_LABEL) return 'mt-3';
+        if (item.type === FormBuilderTagNames.LAYOUT_HEADER1 || item.type === FormBuilderTagNames.LAYOUT_HEADER2 || item.type === FormBuilderTagNames.LAYOUT_HEADER3 || item.type === FormBuilderTagNames.LAYOUT_HEADER4) return 'mt-3';
         return '';
     };
 
@@ -111,7 +111,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                     onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => onKeyDownCallback(event, provided)}
                     {...provided.draggableProps}
                 >
-                    <div className={`builder-block px-12 min-h-[40px] flex items-center md:px-[89px]`}>
+                    <div className={`builder-block px-12 min-h-[24px] flex items-center md:px-[89px] ${getMarginTop()}`}>
                         <FormBuilderActionMenu
                             index={item.position}
                             id={item.id}
@@ -125,7 +125,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                             <FormBuilderBlockContent id={`item-${item.id}`} type={item.type} position={item.position} field={item} />
                         ) : (
                             <div className="flex flex-col w-full relative">
-                                <div className={`w-full px-0 flex items-center min-h-[40px]`}>
+                                <div className={`w-full px-0 flex items-center min-h-[24px]`}>
                                     <CustomContentEditable
                                         id={`item-${item.id}`}
                                         tagName={item.type}
