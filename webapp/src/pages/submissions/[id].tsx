@@ -130,7 +130,7 @@ export default function Submission(props: any) {
                     </div>
                     <div className="flex-col-reverse lg:flex-row flex gap-5 lg:!gap-16 w-full pt-20">
                         <div className="bg-white rounded-xl w-full">
-                            <FormRenderer form={form.form} response={form.response} preview />
+                            <FormRenderer form={form.form} response={form.response} isDisabled />
                         </div>
                         <div className="flex flex-col-reverse justify-between lg:justify-start gap-10  lg:flex-col basis-1/4 ">
                             <div>
