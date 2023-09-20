@@ -23,6 +23,7 @@ export interface WorkspaceState {
     theme: BrandColor;
     title: string;
     workspaceName: string;
+    isPro: boolean;
 }
 
 const initialState: WorkspaceState = {
@@ -41,7 +42,8 @@ const initialState: WorkspaceState = {
         primary_color: '',
         accent_color: '',
         text_color: ''
-    }
+    },
+    isPro: false
 };
 
 export const slice = createSlice({

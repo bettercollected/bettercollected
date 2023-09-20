@@ -72,14 +72,14 @@ interface FormRendererProps {
     form: any;
     response?: any;
     enabled?: boolean;
-    preview?: boolean;
+    isDisabled?: boolean;
 }
 
 FormRenderer.defaultProps = {
     enabled: false
 };
 
-export default function FormRenderer({ form, response, enabled, preview = false }: FormRendererProps) {
+export default function FormRenderer({ form, response, enabled, isDisabled = false }: FormRendererProps) {
     const renderGridRowColumns = (question: any) => {
         const gridRowQuestions = question.properties?.fields;
         const gridColumnOptions = question.properties?.fields[0].properties.choices;
@@ -329,7 +329,7 @@ export default function FormRenderer({ form, response, enabled, preview = false 
     return (
         <div data-testid="form-renderer" className="relative  w-full  md:px-0">
             {form?.settings?.provider === 'self' ? (
-                <BetterCollectedForm form={form} response={response} enabled={enabled} isPreview={preview} />
+                <BetterCollectedForm form={form} response={response} enabled={enabled} isDisabled={isDisabled} />
             ) : (
                 <div className="flex flex-col gap-4 max-w-[700px]">
                     <div className="p-6 bg-white rounded-lg flex flex-col gap-4">
