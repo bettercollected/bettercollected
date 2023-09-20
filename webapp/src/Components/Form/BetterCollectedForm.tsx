@@ -46,14 +46,14 @@ export interface FormFieldProps {
 const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?: any) => {
     switch (field?.type) {
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
-            return <div className={contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
+        // return <div className={contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_HEADER3:
         case FormBuilderTagNames.LAYOUT_HEADER1:
         case FormBuilderTagNames.LAYOUT_HEADER4:
         case FormBuilderTagNames.LAYOUT_HEADER2:
-            return <div className={'!mt-8 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
+        // return <div className={'!mt-8 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_LABEL:
-            return <div className={'!mt-3 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
+            return <div className={contentEditableClassNames(false, field?.type) + ' mt-6 '}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_MARKDOWN:
             return <MarkdownText text={field.value ?? ''} />;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
@@ -89,14 +89,14 @@ interface IBetterCollectedFormProps {
     enabled?: boolean;
     isCustomDomain?: boolean;
     response?: StandardFormResponseDto;
-    preview?: boolean;
-    closeModal?: () => void;
     isPreview?: boolean;
+    closeModal?: () => void;
+    isDisabled?: boolean;
 }
 
-export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, preview = false, closeModal, isPreview = false }: IBetterCollectedFormProps) {
+export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, isPreview = false, closeModal, isDisabled = false }: IBetterCollectedFormProps) {
     const dispatch = useAppDispatch();
-    const { openModal } = useFullScreenModal();
+    const { openModal, closeModal: closeFullScreenModal } = useFullScreenModal();
     const [submitResponse] = useSubmitResponseMutation();
     const answers = useAppSelector(selectAnswers);
     const responseDataOwnerField = useAppSelector(selectFormResponderOwnerField);
@@ -106,6 +106,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const { files, resetFormFiles } = useFormAtom();
 
     const [isFormSubmitted, setIsFormSubmitted] = useState(false);
+    const [isButtonClicked, setIsButtonClicked] = useState(false);
 
     useEffect(() => {
         dispatch(resetFillForm());
@@ -120,6 +121,10 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     }, [dispatch, form]);
 
     const onFormSubmitCallback = async (consentAnswers: Record<string, ConsentAnswerDto>) => {
+        if (isPreview) {
+            openModal('FORM_BUILDER_PREVIEW', { isFormSubmitted: true });
+            return;
+        }
         const formData = new FormData();
         // Append files to formData
         files.forEach((fileObj) => {
@@ -159,6 +164,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         } else {
             toast('Error submitting response', { type: 'error' });
         }
+        closeFullScreenModal();
     };
     const onSubmitForm = async (event: any) => {
         event.preventDefault();
@@ -176,8 +182,8 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             dispatch(setInvalidFields(invalidFields));
             return;
         }
-        if (preview) {
-            setIsFormSubmitted(true);
+        if (isPreview) {
+            openModal('CONSENT_FULL_MODAL_VIEW', { form: form, isPreview: true, onFormSubmit: onFormSubmitCallback });
             return;
         }
         openModal('CONSENT_FULL_MODAL_VIEW', { form: form, onFormSubmit: onFormSubmitCallback });
@@ -186,10 +192,10 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         return () => {
             resetFillForm();
         };
-    });
+    }, []);
 
     if (isFormSubmitted) {
-        return <ThankYouPage isPreview={isPreview} />;
+        return <ThankYouPage isDisabled={isDisabled} />;
     }
 
     return (
@@ -200,7 +206,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 </div>
             )}
             <form
-                className="w-full max-w-[700px] mx-auto px-10 py-10 bg-white flex rounded-lg flex-col items-start "
+                className="w-full max-w-[700px] mx-auto px-10 pb-10 bg-white flex rounded-lg flex-col items-start "
                 onKeyDown={(event: any) => {
                     if (!event.shiftKey && event.key === 'Enter') {
                         event.preventDefault();
@@ -209,12 +215,12 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 onSubmit={onSubmitForm}
             >
                 {form?.logo && (
-                    <div className={`relative  ${form?.coverImage ? '-top-20' : ''} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
+                    <div className={`relative ${form?.coverImage ? '-top-12' : 'mt-[60px]'} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
                         <Image height={100} width={100} objectFit="cover" src={form.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
                     </div>
                 )}
-                <div className="mb-7">
-                    <div className="text-[24px] mb-3 font-semibold text-black-900">{form?.title}</div>
+                <div className={`mb-6 ${form?.coverImage && form?.logo ? '' : 'mt-12'}`}>
+                    <div className="text-[24px] mb-2 font-semibold text-black-900">{form?.title}</div>
                     {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
                 </div>
 

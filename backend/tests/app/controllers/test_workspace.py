@@ -31,14 +31,15 @@ class TestWorkspaces:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_1: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
+        mock_get_workspace_by_query
     ):
         get_workspace_url = f"{common_url}?workspace_name={testUser.id}"
+        with mock_get_workspace_by_query:
+            fetched_workspace = client.get(get_workspace_url, cookies=test_user_cookies)
 
-        fetched_workspace = client.get(get_workspace_url, cookies=test_user_cookies)
-
-        expected_workspace_id = str(workspace.id)
-        actual_workspace_id = fetched_workspace.json().get("id")
-        assert actual_workspace_id == expected_workspace_id
+            expected_workspace_id = str(workspace.id)
+            actual_workspace_id = fetched_workspace.json().get("id")
+            assert actual_workspace_id == expected_workspace_id
 
     def test_create_workspace(
         self, client: TestClient, test_pro_user_cookies: dict[str, str]
