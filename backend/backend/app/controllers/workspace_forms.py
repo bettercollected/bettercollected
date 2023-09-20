@@ -28,6 +28,7 @@ from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.config import settings
+from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.consent import ResponseRetentionType
 from common.models.form_import import FormImportRequestBody
 from common.models.standard_form import StandardForm
@@ -66,6 +67,8 @@ class WorkspaceFormsRouter(Routable):
         user: User = Depends(get_user_if_logged_in),
         published: bool = False,
     ) -> Page[MinifiedForm]:
+        if not user and not published:
+            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
         forms = await self._form_service.get_forms_in_workspace(
             workspace_id=workspace_id, sort=sort, published=published, user=user
         )
@@ -209,6 +212,8 @@ class WorkspaceFormsRouter(Routable):
         published: bool = False,
         user: User = Depends(get_user_if_logged_in),
     ):
+        if not user and not published:
+            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
         forms = await self._form_service.search_form_in_workspace(
             workspace_id=workspace_id, query=query, published=published, user=user
         )
