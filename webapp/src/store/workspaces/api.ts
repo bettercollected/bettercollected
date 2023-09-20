@@ -207,7 +207,10 @@ export const workspacesApi = createApi({
         getWorkspaceForm: builder.query<StandardFormDto, IGetWorkspaceFormQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspace_id}/forms/${query.custom_url}`,
-                method: 'GET'
+                method: 'GET',
+                params: {
+                    published: !!query.published
+                }
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
