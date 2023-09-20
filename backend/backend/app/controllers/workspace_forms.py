@@ -227,9 +227,13 @@ class WorkspaceFormsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         form_id: str,
+        published: bool = False,
         user: User = Depends(get_user_if_logged_in),
     ):
-        form = await self._form_service.get_form_by_id(workspace_id, form_id, user)
+        if not user and not published:
+            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
+        form = await self._form_service.get_form_by_id(workspace_id=workspace_id, form_id=form_id, published=published,
+                                                       user=user)
         return form
 
     @get("/{form_id}/versions/{version}", response_model=MinifiedForm)

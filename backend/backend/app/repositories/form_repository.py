@@ -97,6 +97,19 @@ class FormRepository:
                             }
                         }
                     },
+                    {
+                        "$lookup": {
+                            "from": "form_versions",
+                            "localField": "form_id",
+                            "foreignField": "form_id",
+                            "as": "versions",
+                        }
+                    },
+                    {
+                        "$set": {
+                            "settings.is_published": {"$gt": [{"$size": "$versions"}, 0]}
+                        }
+                    }
                 ]
             )
         forms = FormDocument.find({"form_id": {"$in": form_id_list}}).aggregate(
