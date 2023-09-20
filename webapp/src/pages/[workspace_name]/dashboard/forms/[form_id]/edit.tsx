@@ -13,6 +13,7 @@ import Layout from '@app/layouts/_layout';
 import { getServerSidePropsForDashboardFormPage } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { setFormConsent } from '@app/store/consent/actions';
 import { resetForm, setEditForm } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -39,6 +40,7 @@ export default function EditFromPage(props: any) {
 
     useEffect(() => {
         dispatch(setEditForm(form));
+        dispatch(setFormConsent(form));
     }, [form]);
 
     return (
@@ -46,7 +48,7 @@ export default function EditFromPage(props: any) {
             <FormBuilderKeyListener>
                 <NextSeo title={title || t(metaDataTitle.editForm)} noindex={true} nofollow={true} />
                 <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
-                    <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} isEditMode />
+                    <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} />
                 </Layout>
             </FormBuilderKeyListener>
         </HistoryKeyListener>

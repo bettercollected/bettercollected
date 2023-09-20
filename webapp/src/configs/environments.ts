@@ -27,6 +27,7 @@ const environments = {
     METATAG_TITLE: publicRuntimeConfig.METATAG_TITLE,
     METATAG_DESCRIPTION: publicRuntimeConfig.METATAG_DESCRIPTION,
     METATAG_IMAGE: publicRuntimeConfig.METATAG_IMAGE,
+    FORM_PRIVACY_POLICY_URL: publicRuntimeConfig.FORM_PRIVACY_POLICY_URL || 'https://bettercollected.com/privacy-policy',
 
     // run-time configg
     GA_MEASUREMENT_ID: publicRuntimeConfig.GA_MEASUREMENT_ID,

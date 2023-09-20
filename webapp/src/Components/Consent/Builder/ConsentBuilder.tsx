@@ -102,7 +102,7 @@ export default function ConsentBuilder({ className, isPreview = false, form }: C
             };
             openModal('CONSENT_BUILDER_CONFIRMATION_MODAL_VIEW', {
                 consents: [...consentState.consents, isDeletionRequestChecked && responderRightsConsentField],
-                privacyPolicyUrl: consentState.privacy_policy
+                privacyPolicyUrl: consentState.privacyPolicyUrl
             });
         } else {
             setError(true);
@@ -128,6 +128,7 @@ export default function ConsentBuilder({ className, isPreview = false, form }: C
                         disabled={isPreview}
                         title="Insert link to your privacy policy"
                         required
+                        value={consentState?.privacyPolicyUrl}
                         placeholder={isPreview ? form?.settings?.privacyPolicyUrl : 'Insert link here'}
                         className="mt-5"
                         onChange={(event: any) => {

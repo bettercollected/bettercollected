@@ -37,7 +37,7 @@ import { throttle } from '@app/utils/throttleUtils';
 
 import useFormBuilderState from './context';
 
-export default function FormBuilder({ workspace, _nextI18Next, isEditMode = false }: { isEditMode?: boolean; workspace: WorkspaceDto; _nextI18Next: any }) {
+export default function FormBuilder({ workspace, _nextI18Next }: { workspace: WorkspaceDto; _nextI18Next: any }) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
     const { openModal } = useFullScreenModal();
@@ -142,7 +142,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isEditMode = fals
         publishRequest.fields = fields;
         publishRequest.settings = {
             ...builderState.settings,
-            privacyPolicyUrl: consentState.privacy_policy,
+            privacyPolicyUrl: consentState.privacyPolicyUrl,
             responseExpiration: consentState.responseExpiration,
             responseExpirationType: consentState.responseExpirationType
         };
