@@ -198,6 +198,7 @@ class FormRepository:
         form_document.description = form.description
         form_document.button_text = form.button_text
         form_document.consent = form.consent if form.consent else form_document.consent
+        form_document.settings = form.settings if form.settings else form_document.settings
         return await form_document.save()
 
     async def get_form_document_by_id(self, form_id: str):
@@ -205,7 +206,7 @@ class FormRepository:
 
     async def get_latest_version_of_form(self, form_id: PydanticObjectId):
         return (
-            await FormVersionsDocument.find({"form_id": form_id})
+            await FormVersionsDocument.find({"form_id": str(form_id)})
             .sort(("version", SortDirection.DESCENDING))
             .first_or_none()
         )
