@@ -24,7 +24,7 @@ from backend.app.schemas.standard_form_response import (
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.aws_service import AWSS3Service
 from common.constants import MESSAGE_FORBIDDEN
-from common.models.standard_form import StandardFormResponse
+from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 
@@ -162,6 +162,8 @@ class FormResponseService:
             workspace_id=workspace_id, response=response
         )
         for key, decrypted_answer in decrypted_response.answers.items():
+            decrypted_answer = decrypted_answer.dict() if isinstance(decrypted_answer, StandardFormResponseAnswer) \
+                else decrypted_answer
             if decrypted_answer["file_metadata"] is not None:
                 file_url = self._aws_service.generate_presigned_url(
                     decrypted_answer["file_metadata"]["id"]
