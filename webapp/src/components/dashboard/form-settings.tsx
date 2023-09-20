@@ -156,7 +156,7 @@ export default function FormSettingsTab() {
                         <div className="text-sm !text-black-700">{`This page is to help you to provide you with a clear understanding of how how your information is handled in our form. Our aim is to ensure you're fully informed and comfortable with how we handle your data.`}</div>
                     </div>
                     <span
-                        className="h5-new!text-new-blue-500 w-60 cursor-pointer"
+                        className="h5-new !text-new-blue-500 w-60 cursor-pointer"
                         onClick={() => {
                             fullScreenModal.openModal('CREATE_CONSENT_FULL_MODAL_VIEW', { form, isPreview: true });
                         }}

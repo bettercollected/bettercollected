@@ -128,7 +128,7 @@ export default function ConsentBuilder({ className, isPreview = false, form }: C
                         disabled={isPreview}
                         title="Insert link to your privacy policy"
                         required
-                        value={consentState?.privacyPolicyUrl}
+                        value={isPreview ? form?.settings?.privacyPolicyUrl : consentState?.privacyPolicyUrl}
                         placeholder={isPreview ? form?.settings?.privacyPolicyUrl : 'Insert link here'}
                         className="mt-5"
                         onChange={(event: any) => {

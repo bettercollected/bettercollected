@@ -19,7 +19,7 @@ interface CreateConsentFullModalProps {
 export default function CreateConsentFullModalView({ form, isPreview = false }: CreateConsentFullModalProps) {
     const { closeModal } = useFullScreenModal();
     return (
-        <div className={cn('flex flex-col w-full min-h-screen !bg-white max-h-screen overflow-auto', isPreview && '!bg-transparent pt-40')}>
+        <div className={cn('flex flex-col w-full min-h-screen !bg-white  overflow-auto', isPreview && '!bg-transparent pt-40')}>
             {!isPreview && (
                 <div className="absolute top-0 left-0 w-full bg-white z-[100] ">
                     <BackButtonMenuBar text="Back to Form" onBack={closeModal} />
