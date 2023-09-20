@@ -10,14 +10,14 @@ import Logo from '@app/components/ui/logo';
 import PoweredBy from '@app/components/ui/powered-by';
 
 interface IThankYouPageProps {
-    isPreview?: boolean;
+    isDisabled?: boolean;
 }
 
 ThankYouPage.defaultProps = {
-    isPreview: false
+    isDisabled: false
 };
 
-export default function ThankYouPage({ isPreview }: IThankYouPageProps) {
+export default function ThankYouPage({ isDisabled }: IThankYouPageProps) {
     const router = useRouter();
     return (
         <div className="flex w-full flex-col items-center justify-start h-full text-center">
@@ -40,9 +40,9 @@ export default function ThankYouPage({ isPreview }: IThankYouPageProps) {
             <div className="h4 text-gray-600 mt-4">Your form is successfully submitted.</div>
             <div className="p1 mt-4 text-black-800">We hold your privacy in high regard</div>
             <div
-                className={`px-3 py-2 flex gap-2  ${isPreview ? 'cursor-default' : 'cursor-pointer'} mt-10 bg-white items-center rounded-md border-gray-200 border-[2px]`}
+                className={`px-3 py-2 flex gap-2  ${isDisabled ? 'cursor-default' : 'cursor-pointer'} mt-10 bg-white items-center rounded-md border-gray-200 border-[2px]`}
                 onClick={() => {
-                    if (!isPreview) {
+                    if (!isDisabled) {
                         router.push('https://bettercollected.com');
                     }
                 }}

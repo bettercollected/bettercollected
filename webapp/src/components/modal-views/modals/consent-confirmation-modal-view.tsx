@@ -52,7 +52,6 @@ export default function ConsentConfirmationModalView({ onFormSubmit, consentAnsw
         try {
             await onFormSubmit(consentAnswers);
             closeModal();
-            fullScreenModal.closeModal();
             dispatch(resetFillForm());
         } catch (e) {
         } finally {

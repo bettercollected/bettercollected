@@ -74,7 +74,7 @@ export default function FormResponses() {
                             </div>
                         )}
                     </div>
-                    <FormRenderer form={submissionForm.form} response={submissionForm.response} preview />
+                    <FormRenderer form={submissionForm.form} response={submissionForm.response} isDisabled />
                 </>
             )}
         </>
