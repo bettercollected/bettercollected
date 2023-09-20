@@ -10,9 +10,9 @@ export interface IConsentField {
 }
 
 export interface IConsentState {
-    form_id: string;
+    formId: string;
     consents: IConsentField[];
-    privacy_policy?: string;
+    privacyPolicyUrl?: string;
     responseExpiration?: string;
     responseExpirationType: ResponseRetentionType;
 }
