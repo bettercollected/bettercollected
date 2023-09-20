@@ -19,6 +19,7 @@ from common.models.standard_form import (
 
 
 class WorkspaceFormSettingsCamelModal(WorkspaceFormSettings, CamelModel):
+    is_published: Optional[bool]
     pass
 
 

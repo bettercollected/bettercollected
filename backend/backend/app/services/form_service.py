@@ -23,6 +23,7 @@ from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
+from common.constants import MESSAGE_FORBIDDEN
 from common.models.standard_form import StandardForm
 from common.models.user import User
 
@@ -47,11 +48,14 @@ class FormService:
         published: bool,
         user: User,
     ) -> Page[MinifiedForm]:
-        is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
+        has_access_to_workspace = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        if not published and not has_access_to_workspace:
+            raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
+
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
-            workspace_id, not is_admin, user
+            workspace_id, not has_access_to_workspace, user
         )
         if published:
             forms_query = self._form_repo.get_published_forms_in_workspace(
@@ -63,7 +67,7 @@ class FormService:
             forms_query = self._form_repo.get_forms_in_workspace_query(
                 workspace_id=workspace_id,
                 form_id_list=workspace_form_ids,
-                is_admin=is_admin,
+                is_admin=has_access_to_workspace,
                 sort=sort,
             )
 
@@ -121,7 +125,7 @@ class FormService:
         return [MinifiedForm(**form) for form in forms]
 
     async def get_form_by_id(
-        self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self, workspace_id: PydanticObjectId, form_id: str, published: bool, user: User
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -135,7 +139,6 @@ class FormService:
                     status_code=HTTPStatus.UNAUTHORIZED,
                     content="Private Form Login to continue",
                 )
-
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id,
             is_not_admin=not is_admin,
@@ -144,18 +147,27 @@ class FormService:
                 "$or": [{"form_id": form_id}, {"settings.custom_url": form_id}]
             },
         )
-        form = await self._form_repo.get_forms_in_workspace_query(
-            workspace_id=workspace_id,
-            form_id_list=workspace_form_ids,
-            is_admin=is_admin,
-        ).to_list()
+        if published:
+            form = await self._form_repo.get_published_forms_in_workspace(
+                workspace_id=workspace_id,
+                form_id_list=workspace_form_ids,
+            ).to_list()
+        else:
+            form = await self._form_repo.get_forms_in_workspace_query(
+                workspace_id=workspace_id,
+                form_id_list=workspace_form_ids,
+                is_admin=is_admin,
+            ).to_list()
 
         if not form:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
             )
-
-        return await self.add_user_details_to_form(form[0])
+        else:
+            form = form[0]
+        if not published:
+            form = await self.add_user_details_to_form(form)
+        return form
 
     async def add_user_details_to_form(self, form):
         user_ids = [form["imported_by"]] if form else []
