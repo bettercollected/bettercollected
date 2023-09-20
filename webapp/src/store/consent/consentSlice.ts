@@ -37,7 +37,7 @@ export const consent = createSlice({
             state.consents = action.payload.consent;
             state.responseExpiration = action.payload.settings.responseExpiration;
             state.responseExpirationType = action.payload.settings.responseExpirationType;
-            state.privacyPolicyUrl = action.payload.settings.privacyPolicyUrl;
+            state.privacyPolicyUrl = action.payload.settings.privacyPolicyUrl || environments.FORM_PRIVACY_POLICY_URL;
         },
         setAddConsent: (state, action: PayloadAction<IConsentField>) => {
             return { ...state, consents: [...state.consents, action.payload] };
