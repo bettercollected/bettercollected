@@ -90,6 +90,7 @@ class AuthRoutes(Routable):
         user_response = await self.auth_service.get_user_status(user=user)
         user_response["sub"] = user_response.get("email")
         set_access_token_to_response(user=User(**user_response), response=response)
+        response.status_code = HTTPStatus.OK
         return response
 
     @get(
