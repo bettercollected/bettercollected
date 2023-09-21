@@ -7,7 +7,6 @@ import { useRouter } from 'next/router';
 import SmallLogo from '@Components/Common/Icons/SmallLogo';
 
 import Logo from '@app/components/ui/logo';
-import PoweredBy from '@app/components/ui/powered-by';
 
 interface IThankYouPageProps {
     isDisabled?: boolean;
