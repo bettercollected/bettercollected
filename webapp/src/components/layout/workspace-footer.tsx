@@ -25,7 +25,7 @@ export default function WorkspaceFooter({ workspace, isCustomDomain, showProTag 
                     {t(localesCommon.privacyPolicy.title)}
                 </ActiveLink>
             </div>
-            {isCustomDomain && <PoweredBy />}
+            {!workspace?.isPro && <PoweredBy />}
         </div>
     );
 }
