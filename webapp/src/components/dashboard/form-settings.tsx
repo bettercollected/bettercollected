@@ -23,6 +23,7 @@ import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import Globe from '../icons/flags/globe';
 import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
@@ -83,7 +84,19 @@ export default function FormSettingsTab() {
                 toast(e.data, { type: 'error', toastId: 'errorToast' });
             });
     };
-    const isProPlan = useAppSelector(selectIsProPlan);
+
+    const onDisableBrandingChange = (event: any, f?: StandardFormDto) => {
+        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
+        patchSettings({ disableBranding: !f?.settings?.disableBranding }, f)
+            .then((res) => {
+                
+            })
+            .catch((e) => {
+                toast(e.data, { type: 'error', toastId: 'errorToast' });
+            });
+    };
+
+    const isProPlan = useAppSelector(selectWorkspace).isPro;
     const isAdmin = useAppSelector(selectIsAdmin);
 
     return (
@@ -149,6 +162,16 @@ export default function FormSettingsTab() {
                     </div>
                 </FormSettingsCard>
             )}
+            <FormSettingsCard className={cn('relative !py-6', !isProPlan && isAdmin && '!bg-brand-200')}>
+                <div className=" flex items-center justify-between pt-6">
+                    <div>
+                        <div className="body1">bettercolleceted branding</div>
+                        <div className="body3">Show "Powered by: bettercollected in your form.</div>
+                    </div>
+                    <Switch disabled={!isProPlan} data-testid="disable-branding-switch" checked={!form?.settings?.disableBranding} onClick={(e) => onDisableBrandingChange(e, form)} />
+                </div>
+                {!isProPlan && isAdmin && <UpgradeToPro />}
+            </FormSettingsCard>
             <FormSettingsCard>
                 <div className="flex items-center space-x-5">
                     <div className="space-y-2">
