@@ -8,3 +8,4 @@ class SettingsPatchDto(BaseModel):
     customUrl: Optional[str]
     private: Optional[bool]
     responseDataOwnerField: Optional[str]
+    disableBranding: Optional[bool]
