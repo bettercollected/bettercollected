@@ -166,7 +166,7 @@ export default function FormSettingsTab() {
                 <div className=" flex items-center justify-between pt-6">
                     <div>
                         <div className="body1">bettercolleceted branding</div>
-                        <div className="body3">Show "Powered by: bettercollected in your form.</div>
+                        <div className="body3">Show Powered by: bettercollected in your form.</div>
                     </div>
                     <Switch disabled={!isProPlan} data-testid="disable-branding-switch" checked={!form?.settings?.disableBranding} onClick={(e) => onDisableBrandingChange(e, form)} />
                 </div>
