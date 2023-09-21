@@ -22,7 +22,6 @@ import { toast } from 'react-toastify';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import Button from '@app/components/ui/button';
 import Logo from '@app/components/ui/logo';
-import PoweredBy from '@app/components/ui/powered-by';
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { ConsentAnswerDto } from '@app/store/consent/types';
@@ -114,11 +113,11 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         return () => {
             dispatch(resetFillForm());
         };
-    }, [dispatch]);
+    }, []);
 
     useEffect(() => {
         dispatch(setDataResponseOwnerField(form?.settings?.responseDataOwnerField || ''));
-    }, [dispatch, form]);
+    }, [ form]);
 
     const onFormSubmitCallback = async (consentAnswers: Record<string, ConsentAnswerDto>) => {
         if (isPreview) {
