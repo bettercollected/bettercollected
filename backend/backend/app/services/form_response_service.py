@@ -16,6 +16,7 @@ from backend.app.models.response_dtos import (
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
+from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
     FormResponseDeletionRequest,
@@ -134,7 +135,10 @@ class FormResponseService:
         # TODO : Handle case for multiple form import by other user
         # TODO : Combine all queries to one
         response = await FormResponseDocument.find_one({"response_id": response_id})
-        form = await FormDocument.find_one({"form_id": response.form_id})
+        form = await FormVersionsDocument.find_one(
+            {"form_id": response.form_id, "version": response.form_version if response.form_version else 1})
+        if not form:
+            form = await FormDocument.find_one({"form_id": response.form_id})
         deletion_request = await FormResponseDeletionRequest.find_one(
             {"response_id": response_id}
         )
