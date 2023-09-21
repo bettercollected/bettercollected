@@ -28,6 +28,7 @@ class Workspace(WorkspaceRequestDto):
 
     created_at: Optional[dt.datetime]
     updated_at: Optional[dt.datetime]
+    is_pro: Optional[bool]
 
 
 class WorkspaceFormSettings(BaseModel):
@@ -42,6 +43,7 @@ class WorkspaceFormSettings(BaseModel):
     privacy_policy_url: Optional[str]
     response_expiration: Optional[str]
     response_expiration_type: Optional[ResponseRetentionType]
+    disable_branding: Optional[bool]
 
 
 class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
@@ -52,4 +54,4 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     dashboard_access: Optional[bool]
     disabled: Optional[bool]
     default: Optional[bool]
-    is_pro: Optional[bool]
+    is_pro: Optional[bool] = False

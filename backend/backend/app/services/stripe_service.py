@@ -11,12 +11,12 @@ from common.services.jwt_service import JwtService
 
 class StripeService:
     def __init__(
-        self,
-        http_client: HttpClient,
-        plugin_proxy_service: PluginProxyService,
-        form_provider_service: FormPluginProviderService,
-        jwt_service: JwtService,
-        workspace_service: WorkspaceService,
+            self,
+            http_client: HttpClient,
+            plugin_proxy_service: PluginProxyService,
+            form_provider_service: FormPluginProviderService,
+            jwt_service: JwtService,
+            workspace_service: WorkspaceService,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
@@ -50,10 +50,7 @@ class StripeService:
             content=body,
             timeout=60000000,
         )
-        try:
-            json_response = response.json()
-        except AttributeError:
-            raise HTTPException(400, response["_message"])
+        json_response = response
         user = json_response.get("user") if json_response else None
         if user:
             downgrade = json_response.get("downgrade")
