@@ -62,7 +62,7 @@ export default function ConsentRetentionModalView({ type }: ConsentRetentionModa
             consentField.description = `Your data will be deleted after ${days} days`;
             dispatch(setResponseRetention({ expiration: days, expirationType: 'days' }));
         } else if (type === 'date') {
-            consentField.title = `For ${date}`;
+            consentField.title = `Until ${date}`;
             consentField.description = `Your data will be deleted after ${date}`;
             dispatch(setResponseRetention({ expiration: date, expirationType: 'date' }));
         }
