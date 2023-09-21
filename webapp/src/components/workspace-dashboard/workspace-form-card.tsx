@@ -48,7 +48,6 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
     const router = useRouter();
     const { t } = useTranslation();
     const { deleteFormFromGroup } = useGroupForm();
-    const isAdmin = useAppSelector(selectIsAdmin);
     useEffect(() => {
         router.prefetch(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}?view=Responses`);
     }, [router]);
@@ -105,7 +104,8 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                         </div>
                     </Tooltip>
                 )}
-                {!isResponderPortal && form?.settings?.pinned && (
+                {!isResponderPortal && !form?.settings?.isPublished && <div className="absolute font-semibold text-xs text-black-600 rounded top-2 right-2 px-2 py-1 bg-gray-100">Draft</div>}
+                {!isResponderPortal && form?.settings?.isPublished && form?.settings?.pinned && (
                     <Tooltip className="absolute top-2 right-2 bg-white " title={t(toolTipConstant.pinned)}>
                         <div onClick={(e: any) => e.preventDefault()}>
                             <PinnedIcon />

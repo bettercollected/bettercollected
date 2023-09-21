@@ -51,6 +51,7 @@ export interface StandardFormDto {
         responseDataOwnerField?: string;
         private?: boolean;
         provider: string;
+        isPublished?: boolean;
         roles?: Array<string>;
         privacyPolicyUrl?: string;
         responseExpiration?: string;
