@@ -16,6 +16,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { resetForm, setEditForm } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 export default function EditFromPage(props: any) {
@@ -33,13 +34,12 @@ export default function EditFromPage(props: any) {
     const { t } = useTranslation();
 
     useEffect(() => {
+        dispatch(setForm(form));
+        dispatch(setEditForm(form));
+
         return () => {
             dispatch(resetForm());
         };
-    }, []);
-
-    useEffect(() => {
-        dispatch(setEditForm(form));
     }, [form]);
 
     return (

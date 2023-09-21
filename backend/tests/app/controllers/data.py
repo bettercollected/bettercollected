@@ -57,6 +57,7 @@ workspace_settings = {
     "responseDataOwnerField": "customUser",
     "responseExpiration": None,
     "responseExpirationType": None,
+    'disableBranding': None,
 }
 
 workspace_tag = {"title": "BetterCollected-Team"}
