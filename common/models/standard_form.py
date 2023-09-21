@@ -359,7 +359,7 @@ class ResponseState(BaseModel):
     choices_total_point: Optional[float] = Field(None)
 
 
-class   StandardFormResponse(BaseModel):
+class StandardFormResponse(BaseModel):
     """
     Data transfer object for a standard form response.
     """
@@ -370,6 +370,7 @@ class   StandardFormResponse(BaseModel):
     answers: Optional[
                  Dict[str, StandardFormResponseAnswer | Dict[str, Any]]
              ] | bytes | str
+    form_version: Optional[int]
     created_at: Optional[dt.datetime]
     updated_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
