@@ -29,7 +29,7 @@ export default function CreateFormPage({ workspace, _nextI18Next }: ICreateFormP
 
     useEffect(() => {
         dispatch(resetForm());
-    }, [dispatch]);
+    }, []);
 
     return environments.ENABLE_FORM_BUILDER ? (
         <FormBuilderContainerWrapper>
