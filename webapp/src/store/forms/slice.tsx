@@ -17,7 +17,8 @@ export const initialIBuilderState: StandardFormDto = {
         customUrl: '',
         private: false,
         provider: '',
-        roles: []
+        roles: [],
+        disableBranding: false
     },
     importerDetails: {
         id: '',
