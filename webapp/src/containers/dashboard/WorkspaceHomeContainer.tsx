@@ -38,7 +38,7 @@ export interface BannerImageComponentPropType {
 }
 
 export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = true, isWorkspacePreview = false }: IDashboardContainer) {
-    const { isSuccess, isError, data } = useGetStatusQuery();
+    const { isSuccess, isError } = useGetStatusQuery();
     const { t } = useTranslation();
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
     const authStatus = useAppSelector(selectAuth);
@@ -48,8 +48,6 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
     const screenSize = useBreakpoint();
 
     if (!workspace) return <FullScreenLoader />;
-
-    const isFormCreator = isSuccess && data?.id === workspace?.ownerId;
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
