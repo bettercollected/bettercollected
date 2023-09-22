@@ -12,17 +12,18 @@ import {toast} from 'react-toastify';
 import {useModal} from '@app/components/modal-views/context';
 import {FormSettingsCard} from '@app/components/settings/card';
 import environments from '@app/configs/environments';
-import {buttonConstant} from '@app/constants/locales/button';
-import {localesCommon} from '@app/constants/locales/common';
-import {customize} from '@app/constants/locales/customize';
-import {formConstant} from '@app/constants/locales/form';
-import {toastMessage} from '@app/constants/locales/toast-message';
-import {updateWorkspace} from '@app/constants/locales/update-workspace';
-import {StandardFormDto} from '@app/models/dtos/form';
-import {selectIsAdmin, selectIsProPlan} from '@app/store/auth/slice';
-import {setFormSettings} from '@app/store/forms/slice';
-import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {usePatchFormSettingsMutation} from '@app/store/workspaces/api';
+import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
+import { customize } from '@app/constants/locales/customize';
+import { formConstant } from '@app/constants/locales/form';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { updateWorkspace } from '@app/constants/locales/update-workspace';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
+import { setFormSettings } from '@app/store/forms/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import Globe from '../icons/flags/globe';
 import {useFullScreenModal} from '../modal-views/full-screen-modal-context';
@@ -85,7 +86,19 @@ export default function FormSettingsTab() {
                 toast(e.data, {type: 'error', toastId: 'errorToast'});
             });
     };
-    const isProPlan = useAppSelector(selectIsProPlan);
+
+    const onDisableBrandingChange = (event: any, f?: StandardFormDto) => {
+        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
+        patchSettings({ disableBranding: !f?.settings?.disableBranding }, f)
+            .then((res) => {
+
+            })
+            .catch((e) => {
+                toast(e.data, { type: 'error', toastId: 'errorToast' });
+            });
+    };
+
+    const isProPlan = useAppSelector(selectWorkspace).isPro;
     const isAdmin = useAppSelector(selectIsAdmin);
 
     return (
@@ -110,54 +123,60 @@ export default function FormSettingsTab() {
                         {!isProPlan && isAdmin && <UpgradeToPro/>}
                     </FormSettingsCard>
 
-                    <FormSettingsCard>
-                        <p className="sh3">{t(formConstant.settings.visibility.title)}</p>
-                        <RadioGroup className="flex flex-col gap-6"
-                                    defaultValue={form?.settings?.private ? 'Private' : 'Public'}>
-                            <div className="flex flex-col">
-                                <FormControlLabel
-                                    onChange={() => onPrivateChanged({f: form})}
-                                    value="Public"
-                                    control={<Radio/>}
-                                    label={
-                                        <div className="flex body6 !text-black-800 items-center gap-[6px]">
-                                            <Globe className="h-[18px] w-[18px]"/>
-                                            {t(formConstant.settings.visibility.public)}
-                                        </div>
-                                    }
-                                />
-                                <span
-                                    className="ml-8 body4 !text-black-700">{t(formConstant.settings.visibility.description)}</span>
-                            </div>
-                            <div className="flex flex-col">
-                                <FormControlLabel
-                                    onChange={() => onPrivateChanged({isPrivate: true, f: form})}
-                                    value="Private"
-                                    control={<Radio/>}
-                                    label={
-                                        <div className="flex body6 !text-black-800 items-center gap-[6px]">
-                                            <LockIcon className="h-[18px] w-[18px]"/>
-                                            {t(formConstant.settings.visibility.private)}
-                                        </div>
-                                    }
-                                />
-                                <span
-                                    className="ml-8 body4 !text-black-700">{t(formConstant.settings.visibility.description)}</span>
-                            </div>
-                        </RadioGroup>
-                    </FormSettingsCard>
-                    {!form?.settings?.private && (
-                        <FormSettingsCard>
-                            <div className=" flex items-center justify-between">
-                                <div>
-                                    <div className="body1">{t(formConstant.pinned)}</div>
-                                    <div className="body3">{t(formConstant.pinnedDescription)}</div>
+            <FormSettingsCard>
+                <p className="sh3">{t(formConstant.settings.visibility.title)}</p>
+                <RadioGroup className="flex flex-col gap-6" defaultValue={form?.settings?.private ? 'Private' : 'Public'}>
+                    <div className="flex flex-col">
+                        <FormControlLabel
+                            onChange={() => onPrivateChanged({ f: form })}
+                            value="Public"
+                            control={<Radio />}
+                            label={
+                                <div className="flex body6 !text-black-800 items-center gap-[6px]">
+                                    <Globe className="h-[18px] w-[18px]" />
+                                    {t(formConstant.settings.visibility.public)}
                                 </div>
-                                <Switch data-testid="pinned-switch" checked={!!form?.settings?.pinned}
-                                        onClick={(e) => onPinnedChange(e, form)}/>
-                            </div>
-                        </FormSettingsCard>
-                    )}
+                            }
+                        />
+                        <span className="ml-8 body4 !text-black-700">{t(formConstant.settings.visibility.description)}</span>
+                    </div>
+                    <div className="flex flex-col">
+                        <FormControlLabel
+                            onChange={() => onPrivateChanged({ isPrivate: true, f: form })}
+                            value="Private"
+                            control={<Radio />}
+                            label={
+                                <div className="flex body6 !text-black-800 items-center gap-[6px]">
+                                    <LockIcon className="h-[18px] w-[18px]" />
+                                    {t(formConstant.settings.visibility.private)}
+                                </div>
+                            }
+                        />
+                        <span className="ml-8 body4 !text-black-700">{t(formConstant.settings.visibility.description)}</span>
+                    </div>
+                </RadioGroup>
+            </FormSettingsCard>
+            {!form?.settings?.private && (
+                <FormSettingsCard>
+                    <div className=" flex items-center justify-between">
+                        <div>
+                            <div className="body1">{t(formConstant.pinned)}</div>
+                            <div className="body3">{t(formConstant.pinnedDescription)}</div>
+                        </div>
+                        <Switch data-testid="pinned-switch" checked={!!form?.settings?.pinned} onClick={(e) => onPinnedChange(e, form)} />
+                    </div>
+                </FormSettingsCard>
+            )}
+            <FormSettingsCard className={cn('relative !py-6', !isProPlan && isAdmin && '!bg-brand-200')}>
+                <div className=" flex items-center justify-between pt-6">
+                    <div>
+                        <div className="body1">bettercolleceted branding</div>
+                        <div className="body3">Show Powered by: bettercollected in your form.</div>
+                    </div>
+                    <Switch disabled={!isProPlan} data-testid="disable-branding-switch" checked={!form?.settings?.disableBranding} onClick={(e) => onDisableBrandingChange(e, form)} />
+                </div>
+                {!isProPlan && isAdmin && <UpgradeToPro />}
+            </FormSettingsCard>
                 </>
             }
 

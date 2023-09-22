@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 
 import UploadIcon from '@Components/Common/Icons/FormBuilder/UploadIcon';
 import LoadingIcon from '@Components/Common/Icons/Loading';
@@ -8,14 +8,14 @@ import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 
 import Back from '@app/components/icons/back';
 import PoweredBy from '@app/components/ui/powered-by';
-import { selectConsentState } from '@app/store/consent/selectors';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { IFormFieldState } from '@app/store/form-builder/types';
-import { initFormState } from '@app/store/forms/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
+import {selectConsentState} from '@app/store/consent/selectors';
+import {selectBuilderState} from '@app/store/form-builder/selectors';
+import {IFormFieldState} from '@app/store/form-builder/types';
+import {initFormState, selectForm} from '@app/store/forms/slice';
+import {useAppSelector} from '@app/store/hooks';
+import {selectWorkspace} from '@app/store/workspaces/slice';
 
-import { useFullScreenModal } from '../full-screen-modal-context';
+import {useFullScreenModal} from '../full-screen-modal-context';
 
 
 export default function FormBuilderPreviewModal({ publish, isFormSubmitted = false }: { publish: () => void; isFormSubmitted: boolean }) {
@@ -30,6 +30,7 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
     const isLoading = updateRequest && updateRequest[Object.keys(updateRequest)[Object.keys(updateRequest).length - 1]]?.status === 'pending';
 
     const workspace = useAppSelector(selectWorkspace);
+    const form = useAppSelector(selectForm);
 
     useEffect(() => {
         if (builderState) {
@@ -81,7 +82,7 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
                 </div>
             </div>
             <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6">{isFormSubmitted ? <ThankYouPage isDisabled={true} /> : <BetterCollectedForm form={formToRender} enabled={true} isPreview={true} closeModal={closeModal} />}</div>
-            {!workspace?.isPro && <PoweredBy isFormCreatorPortal={true} />}
+            {!workspace?.isPro || !form?.settings?.disableBranding && <PoweredBy isFormCreatorPortal={true} />}
         </div>
     );
 }

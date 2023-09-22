@@ -445,5 +445,8 @@ class WorkspaceFormService:
         )
         return await self.form_service.publish_form(form_id=form_id)
 
+    async def get_form_workspace_by_id(self, workspace_id: PydanticObjectId):
+        return await self.form_import_service.get_form_workspace_by_id(workspace_id=workspace_id)
+
 
 # async def upload_images_of_form

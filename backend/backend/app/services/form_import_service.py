@@ -26,6 +26,9 @@ class FormImportService:
         self.form_service = form_service
         self._workspace_repo = workspace_repo
 
+    async def get_form_workspace_by_id(self, workspace_id: PydanticObjectId):
+        return await self._workspace_repo.get_workspace_by_id(workspace_id=workspace_id)
+
     async def save_converted_form_and_responses(
         self,
         response_data: Dict[str, Any],
@@ -100,3 +103,4 @@ class FormImportService:
                 tag=UserTagType.DELETION_REQUEST_PROCESSED,
             )
         return standard_form
+

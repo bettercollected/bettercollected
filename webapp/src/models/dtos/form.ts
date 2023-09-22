@@ -56,6 +56,7 @@ export interface StandardFormDto {
         privacyPolicyUrl?: string;
         responseExpiration?: string;
         responseExpirationType?: ResponseRetentionType;
+        disableBranding: boolean;
     };
     importerDetails: UserStatus;
     consent: Array<IConsentField>;
