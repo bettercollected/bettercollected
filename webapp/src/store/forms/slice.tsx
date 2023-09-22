@@ -17,7 +17,8 @@ export const initFormState: StandardFormDto = {
         customUrl: '',
         private: false,
         provider: '',
-        roles: []
+        roles: [],
+        disableBranding: false
     },
     importerDetails: {
         id: '',

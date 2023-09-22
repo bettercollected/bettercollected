@@ -258,6 +258,11 @@ class WorkspaceFormsRouter(Routable):
         settings: SettingsPatchDto,
         user: User = Depends(get_logged_user),
     ):
+        workspace = await self.workspace_form_service.get_form_workspace_by_id(workspace_id)
+        if not workspace.is_pro and settings.disableBranding is not None:
+            return HTTPException(403, "You are forbidden to perform this action")
+        # TODO move this to worksapce_form_service
+
         data = await self._form_service.patch_settings_in_workspace_form(
             workspace_id, form_id, settings, user
         )

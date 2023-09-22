@@ -230,6 +230,8 @@ class FormService:
             workspace_form.settings.private = settings.private
         if settings.pinned is not None:
             workspace_form.settings.pinned = settings.pinned
+        if settings.disableBranding is not None:
+            workspace_form.settings.disable_branding = settings.disableBranding
         if settings.customUrl is not None:
             await self.user_tags_service.add_user_tag(
                 user_id=user.id, tag=UserTagType.CUSTOM_SLUG

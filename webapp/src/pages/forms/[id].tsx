@@ -228,7 +228,7 @@ export default function SingleFormPage(props: any) {
                     </div>
                 )}
             </div>
-            {!workspace?.isPro && <PoweredBy />}
+            {!workspace?.isPro || !form?.settings?.disableBranding && <PoweredBy />}
         </Layout>
     );
 }

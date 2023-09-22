@@ -61,29 +61,15 @@ class WorkspaceService:
 
     async def get_workspace_by_query(self, query: str, user: User):
         workspace = await self._workspace_repo.get_workspace_by_query(query)
-        is_workspace_owner_pro = await self.check_if_workspace_owner_is_pro(workspace.owner_id)
         if user:
             try:
                 await self._workspace_user_service.check_user_has_access_in_workspace(
                     workspace_id=workspace.id, user=user
                 )
-                return WorkspaceResponseDto(**workspace.dict(), dashboard_access=True, is_pro=is_workspace_owner_pro)
+                return WorkspaceResponseDto(**workspace.dict(), dashboard_access=True)
             except HTTPException:
                 pass
-        return WorkspaceResponseDto(**workspace.dict(), is_pro=is_workspace_owner_pro)
-
-    async def check_if_workspace_owner_is_pro(self, owner_id: str):
-        workspace_owner = await self.http_client.get(
-            settings.auth_settings.BASE_URL + "/auth/status",
-            params={
-                "user_id": owner_id,
-            },
-            timeout=10,
-        )
-        if workspace_owner.get("plan") == Plans.FREE:
-            return False
-        else:
-            return True
+        return WorkspaceResponseDto(**workspace.dict())
 
     async def create_non_default_workspace(
         self,
@@ -342,6 +328,7 @@ class WorkspaceService:
         for workspace in workspaces:
             if not workspace.default:
                 workspace.disabled = True
+            workspace.is_pro = False
             workspace.custom_domain_disabled = True
             await workspace.save()
             await self._workspace_user_service.disable_other_users_in_workspace(
@@ -352,6 +339,7 @@ class WorkspaceService:
         workspaces = await self._workspace_repo.get_user_workspaces(owner_id=user_id)
         for workspace in workspaces:
             workspace.disabled = False
+            workspace.is_pro = True
             workspace.custom_domain_disabled = False
             await workspace.save()
             await self._workspace_user_service.enable_all_users_in_workspace(
