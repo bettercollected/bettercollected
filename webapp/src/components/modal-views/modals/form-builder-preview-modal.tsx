@@ -10,20 +10,24 @@ import Back from '@app/components/icons/back';
 import PoweredBy from '@app/components/ui/powered-by';
 import {useAppSelector} from '@app/store/hooks';
 import {selectWorkspace} from '@app/store/workspaces/slice';
-import { selectConsentState } from '@app/store/consent/selectors';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
+import {selectConsentState} from '@app/store/consent/selectors';
+import {selectBuilderState} from '@app/store/form-builder/selectors';
 
 import {useFullScreenModal} from '../full-screen-modal-context';
 import {initFormState, selectForm} from "@app/store/forms/slice";
 import {IFormFieldState} from "@app/store/form-builder/types";
 
 
-export default function FormBuilderPreviewModal({ publish, isFormSubmitted = false }: { publish: () => void; isFormSubmitted: boolean }) {
+export default function FormBuilderPreviewModal({publish, isFormSubmitted = false, imagesRemoved = {}}: {
+    publish: () => void;
+    isFormSubmitted: boolean,
+    imagesRemoved: any
+}) {
     const [formToRender, setFormToRender] = useState(initFormState);
-    const { closeModal } = useFullScreenModal();
+    const {closeModal} = useFullScreenModal();
     const builderState = useAppSelector(selectBuilderState);
     const consentState = useAppSelector(selectConsentState);
-    const { headerImages } = useFormBuilderAtom();
+    const {headerImages} = useFormBuilderAtom();
 
     const updateRequest = useAppSelector((state1) => state1.workspacesApi.mutations);
 
@@ -42,7 +46,7 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
                 if (field.properties?.choices) {
                     return {
                         ...field,
-                        properties: { ...field.properties, choices: Object.values(field.properties?.choices) }
+                        properties: {...field.properties, choices: Object.values(field.properties?.choices)}
                     };
                 }
                 return field;
@@ -52,8 +56,10 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
             previewForm.settings = {
                 responseDataOwnerField: builderState.settings?.responseDataOwnerField || ''
             };
-            previewForm.coverImage = headerImages.coverImage ? URL.createObjectURL(headerImages?.coverImage) : builderState?.coverImage;
-            previewForm.logo = headerImages.logo ? URL.createObjectURL(headerImages.logo) : builderState?.logo;
+            if (!imagesRemoved.cover)
+                previewForm.coverImage = headerImages.coverImage ? URL.createObjectURL(headerImages?.coverImage) : builderState?.coverImage;
+            if (!imagesRemoved.logo)
+                previewForm.logo = headerImages.logo ? URL.createObjectURL(headerImages.logo) : builderState?.logo;
             previewForm.consent = consentState.consents;
             setFormToRender(previewForm);
         }
@@ -61,14 +67,15 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
 
     return (
         <div className=" w-full">
-            <div className="fixed z-[10000] h-[46px] border-b border-black-300 shadow px-5 !bg-white flex justify-between items-center top-0 right-0 left-0 gap-4">
+            <div
+                className="fixed z-[10000] h-[46px] border-b border-black-300 shadow px-5 !bg-white flex justify-between items-center top-0 right-0 left-0 gap-4">
                 <div
                     className="flex items-center gap-2 text-black-800 text-[14px] cursor-pointer"
                     onClick={() => {
                         closeModal();
                     }}
                 >
-                    <Back />
+                    <Back/>
                     Back to Editor
                 </div>
                 <div
@@ -77,12 +84,15 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
                         publish();
                     }}
                 >
-                    {isLoading ? <LoadingIcon /> : <UploadIcon />}
+                    {isLoading ? <LoadingIcon/> : <UploadIcon/>}
                     Publish
                 </div>
             </div>
-            <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6">{isFormSubmitted ? <ThankYouPage isDisabled={true} /> : <BetterCollectedForm form={formToRender} enabled={true} isPreview={true} closeModal={closeModal} />}</div>
-            {(!workspace?.isPro || !form?.settings?.disableBranding) && <PoweredBy isFormCreatorPortal={true} />}
+            <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6">{isFormSubmitted ?
+                <ThankYouPage isDisabled={true}/> :
+                <BetterCollectedForm form={formToRender} enabled={true} isPreview={true}
+                                     closeModal={closeModal}/>}</div>
+            {(!workspace?.isPro || !form?.settings?.disableBranding) && <PoweredBy isFormCreatorPortal={true}/>}
         </div>
     );
 }
