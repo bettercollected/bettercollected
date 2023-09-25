@@ -24,19 +24,21 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { selectAuthStatus } from '@app/store/auth/selectors';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
-import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
+import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export default function SingleFormPage(props: any) {
-    const { back, slug, hasCustomDomain, workspace } = props;
+    const { back, slug, hasCustomDomain, workspace, form: fetched_form, error: fetched_form_error } = props;
 
     const { data, isLoading, error } = useGetWorkspaceFormQuery({ workspace_id: workspace.id, custom_url: slug });
 
     const router = useRouter();
     const form: StandardFormDto | undefined = data;
 
-    const title = form?.title;
-    const description = form?.description?.slice(0, 100) ?? '';
-    const imageUrl = form?.coverImage ?? workspace?.profileImage;
+    const social_preview = fetched_form_error ? form : fetched_form;
+
+    const title = social_preview?.title;
+    const description = social_preview?.description?.slice(0, 100) ?? '';
+    const imageUrl = social_preview?.coverImage ?? workspace?.profileImage;
     const url = globalConstants.socialPreview.url;
 
     const iframeRef = useRef(null);
@@ -251,14 +253,42 @@ export async function getServerSideProps(_context: any) {
             }
         };
     }
-
+    let form = null;
+    const config = getServerSideAuthHeaderConfig(_context);
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
-
-    return {
-        props: {
-            ...globalProps,
-            slug,
-            back
+    const {id} = _context.query;
+    try {
+        const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${id}`, config);
+        form = (await formResponse?.json().catch((e: any) => e)) ?? null;
+        if (!form) {
+            return {
+                notFound: true
+            };
         }
-    };
+        return {
+            props: {
+                ...globalProps,
+                slug,
+                back,
+                form
+            }
+        };
+    } catch (err) {
+        return {
+            props: {
+                ...globalProps,
+                slug,
+                back,
+                error: true
+            }
+        };
+    }
+
+    // return {
+    //     props: {
+    //         ...globalProps,
+    //         slug,
+    //         back
+    //     }
+    // };
 }
