@@ -19,7 +19,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         'enter',
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch enter event!');
             addBlock();
         },
         hotkeysOptions
@@ -29,7 +28,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         'escape',
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch escape event!');
         },
         hotkeysOptions
     );
@@ -38,7 +36,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['up', 'down', 'left', 'right'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log(`Dispatch select another block ${keyboardEvent.key} event!`);
         },
         hotkeysOptions
     );
@@ -47,7 +44,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+z', 'meta+z'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch undo event!');
         },
         hotkeysOptions
     );
@@ -56,7 +52,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+y', 'meta+y'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch redo event!');
         },
         hotkeysOptions
     );
@@ -65,7 +60,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+shift+0', 'meta+alt+0'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch create text event!');
         },
         hotkeysOptions
     );
@@ -74,7 +68,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+shift+1', 'meta+alt+1'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch create h1 heading event!');
         },
         hotkeysOptions
     );
@@ -83,7 +76,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+shift+2', 'meta+alt+2'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch create h2 heading event!');
         },
         hotkeysOptions
     );
@@ -92,7 +84,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+shift+3', 'meta+alt+3'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch create h3 heading event!');
         },
         hotkeysOptions
     );
@@ -101,7 +92,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+shift+4', 'meta+alt+4'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch create to-do checklist event!');
         },
         hotkeysOptions
     );
@@ -110,7 +100,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+shift+5', 'meta+alt+5'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch create a bulleted list event!');
         },
         hotkeysOptions
     );
@@ -119,7 +108,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+shift+6', 'meta+alt+6'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch create a numbered list event!');
         },
         hotkeysOptions
     );
@@ -128,7 +116,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+shift+7', 'meta+alt+7'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch create a toggle list event!');
         },
         hotkeysOptions
     );
@@ -137,7 +124,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+shift+8', 'meta+alt+8'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch create a code block event!');
         },
         hotkeysOptions
     );
@@ -146,7 +132,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+shift+9', 'meta+alt+9'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log('Dispatch create a new page break event!');
         },
         hotkeysOptions
     );
@@ -155,7 +140,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['shift+up', 'shift+down'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log(`Dispatch expand the selection ${keyboardEvent.key} event!`);
         },
         hotkeysOptions
     );
@@ -164,7 +148,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['backspace', 'delete'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log(`Dispatch ${keyboardEvent.key} event!`);
         },
         hotkeysOptions
     );
@@ -173,7 +156,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+d', 'meta+d'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log(`Dispatch delete a block event!`);
         },
         hotkeysOptions
     );
@@ -182,7 +164,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+slash', 'meta+slash'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log(`Dispatch edit or change a block event!`);
         },
         hotkeysOptions
     );
@@ -191,7 +172,6 @@ export default function FormBuilderHotkeysHookListener({ children, scopes, addBl
         ['ctrl+shift+up', 'ctrl+shift+down', 'ctrl+shift+left', 'ctrl+shift+right', 'meta+shift+up', 'meta+shift+down', 'meta+shift+left', 'meta+shift+right'],
         (keyboardEvent: KeyboardEvent) => {
             keyboardEvent.preventDefault();
-            console.log(`Dispatch move a block ${keyboardEvent.key} event!`);
         },
         hotkeysOptions
     );

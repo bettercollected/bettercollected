@@ -22,10 +22,11 @@ import {SearchIcon} from "@app/components/icons/search";
 import {StyledTextField} from "@app/components/dashboard/workspace-forms-tab-content";
 import {useTranslation} from "next-i18next";
 import {batch, useDispatch} from "react-redux";
-import {setAddNewField} from "@app/store/form-builder/actions";
+import {resetBuilderMenuState, setAddNewField, setDeleteField} from "@app/store/form-builder/actions";
 import {uuidv4} from "@mswjs/interceptors/lib/utils/uuid";
+import {v4} from "uuid";
 
-export default function MobileInsertMenu() {
+export default function MobileInsertMenu({index}: { index?: number }) {
 
     const {closeModal} = useModal()
 
@@ -41,15 +42,28 @@ export default function MobileInsertMenu() {
     const dispatch = useAppDispatch()
 
     const handleSelection = (type: FormBuilderTagNames) => {
+        const getActiveIndex = () => {
+            if (index !== undefined && index > -1) return index;
+            return Object.keys(builderState.fields).length - 1;
+        };
+        const activeIndex = getActiveIndex();
+        const activeField = Object.values(builderState.fields)[activeIndex];
+        const isActiveFieldLayoutShortText = activeField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT;
+        const shouldInsertInCurrentField = isActiveFieldLayoutShortText && !activeField.value;
+
         batch(() => {
-            dispatch(setAddNewField({
-                id: uuidv4(),
-                type,
-                position: Object.keys(builderState.fields).length - 1
-            }))
-            closeModal()
-        })
-    }
+            if (shouldInsertInCurrentField) dispatch(setDeleteField(activeField.id));
+            dispatch(
+                setAddNewField({
+                    id: v4(),
+                    type,
+                    position: activeIndex
+                })
+            );
+            dispatch(resetBuilderMenuState());
+        });
+        closeModal();
+    };
 
     useEffect(() => {
         if (!searchQuery) {
