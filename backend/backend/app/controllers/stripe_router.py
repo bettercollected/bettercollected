@@ -60,8 +60,5 @@ class StripeRoutes(Routable):
             400: {"message": "Unable to extract timestamp and signatures from header"},
         },
     )
-    async def webhooks(self, request: Request, response: Response):
-        auth_response = await self.stripe_service.webhooks(request)
-        response.content = auth_response.content
-        response.status_code = auth_response.status_code
-        return response
+    async def webhooks(self, request: Request):
+        return await self.stripe_service.webhooks(request)
