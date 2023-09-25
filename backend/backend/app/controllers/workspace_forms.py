@@ -5,11 +5,13 @@ from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, patch, post, delete
 from fastapi import Depends, UploadFile, Form
 from fastapi_pagination import Page
+from loguru import logger
 from starlette.requests import Request
 
 from backend.app.container import container
 from backend.app.decorators.user_tag_decorators import user_tag
 from backend.app.exceptions import HTTPException
+from backend.app.models.enum.FormVersion import FormVersion
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.models.minified_form import MinifiedForm
@@ -26,11 +28,11 @@ from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.config import settings
+from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.consent import ResponseRetentionType
 from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm, StandardFormSettings
+from common.models.standard_form import StandardForm
 from common.models.user import User
-from loguru import logger
 
 
 @router(
@@ -63,9 +65,12 @@ class WorkspaceFormsRouter(Routable):
         workspace_id: PydanticObjectId,
         sort: SortRequest = Depends(),
         user: User = Depends(get_user_if_logged_in),
+        published: bool = False,
     ) -> Page[MinifiedForm]:
+        if not user and not published:
+            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
         forms = await self._form_service.get_forms_in_workspace(
-            workspace_id, sort, user
+            workspace_id=workspace_id, sort=sort, published=published, user=user
         )
         return forms
 
@@ -126,6 +131,20 @@ class WorkspaceFormsRouter(Routable):
             cover_image=cover_image,
         )
         return StandardFormCamelModel(**response.dict())
+
+    @post("/{form_id}/publish", response_model=MinifiedForm)
+    async def publish_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ):
+        form = await self.workspace_form_service.publish_form(
+            workspace_id=workspace_id, form_id=form_id, user=user
+        )
+        form_dict = form.dict()
+        form_dict["form_id"] = str(form_id)
+        return StandardFormCamelModel(**form_dict)
 
     @post("/{form_id}/response")
     async def respond_to_form(
@@ -190,10 +209,13 @@ class WorkspaceFormsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         query: str,
+        published: bool = False,
         user: User = Depends(get_user_if_logged_in),
     ):
+        if not user and not published:
+            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
         forms = await self._form_service.search_form_in_workspace(
-            workspace_id, query, user
+            workspace_id=workspace_id, query=query, published=published, user=user
         )
         return forms
 
@@ -205,10 +227,26 @@ class WorkspaceFormsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         form_id: str,
+        published: bool = False,
         user: User = Depends(get_user_if_logged_in),
     ):
-        form = await self._form_service.get_form_by_id(workspace_id, form_id, user)
+        if not user and not published:
+            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
+        form = await self._form_service.get_form_by_id(workspace_id=workspace_id, form_id=form_id, published=published,
+                                                       user=user)
         return form
+
+    @get("/{form_id}/versions/{version}", response_model=MinifiedForm)
+    async def get_form_with_version(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        version: FormVersion | int,
+        user: User = Depends(get_user_if_logged_in),
+    ):
+        return await self._form_service.get_form_by_version(
+            workspace_id=workspace_id, form_id=form_id, version=version, user=user
+        )
 
     @patch(
         "/{form_id}/settings",

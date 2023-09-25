@@ -12,12 +12,6 @@ from backend.app.models.response_dtos import FormFileResponse
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
-from backend.app.schemas.standard_form import FormDocument
-from backend.app.schemas.standard_form_response import (
-    FormResponseDocument,
-    FormResponseDeletionRequest,
-)
-from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
@@ -354,6 +348,10 @@ class WorkspaceFormService:
                 workspace_form.settings.privacy_policy_url = (
                     form.settings.privacy_policy_url
                 )
+            if form.settings.response_expiration is not None:
+                workspace_form.settings.response_expiration = form.settings.response_expiration
+            if form.settings.response_expiration_type is not None:
+                workspace_form.settings.response_expiration_type = form.settings.response_expiration_type
             await workspace_form.save()
 
         existing_form = await self.form_service.get_form_document_by_id(str(form_id))
@@ -438,6 +436,14 @@ class WorkspaceFormService:
         return await self.form_response_service.delete_form_response(
             form_id=form_id, response_id=response_id
         )
+
+    async def publish_form(
+        self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User
+    ):
+        await self.workspace_user_service.check_user_has_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        return await self.form_service.publish_form(form_id=form_id)
 
     async def get_form_workspace_by_id(self, workspace_id: PydanticObjectId):
         return await self.form_import_service.get_form_workspace_by_id(workspace_id=workspace_id)

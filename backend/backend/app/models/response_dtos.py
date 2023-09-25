@@ -19,12 +19,14 @@ from common.models.standard_form import (
 
 
 class WorkspaceFormSettingsCamelModal(WorkspaceFormSettings, CamelModel):
+    is_published: Optional[bool]
     pass
 
 
 class StandardFormCamelModel(StandardForm, CamelModel):
     settings: Optional[WorkspaceFormSettingsCamelModal]
     responses: Optional[int] = 0
+    version: Optional[int]
 
 
 class StandardChoice(CamelModel):

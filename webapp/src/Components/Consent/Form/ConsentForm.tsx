@@ -110,10 +110,7 @@ export default function ConsentForm({ className, onFormSubmit, form, isDisabled 
             <div className="space-y-20 xs:space-y-[70px]">
                 <div className="space-y-4">
                     <div className="h4">Form Purpose and Data Usage</div>
-                    <div className="p2 !text-new-black-800 ">
-                        {`We want to make sure you're fully informed about how your data will be used
-before you proceed with our form.`}
-                    </div>
+                    <div className="p2 !text-new-black-800 ">{`We want to make sure you're fully informed about how your data will be used before you proceed with our form.`}</div>
                 </div>
                 {renderFormPurposes()}
                 {renderDataRetention()}

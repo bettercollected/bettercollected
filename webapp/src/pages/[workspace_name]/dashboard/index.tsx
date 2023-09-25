@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import CreateFormButton from '@Components/Common/CreateFormButton';
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 
@@ -14,7 +15,6 @@ import WorkspaceDashboardOverview from '@app/components/workspace-dashboard/work
 import environments from '@app/configs/environments';
 import { formConstant } from '@app/constants/locales/form';
 import { builderConstants } from '@app/constants/locales/form-builder';
-import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
@@ -90,17 +90,7 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
             <div className="min-h-9 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <p className="sh1">{t(formConstant.recentForms)}</p>
                 <div className="flex gap-3">
-                    {environments.ENABLE_FORM_BUILDER && (
-                        <Button
-                            variant="solid"
-                            onClick={() => {
-                                router.push(`/${workspace.workspaceName}/dashboard/forms/create`);
-                            }}
-                        >
-                            {builderTranslation(builderConstants.createForm)}
-                        </Button>
-                    )}
-
+                    <CreateFormButton />
                     <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
                 </div>
             </div>

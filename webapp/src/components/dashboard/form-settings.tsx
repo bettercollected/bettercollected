@@ -1,16 +1,16 @@
 import React from 'react';
 
-import { useTranslation } from 'next-i18next';
+import {useTranslation} from 'next-i18next';
 
 import Pro from '@Components/Common/Icons/Pro';
 import LockIcon from '@Components/Common/Icons/lock';
-import { Button, FormControlLabel, Radio, RadioGroup } from '@mui/material';
+import {Button, FormControlLabel, Radio, RadioGroup} from '@mui/material';
 import Switch from '@mui/material/Switch';
 import cn from 'classnames';
-import { toast } from 'react-toastify';
+import {toast} from 'react-toastify';
 
-import { useModal } from '@app/components/modal-views/context';
-import { FormSettingsCard } from '@app/components/settings/card';
+import {useModal} from '@app/components/modal-views/context';
+import {FormSettingsCard} from '@app/components/settings/card';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -26,18 +26,18 @@ import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import Globe from '../icons/flags/globe';
-import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
+import {useFullScreenModal} from '../modal-views/full-screen-modal-context';
 import FormLinkUpdateView from '../ui/form-link-update-view';
 import AnchorLink from '../ui/links/anchor-link';
 import UpgradeToPro from '../ui/upgrade-to-pro';
 
 export default function FormSettingsTab() {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const form = useAppSelector((state) => state.form);
     const [patchFormSettings] = usePatchFormSettingsMutation();
     const workspace = useAppSelector((state) => state.workspace);
     const dispatch = useAppDispatch();
-    const { openModal } = useModal();
+    const {openModal} = useModal();
     const fullScreenModal = useFullScreenModal();
     const isCustomDomain = !!workspace.customDomain;
     const customUrl = form?.settings?.customUrl || '';
@@ -55,33 +55,35 @@ export default function FormSettingsTab() {
         if (response.data) {
             const settings = response.data.settings;
             dispatch(setFormSettings(settings));
-            toast(t(localesCommon.updated).toString(), { type: 'success' });
+            toast(t(localesCommon.updated).toString(), {type: 'success'});
         } else {
             if (response.error.status === 409) {
-                toast(t('TOAST.SLUG_ALREADY_EXISTS').toString(), { type: 'error' });
+                toast(t('TOAST.SLUG_ALREADY_EXISTS').toString(), {type: 'error'});
             } else {
-                toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+                toast(t(toastMessage.formSettingUpdateError).toString(), {type: 'error'});
             }
             return response.error;
         }
     };
 
     const onPinnedChange = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
-        patchSettings({ pinned: !f?.settings?.pinned }, f)
-            .then((res) => {})
+        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), {type: 'error', toastId: 'errorToast'});
+        patchSettings({pinned: !f?.settings?.pinned}, f)
+            .then((res) => {
+            })
             .catch((e) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
+                toast(e.data, {type: 'error', toastId: 'errorToast'});
             });
     };
 
-    const onPrivateChanged = ({ isPrivate = false, f }: { isPrivate?: boolean; f?: StandardFormDto }) => {
-        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
-        const patchBody = { private: isPrivate, pinned: false };
+    const onPrivateChanged = ({isPrivate = false, f}: { isPrivate?: boolean; f?: StandardFormDto }) => {
+        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), {type: 'error', toastId: 'errorToast'});
+        const patchBody = {private: isPrivate, pinned: false};
         patchSettings(patchBody, f)
-            .then((res) => {})
+            .then((res) => {
+            })
             .catch((e: any) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
+                toast(e.data, {type: 'error', toastId: 'errorToast'});
             });
     };
 
@@ -89,7 +91,7 @@ export default function FormSettingsTab() {
         if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
         patchSettings({ disableBranding: !f?.settings?.disableBranding }, f)
             .then((res) => {
-                
+
             })
             .catch((e) => {
                 toast(e.data, { type: 'error', toastId: 'errorToast' });
@@ -101,22 +103,25 @@ export default function FormSettingsTab() {
 
     return (
         <div>
-            <FormSettingsCard>
-                <p className="sh3">{t(formConstant.settings.formLink.title)}</p>
-                <p className="body4 !text-black-700 mt-4 !mb-6">{t(formConstant.settings.formLink.description)}</p>
-                <FormLinkUpdateView link={clientHostUrl} isLinkChangable />
-            </FormSettingsCard>
-            <FormSettingsCard className={cn('relative !py-6', !isProPlan && isAdmin && '!bg-brand-200')}>
-                <p className="sh3">{t(formConstant.settings.customizeFormLink.title)}</p>
-                <p className="body4 !text-black-700 mt-4 mb-10">{t(formConstant.settings.customizeFormLink.description)}</p>
-                <p className="w-full body6 mb-4 !font-semibold text-black-900">{t(formConstant.settings.customizeFormLink.List.title)}</p>
-                <ul className="list-disc body4 ml-10 !mb-6">
-                    <li className="mb-4">{t(formConstant.settings.customizeFormLink.List.point1)}</li>
-                    <li>{t(formConstant.settings.customizeFormLink.List.point2)}</li>
-                </ul>
-                <FormLinkUpdateView link={isCustomDomain ? customDomainUrl : clientHostUrl} isDisable={!isProPlan && isAdmin} />
-                {!isProPlan && isAdmin && <UpgradeToPro />}
-            </FormSettingsCard>
+            {
+                form?.settings?.isPublished && <>
+                    <FormSettingsCard>
+                        <p className="sh3">{t(formConstant.settings.formLink.title)}</p>
+                        <p className="body4 !text-black-700 mt-4 !mb-6">{t(formConstant.settings.formLink.description)}</p>
+                        <FormLinkUpdateView link={clientHostUrl} isLinkChangable/>
+                    </FormSettingsCard>
+                    <FormSettingsCard className={cn('relative !py-6', !isProPlan && isAdmin && '!bg-brand-200')}>
+                        <p className="sh3">{t(formConstant.settings.customizeFormLink.title)}</p>
+                        <p className="body4 !text-black-700 mt-4 mb-10">{t(formConstant.settings.customizeFormLink.description)}</p>
+                        <p className="w-full body6 mb-4 !font-semibold text-black-900">{t(formConstant.settings.customizeFormLink.List.title)}</p>
+                        <ul className="list-disc body4 ml-10 !mb-6">
+                            <li className="mb-4">{t(formConstant.settings.customizeFormLink.List.point1)}</li>
+                            <li>{t(formConstant.settings.customizeFormLink.List.point2)}</li>
+                        </ul>
+                        <FormLinkUpdateView link={isCustomDomain ? customDomainUrl : clientHostUrl}
+                                            isDisable={!isProPlan && isAdmin}/>
+                        {!isProPlan && isAdmin && <UpgradeToPro/>}
+                    </FormSettingsCard>
 
             <FormSettingsCard>
                 <p className="sh3">{t(formConstant.settings.visibility.title)}</p>
@@ -172,16 +177,20 @@ export default function FormSettingsTab() {
                 </div>
                 {!isProPlan && isAdmin && <UpgradeToPro />}
             </FormSettingsCard>
+                </>
+            }
+
             <FormSettingsCard>
                 <div className="flex items-center space-x-5">
                     <div className="space-y-2">
                         <div className="body1">Form Purpose and Data Usage</div>
-                        <div className="text-sm !text-black-700">{`This page is to help you to provide you with a clear understanding of how how your information is handled in our form. Our aim is to ensure you're fully informed and comfortable with how we handle your data.`}</div>
+                        <div
+                            className="text-sm !text-black-700">{`This page is to help you to provide you with a clear understanding of how how your information is handled in our form. Our aim is to ensure you're fully informed and comfortable with how we handle your data.`}</div>
                     </div>
                     <span
-                        className="h5-new!text-new-blue-500 w-60 cursor-pointer"
+                        className="h5-new !text-new-blue-500 w-60 cursor-pointer"
                         onClick={() => {
-                            fullScreenModal.openModal('CREATE_CONSENT_FULL_MODAL_VIEW', { form, isPreview: true });
+                            fullScreenModal.openModal('CREATE_CONSENT_FULL_MODAL_VIEW', {form, isPreview: true});
                         }}
                     >
                         See Details
@@ -190,11 +199,11 @@ export default function FormSettingsTab() {
             </FormSettingsCard>
             <div className="my-6">
                 <Button
-                    style={{ textTransform: 'none' }}
+                    style={{textTransform: 'none'}}
                     className="  bg-red-100 px-4 py-3 body6 rounded hover:bg-red-200 hover:drop-shadow-sm leading-none !text-red-500"
                     size="medium"
                     onClick={() => {
-                        openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
+                        openModal('DELETE_FORM_MODAL', {form, redirectToDashboard: true});
                     }}
                 >
                     {t(buttonConstant.deleteForm)}

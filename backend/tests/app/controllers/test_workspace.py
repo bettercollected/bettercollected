@@ -200,7 +200,9 @@ class TestWorkspaces:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
     ):
-        check_handle_url = f"{common_url}/{workspace.id}/check-handle-availability/sireto"
+        check_handle_url = (
+            f"{common_url}/{workspace.id}/check-handle-availability/sireto"
+        )
 
         check_handle_availability = client.get(
             check_handle_url, cookies=test_user_cookies

@@ -41,9 +41,7 @@ class FormImportService:
         standard_form = form_data.form
         await self.form_service.save_form(standard_form)
         responses = form_data.responses
-
         updated_responses_id = []
-
         for response in responses:
             existing_response = await FormResponseDocument.find_one(
                 {"response_id": response.response_id}
