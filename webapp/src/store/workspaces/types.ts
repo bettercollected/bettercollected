@@ -1,6 +1,7 @@
 export interface IGetWorkspaceFormQuery {
     workspace_id: string;
     custom_url: string;
+    published?: boolean;
 }
 
 export interface IGetWorkspaceFileUrlQuery {
@@ -16,6 +17,7 @@ export interface IGetWorkspaceSubmissionQuery {
 export interface ISearchWorkspaceFormsQuery {
     workspace_id: string;
     query: string;
+    published?: boolean;
 }
 
 export interface IPatchFormSettingsRequest {

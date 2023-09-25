@@ -58,6 +58,7 @@ workspace_settings = {
     "responseExpiration": None,
     "responseExpirationType": None,
     'disableBranding': None,
+    'isPublished': None
 }
 
 workspace_tag = {"title": "BetterCollected-Team"}

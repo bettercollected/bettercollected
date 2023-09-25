@@ -146,6 +146,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         const postBody = {
             form_id: form?.formId,
             answers: answers,
+            form_version: form?.version || 1,
             consent: Object.values(consentAnswers),
             expiration: responseExpirationTime,
             expirationType: responseExpirationType,

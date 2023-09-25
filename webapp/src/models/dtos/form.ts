@@ -38,6 +38,7 @@ export interface StandardFormDto {
     title: string;
     description?: string | null | undefined;
     buttonText?: string;
+    version?: number;
     provider?: string;
     createdAt?: string | Date;
     responses?: number;
@@ -50,6 +51,7 @@ export interface StandardFormDto {
         responseDataOwnerField?: string;
         private?: boolean;
         provider: string;
+        isPublished?: boolean;
         roles?: Array<string>;
         privacyPolicyUrl?: string;
         responseExpiration?: string;

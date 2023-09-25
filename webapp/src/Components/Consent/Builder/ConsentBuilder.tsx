@@ -32,7 +32,7 @@ interface ConsentBuilderProps extends OnlyClassNameInterface {
     form?: StandardFormDto;
 }
 
-export default function ConsentBuilder({ className, onFormPublish, isPreview = false, form }: ConsentBuilderProps) {
+export default function ConsentBuilder({ className, isPreview = false, form }: ConsentBuilderProps) {
     const consentState = useAppSelector(selectConsentState);
     const workspace = useAppSelector(selectWorkspace);
     const { data } = useGetAllWorkspaceConsentsQuery(workspace.id);
@@ -101,9 +101,8 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
                 title: 'Responder Rights'
             };
             openModal('CONSENT_BUILDER_CONFIRMATION_MODAL_VIEW', {
-                onFormPublish,
                 consents: [...consentState.consents, isDeletionRequestChecked && responderRightsConsentField],
-                privacyPolicyUrl: consentState.privacy_policy
+                privacyPolicyUrl: consentState.privacyPolicyUrl
             });
         } else {
             setError(true);
@@ -129,6 +128,7 @@ export default function ConsentBuilder({ className, onFormPublish, isPreview = f
                         disabled={isPreview}
                         title="Insert link to your privacy policy"
                         required
+                        value={isPreview ? form?.settings?.privacyPolicyUrl : consentState?.privacyPolicyUrl}
                         placeholder={isPreview ? form?.settings?.privacyPolicyUrl : 'Insert link here'}
                         className="mt-5"
                         onChange={(event: any) => {

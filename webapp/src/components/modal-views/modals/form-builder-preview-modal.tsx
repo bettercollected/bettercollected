@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 
 import UploadIcon from '@Components/Common/Icons/FormBuilder/UploadIcon';
 import LoadingIcon from '@Components/Common/Icons/Loading';
@@ -8,17 +8,18 @@ import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 
 import Back from '@app/components/icons/back';
 import PoweredBy from '@app/components/ui/powered-by';
+import {useAppSelector} from '@app/store/hooks';
+import {selectWorkspace} from '@app/store/workspaces/slice';
 import { selectConsentState } from '@app/store/consent/selectors';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { IFormFieldState } from '@app/store/form-builder/types';
-import { initialIBuilderState, selectForm } from '@app/store/forms/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
 
-import { useFullScreenModal } from '../full-screen-modal-context';
+import {useFullScreenModal} from '../full-screen-modal-context';
+import {initFormState, selectForm} from "@app/store/forms/slice";
+import {IFormFieldState} from "@app/store/form-builder/types";
+
 
 export default function FormBuilderPreviewModal({ publish, isFormSubmitted = false }: { publish: () => void; isFormSubmitted: boolean }) {
-    const [formToRender, setFormToRender] = useState(initialIBuilderState);
+    const [formToRender, setFormToRender] = useState(initFormState);
     const { closeModal } = useFullScreenModal();
     const builderState = useAppSelector(selectBuilderState);
     const consentState = useAppSelector(selectConsentState);

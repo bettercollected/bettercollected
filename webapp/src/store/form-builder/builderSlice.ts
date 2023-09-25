@@ -13,7 +13,7 @@ import { getInitialPropertiesForFieldType } from './utils';
 
 const firstFieldId = v4();
 
-const initialState: IBuilderState = {
+export const initBuilderState: IBuilderState = {
     id: '',
     title: '',
     description: '',
@@ -55,7 +55,7 @@ export const setIsFormDirtyAsync = createAsyncThunk('form/setIsFormDirtyAsync', 
 
 export const builder = createSlice({
     name: 'builder',
-    initialState,
+    initialState: initBuilderState,
     extraReducers: (builder) => {
         // Handling the async thunk action
         builder.addCase(setIsFormDirtyAsync.fulfilled, (state, action) => {
@@ -149,7 +149,7 @@ export const builder = createSlice({
             return { ...state, menus };
         },
         resetBuilderMenuState: (state: IBuilderState) => {
-            const menus = { ...state.menus, ...initialState.menus };
+            const menus = { ...state.menus, ...initBuilderState.menus };
             return { ...state, menus };
         },
         setAddNewField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
@@ -293,7 +293,7 @@ export const builder = createSlice({
         },
 
         resetForm: (state) => {
-            return initialState;
+            return initBuilderState;
         }
     }
 });
