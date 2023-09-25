@@ -3,32 +3,53 @@ import {useModal} from "@app/components/modal-views/context";
 import Divider from "@Components/Common/DataDisplay/Divider";
 import SearchInput from "@Components/Common/Search/SearchInput";
 import {useCallback, useEffect, useRef, useState} from "react";
-import {BlockTypes, KeyType} from "@app/models/enums/formBuilder";
-import {useAppSelector} from "@app/store/hooks";
-import {selectActiveFieldId} from "@app/store/form-builder/selectors";
+import {BlockTypes, FormBuilderTagNames, KeyType} from "@app/models/enums/formBuilder";
+import {useAppDispatch, useAppSelector} from "@app/store/hooks";
+import {selectActiveFieldId, selectBuilderState} from "@app/store/form-builder/selectors";
 import {
     allowedInputTags, allowedLayoutTags,
     allowedQuestionAndAnswerTags,
     allowedTags
 } from "@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector";
 import TagListItem from "@Components/FormBuilder/BuilderBlock/TagListItem";
-import {List, ListSubheader} from "@mui/material";
+import {InputAdornment, List, ListSubheader} from "@mui/material";
 import Element from "@Components/Common/Icons/Element";
 import ElementsWithLabel from "@Components/Common/Icons/ElementsWithLabel";
+import TextField from "@mui/material/TextField";
+import {placeHolder} from "@app/constants/locales/placeholder";
+import cn from "classnames";
+import {SearchIcon} from "@app/components/icons/search";
+import {StyledTextField} from "@app/components/dashboard/workspace-forms-tab-content";
+import {useTranslation} from "next-i18next";
+import {batch, useDispatch} from "react-redux";
+import {setAddNewField} from "@app/store/form-builder/actions";
+import {uuidv4} from "@mswjs/interceptors/lib/utils/uuid";
 
 export default function MobileInsertMenu() {
 
     const {closeModal} = useModal()
 
     const [searchQuery, setSearchQuery] = useState("")
-
+    const {t} = useTranslation()
 
     const [tagList, setTagList] = useState(allowedTags);
     const [selectedTag, setSelectedTag] = useState({blockType: BlockTypes.QUESTION_INPUT_BLOCKS, index: 0});
     const [command, setCommand] = useState('');
     const [blockListTypes, setBlockListTypes] = useState<Array<BlockTypes>>([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS]);
     const listRef: any = useRef(null);
-    const activeField = useAppSelector(selectActiveFieldId);
+    const builderState = useAppSelector(selectBuilderState);
+    const dispatch = useAppDispatch()
+
+    const handleSelection = (type: FormBuilderTagNames) => {
+        batch(() => {
+            dispatch(setAddNewField({
+                id: uuidv4(),
+                type,
+                position: Object.keys(builderState.fields).length - 1
+            }))
+            closeModal()
+        })
+    }
 
     useEffect(() => {
         if (!searchQuery) {
@@ -72,7 +93,7 @@ export default function MobileInsertMenu() {
                     const selectedListItem: any = listRef.current?.querySelector('.selected');
                     if (selectedListItem) {
                         const tag = selectedListItem.dataset.tag;
-                        // handleSelection(tag);
+                        handleSelection(tag);
                     }
                 },
                 [KeyType.ArrowDown]: () => selectNextTag(e),
@@ -153,6 +174,7 @@ export default function MobileInsertMenu() {
 
                         return <TagListItem key={index} tag={tag} index={index} blockType={blockType}
                                             isSelected={isSelected} handleSelection={() => {
+                            handleSelection(tag.type)
                         }}
                                             setSelectedTag={setSelectedTag}/>;
                     })}
@@ -180,9 +202,28 @@ export default function MobileInsertMenu() {
         </div>
         <Divider/>
         <div className='px-6 py-4'>
-            <SearchInput className="!bg-black-100 text-black-700" handleSearch={(value) => {
-                setSearchQuery(value)
-            }}/>
+            <StyledTextField>
+                <TextField
+                    sx={{height: '46px', padding: 0}}
+                    size="small"
+                    name="search-input"
+                    placeholder={t(placeHolder.search)}
+                    onChange={(event) => {
+                        setSearchQuery(event.target.value)
+                    }}
+                    className={cn('w-full bg-white focus:bg-white active:bg-white')}
+                    InputProps={{
+                        sx: {
+                            paddingLeft: '16px'
+                        },
+                        endAdornment: (
+                            <InputAdornment sx={{padding: 0}} position="end">
+                                <SearchIcon/>
+                            </InputAdornment>
+                        )
+                    }}
+                />
+            </StyledTextField>
         </div>
         <Divider/>
         <div className="h-[477px]  bg-brand-100 rounded-md overflow-auto">
