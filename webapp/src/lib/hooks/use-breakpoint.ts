@@ -1,8 +1,8 @@
 import createBreakpoint from 'react-use/lib/factory/createBreakpoint';
 
 const breakPoints = {
-    xs: 360,
-    '2xs': 480,
+    xs: 480,
+    '2xs': 360,
     sm: 640,
     md: 768,
     lg: 1024,
@@ -11,3 +11,9 @@ const breakPoints = {
 };
 
 export const useBreakpoint = createBreakpoint(breakPoints);
+
+export function useIsMobile() {
+    const breakpoint = useBreakpoint()
+
+    return ["xs", "2xs", "sm"].indexOf(breakpoint) !== -1
+}

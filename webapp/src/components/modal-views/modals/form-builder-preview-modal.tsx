@@ -8,14 +8,14 @@ import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 
 import Back from '@app/components/icons/back';
 import PoweredBy from '@app/components/ui/powered-by';
-import {selectConsentState} from '@app/store/consent/selectors';
-import {selectBuilderState} from '@app/store/form-builder/selectors';
-import {IFormFieldState} from '@app/store/form-builder/types';
-import {initFormState, selectForm} from '@app/store/forms/slice';
 import {useAppSelector} from '@app/store/hooks';
 import {selectWorkspace} from '@app/store/workspaces/slice';
+import { selectConsentState } from '@app/store/consent/selectors';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
 
 import {useFullScreenModal} from '../full-screen-modal-context';
+import {initFormState, selectForm} from "@app/store/forms/slice";
+import {IFormFieldState} from "@app/store/form-builder/types";
 
 
 export default function FormBuilderPreviewModal({ publish, isFormSubmitted = false }: { publish: () => void; isFormSubmitted: boolean }) {
@@ -82,7 +82,7 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
                 </div>
             </div>
             <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6">{isFormSubmitted ? <ThankYouPage isDisabled={true} /> : <BetterCollectedForm form={formToRender} enabled={true} isPreview={true} closeModal={closeModal} />}</div>
-            {!workspace?.isPro || !form?.settings?.disableBranding && <PoweredBy isFormCreatorPortal={true} />}
+            {(!workspace?.isPro || !form?.settings?.disableBranding) && <PoweredBy isFormCreatorPortal={true} />}
         </div>
     );
 }

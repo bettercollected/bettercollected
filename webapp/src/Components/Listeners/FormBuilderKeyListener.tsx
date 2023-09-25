@@ -69,7 +69,6 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     }
                 } else if (event.key === 'Tab' || (event.shiftKey && event.key === 'Tab')) event.preventDefault();
                 else if (!event.ctrlKey && !event.metaKey && (event.key === 'ArrowDown' || (event.key === 'Enter' && builderState.activeFieldIndex < -1)) && builderState.activeFieldIndex < Object.keys(builderState.fields).length - 1) {
-                    console.log('FormBuilder key listener key down called');
                     focusNextField();
                 } else if (!event.ctrlKey && !event.metaKey && event.key === 'ArrowUp' && builderState.activeFieldIndex > -2) {
                     focusPreviousField();

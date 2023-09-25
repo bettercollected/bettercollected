@@ -1,27 +1,25 @@
-import React, { useRef, useState } from 'react';
+import React, {useRef, useState} from 'react';
 
 import Image from 'next/image';
 
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import { toast } from 'react-toastify';
+import {uuidv4} from '@mswjs/interceptors/lib/utils/uuid';
+import {toast} from 'react-toastify';
 
 import deleteImg from '@app/assets/images/delete.png';
 import fileUploadImg from '@app/assets/images/file-upload.png';
-import AnchorLink from '@app/components/ui/links/anchor-link';
-import { FileMetadata } from '@app/models/types/fileTypes';
-import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-import { downloadFile, generateFileMetaData } from '@app/utils/fileUtils';
+import {FileMetadata} from '@app/models/types/fileTypes';
+import {addAnswer} from '@app/store/fill-form/slice';
+import {useAppDispatch, useAppSelector} from '@app/store/hooks';
+import {selectWorkspace} from '@app/store/workspaces/slice';
+import {downloadFile, generateFileMetaData} from '@app/utils/fileUtils';
 
-import { FormFieldProps } from './BetterCollectedForm';
+import {FormFieldProps} from './BetterCollectedForm';
 import useFormAtom from './atom';
 
 export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     const [isDragging, setIsDragging] = useState(false);
     const inputFileRef = useRef<HTMLInputElement | null>(null);
     const { addFile } = useFormAtom();
-    const workspace = useAppSelector(selectWorkspace);
     const [fileMetaData, setFileMetadata] = useState<FileMetadata>(ans?.file_metadata ?? { id: uuidv4() });
     const dispatch = useAppDispatch();
 
