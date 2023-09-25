@@ -154,7 +154,7 @@ export default function Submission(props: any) {
                                 title="View Your Data Usage Permissions"
                                 description={`Review the permissions you've previously granted for data usage.`}
                                 linkText="Data Permission Details"
-                                onLinkClick={() => fullScreenModal.openModal('CONSENT_FULL_MODAL_VIEW', { isPreview: true, form: form.response })}
+                                onLinkClick={() => fullScreenModal.openModal('CONSENT_FULL_MODAL_VIEW', { isDisabled: true, form: form.response })}
                             />
                             <div>
                                 <div className="body4 pb-2 text-black-700">{t(localesCommon.lastSubmittedAt)}</div>
