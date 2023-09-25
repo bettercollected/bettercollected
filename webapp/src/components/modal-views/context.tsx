@@ -34,7 +34,8 @@ export type MODAL_VIEW =
     | 'CONSENT_PURPOSE_MODAL_VIEW'
     | 'CONSENT_CONFIRMATION_MODAL_VIEW'
     | 'CONSENT_BUILDER_CONFIRMATION_MODAL_VIEW'
-    | 'CONSENT_RETENTION_MODAL_VIEW';
+    | 'CONSENT_RETENTION_MODAL_VIEW'
+    | 'MOBILE_INSERT_MENU';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 
