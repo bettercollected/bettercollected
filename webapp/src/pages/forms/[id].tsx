@@ -36,9 +36,8 @@ export default function SingleFormPage(props: any) {
 
     const social_preview = fetched_form_error ? form : fetched_form;
 
-    const title = social_preview?.title;
-    const description = social_preview?.description?.slice(0, 100) ?? '';
-    const imageUrl = social_preview?.coverImage ?? workspace?.profileImage;
+    const title = fetched_form?.title ?? workspace?.title;
+    const description = fetched_form?.description?.slice(0, 100) ?? '';
     const url = globalConstants.socialPreview.url;
 
     const iframeRef = useRef(null);
@@ -122,7 +121,7 @@ export default function SingleFormPage(props: any) {
                         site_name: title || globalConstants.appName,
                         images: [
                             {
-                                url: imageUrl,
+                                url: fetched_form?.coverImage || workspace?.profileImage,
                                 alt: title
                             }
                         ]
@@ -180,7 +179,7 @@ export default function SingleFormPage(props: any) {
                         site_name: title || globalConstants.appName,
                         images: [
                             {
-                                url: imageUrl,
+                                url: fetched_form?.coverImage || workspace?.profileImage,
                                 alt: title
                             }
                         ]
@@ -215,7 +214,7 @@ export default function SingleFormPage(props: any) {
                     site_name: title || globalConstants.appName,
                     images: [
                         {
-                            url: imageUrl,
+                            url: fetched_form?.coverImage || workspace?.profileImage,
                             alt: title
                         }
                     ]
@@ -256,7 +255,7 @@ export async function getServerSideProps(_context: any) {
     let form = null;
     const config = getServerSideAuthHeaderConfig(_context);
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
-    const {id} = _context.query;
+    const { id } = _context.query;
     try {
         const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${id}`, config);
         form = (await formResponse?.json().catch((e: any) => e)) ?? null;
