@@ -1,4 +1,4 @@
-import React, {FormEvent, HTMLAttributes, MouseEventHandler, useCallback, useEffect, useRef, useState} from 'react';
+import React, {FormEvent, useCallback, useEffect, useRef, useState} from 'react';
 
 import {useRouter} from 'next/router';
 
@@ -7,11 +7,8 @@ import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import {FormCoverComponent, FormLogoComponent} from '@Components/FormBuilder/Header';
-import MarkdownEditor from '@Components/FormBuilder/MarkdownEditor';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
 import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
-import {uuidv4} from '@mswjs/interceptors/lib/utils/uuid';
-import {SetStateAction} from 'jotai';
 import {DragStart, DragUpdate, DropResult, ResponderProvided} from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 import {batch} from 'react-redux';
@@ -26,9 +23,7 @@ import useUndoRedo from '@app/lib/use-undo-redo';
 import {WorkspaceDto} from '@app/models/dtos/workspaceDto';
 import {ResponseRetentionType} from '@app/models/enums/consentEnum';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
-import {resetConsentState} from '@app/store/consent/actions';
-import {selectConsentState} from '@app/store/consent/selectors';
-import {IConsentField, IConsentState} from '@app/store/consent/types';
+import {IConsentField} from '@app/store/consent/types';
 import {
     resetBuilderMenuState,
     setActiveField,

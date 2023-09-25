@@ -1,15 +1,18 @@
-import { allowedLayoutTags, allowedQuestionAndAnswerTags } from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
-import { batch } from 'react-redux';
-import { v4 } from 'uuid';
+import {
+    allowedLayoutTags,
+    allowedQuestionAndAnswerTags
+} from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
+import {batch} from 'react-redux';
+import {v4} from 'uuid';
 
-import { Close } from '@app/components/icons/close';
-import { useModal } from '@app/components/modal-views/context';
+import {Close} from '@app/components/icons/close';
+import {useModal} from '@app/components/modal-views/context';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetBuilderMenuState, setActiveField, setAddNewField, setDeleteField } from '@app/store/form-builder/actions';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { IBuilderState } from '@app/store/form-builder/types';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import {FormBuilderTagNames} from '@app/models/enums/formBuilder';
+import {resetBuilderMenuState, setActiveField, setAddNewField, setDeleteField} from '@app/store/form-builder/actions';
+import {selectBuilderState} from '@app/store/form-builder/selectors';
+import {IBuilderState} from '@app/store/form-builder/types';
+import {useAppDispatch, useAppSelector} from '@app/store/hooks';
 
 const Fields = [
     {
@@ -26,13 +29,13 @@ const Fields = [
     // }
 ];
 
-export default function FormBuilderAddFieldModal({ index }: { index?: number }) {
-    const { closeModal } = useModal();
+export default function FormBuilderAddFieldModal({index}: { index?: number }) {
+    const {closeModal} = useModal();
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
 
     const dispatch = useAppDispatch();
 
-    const { t } = useBuilderTranslation();
+    const {t} = useBuilderTranslation();
     const handleFieldSelected = (type: FormBuilderTagNames) => {
         const getActiveIndex = () => {
             if (index !== undefined && index > -1) return index;
@@ -41,7 +44,7 @@ export default function FormBuilderAddFieldModal({ index }: { index?: number }) 
         };
         const activeIndex = getActiveIndex();
         const activeField = Object.values(builderState.fields)[activeIndex];
-        const isActiveFieldLayoutShortText = activeField.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT;
+        const isActiveFieldLayoutShortText = activeField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT;
         const shouldInsertInCurrentField = isActiveFieldLayoutShortText && !activeField.value;
 
         batch(() => {
