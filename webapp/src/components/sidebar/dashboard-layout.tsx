@@ -1,9 +1,9 @@
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 
-export default function DashboardLayout({ children, sidebarClassName = '', dashboardContentClassName = '' }: any) {
+export default function DashboardLayout({ children, boxClassName = '', dashboardContentClassName = '' }: any) {
     return (
-        <SidebarLayout boxClassName={sidebarClassName}>
-            <div className={`py-6 ${dashboardContentClassName}`}>{children}</div>
+        <SidebarLayout boxClassName={boxClassName}>
+            <div className={`${dashboardContentClassName}`}>{children}</div>
         </SidebarLayout>
     );
 }

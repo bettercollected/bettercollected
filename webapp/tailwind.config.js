@@ -28,7 +28,7 @@ module.exports = {
                         200: '#EEEEEE',
                         300: '#DBDBDB',
                         400: '#CED4DA',
-                        500: '#ADB5BD',
+                        500: '#858585',
                         600: '#6C757D',
                         700: '#495057',
                         800: '#4D4D4D',
@@ -88,7 +88,8 @@ module.exports = {
                 },
                 red: {
                     100: '#FFECE7',
-                    500: '#EA400E',
+                    400: '#EA400E',
+                    500: '#D23C10',
                     DEFAULT: '#EA400E'
                 },
                 orange: {
@@ -274,6 +275,7 @@ module.exports = {
         }
     },
     plugins: [
+        require('@tailwindcss/line-clamp'),
         require('@tailwindcss/typography'),
         require('@tailwindcss/forms'),
         require('@tailwindcss/line-clamp'),

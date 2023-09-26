@@ -28,7 +28,7 @@ export default function ManageMembers({ workspace }: any) {
         }
     ];
     return (
-        <DashboardLayout>
+        <DashboardLayout boxClassName="px-5 pt-10 lg:px-10">
             <NextSeo title={t(members.default) + ' | ' + workspaceName} noindex={true} nofollow={true} />
             <div className="flex justify-between">
                 <div className="h4">{t(members.default)}</div>
