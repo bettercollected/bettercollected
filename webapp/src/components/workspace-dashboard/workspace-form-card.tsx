@@ -7,7 +7,7 @@ import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import PinnedIcon from '@Components/Common/Icons/Pinned';
 import PrivateIcon from '@Components/Common/Icons/Private';
 import PublicIcon from '@Components/Common/Icons/Public';
-import Share from '@Components/Common/Icons/Share';
+import ShareIcon from '@Components/Common/Icons/ShareIcon';
 import SmallLogo from '@Components/Common/Icons/SmallLogo';
 import Joyride from '@Components/Joyride';
 import {JoyrideStepContent, JoyrideStepTitle} from '@Components/Joyride/JoyrideStepTitleAndContent';
@@ -164,7 +164,7 @@ export default function WorkspaceFormCard({
                                             });
                                         }}
                                     >
-                                        <Share/>
+                                        <ShareIcon/>
                                     </div>
                                 </Tooltip>
                             }
