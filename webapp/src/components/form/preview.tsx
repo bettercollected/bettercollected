@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 
 import UserDetails from '@Components/Common/DataDisplay/UserDetails';
 import EditIcon from '@Components/Common/Icons/Edit';
-import Share from '@Components/Common/Icons/Share';
+import ShareIcon from '@Components/Common/Icons/ShareIcon';
 import Button from '@Components/Common/Input/Button';
 
 import { FormTabContent } from '@app/components/dashboard/form-tab-content';
@@ -57,7 +57,7 @@ export default function FormPreview() {
                         }
                     >
                         <span>
-                            <Share />
+                            <ShareIcon />
                         </span>
                         Share
                     </Button>

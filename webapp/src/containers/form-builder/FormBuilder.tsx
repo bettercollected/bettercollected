@@ -43,7 +43,7 @@ import useFormBuilderState from './context';
 import {useIsMobile} from "@app/lib/hooks/use-breakpoint";
 import {selectConsentState} from "@app/store/consent/selectors";
 
-export default function FormBuilder({ workspace, _nextI18Next }: { workspace: WorkspaceDto; _nextI18Next: any }) {
+export default function FormBuilder({workspace, _nextI18Next}: { workspace: WorkspaceDto; _nextI18Next: any }) {
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
     const {openModal} = useFullScreenModal();
@@ -55,7 +55,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
     const consentState = useAppSelector(selectConsentState)
     const router = useRouter();
 
-    const { form_id } = router.query;
+    const {form_id} = router.query;
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
 
     const [showLogo, setShowLogo] = useState(false);
@@ -66,7 +66,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
 
     const {backspaceCount, setBackspaceCount} = useFormBuilderState();
 
-    const [patchForm, { isLoading: patching }] = usePatchFormMutation();
+    const [patchForm, {isLoading: patching}] = usePatchFormMutation();
 
     const [imagesRemoved, setImagesRemoved] = useState<{ logo: boolean; cover: boolean }>({logo: false, cover: false});
 
@@ -78,6 +78,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
         setShowLogo(!!builderState.logo);
         setShowCover(!!builderState.coverImage);
     }, [builderState.logo, builderState.coverImage]);
+
 
     const onInsert = () => {
         asyncDispatch(resetBuilderMenuState()).then(() => {
@@ -97,7 +98,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
 
     const onPreview = () => {
         asyncDispatch(resetBuilderMenuState()).then(() => {
-            fullScreenModal.openModal('FORM_BUILDER_PREVIEW', {publish: onFormPublish});
+            fullScreenModal.openModal('FORM_BUILDER_PREVIEW', {publish: onFormPublish, imagesRemoved});
         });
     };
 
@@ -157,7 +158,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
         if (imagesRemoved.logo) publishRequest.logo = '';
         if (imagesRemoved.cover) publishRequest.cover_image = '';
         formData.append('form_body', JSON.stringify(publishRequest));
-        const apiObj: any = { formId: form_id, workspaceId: workspace.id, body: formData };
+        const apiObj: any = {formId: form_id, workspaceId: workspace.id, body: formData};
         return await patchForm(apiObj);
     };
 
@@ -168,7 +169,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
 
     useEffect(() => {
         saveFormDebounced(builderState, consentState, headerImages);
-    }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages.coverImage, headerImages.logo, consentState]);
+    }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages, consentState, imagesRemoved]);
 
     const openTagSelector = (event: any) => {
         const viewportHeight = window.innerHeight;
@@ -226,7 +227,8 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
         <div>
             <FormBuilderMenuBar
                 onInsert={onInsert}
-                onAddNewPage={() => {}}
+                onAddNewPage={() => {
+                }}
                 onAddFormLogo={onAddFormLogo}
                 onAddFormCover={onAddFormCover}
                 onPreview={onPreview}
