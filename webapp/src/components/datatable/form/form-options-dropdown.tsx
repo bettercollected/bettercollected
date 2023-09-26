@@ -12,7 +12,7 @@ import Eye from '@Components/Common/Icons/Eye';
 import Pin from '@Components/Common/Icons/Pin';
 import PrivateIcon from '@Components/Common/Icons/Private';
 import PublicIcon from '@Components/Common/Icons/Public';
-import Share from '@Components/Common/Icons/Share';
+import ShareIcon from '@Components/Common/Icons/ShareIcon';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import {ListItemIcon, MenuItem} from '@mui/material';
 import {toast} from 'react-toastify';
@@ -149,7 +149,7 @@ export default function FormOptionsDropdownMenu({
             disabled={!!currentActiveForm?.form?.settings?.private}
         >
             <ListItemIcon>
-                <Share width={20} height={20}/>
+                <ShareIcon width={20} height={20}/>
             </ListItemIcon>
             <span>{t(localesCommon.share)}</span>
         </MenuItem>
