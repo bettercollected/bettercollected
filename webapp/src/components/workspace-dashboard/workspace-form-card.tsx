@@ -172,13 +172,14 @@ export default function WorkspaceFormCard({
                     </div>
                 </div>
                 {
-                    !isResponderPortal && form?.settings?.isPublished && (
-                        <div className="invisible group-hover:visible flex items-center">
-
-                            <AppButton onClick={handleShareClick}
-                                       variant={ButtonVariant.Ghost} size={ButtonSize.Small}
-                                       icon={<ShareIcon width={20} height={20}/>}>Share</AppButton>
-
+                    !isResponderPortal && (
+                        <div className="hidden lg:invisible lg:group-hover:visible lg:flex gap-2 items-center">
+                            {
+                                form?.settings?.isPublished &&
+                                <AppButton onClick={handleShareClick}
+                                           variant={ButtonVariant.Ghost} size={ButtonSize.Small}
+                                           icon={<ShareIcon width={20} height={20}/>}>Share</AppButton>
+                            }
                             <ActiveLink key={'edit'}
                                         href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`}>
                                 <AppButton variant={ButtonVariant.Ghost} size={ButtonSize.Small}
