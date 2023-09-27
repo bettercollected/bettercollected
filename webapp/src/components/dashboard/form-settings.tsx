@@ -36,12 +36,12 @@ import AnchorLink from '../ui/links/anchor-link';
 import UpgradeToPro from '../ui/upgrade-to-pro';
 
 interface IFormSettingsTabProps {
-    view: FormSettingsTabView;
+    view?: FormSettingsTabView;
 }
 
 export type FormSettingsTabView = 'VISIBILITY' | 'LINKS' | 'DEFAULT';
 
-export default function FormSettingsTab({ view }: IFormSettingsTabProps) {
+export default function FormSettingsTab({ view='DEFAULT' }: IFormSettingsTabProps) {
     const { t } = useTranslation();
     const form = useAppSelector((state) => state.form);
     const [patchFormSettings] = usePatchFormSettingsMutation();

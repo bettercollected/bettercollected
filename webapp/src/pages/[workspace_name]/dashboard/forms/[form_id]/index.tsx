@@ -1,8 +1,8 @@
-import React, {useEffect} from 'react';
+import React, { useEffect } from 'react';
 
-import {useTranslation} from 'next-i18next';
-import {NextSeo} from 'next-seo';
-import {useRouter} from 'next/router';
+import { useTranslation } from 'next-i18next';
+import { NextSeo } from 'next-seo';
+import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import EditIcon from '@Components/Common/Icons/Edit';
@@ -10,35 +10,35 @@ import Preview from '@Components/Common/Icons/Preview';
 import SettingsIcon from '@Components/Common/Icons/Settings';
 import SmallLogo from '@Components/Common/Icons/SmallLogo';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import {ButtonVariant} from '@Components/Common/Input/Button/AppButtonProps';
-import {Group, Share} from '@mui/icons-material';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Group, Share } from '@mui/icons-material';
 
 import FormResponsesTable from '@app/components/datatable/form/form-responses';
 import FormGroups from '@app/components/form/groups';
-import FormLinks from '@app/components/form/links';
 import FormPreview from '@app/components/form/preview';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormResponses from '@app/components/form/responses';
 import FormSettings from '@app/components/form/settings';
 import FormVisibilities from '@app/components/form/visibility';
-import {ChevronForward} from '@app/components/icons/chevron-forward';
-import {HistoryIcon} from '@app/components/icons/history';
-import {TrashIcon} from '@app/components/icons/trash';
-import {useModal} from '@app/components/modal-views/context';
-import ParamTab, {TabPanel} from '@app/components/ui/param-tab';
-import {breadcrumbsItems} from '@app/constants/locales/breadcrumbs-items';
-import {localesCommon} from '@app/constants/locales/common';
-import {formConstant} from '@app/constants/locales/form';
-import {groupConstant} from '@app/constants/locales/group';
+import { ChevronForward } from '@app/components/icons/chevron-forward';
+import { HistoryIcon } from '@app/components/icons/history';
+import { TrashIcon } from '@app/components/icons/trash';
+import { useModal } from '@app/components/modal-views/context';
+import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
+import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
+import { localesCommon } from '@app/constants/locales/common';
+import { formConstant } from '@app/constants/locales/form';
+import { groupConstant } from '@app/constants/locales/group';
 import Layout from '@app/layouts/_layout';
-import {useBreakpoint} from '@app/lib/hooks/use-breakpoint';
-import {StandardFormDto} from '@app/models/dtos/form';
-import {BreadcrumbsItem} from '@app/models/props/breadcrumbs-item';
+import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import Error from '@app/pages/_error';
-import {setForm} from '@app/store/forms/slice';
-import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {selectWorkspace} from '@app/store/workspaces/slice';
-import {getFormUrl} from '@app/utils/urlUtils';
+import { setForm } from '@app/store/forms/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { getFormUrl } from '@app/utils/urlUtils';
+import FormLinks from '@app/components/form/links';
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;
