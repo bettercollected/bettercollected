@@ -99,7 +99,7 @@ export default function FormPage(props: any) {
         }
     ];
 
-    if (form?.settings?.isPublished) {
+    if (form?.isPublished) {
         paramTabs.splice(
             1,
             0,
@@ -176,7 +176,7 @@ export default function FormPage(props: any) {
                             </TabPanel>
                         </FormPageLayer>
                         <FormPageLayer className="md:px-32 px-10">
-                            {form?.settings?.isPublished ? (
+                            {form?.isPublished ? (
                                 <>
                                     <TabPanel className="focus:outline-none" key="Responses">
                                         <FormResponses />

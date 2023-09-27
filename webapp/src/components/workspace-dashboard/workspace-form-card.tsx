@@ -27,6 +27,7 @@ import ActiveLink from "@app/components/ui/links/active-link";
 import ShareIcon from "@Components/Common/Icons/ShareIcon";
 import {formConstant} from "@app/constants/locales/form";
 import environments from "@app/configs/environments";
+import moment from "moment/moment";
 
 interface IWorkspaceFormCardProps {
     form: StandardFormDto;
@@ -95,7 +96,7 @@ export default function WorkspaceFormCard({
                                     {form?.title || t(localesCommon.untitled)}
                                 </Typography>
                             </Tooltip>
-                            {!isResponderPortal && !form?.settings?.isPublished &&
+                            {!isResponderPortal && !form?.isPublished &&
                                 <div
                                     className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">Draft
                                 </div>
@@ -138,20 +139,19 @@ export default function WorkspaceFormCard({
                                 <>
                                     <DotDivider/>
                                     {
-                                        form?.settings?.isPublished ?
+                                        form?.isPublished ?
                                             <div className="flex items-center text-black-600">
                                                 {form?.settings?.private ? <PrivateIcon/> : <PublicIcon/>}
                                                 <p className={` text-sm ml-2 text-black-600`}>{form?.settings?.private ? t(localesCommon.hidden) : t(localesCommon.public)}</p>
                                             </div>
                                             : <div className=" text-black-600 text-sm"> Last
-                                                edited {form?.updatedAt}</div>
-
+                                                edited {moment(form?.updatedAt).fromNow()}</div>
                                     }
                                 </>
                             </Tooltip>
                         )}
 
-                        {!isResponderPortal && form?.settings?.isPublished && (
+                        {!isResponderPortal && form?.isPublished && (
                             <>
                                 <DotDivider/>
                                 <span className="text-sm text-black-600">
@@ -161,7 +161,7 @@ export default function WorkspaceFormCard({
                             </>
                         )}
 
-                        {!isResponderPortal && form?.settings?.pinned && (
+                        {!isResponderPortal && form?.isPublished && form?.settings?.pinned && (
                             <>
                                 <DotDivider/>
                                 <span className="text-sm text-[#FE3678]">
@@ -175,7 +175,7 @@ export default function WorkspaceFormCard({
                     !isResponderPortal && (
                         <div className="hidden lg:invisible lg:group-hover:visible lg:flex gap-2 items-center">
                             {
-                                form?.settings?.isPublished &&
+                                form?.isPublished &&
                                 <AppButton onClick={handleShareClick}
                                            variant={ButtonVariant.Ghost} size={ButtonSize.Small}
                                            icon={<ShareIcon width={20} height={20}/>}>Share</AppButton>
