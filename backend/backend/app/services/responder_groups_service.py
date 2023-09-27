@@ -152,7 +152,7 @@ class ResponderGroupsService:
             forms = []
             for form_id in group.forms:
                 forms.append(
-                    await self.form_service.get_form_by_id(workspace_id, form_id, user)
+                    await self.form_service.get_form_by_id(workspace_id, form_id, user=user)
                 )
             group.forms = forms
         return groups

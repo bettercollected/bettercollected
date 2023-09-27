@@ -125,7 +125,7 @@ class FormService:
         return [MinifiedForm(**form) for form in forms]
 
     async def get_form_by_id(
-        self, workspace_id: PydanticObjectId, form_id: str, published: bool, user: User
+        self, workspace_id: PydanticObjectId, form_id: str, user: User,  published: bool = False
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
