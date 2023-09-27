@@ -86,23 +86,19 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
         <Tab.Group selectedIndex={selectedTabIndex} onChange={(index: any) => handleTabChange(index)}>
             <div className={`flex flex-row justify-between py-[26px] ${className}`}>
                 <Tab.List className="relative w-full text-sm gap-8">
-                    <div className="flex justify-between border-b-[1px] border-black-500 w-full">
-                        <div className="flex sm:gap-3 w-full top-[-2px] justify-start xl:gap:6">
+                    <div className="flex justify-between border-b-[1px] border-black-500 max-w-full gap-5 overflow-x-auto">
+                        <div className="flex sm:gap-3 top-[-2px] justify-start xl:gap:6">
                             {tabMenu.map((item) => (
-                                <TabItem key={item.path} className="!px-1 sm:!px-2 lg:!px-3">
+                                <TabItem key={item.path} className="min-w-fit">
                                     <div className="flex items-center">
-                                        {item.icon && ['md', 'lg', 'xl', '2xl'].indexOf(breakpoints) === -1 && <span className="block">{item.icon}</span>}
-                                        {['xs', '2xs', 'sm'].indexOf(breakpoints) === -1 && <div className="">{item.title}</div>}
+                                        {/* {item.icon && ['md', 'lg', 'xl', '2xl'].indexOf(breakpoints) === -1 && <span className="block">{item.icon}</span>} */}
+                                        {/* {['xs', '2xs', 'sm'].indexOf(breakpoints) === -1 &&  */}
+                                        <div className="">{item.title}</div>
+                                        {/* } */}
                                     </div>
                                 </TabItem>
                             ))}
                         </div>
-                        {showInfo && (
-                            <div className="w-20 md:w-28 flex flex-row gap-1 py-1">
-                                <Hint className="" fillColor={'#FE3678'} />
-                                {['md', 'lg', 'xl', '2xl'].indexOf(breakpoints) !== -1 && <span className="block">Form Info</span>}
-                            </div>
-                        )}
                     </div>
                 </Tab.List>
             </div>
