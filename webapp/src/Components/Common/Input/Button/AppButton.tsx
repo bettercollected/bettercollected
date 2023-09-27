@@ -51,7 +51,7 @@ export default function AppButton({
 
     return (
         <button disabled={isLoading || disabled}
-                className={cn('rounded gap-2 !min-w-fit flex items-center px-5', disabled ? 'cursor-not-allowed' : 'cursor-pointer', getClassnamesForSize(), getClassNamesForVariant(), className)} {...buttonProps}>
+                className={cn('rounded gap-2 min-w-fit flex justify-center items-center px-5', disabled ? 'cursor-not-allowed' : 'cursor-pointer', getClassnamesForSize(), getClassNamesForVariant(), className)} {...buttonProps}>
             {!isLoading && icon}
             {!disabled && isLoading && <CircularProgress size={14} color="inherit"/>}
             {

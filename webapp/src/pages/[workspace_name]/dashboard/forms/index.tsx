@@ -231,13 +231,13 @@ export default function FormPage({workspace, hasCustomDomain}: { workspace: Work
             )}
             {!workspaceForms?.isLoading && (
                 <div className="py-10 w-full h-full">
-                    <h1 className="sh1">{t(localesCommon.forms)}</h1>
+                    <h1 className="h3-new">{t(localesCommon.forms)}</h1>
                     <div
                         className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
                         <div className="flex gap-3">
-                            <CreateFormButton/>
                             <ImportFormsButton
                                 className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON}/>
+                            <CreateFormButton/>
                         </div>
                     </div>
                     <Divider/>
