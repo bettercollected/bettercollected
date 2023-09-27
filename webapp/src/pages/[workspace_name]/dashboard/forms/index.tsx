@@ -34,6 +34,7 @@ import {useAppSelector} from '@app/store/hooks';
 import {JOYRIDE_CLASS} from '@app/store/tours/types';
 import {useGetWorkspaceFormsQuery} from '@app/store/workspaces/api';
 import {selectWorkspace} from '@app/store/workspaces/slice';
+import WorkspaceDashboardForms from "@app/components/workspace-dashboard/workspace-dashboard-forms";
 
 const formTableStyles = {
     ...dataTableCustomStyles,
@@ -196,54 +197,46 @@ export default function FormPage({workspace, hasCustomDomain}: { workspace: Work
         }
     ];
 
-    const Response = () => {
-        if (forms && forms.length > 0)
-            return (
-                <>
-                    <DataTable
-                        className="p-0 mt-2 !overflow-auto"
-                        // @ts-ignore
-                        columns={dataTableFormColumns}
-                        data={forms}
-                        customStyles={formTableStyles}
-                        highlightOnHover={false}
-                        pointerOnHover={false}
-                        onRowClicked={onRowCLicked}
-                    />
-                    {Array.isArray(forms) && workspaceForms?.data.total > globalConstants.pageSize && (
-                        <div className="mt-8 flex justify-center">
-                            <StyledPagination shape="rounded" count={workspaceForms?.data?.pages || 0}
-                                              page={workspaceQuery.page || 1} onChange={handlePageChange}/>
-                        </div>
-                    )}
-                </>
-            );
-        return <EmptyResponse title={t(workspaceConstant.preview.emptyFormTitle)} description={''}/>;
-    };
 
     return (
-        <SidebarLayout boxClassName="px-5 lg:px-10">
+        <SidebarLayout boxClassName="px-5 lg:px-10 pt-10">
             <NextSeo title={t(localesCommon.forms) + ' | ' + workspaceName} noindex={true} nofollow={true}/>
-            {workspaceForms?.isLoading && (
-                <div className=" w-full py-10 flex justify-center">
-                    <Loader/>
+            <WorkspaceDashboardForms workspaceForms={workspaceForms} workspace={workspace}
+                                     hasCustomDomain={hasCustomDomain}/>
+
+            {Array.isArray(forms) && workspaceForms?.data?.total > globalConstants.pageSize && (
+                <div className="mt-8 flex justify-center">
+                    <StyledPagination shape="rounded" count={workspaceForms?.data?.pages || 0}
+                                      page={workspaceQuery.page || 1} onChange={handlePageChange}/>
                 </div>
             )}
-            {!workspaceForms?.isLoading && (
-                <div className="py-10 w-full h-full">
-                    <h1 className="sh1">{t(localesCommon.forms)}</h1>
-                    <div
-                        className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">
-                        <div className="flex gap-3">
-                            <CreateFormButton/>
-                            <ImportFormsButton
-                                className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON}/>
-                        </div>
-                    </div>
-                    <Divider/>
-                    {Response()}
-                </div>
-            )}
+            {/*{!workspaceForms.data && !workspaceForms?.isLoading && (*/}
+            {/*    <div className="py-10 w-full h-full">*/}
+            {/*        <h1 className="h3-new">{t(localesCommon.forms)}</h1>*/}
+            {/*        <div*/}
+            {/*            className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">*/}
+            {/*            <div className="flex gap-3">*/}
+            {/*                <ImportFormsButton*/}
+            {/*                    className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON}/>*/}
+            {/*                <CreateFormButton/>*/}
+            {/*            </div>*/}
+            {/*        </div>*/}
+            {/*        <Divider/>*/}
+            {/*        <>*/}
+            {/*            <DataTable*/}
+            {/*                className="p-0 mt-2 !overflow-auto"*/}
+            {/*                // @ts-ignore*/}
+            {/*                columns={dataTableFormColumns}*/}
+            {/*                data={forms}*/}
+            {/*                customStyles={formTableStyles}*/}
+            {/*                highlightOnHover={false}*/}
+            {/*                pointerOnHover={false}*/}
+            {/*                onRowClicked={onRowCLicked}*/}
+            {/*            />*/}
+
+            {/*        </>*/}
+            {/*    </div>*/}
+            {/*)}*/}
         </SidebarLayout>
     );
 }
