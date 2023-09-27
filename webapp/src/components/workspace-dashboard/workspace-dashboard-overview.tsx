@@ -19,6 +19,7 @@ import EditIcon from "@Components/Common/Icons/Edit";
 import {EyeIcon} from "@app/components/icons/eye-icon";
 import ShareIcon from "@Components/Common/Icons/ShareIcon";
 import {workspaceConstant} from "@app/constants/locales/workspace";
+import WorkspaceOptions from "@Components/Common/WorkspaceOptions";
 
 interface IWorkspaceDashboardOverviewProps {
     workspace: WorkspaceDto;
@@ -60,15 +61,21 @@ const WorkspaceDashboardOverview = ({workspace}: IWorkspaceDashboardOverviewProp
     return (
         <div className="flex flex-col gap-4">
             <div className="flex lg:flex-row flex-col gap-8 justify-between">
-                <div className="flex flex-col gap-4">
-                    <div className="flex gap-4">
-                        <AuthAccountProfileImage name={workspace?.title || 'Untitled'} size={72}
-                                                 image={workspace?.profileImage}/>
-                        <div className="flex flex-col gap-2">
-                            <div className="h3-new">{workspace?.title || 'Untitled'}</div>
-                            <div
-                                className="p2-new text-black-600 max-w-[409px] line-clamp-2 max-h-[42px]">{workspace?.description || ''}</div>
+                <div className="flex gap-2 w-full justify-between items-start">
+                    <div className="flex flex-col gap-4">
+                        <div className="flex gap-4">
+                            <AuthAccountProfileImage name={workspace?.title || 'Untitled'} size={72}
+                                                     image={workspace?.profileImage}/>
+                            <div className="flex flex-col gap-2">
+                                <div className="h3-new">{workspace?.title || 'Untitled'}</div>
+                                <div
+                                    className="p2-new text-black-600 max-w-[409px] line-clamp-2 max-h-[42px]">{workspace?.description || ''}</div>
+                            </div>
                         </div>
+                    </div>
+                    <div className="lg:hidden">
+                        <WorkspaceOptions onClickEdit={onClickEditButton} onOpenLink={onClickOpenLinkButton}
+                                          onShareWorkspace={onClickShareWorkspaceButton}/>
                     </div>
                 </div>
                 <div className="flex  lg:flex-col lg:items-end gap-4">
