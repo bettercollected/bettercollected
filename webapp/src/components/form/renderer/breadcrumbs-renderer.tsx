@@ -23,7 +23,7 @@ function BreadcrumbRenderer({ items }: BreadcrumbRendererProps) {
                                     <Component {...props} data-testid={'item' + idx} aria-hidden className={`inline-flex truncate items-center`}>
                                         {item.title}
                                     </Component>
-                                    {idx !== items.length - 1 && <ChevronRight className=" md:mx-2" />}
+                                    {idx !== items.length - 1 && <ChevronRight className="text-black-600" />}
                                 </li>
                             );
                         })}

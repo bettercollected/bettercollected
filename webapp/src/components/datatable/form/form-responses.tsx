@@ -1,18 +1,26 @@
 import React, { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import SearchInput from '@Components/Common/Search/SearchInput';
 
 import ResponsesTable from '@app/components/datatable/responses';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
+import { formConstant } from '@app/constants/locales/form';
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 
 export default function FormResponsesTable({ props }: any) {
-    const { formId, workspace, requestForDeletion } = props;
+    const { t } = useTranslation();
+    const form = useAppSelector(selectForm);
+
+    const { workspace, requestForDeletion, isSubmission = false } = props;
     const [page, setPage] = useState(1);
     const [query, setQuery] = useState<IGetFormSubmissionsQuery>({
-        formId,
+        formId: form.formId,
         workspaceId: workspace?.id,
         requestedForDeletionOly: requestForDeletion,
         page: page,
@@ -34,14 +42,19 @@ export default function FormResponsesTable({ props }: any) {
                 <Loader />
             </div>
         );
-    if (data)
-        return (
-            <>
-                <div className="w-full md:w-[282px] my-6">
-                    <SearchInput handleSearch={handleSearch} />
+    return (
+        <>
+            <div className="mb-12 flex flex-col lg:flex-row gap-2 lg:justify-between">
+                <div className="flex flex-col lg:gap-2">
+                    <p className="body1">{isSubmission ? `${t(formConstant.responses)} (${form.responses})` : `${t(formConstant.deletionRequests)} (${form.deletionRequests})`}</p>
+                    <p className="text-sm font-normal text-black-700 ">Below, you will find a list of responders who have requested the deletion of their submitted responses.</p>
                 </div>
-                <ResponsesTable formId={formId} requestForDeletion={requestForDeletion} page={page} setPage={setPage} submissions={data} />
-            </>
-        );
-    return <></>;
+                <div className="w-full md:w-[282px] ">
+                    <SearchInput handleSearch={handleSearch} placeholder="Search by Email" className="!bg-black-300" />
+                </div>
+            </div>
+
+            {data && <ResponsesTable formId={form.formId} requestForDeletion={requestForDeletion} page={page} setPage={setPage} submissions={data} />}
+        </>
+    );
 }
