@@ -12,7 +12,7 @@ export default function FormSettings() {
         <div className="md:max-w-[740px]">
             <p className="sh1 !text-black-800 !leading-none">{t(localesCommon.settings)}</p>
             <p className="w-full body4 mt-4 mb-12 !text-black-700">Effortlessly customize form links and manage their forms effectively.</p>
-            <FormSettingsTab />
+            <FormSettingsTab view='DEFAULT'/>
         </div>
     );
 }
