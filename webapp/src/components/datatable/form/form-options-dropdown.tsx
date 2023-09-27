@@ -243,7 +243,7 @@ export default function FormOptionsDropdownMenu({
                 {menuItemOpen}
                 {currentActiveForm?.form?.settings?.provider === 'self' && environments.ENABLE_FORM_BUILDER && menuItemEdit}
                 {
-                    form?.settings?.isPublished && <>
+                    form?.isPublished && <>
                         {!!currentActiveForm?.form?.settings?.private ? (
                             <Tooltip title={t(toolTipConstant.visibility)}>
                                 <span>{menuItemPinSettings}</span>

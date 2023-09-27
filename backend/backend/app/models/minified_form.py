@@ -20,6 +20,7 @@ class MinifiedForm(CamelModel):
     description: Optional[str]
     type: Optional[str]
     settings: Optional[WorkspaceFormSettingsCamelModal]
+    is_published: Optional[bool]
     created_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
     consent: Optional[List[ConsentCamelModel]]
@@ -31,3 +32,4 @@ class MinifiedForm(CamelModel):
     fields: Optional[List[StandardFormFieldCamelModel]]
     button_text: Optional[str]
     version: Optional[str]
+    updated_at: Optional[dt.datetime]

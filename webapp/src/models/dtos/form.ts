@@ -57,6 +57,7 @@ export interface StandardFormDto {
         responseExpirationType?: ResponseRetentionType;
         disableBranding: boolean;
     };
+    isPublished?: boolean;
     importerDetails: UserStatus;
     consent: Array<IConsentField>;
     fields: Array<StandardFormFieldDto>;
