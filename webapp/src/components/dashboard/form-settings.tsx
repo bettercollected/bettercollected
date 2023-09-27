@@ -102,7 +102,7 @@ export default function FormSettingsTab() {
 
     return (
         <div className=" flex flex-col gap-7 mb-10">
-            {form?.settings?.isPublished && (
+            {form?.isPublished && (
                 <>
                     {/* <FormSettingsCard>
                         <p className="sh3">{t(formConstant.settings.formLink.title)}</p>

@@ -107,7 +107,7 @@ class FormRepository:
                     },
                     {
                         "$set": {
-                            "settings.is_published": {"$gt": [{"$size": "$versions"}, 0]}
+                            "is_published": {"$gt": [{"$size": "$versions"}, 0]}
                         }
                     }
                 ]

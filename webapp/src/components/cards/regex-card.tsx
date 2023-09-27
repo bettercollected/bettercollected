@@ -28,7 +28,7 @@ export default function RegexCard({handleRegex, regex}: IRegexCardProps) {
 
     return (
         <div className=" p-6 bg-white  rounded">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start  md:items-center">
                 <p className="body1">{t(groupConstant.regex.title)}</p>
                 {regex?.length === 0 && isAdmin && (
                     <AppButton variant={ButtonVariant.Ghost} icon={<Plus className="h-4 w-4"/>}
