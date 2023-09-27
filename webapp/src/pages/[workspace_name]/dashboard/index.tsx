@@ -18,6 +18,7 @@ import {useAppSelector} from '@app/store/hooks';
 import {JOYRIDE_CLASS, JOYRIDE_ID} from '@app/store/tours/types';
 import {useGetWorkspaceFormsQuery} from '@app/store/workspaces/api';
 import {selectWorkspace} from '@app/store/workspaces/slice';
+import {localesCommon} from "@app/constants/locales/common";
 
 export default function CreatorDashboard({hasCustomDomain, ...props}: {
     workspace: WorkspaceDto;
@@ -37,7 +38,7 @@ export default function CreatorDashboard({hasCustomDomain, ...props}: {
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, {pollingInterval: 30000});
 
     return (
-        <DashboardLayout>
+        <DashboardLayout boxClassName="bg-black-100">
             {environments.ENABLE_JOYRIDE_TOURS && (
                 <Joyride
                     id={JOYRIDE_ID.WORKSPACE_ADMIN_DASHBOARD_OVERVIEW}
@@ -96,14 +97,7 @@ export default function CreatorDashboard({hasCustomDomain, ...props}: {
                 <WorkspaceDashboardOverview workspace={workspace}/>
             </div>
             <div className="px-5 pt-12 lg:px-10">
-                <div className="min-h-9 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                    <p className="sh1">{t(formConstant.recentForms)}</p>
-                    <div className="flex gap-3">
-                        <CreateFormButton/>
-                        <ImportFormsButton
-                            className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON}/>
-                    </div>
-                </div>
+
                 <WorkspaceDashboardForms hasCustomDomain={hasCustomDomain} workspace={workspace}
                                          workspaceForms={workspaceForms}/>
             </div>
