@@ -15,6 +15,7 @@ import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
 import {localesCommon} from "@app/constants/locales/common";
 import {JOYRIDE_CLASS} from "@app/store/tours/types";
 import CreateFormButton from "@Components/Common/CreateFormButton";
+import Loader from "@app/components/ui/loader";
 
 interface IWorkspaceDashboardFormsProps {
     workspaceForms: any;
@@ -32,6 +33,14 @@ export default function WorkspaceDashboardForms({
     const {t} = useTranslation();
 
     const ref = React.useRef<HTMLDivElement>(null);
+
+    if (workspaceForms.isLoading) {
+        return (
+            <div className=" w-full py-10 flex justify-center">
+                <Loader/>
+            </div>
+        )
+    }
 
     return (
         <div className="w-full mb-10 flex flex-col gap-5 h-fit">

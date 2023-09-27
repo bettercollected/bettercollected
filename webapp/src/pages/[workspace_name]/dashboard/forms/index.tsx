@@ -201,12 +201,6 @@ export default function FormPage({workspace, hasCustomDomain}: { workspace: Work
     return (
         <SidebarLayout boxClassName="px-5 lg:px-10 pt-10">
             <NextSeo title={t(localesCommon.forms) + ' | ' + workspaceName} noindex={true} nofollow={true}/>
-            {workspaceForms?.isLoading && (
-                <div className=" w-full py-10 flex justify-center">
-                    <Loader/>
-                </div>
-            )}
-
             <WorkspaceDashboardForms workspaceForms={workspaceForms} workspace={workspace}
                                      hasCustomDomain={hasCustomDomain}/>
 
