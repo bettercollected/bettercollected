@@ -30,8 +30,7 @@ export default function FormPreview() {
     return (
         <div className="flex lg:flex-row flex-col-reverse gap-10  w-full   ">
             <FormTabContent form={form} />
-            <div className="flex flex-col lg:basis-1/4 gap-6 w-full">
-                <div className="flex gap-4">
+            {/* <div className="flex gap-4">
                     {form?.settings?.provider === 'self' && (
                         <Button
                             variant="contained"
@@ -61,20 +60,19 @@ export default function FormPreview() {
                         </span>
                         Share
                     </Button>
+                </div> */}
+            {/* {isAdmin && isProPlan && (
+                <div className="flex flex-col lg:basis-1/4 gap-6 w-full">
+                    <div className="flex gap-4 items-center">
+                        <div className="body4 text-black-700 ">{t(formConstant.importedBy)}:</div>
+                        <UserDetails user={form.importerDetails} />
+                    </div>
+                    <div className="flex gap-4 items-center">
+                        <div className="body4 text-black-700">{t(formConstant.importedOn)}:</div>
+                        <div className="body4">{toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(form.createdAt)))}</div>
+                    </div>
                 </div>
-                {isAdmin && isProPlan && (
-                    <>
-                        <div className="flex gap-4 items-center">
-                            <div className="body4 text-black-700 ">{t(formConstant.importedBy)}:</div>
-                            <UserDetails user={form.importerDetails} />
-                        </div>
-                        <div className="flex gap-4 items-center">
-                            <div className="body4 text-black-700">{t(formConstant.importedOn)}:</div>
-                            <div className="body4">{toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(form.createdAt)))}</div>
-                        </div>
-                    </>
-                )}
-            </div>
+            )} */}
         </div>
     );
 }

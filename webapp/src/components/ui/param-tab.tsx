@@ -8,6 +8,8 @@ import { useClickAway } from '@app/lib/hooks/use-click-away';
 import { authApi } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
+import { Hint } from '../icons/hint';
+
 interface TabMenuItem {
     title: React.ReactNode;
     path: string;
@@ -19,14 +21,15 @@ interface ParamTabTypes {
     children: React.ReactChild[];
     isRouteChangeable?: boolean;
     className?: string;
+    showInfo?: boolean;
 }
 
 export { TabPanel };
 
-export default function ParamTab({ tabMenu, children, isRouteChangeable = true, className = '' }: ParamTabTypes) {
+export default function ParamTab({ tabMenu, children, isRouteChangeable = true, className = '', showInfo = false }: ParamTabTypes) {
     const router = useRouter();
     const dropdownEl = useRef<HTMLDivElement>(null);
-    const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+    const [selectedTabIndex, setSelectedTabIndex] = useState(tabMenu.findIndex((item) => router.query.view === item.path));
     const [visibleMobileMenu, setVisibleMobileMenu] = useState(false);
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select(), []);
     const selectGetStatus = useAppSelector(statusQuerySelect);
@@ -43,7 +46,7 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
                         query: { ...query, view: tabMenu[index].path }
                     },
                     undefined,
-                    { scroll: true, shallow: true }
+                    { scroll: false, shallow: false }
                 )
                 .then((r) => r)
                 .catch((e) => e);
@@ -56,7 +59,7 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
         if (router?.query?.view && isRouteChangeable) {
             setSelectedTabIndex(tabMenu.findIndex((item) => router.query.view === item.path));
         }
-    }, [router.query, isRouteChangeable, tabMenu]);
+    }, [router.query]);
 
     useEffect(() => {
         // Reset tab params to forms if logged out and tab param index is at submissions
@@ -83,15 +86,23 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
         <Tab.Group selectedIndex={selectedTabIndex} onChange={(index: any) => handleTabChange(index)}>
             <div className={`flex flex-row justify-between py-[26px] ${className}`}>
                 <Tab.List className="relative w-full text-sm gap-8">
-                    <div className="flex gap-6 w-full border-b-[1px] top-[-2px] border-black-500 justify-between md:justify-start md:gap-8 xl:gap-10">
-                        {tabMenu.map((item) => (
-                            <TabItem key={item.path} className="p-0">
-                                <div className="flex items-center">
-                                    {item.icon && ['md', 'lg', 'xl', '2xl'].indexOf(breakpoints) === -1 && <span className="block">{item.icon}</span>}
-                                    {['xs', '2xs', 'sm'].indexOf(breakpoints) === -1 && <div className="">{item.title}</div>}
-                                </div>
-                            </TabItem>
-                        ))}
+                    <div className="flex justify-between border-b-[1px] border-black-500 w-full">
+                        <div className="flex sm:gap-3 w-full top-[-2px] justify-start xl:gap:6">
+                            {tabMenu.map((item) => (
+                                <TabItem key={item.path} className="!px-1 sm:!px-2 lg:!px-3">
+                                    <div className="flex items-center">
+                                        {item.icon && ['md', 'lg', 'xl', '2xl'].indexOf(breakpoints) === -1 && <span className="block">{item.icon}</span>}
+                                        {['xs', '2xs', 'sm'].indexOf(breakpoints) === -1 && <div className="">{item.title}</div>}
+                                    </div>
+                                </TabItem>
+                            ))}
+                        </div>
+                        {showInfo && (
+                            <div className="w-20 md:w-28 flex flex-row gap-1 py-1">
+                                <Hint className="" fillColor={'#FE3678'} />
+                                {['md', 'lg', 'xl', '2xl'].indexOf(breakpoints) !== -1 && <span className="block">Form Info</span>}
+                            </div>
+                        )}
                     </div>
                 </Tab.List>
             </div>
