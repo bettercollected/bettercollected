@@ -124,21 +124,22 @@ export default function CreateGroup() {
         <DashboardLayout>
             <NextSeo title={t(groupConstant.createGroup) + ' | ' + workspace.workspaceName} noindex={true}
                      nofollow={true}/>
-            <div className="flex flex-col relative -mt-6 md:max-w-[700px] xl:max-w-[1000px]">
-                <div className="absolute top-10 right-0">
-                    <AppButton isLoading={isLoading}
-                               disabled={!groupInfo.name || (groupInfo.emails?.length === 0 && groupInfo.regex?.length === 0)}
-                               onClick={handleCreateGroup}>
-                        {t(buttonConstant.saveGroup)}
-                    </AppButton>
-                </div>
+            <div className="flex flex-col  -mt-6 md:max-w-[700px] xl:max-w-[1000px]">
+                <BreadcrumbsRenderer items={breadcrumbsItem}/>
                 <div className="md:max-w-[618px]">
-                    <BreadcrumbsRenderer items={breadcrumbsItem}/>
                     <div className="flex flex-col gap-10">
-                        <div className="flex gap-2  items-center">
-                            <Back onClick={() => router.back()} className="cursor-pointer"/>
-                            <p className="h4">{t(groupConstant.createGroup)}</p>
+                        <div className="flex justify-between">
+                            <div className="flex gap-2  items-center">
+                                <Back onClick={() => router.back()} className="cursor-pointer"/>
+                                <p className="h4">{t(groupConstant.createGroup)}</p>
+                            </div>
+                            <AppButton isLoading={isLoading}
+                                       disabled={!groupInfo.name || (groupInfo.emails?.length === 0 && groupInfo.regex?.length === 0)}
+                                       onClick={handleCreateGroup}>
+                                {t(buttonConstant.saveGroup)}
+                            </AppButton>
                         </div>
+
                         <GroupInfo handleInput={handleInput} groupInfo={groupInfo}/>
                         <div>
                             <p className="leading-none mb-6 body1">{t(members.default)}</p>

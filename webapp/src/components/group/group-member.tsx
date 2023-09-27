@@ -52,7 +52,7 @@ export default function GroupMember({
     };
     return (
         <>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-center justify-between">
                 <div className="flex flex-col">
                     <p className="mt-10 leading-none mb-2 body1">
                         {t(groupConstant.memberAdded)} ({group?.emails?.length || emails.length || 0})
