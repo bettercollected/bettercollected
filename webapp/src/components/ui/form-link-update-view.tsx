@@ -4,6 +4,8 @@ import { useTranslation } from 'next-i18next';
 
 import CopyIcon from '@Components/Common/Icons/Copy';
 import Pro from '@Components/Common/Icons/Pro';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Tooltip } from '@mui/material';
 import { toast } from 'react-toastify';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
@@ -45,30 +47,40 @@ export default function FormLinkUpdateView({ link, isLinkChangable = false, isDi
     return (
         <div className="flex relative space-between items-end w-full">
             <div className="flex-1">
-                <div className="body6 mb-4 !font-semibold">{t(updateWorkspace.common.currentLink)}</div>
-                <div className="flex flex-col md:flex-row gap-4 space-y-4 md:space-y-0 md:items-center space-between">
-                    <div className="flex items-center gap-4 max-w-full flex-1">
+                <div className="flex gap-2">
+                    <div className="body6 mb-4 !font-semibold">{!isDisable ? 'Default Link' : 'Custom Domain Link'}</div>
+                    {isDisable ? (
+                        <div className="flex items-center rounded h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
+                            <Pro width={12} height={12} />
+                            <span className="leading-none">Pro</span>
+                        </div>
+                    ) : (
+                        <></>
+                    )}
+                </div>
+                <div className="flex flex-col md:flex-row gap-4 space-y-4 md:space-y-0 md:items-start space-between">
+                    <div className="flex flex-col items-start gap-1 max-w-full flex-1">
                         <BetterInput inputProps={{ className: '!py-3' }} className="!mb-0" disabled value={link} />
-
-                        <Tooltip title={t(toolTipConstant.copyLink)}>
-                            <CopyIcon
-                                className={isDisable ? 'cursor-not-allowed pointer-events-none opacity-30' : 'cursor-pointer'}
+                        <div className="flex flex-row gap-4 items-center w-full">
+                            <AppButton
+                                variant={ButtonVariant.Secondary}
+                                disabled={isDisable}
                                 onClick={() => {
                                     copyToClipboard(link);
                                     toast(t(toastMessage.copied).toString(), {
                                         type: 'info'
                                     });
                                 }}
-                            />
-                        </Tooltip>
-                    </div>
-                    {isLinkChangable && (
-                        <div>
-                            <Button size="medium" className="!mb-4" onClick={handleFormLinkChnage}>
-                                {t(updateWorkspace.common.change)}
-                            </Button>
+                                icon={<CopyIcon className={isDisable ? 'cursor-not-allowed pointer-events-none opacity-30' : 'cursor-pointer'} />}
+                            >
+                                Copy Link
+                            </AppButton>
+                            <AppButton variant={ButtonVariant.Ghost} disabled={isDisable} onClick={handleFormLinkChnage}>
+                                {/* {t(updateWorkspace.common.change)} */}
+                                Change Slug
+                            </AppButton>
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </div>

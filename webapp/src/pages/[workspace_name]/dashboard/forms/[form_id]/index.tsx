@@ -15,10 +15,12 @@ import {Group, Share} from '@mui/icons-material';
 
 import FormResponsesTable from '@app/components/datatable/form/form-responses';
 import FormGroups from '@app/components/form/groups';
+import FormLinks from '@app/components/form/links';
 import FormPreview from '@app/components/form/preview';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormResponses from '@app/components/form/responses';
 import FormSettings from '@app/components/form/settings';
+import FormVisibilities from '@app/components/form/visibility';
 import {ChevronForward} from '@app/components/icons/chevron-forward';
 import {HistoryIcon} from '@app/components/icons/history';
 import {TrashIcon} from '@app/components/icons/trash';
@@ -86,16 +88,6 @@ export default function FormPage(props: any) {
             icon: <Group className="h-5 w-5" />,
             title: t(groupConstant.groups) + ' (' + form.groups?.length + ')',
             path: 'Groups'
-        },
-        {
-            icon: <Group className="h-5 w-5" />,
-            title: 'Form Visibility (' + form.groups?.length + ')',
-            path: 'FormVisibility'
-        },
-        {
-            icon: <Group className="h-5 w-5" />,
-            title: 'Form Links (' + form.groups?.length + ')',
-            path: 'FormLinks'
         }
     ];
 
@@ -113,6 +105,16 @@ export default function FormPage(props: any) {
                     icon: <TrashIcon className="h-5 w-5" />,
                     title: t(formConstant.deletionRequests) + ' (' + form.deletionRequests + ')',
                     path: 'Deletion Request'
+                },
+                {
+                    icon: <Group className="h-5 w-5" />,
+                    title: 'Form Visibility',
+                    path: 'FormVisibility'
+                },
+                {
+                    icon: <Group className="h-5 w-5" />,
+                    title: 'Form Links ',
+                    path: 'FormLinks'
                 }
             ]
         );
@@ -130,7 +132,7 @@ export default function FormPage(props: any) {
                     <ChevronForward onClick={handleBackClick} className=" cursor-pointer rotate-180 h-6 w-6 p-[2px] " />
                     <BreadcrumbsRenderer items={breadcrumbsItem} />
                 </div>
-                <div className="flex flex-col gap-1 mt-16">
+                <div className="flex flex-col gap-1 mt-12">
                     <FormPageLayer className=" lg:px-28 md:px-10 px-4">
                         <div className="flex justify-between">
                             <h1 className="h2-new !text-pink">{form?.title}</h1>
@@ -184,11 +186,16 @@ export default function FormPage(props: any) {
                                     <TabPanel className="focus:outline-none" key="Deletion Requests">
                                         <FormResponsesTable props={{ workspace, requestForDeletion: true }} />
                                     </TabPanel>
+                                    <TabPanel className="focus:outline-none" key="FormVisibility">
+                                        <FormVisibilities />
+                                    </TabPanel>
+                                    <TabPanel className="focus:outline-none" key="FormLinks">
+                                        <FormLinks />
+                                    </TabPanel>
                                 </>
                             ) : (
                                 <></>
                             )}
-
                             <TabPanel className="focus:outline-none" key="Settings">
                                 <FormSettings />
                             </TabPanel>
