@@ -87,9 +87,9 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
             <div className={`flex flex-row justify-between py-[26px] ${className}`}>
                 <Tab.List className="relative w-full text-sm gap-8">
                     <div className="flex justify-between border-b-[1px] border-black-500 w-full">
-                        <div className="flex gap-6 w-full  top-[-2px]  justify-between md:justify-start md:gap-8 xl:gap-10">
+                        <div className="flex sm:gap-3 w-full top-[-2px] justify-start xl:gap:6">
                             {tabMenu.map((item) => (
-                                <TabItem key={item.path} className="p-0">
+                                <TabItem key={item.path} className="!px-1 sm:!px-2 lg:!px-3">
                                     <div className="flex items-center">
                                         {item.icon && ['md', 'lg', 'xl', '2xl'].indexOf(breakpoints) === -1 && <span className="block">{item.icon}</span>}
                                         {['xs', '2xs', 'sm'].indexOf(breakpoints) === -1 && <div className="">{item.title}</div>}
@@ -98,9 +98,9 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
                             ))}
                         </div>
                         {showInfo && (
-                            <div className="w-28 flex flex-row gap-1 py-1">
+                            <div className="w-20 md:w-28 flex flex-row gap-1 py-1">
                                 <Hint className="" fillColor={'#FE3678'} />
-                                <span>Form Info</span>
+                                {['md', 'lg', 'xl', '2xl'].indexOf(breakpoints) !== -1 && <span className="block">Form Info</span>}
                             </div>
                         )}
                     </div>
