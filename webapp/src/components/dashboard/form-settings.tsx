@@ -5,6 +5,8 @@ import { useTranslation } from 'next-i18next';
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Pro from '@Components/Common/Icons/Pro';
 import LockIcon from '@Components/Common/Icons/lock';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Button, Drawer, FormControlLabel, Radio, RadioGroup } from '@mui/material';
 import Switch from '@mui/material/Switch';
 import cn from 'classnames';
@@ -33,7 +35,13 @@ import FormLinkUpdateView from '../ui/form-link-update-view';
 import AnchorLink from '../ui/links/anchor-link';
 import UpgradeToPro from '../ui/upgrade-to-pro';
 
-export default function FormSettingsTab() {
+interface IFormSettingsTabProps {
+    view?: FormSettingsTabView;
+}
+
+export type FormSettingsTabView = 'VISIBILITY' | 'LINKS' | 'DEFAULT';
+
+export default function FormSettingsTab({ view='DEFAULT' }: IFormSettingsTabProps) {
     const { t } = useTranslation();
     const form = useAppSelector((state) => state.form);
     const [patchFormSettings] = usePatchFormSettingsMutation();
@@ -69,7 +77,7 @@ export default function FormSettingsTab() {
     };
 
     const onPinnedChange = (event: any, f?: StandardFormDto) => {
-        console.log(f)
+        console.log(f);
         if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
         patchSettings({ pinned: !f?.settings?.pinned }, f)
             .then((res) => {})
@@ -100,29 +108,13 @@ export default function FormSettingsTab() {
     const isProPlan = useAppSelector(selectWorkspace).isPro;
     const isAdmin = useAppSelector(selectIsAdmin);
 
-    return (
-        <div className=" flex flex-col gap-7 mb-10">
-            {form?.isPublished && (
-                <>
-                    {/* <FormSettingsCard>
-                        <p className="sh3">{t(formConstant.settings.formLink.title)}</p>
-                        <p className="body4 !text-black-700 mt-4 !mb-6">{t(formConstant.settings.formLink.description)}</p>
-                        <FormLinkUpdateView link={clientHostUrl} isLinkChangable />
-                    </FormSettingsCard>
-                    <FormSettingsCard className={cn('relative !py-6', !isProPlan && isAdmin && '!bg-brand-200')}>
-                        <p className="sh3">{t(formConstant.settings.customizeFormLink.title)}</p>
-                        <p className="body4 !text-black-700 mt-4 mb-10">{t(formConstant.settings.customizeFormLink.description)}</p>
-                        <p className="w-full body6 mb-4 !font-semibold text-black-900">{t(formConstant.settings.customizeFormLink.List.title)}</p>
-                        <ul className="list-disc body4 ml-10 !mb-6">
-                            <li className="mb-4">{t(formConstant.settings.customizeFormLink.List.point1)}</li>
-                            <li>{t(formConstant.settings.customizeFormLink.List.point2)}</li>
-                        </ul>
-                        <FormLinkUpdateView link={isCustomDomain ? customDomainUrl : clientHostUrl} isDisable={!isProPlan && isAdmin} />
-                        {!isProPlan && isAdmin && <UpgradeToPro />}
-                    </FormSettingsCard>
-
+    const showSettingsTabView = (view: FormSettingsTabView) => {
+        switch (view) {
+            case 'VISIBILITY':
+                return (
                     <FormSettingsCard>
-                        <p className="sh3">{t(formConstant.settings.visibility.title)}</p>
+                        <Divider />
+                        {/* <p className="sh3">{t(formConstant.settings.visibility.title)}</p> */}
                         <RadioGroup className="flex flex-col gap-6" defaultValue={form?.settings?.private ? 'Private' : 'Public'}>
                             <div className="flex flex-col">
                                 <FormControlLabel
@@ -136,8 +128,10 @@ export default function FormSettingsTab() {
                                         </div>
                                     }
                                 />
-                                <span className="ml-8 body4 !text-black-700">{t(formConstant.settings.visibility.description)}</span>
+                                <span className="ml-8 body4 !text-black-700">Everyone can see this form.</span>
                             </div>
+                            <Divider />
+
                             <div className="flex flex-col">
                                 <FormControlLabel
                                     onChange={() => onPrivateChanged({ isPrivate: true, f: form })}
@@ -150,74 +144,98 @@ export default function FormSettingsTab() {
                                         </div>
                                     }
                                 />
-                                <span className="ml-8 body4 !text-black-700">{t(formConstant.settings.visibility.description)}</span>
+                                <span className="ml-8 body4 !text-black-700">Only you can see this form.</span>
                             </div>
+                            <Divider />
                         </RadioGroup>
-                    </FormSettingsCard> */}
-                    {!form?.settings?.private && (
+                    </FormSettingsCard>
+                );
+            case 'LINKS':
+                return (
+                    <div className="flex flex-col gap-8">
                         <FormSettingsCard>
-                            <div className=" flex flex-col items-start w-full">
-                                <div className="h5-new !text-black-800">Pin Form</div>
+                            <FormLinkUpdateView link={isCustomDomain ? customDomainUrl : clientHostUrl} isDisable={!isProPlan && isAdmin} />
+
+                            <FormLinkUpdateView link={clientHostUrl} isLinkChangable />
+                        </FormSettingsCard>
+                    </div>
+                );
+            case 'DEFAULT':
+                return (
+                    <div className=" flex flex-col gap-7 mb-10 ">
+                        {form?.isPublished && (
+                            <>
+                                {!form?.settings?.private && (
+                                    <FormSettingsCard>
+                                        <div className=" flex flex-col items-start w-full">
+                                            <div className="h5-new !text-black-800">Pin Form</div>
+                                            <hr className="h-0.5 w-full bg-black-200 my-2" />
+                                            <div className="flex flex-row md:gap-4 justify-between items-center">
+                                                <div className="body4 !text-black-700 w-3/4">
+                                                    When you pin a form in bettercollected, the form will be added to the top of the form so that it is the first thing that your audience can see from your form page.
+                                                </div>
+                                                <Switch data-testid="pinned-switch" checked={!!form?.settings?.pinned} onClick={(e) => onPinnedChange(e, form)} />
+                                            </div>
+                                            <hr className="h-0.5 w-full bg-black-200 my-2" />
+                                        </div>
+                                    </FormSettingsCard>
+                                )}
+                                <FormSettingsCard className={cn('', !isProPlan && isAdmin && '')}>
+                                    <div className=" flex items-start flex-col w-full">
+                                        <div className="h5-new !text-black-800 flex flex-row gap-4 justify-between">
+                                            <h1>bettercolleceted branding</h1>
+                                            <div className="flex items-center rounded h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
+                                                <Pro width={12} height={12} />
+                                                <span className="leading-none">Pro</span>
+                                            </div>
+                                        </div>
+                                        <hr className="h-0.5 w-full bg-black-200 my-2" />
+                                        <div className="flex flex-row w-full md:gap-4 justify-between items-center">
+                                            <div className="body4 !text-black-700 w-3/4">Show Powered by: bettercollected in your form.</div>
+                                            <Switch disabled={!isProPlan} data-testid="disable-branding-switch" checked={!form?.settings?.disableBranding} onClick={(e) => onDisableBrandingChange(e, form)} />
+                                        </div>
+                                        <hr className="h-0.5 w-full bg-black-200 my-2" />
+                                    </div>
+                                    {/* {!isProPlan && isAdmin && <UpgradeToPro />} */}
+                                </FormSettingsCard>
+                            </>
+                        )}
+                        <FormSettingsCard>
+                            <div className="flex flex-col items-start w-full">
+                                <div className="body1">Form Purpose and Data Usage</div>
                                 <hr className="h-0.5 w-full bg-black-200 my-2" />
-                                <div className="flex flex-row md:gap-4 justify-between">
-                                    <div className="body4 !text-black-700 w-3/4">When you pin a form in bettercollected, the form will be added to the top of the form so that it is the first thing that your audience can see from your form page.</div>
-                                    <Switch data-testid="pinned-switch" checked={!!form?.settings?.pinned} onClick={(e) => onPinnedChange(e, form)} />
+
+                                <div className=" w-full flex flex-row justify-between items-center gap-4">
+                                    <div className="text-sm !text-black-700">{`This page is to help you to provide you with a clear understanding of how how your information is handled in our form. Our aim is to ensure you're fully informed and comfortable with how we handle your data.`}</div>
+                                    <AppButton
+                                        variant={ButtonVariant.Ghost}
+                                        className="h5-new !text-new-blue-500 w-60 cursor-pointer"
+                                        onClick={() => {
+                                            fullScreenModal.openModal('CREATE_CONSENT_FULL_MODAL_VIEW', { form, isPreview: true });
+                                        }}
+                                    >
+                                        See Details
+                                    </AppButton>
                                 </div>
                                 <hr className="h-0.5 w-full bg-black-200 my-2" />
                             </div>
                         </FormSettingsCard>
-                    )}
-                    <FormSettingsCard className={cn('', !isProPlan && isAdmin && '')}>
-                        <div className=" flex items-start flex-col w-full">
-                            <div className="h5-new !text-black-800 flex flex-row gap-4 justify-between">
-                                <h1>bettercolleceted branding</h1>
-                                <div className="flex items-center rounded h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
-                                    <Pro width={12} height={12} />
-                                    <span className="leading-none">Pro</span>
-                                </div>
-                            </div>
-                            <hr className="h-0.5 w-full bg-black-200 my-2" />
-                            <div className="flex flex-row w-full md:gap-4 justify-between">
-                                <div className="body4 !text-black-700 w-3/4">Show Powered by: bettercollected in your form.</div>
-                                <Switch disabled={!isProPlan} data-testid="disable-branding-switch" checked={!form?.settings?.disableBranding} onClick={(e) => onDisableBrandingChange(e, form)} />
-                            </div>
-                            <hr className="h-0.5 w-full bg-black-200 my-2" />
+                        <div className="mt-6">
+                            <AppButton
+                                onClick={() => {
+                                    openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
+                                }}
+                                variant={ButtonVariant.Danger}
+                            >
+                                {t(buttonConstant.deleteForm)}
+                            </AppButton>
                         </div>
-                        {/* {!isProPlan && isAdmin && <UpgradeToPro />} */}
-                    </FormSettingsCard>
-                </>
-            )}
-
-            <FormSettingsCard>
-                <div className="flex items-center space-x-5">
-                    <div className="space-y-2">
-                        <div className="body1">Form Purpose and Data Usage</div>
-                        <hr className="h-0.5 w-full bg-black-200 my-2" />
-                        <div className="text-sm !text-black-700">{`This page is to help you to provide you with a clear understanding of how how your information is handled in our form. Our aim is to ensure you're fully informed and comfortable with how we handle your data.`}</div>
-                        <hr className="h-0.5 w-full bg-black-200 my-2" />
                     </div>
-                    <span
-                        className="h5-new !text-new-blue-500 w-60 cursor-pointer"
-                        onClick={() => {
-                            fullScreenModal.openModal('CREATE_CONSENT_FULL_MODAL_VIEW', { form, isPreview: true });
-                        }}
-                    >
-                        See Details
-                    </span>
-                </div>
-            </FormSettingsCard>
-            <div className="mt-6">
-                <Button
-                    style={{ textTransform: 'none' }}
-                    className="  bg-red-100 px-4 py-3 body6 rounded hover:bg-red-200 hover:drop-shadow-sm leading-none !text-red-500"
-                    size="medium"
-                    onClick={() => {
-                        openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
-                    }}
-                >
-                    {t(buttonConstant.deleteForm)}
-                </Button>
-            </div>
-        </div>
-    );
+                );
+            default:
+                return <></>;
+        }
+    };
+
+    return showSettingsTabView(view);
 }
