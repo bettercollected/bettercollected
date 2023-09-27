@@ -183,7 +183,7 @@ export default function FormSettingsTab() {
                             </div>
                             <hr className="h-0.5 w-full bg-black-200 my-2" />
                         </div>
-                        {!isProPlan && isAdmin && <UpgradeToPro />}
+                        {/* {!isProPlan && isAdmin && <UpgradeToPro />} */}
                     </FormSettingsCard>
                 </>
             )}

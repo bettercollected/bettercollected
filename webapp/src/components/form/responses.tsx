@@ -46,15 +46,7 @@ export default function FormResponses() {
 
     return (
         <>
-            {!submissionId && (
-                <>
-                    <p className="body1">
-                        {t(formConstant.responses)} ({form.responses})
-                    </p>
-
-                    <FormResponsesTable props={{ formId: form.formId, workspace, requestForDeletion }} />
-                </>
-            )}
+            {!submissionId && <FormResponsesTable props={{ formId: form.formId, workspace, requestForDeletion, isSubmission: true }} />}
             {!!submissionForm && !!submissionId && (
                 <>
                     <div className="flex items-center justify-between">
