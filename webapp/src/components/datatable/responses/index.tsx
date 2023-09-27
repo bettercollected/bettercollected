@@ -1,28 +1,28 @@
 import React from 'react';
 
-import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import {useTranslation} from 'next-i18next';
+import {useRouter} from 'next/router';
 
 import StyledPagination from '@Components/Common/Pagination';
-import { Typography } from '@mui/material';
+import {Typography} from '@mui/material';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 
 import StatusBadge from '@app/components/badge/status-badge';
-import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
+import {dataTableCustomStyles} from '@app/components/datatable/form/datatable-styles';
 import EmptyResponse from '@app/components/ui/empty-response';
 import AnchorLink from '@app/components/ui/links/anchor-link';
-import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
-import { localesCommon } from '@app/constants/locales/common';
-import { formConstant } from '@app/constants/locales/form';
-import { StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
-import { Page } from '@app/models/dtos/page';
-import { Provider } from '@app/models/enums/provider';
-import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
+import {localesCommon} from '@app/constants/locales/common';
+import {formConstant} from '@app/constants/locales/form';
+import {StandardFormResponseDto} from '@app/models/dtos/form';
+import {Page} from '@app/models/dtos/page';
+import {selectAuth} from '@app/store/auth/slice';
+import {useAppSelector} from '@app/store/hooks';
+import {selectWorkspace} from '@app/store/workspaces/slice';
+import {parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate} from '@app/utils/dateUtils';
+import AppButton from "@Components/Common/Input/Button/AppButton";
+import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
 
 const responseTableStyles = {
     ...dataTableCustomStyles,
@@ -46,7 +46,7 @@ interface IResponsetableProps {
     setPage: (page: number) => void;
 }
 
-const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage }: IResponsetableProps) => {
+const ResponsesTable = ({requestForDeletion, submissions, formId, page, setPage}: IResponsetableProps) => {
     const router = useRouter();
     const user = useAppSelector(selectAuth);
     const workspace = useAppSelector(selectWorkspace);
@@ -55,24 +55,27 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
     };
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const onRowClicked = (response: StandardFormResponseDto) => {
         if (!requestForDeletion) {
             if (!requestForDeletion)
                 router.push(
                     {
                         pathname: router.pathname,
-                        query: { ...router.query, sub_id: response.responseId }
+                        query: {...router.query, sub_id: response.responseId}
                     },
                     undefined,
-                    { scroll: true, shallow: true }
+                    {scroll: true, shallow: true}
                 );
         }
     };
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
-            <Typography className={cn('!text-black-900 body3 ', !requestForDeletion && 'hover:!text-brand-500 cursor-pointer hover:underline')} noWrap>
-                {!requestForDeletion && <span onClick={() => onRowClicked(response)}>{response?.dataOwnerIdentifier ?? 'Anonymous'}</span>}
+            <Typography
+                className={cn('!text-black-900 body3 ', !requestForDeletion && 'hover:!text-brand-500 cursor-pointer hover:underline')}
+                noWrap>
+                {!requestForDeletion &&
+                    <span onClick={() => onRowClicked(response)}>{response?.dataOwnerIdentifier ?? 'Anonymous'}</span>}
                 {requestForDeletion && (response?.dataOwnerIdentifier ?? 'Anonymous')}
             </Typography>
         </div>
@@ -96,13 +99,16 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         }
     };
 
-    const Status = ({ status, response }: { status: string; response: StandardFormResponseDto }) => (
-        <div className="flex gap-6">
-            <StatusBadge status={status} />
+    const Status = ({status, response}: { status: string; response: StandardFormResponseDto }) => (
+        <div className="flex items-center gap-6">
+            <StatusBadge status={status}/>
             {status.toLowerCase() === 'pending' && (response.provider === 'self' || response.formImportedBy === user.id) && (
                 <Typography noWrap>
-                    <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'} href={getResponseUrl(response)} className="cursor-pointer body4 !text-brand-500">
-                        {t(localesCommon.goToResponse)}
+                    <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'}
+                                href={getResponseUrl(response)}>
+                        <AppButton variant={ButtonVariant.Ghost}>
+                            {t(localesCommon.goToResponse)}
+                        </AppButton>
                     </AnchorLink>
                 </Typography>
             )}
@@ -186,7 +192,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                     />
                     {Array.isArray(submissions?.items) && submissions?.total > globalConstants.pageSize && (
                         <div className="mt-8 flex justify-center">
-                            <StyledPagination shape="rounded" count={submissions?.pages || 0} page={page} onChange={handlePageChange} />
+                            <StyledPagination shape="rounded" count={submissions?.pages || 0} page={page}
+                                              onChange={handlePageChange}/>
                         </div>
                     )}
                 </>
