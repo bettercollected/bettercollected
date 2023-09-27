@@ -88,7 +88,7 @@ export default function FormPage({workspace, hasCustomDomain}: { workspace: Work
             name: '',
             selector: (form: StandardFormDto) => (
                 <div>
-                    {form?.settings?.pinned && form?.settings?.isPublished && (
+                    {form?.settings?.pinned && form?.isPublished && (
                         <Tooltip title={t(toolTipConstant.pinned)}>
                             <div>
                                 <PinnedIcon width={20} height={20}/>
@@ -110,7 +110,7 @@ export default function FormPage({workspace, hasCustomDomain}: { workspace: Work
                     <DataTableProviderFormCell form={form} workspace={workspace}/>
                 </div>
                 {
-                    !form?.settings?.isPublished &&
+                    !form?.isPublished &&
                     <div className="bg-gray-100 h-fit px-2 py-1 font-semibold rounded text-xs text-black-700 ml-2">
                         Draft
                     </div>
@@ -161,7 +161,7 @@ export default function FormPage({workspace, hasCustomDomain}: { workspace: Work
         {
             name: t(formConstant.menu.visibility),
             selector: (form: StandardFormDto) => {
-                if (form?.settings?.isPublished)
+                if (form?.isPublished)
                     return <FormVisibility isPrivate={!!form?.settings?.private} size="medium"/>;
                 return <></>
             },
