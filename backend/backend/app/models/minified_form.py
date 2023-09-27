@@ -32,4 +32,4 @@ class MinifiedForm(CamelModel):
     fields: Optional[List[StandardFormFieldCamelModel]]
     button_text: Optional[str]
     version: Optional[str]
-    updated_at: Optional[str]
+    updated_at: Optional[dt.datetime]
