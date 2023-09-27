@@ -3,6 +3,8 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Plus from '@Components/Common/Icons/Plus';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Button, Typography } from '@mui/material';
 
 import GroupCard from '@app/components/cards/group-card';
@@ -39,10 +41,9 @@ export default function FormGroups() {
             </p>
             <div className="flex  gap-[72px] items-center ">
                 <p className="body4 !text-black-700 md:w-[450px] ">{t(formConstant.group.description)}</p>
-                <div onClick={() => openModal('ADD_GROUP_FORM', { responderGroups: data, form })} className="flex gap-2   text-brand-500 items-center cursor-pointer">
-                    <Plus className="h-4 w-4" />
-                    <Typography className="!text-brand-500  body6"> {t(buttonConstant.addGroup)}</Typography>
-                </div>
+                <AppButton icon={<Plus className="h-4 w-4" />} onClick={() => openModal('ADD_GROUP_FORM', { responderGroups: data, form })} variant={ButtonVariant.Ghost}>
+                    {t(buttonConstant.addGroup)}
+                </AppButton>
             </div>
             <div className="grid grid-flow-row md:grid-cols-2 mt-6 xl:grid-cols-3 grid-cols-1 gap-6">
                 {form.groups?.map((group: ResponderGroupDto) => (
