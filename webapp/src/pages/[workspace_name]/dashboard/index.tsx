@@ -97,14 +97,7 @@ export default function CreatorDashboard({hasCustomDomain, ...props}: {
                 <WorkspaceDashboardOverview workspace={workspace}/>
             </div>
             <div className="px-5 pt-12 lg:px-10">
-                <div className="min-h-9 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                    <p className="sh1">{t(localesCommon.forms)}</p>
-                    <div className="flex gap-3">
-                        <ImportFormsButton
-                            className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON}/>
-                        <CreateFormButton/>
-                    </div>
-                </div>
+
                 <WorkspaceDashboardForms hasCustomDomain={hasCustomDomain} workspace={workspace}
                                          workspaceForms={workspaceForms}/>
             </div>

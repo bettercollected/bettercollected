@@ -35,7 +35,7 @@ export default function SidebarLayout({
                 <DrawerComponent drawerWidth={drawerWidth} mobileOpen={mobileOpen}
                                  handleDrawerToggle={handleDrawerToggle}/>
                 <Box
-                    className={`float-none lg:float-right lg:min-h-screen min-h-calc-68 mt-[68px] lg:mt-0`}
+                    className={`float-none lg:float-right lg:min-h-screen bg-black-100 min-h-calc-68 mt-[68px] lg:mt-0`}
                     component="main" sx={{display: 'flex', width: {lg: `calc(100% - ${drawerWidth}px)`}}}>
                     <motion.div
                         initial={{x: 0, opacity: 0}}
@@ -56,7 +56,7 @@ export default function SidebarLayout({
                                     <AuthAccountMenuDropdown hideMenu={false} isClientDomain={false}/>
                                 </div>
                             </div>
-                            <div className={cn("w-full h-full", boxClassName)}>
+                            <div className={cn("w-full h-full bg-black-100", boxClassName)}>
                                 {children}
                             </div>
                         </div>
