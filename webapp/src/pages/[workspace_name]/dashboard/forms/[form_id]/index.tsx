@@ -10,9 +10,11 @@ import Preview from '@Components/Common/Icons/Preview';
 import SettingsIcon from '@Components/Common/Icons/Settings';
 import SmallLogo from '@Components/Common/Icons/SmallLogo';
 import Button from '@Components/Common/Input/Button';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Group, Share } from '@mui/icons-material';
 
-import FormDeletionRequests from '@app/components/form/deletion-requests';
+import FormResponsesTable from '@app/components/datatable/form/form-responses';
 import FormGroups from '@app/components/form/groups';
 import FormPreview from '@app/components/form/preview';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
@@ -58,6 +60,7 @@ export default function FormPage(props: any) {
     if (!props && Object.keys(props).length === 0) {
         return <Error />;
     }
+
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
             title: t(breadcrumbsItems.dashboard),
@@ -96,7 +99,7 @@ export default function FormPage(props: any) {
         {
             icon: <Group className="h-5 w-5" />,
             title: 'Form Links (' + form.groups?.length + ')',
-            path: 'FormLinks',
+            path: 'FormLinks'
         }
     ];
 
@@ -132,27 +135,26 @@ export default function FormPage(props: any) {
                     <BreadcrumbsRenderer items={breadcrumbsItem} />
                 </div>
                 <div className="flex flex-col gap-1 mt-16">
-                    <FormPageLayer className=" md:px-32 px-10">
+                    <FormPageLayer className=" lg:px-28 md:px-10 px-4">
                         <div className="flex justify-between">
                             <h1 className="h2-new !text-pink">{form?.title}</h1>
                             <div className="flex gap-4">
                                 {form?.settings?.provider === 'self' && (
-                                    <Button
-                                        variant="contained"
-                                        className="w-fit bg-black-800 px-8 gap-2 py-2 "
+                                    <AppButton
+                                        icon={<EditIcon className="h-6 w-6" />}
+                                        variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Secondary : ButtonVariant.Ghost}
+                                        className="!px-0 sm:!px-5"
                                         onClick={() => {
                                             router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
                                         }}
                                     >
-                                        <span>
-                                            <EditIcon className="h-6 w-6" />
-                                        </span>
-                                        Edit Form
-                                    </Button>
+                                        <span className="sm:block hidden">Edit Form</span>
+                                    </AppButton>
                                 )}
-                                <Button
-                                    variant="outlined"
-                                    className="w-fit bg-brand-500 text-white px-8 gap-2 py-2 "
+                                <AppButton
+                                    variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
+                                    icon={<Share />}
+                                    className="!px-0 sm:!px-5"
                                     onClick={() =>
                                         openModal('SHARE_VIEW', {
                                             url: getFormUrl(form, workspace),
@@ -160,11 +162,8 @@ export default function FormPage(props: any) {
                                         })
                                     }
                                 >
-                                    <span>
-                                        <Share />
-                                    </span>
-                                    Share Form
-                                </Button>
+                                    <span className="sm:block hidden">Share Form</span>
+                                </AppButton>
                             </div>
                         </div>
                         <div className="flex gap-1 flex-row items-center">
@@ -174,7 +173,7 @@ export default function FormPage(props: any) {
                         <Divider className="mt-6" />
                     </FormPageLayer>
 
-                    <ParamTab showInfo={true} className="mb-[38px] pb-0 md:px-32 px-10" tabMenu={paramTabs}>
+                    <ParamTab showInfo={true} className="mb-[38px] pb-0 lg:px-28 md:px-10  px-4" tabMenu={paramTabs}>
                         <FormPageLayer className="w-full">
                             <TabPanel className="focus:outline-none" key="Preview">
                                 <FormPreview />
@@ -187,7 +186,7 @@ export default function FormPage(props: any) {
                                         <FormResponses />
                                     </TabPanel>
                                     <TabPanel className="focus:outline-none" key="Deletion Requests">
-                                        <FormDeletionRequests />
+                                        <FormResponsesTable props={{ workspace, requestForDeletion: true }} />
                                     </TabPanel>
                                 </>
                             ) : (

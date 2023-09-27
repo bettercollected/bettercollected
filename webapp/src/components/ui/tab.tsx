@@ -26,10 +26,12 @@ export function TabItem({ children, className }: React.PropsWithChildren<{ class
             {({ selected }) => (
                 <>
                     <span
-                        className={cn(`flex w-full justify-between`
-                        , {
-                            'bg-black-200 rounded py-2 px-3': selected
-                        }
+                        className={cn(
+                            `flex w-full justify-between py-2 px-3`,
+                            {
+                                'bg-black-200 rounded': selected
+                            },
+                            className
                         )}
                     >
                         {children}
