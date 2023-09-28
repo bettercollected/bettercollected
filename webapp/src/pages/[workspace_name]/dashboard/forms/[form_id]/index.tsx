@@ -15,6 +15,7 @@ import { Group, Share } from '@mui/icons-material';
 
 import FormResponsesTable from '@app/components/datatable/form/form-responses';
 import FormGroups from '@app/components/form/groups';
+import FormLinks from '@app/components/form/links';
 import FormPreview from '@app/components/form/preview';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import FormResponses from '@app/components/form/responses';
@@ -38,7 +39,6 @@ import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFormUrl } from '@app/utils/urlUtils';
-import FormLinks from '@app/components/form/links';
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;
