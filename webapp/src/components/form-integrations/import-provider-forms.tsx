@@ -143,25 +143,8 @@ export default function ImportProviderForms(props: any) {
 
     const stepZeroContent = (
         <>
-            {/* {environments.ENABLE_JOYRIDE_TOURS && (
-                <Joyride
-                    id={JOYRIDE_ID.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}
-                    continuous={false}
-                    placement="top"
-                    scrollOffset={0}
-                    steps={[
-                        {
-                            title: <JoyrideStepTitle text="Select a provider" />,
-                            content: <JoyrideStepContent>Select one of the listed form providers from where you want to import your forms onto Better Collected.</JoyrideStepContent>,
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`,
-                            hideFooter: true
-                        }
-                    ]}
-                />
-            )} */}
-
             <h4 className="sh1 text-center">{t(importFormConstant.choice)}</h4>
-            <div className={`grid grid-cols-2 w-full h-full gap-4 lg:gap-10 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`}>
+            <div className={` flex justify-center w-full h-full gap-4 lg:gap-10 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`}>
                 {integrations.map((integration) => (
                     <MuiButton key={integration.provider} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={integration.onClick} className="sh1 h-[120px] w-full md:h-[200px] md:w-[200px] !text-brand-500 capitalize">
                         <div className="h-full w-full flex flex-col items-center justify-center gap-5">

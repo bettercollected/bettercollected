@@ -26,6 +26,10 @@ interface OtpEmailInputPropType {
     setEmail: Dispatch<SetStateAction<string>>;
 }
 
+const providers: Array<string> = [];
+if (environments.ENABLE_GOOGLE) providers.push('google');
+if (environments.ENABLE_TYPEFORM) providers.push('typeform');
+
 export default function OtpEmailInput(props: OtpEmailInputPropType) {
     const { isCreator, isModal, isSignup } = props;
 
@@ -102,24 +106,27 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                 <span className="h4 ">{isSignup || isModal ? constants.signUp : constants.welcomeBack}</span>
                 {isModal ? <span className="body4 sm:w-[410px]">{constants.descriptionInModal}</span> : <span className="body4 text-black-800">{isSignup ? constants.signUpToContinue : constants.signInToContinue}</span>}
             </div>
-            <div className="flex gap-[20px] mt-10 w-full">
-                <div className="flex flex-col sm:flex-row gap-4 lg:gap-6 w-full justify-center items-center">
-                    {['google', 'typeform'].map((provider: string) => (
-                        <ConnectWithProviderButton
-                            key={provider}
-                            type={provider === 'typeform' ? 'typeform' : 'dark'}
-                            url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/basic`}
-                            text={`Sign in with ${capitalize(provider)}`}
-                            creator={isCreator}
-                            fromProPlan={fromProPlan}
-                        />
-                    ))}
-                </div>
-            </div>
-
-            <Divider orientation="horizontal" flexItem className={'body4 !text-black-700 my-10'}>
-                {constants.orSignInUsing}
-            </Divider>
+            {providers.length > 0 && (
+                <>
+                    <div className="flex gap-[20px] mt-10 w-full">
+                        <div className="flex flex-col sm:flex-row gap-4 lg:gap-6 w-full  justify-center items-center">
+                            {providers.map((provider: string) => (
+                                <ConnectWithProviderButton
+                                    key={provider}
+                                    type={provider === 'typeform' ? 'typeform' : 'dark'}
+                                    url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/basic`}
+                                    text={`Sign in with ${capitalize(provider)}`}
+                                    creator={isCreator}
+                                    fromProPlan={fromProPlan}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                    <Divider orientation="horizontal" flexItem className={'body4 !text-black-700 my-10'}>
+                        {constants.orSignInUsing}
+                    </Divider>
+                </>
+            )}
             <p className="text-base font-semibold mb-3 mt-[44px] text-black-900">{constants.emailInputLabel}</p>
             <BetterInput type={'email'} required={true} placeholder={constants.enterYourEmail} value={email} onChange={handleEmailInput} />
             <Button type={'submit'} variant="solid" isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={`body1 w-full mt-6 ${isModal ? 'mb-10' : ''}`} size={'extraMedium'}>
