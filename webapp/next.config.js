@@ -4,9 +4,9 @@ const runtimeCaching = require('next-pwa/cache');
 
 const withPlugins = require('next-compose-plugins');
 
-const { withSentryConfig } = require('@sentry/nextjs');
+const {withSentryConfig} = require('@sentry/nextjs');
 
-const { i18n } = require('./next-i18next.config');
+const {i18n} = require('./next-i18next.config');
 
 const getHostnameFromRegex = (url) => {
     // run against regex
@@ -114,8 +114,8 @@ const nextConfig = {
         WORKSPACE_ID: process.env.WORKSPACE_ID,
         CUSTOM_DOMAIN: process.env.CUSTOM_DOMAIN,
         CUSTOM_DOMAIN_JSON: process.env.CUSTOM_DOMAIN_JSON,
-        ENABLE_TYPEFORM: process.env.ENABLE_TYPEFORM || false,
-        ENABLE_GOOGLE: process.env.ENABLE_GOOGLE || false,
+        ENABLE_TYPEFORM: process.env.ENABLE_TYPEFORM || true,
+        ENABLE_GOOGLE: process.env.ENABLE_GOOGLE || true,
         ENABLE_COMMAND_FORM_BUILDERS: process.env.ENABLE_COMMAND_FORM_BUILDERS || false,
         ENABLE_CHECK_MY_DATA: process.env.ENABLE_CHECK_MY_DATA || false,
         ENABLE_BRAND_COLORS: process.env.ENABLE_BRAND_COLORS || false,
@@ -189,7 +189,7 @@ const nextConfigWithPWA = withPWA({
 
 const nextConfigWithSentryIfEnabled =
     !!process.env.SENTRY_DSN && !!process.env.SENTRY_URL && !!process.env.SENTRY_ORG && !!process.env.SENTRY_PROJECT && !!process.env.SENTRY_RELEASE
-        ? withSentryConfig({ ...nextConfigWithPWA, devtool: 'source-map' }, sentryWebpackPluginOptions)
+        ? withSentryConfig({...nextConfigWithPWA, devtool: 'source-map'}, sentryWebpackPluginOptions)
         : nextConfigWithPWA;
 
 module.exports = nextConfigWithSentryIfEnabled;
