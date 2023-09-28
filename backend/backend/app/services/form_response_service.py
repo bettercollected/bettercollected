@@ -168,9 +168,9 @@ class FormResponseService:
         for key, decrypted_answer in decrypted_response.answers.items():
             decrypted_answer = decrypted_answer.dict() if isinstance(decrypted_answer, StandardFormResponseAnswer) \
                 else decrypted_answer
-            if decrypted_answer["file_metadata"] is not None:
+            if decrypted_answer.get("file_metadata") is not None:
                 file_url = self._aws_service.generate_presigned_url(
-                    decrypted_answer["file_metadata"]["id"]
+                    decrypted_answer["file_metadata"].get("id")
                 )
                 decrypted_response.answers[key]["file_metadata"]["url"] = file_url
 
