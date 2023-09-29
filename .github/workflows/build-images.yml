@@ -167,8 +167,6 @@ jobs:
           username: ${{ secrets.SIRETO_BASTION_USERNAME }}
           key: ${{ secrets.SIRETO_BASTION_SSH_KEY }}
           port: ${{ secrets.SIRETO_BASTION_PORT }}
-          env:
-            SERVICE_TAG: ${{ matrix.service }}
           script: |
             SERVICE_TAG=${SERVICE_TAG//\//-}
             if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
@@ -181,6 +179,8 @@ jobs:
               DOCKER_STACK=${{ vars.PROD_STACK }}
               docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
             fi
+        env:
+          SERVICE_TAG: ${{ matrix.service }}
 
        
 
