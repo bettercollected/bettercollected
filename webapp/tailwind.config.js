@@ -56,7 +56,7 @@ module.exports = {
                 white: '#ffffff',
                 brand: {
                     100: '#F2F7FF',
-                    200: '#D8E8FF',
+                    200: '#B8E8FF',
                     300: '#A8C6F0',
                     400: '#82A2CF',
                     500: '#0764EB',
