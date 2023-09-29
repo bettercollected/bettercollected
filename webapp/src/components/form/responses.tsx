@@ -49,11 +49,11 @@ export default function FormResponses() {
             {!submissionId && <FormResponsesTable props={{ formId: form.formId, workspace, requestForDeletion, isSubmission: true }} />}
             {!!submissionForm && !!submissionId && (
                 <>
-                    <div className="flex items-center justify-between">
-                        <BackButton />
+                    <div className="flex items-center justify-end px-2 md:px-10">
                         {form?.settings?.provider === 'self' && (
-                            <div className="cursor-pointer hover:bg-gray-200 p-2 h-min rounded">
+                            <div className="cursor-pointer hover:bg-gray-200 p-2 h-min rounded ">
                                 <DeleteIcon
+                                    className={"text-red-500"}
                                     onClick={() => {
                                         openModal('DELETE_RESPONSE', {
                                             workspace: workspace,
