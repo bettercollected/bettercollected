@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import EditIcon from '@Components/Common/Icons/Edit';
+import FormProviderIcon from '@Components/Common/Icons/FormProviderIcon';
 import PrivateIcon from '@Components/Common/Icons/Private';
 import PublicIcon from '@Components/Common/Icons/Public';
 import ShareIcon from '@Components/Common/Icons/ShareIcon';
@@ -94,26 +95,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                         </div>
                     </div>
                     <div className="flex items-center max-w-full flex-wrap gap-2">
-                        <div className="">
-                            {form?.settings?.provider === 'typeform' && (
-                                <div className="flex gap-2 text-sm items-center text-black-600">
-                                    <TypeformIcon width={24} height={24} />
-                                    <span className="hidden lg:block">Typeform</span>
-                                </div>
-                            )}
-                            {form?.settings?.provider === 'google' && (
-                                <div className="flex gap-2 text-sm items-center text-black-600">
-                                    <GoogleFormIcon width={24} height={24} className="-ml-1" />
-                                    <span className="hidden lg:block">Google Form</span>
-                                </div>
-                            )}
-                            {form?.settings?.provider === 'self' && (
-                                <div className="flex gap-2 items-center text-sm text-black-600">
-                                    <SmallLogo height={24} width={24} />
-                                    <span className="hidden lg:block">bettercollected</span>
-                                </div>
-                            )}
-                        </div>
+                        <FormProviderIcon provider={form?.settings?.provider} />
                         {showVisibility && (
                             <Tooltip title={form?.settings?.private ? t(toolTipConstant.hideForm) : ''}>
                                 <>
