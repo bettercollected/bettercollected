@@ -14,7 +14,7 @@ on:
 
 jobs:
   test:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code with submodules
         uses: actions/checkout@v2
@@ -65,7 +65,7 @@ jobs:
           - integrations/typeform
           - webapp
           - temporal/worker
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code with submodules
         uses: actions/checkout@v2
@@ -100,8 +100,7 @@ jobs:
           - integrations/typeform
           - webapp
           - temporal/worker
-
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code with submodules
         uses: actions/checkout@v2
@@ -158,24 +157,30 @@ jobs:
           - integrations/typeform
           - webapp
           - temporal/worker
-
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Deploy built Image
         id: docker_deploy
-        env:
-          SERVICE_TAG: ${{ matrix.service }}
-        run: |
-          SERVICE_TAG=${SERVICE_TAG//\//-}
-          if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
-            DOCKER_HOST=${{ vars.DEVELOP_HOST }}
-            DOCKER_STACK=${{ vars.DEVELOP_STACK }}
-            docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
-          fi
-          if [[ "${{ github.ref }}" = "refs/tags/*" ]]; then
-            DOCKER_HOST=${{ vars.PROD_HOST }}
-            DOCKER_STACK=${{ vars.PROD_STACK }}
-            docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
-          fi
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SIRETO_BASTION_HOST }}
+          username: ${{ secrets.SIRETO_BASTION_USERNAME }}
+          key: ${{ secrets.SIRETO_BASTION_SSH_KEY }}
+          port: ${{ secrets.SIRETO_BASTION_PORT }}
+          env:
+            SERVICE_TAG: ${{ matrix.service }}
+          script: |
+            SERVICE_TAG=${SERVICE_TAG//\//-}
+            if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
+              DOCKER_HOST=${{ vars.DEVELOP_HOST }}
+              DOCKER_STACK=${{ vars.DEVELOP_STACK }}
+              docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
+            fi
+            if [[ "${{ github.ref }}" = "refs/tags/*" ]]; then
+              DOCKER_HOST=${{ vars.PROD_HOST }}
+              DOCKER_STACK=${{ vars.PROD_STACK }}
+              docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
+            fi
 
+       
 
