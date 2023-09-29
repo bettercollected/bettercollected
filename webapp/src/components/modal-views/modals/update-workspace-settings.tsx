@@ -1,39 +1,45 @@
-import { useEffect, useState } from 'react';
+import {useEffect, useState} from 'react';
 
-import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import {useTranslation} from 'next-i18next';
+import {useRouter} from 'next/router';
 
-import { toast } from 'react-toastify';
+import {toast} from 'react-toastify';
+import {Close} from '@app/components/icons/close';
+import {useModal} from '@app/components/modal-views/context';
+import {buttonConstant} from '@app/constants/locales/button';
+import {localesCommon} from '@app/constants/locales/common';
+import {placeHolder} from '@app/constants/locales/placeholder';
+import {toastMessage} from '@app/constants/locales/toast-message';
+import {updateWorkspace} from '@app/constants/locales/update-workspace';
+import {workspaceConstant} from '@app/constants/locales/workspace';
+import {ToastId} from '@app/constants/toastId';
+import {useAppDispatch, useAppSelector} from '@app/store/hooks';
+import {useDeleteWorkspaceDomainMutation, usePatchExistingWorkspaceMutation} from '@app/store/workspaces/api';
+import {setWorkspace} from '@app/store/workspaces/slice';
+import environments from "@app/configs/environments";
+import AppTextField from "@Components/Common/Input/AppTextField";
+import AppButton from "@Components/Common/Input/Button/AppButton";
+import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
 
-import BetterInput from '@app/components/Common/input';
-import { Close } from '@app/components/icons/close';
-import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button/button';
-import { buttonConstant } from '@app/constants/locales/button';
-import { localesCommon } from '@app/constants/locales/common';
-import { placeHolder } from '@app/constants/locales/placeholder';
-import { toastMessage } from '@app/constants/locales/toast-message';
-import { updateWorkspace } from '@app/constants/locales/update-workspace';
-import { workspaceConstant } from '@app/constants/locales/workspace';
-import { ToastId } from '@app/constants/toastId';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useDeleteWorkspaceDomainMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
-import { setWorkspace } from '@app/store/workspaces/slice';
+interface IUpdateWorkspaceSettings {
+    updateDomain: boolean;
+    customSlug?: string;
+}
 
-export default function UpdateWorkspaceSettings({ updateDomain = false }: { updateDomain: boolean }) {
-    const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
+export default function UpdateWorkspaceSettings({updateDomain = false, customSlug}: IUpdateWorkspaceSettings) {
+    const [patchExistingWorkspace, {isLoading}] = usePatchExistingWorkspaceMutation();
     const workspace = useAppSelector((state) => state.workspace);
     const [deleteWorkspaceDomain, result] = useDeleteWorkspaceDomainMutation();
-    const { t } = useTranslation();
-    const { closeModal } = useModal();
+    const {t} = useTranslation();
+    const {closeModal} = useModal();
     const [error, setError] = useState(false);
 
     const [updateText, setUpdateText] = useState(updateDomain ? workspace.customDomain || '' : workspace.workspaceName || '');
-
+    const customDomain = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${updateText}/forms`;
     const dispatch = useAppDispatch();
 
     const router = useRouter();
-    const { openModal } = useModal();
+    const {openModal} = useModal();
 
     useEffect(() => {
         if (updateDomain) {
@@ -68,13 +74,13 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
         const response: any = await patchExistingWorkspace(body);
         if (response.data) {
             dispatch(setWorkspace(response.data));
-            toast.info(updateDomain ? t(toastMessage.customDomainUpdated).toString() : t(updateWorkspace.handle).toString(), { toastId: ToastId.SUCCESS_TOAST });
+            toast.info(updateDomain ? t(toastMessage.customDomainUpdated).toString() : t(updateWorkspace.handle).toString(), {toastId: ToastId.SUCCESS_TOAST});
             if (!updateDomain) {
                 router.replace(`/${response.data.workspaceName}/dashboard`);
             }
             closeModal();
         } else if (response.error) {
-            toast.error(response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
+            toast.error(response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), {toastId: ToastId.ERROR_TOAST});
         }
     };
 
@@ -83,7 +89,8 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
     };
 
     return (
-        <div className="w-full !bg-brand-100 relative  rounded-lg shadow-md p-10  max-w-[502px] sm:max-w-lg md:max-w-xl">
+        <div
+            className="w-full !bg-brand-100 relative  rounded-lg shadow-md p-10  max-w-[502px] sm:max-w-lg md:max-w-xl">
             <Close
                 className="absolute cursor-pointer top-5 right-5"
                 onClick={() => {
@@ -91,7 +98,8 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                 }}
             />
             <div className="flex space-x-4">
-                <div className="sh1 mb-6 leading-tight tracking-tight md:text-2xl text-black-900">{updateDomain ? (workspace.customDomain ? t(updateWorkspace.customDomain) : t(updateWorkspace.setupCustomDomain)) : t(updateWorkspace.handle)}</div>
+                <div
+                    className="sh1 mb-6 leading-tight tracking-tight md:text-2xl text-black-900">{updateDomain ? (workspace.customDomain ? t(updateWorkspace.customDomain) : t(updateWorkspace.setupCustomDomain)) : t(updateWorkspace.handle)}</div>
             </div>
             <form className="flex items-start flex-col">
                 <div className="text-start max-w-full">
@@ -102,25 +110,42 @@ export default function UpdateWorkspaceSettings({ updateDomain = false }: { upda
                         {!updateDomain && <li>{t(updateWorkspace.settings.handle.point4)}</li>}
                     </ul>
                 </div>
-                <div className="mt-4">{updateDomain && t(updateWorkspace.settings.domain.cname) + 'custom.bettercollected.com'}</div>
+                <div
+                    className="mt-4">{updateDomain && t(updateWorkspace.settings.domain.cname) + 'custom.bettercollected.com'}</div>
                 <div className="body1 mt-6">{updateDomain ? t(localesCommon.domain) : t(workspaceConstant.handle)}</div>
-                <div className="mt-3 flex flex-col md:flex-row md:items-start w-full">
-                    <div className="flex items-start justify-start gap-4  w-full">
-                        <BetterInput
-                            inputProps={{ 'data-testid': 'update-field', className: 'bg-white !py-3' }}
-                            error={error}
-                            helperText={error ? (updateDomain ? t(updateWorkspace.invalidDomain) : t(updateWorkspace.invalidWorkspaceHandle)) : ''}
+                <div className="mt-3 gap-2 md:gap-0 flex flex-col md:flex-row items-start md:items-center w-full">
+                    <div className="flex flex-col items-start justify-start gap-1 w-full">
+                        <AppTextField
+                            inputProps={{'data-testid': 'update-field'}}
+                            isError={error}
                             placeholder={updateDomain ? t(placeHolder.enterCustomDomain) : t(placeHolder.enterWorkspaceHandle)}
                             value={updateText}
                             onChange={(e) => {
                                 setUpdateText(e.target.value);
                             }}
-                            className="font-bold flex-1 w-full"
-                        />
+                        >
+                            {
+                                customSlug && <AppTextField.Description>
+                                    {
+                                        `${customDomain}/${customSlug}`
+                                    }
+                                </AppTextField.Description>
+                            }
+
+                        </AppTextField>
+                        <span className={"text-red-500 text-xs font-normal"}>
+
+                        {error ?
+                            (updateDomain ? t(updateWorkspace.invalidDomain) : t(updateWorkspace.invalidWorkspaceHandle)) : ""}
+                        </span>
                     </div>
-                    <Button data-testid="save-button" type="submit" isLoading={isLoading || result?.isLoading} variant="solid" size="medium" onClick={handleSubmit} className="md:ml-4 flex-1 min-w-fit">
+
+                    <AppButton className={!customSlug ? '' : error ? 'mt-4' : 'mt-8'} data-testid="save-button"
+                               type="submit"
+                               isLoading={isLoading || result?.isLoading}
+                               variant={ButtonVariant.Primary} onClick={handleSubmit}>
                         {t(buttonConstant.updateNow)}
-                    </Button>
+                    </AppButton>
                 </div>
 
                 {workspace.customDomain && updateDomain && (
