@@ -34,7 +34,7 @@ const FormCards = ({ title, formsArray, workspace, showPinned = true, showVisibi
                                 query: { back: true }
                             }}
                         >
-                            <WorkspaceFormCard isResponderPortal showVisibility={showVisibility} showPinned={showPinned} className=" !shadow-none" form={form} hasCustomDomain={isCustomDomain} workspace={workspace} />
+                            <WorkspaceFormCard isResponderPortal showVisibility={showVisibility} showPinned={showPinned} form={form} hasCustomDomain={isCustomDomain} workspace={workspace} />
                         </ActiveLink>
                     );
                 })}

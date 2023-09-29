@@ -1,47 +1,57 @@
 import { useTranslation } from 'next-i18next';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import { DotIcon } from '@Components/Common/Icons/DotIcon';
 import FormProviderIcon from '@Components/Common/Icons/FormProviderIcon';
-import { Typography } from '@mui/material';
+import styled from '@emotion/styled';
 
-import StatusBadge from '@app/components/badge/status-badge';
-import { TypeformIcon } from '@app/components/icons/brands/typeform';
-import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
+import ActiveLink from '@app/components/ui/links/active-link';
 import { localesCommon } from '@app/constants/locales/common';
-import { formConstant } from '@app/constants/locales/form';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
-import { parseDateStrToDate, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
+import { utcToLocalDate } from '@app/utils/dateUtils';
 
 interface IWorkspaceFormResponseDeletionCardProps {
     response: StandardFormResponseDto;
-    isResponderPortal?: boolean;
+    deletionRequests?: boolean;
     className?: string;
+    isCustomDomain?: boolean;
+    workspaceName: string;
 }
 
-export default function WorkspaceFormResponseDeletionCard({ response, isResponderPortal = false, className = '' }: IWorkspaceFormResponseDeletionCardProps) {
-    const submittedAt = `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(response.updatedAt)))}`;
-    const { t } = useTranslation();
-    return (
-        <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px] border-brand-100 ${!!response?.status ? '' : 'hover:border-brand-500'} transition cursor-pointer rounded ${className}`}>
-            <div className="rounded relative w-full px-4 py-6 flex min-h-28 flex-col gap-4 items-start justify-between">
-                <div>{response?.formTitle || t(localesCommon.untitled)}</div>
-                <div className="rounded h-[34px] w-[34px]">
-                    <FormProviderIcon provider={response?.provider} />
-                </div>
-                <div className="w-full flex flex-col lg:flex-row justify-between">
-                    <p className="body5 !text-black-700">
-                        <span>
-                            {t(localesCommon.lastSubmittedAt)} {submittedAt}
-                        </span>
-                    </p>
-                </div>
+const DefaultDiv = styled.div``;
 
-                {isResponderPortal && !!response?.status && (
-                    <Tooltip title="">
-                        <StatusBadge status={response?.status || t(formConstant.status.pending)} />
-                    </Tooltip>
-                )}
+export default function WorkspaceFormResponseDeletionCard({ response, deletionRequests = false, className = '', workspaceName, isCustomDomain = false }: IWorkspaceFormResponseDeletionCardProps) {
+    const submittedAt = `${utcToLocalDate(response.updatedAt)}`;
+    const { t } = useTranslation();
+
+    const disabled = deletionRequests && response.status === 'success';
+
+    const Component = disabled ? DefaultDiv : ActiveLink;
+
+    return (
+        <Component
+            href={{
+                pathname: deletionRequests ? '' : isCustomDomain ? `/submissions/${response.responseId}` : `${workspaceName}/submissions/${response.responseId}`
+            }}
+            className={`relative flex flex-col items-start justify-between h-full bg-white border-[1px] border-brand-100 ${
+                disabled ? 'opacity-60 !text-black-600' : 'shadow-formCardDefault hover:border-brand-200  hover:shadow-formCard'
+            } rounded ${className}`}
+        >
+            <div className="rounded w-full px-5 py-4 flex flex-col gap-4 items-start justify-between">
+                <div>{response?.formTitle || t(localesCommon.untitled)}</div>
+                <div className="text-black-600 text-sm flex items-center gap-2 flex-wrap">
+                    <FormProviderIcon provider={response?.provider} />
+                    <DotIcon />
+                    <span>
+                        {t(localesCommon.lastSubmittedAt)} {utcToLocalDate(response.createdAt)}
+                    </span>
+                    {!!response?.status && (
+                        <>
+                            <DotIcon />
+                            <div className={`text-sm ${response?.status === 'pending' ? 'text-pink' : 'text-black-600'}`}>{response?.status === 'pending' ? 'Requested for deletion' : `Deleted (${submittedAt})`}</div>
+                        </>
+                    )}
+                </div>
             </div>
-        </div>
+        </Component>
     );
 }
