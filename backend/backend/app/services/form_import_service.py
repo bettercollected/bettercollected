@@ -1,3 +1,4 @@
+import datetime
 import json
 from typing import Any, Dict
 
@@ -91,7 +92,7 @@ class FormImportService:
             deletion_requests_query
         ).update_many(
             {
-                "$set": {"status": DeletionRequestStatus.SUCCESS},
+                "$set": {"status": DeletionRequestStatus.SUCCESS, "updated_at": datetime.datetime.utcnow()},
             }
         )
         if updated_result.modified_count >= 1:

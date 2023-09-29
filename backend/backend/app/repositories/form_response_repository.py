@@ -264,13 +264,12 @@ class FormResponseRepository(BaseRepository):
         await FormResponseDocument.find(
             {"form_id": str(form_id), "response_id": str(response_id)}
         ).delete()
-        await FormResponseDeletionRequest.find(
+        deletion_request = await FormResponseDeletionRequest.find_one(
             {"form_id": str(form_id), "response_id": str(response_id)}
-        ).update(
-            {
-                "$set": {"status": DeletionRequestStatus.SUCCESS},
-            }
         )
+        if deletion_request:
+            deletion_request.status = DeletionRequestStatus.SUCCESS
+            await deletion_request.save()
         return str(response_id)
 
     async def get_all_expiring_responses(self):
