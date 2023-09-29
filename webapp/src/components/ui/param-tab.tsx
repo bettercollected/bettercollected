@@ -103,7 +103,7 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
                     </div>
                 </Tab.List>
             </div>
-            <div className="lg:px-28 md:px-10 w-full ">
+            <div className="lg:px-28 md:px-10 w-full mb-[36px]">
                 <Divider />
             </div>
             <TabPanels>{children}</TabPanels>
