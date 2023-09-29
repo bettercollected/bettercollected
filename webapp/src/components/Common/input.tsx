@@ -11,5 +11,5 @@ export function FormInputField(props: TextFieldProps) {
 
 export default function BetterInput(props: TextFieldProps) {
     const { className, ...otherProps } = props;
-    return <FormInputField {...props} className={cn('!mb-4', className)} />;
+    return <FormInputField {...props} className={cn('mb-4', className)} />;
 }

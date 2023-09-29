@@ -51,7 +51,7 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
         case 'SHARE_VIEW':
             return <ShareModalView {...modalProps} />; // Done
         case 'UPDATE_WORKSPACE_DOMAIN':
-            return <UpdateWorkspaceSettings updateDomain={true}/>;
+            return <UpdateWorkspaceSettings updateDomain={true} {...modalProps}/>;
         case 'UPDATE_WORKSPACE_HANDLE':
             return <UpdateWorkspaceSettings updateDomain={false}/>;
         case 'DELETE_FORM_MODAL':
@@ -68,8 +68,6 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <CropImageModalView {...modalProps} />;
         case 'DELETE_CUSTOM_DOMAIN':
             return <DeleteCustomDomainModal/>;
-        case 'UPGRADE_TO_PRO':
-            return <UpgradeToProModal/>;
         case 'EDIT_WORKSPACE_MODAL':
             return <EditWorkspaceModal/>;
         case 'ADD_MEMBERS':

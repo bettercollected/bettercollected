@@ -24,7 +24,7 @@ from backend.app.schemas.standard_form_response import (
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.aws_service import AWSS3Service
-from common.constants import MESSAGE_FORBIDDEN
+from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
 from common.models.user import User
 from common.services.crypto_service import crypto_service
@@ -135,6 +135,8 @@ class FormResponseService:
         # TODO : Handle case for multiple form import by other user
         # TODO : Combine all queries to one
         response = await FormResponseDocument.find_one({"response_id": response_id})
+        if not response:
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         form = await FormVersionsDocument.find_one(
             {"form_id": response.form_id, "version": response.form_version if response.form_version else 1})
         if not form:

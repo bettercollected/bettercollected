@@ -23,6 +23,7 @@ import {selectWorkspace} from '@app/store/workspaces/slice';
 import {parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate} from '@app/utils/dateUtils';
 import AppButton from "@Components/Common/Input/Button/AppButton";
 import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
+import {ChevronForward} from "@app/components/icons/chevron-forward";
 
 const responseTableStyles = {
     ...dataTableCustomStyles,
@@ -99,21 +100,35 @@ const ResponsesTable = ({requestForDeletion, submissions, formId, page, setPage}
         }
     };
 
-    const Status = ({status, response}: { status: string; response: StandardFormResponseDto }) => (
-        <div className="flex items-center gap-6">
-            <StatusBadge status={status}/>
-            {status.toLowerCase() === 'pending' && (response.provider === 'self' || response.formImportedBy === user.id) && (
-                <Typography noWrap>
-                    <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'}
-                                href={getResponseUrl(response)}>
-                        <AppButton variant={ButtonVariant.Ghost}>
-                            {t(localesCommon.goToResponse)}
-                        </AppButton>
-                    </AnchorLink>
-                </Typography>
-            )}
-        </div>
+    const Status = ({status}: { status: string }) => (
+        <StatusBadge status={status}/>
     );
+
+    const DeletedOn = ({status, response}: { status: string; response: StandardFormResponseDto }) => {
+        return <div className="flex items-center gap-10 md:gap-20 xl:gap-40">
+             <span className="text-sm font-medium text-black-700">
+                {status.toLowerCase() === 'pending' ? 'Not deleted yet' :
+                    toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(response.updatedAt)))
+                    + ',' + toHourMinStr(parseDateStrToDate(utcToLocalDate(response.updatedAt)))
+                }
+            </span>
+        </div>
+    }
+
+    const GoToResponse = ({status, response}: { status: string; response: StandardFormResponseDto }) => {
+        return status.toLowerCase() === 'pending' && (response.provider === 'self' || response.formImportedBy === user.id) ? (
+            <Typography noWrap>
+                <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'}
+                            href={getResponseUrl(response)}>
+                    <AppButton postFixIcon={
+                        <ChevronForward className={"h-6 w-6 text-brand-500"}/>
+                    } variant={ButtonVariant.Ghost} className="!p-0">
+                        {t(localesCommon.goToResponse)}
+                    </AppButton>
+                </AnchorLink>
+            </Typography>
+        ) : <></>
+    }
 
     const dataTableResponseColumns: any = [
         {
@@ -121,22 +136,25 @@ const ResponsesTable = ({requestForDeletion, submissions, formId, page, setPage}
             selector: (response: StandardFormResponseDto) => responseDataOwnerField(response),
             grow: 2,
             style: {
-                color: '#202124',
-                fontSize: '14px',
-                fontWeight: 500,
+                color: 'rgba(77, 77, 77, 1)',
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                fontSize: '14px',
+                lineheight: '21px',
+                paddingRight: '16px',
+                fontWeight: '500'
             }
         },
         {
             name: requestForDeletion ? t(formConstant.requestedOn) : t(formConstant.respondedOn),
             selector: (row: StandardFormResponseDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))}` : ''),
             style: {
-                color: 'rgba(0,0,0,.54)',
+                color: 'rgba(77, 77, 77, 1)',
                 paddingLeft: '16px',
-                fontSize: '16px',
-                lineheight: '24px',
-                paddingRight: '16px'
+                fontSize: '14px',
+                lineheight: '21px',
+                paddingRight: '16px',
+                fontWeight: '500'
+
             }
         }
     ];
@@ -148,9 +166,33 @@ const ResponsesTable = ({requestForDeletion, submissions, formId, page, setPage}
                 selector: (row: StandardFormResponseDto) =>
                     Status({
                         status: row?.status || t(formConstant.status.pending),
+                    }),
+                style: {
+                    color: 'rgba(0,0,0,.54)',
+                    paddingLeft: '16px',
+                    paddingRight: '16px'
+                }
+            },
+            {
+                name: 'Deleted On',
+                selector: (row: StandardFormResponseDto) =>
+                    DeletedOn({
+                        status: row?.status || t(formConstant.status.pending),
                         response: row
                     }),
-                grow: 2,
+                style: {
+                    color: 'rgba(0,0,0,.54)',
+                    paddingLeft: '16px',
+                    paddingRight: '16px'
+                }
+            },
+            {
+                name: '',
+                selector: (row: StandardFormResponseDto) =>
+                    GoToResponse({
+                        status: row?.status || t(formConstant.status.pending),
+                        response: row
+                    }),
                 style: {
                     color: 'rgba(0,0,0,.54)',
                     paddingLeft: '16px',
