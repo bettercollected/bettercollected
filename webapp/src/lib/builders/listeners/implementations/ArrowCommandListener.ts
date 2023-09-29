@@ -14,11 +14,9 @@ export default class ArrowCommandListener extends ICommandListener {
 
     execute(event: React.KeyboardEvent, callback?: Function | undefined): void {
         if (this.state && this.key === 'ArrowDown') {
-            console.log(this.state, 'Arrow down invoked');
             // TODO: focus to another block
         }
         if (this.state && this.key === 'ArrowUp') {
-            console.log(this.state, 'Arrow up invoked');
             // TODO: focus to another block
         }
 

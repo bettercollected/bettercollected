@@ -14,9 +14,9 @@ import DeleteMemberModal from '@app/components/modal-views/modals/delete-member-
 import DeleteResponseModal from '@app/components/modal-views/modals/delete-response-modal';
 import FormBuilderAddFieldModal from '@app/components/modal-views/modals/form-builder-add-field-modal';
 import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
+import MobileInsertMenu from '@app/components/modal-views/modals/mobile-insert-menu';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
 import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
-import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
 import RequestForDeletionView from '@app/components/submission-request-for-deletion';
 import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
@@ -50,7 +50,7 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
         case 'SHARE_VIEW':
             return <ShareModalView {...modalProps} />; // Done
         case 'UPDATE_WORKSPACE_DOMAIN':
-            return <UpdateWorkspaceSettings updateDomain={true} />;
+            return <UpdateWorkspaceSettings updateDomain={true} {...modalProps} />;
         case 'UPDATE_WORKSPACE_HANDLE':
             return <UpdateWorkspaceSettings updateDomain={false} />;
         case 'DELETE_FORM_MODAL':
@@ -67,8 +67,6 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <CropImageModalView {...modalProps} />;
         case 'DELETE_CUSTOM_DOMAIN':
             return <DeleteCustomDomainModal />;
-        case 'UPGRADE_TO_PRO':
-            return <UpgradeToProModal />;
         case 'EDIT_WORKSPACE_MODAL':
             return <EditWorkspaceModal />;
         case 'ADD_MEMBERS':
@@ -99,6 +97,8 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <ConsentBuilderConfirmationModalView {...modalProps} />;
         case 'CONSENT_RETENTION_MODAL_VIEW':
             return <ConsentRetentionModalView {...modalProps} />;
+        case 'MOBILE_INSERT_MENU':
+            return <MobileInsertMenu {...modalProps} />;
         default:
             return <></>;
     }

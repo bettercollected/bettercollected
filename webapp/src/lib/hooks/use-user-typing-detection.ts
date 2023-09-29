@@ -11,7 +11,7 @@ export default function useUserTypingDetection() {
         return debounce(() => {
             dispatch(setTyping(false));
         }, 500);
-    }, [dispatch]);
+    }, []);
 
     return { handleUserTypingEnd };
 }

@@ -30,7 +30,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
 import { useGetWorkspaceSubmissionQuery, useRequestWorkspaceSubmissionDeletionMutation } from '@app/store/workspaces/api';
-import { parseDateStrToDate, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
+import { utcToLocalDate } from '@app/utils/dateUtils';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 interface ISubmission extends IServerSideProps {
@@ -96,7 +96,7 @@ export default function Submission(props: any) {
     };
 
     const deletionStatus = !!form?.response?.deletionStatus;
-    const submittedAt = `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(form?.response?.createdAt)))}`;
+    const submittedAt = `${utcToLocalDate(form?.response?.createdAt)}`;
 
     return (
         <Layout showAuthAccount={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showNavbar={true}>
@@ -130,7 +130,7 @@ export default function Submission(props: any) {
                     </div>
                     <div className="flex-col-reverse lg:flex-row flex gap-5 lg:!gap-16 w-full pt-20">
                         <div className="bg-white rounded-xl w-full">
-                            <FormRenderer form={form.form} response={form.response} preview />
+                            <FormRenderer form={form.form} response={form.response} isDisabled />
                         </div>
                         <div className="flex flex-col-reverse justify-between lg:justify-start gap-10  lg:flex-col basis-1/4 ">
                             <div>
@@ -154,7 +154,12 @@ export default function Submission(props: any) {
                                 title="View Your Data Usage Permissions"
                                 description={`Review the permissions you've previously granted for data usage.`}
                                 linkText="Data Permission Details"
-                                onLinkClick={() => fullScreenModal.openModal('CONSENT_FULL_MODAL_VIEW', { isPreview: true, form: form.response })}
+                                onLinkClick={() =>
+                                    fullScreenModal.openModal('CONSENT_FULL_MODAL_VIEW', {
+                                        isDisabled: true,
+                                        form: form.response
+                                    })
+                                }
                             />
                             <div>
                                 <div className="body4 pb-2 text-black-700">{t(localesCommon.lastSubmittedAt)}</div>

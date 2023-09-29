@@ -3,6 +3,8 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import StyledPagination from '@Components/Common/Pagination';
 import { Typography } from '@mui/material';
 import cn from 'classnames';
@@ -10,19 +12,18 @@ import DataTable from 'react-data-table-component';
 
 import StatusBadge from '@app/components/badge/status-badge';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
+import { ChevronForward } from '@app/components/icons/chevron-forward';
 import EmptyResponse from '@app/components/ui/empty-response';
 import AnchorLink from '@app/components/ui/links/anchor-link';
-import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
-import { StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
+import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { Page } from '@app/models/dtos/page';
-import { Provider } from '@app/models/enums/provider';
-import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
+import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
+import { utcToLocalDate, utcToLocalTime } from '@app/utils/dateUtils';
 
 const responseTableStyles = {
     ...dataTableCustomStyles,
@@ -96,18 +97,29 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         }
     };
 
-    const Status = ({ status, response }: { status: string; response: StandardFormResponseDto }) => (
-        <div className="flex gap-6">
-            <StatusBadge status={status} />
-            {status.toLowerCase() === 'pending' && (response.provider === 'self' || response.formImportedBy === user.id) && (
-                <Typography noWrap>
-                    <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'} href={getResponseUrl(response)} className="cursor-pointer body4 !text-brand-500">
+    const Status = ({ status }: { status: string }) => <StatusBadge status={status} />;
+
+    const DeletedOn = ({ status, response }: { status: string; response: StandardFormResponseDto }) => {
+        return (
+            <div className="flex items-center gap-10 md:gap-20 xl:gap-40">
+                <span className="text-sm font-medium text-black-700">{status.toLowerCase() === 'pending' ? 'Not deleted yet' : utcToLocalDate(response.updatedAt)}</span>
+            </div>
+        );
+    };
+
+    const GoToResponse = ({ status, response }: { status: string; response: StandardFormResponseDto }) => {
+        return status.toLowerCase() === 'pending' && (response.provider === 'self' || response.formImportedBy === user.id) ? (
+            <Typography noWrap>
+                <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'} href={getResponseUrl(response)}>
+                    <AppButton postFixIcon={<ChevronForward className={'h-6 w-6 text-brand-500'} />} variant={ButtonVariant.Ghost} className="!p-0">
                         {t(localesCommon.goToResponse)}
-                    </AnchorLink>
-                </Typography>
-            )}
-        </div>
-    );
+                    </AppButton>
+                </AnchorLink>
+            </Typography>
+        ) : (
+            <></>
+        );
+    };
 
     const dataTableResponseColumns: any = [
         {
@@ -115,22 +127,24 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
             selector: (response: StandardFormResponseDto) => responseDataOwnerField(response),
             grow: 2,
             style: {
-                color: '#202124',
-                fontSize: '14px',
-                fontWeight: 500,
+                color: 'rgba(77, 77, 77, 1)',
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                fontSize: '14px',
+                lineheight: '21px',
+                paddingRight: '16px',
+                fontWeight: '500'
             }
         },
         {
             name: requestForDeletion ? t(formConstant.requestedOn) : t(formConstant.respondedOn),
-            selector: (row: StandardFormResponseDto) => (!!row?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(row.createdAt)))}` : ''),
+            selector: (row: StandardFormResponseDto) => (!!row?.createdAt ? `${utcToLocalDate(row.createdAt)}` : ''),
             style: {
-                color: 'rgba(0,0,0,.54)',
+                color: 'rgba(77, 77, 77, 1)',
                 paddingLeft: '16px',
-                fontSize: '16px',
-                lineheight: '24px',
-                paddingRight: '16px'
+                fontSize: '14px',
+                lineheight: '21px',
+                paddingRight: '16px',
+                fontWeight: '500'
             }
         }
     ];
@@ -141,10 +155,34 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 name: t(localesCommon.status),
                 selector: (row: StandardFormResponseDto) =>
                     Status({
+                        status: row?.status || t(formConstant.status.pending)
+                    }),
+                style: {
+                    color: 'rgba(0,0,0,.54)',
+                    paddingLeft: '16px',
+                    paddingRight: '16px'
+                }
+            },
+            {
+                name: 'Deleted On',
+                selector: (row: StandardFormResponseDto) =>
+                    DeletedOn({
                         status: row?.status || t(formConstant.status.pending),
                         response: row
                     }),
-                grow: 2,
+                style: {
+                    color: 'rgba(0,0,0,.54)',
+                    paddingLeft: '16px',
+                    paddingRight: '16px'
+                }
+            },
+            {
+                name: '',
+                selector: (row: StandardFormResponseDto) =>
+                    GoToResponse({
+                        status: row?.status || t(formConstant.status.pending),
+                        response: row
+                    }),
                 style: {
                     color: 'rgba(0,0,0,.54)',
                     paddingLeft: '16px',

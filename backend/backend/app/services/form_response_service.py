@@ -16,6 +16,7 @@ from backend.app.models.response_dtos import (
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
+from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
     FormResponseDeletionRequest,
@@ -23,8 +24,8 @@ from backend.app.schemas.standard_form_response import (
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.aws_service import AWSS3Service
-from common.constants import MESSAGE_FORBIDDEN
-from common.models.standard_form import StandardFormResponse
+from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
+from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 
@@ -134,7 +135,12 @@ class FormResponseService:
         # TODO : Handle case for multiple form import by other user
         # TODO : Combine all queries to one
         response = await FormResponseDocument.find_one({"response_id": response_id})
-        form = await FormDocument.find_one({"form_id": response.form_id})
+        if not response:
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        form = await FormVersionsDocument.find_one(
+            {"form_id": response.form_id, "version": response.form_version if response.form_version else 1})
+        if not form:
+            form = await FormDocument.find_one({"form_id": response.form_id})
         deletion_request = await FormResponseDeletionRequest.find_one(
             {"response_id": response_id}
         )
@@ -162,9 +168,11 @@ class FormResponseService:
             workspace_id=workspace_id, response=response
         )
         for key, decrypted_answer in decrypted_response.answers.items():
-            if decrypted_answer["file_metadata"] is not None:
+            decrypted_answer = decrypted_answer.dict() if isinstance(decrypted_answer, StandardFormResponseAnswer) \
+                else decrypted_answer
+            if decrypted_answer.get("file_metadata") is not None:
                 file_url = self._aws_service.generate_presigned_url(
-                    decrypted_answer["file_metadata"]["id"]
+                    decrypted_answer["file_metadata"].get("id")
                 )
                 decrypted_response.answers[key]["file_metadata"]["url"] = file_url
 

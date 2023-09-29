@@ -33,8 +33,8 @@ export const dataTableCustomStyles = {
     },
     rows: {
         style: {
-            backgroundColor: 'white',
-            marginBottom: '16px',
+            backgroundColor: '#F7F8FA',
+            // marginBottom: '16px',
             border: 'none',
             outlineWidth: '0',
             borderRadius: '4px',

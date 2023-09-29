@@ -30,10 +30,10 @@ import ConsentField from './ConsentField';
 interface ConsentBuilderProps extends OnlyClassNameInterface {
     onFormSubmit: any;
     form: StandardFormDto;
-    isPreview?: boolean;
+    isDisabled?: boolean;
 }
 
-export default function ConsentForm({ className, onFormSubmit, form, isPreview = false }: ConsentBuilderProps) {
+export default function ConsentForm({ className, onFormSubmit, form, isDisabled = false }: ConsentBuilderProps) {
     const { openModal } = useModal();
     const workspace = useAppSelector(selectWorkspace);
     const { data } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
@@ -41,7 +41,7 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
     const [error, setError] = useState(false);
 
     const getFilteredConsents = (category: ConsentCategoryType) => {
-        return form.consent.filter((consent) => consent?.category === category).map((consent, idx) => <ConsentField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} disabled={isPreview} />);
+        return form.consent.filter((consent) => consent?.category === category).map((consent, idx) => <ConsentField key={consent.consentId} className={`${idx === 0 && 'border-y'}`} consent={consent} disabled={isDisabled} />);
     };
 
     const dataAccessDetails = (
@@ -110,17 +110,14 @@ export default function ConsentForm({ className, onFormSubmit, form, isPreview =
             <div className="space-y-20 xs:space-y-[70px]">
                 <div className="space-y-4">
                     <div className="h4">Form Purpose and Data Usage</div>
-                    <div className="p2 !text-new-black-800 ">
-                        {`We want to make sure you're fully informed about how your data will be used
-before you proceed with our form.`}
-                    </div>
+                    <div className="p2 !text-new-black-800 ">{`We want to make sure you're fully informed about how your data will be used before you proceed with our form.`}</div>
                 </div>
                 {renderFormPurposes()}
                 {renderDataRetention()}
                 {renderResponderRights()}
                 {dataAccessDetails}
             </div>
-            {!isPreview && (
+            {!isDisabled && (
                 <div className="mt-[60px] space-y-3">
                     {error && (
                         <div className="p2 !text-new-pink items-center !font-normal">

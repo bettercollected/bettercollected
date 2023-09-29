@@ -28,7 +28,7 @@ module.exports = {
                         200: '#EEEEEE',
                         300: '#DBDBDB',
                         400: '#CED4DA',
-                        500: '#ADB5BD',
+                        500: '#858585',
                         600: '#6C757D',
                         700: '#495057',
                         800: '#4D4D4D',
@@ -56,7 +56,7 @@ module.exports = {
                 white: '#ffffff',
                 brand: {
                     100: '#F2F7FF',
-                    200: '#D8E8FF',
+                    200: '#B8E8FF',
                     300: '#A8C6F0',
                     400: '#82A2CF',
                     500: '#0764EB',
@@ -88,7 +88,8 @@ module.exports = {
                 },
                 red: {
                     100: '#FFECE7',
-                    500: '#EA400E',
+                    400: '#EA400E',
+                    500: '#D23C10',
                     DEFAULT: '#EA400E'
                 },
                 orange: {
@@ -129,7 +130,8 @@ module.exports = {
                 large: '0px 8px 16px rgba(17, 24, 39, 0.1)',
                 card: '0px 2px 6px rgba(0, 0, 0, 0.06)',
                 transaction: '0px 8px 16px rgba(17, 24, 39, 0.06)',
-                formCard: '0px 0px 30px rgba(3, 3, 80, 0.08)',
+                formCardDefault: '0px 0px 16px rgba(186, 186, 186, 0.16)',
+                formCard: ' 0px 0px 40px 0px rgba(19, 73, 179, 0.25)',
                 button: '0px 2px 4px rgba(0, 0, 0, 0.06), 0px 4px 6px rgba(0, 0, 0, 0.1)',
                 logoCard: '0px 0px 40px 0px rgba(19, 73, 179, 0.25)',
                 hover: '0px 0px 8px 0px rgba(0, 0, 0, 0.25)',
@@ -274,6 +276,7 @@ module.exports = {
         }
     },
     plugins: [
+        require('@tailwindcss/line-clamp'),
         require('@tailwindcss/typography'),
         require('@tailwindcss/forms'),
         require('@tailwindcss/line-clamp'),

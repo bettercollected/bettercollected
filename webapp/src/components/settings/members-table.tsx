@@ -11,8 +11,11 @@ import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-
 import MemberOptions from '@app/components/datatable/workspace-settings/member-options';
 import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
-import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
+import { utcToLocalDate, utcToLocalTime } from '@app/utils/dateUtils';
 
+const customDataTableStyles = { ...dataTableCustomStyles };
+
+customDataTableStyles.rows.style.backgroundColor = 'white';
 export default function MembersTable({ data }: any) {
     const workspace = useAppSelector((state) => state.workspace);
 
@@ -40,7 +43,7 @@ export default function MembersTable({ data }: any) {
 
         {
             name: t(members.join),
-            selector: (member: any) => (!!member?.joined ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(member?.joined)))} - ${toHourMinStr(parseDateStrToDate(utcToLocalDate(member?.joined)))}` : ''),
+            selector: (member: any) => (!!member?.joined ? `${utcToLocalDate(member?.joined)} - ${utcToLocalTime(member?.joined)}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
@@ -72,7 +75,7 @@ export default function MembersTable({ data }: any) {
 
     return (
         <>
-            <DataTable className="p-0 mt-2 !overflow-auto" columns={dataTableResponseColumns} data={data || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+            <DataTable className="p-0 mt-2 !overflow-auto" columns={dataTableResponseColumns} data={data || []} customStyles={customDataTableStyles} highlightOnHover={false} pointerOnHover={false} />
         </>
     );
 }

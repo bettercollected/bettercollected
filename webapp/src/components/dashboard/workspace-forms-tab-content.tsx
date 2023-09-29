@@ -56,7 +56,8 @@ export const StyledTextField = styled.div`
 export default function WorkspaceFormsTabContent({ workspace, isFormCreator = false }: IWorkspaceFormsTabContentProps) {
     const workspaceId = workspace.id;
     const query = {
-        workspace_id: workspaceId
+        workspace_id: workspaceId,
+        published: true
     };
     const { isLoading, data, isError } = useGetWorkspaceFormsQuery(query, { pollingInterval: 30000 });
     const [searchWorkspaceForms] = useSearchWorkspaceFormsMutation();
@@ -68,7 +69,8 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
     const handleSearch = async (event: any) => {
         const response: any = await searchWorkspaceForms({
             workspace_id: workspaceId,
-            query: escapeRegExp(event.target.value)
+            query: escapeRegExp(event.target.value),
+            published: true
         });
 
         if (event.target.value && response.data) {
@@ -100,7 +102,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
 
     return (
         <div className="py-6 px-5 lg:px-10 xl:px-20 flex flex-col gap-6">
-            {pinnedForms.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} isFormCreator={isFormCreator} workspace={workspace} formsArray={pinnedForms} />}
+            {pinnedForms.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms} />}
             {showUnpinnedForms && pinnedForms.length !== 0 && <Divider />}
             <div className={`w-full md:w-[282px]`}>
                 <SearchInput handleSearch={handleSearch} />

@@ -59,7 +59,7 @@ export default function SubmissionDashboard(props: any) {
                 <>
                     {/* TODO: For viewing individual submission fix this later */}
                     {/* <BreadcrumbRenderer breadcrumbsItem={breadcrumbsItem} /> */}
-                    <FormRenderer form={data?.form} response={data?.response} preview />
+                    <FormRenderer form={data?.form} response={data?.response} isDisabled />
                 </>
             )}
         </DashboardLayout>
