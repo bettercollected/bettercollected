@@ -9,6 +9,7 @@ import { authApi } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
 import { Hint } from '../icons/hint';
+import Divider from "@Components/Common/DataDisplay/Divider";
 
 interface TabMenuItem {
     title: React.ReactNode;
@@ -86,7 +87,7 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
         <Tab.Group selectedIndex={selectedTabIndex} onChange={(index: any) => handleTabChange(index)}>
             <div className={`flex flex-row justify-between py-[26px] ${className}`}>
                 <Tab.List className="relative w-full text-sm gap-8">
-                    <div className="flex justify-between border-b-[1px] border-black-500 max-w-full gap-5 overflow-x-auto">
+                    <div className="flex justify-between  max-w-full gap-5 overflow-x-auto">
                         <div className="flex sm:gap-3 top-[-2px] justify-start xl:gap:6">
                             {tabMenu.map((item) => (
                                 <TabItem key={item.path} className="min-w-fit">
@@ -101,6 +102,9 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
                         </div>
                     </div>
                 </Tab.List>
+            </div>
+            <div className="lg:px-28 md:px-10 w-full ">
+                <Divider />
             </div>
             <TabPanels>{children}</TabPanels>
         </Tab.Group>
