@@ -8,7 +8,8 @@ interface AppButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     isLoading?: boolean;
     variant?: ButtonVariant;
     size?: ButtonSize;
-    icon?: ReactNode
+    icon?: ReactNode;
+    postFixIcon?: ReactNode
 }
 
 export default function AppButton({
@@ -17,6 +18,7 @@ export default function AppButton({
                                       disabled,
                                       isLoading,
                                       icon,
+                                      postFixIcon,
                                       variant = ButtonVariant.Primary,
                                       size = ButtonSize.Small,
                                       ...buttonProps
@@ -57,6 +59,7 @@ export default function AppButton({
             {
                 children
             }
+            {!isLoading && postFixIcon}
         </button>
     );
 }
