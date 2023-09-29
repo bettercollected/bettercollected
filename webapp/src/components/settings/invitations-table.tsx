@@ -17,7 +17,7 @@ import { WorkspaceInvitationDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { Page } from '@app/models/dtos/page';
 import { useAppSelector } from '@app/store/hooks';
 import { useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
-import { parseDateStrToDate, toHourMinStr, toMonthDateYearStr, utcToLocalDate } from '@app/utils/dateUtils';
+import { utcToLocalDate, utcToLocalTime } from '@app/utils/dateUtils';
 
 interface IInvitationTableProps {
     data: Page<WorkspaceInvitationDto>;
@@ -84,7 +84,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
         },
         {
             name: t(members.invitationDate),
-            selector: (invitation: WorkspaceInvitationDto) => (!!invitation?.createdAt ? `${toMonthDateYearStr(parseDateStrToDate(utcToLocalDate(invitation?.createdAt)))} ${toHourMinStr(parseDateStrToDate(utcToLocalDate(invitation?.createdAt)))}` : ''),
+            selector: (invitation: WorkspaceInvitationDto) => (!!invitation?.createdAt ? `${utcToLocalDate(invitation?.createdAt)} ${utcToLocalTime(invitation?.createdAt)}` : ''),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',
