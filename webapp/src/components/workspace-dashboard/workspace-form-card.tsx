@@ -37,9 +37,11 @@ interface IWorkspaceFormCardProps {
     isResponderPortal?: boolean;
     className?: string;
     group?: ResponderGroupDto;
+    showPinned?: boolean;
+    showVisibility?: boolean;
 }
 
-export default function WorkspaceFormCard({ form, hasCustomDomain, index, workspace, isResponderPortal = false, className = '', group }: IWorkspaceFormCardProps) {
+export default function WorkspaceFormCard({ form, hasCustomDomain, index, workspace, isResponderPortal = false, className = '', showPinned = true, showVisibility = true }: IWorkspaceFormCardProps) {
     const { openModal } = useModal();
     const router = useRouter();
     const { t } = useTranslation();
@@ -112,17 +114,17 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                                 </div>
                             )}
                         </div>
-                        {!isResponderPortal && (
+                        {showVisibility && (
                             <Tooltip title={form?.settings?.private ? t(toolTipConstant.hideForm) : ''}>
                                 <>
                                     <DotDivider />
-                                    {form?.isPublished ? (
+                                    {form?.isPublished || isResponderPortal ? (
                                         <div className="flex items-center text-black-600">
                                             {form?.settings?.private ? <PrivateIcon /> : <PublicIcon />}
                                             <p className={` text-sm ml-2 text-black-600`}>{form?.settings?.private ? t(localesCommon.hidden) : t(localesCommon.public)}</p>
                                         </div>
                                     ) : (
-                                        <div className=" text-black-600 text-sm"> Last edited {moment(form?.updatedAt).fromNow()}</div>
+                                        <div className=" text-black-600 text-sm"> Last edited {moment.utc(form?.updatedAt).fromNow()}</div>
                                     )}
                                 </>
                             </Tooltip>
@@ -137,7 +139,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                             </>
                         )}
 
-                        {!isResponderPortal && form?.isPublished && form?.settings?.pinned && (
+                        {(form?.isPublished || isResponderPortal) && showPinned && form?.settings?.pinned && (
                             <>
                                 <DotDivider />
                                 <span className="text-sm text-[#FE3678]">Pinned</span>
