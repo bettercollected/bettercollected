@@ -81,30 +81,29 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
     return (
         <>
             {workspace?.bannerImage && (
-                <div className={`relative overflow-hidden w-full`}>
+                <div className={`overflow-hidden w-full`}>
                     <BannerImageComponent workspace={workspace} isFormCreator={false} />
                 </div>
             )}
-            <div
-                className={`md:min-h-[157px] ${workspace?.bannerImage ? 'relative ' : ''} ${
-                    isWorkspacePreview ? 'px-5 pt-5 lg:px-10 lg:pt-10 xl:pt-20 xl:px-20' : 'pt-3 lg:pt-6  px-5 lg:px-10 xl:px-20'
-                } w-full bg-brand-100 flex flex-col sm:flex-row gap-6 `}
-            >
-                <ProfileImageComponent className={`w-fit sm:w-auto rounded  ${workspace?.bannerImage ? 'sm:absolute -top-[51px] md:-top-[63px] lg:-top-[73px] ' : ''} `} workspace={workspace} isFormCreator={false} />
-                {isError && (
-                    <div className="absolute right-5 lg:right-10 xl:right-20">
-                        <Button size="small" variant="contained" className="rounded body4 px-4 py-[13px] !leading-none !normal-case !text-white !bg-brand-500 hover:!bg-brand-600 shadow-none hover:shadow-none" onClick={handleCheckMyData}>
-                            {t(buttonConstant.checkMyData)}
-                        </Button>
+            <div className={`${isWorkspacePreview ? 'px-5 pt-5 lg:px-10 lg:pt-10 xl:pt-20 xl:px-20' : 'pt-3 lg:pt-6  px-5 lg:px-10 xl:px-20'} w-full bg-black-100 flex flex-col items-start sm:flex-row justify-between gap-6 `}>
+                <div className="flex items-start gap-10">
+                    <ProfileImageComponent className={`w-fit rounded`} workspace={workspace} isFormCreator={false} />
+                    <div className="flex h-fit w-full justify-between gap-10">
+                        <PublicWorkspaceTitleAndDescription className={`max-w-[800px]`} isFormCreator={false} />
                     </div>
-                )}
-                {['md', 'lg', 'xl', '2xl'].indexOf(screenSize) === -1 && isSuccess && <div className="absolute  right-5 lg:right-10 xl:right-20">{workspaceOptions}</div>}
-                <div className="flex h-fit w-full justify-between gap-10">
-                    <PublicWorkspaceTitleAndDescription className={`max-w-[800px] ${workspace?.bannerImage ? 'ml-0 sm:ml-[152px] md:ml-[184px] lg:ml-[224px]' : ' my-10'} `} isFormCreator={false} />
-                    {['xs', '2xs', 'sm'].indexOf(screenSize) === -1 && isSuccess && <div className="flex h-fit gap-4 flex-col sm:flex-row">{workspaceOptions}</div>}
+                </div>
+                <div>
+                    {isError && (
+                        <div className="">
+                            <Button size="small" variant="contained" className="rounded body4 px-4 py-[13px] !leading-none !normal-case !text-white !bg-brand-500 hover:!bg-brand-600 shadow-none hover:shadow-none" onClick={handleCheckMyData}>
+                                {t(buttonConstant.checkMyData)}
+                            </Button>
+                        </div>
+                    )}
+                    {isSuccess && isCustomDomain && workspaceOptions}
                 </div>
             </div>
-            <div className=" h-full bg-brand-100">
+            <div className=" h-full bg-black-100">
                 <FormsAndSubmissionsTabContainer isFormCreator={false} workspace={workspace} workspaceId={workspace.id} showResponseBar={!!isError} />
                 <div className="px-5 lg:px-10 xl:px-20">
                     <Divider className="mt-10 mb-6" />
