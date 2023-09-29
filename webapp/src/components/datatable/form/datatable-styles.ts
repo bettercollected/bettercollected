@@ -34,7 +34,7 @@ export const dataTableCustomStyles = {
     rows: {
         style: {
             backgroundColor: '#F7F8FA',
-            marginBottom: '16px',
+            // marginBottom: '16px',
             border: 'none',
             outlineWidth: '0',
             borderRadius: '4px',

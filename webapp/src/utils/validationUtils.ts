@@ -50,11 +50,11 @@ export function isNetherUndefinedNorNull(data: unknown): boolean {
 
 export const statusProps = (status: string, t: any) => {
     let currentStatus = 'Deleted';
-    let cName = 'bg-black-400 !text-black-800 dark:bg-yellow-900 dark:text-yellow-300';
+    let cName = 'bg-black-200 !text-black-800 dark:bg-yellow-900 dark:text-yellow-300';
     let dotCName = 'bg-black-800'
     if (status.toLowerCase() === 'pending') {
         currentStatus = t(formConstant.status.pending);
-        cName = 'bg-red-100 !text-red-400 dark:bg-red-900 dark:text-red-300';
+        cName = 'bg-red-200 !text-red-400 dark:bg-red-900 dark:text-red-300';
         dotCName= 'bg-red-400';
     } else if (status.toLowerCase() === 'expired') {
         currentStatus = t(formConstant.status.expired);
