@@ -85,11 +85,11 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
 
     const Actions = () => (
         <Toolbar className=" !px-0 lg:px-6 divide-y divide-black-200 lg:divide-y-0  flex flex-col lg:flex-row body4 w-full justify-center">
-            <Divider orientation="vertical" className="hidden lg:flex" flexItem />
-            <IconButton color="inherit" className={optionButtonClassName} onClick={onInsert}>
-                <PlusIcon />
-                <span className=" text-black-700">{t('INSERT.DEFAULT')}</span>
-            </IconButton>
+            {/*<Divider orientation="vertical" className="hidden lg:flex" flexItem />*/}
+            {/*<IconButton color="inherit" className={optionButtonClassName} onClick={onInsert}>*/}
+            {/*    <PlusIcon />*/}
+            {/*    <span className=" text-black-700">{t('INSERT.DEFAULT')}</span>*/}
+            {/*</IconButton>*/}
             <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             <IconButton color="inherit" className={optionButtonClassName} onClick={onAddFormLogo}>
                 <CircleOutlinedIcon />

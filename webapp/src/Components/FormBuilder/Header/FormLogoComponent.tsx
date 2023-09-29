@@ -56,7 +56,7 @@ const FormLogoComponent = (props: IFormLogoComponent) => {
         setIsAddLogoClicked(false);
     };
     return (
-        <div className={`relative z-50 px-5 md:px-[89px] mt-10 mb-10 ${className}`}>
+        <div className={`relative w-fit z-50 px-12 md:px-[89px] mt-3 mb-12 ${className}`}>
             <div className={cn('rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard', !isUpdateButtonClicked && 'bg-black-800')} onClick={onClickUpdateNewLogoButton}>
                 <input id="form_logo" type="file" hidden onChange={handleFileChange} />
                 {selectedImageURL || logo ? <Image height={100} width={100} objectFit="cover" src={selectedImageURL || logo || ''} alt="logo" className="rounded-lg hover:bg-black-100" /> : <LogoItems />}

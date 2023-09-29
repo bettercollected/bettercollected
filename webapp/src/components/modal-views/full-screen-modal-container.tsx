@@ -16,6 +16,8 @@ import CreateConsentFullModalView from './full-screen-modals/create-consent-full
 import FormSettingFullModalView from './full-screen-modals/form-setting-full-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
+import FormCreateSlugFullModalView
+    from "@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view";
 
 function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
     switch (view) {
@@ -35,6 +37,8 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
             return <ConsentFullModalView {...modalProps} />;
         case 'FORM_SETTINGS_FULL_MODAL_VIEW':
             return <FormSettingFullModalView {...modalProps} />;
+        case 'FORM_CREATE_SLUG_VIEW':
+            return <FormCreateSlugFullModalView {...modalProps}/>
         default:
             return <></>;
     }

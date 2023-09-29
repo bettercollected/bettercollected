@@ -55,22 +55,13 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
     const fullWorkspaceName = workspace?.title;
     const strippedWorkspaceTitle = toEndDottedStr(fullWorkspaceName, 20);
 
-    if (!isFormCreator)
-        return (
-            <div className={`h-full w-full ${className}`}>
-                <div className="w-full flex flex-col gap-4">
-                    <Tooltip title={trimTooltipTitle(fullWorkspaceName)}>
-                        <h4 className="h4 w-fit">{strippedWorkspaceTitle}</h4>
-                    </Tooltip>
-                    <MarkdownText className="max-w-[700px] overflow-hidden" text={workspace.description} />
-                </div>
-            </div>
-        );
     return (
         <div className={`h-full w-full ${className}`}>
-            <div className="w-full flex flex-col gap-4">
-                <ReactContentEditable callback={handleTitleChange} type="h4" content={fullWorkspaceName} className="h4" />
-                <ReactContentEditable callback={handleDescriptionChange} type="p" content={workspace?.description} className="text-black-700 body3" />
+            <div className="w-full flex flex-col">
+                <Tooltip title={trimTooltipTitle(fullWorkspaceName)}>
+                    <h4 className="h4 w-fit">{strippedWorkspaceTitle}</h4>
+                </Tooltip>
+                <MarkdownText className="max-w-[700px] overflow-hidden" text={workspace.description} />
             </div>
         </div>
     );

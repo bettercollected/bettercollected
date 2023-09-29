@@ -3,18 +3,17 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import CreateFormButton from '@Components/Common/CreateFormButton';
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
-import Button from '@app/components/ui/button';
 import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
 import WorkspaceDashboardOverview from '@app/components/workspace-dashboard/workspace-dashboard-overview';
 import environments from '@app/configs/environments';
+import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
-import { builderConstants } from '@app/constants/locales/form-builder';
-import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
@@ -36,7 +35,7 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
 
     return (
-        <DashboardLayout>
+        <DashboardLayout boxClassName="bg-black-100">
             {environments.ENABLE_JOYRIDE_TOURS && (
                 <Joyride
                     id={JOYRIDE_ID.WORKSPACE_ADMIN_DASHBOARD_OVERVIEW}
@@ -86,25 +85,12 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                     ]}
                 />
             )}
-            <WorkspaceDashboardOverview workspace={workspace} />
-            <div className="min-h-9 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                <p className="sh1">{t(formConstant.recentForms)}</p>
-                <div className="flex gap-3">
-                    {environments.ENABLE_FORM_BUILDER && (
-                        <Button
-                            variant="solid"
-                            onClick={() => {
-                                router.push(`/${workspace.workspaceName}/dashboard/forms/create`);
-                            }}
-                        >
-                            {builderTranslation(builderConstants.createForm)}
-                        </Button>
-                    )}
-
-                    <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
-                </div>
+            <div className="bg-white pt-4 pb-5 px-5 lg:px-10 shadow-lg">
+                <WorkspaceDashboardOverview workspace={workspace} />
             </div>
-            <WorkspaceDashboardForms hasCustomDomain={hasCustomDomain} workspace={workspace} workspaceForms={workspaceForms} />
+            <div className="px-5 pt-12 lg:px-10">
+                <WorkspaceDashboardForms hasCustomDomain={hasCustomDomain} workspace={workspace} workspaceForms={workspaceForms} />
+            </div>
         </DashboardLayout>
     );
 }

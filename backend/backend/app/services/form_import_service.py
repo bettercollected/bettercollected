@@ -1,3 +1,4 @@
+import datetime
 import json
 from typing import Any, Dict
 
@@ -26,6 +27,9 @@ class FormImportService:
         self.form_service = form_service
         self._workspace_repo = workspace_repo
 
+    async def get_form_workspace_by_id(self, workspace_id: PydanticObjectId):
+        return await self._workspace_repo.get_workspace_by_id(workspace_id=workspace_id)
+
     async def save_converted_form_and_responses(
         self,
         response_data: Dict[str, Any],
@@ -38,9 +42,7 @@ class FormImportService:
         standard_form = form_data.form
         await self.form_service.save_form(standard_form)
         responses = form_data.responses
-
         updated_responses_id = []
-
         for response in responses:
             existing_response = await FormResponseDocument.find_one(
                 {"response_id": response.response_id}
@@ -90,7 +92,7 @@ class FormImportService:
             deletion_requests_query
         ).update_many(
             {
-                "$set": {"status": DeletionRequestStatus.SUCCESS},
+                "$set": {"status": DeletionRequestStatus.SUCCESS, "updated_at": datetime.datetime.utcnow()},
             }
         )
         if updated_result.modified_count >= 1:
@@ -102,3 +104,4 @@ class FormImportService:
                 tag=UserTagType.DELETION_REQUEST_PROCESSED,
             )
         return standard_form
+

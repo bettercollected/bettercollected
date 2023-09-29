@@ -27,16 +27,18 @@ export default function NavigationList({ navigationList, className = '', sx = {}
             {navigationList.map((element) => {
                 const active = element.url == router.asPath;
                 return (
-                    <ListItem key={element.key} disablePadding className={`body4 ${active ? 'bg-brand-200 !text-brand-600' : ''}`} onClick={() => router.push(element.url, undefined, { shallow: true })}>
-                        <ListItemButton sx={{ paddingY: '8px', paddingX: '20px' }} className={`${active ? '' : 'hover:bg-brand-100'}`}>
-                            {element.icon && (
-                                <ListItemIcon sx={{ minWidth: '36px' }} className={`${active ? 'text-brand-600' : 'text-black-900'}`}>
-                                    {element?.icon}
-                                </ListItemIcon>
-                            )}
-                            <ListItemText primary={element.name} />
-                        </ListItemButton>
-                    </ListItem>
+                    <div key={element.key} className={`body4 rounded-lg mt-1 ${active ? 'bg-brand-500 !text-white' : 'text-black-600 hover:bg-brand-100'}`}>
+                        <ListItem disablePadding onClick={() => router.push(element.url, undefined, { shallow: true })}>
+                            <ListItemButton sx={{ paddingY: '8px', paddingX: '20px' }} className={`${active ? '' : 'hover:!bg-transparent'}`}>
+                                {element.icon && (
+                                    <ListItemIcon sx={{ minWidth: '36px' }} className={`${active ? 'text-white' : 'text-black-600'}`}>
+                                        {element?.icon}
+                                    </ListItemIcon>
+                                )}
+                                <div className="text-sm"> {element.name}</div>
+                            </ListItemButton>
+                        </ListItem>
+                    </div>
                 );
             })}
         </List>

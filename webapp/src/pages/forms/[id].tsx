@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
@@ -19,24 +19,26 @@ import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
-import { Plan } from '@app/models/dtos/UserStatus';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { selectAuthStatus } from '@app/store/auth/selectors';
-import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
-import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
+import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export default function SingleFormPage(props: any) {
-    const { back, slug, hasCustomDomain, workspace } = props;
+    const { back, slug, hasCustomDomain, workspace, form: fetched_form, error: fetched_form_error } = props;
 
-    const { data, isLoading, error } = useGetWorkspaceFormQuery({ workspace_id: workspace.id, custom_url: slug });
+    const { data, isLoading, error } = useGetWorkspaceFormQuery({
+        workspace_id: workspace.id,
+        custom_url: slug,
+        published: true
+    });
 
     const router = useRouter();
     const form: StandardFormDto | undefined = data;
 
-    const title = form?.title;
-    const description = form?.description?.slice(0, 100) ?? '';
-    const imageUrl = form?.coverImage ?? workspace?.profileImage;
+    const social_preview = fetched_form_error ? form : fetched_form;
+
+    const title = fetched_form?.title ?? workspace?.title;
+    const description = fetched_form?.description?.slice(0, 100) ?? '';
     const url = globalConstants.socialPreview.url;
 
     const iframeRef = useRef(null);
@@ -44,8 +46,6 @@ export default function SingleFormPage(props: any) {
 
     const responderUri = form?.settings?.embedUrl || '';
     const { t } = useTranslation();
-
-    const auth = useAppSelector(selectAuthStatus);
 
     // @ts-ignore
     if (error && error?.status === 401) {
@@ -122,7 +122,7 @@ export default function SingleFormPage(props: any) {
                         site_name: title || globalConstants.appName,
                         images: [
                             {
-                                url: imageUrl,
+                                url: fetched_form?.coverImage || workspace?.profileImage,
                                 alt: title
                             }
                         ]
@@ -180,7 +180,7 @@ export default function SingleFormPage(props: any) {
                         site_name: title || globalConstants.appName,
                         images: [
                             {
-                                url: imageUrl,
+                                url: fetched_form?.coverImage || workspace?.profileImage,
                                 alt: title
                             }
                         ]
@@ -215,7 +215,7 @@ export default function SingleFormPage(props: any) {
                     site_name: title || globalConstants.appName,
                     images: [
                         {
-                            url: imageUrl,
+                            url: fetched_form?.coverImage || workspace?.profileImage,
                             alt: title
                         }
                     ]
@@ -229,7 +229,7 @@ export default function SingleFormPage(props: any) {
                     </div>
                 )}
             </div>
-            {auth?.plan === Plan.FREE && <PoweredBy />}
+            {(!workspace?.isPro || !form?.settings?.disableBranding) && <PoweredBy />}
         </Layout>
     );
 }
@@ -253,14 +253,42 @@ export async function getServerSideProps(_context: any) {
             }
         };
     }
-
+    let form = null;
+    const config = getServerSideAuthHeaderConfig(_context);
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
-
-    return {
-        props: {
-            ...globalProps,
-            slug,
-            back
+    const { id } = _context.query;
+    try {
+        const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${id}`, config);
+        form = (await formResponse?.json().catch((e: any) => e)) ?? null;
+        if (!form) {
+            return {
+                notFound: true
+            };
         }
-    };
+        return {
+            props: {
+                ...globalProps,
+                slug,
+                back,
+                form
+            }
+        };
+    } catch (err) {
+        return {
+            props: {
+                ...globalProps,
+                slug,
+                back,
+                error: true
+            }
+        };
+    }
+
+    // return {
+    //     props: {
+    //         ...globalProps,
+    //         slug,
+    //         back
+    //     }
+    // };
 }

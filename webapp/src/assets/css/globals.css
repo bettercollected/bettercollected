@@ -105,3 +105,7 @@ body {
     padding: 0 0 0 14px;
     border-radius: 3px 0 0 3px;
 }
+
+.form-title{
+    width: calc(100% - 56px);
+}

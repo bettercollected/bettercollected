@@ -6,7 +6,7 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspaceStatsDto';
-import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFileUrlQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
+import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
@@ -117,11 +117,17 @@ export const workspacesApi = createApi({
                         returnValue['clientFormItems'] = fieldItems;
                     }
                 }
-
                 return returnValue;
             }
         }),
-
+        publishForm: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/publish`,
+                method: 'POST',
+                body: request.body
+            }),
+            invalidatesTags: [FORM_TAG]
+        }),
         createForm: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms`,
@@ -191,6 +197,7 @@ export const workspacesApi = createApi({
                 url: `/workspaces/${body.workspace_id}/forms${!!body.form_id ? `/${body.form_id}` : ''}`,
                 method: 'GET',
                 params: {
+                    published: !!body.published,
                     page: body.page,
                     size: body.size
                 }
@@ -200,7 +207,10 @@ export const workspacesApi = createApi({
         getWorkspaceForm: builder.query<StandardFormDto, IGetWorkspaceFormQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspace_id}/forms/${query.custom_url}`,
-                method: 'GET'
+                method: 'GET',
+                params: {
+                    published: !!query.published
+                }
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
@@ -287,8 +297,12 @@ export const workspacesApi = createApi({
         }),
         searchWorkspaceForms: builder.mutation<Array<StandardFormDto>, ISearchWorkspaceFormsQuery>({
             query: (query) => ({
-                url: `/workspaces/${query.workspace_id}/forms/search?query=${query.query}`,
-                method: 'POST'
+                url: `/workspaces/${query.workspace_id}/forms/search`,
+                method: 'POST',
+                params: {
+                    query: query.query,
+                    published: !!query?.published
+                }
             })
         }),
         patchFormSettings: builder.mutation<any, IPatchFormSettingsRequest>({
@@ -491,5 +505,6 @@ export const {
     useAddFormOnGroupMutation,
     useDeleteResponderFromGroupMutation,
     useDeleteGroupFormMutation,
-    useUpdateResponderGroupMutation
+    useUpdateResponderGroupMutation,
+    usePublishFormMutation
 } = workspacesApi;
