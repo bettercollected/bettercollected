@@ -138,7 +138,7 @@ jobs:
           fi
           echo GITHUB_REF_NAME
           echo ${{ github.ref_name }}
-          if [[ "${{ github.ref }}" = "refs/tags/*" ]]; then
+          if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:release
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:${{ github.ref_name }}
             docker push bettercollected/${SERVICE_TAG}:release
