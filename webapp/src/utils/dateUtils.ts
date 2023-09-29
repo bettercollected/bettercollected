@@ -1,6 +1,6 @@
 import moment from 'moment/moment';
 
-export const utcToLocalDate = (dateStr: any) => moment.utc(dateStr).local();
+export const utcToLocalDate = (dateStr: any) => moment.utc(dateStr).local().format('Do MMMM, YYYY');
 
 export const parseDate = (dateStr: any) => Date.parse(dateStr);
 

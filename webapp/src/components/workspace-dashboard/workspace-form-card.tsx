@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import { DotIcon } from '@Components/Common/Icons/DotIcon';
 import EditIcon from '@Components/Common/Icons/Edit';
 import FormProviderIcon from '@Components/Common/Icons/FormProviderIcon';
 import PrivateIcon from '@Components/Common/Icons/Private';
@@ -78,7 +79,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
     };
 
     return (
-        <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px]  border-transparent hover:border-brand-500 transition cursor-pointer rounded-lg shadow-formCard hover:shadow-[#1349B340] ${className}`}>
+        <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px]  border-transparent hover:border-brand-200 transition cursor-pointer rounded-lg shadow-formCardDefault hover:shadow-formCard ${className}`}>
             <div className="rounded w-full group px-5 py-4 flex items-center justify-between">
                 <div className=" flex flex-col gap-2 w-full">
                     <div className="flex gap-4 items-center flex-1 justify-between">
@@ -99,7 +100,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                         {showVisibility && (
                             <Tooltip title={form?.settings?.private ? t(toolTipConstant.hideForm) : ''}>
                                 <>
-                                    <DotDivider />
+                                    <DotIcon />
                                     {form?.isPublished || isResponderPortal ? (
                                         <div className="flex items-center text-black-600">
                                             {form?.settings?.private ? <PrivateIcon /> : <PublicIcon />}
@@ -114,7 +115,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
 
                         {!isResponderPortal && form?.isPublished && (
                             <>
-                                <DotDivider />
+                                <DotIcon />
                                 <span className="text-sm text-black-600">
                                     {form?.responses} Response{(form?.responses || 0) > 1 && 's'}
                                 </span>
@@ -123,7 +124,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
 
                         {(form?.isPublished || isResponderPortal) && showPinned && form?.settings?.pinned && (
                             <>
-                                <DotDivider />
+                                <DotIcon />
                                 <span className="text-sm text-[#FE3678]">Pinned</span>
                             </>
                         )}
@@ -147,8 +148,4 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
             </div>
         </div>
     );
-}
-
-function DotDivider() {
-    return <div className="h-1 w-1 rounded-full bg-black-600 mx-2" />;
 }
