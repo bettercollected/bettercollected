@@ -49,18 +49,22 @@ export function isNetherUndefinedNorNull(data: unknown): boolean {
 }
 
 export const statusProps = (status: string, t: any) => {
-    let currentStatus = t(buttonConstant.done);
-    let cName = 'bg-success !text-green-800 dark:bg-green-900 dark:text-green-300';
+    let currentStatus = 'Deleted';
+    let cName = 'bg-black-400 !text-black-800 dark:bg-yellow-900 dark:text-yellow-300';
+    let dotCName = 'bg-black-800'
     if (status.toLowerCase() === 'pending') {
         currentStatus = t(formConstant.status.pending);
-        cName = 'bg-black-400 !text-black-800 dark:bg-yellow-900 dark:text-yellow-300';
+        cName = 'bg-red-100 !text-red-400 dark:bg-red-900 dark:text-red-300';
+        dotCName= 'bg-red-400';
     } else if (status.toLowerCase() === 'expired') {
         currentStatus = t(formConstant.status.expired);
-        cName = 'bg-red-100 !text-red-500';
+        cName = 'bg-yellow-100 !text-yellow-500';
+        dotCName = 'bg-yellow-400'
     }
     return {
         currentStatus,
-        cName
+        cName,
+        dotCName
     };
 };
 
