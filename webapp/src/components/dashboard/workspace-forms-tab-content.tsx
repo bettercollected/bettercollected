@@ -102,7 +102,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
 
     return (
         <div className="py-6 px-5 lg:px-10 xl:px-20 flex flex-col gap-6">
-            {pinnedForms.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} isFormCreator={isFormCreator} workspace={workspace} formsArray={pinnedForms} />}
+            {pinnedForms.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms} />}
             {showUnpinnedForms && pinnedForms.length !== 0 && <Divider />}
             <div className={`w-full md:w-[282px]`}>
                 <SearchInput handleSearch={handleSearch} />

@@ -49,27 +49,13 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
 
     const isCustomDomain = window?.location.host !== environments.CLIENT_DOMAIN;
 
-    const submissionCard = ({ submission }: any) => <WorkspaceFormResponseDeletionCard key={submission.responseId} response={submission} className="!bg-white" isResponderPortal />;
-
     return (
         <div className="py-6 px-5 lg:px-10 xl:px-20">
             {submissions?.length === 0 && <EmptyFormsView description={`0 ${t(formConstant.responses)}`} />}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            <div className=" flex flex-col gap-4">
                 {submissions?.length !== 0 &&
                     submissions?.map((submission: StandardFormResponseDto) => {
-                        const slug = submission.responseId;
-                        return deletionRequests ? (
-                            submissionCard({ submission })
-                        ) : (
-                            <ActiveLink
-                                key={submission.responseId}
-                                href={{
-                                    pathname: deletionRequests ? '' : isCustomDomain ? `/submissions/${slug}` : `${workspace.workspaceName}/submissions/${slug}`
-                                }}
-                            >
-                                {submissionCard({ submission })}
-                            </ActiveLink>
-                        );
+                        return <WorkspaceFormResponseDeletionCard deletionRequests={deletionRequests} key={submission.responseId} response={submission} isCustomDomain={isCustomDomain} workspaceName={workspace.workspaceName} />;
                     })}
             </div>
         </div>

@@ -12,16 +12,18 @@ interface FormCardsProps {
     formsArray: Array<StandardFormDto>;
     workspace: WorkspaceDto;
     isFormCreator: boolean;
+    showPinned?: boolean;
+    showVisibility?: boolean;
 }
 
-const FormCards = ({ title, formsArray, workspace, isFormCreator }: FormCardsProps) => {
+const FormCards = ({ title, formsArray, workspace, showPinned = true, showVisibility }: FormCardsProps) => {
     const isCustomDomain = window?.location.host !== environments.CLIENT_DOMAIN;
 
     if (formsArray.length === 0) return <></>;
     return (
         <div data-testid="form-cards-container">
             {!!title && <h1 className="text-gray-700 font-semibold text-md md:text-lg mb-6">{title}</h1>}
-            <FormsContainer>
+            <div className="flex flex-col gap-4">
                 {formsArray.map((form: StandardFormDto, idx: number) => {
                     const slug = form.settings?.customUrl;
                     return (
@@ -32,11 +34,11 @@ const FormCards = ({ title, formsArray, workspace, isFormCreator }: FormCardsPro
                                 query: { back: true }
                             }}
                         >
-                            <WorkspaceFormCard isResponderPortal className=" !shadow-none" form={form} hasCustomDomain={isCustomDomain} workspace={workspace} />
+                            <WorkspaceFormCard isResponderPortal showVisibility={showVisibility} showPinned={showPinned} form={form} hasCustomDomain={isCustomDomain} workspace={workspace} />
                         </ActiveLink>
                     );
                 })}
-            </FormsContainer>
+            </div>
         </div>
     );
 };
