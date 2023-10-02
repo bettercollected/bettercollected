@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
+import Divider from '@Components/Common/DataDisplay/Divider';
+
 import { Tab, TabItem, TabPanel, TabPanels } from '@app/components/ui/tab';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useClickAway } from '@app/lib/hooks/use-click-away';
@@ -9,7 +11,6 @@ import { authApi } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
 import { Hint } from '../icons/hint';
-import Divider from "@Components/Common/DataDisplay/Divider";
 
 interface TabMenuItem {
     title: React.ReactNode;
@@ -87,7 +88,7 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
         <Tab.Group selectedIndex={selectedTabIndex} onChange={(index: any) => handleTabChange(index)}>
             <div className={`flex flex-row justify-between py-[26px] ${className}`}>
                 <Tab.List className="relative w-full text-sm gap-8">
-                    <div className="flex justify-between border-b-[1px] border-black-300 max-w-full gap-5 overflow-x-auto">
+                    <div className="flex justify-between pb-[24px] border-b-[1px] border-black-300 max-w-full gap-5 overflow-x-auto">
                         <div className="flex sm:gap-3 top-[-2px] justify-start xl:gap:6">
                             {tabMenu.map((item) => (
                                 <TabItem key={item.path} className="min-w-fit">
