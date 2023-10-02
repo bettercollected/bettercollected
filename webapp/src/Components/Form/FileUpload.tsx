@@ -10,7 +10,6 @@ import fileUploadImg from '@app/assets/images/file-upload.png';
 import {FileMetadata} from '@app/models/types/fileTypes';
 import {addAnswer} from '@app/store/fill-form/slice';
 import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {selectWorkspace} from '@app/store/workspaces/slice';
 import {downloadFile, generateFileMetaData} from '@app/utils/fileUtils';
 
 import {FormFieldProps} from './BetterCollectedForm';

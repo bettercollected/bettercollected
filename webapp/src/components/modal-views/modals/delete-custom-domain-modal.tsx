@@ -5,13 +5,14 @@ import { toast } from 'react-toastify';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { updateWorkspace } from '@app/constants/locales/update-workspace';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceDomainMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
+import {ButtonSize, ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
+import ModalButton from '@Components/Common/Input/Button/ModalButton';
 
 export default function DeleteCustomDomainModal() {
     const { closeModal } = useModal();
@@ -45,13 +46,13 @@ export default function DeleteCustomDomainModal() {
             <div className="sh1 mb-4 leading-tight tracking-tight md:text-2xl text-black-900">{t(updateWorkspace.settings.domain.confirmationTitle)}</div>
             <div className="text-black-700 pb-10 ">{t(updateWorkspace.settings.domain.confirmationDesc)}</div>
 
-            <div className="flex w-full gap-4 justify-end">
-                <Button data-testid="logout-button" className="flex-1" variant="solid" size="medium" color="danger" isLoading={!!result?.isLoading} onClick={deleteCustomDomain}>
+            <div className="flex w-full gap-2 justify-end">
+                <ModalButton data-testid="logout-button" buttonType={"Modal"} variant={ButtonVariant.Danger} size={ButtonSize.Medium} isLoading={!!result?.isLoading} onClick={deleteCustomDomain}>
                     {t(buttonConstant.yes)}
-                </Button>
-                <Button variant="solid" color="gray" size="medium" className="!bg-black-500 flex-1" onClick={() => closeModal()}>
+                </ModalButton>
+                <ModalButton variant={ButtonVariant.Secondary} size={ButtonSize.Medium} onClick={() => closeModal()}>
                     {t(buttonConstant.cancel)}
-                </Button>
+                </ModalButton>
             </div>
         </div>
     );

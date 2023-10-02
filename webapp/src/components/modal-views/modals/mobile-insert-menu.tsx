@@ -1,11 +1,10 @@
 import {Close} from "@app/components/icons/close";
 import {useModal} from "@app/components/modal-views/context";
 import Divider from "@Components/Common/DataDisplay/Divider";
-import SearchInput from "@Components/Common/Search/SearchInput";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {BlockTypes, FormBuilderTagNames, KeyType} from "@app/models/enums/formBuilder";
 import {useAppDispatch, useAppSelector} from "@app/store/hooks";
-import {selectActiveFieldId, selectBuilderState} from "@app/store/form-builder/selectors";
+import { selectBuilderState} from "@app/store/form-builder/selectors";
 import {
     allowedInputTags, allowedLayoutTags,
     allowedQuestionAndAnswerTags,
@@ -13,17 +12,14 @@ import {
 } from "@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector";
 import TagListItem from "@Components/FormBuilder/BuilderBlock/TagListItem";
 import {InputAdornment, List, ListSubheader} from "@mui/material";
-import Element from "@Components/Common/Icons/Element";
-import ElementsWithLabel from "@Components/Common/Icons/ElementsWithLabel";
 import TextField from "@mui/material/TextField";
 import {placeHolder} from "@app/constants/locales/placeholder";
 import cn from "classnames";
 import {SearchIcon} from "@app/components/icons/search";
 import {StyledTextField} from "@app/components/dashboard/workspace-forms-tab-content";
 import {useTranslation} from "next-i18next";
-import {batch, useDispatch} from "react-redux";
+import {batch} from "react-redux";
 import {resetBuilderMenuState, setAddNewField, setDeleteField} from "@app/store/form-builder/actions";
-import {uuidv4} from "@mswjs/interceptors/lib/utils/uuid";
 import {v4} from "uuid";
 
 export default function MobileInsertMenu({index}: { index?: number }) {

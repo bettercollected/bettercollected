@@ -9,10 +9,8 @@ import cn from 'classnames';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
-import { formConstant } from '@app/constants/locales/form';
 import { groupConstant } from '@app/constants/locales/group';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
@@ -21,6 +19,8 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
+import ModalButton from "@Components/Common/Input/Button/ModalButton";
+import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
 
 interface IAddFormOnGroupProps {
     forms: Array<StandardFormDto>;
@@ -77,9 +77,9 @@ export default function AddFormOnGroup({ forms, group }: IAddFormOnGroupProps) {
             )}
 
             <div className="flex justify-end">
-                <Button disabled={!selectedForm} size="medium" onClick={handleAddForm}>
+                <ModalButton disabled={!selectedForm} size={ButtonSize.Medium} onClick={handleAddForm}>
                     {t(buttonConstant.add)}
-                </Button>
+                </ModalButton>
             </div>
         </div>
     );

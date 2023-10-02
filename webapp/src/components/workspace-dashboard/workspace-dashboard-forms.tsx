@@ -5,7 +5,6 @@ import BeaconComponent from '@Components/Joyride/JoyrideBeacon';
 
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import {EmptyImportFormIcon} from '@app/components/icons/empty-import-form-icon';
-import {useModal} from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
 import {formConstant} from '@app/constants/locales/form';

@@ -5,12 +5,12 @@ import { useTranslation } from 'next-i18next';
 import BetterInput from '@app/components/Common/input';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { handleRegexType } from '@app/models/enums/groupRegex';
 import { isEmptyString } from '@app/utils/stringUtils';
+import AppButton from "@Components/Common/Input/Button/AppButton";
 
 export default function AddRegexModal({ handleRegex }: { handleRegex: (regex: string, type: handleRegexType) => void }) {
     const { closeModal } = useModal();
@@ -37,9 +37,9 @@ export default function AddRegexModal({ handleRegex }: { handleRegex: (regex: st
             </p>
             <BetterInput onChange={handleInput} label={t(groupConstant.regex.modal.label)} placeholder="*@example.com"></BetterInput>
             <div className="flex justify-end">
-                <Button size="medium" className="body1" disabled={!regex}>
+                <AppButton disabled={!regex}>
                     {t(buttonConstant.addRegex)}
-                </Button>
+                </AppButton>
             </div>
         </form>
     );

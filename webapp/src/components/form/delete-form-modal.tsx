@@ -1,16 +1,17 @@
-import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import {useTranslation} from 'next-i18next';
+import {useRouter} from 'next/router';
 
-import { toast } from 'react-toastify';
+import {toast} from 'react-toastify';
 
-import { Close } from '@app/components/icons/close';
-import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
-import { buttonConstant } from '@app/constants/locales/button';
-import { localesCommon } from '@app/constants/locales/common';
-import { toastMessage } from '@app/constants/locales/toast-message';
-import { useAppSelector } from '@app/store/hooks';
-import { useDeleteFormMutation } from '@app/store/workspaces/api';
+import {Close} from '@app/components/icons/close';
+import {useModal} from '@app/components/modal-views/context';
+import {buttonConstant} from '@app/constants/locales/button';
+import {localesCommon} from '@app/constants/locales/common';
+import {toastMessage} from '@app/constants/locales/toast-message';
+import {useAppSelector} from '@app/store/hooks';
+import {useDeleteFormMutation} from '@app/store/workspaces/api';
+import AppButton from "@Components/Common/Input/Button/AppButton";
+import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
 
 export default function DeleteFormModal(props: any) {
     const { closeModal } = useModal();
@@ -45,12 +46,12 @@ export default function DeleteFormModal(props: any) {
                         <p className="!text-black-600 mb-8 body4 leading-none">{t(localesCommon.deleteMessage)}</p>
                     </div>
                     <div className="flex w-full gap-4 justify-between">
-                        <Button className="flex-1 body4" data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
+                        <AppButton  variant={ButtonVariant.Danger} data-testid="logout-button" onClick={handleDelete}>
                             {t(buttonConstant.delete)}
-                        </Button>
-                        <Button variant="solid" color="gray" size="medium" className="flex-1 body4 !bg-black-500" onClick={() => closeModal()}>
+                        </AppButton>
+                        <AppButton variant={ButtonVariant.Secondary} onClick={() => closeModal()}>
                             {t(buttonConstant.cancel)}
-                        </Button>
+                        </AppButton>
                     </div>
                 </div>
                 <div className="cursor-pointer absolute top-3 right-3 text-gray-600 hover:text-black" onClick={() => closeModal()}>
