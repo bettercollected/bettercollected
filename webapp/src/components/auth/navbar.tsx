@@ -2,7 +2,6 @@ import { useTranslation } from 'next-i18next';
 
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
 import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
-import Button from '@app/components/ui/button';
 import Hamburger from '@app/components/ui/hamburger';
 import Logo from '@app/components/ui/logo';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -11,6 +10,7 @@ import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
 
 import LocaleDropdownUi from '../ui/locale-dropdown-ui';
+import AppButton from "@Components/Common/Input/Button/AppButton";
 
 interface IAuthNavbarProps {
     hideMenu?: boolean;
@@ -74,7 +74,7 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
                             <LocaleDropdownUi />
                             {showPlans && (
                                 <ProPlanHoc hideChildrenIfPro={true}>
-                                    <Button size="small">{t(buttonConstant.upgrade)}</Button>
+                                    <AppButton >{t(buttonConstant.upgrade)}</AppButton>
                                 </ProPlanHoc>
                             )}
                         </>

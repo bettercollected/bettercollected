@@ -4,7 +4,6 @@ import { toast } from 'react-toastify';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -13,6 +12,8 @@ import { useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceMemberMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFullNameFromUser } from '@app/utils/userUtils';
+import ModalButton from "@Components/Common/Input/Button/ModalButton";
+import {ButtonSize, ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
 
 interface IDeleteMemberModalProps {
     member: WorkspaceMembersDto;
@@ -47,13 +48,13 @@ export default function DeleteMemberModal({ member }: IDeleteMemberModalProps) {
                 {t(localesCommon.remove)} {getFullNameFromUser(member)}?
             </div>
             <div className="body4 text-black-600 text-center mb-10">{t(localesCommon.removeWarningMessage)}</div>
-            <div className="flex w-full gap-4 justify-between">
-                <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
+            <div className="flex w-full gap-2 justify-between">
+                <ModalButton data-testid="logout-button" buttonType={"Modal"} size={ButtonSize.Medium} variant={ButtonVariant.Danger} onClick={handleDelete}>
                     {t(buttonConstant.delete)}
-                </Button>
-                <Button variant="solid" color="gray" size="medium" className="!bg-black-500" onClick={() => closeModal()}>
+                </ModalButton>
+                <ModalButton buttonType={"Modal"} size={ButtonSize.Medium} variant={ButtonVariant.Secondary} onClick={() => closeModal()}>
                     {t(buttonConstant.cancel)}
-                </Button>
+                </ModalButton>
             </div>
         </div>
     );

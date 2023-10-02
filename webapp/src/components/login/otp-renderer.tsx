@@ -6,13 +6,14 @@ import { toast } from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { otpRenderer } from '@app/constants/locales/otp-renderer';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
+import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
+import AppButton from "@Components/Common/Input/Button/AppButton";
 
 export default function OtpRenderer({ email, isCustomDomain }: any) {
     const { closeModal } = useModal();
@@ -65,9 +66,9 @@ export default function OtpRenderer({ email, isCustomDomain }: any) {
             </div>
             <BetterInput data-testid="otp-input" className="mt-6" spellCheck={false} value={otp} type="text" placeholder={'Enter the OTP code'} onChange={handleChange} />
             <div className="w-full">
-                <Button data-testid="verify-button" isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} size="medium" className="w-full">
+                <AppButton data-testid="verify-button" isLoading={isLoading} disabled={!otp} onClick={handleVerifyButtonClick} size={ButtonSize.Medium}>
                     {t(buttonConstant.verify)}
-                </Button>
+                </AppButton>
                 <div className={'text-md align flex mt-4 items-center justify-center text-black-900'}>
                     {counter !== 0 && (
                         <div className="text-gray-500 cursor-not-allowed border-none">

@@ -8,13 +8,15 @@ import { toast } from 'react-toastify';
 import BetterInput from '@app/components/Common/input';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { groupConstant } from '@app/constants/locales/group';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
+import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
+import ModalButton from "@Components/Common/Input/Button/ModalButton";
+import AppButton from "@Components/Common/Input/Button/AppButton";
 
 interface IAddMemberModalProps {
     handleAddMembers: (members: Array<string>) => void;
@@ -49,9 +51,9 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
                 <div className="md:w-[260px]">
                     <BetterInput className="bg-white" value={email} type="email" inputProps={{ className: '!py-3 ' }} id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
                 </div>
-                <Button size="medium" disabled={!email} className={cn('bg-black-800 hover:!bg-black-900', !email && 'opacity-30')}>
+                <AppButton size={ButtonSize.Medium} disabled={!email} className={cn('font-semibold !px-6', !email && 'opacity-30')}>
                     {t(buttonConstant.add)}
-                </Button>
+                </AppButton>
             </form>
             {emails.length !== 0 && (
                 <>
@@ -74,9 +76,9 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
                 </>
             )}
             <div className="flex w-full mt-8 justify-end">
-                <Button onClick={() => handleAddMembers(emails)} className="!text-[16px]" size="medium" disabled={emails.length === 0} type="submit">
+                <ModalButton onClick={() => handleAddMembers(emails)}  size={ButtonSize.Medium} disabled={emails.length === 0} type="submit">
                     {t(buttonConstant.addMembers)}
-                </Button>
+                </ModalButton>
             </div>
         </div>
     );

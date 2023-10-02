@@ -6,7 +6,8 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 
 import AuthAccountProfileImage from '../auth/account-profile-image';
-import Button from './button';
+import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
+import AppButton from "@Components/Common/Input/Button/AppButton";
 
 interface IWorkspaceLogoProps {
     workspaceLogoRef: any;
@@ -23,9 +24,9 @@ export default function WorkSpaceLogoUi({ workspaceLogoRef, onChange, onClick, i
             <div className="flex flex-col justify-center md:items-start items-center">
                 <p className="body3 mb-5 !text-black-700 md:text-start text-center">{t(localesCommon.imageSizeRestriction)}</p>
                 <input data-testid="file-upload-profile" type="file" accept="image/*" className="hidden" ref={workspaceLogoRef} onChange={onChange} />
-                <Button size="small" variant="ghost" className="!text-brand-500 hover:!bg-brand-200 !bg-white !border-brand-300" onClick={onClick}>
+                <AppButton variant={ButtonVariant.Ghost} onClick={onClick}>
                     {t(buttonConstant.upload)}
-                </Button>
+                </AppButton>
             </div>
         </div>
     );

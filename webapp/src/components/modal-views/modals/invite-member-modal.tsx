@@ -8,7 +8,6 @@ import BetterInput from '@app/components/Common/input';
 import {Close} from '@app/components/icons/close';
 import {useModal} from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
-import Button from '@app/components/ui/button';
 import {buttonConstant} from '@app/constants/locales/button';
 import {localesCommon} from '@app/constants/locales/common';
 import {inviteCollaborator} from '@app/constants/locales/inviteCollaborator';
@@ -18,6 +17,7 @@ import {
     useGetWorkspaceMembersQuery,
     useInviteToWorkspaceMutation
 } from '@app/store/workspaces/members-n-invitations-api';
+import AppButton from '@Components/Common/Input/Button/AppButton';
 
 export default function InviteMemberModal() {
     const [trigger, {data, isLoading}] = useInviteToWorkspaceMutation();
@@ -81,9 +81,9 @@ export default function InviteMemberModal() {
                     }}
                 />
                 <div className="flex w-full mt-8 justify-end">
-                    <Button disabled={isLoading} isLoading={isLoading} size="small" type="submit">
+                    <AppButton disabled={isLoading} isLoading={isLoading} type="submit">
                         {t(buttonConstant.sendInvitation)}
-                    </Button>
+                    </AppButton>
                 </div>
             </form>
         </SettingsCard>

@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
-import FormButton from '@Components/Common/Input/Button/FormButton';
 import MarkdownText from '@Components/Common/Markdown';
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
@@ -20,8 +19,6 @@ import cn from 'classnames';
 import { toast } from 'react-toastify';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import Button from '@app/components/ui/button';
-import Logo from '@app/components/ui/logo';
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { ConsentAnswerDto } from '@app/store/consent/types';

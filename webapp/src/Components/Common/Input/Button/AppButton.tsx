@@ -4,7 +4,7 @@ import {ButtonSize, ButtonVariant} from '@Components/Common/Input/Button/AppButt
 import {CircularProgress} from '@mui/material';
 import cn from 'classnames';
 
-interface AppButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface AppButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     isLoading?: boolean;
     variant?: ButtonVariant;
     size?: ButtonSize;

@@ -1,25 +1,22 @@
 import React from 'react';
 
-import { useTranslation } from 'next-i18next';
+import {useTranslation} from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import { Button, Typography } from '@mui/material';
+import {Typography} from '@mui/material';
 import cn from 'classnames';
-import { toast } from 'react-toastify';
+import {toast} from 'react-toastify';
 
-import { buttonConstant } from '@app/constants/locales/button';
-import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
-
-type SizeNames = 'large' | 'medium' | 'small';
-type VariantNames = 'ghost' | 'solid' | 'transparent' | 'outline';
+import {buttonConstant} from '@app/constants/locales/button';
+import {useCopyToClipboard} from '@app/lib/hooks/use-copy-to-clipboard';
+import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
+import AppButton from "@Components/Common/Input/Button/AppButton";
 
 interface ILinkViewProps {
     url: string;
     toastMessage: string;
     className?: string;
     buttonClassName?: string;
-    // buttonSize?: SizeNames;
-    // buttonVarient?: VariantNames;
 }
 
 export default function LinkView({ url, toastMessage, className, buttonClassName }: ILinkViewProps) {
@@ -33,19 +30,17 @@ export default function LinkView({ url, toastMessage, className, buttonClassName
                 </Tooltip>
             </div>
             <div className="flex w-full justify-end">
-                <Button
+                <AppButton
+                    size={ButtonSize.Medium}
                     onClick={() => {
                         copyToClipboard(url);
                         toast(toastMessage, {
                             type: 'info'
                         });
                     }}
-                    // size={buttonSize}
-                    variant="outlined"
-                    className={cn(' !leading-none  !p-2 capitalize', buttonClassName)}
                 >
                     {t(buttonConstant.copyLink)}
-                </Button>
+                </AppButton>
             </div>
         </div>
     );

@@ -1,19 +1,20 @@
-import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import React, {Dispatch, SetStateAction, useEffect, useState} from 'react';
 
-import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import {useTranslation} from 'next-i18next';
+import {useRouter} from 'next/router';
 
-import { toast } from 'react-toastify';
+import {toast} from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
 import Back from '@app/components/icons/back';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import Button from '@app/components/ui/button';
-import { buttonConstant } from '@app/constants/locales/button';
-import { formResponderLogin } from '@app/constants/locales/form-responder-login';
-import { signInScreen } from '@app/constants/locales/signin-screen';
-import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
-import { useAppSelector } from '@app/store/hooks';
+import {useFullScreenModal} from '@app/components/modal-views/full-screen-modal-context';
+import {buttonConstant} from '@app/constants/locales/button';
+import {formResponderLogin} from '@app/constants/locales/form-responder-login';
+import {signInScreen} from '@app/constants/locales/signin-screen';
+import {usePostSendOtpForCreatorMutation, usePostSendOtpMutation, usePostVerifyOtpMutation} from '@app/store/auth/api';
+import {useAppSelector} from '@app/store/hooks';
+import AppButton from "@Components/Common/Input/Button/AppButton";
+import {ButtonSize, ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
 
 interface OtpCodePropType {
     email: string;
@@ -127,9 +128,9 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
             <form onSubmit={handleOtpPost} className={`w-full ${isModal && 'mt-10'}`}>
                 <p className={`mb-[8px] text-black-900 text-md font-semibold ${!isModal && 'mt-10 '}`}>{constants.enterOtpCode}</p>
                 <BetterInput placeholder={constants.enterOtpCodePlaceholder} value={otp} onChange={handleOtpChange} />
-                <Button type={'submit'} variant="solid" isLoading={isLoading} className={' w-full my-4'} size={'extraMedium'}>
+                <AppButton type={'submit'} variant={ButtonVariant.Primary} size={ButtonSize.Medium} isLoading={isLoading} >
                     {constants.signInButton}
-                </Button>
+                </AppButton>
             </form>
             <div className={`flex items-center gap-2  text-black-900 ${isModal ? 'mb-[84px]' : 'mb-16'}`}>
                 <p className="body4">{constants.didnotReceiveCode}</p>

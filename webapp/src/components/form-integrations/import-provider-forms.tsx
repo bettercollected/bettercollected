@@ -1,29 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 
-import { useTranslation } from 'next-i18next';
+import {useTranslation} from 'next-i18next';
 
 import Joyride from '@Components/Joyride';
-import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
-import { Autocomplete, Box, TextField, createFilterOptions } from '@mui/material';
+import {JoyrideStepContent, JoyrideStepTitle} from '@Components/Joyride/JoyrideStepTitleAndContent';
+import {Autocomplete, Box, createFilterOptions, TextField} from '@mui/material';
 import MuiButton from '@mui/material/Button';
-import { toast } from 'react-toastify';
+import {toast} from 'react-toastify';
 
 import ImportErrorView from '@app/components/form-integrations/import-error-view';
-import { TypeformIcon } from '@app/components/icons/brands/typeform';
-import { Close } from '@app/components/icons/close';
-import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
-import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
+import {TypeformIcon} from '@app/components/icons/brands/typeform';
+import {Close} from '@app/components/icons/close';
+import {GoogleFormIcon} from '@app/components/icons/google-form-icon';
+import {useModal} from '@app/components/modal-views/context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
-import { buttonConstant } from '@app/constants/locales/button';
-import { importFormConstant } from '@app/constants/locales/import-form';
-import { toastMessage } from '@app/constants/locales/toast-message';
-import { Provider } from '@app/models/enums/provider';
-import { useAppSelector } from '@app/store/hooks';
-import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
-import { useImportFormMutation, useLazyGetMinifiedFormsQuery, useLazyGetSingleFormFromProviderQuery } from '@app/store/workspaces/api';
+import {buttonConstant} from '@app/constants/locales/button';
+import {importFormConstant} from '@app/constants/locales/import-form';
+import {toastMessage} from '@app/constants/locales/toast-message';
+import {Provider} from '@app/models/enums/provider';
+import {useAppSelector} from '@app/store/hooks';
+import {JOYRIDE_CLASS, JOYRIDE_ID} from '@app/store/tours/types';
+import {
+    useImportFormMutation,
+    useLazyGetMinifiedFormsQuery,
+    useLazyGetSingleFormFromProviderQuery
+} from '@app/store/workspaces/api';
+import AppButton from "@Components/Common/Input/Button/AppButton";
+import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
 
 interface IIntegrations {
     provider: string;
@@ -212,9 +217,9 @@ export default function ImportProviderForms(props: any) {
                     renderInput={(params) => <TextField {...params} label={provider === Provider.google ? t(importFormConstant.textLabel.googleForm) : t(importFormConstant.textLabel.typeform)} />}
                 />
                 <div>
-                    <Button isLoading={!!minifiedFormsResult?.isLoading} onClick={() => handleNext(provider)} disabled={!selectedForm} size="medium">
+                    <AppButton isLoading={!!minifiedFormsResult?.isLoading} onClick={() => handleNext(provider)} disabled={!selectedForm} size={ButtonSize.Medium}>
                         {t(buttonConstant.next)}
-                    </Button>
+                    </AppButton>
                 </div>
             </div>
         </>
@@ -274,9 +279,9 @@ export default function ImportProviderForms(props: any) {
                         }}
                         renderInput={(params) => <TextField {...params} label={responseOwnerTag.label} />}
                     />
-                    <Button className="!font-medium" isLoading={!!importFormResult?.isLoading || !!singleFormFromProviderResult?.isLoading} onClick={handleImportForm} disabled={!selectedForm || !!singleFormFromProviderResult?.isLoading} size="medium">
+                    <AppButton isLoading={!!importFormResult?.isLoading || !!singleFormFromProviderResult?.isLoading} onClick={handleImportForm} disabled={!selectedForm || !!singleFormFromProviderResult?.isLoading} size={ButtonSize.Medium}>
                         {t(buttonConstant.importNow)}
-                    </Button>
+                    </AppButton>
                 </div>
             </div>
         </>

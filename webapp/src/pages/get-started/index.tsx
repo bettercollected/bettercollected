@@ -12,7 +12,6 @@ import GetStartedFormBrand from '@app/assets/images/getstarted-formbrand.png';
 import GetStartedProvidersImage from '@app/assets/images/getstarted-providers.png';
 import UserFitImage from '@app/assets/images/happy.png';
 import UserNotFitImage from '@app/assets/images/sad.png';
-import Button from '@app/components/ui/button/button';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
@@ -22,6 +21,7 @@ import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import AppButton from '@Components/Common/Input/Button/AppButton';
 
 export async function getServerSideProps(_context: any) {
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
@@ -204,15 +204,15 @@ const GetStarted = (props: any) => {
 
     const previewGetStartedStep = (step: IGetStartedStep) => {
         const nextButton = !!step.nextButtonProps?.nextBtn && (
-            <Button size="large" onClick={() => handleNext({ id: step.id, answer: 'yes' })}>
+            <AppButton onClick={() => handleNext({ id: step.id, answer: 'yes' })}>
                 {step.nextButtonProps.nextBtn.btnText}
-            </Button>
+            </AppButton>
         );
 
         const noButton = !!step.nextButtonProps?.noBtn && (
-            <Button size="large" onClick={() => handleNext({ id: step.id, answer: 'no' })} className="!bg-white !text-brand  border-[1px] border-brand">
+            <AppButton  onClick={() => handleNext({ id: step.id, answer: 'no' })} >
                 {step.nextButtonProps.noBtn.btnText}
-            </Button>
+            </AppButton>
         );
 
         const hasYesNoBoth = !!step.nextButtonProps?.nextBtn?.btnText && !!step.nextButtonProps?.noBtn?.btnText;
@@ -259,9 +259,9 @@ const GetStarted = (props: any) => {
                     <div className="relative h-40 my-10 flex items-center justify-center">
                         <Image src={UserFitImage} alt="User Fit" layout="fixed" />
                     </div>
-                    <Button size="large" onClick={() => router.push(signUpLink)}>
+                    <AppButton  onClick={() => router.push(signUpLink)}>
                         {t(getStarted.userIsFit.buttonText)}
-                    </Button>
+                    </AppButton>
                 </div>
             </div>
         );
@@ -280,9 +280,9 @@ const GetStarted = (props: any) => {
                         <Image src={UserNotFitImage} alt="User not fit" layout="fixed" />
                     </div>
 
-                    <Button size="large" onClick={() => router.push(signUpLink)}>
+                    <AppButton onClick={() => router.push(signUpLink)}>
                         {t(getStarted.userIsNotFit.buttonText)}
-                    </Button>
+                    </AppButton>
                 </div>
             </div>
         );

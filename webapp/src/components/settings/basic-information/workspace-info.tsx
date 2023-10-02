@@ -7,7 +7,6 @@ import { toast } from 'react-toastify';
 import BetterInput from '@app/components/Common/input';
 import ProfileImageComponent from '@app/components/dashboard/profile-image';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -16,6 +15,7 @@ import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
+import AppButton from '@Components/Common/Input/Button/AppButton';
 
 export default function WorkspaceInfo({ workspace }: any) {
     const dispatch = useAppDispatch();
@@ -74,9 +74,9 @@ export default function WorkspaceInfo({ workspace }: any) {
                 <BetterInput inputProps={{ maxLength: 280 }} className="w-full bg-white" size="medium" rows={5} multiline onChange={onChange} value={workspaceInfo.description} name="description" placeholder={t(placeHolder.description)} />
             </div>
             <div className="flex justify-end">
-                <Button type="submit" disabled={isLoading || !workspaceInfo.title} isLoading={isLoading}>
+                <AppButton type="submit" disabled={isLoading || !workspaceInfo.title} isLoading={isLoading}>
                     {t(buttonConstant.save)}
-                </Button>
+                </AppButton>
             </div>
         </form>
         // </SettingsCard>

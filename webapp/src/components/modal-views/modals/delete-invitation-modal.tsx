@@ -4,7 +4,6 @@ import { toast } from 'react-toastify';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -12,6 +11,8 @@ import { WorkspaceInvitationDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import {ButtonSize, ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
+import ModalButton from '@Components/Common/Input/Button/ModalButton';
 
 interface IDeleteInvitationModalProps {
     invitation: WorkspaceInvitationDto;
@@ -45,13 +46,13 @@ export default function DeleteInvitationModal({ invitation }: IDeleteInvitationM
             <div className="sh3 mb-5">
                 {t(localesCommon.removeInvitationFor)} {invitation.email}?
             </div>
-            <div className="flex w-full gap-4 justify-between">
-                <Button data-testid="logout-button" variant="solid" size="medium" color="danger" onClick={handleDelete}>
+            <div className="flex w-full gap-2 justify-between">
+                <ModalButton data-testid="logout-button" buttonType={"Modal"} size={ButtonSize.Medium} variant={ButtonVariant.Danger} onClick={handleDelete}>
                     {t(buttonConstant.delete)}
-                </Button>
-                <Button variant="solid" color="gray" size="medium" className="!bg-black-500" onClick={() => closeModal()}>
+                </ModalButton>
+                <ModalButton buttonType={"Modal"} size={ButtonSize.Medium} variant={ButtonVariant.Secondary} onClick={() => closeModal()}>
                     {t(buttonConstant.cancel)}
-                </Button>
+                </ModalButton>
             </div>
         </div>
     );

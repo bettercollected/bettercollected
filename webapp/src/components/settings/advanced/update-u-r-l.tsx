@@ -4,25 +4,21 @@ import {useTranslation} from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import CopyIcon from '@Components/Common/Icons/Copy';
-import Pro from '@Components/Common/Icons/Pro';
 import {toast} from 'react-toastify';
 
 import BetterInput from '@app/components/Common/input';
-import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import {useModal} from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
-import Button from '@app/components/ui/button';
 import UpgradeToPro from '@app/components/ui/upgrade-to-pro';
 import environments from '@app/configs/environments';
-import {buttonConstant} from '@app/constants/locales/button';
-import {Features} from '@app/constants/locales/feature';
-import {pricingPlan} from '@app/constants/locales/pricingplan';
 import {toolTipConstant} from '@app/constants/locales/tooltip';
 import {updateWorkspace} from '@app/constants/locales/update-workspace';
 import {workspaceConstant} from '@app/constants/locales/workspace';
 import {useCopyToClipboard} from '@app/lib/hooks/use-copy-to-clipboard';
 import {selectIsProPlan} from '@app/store/auth/slice';
 import {useAppSelector} from '@app/store/hooks';
+import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
+import AppButton from "@Components/Common/Input/Button/AppButton";
 
 interface IUpdateURLProps {
     type: 'DOMAIN' | 'HANDLE';
@@ -83,10 +79,10 @@ export default function UpdateURL({type}: IUpdateURLProps) {
                                 </Tooltip>
                             </div>
                             <div>
-                                <Button size="medium" className="mb-4" disabled={!isProPlan && updateDomain}
+                                <AppButton size={ButtonSize.Medium} disabled={!isProPlan && updateDomain}
                                         onClick={handleClick}>
                                     {t(updateWorkspace.common.change)}
-                                </Button>
+                                </AppButton>
                             </div>
                         </div>
                     </div>

@@ -7,7 +7,6 @@ import { Popover, TextField } from '@mui/material';
 import { ChromePicker } from 'react-color';
 import { toast } from 'react-toastify';
 
-import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
 import environments from '@app/configs/environments';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -16,6 +15,7 @@ import DynamicContainer from '@app/containers/DynamicContainer';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation, usePatchThemeMutation } from '@app/store/workspaces/api';
 import { BrandColor, setWorkspace } from '@app/store/workspaces/slice';
+import AppButton from "@Components/Common/Input/Button/AppButton";
 
 interface PatchRequestType {
     title: string;
@@ -191,9 +191,9 @@ export default function SettingsProfile() {
                     </Popover>
                 </div>
             </div>
-            <Button isLoading={isLoading} className="w-full md:w-auto !rounded-xl !bg-blue-600 h-[50px] mb-10" onClick={patchWorkspaceThemeInformation}>
+            <AppButton isLoading={isLoading} className="w-full" onClick={patchWorkspaceThemeInformation}>
                 Update Brand Theme
-            </Button>
+            </AppButton>
         </>
     );
 
@@ -281,9 +281,9 @@ export default function SettingsProfile() {
                     />
                 </div>
 
-                <Button isLoading={isLoading} type={'submit'} className="w-full md:w-auto !rounded-xl !bg-blue-600 h-[50px] mb-10" onClick={patchWorkspaceInformation}>
+                <AppButton isLoading={isLoading} type={'submit'} className="w-full" onClick={patchWorkspaceInformation}>
                     Update workspace profile
-                </Button>
+                </AppButton>
 
                 {environments.ENABLE_BRAND_COLORS && <BrandThemeColors />}
             </div>

@@ -1,24 +1,25 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 
-import { useTranslation } from 'next-i18next';
+import {useTranslation} from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import { CheckCircle } from '@mui/icons-material';
-import { Autocomplete, Box, TextField, createFilterOptions } from '@mui/material';
+import {CheckCircle} from '@mui/icons-material';
+import {Autocomplete, Box, createFilterOptions, TextField} from '@mui/material';
 import cn from 'classnames';
 
-import { Close } from '@app/components/icons/close';
-import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
-import { buttonConstant } from '@app/constants/locales/button';
-import { formConstant } from '@app/constants/locales/form';
-import { toolTipConstant } from '@app/constants/locales/tooltip';
-import { useGroupForm } from '@app/lib/hooks/use-group-form';
-import { StandardFormDto } from '@app/models/dtos/form';
-import { ResponderGroupDto } from '@app/models/dtos/groups';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
+import {Close} from '@app/components/icons/close';
+import {useModal} from '@app/components/modal-views/context';
+import {buttonConstant} from '@app/constants/locales/button';
+import {formConstant} from '@app/constants/locales/form';
+import {toolTipConstant} from '@app/constants/locales/tooltip';
+import {useGroupForm} from '@app/lib/hooks/use-group-form';
+import {StandardFormDto} from '@app/models/dtos/form';
+import {ResponderGroupDto} from '@app/models/dtos/groups';
+import {useAppSelector} from '@app/store/hooks';
+import {selectWorkspace} from '@app/store/workspaces/slice';
+import {isFormAlreadyInGroup} from '@app/utils/groupUtils';
+import {ButtonSize, ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
+import ModalButton from '@Components/Common/Input/Button/ModalButton';
 
 interface IAddGroupOnFormProps {
     responderGroups?: Array<ResponderGroupDto>;
@@ -73,9 +74,9 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
             )}
 
             <div className="flex justify-end">
-                <Button disabled={!selectedGroup} size="medium" onClick={handleAddForm}>
+                <ModalButton disabled={!selectedGroup}  size={ButtonSize.Medium} onClick={handleAddForm}>
                     {t(buttonConstant.add)}
-                </Button>
+                </ModalButton>
             </div>
         </div>
     );

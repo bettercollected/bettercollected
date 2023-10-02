@@ -3,29 +3,19 @@ import React from 'react';
 import {useTranslation} from 'next-i18next';
 
 import CopyIcon from '@Components/Common/Icons/Copy';
-import Pro from '@Components/Common/Icons/Pro';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import {ButtonVariant} from '@Components/Common/Input/Button/AppButtonProps';
-import {Tooltip} from '@mui/material';
 import {toast} from 'react-toastify';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
-import environments from '@app/configs/environments';
-import {customize} from '@app/constants/locales/customize';
 import {toastMessage} from '@app/constants/locales/toast-message';
-import {toolTipConstant} from '@app/constants/locales/tooltip';
-import {updateWorkspace} from '@app/constants/locales/update-workspace';
-import {selectIsAdmin, selectIsProPlan} from '@app/store/auth/slice';
 import {selectForm} from '@app/store/forms/slice';
 import {useAppSelector} from '@app/store/hooks';
 import {selectWorkspace} from '@app/store/workspaces/slice';
 
-import BetterInput from '../Common/input';
 import {useModal} from '../modal-views/context';
-import Button from './button';
 import Globe from "@app/components/icons/flags/globe";
 import AppTextField from "@Components/Common/Input/AppTextField";
-import ProPlanHoc from "@app/components/hoc/pro-plan-hoc";
 import {useFullScreenModal} from "@app/components/modal-views/full-screen-modal-context";
 
 interface ICurrentLinkUpdate {
