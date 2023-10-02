@@ -3,7 +3,7 @@ import React, { ChangeEvent, useEffect } from 'react';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { useDispatch } from 'react-redux';
 
-import BetterInput, { FormInputField } from '@app/components/Common/input';
+import  { FormInputField } from '@app/components/Common/input';
 import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { selectAuth } from '@app/store/auth/slice';

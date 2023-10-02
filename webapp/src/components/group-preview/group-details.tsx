@@ -1,23 +1,16 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 
-import { useTranslation } from 'next-i18next';
-
-import { Typography } from '@mui/material';
-import { toast } from 'react-toastify';
-
-import BetterInput from '@app/components/Common/input';
+import {useTranslation} from 'next-i18next';
+import {toast} from 'react-toastify';
 import GroupInfo from '@app/components/group/group-info';
-import Button from '@app/components/ui/button/button';
-import { buttonConstant } from '@app/constants/locales/button';
-import { localesCommon } from '@app/constants/locales/common';
-import { groupConstant } from '@app/constants/locales/group';
-import { placeHolder } from '@app/constants/locales/placeholder';
-import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
-import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';
-import { selectIsAdmin } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
+import {buttonConstant} from '@app/constants/locales/button';
+import {toastMessage} from '@app/constants/locales/toast-message';
+import {ToastId} from '@app/constants/toastId';
+import {GroupInfoDto, ResponderGroupDto} from '@app/models/dtos/groups';
+import {selectIsAdmin} from '@app/store/auth/slice';
+import {useAppSelector} from '@app/store/hooks';
+import {useUpdateResponderGroupMutation} from '@app/store/workspaces/api';
+import AppButton from "@Components/Common/Input/Button/AppButton";
 
 export default function GroupDetailsTab({ group }: { group: ResponderGroupDto }) {
     const { t } = useTranslation();
@@ -53,7 +46,7 @@ export default function GroupDetailsTab({ group }: { group: ResponderGroupDto })
             <GroupInfo handleInput={handleInput} groupInfo={groupInfo} />
             {isAdmin && (
                 <div className="flex justify-end mt-10">
-                    <Button isLoading={updateGroupResponse.isLoading}>{t(buttonConstant.saveChanges)}</Button>
+                    <AppButton isLoading={updateGroupResponse.isLoading}>{t(buttonConstant.saveChanges)}</AppButton>
                 </div>
             )}
         </form>

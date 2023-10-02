@@ -1,14 +1,15 @@
-import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import {useTranslation} from 'next-i18next';
+import {useRouter} from 'next/router';
 
-import { Close } from '@app/components/icons/close';
-import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
-import { buttonConstant } from '@app/constants/locales/button';
-import { localesCommon } from '@app/constants/locales/common';
-import { useLazyGetLogoutQuery, useLazyGetStatusQuery } from '@app/store/auth/api';
-import { initialAuthState, setAuth } from '@app/store/auth/slice';
-import { useAppDispatch } from '@app/store/hooks';
+import {Close} from '@app/components/icons/close';
+import {useModal} from '@app/components/modal-views/context';
+import {buttonConstant} from '@app/constants/locales/button';
+import {localesCommon} from '@app/constants/locales/common';
+import {useLazyGetLogoutQuery, useLazyGetStatusQuery} from '@app/store/auth/api';
+import {initialAuthState, setAuth} from '@app/store/auth/slice';
+import {useAppDispatch} from '@app/store/hooks';
+import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
+import AppButton from "@Components/Common/Input/Button/AppButton";
 
 export default function LogoutView(props: any) {
     const { closeModal } = useModal();
@@ -39,12 +40,12 @@ export default function LogoutView(props: any) {
                     <h4 className="sh1">{t(localesCommon.logoutMessage)}</h4>
 
                     <div className="flex w-full gap-4 justify-end">
-                        <Button data-testid="logout-button" className="flex-1 !body4" variant="solid" size="medium" color="danger" onClick={handleLogout}>
+                        <AppButton className={"w-full"} data-testid="logout-button" variant={ButtonVariant.Danger} onClick={handleLogout}>
                             {t(buttonConstant.logout)}
-                        </Button>
-                        <Button variant="solid" color="gray" size="medium" className="flex-1 !body4 !bg-black-500" onClick={closeModal}>
+                        </AppButton>
+                        <AppButton className={"w-full"} variant={ButtonVariant.Secondary} onClick={closeModal}>
                             {t(buttonConstant.cancel)}
-                        </Button>
+                        </AppButton>
                     </div>
                 </div>
                 <div className="cursor-pointer absolute top-3 right-3 text-gray-600 hover:text-black" onClick={closeModal}>

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import TextField from '@mui/material/TextField';
 import { toast } from 'react-toastify';
 
 import { buttonConstant } from '@app/constants/locales/button';
@@ -17,7 +16,7 @@ import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import BetterInput from '../Common/input';
 import { useModal } from '../modal-views/context';
 import { ICustomizeUrlModalProps } from '../modal-views/modals/customize-url-modal';
-import Button from './button/button';
+import AppButton from "@Components/Common/Input/Button/AppButton";
 
 export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
     const workspace = useAppSelector((state) => state.workspace);
@@ -91,7 +90,7 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
                 </p>
             </div>
             <div className="mt-5 flex justify-end">
-                <Button isLoading={isLoading}>{t(buttonConstant.updateNow)}</Button>
+                <AppButton isLoading={isLoading}>{t(buttonConstant.updateNow)}</AppButton>
             </div>
         </form>
     );

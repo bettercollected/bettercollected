@@ -62,13 +62,6 @@ export default function ShareView({ url, title, showCopy, iconSize = 'large' }: 
                     </LinkedinShareButton>
                 </div>
                 {showCopy && <LinkView className="flex md:flex-row flex-col items-center " buttonClassName="!h-[46px]  sh3 !font-medium !bg-brand-500 hover:!bg-brand-600 !text-white !px-8 !py-2" url={url} toastMessage={t(toastMessage.copied)}></LinkView>}
-                {/* {showCopy && (
-                    <div>
-                        <Button variant="transparent" className="!text-brand-500" onClick={() => openModal('CUSTOMIZE_URL', { description: workspaceCustomizeLink.description, url: environments.CLIENT_DOMAIN })}>
-                            Customize your link
-                        </Button>
-                    </div>
-                )} */}
             </div>
         </div>
     );
