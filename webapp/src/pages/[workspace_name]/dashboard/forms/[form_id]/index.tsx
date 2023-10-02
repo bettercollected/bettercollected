@@ -172,7 +172,7 @@ export default function FormPage(props: any) {
                     </FormPageLayer>
                     <Divider className="mt-6 flex md:hidden" />
 
-                    <ParamTab showInfo={true} className=" pb-0 lg:px-28 md:px-10 " tabMenu={paramTabs}>
+                    <ParamTab showInfo={true} className=" lg:px-28 md:px-10 " tabMenu={paramTabs}>
                         <FormPageLayer className="w-full">
                             <TabPanel className="focus:outline-none" key="Preview">
                                 <FormPreview />
