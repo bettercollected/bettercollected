@@ -62,7 +62,7 @@ export async function getServerSidePropsInClientHostWithWorkspaceName(_context: 
         };
     }
     const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
-    if (!globalProps.workspace?.id) {
+    if (!globalProps?.workspace?.id) {
         return {
             notFound: true
         };

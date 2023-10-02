@@ -3,10 +3,15 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import DeleteIcon from '@Components/Common/Icons/Delete';
-import Button from '@Components/Common/Input/Button';
-import HintBox from '@Components/Consent/Form/HintBox';
+import { DotIcon } from '@Components/Common/Icons/DotIcon';
+import FormProviderIcon from '@Components/Common/Icons/FormProviderIcon';
+import Preview from '@Components/Common/Icons/Preview';
+import SettingsIcon from '@Components/Common/Icons/Settings';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { ChevronLeft } from '@mui/icons-material';
@@ -16,8 +21,8 @@ import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import environments from '@app/configs/environments';
-import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -53,7 +58,20 @@ export default function Submission(props: any) {
         submission_id: submissionId
     });
 
-    const form: any = data ?? [];
+    const form: any = data ?? {};
+
+    const paramTabs = [
+        {
+            icon: <Preview className="h-5 w-5" />,
+            title: 'Form',
+            path: 'Form'
+        },
+        {
+            icon: <SettingsIcon className="h-5 w-5" />,
+            title: t(localesCommon.settings),
+            path: 'Settings'
+        }
+    ];
     const handleRequestForDeletion = async () => {
         if (workspace && workspace.id && submissionId) {
             try {
@@ -99,11 +117,11 @@ export default function Submission(props: any) {
     const submittedAt = `${utcToLocalDate(form?.response?.createdAt)}`;
 
     return (
-        <Layout showAuthAccount={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showNavbar={true}>
+        <Layout className="bg-white !px-0" showAuthAccount={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showNavbar={true}>
             {isLoading || isError || !data ? (
                 <FullScreenLoader />
             ) : (
-                <div className="container mx-auto mt-5 flex flex-col  items-center px-6  pb-6">
+                <div className="mt-5 flex flex-col pb-6">
                     {environments.ENABLE_JOYRIDE_TOURS && (
                         <Joyride
                             id={JOYRIDE_ID.RESPONDERS_PORTAL}
@@ -122,51 +140,69 @@ export default function Submission(props: any) {
                         />
                     )}
 
-                    <div className="w-full mb-8 absolute left-0 right-0 lg:px-20 px-5">
-                        <div className="flex items-center justify-start gap-2 w-fit cursor-pointer" onClick={goToSubmissions}>
-                            <ChevronLeft width={24} height={24} />
-                            <span className="sh1 ">{t(breadcrumbsItems.mySubmissions)}</span>
+                    <div className="w-full px-5">
+                        <div className="flex items-center justify-start gap-2 w-fit " onClick={goToSubmissions}>
+                            <ChevronLeft className="cursor-pointer" strokeWidth={2} width={24} height={24} />
+                            <span className="text-black-800 text-sm cursor-pointer">Form Page</span>
+                            <ChevronLeft className="text-black-600 rotate-180" strokeWidth={1} width={24} height={24} />
+                            <span className="text-black-600  text-sm"> My response</span>
                         </div>
                     </div>
-                    <div className="flex-col-reverse lg:flex-row flex gap-5 lg:!gap-16 w-full pt-20">
-                        <div className="bg-white rounded-xl w-full">
-                            <FormRenderer form={form.form} response={form.response} isDisabled />
+                    <div className="w-full flex flex-col mt-12 gap-2 px-5 md:px-10 lg:px-28">
+                        <span className="!text-pink h2-new">{form?.title || 'Untitled Form'}</span>
+                        <div className="text-black-600 text-sm flex flex-wrap gap-2 items-center">
+                            <FormProviderIcon provider={form?.settings?.provider} />
+                            <DotIcon />
+                            <div className="min-w-fit">Submitted: {utcToLocalDate(form?.response?.createdAt)}</div>
                         </div>
-                        <div className="flex flex-col-reverse justify-between lg:justify-start gap-10  lg:flex-col basis-1/4 ">
-                            <div>
-                                <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
-                                    <Button
-                                        color="error"
-                                        className={` ${JOYRIDE_CLASS.RESPONDERS_SUBMISSION_DELETE} w-auto min-w-[196px] z-10 capitalize !h-10 mt-0 body-6 !border-yellow-600  text-red rounded ${deletionStatus ? '!text-yellow-600' : ''} `}
-                                        variant="outlined"
-                                        onClick={handleRequestForDeletionModal}
-                                        disabled={!!form?.response?.deletionStatus}
-                                    >
-                                        <span className="flex gap-2  items-center">
-                                            <DeleteIcon className={!deletionStatus ? 'text-red-500' : ' text-yellow-700'} width={16} height={16} />
-                                            {form?.response?.deletionStatus ? t(buttonConstant.requestedForDeletion) : t(buttonConstant.requestForDeletion)}
-                                        </span>
-                                    </Button>
-                                </Tooltip>
-                            </div>
-                            <HintBox
-                                className="w-fit md:w-[400px]"
-                                title="View Your Data Usage Permissions"
-                                description={`Review the permissions you've previously granted for data usage.`}
-                                linkText="Data Permission Details"
-                                onLinkClick={() =>
-                                    fullScreenModal.openModal('CONSENT_FULL_MODAL_VIEW', {
-                                        isDisabled: true,
-                                        form: form.response
-                                    })
-                                }
-                            />
-                            <div>
-                                <div className="body4 pb-2 text-black-700">{t(localesCommon.lastSubmittedAt)}</div>
-                                <div className="text-black-900 body3">{submittedAt}</div>
-                            </div>
-                        </div>
+                        <Divider className="mt-6" />
                     </div>
+                    <ParamTab showInfo={true} className="px-5 lg:px-28 md:px-10 w-full" tabMenu={paramTabs}>
+                        <div className="w-full mt-12">
+                            <TabPanel key="Form">
+                                <FormRenderer form={form.form} response={form.response} isDisabled />
+                            </TabPanel>
+                        </div>
+                        <TabPanel key="Settings">
+                            <div className="flex flex-col px-5 md:px-10 lg:px-28 gap-[72px]">
+                                <div className="flex flex-col gap-2">
+                                    <span className="h3-new">Settings</span>
+                                    <span className="p2-new text-black-700"> Review your data usage permissions</span>
+                                </div>
+                                <div className="flex flex-col gap-4 max-w-[800px]">
+                                    <span className="h3-new">Form Purpose and Data Usage</span>
+                                    <div className="py-4 border-y-[1px] border-black-300 flex flex-col md:flex-row w-full items-start md:items-center space-between">
+                                        <span className="p2-new text-black-700"> View the permissions you&apos;ve granted for data usage, third-party integrations, data retention dates, and see who can access your data</span>
+                                        <AppButton
+                                            onClick={() => {
+                                                fullScreenModal.openModal('CONSENT_FULL_MODAL_VIEW', {
+                                                    isDisabled: true,
+                                                    form: form.response
+                                                });
+                                            }}
+                                            variant={ButtonVariant.Ghost}
+                                        >
+                                            See Details
+                                        </AppButton>
+                                    </div>
+                                </div>
+                                {!form?.response?.deletionStatus ? (
+                                    <div>
+                                        <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
+                                            <AppButton className={` ${JOYRIDE_CLASS.RESPONDERS_SUBMISSION_DELETE}`} variant={ButtonVariant.Danger} onClick={handleRequestForDeletionModal}>
+                                                {t(buttonConstant.requestForDeletion)}
+                                            </AppButton>
+                                        </Tooltip>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-2">
+                                        <span className="h4-new !text-red-500 ">You have requested for deletion of your response.</span>
+                                        <span>Status: Pending</span>
+                                    </div>
+                                )}
+                            </div>
+                        </TabPanel>
+                    </ParamTab>
                 </div>
             )}
         </Layout>
@@ -184,6 +220,12 @@ export async function getServerSideProps(_context: any) {
                 permanent: false,
                 destination: '/'
             }
+        };
+    }
+
+    if (!globalProps.workspace?.id) {
+        return {
+            notFound: true
         };
     }
 
