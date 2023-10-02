@@ -15,11 +15,10 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import BetterInput from '@app/components/Common/input';
 import SelectDropdown from '@app/components/dropdown/select';
-import Button from '@app/components/ui/button';
 import Loader from '@app/components/ui/loader';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { selectInvalidFields } from '@app/store/fill-form/slice';
-import { useAppSelector } from '@app/store/hooks';
+import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
+import AppButton from '@Components/Common/Input/Button/AppButton';
 
 const StyledTextField = styled.div`
     textarea:disabled {
@@ -252,10 +251,10 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                 return renderGridRowColumns(question);
             case QUESTION_TYPE.FILE_UPLOAD:
                 return (
-                    <Button variant="solid" size="medium" className="mt-3">
+                    <AppButton size={ButtonSize.Medium}>
                         Upload File
                         <BetterInput type="file" hidden />
-                    </Button>
+                    </AppButton>
                 );
             case QUESTION_TYPE.GROUP:
                 return (

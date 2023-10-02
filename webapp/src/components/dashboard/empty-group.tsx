@@ -6,8 +6,6 @@ import {useRouter} from 'next/router';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 
 import UserMore from '@app/components/icons/user-more';
-import {useModal} from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
 import {groupConstant} from '@app/constants/locales/group';
 import {toolTipConstant} from '@app/constants/locales/tooltip';
 import {selectIsAdmin} from '@app/store/auth/slice';

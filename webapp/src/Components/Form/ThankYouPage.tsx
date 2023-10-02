@@ -1,12 +1,9 @@
 import React from 'react';
 
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 import SmallLogo from '@Components/Common/Icons/SmallLogo';
-
-import Logo from '@app/components/ui/logo';
 
 interface IThankYouPageProps {
     isDisabled?: boolean;

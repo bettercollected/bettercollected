@@ -9,11 +9,9 @@ import {SetStateAction} from 'jotai';
 import {TransformComponent, TransformWrapper} from 'react-zoom-pan-pinch';
 
 import Upload from '@app/components/icons/upload';
-import Button from '@app/components/ui/button';
 import {selectBuilderState} from '@app/store/form-builder/selectors';
 import {IBuilderState} from '@app/store/form-builder/types';
 import {useAppSelector} from '@app/store/hooks';
-import {downloadFile} from '@app/utils/fileUtils';
 
 interface IFormCoverComponent {
     setIsCoverClicked: React.Dispatch<SetStateAction<boolean>>;

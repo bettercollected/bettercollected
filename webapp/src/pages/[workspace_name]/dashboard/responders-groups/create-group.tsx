@@ -12,7 +12,6 @@ import GroupMember from '@app/components/group/group-member';
 import Back from '@app/components/icons/back';
 import {useModal} from '@app/components/modal-views/context';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
-import Button from '@app/components/ui/button/button';
 import {buttonConstant} from '@app/constants/locales/button';
 import {localesCommon} from '@app/constants/locales/common';
 import {groupConstant} from '@app/constants/locales/group';

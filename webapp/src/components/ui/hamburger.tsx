@@ -1,8 +1,7 @@
 import React from 'react';
 
 import { IconButton } from '@mui/material';
-
-import { ButtonProps } from '@app/components/ui/button';
+import {ButtonProps} from "@app/models/props/buttonProps";
 
 interface HamburgerProps extends ButtonProps {
     isOpen?: boolean;

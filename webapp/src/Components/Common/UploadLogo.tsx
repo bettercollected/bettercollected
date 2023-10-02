@@ -6,7 +6,8 @@ import cn from 'classnames';
 
 import Camera from '@app/components/icons/camera';
 import { Close } from '@app/components/icons/close';
-import Button from '@app/components/ui/button';
+import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
+import AppButton from "@Components/Common/Input/Button/AppButton";
 
 interface IUploadLogo {
     className?: string;
@@ -71,9 +72,9 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl }: IUploadLogo
                     <div onClick={() => logoRef.current?.click()} className="w-full rounded py-3 px-4 h-[36px] body4 bg-black-900 font-semibold hover:opacity-80 flex justify-center items-center cursor-pointer">
                         <span className="text-black-100 text-xs sm:text-sm">Update New Logo</span>
                     </div>
-                    <Button size="small" className="!text-black-900 font-semibold !bg-black-300 hover:bg-black-400 focus:!ring-0" onClick={onRemoveLogo}>
+                    <AppButton variant={ButtonVariant.Secondary} onClick={onRemoveLogo}>
                         Remove Logo
-                    </Button>
+                    </AppButton>
                 </div>
             )}
         </div>

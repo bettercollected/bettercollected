@@ -9,13 +9,13 @@ import { toast } from 'react-toastify';
 import BetterInput from '@app/components/Common/input';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
 import { accountDeletion } from '@app/constants/locales/account-deletion';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useDeleteAccountMutation } from '@app/store/auth/api';
+import AppButton from "@Components/Common/Input/Button/AppButton";
 
 export default function UserDeletionModal() {
     const { closeModal } = useModal();
@@ -87,13 +87,13 @@ export default function UserDeletionModal() {
                     onPaste={handleCopyPaste}
                     onCopy={handleCopyPaste}
                 />
-                <Button
+                <AppButton
                     disabled={confirm.toUpperCase() !== 'CONFIRM'}
                     isLoading={isLoading || isSuccess}
-                    className={cn('body4 !text-brand-100 py-4 px-6 !leading-none !h-[42px] bg-red-500 ', confirm.toUpperCase() !== 'CONFIRM' ? 'opacity-60 bg-red-400 cursor-not-allowed' : 'hover:!bg-red-600')}
+                    className={cn( confirm.toUpperCase() !== 'CONFIRM' ? 'cursor-not-allowed' : '')}
                 >
                     {t(buttonConstant.deleteNow)}
-                </Button>
+                </AppButton>
             </div>
         </form>
     );

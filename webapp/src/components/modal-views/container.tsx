@@ -18,11 +18,10 @@ import MobileInsertMenu from '@app/components/modal-views/modals/mobile-insert-m
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
 import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
 import RequestForDeletionView from '@app/components/submission-request-for-deletion';
-import Button from '@app/components/ui/button';
-import { Dialog } from '@app/components/ui/dialog';
-import { Transition } from '@app/components/ui/transition';
-import { resetBuilderMenuState } from '@app/store/form-builder/actions';
-import { useAppDispatch } from '@app/store/hooks';
+import {Dialog} from '@app/components/ui/dialog';
+import {Transition} from '@app/components/ui/transition';
+import {resetBuilderMenuState} from '@app/store/form-builder/actions';
+import {useAppDispatch} from '@app/store/hooks';
 
 import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
@@ -139,9 +138,10 @@ export default function ModalContainer() {
 
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
                 <div className="sr-only">
-                    <Button size="small" color="gray" shape="circle" onClick={closeModalHandler} className="opacity-50 hover:opacity-80 ">
-                        <Close className="h-auto w-[13px]" />
-                    </Button>
+                    {/*<Button size="small" color="gray" shape="circle" onClick={closeModalHandler}*/}
+                    {/*        className="opacity-50 hover:opacity-80 ">*/}
+                    {/*    <Close className="h-auto w-[13px]"/>*/}
+                    {/*</Button>*/}
                 </div>
 
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
