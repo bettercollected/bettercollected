@@ -150,19 +150,21 @@ export default function FormPage(props: any) {
                                         <span className="sm:block hidden">Edit Form</span>
                                     </AppButton>
                                 )}
-                                <AppButton
-                                    variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
-                                    icon={<Share />}
-                                    className="!px-0 sm:!px-5"
-                                    onClick={() =>
-                                        openModal('SHARE_VIEW', {
-                                            url: getFormUrl(form, workspace),
-                                            title: t(formConstant.shareThisForm)
-                                        })
-                                    }
-                                >
-                                    <span className="sm:block hidden">Share Form</span>
-                                </AppButton>
+                                {form?.isPublished && (
+                                    <AppButton
+                                        variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
+                                        icon={<Share />}
+                                        className="!px-0 sm:!px-5"
+                                        onClick={() =>
+                                            openModal('SHARE_VIEW', {
+                                                url: getFormUrl(form, workspace),
+                                                title: t(formConstant.shareThisForm)
+                                            })
+                                        }
+                                    >
+                                        <span className="sm:block hidden">Share Form</span>
+                                    </AppButton>
+                                )}
                             </div>
                         </div>
                         <div className="flex gap-1 flex-row items-center">
@@ -172,7 +174,7 @@ export default function FormPage(props: any) {
                     </FormPageLayer>
                     <Divider className="mt-6 flex md:hidden" />
 
-                    <ParamTab showInfo={true} className=" pb-0 lg:px-28 md:px-10 " tabMenu={paramTabs}>
+                    <ParamTab showInfo={true} className=" lg:px-28 md:px-10 " tabMenu={paramTabs}>
                         <FormPageLayer className="w-full">
                             <TabPanel className="focus:outline-none" key="Preview">
                                 <FormPreview />
