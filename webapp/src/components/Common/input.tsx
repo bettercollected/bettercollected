@@ -8,8 +8,3 @@ export function FormInputField(props: TextFieldProps) {
     const { className, ...otherProps } = props;
     return <TextField {...otherProps} className={`flex-1 w-full placeholder:font-normal placeholder:text-sm placeholder:tracking-normal rounded-[1px] text-black-900 bg-white ${className}`} />;
 }
-
-export default function BetterInput(props: TextFieldProps) {
-    const { className, ...otherProps } = props;
-    return <FormInputField {...props} className={cn('mb-4', className)} />;
-}

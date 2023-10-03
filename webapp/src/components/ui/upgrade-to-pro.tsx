@@ -3,12 +3,12 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Pro from '@Components/Common/Icons/Pro';
+import AppButton from '@Components/Common/Input/Button/AppButton';
 
 import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import { buttonConstant } from '@app/constants/locales/button';
 import { Features } from '@app/constants/locales/feature';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
-import AppButton from "@Components/Common/Input/Button/AppButton";
 
 export default function UpgradeToPro() {
     const { t } = useTranslation();
@@ -18,7 +18,7 @@ export default function UpgradeToPro() {
                 <span className="mr-1 font-semibold">{t(pricingPlan.title)}</span>
                 {t(pricingPlan.forThisFeature)}
                 <ProPlanHoc hideChildrenIfPro={false} feature={Features.customDomain}>
-                    <AppButton >{t(buttonConstant.upgrade)}</AppButton>
+                    <AppButton className={'ml-2'}>{t(buttonConstant.upgrade)}</AppButton>
                 </ProPlanHoc>
             </div>
             <div className="absolute !top-2 !right-5">
