@@ -113,7 +113,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
 
 function InviteCollaboratorButton({ onClick }: { onClick: () => void }) {
     return (
-        <AppButton onClick={onClick} icon={<PlusIcon />} variant={ButtonVariant.Ghost} size={ButtonSize.Small}>
+        <AppButton onClick={onClick} icon={<PlusIcon width={20} height={20} />} variant={ButtonVariant.Ghost} size={ButtonSize.Small}>
             Invite Collaborator
         </AppButton>
     );

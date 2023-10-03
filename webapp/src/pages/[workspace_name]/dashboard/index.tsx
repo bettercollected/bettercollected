@@ -5,16 +5,17 @@ import { useRouter } from 'next/router';
 
 import CreateFormButton from '@Components/Common/CreateFormButton';
 import Joyride from '@Components/Joyride';
-import {JoyrideStepContent, JoyrideStepTitle} from '@Components/Joyride/JoyrideStepTitleAndContent';
+import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
+
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
 import WorkspaceDashboardOverview from '@app/components/workspace-dashboard/workspace-dashboard-overview';
 import environments from '@app/configs/environments';
-import {WorkspaceDto} from '@app/models/dtos/workspaceDto';
-import {useAppSelector} from '@app/store/hooks';
-import {JOYRIDE_CLASS, JOYRIDE_ID} from '@app/store/tours/types';
-import {useGetWorkspaceFormsQuery} from '@app/store/workspaces/api';
-import {selectWorkspace} from '@app/store/workspaces/slice';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { useAppSelector } from '@app/store/hooks';
+import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
+import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function CreatorDashboard({ hasCustomDomain, ...props }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
     const { t } = useTranslation();
@@ -81,7 +82,7 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                     ]}
                 />
             )}
-            <div className="bg-white pt-4 pb-5 px-5 lg:px-10 shadow-lg">
+            <div className="bg-white pt-4 pb-5 px-5 lg:px-10 shadow-overview">
                 <WorkspaceDashboardOverview workspace={workspace} />
             </div>
             <div className="px-5 pt-12 lg:px-10">
