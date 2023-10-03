@@ -9,7 +9,7 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import useFormBuilderState from '@app/containers/form-builder/context';
 import eventBus from '@app/lib/event-bus';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addDuplicateField, resetBuilderMenuState, setAddNewField, setBuilderState, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
@@ -60,8 +60,13 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     return;
                 } else if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
                     event.preventDefault();
+
                     const newField = createNewField(builderState.activeFieldIndex);
                     if (builderState.activeFieldIndex >= 0 || Object.keys(builderState.fields).length === 0) {
+                        if (NonInputFormBuilderTagNames.includes(builderState.fields[builderState.activeFieldId]?.type) && Object.values(builderState.fields)[builderState.activeFieldIndex + 1]?.type.includes('input_')) {
+                            focusNextField();
+                            return;
+                        }
                         dispatch(setAddNewField(newField));
                         setTimeout(() => document.getElementById(`item-${newField.id}`)?.focus(), 1);
                     } else {
