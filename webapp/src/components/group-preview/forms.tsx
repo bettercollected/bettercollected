@@ -4,6 +4,8 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import SearchInput from '@Components/Common/Search/SearchInput';
 import { Typography } from '@mui/material';
 
@@ -64,10 +66,10 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
                 </div>
 
                 <Tooltip title={workspaceForms.length === 0 ? t(toolTipConstant.emptyFormOnWorkspace) : ''}>
-                    <button disabled={workspaceForms.length === 0} onClick={() => openModal('ADD_FORM_GROUP', { forms: workspaceForms, group })} className="flex gap-2 p-2  text-brand-500 items-center cursor-pointer">
+                    <AppButton disabled={workspaceForms.length === 0} onClick={() => openModal('ADD_FORM_GROUP', { forms: workspaceForms, group })} variant={ButtonVariant.Ghost}>
                         <Plus className="h-4 w-4" />
                         <Typography className="!text-brand-500 min-w-[65px]  body6"> {t(buttonConstant.addForm)}</Typography>
-                    </button>
+                    </AppButton>
                 </Tooltip>
             </div>
             {group.forms.length > 0 && (
@@ -75,11 +77,11 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
                     <div className="sm:w-[240px]">
                         <SearchInput handleSearch={handleSearch} />
                     </div>
-                    <div className="grid mt-6 grid-flow-row xl:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
+                    <div className="grid mt-6 grid-flow-row grid-cols-1 gap-6">
                         {forms.map((form, idx) => {
                             return (
                                 <div onClick={handleCardClick} key={form.formId + idx}>
-                                    <WorkspaceFormCard key={form.formId} form={form} hasCustomDomain={false} workspace={workspace} group={group} />
+                                    <WorkspaceFormCard isResponderPortal key={form.formId} form={form} hasCustomDomain={false} workspace={workspace} group={group} />
                                 </div>
                             );
                         })}
