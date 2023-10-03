@@ -150,19 +150,21 @@ export default function FormPage(props: any) {
                                         <span className="sm:block hidden">Edit Form</span>
                                     </AppButton>
                                 )}
-                                <AppButton
-                                    variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
-                                    icon={<Share />}
-                                    className="!px-0 sm:!px-5"
-                                    onClick={() =>
-                                        openModal('SHARE_VIEW', {
-                                            url: getFormUrl(form, workspace),
-                                            title: t(formConstant.shareThisForm)
-                                        })
-                                    }
-                                >
-                                    <span className="sm:block hidden">Share Form</span>
-                                </AppButton>
+                                {form?.isPublished && (
+                                    <AppButton
+                                        variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
+                                        icon={<Share />}
+                                        className="!px-0 sm:!px-5"
+                                        onClick={() =>
+                                            openModal('SHARE_VIEW', {
+                                                url: getFormUrl(form, workspace),
+                                                title: t(formConstant.shareThisForm)
+                                            })
+                                        }
+                                    >
+                                        <span className="sm:block hidden">Share Form</span>
+                                    </AppButton>
+                                )}
                             </div>
                         </div>
                         <div className="flex gap-1 flex-row items-center">
