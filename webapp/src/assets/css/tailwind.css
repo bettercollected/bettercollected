@@ -451,13 +451,17 @@ p {
     top: 4px;
 }
 
-.add-field-drag-icon{
+.add-field-drag-icon {
     right: calc(100% + 12px);
 }
 
 [data-placeholder]:empty:before {
     content: attr(data-placeholder);
     @apply text-neutral-400;
+}
+
+.div-left-to-parent-right {
+    left: calc(100% + 12px)
 }
 
 /* Custom scrollbar style */
