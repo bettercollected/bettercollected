@@ -72,32 +72,38 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                         </div>
                     </div>
                     <div className="lg:hidden">
-                        <WorkspaceOptions onClickEdit={onClickEditButton} onOpenLink={onClickOpenLinkButton} onShareWorkspace={onClickShareWorkspaceButton} />
+                        <WorkspaceOptions isAdmin={isAdmin} onClickEdit={onClickEditButton} onOpenLink={onClickOpenLinkButton} onShareWorkspace={onClickShareWorkspaceButton} />
                     </div>
                 </div>
-                <div className="flex  lg:flex-col lg:items-end gap-4">
-                    <div className="flex flex-col gap-2 lg:items-end">
-                        <div className="flex items-center gap-4">
-                            <span className="h5-new min-w-[max-content]  text-black-700">Collaborators ({data?.length || 1 - 1})</span>
-                            <div className="lg:hidden">
-                                <InviteCollaboratorButton onClick={onClickInviteCollaboratorButton} />
+
+                {isAdmin && (
+                    <div className="flex  lg:flex-col lg:items-end gap-4">
+                        <div className="flex flex-col gap-2 lg:items-end">
+                            <div className="flex items-center gap-4">
+                                <span className="h5-new min-w-[max-content]  text-black-700">Collaborators ({data?.length || 1 - 1})</span>
+                                <div className="lg:hidden">
+                                    <InviteCollaboratorButton onClick={onClickInviteCollaboratorButton} />
+                                </div>
+                            </div>
+
+                            <div className="flex-wrap flex">
+                                {data?.map((user) => (
+                                    <div key={user.email}>
+                                        <AuthAccountProfileImage image={user.profileImage} name={user?.firstName || user?.lastName || user?.email} size={40} variant="circular" />
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                        <div>
-                            {data?.map((user) => (
-                                <div key={user.email}>
-                                    <AuthAccountProfileImage image={user.profileImage} name={user?.firstName || user?.lastName || user?.email} size={40} variant="circular" />
-                                </div>
-                            ))}
-                        </div>
                     </div>
-                </div>
+                )}
             </div>
             <div className=" hidden lg:flex justify-between">
                 <div className="flex gap-2">
-                    <AppButton onClick={onClickEditButton} icon={<EditIcon />} variant={ButtonVariant.Ghost}>
-                        Edit
-                    </AppButton>
+                    {isAdmin && (
+                        <AppButton onClick={onClickEditButton} icon={<EditIcon />} variant={ButtonVariant.Ghost}>
+                            Edit
+                        </AppButton>
+                    )}
                     <AppButton onClick={onClickOpenLinkButton} icon={<EyeIcon width={20} height={20} />} variant={ButtonVariant.Ghost}>
                         Open Link
                     </AppButton>
@@ -105,7 +111,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                         Share Workspace
                     </AppButton>
                 </div>
-                <InviteCollaboratorButton onClick={onClickInviteCollaboratorButton} />
+                {isAdmin && <InviteCollaboratorButton onClick={onClickInviteCollaboratorButton} />}
             </div>
         </div>
     );
