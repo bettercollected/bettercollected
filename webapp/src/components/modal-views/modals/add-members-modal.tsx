@@ -5,7 +5,6 @@ import { useTranslation } from 'next-i18next';
 import cn from 'classnames';
 import { toast } from 'react-toastify';
 
-import BetterInput from '@app/components/Common/input';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -17,6 +16,7 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
 import ModalButton from "@Components/Common/Input/Button/ModalButton";
 import AppButton from "@Components/Common/Input/Button/AppButton";
+import AppTextField from "@Components/Common/Input/AppTextField";
 
 interface IAddMemberModalProps {
     handleAddMembers: (members: Array<string>) => void;
@@ -43,13 +43,13 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
         setEmail('');
     };
     return (
-        <div className=" p-6 relative bg-brand-100 rounded-[8px] md:w-[674px]">
+        <div className=" p-6 relative bg-brand-100 rounded-[8px] ">
             <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
             <div className="sh1 !leading-none">{t(groupConstant.addMembers.default)}</div>
             <div className="body4 pt-6 !leading-none ">{t(groupConstant.addMembers.description)}</div>
             <form onSubmit={addEmail} className="flex gap-2 mt-4">
-                <div className="md:w-[260px]">
-                    <BetterInput className="bg-white" value={email} type="email" inputProps={{ className: '!py-3 ' }} id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
+                <div className="    ">
+                    <AppTextField  value={email} type="email" id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
                 </div>
                 <AppButton size={ButtonSize.Medium} disabled={!email} className={cn('font-semibold !px-6', !email && 'opacity-30')}>
                     {t(buttonConstant.add)}
@@ -76,7 +76,7 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
                 </>
             )}
             <div className="flex w-full mt-8 justify-end">
-                <ModalButton onClick={() => handleAddMembers(emails)}  size={ButtonSize.Medium} disabled={emails.length === 0} type="submit">
+                <ModalButton buttonType={"Modal"} onClick={() => handleAddMembers(emails)}  size={ButtonSize.Medium} disabled={emails.length === 0} type="submit">
                     {t(buttonConstant.addMembers)}
                 </ModalButton>
             </div>
