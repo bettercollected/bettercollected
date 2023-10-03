@@ -1,4 +1,3 @@
-import BetterInput from "@app/components/Common/input";
 import AppButton from "@Components/Common/Input/Button/AppButton";
 import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
 import React, {useState} from "react";

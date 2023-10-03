@@ -4,9 +4,6 @@ import cn from 'classnames';
 import {Close} from '@app/components/icons/close';
 
 import {useFullScreenModal} from '../full-screen-modal-context';
-import BetterInput from "@app/components/Common/input";
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
 import { FormSlug } from '@Components/Form/FormSlug';
 
 export interface IFormCreateSlugFullModalViewProps {

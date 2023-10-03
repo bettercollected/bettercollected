@@ -10,15 +10,12 @@ import FormProviderIcon from '@Components/Common/Icons/FormProviderIcon';
 import PrivateIcon from '@Components/Common/Icons/Private';
 import PublicIcon from '@Components/Common/Icons/Public';
 import ShareIcon from '@Components/Common/Icons/ShareIcon';
-import SmallLogo from '@Components/Common/Icons/SmallLogo';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Typography } from '@mui/material';
 import moment from 'moment/moment';
 
 import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
-import { TypeformIcon } from '@app/components/icons/brands/typeform';
-import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';

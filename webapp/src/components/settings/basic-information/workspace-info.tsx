@@ -2,9 +2,10 @@ import { ChangeEvent, FormEvent, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import AppTextField from '@Components/Common/Input/AppTextField';
+import AppButton from '@Components/Common/Input/Button/AppButton';
 import { toast } from 'react-toastify';
 
-import BetterInput from '@app/components/Common/input';
 import ProfileImageComponent from '@app/components/dashboard/profile-image';
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -15,7 +16,6 @@ import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
-import AppButton from '@Components/Common/Input/Button/AppButton';
 
 export default function WorkspaceInfo({ workspace }: any) {
     const dispatch = useAppDispatch();
@@ -66,14 +66,14 @@ export default function WorkspaceInfo({ workspace }: any) {
                 <div className="gap-2 w-full">
                     <div className="body1 mb-4">{t(workspaceConstant.title)}</div>
 
-                    <BetterInput onChange={onChange} value={workspaceInfo.title} className="bg-white" name="title" placeholder={t(placeHolder.workspaceTitle)} />
+                    <AppTextField onChange={onChange} value={workspaceInfo.title} name="title" placeholder={t(placeHolder.workspaceTitle)} />
                 </div>
             </div>
             <div className="mt-6">
                 <div className="body1 mb-4">{t(workspaceConstant.description)}</div>
-                <BetterInput inputProps={{ maxLength: 280 }} className="w-full bg-white" size="medium" rows={5} multiline onChange={onChange} value={workspaceInfo.description} name="description" placeholder={t(placeHolder.description)} />
+                <AppTextField multiline onChange={onChange} value={workspaceInfo.description} name="description" placeholder={t(placeHolder.description)} />
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end mt-4">
                 <AppButton type="submit" disabled={isLoading || !workspaceInfo.title} isLoading={isLoading}>
                     {t(buttonConstant.save)}
                 </AppButton>

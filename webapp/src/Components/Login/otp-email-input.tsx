@@ -5,7 +5,6 @@ import {useRouter} from 'next/router';
 
 import Divider from '@mui/material/Divider';
 import {toast} from 'react-toastify';
-import BetterInput from '@app/components/Common/input';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
 import environments from '@app/configs/environments';
 import {formResponderLogin} from '@app/constants/locales/form-responder-login';
@@ -16,6 +15,7 @@ import {useAppSelector} from '@app/store/hooks';
 import {capitalize} from '@app/utils/stringUtils';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import {ButtonSize, ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
+import AppTextField from "@Components/Common/Input/AppTextField";
 
 interface OtpEmailInputPropType {
     isCreator: boolean;
@@ -126,7 +126,7 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                 </>
             )}
             <p className="text-base font-semibold mb-3 mt-[44px] text-black-900">{constants.emailInputLabel}</p>
-            <BetterInput type={'email'} required={true} placeholder={constants.enterYourEmail} value={email} onChange={handleEmailInput} />
+            <AppTextField type={'email'} required={true} placeholder={constants.enterYourEmail} value={email} onChange={handleEmailInput} />
             <AppButton type={'submit'} variant={ButtonVariant.Primary} isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={`w-full mt-6 ${isModal ? 'mb-10' : ''}`} size={ButtonSize.Medium}>
                 {constants.sendCodeButton}
             </AppButton>
