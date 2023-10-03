@@ -1,4 +1,4 @@
-import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback, useEffect } from 'react';
+import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback } from 'react';
 
 import FormBuilderBlockContent from '@Components/FormBuilder/BuilderBlock/FormBuilderBlockContent';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
@@ -8,8 +8,8 @@ import { v4 } from 'uuid';
 
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
-import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderMenuState, setBuilderState, setMoveField, setUpdateCommandField, setUpdateField } from '@app/store/form-builder/actions';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderMenuState, setBuilderState, setMoveField, setUpdateCommandField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldProperties, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -40,7 +40,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
             };
             if (isMultipleChoice(type)) {
                 const choiceId = uuidv4();
-                const properties: IFormFieldProperties = {
+                field.properties = {
                     activeChoiceId: choiceId,
                     activeChoiceIndex: 0,
                     choices: {
@@ -51,7 +51,6 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                         }
                     }
                 };
-                field.properties = properties;
             }
             dispatch(setAddNewField(field));
             dispatch(resetBuilderMenuState());
