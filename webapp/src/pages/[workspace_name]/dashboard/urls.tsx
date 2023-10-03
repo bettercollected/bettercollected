@@ -13,7 +13,7 @@ export default function AdvancedSettings({ workspace }: any) {
     const { workspaceName } = useAppSelector(selectWorkspace);
     const { t } = useTranslation();
     return (
-        <DashboardLayout boxClassName="px-5 pt-10 pb-10 lg:px-10">
+        <DashboardLayout boxClassName="px-5 py-10 lg:px-10">
             <NextSeo title={t(metaDataTitle.manageUrls) + ' | ' + workspaceName} noindex={true} nofollow={true} />
             {/*<div className="h4">{t(advanceSetting.default)}</div>*/}
             <div className="max-w-[1000px]">
