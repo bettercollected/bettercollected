@@ -9,3 +9,4 @@ class SettingsPatchDto(BaseModel):
     private: Optional[bool]
     responseDataOwnerField: Optional[str]
     disableBranding: Optional[bool]
+    hidden: Optional[bool] = False
