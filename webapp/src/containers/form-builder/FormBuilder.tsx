@@ -12,6 +12,7 @@ import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import { FormCoverComponent, FormLogoComponent } from '@Components/FormBuilder/Header';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
 import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { DragStart, DragUpdate, DropResult, ResponderProvided } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 import { batch } from 'react-redux';
@@ -68,6 +69,9 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
 
     const fullScreenModal = useFullScreenModal();
     const modal = useModal();
+
+    const [showSaving, setShowSaving] = useState({ status: false, text: 'Saving' });
+
     //
 
     useEffect(() => {
@@ -80,8 +84,6 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
             modal.openModal('FORM_BUILDER_ADD_FIELD_VIEW');
         });
     };
-
-    const isMobile = useIsMobile();
 
     const onAddFormLogo = () => {
         setShowLogo(true);
@@ -154,7 +156,13 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
         if (imagesRemoved.cover) publishRequest.cover_image = '';
         formData.append('form_body', JSON.stringify(publishRequest));
         const apiObj: any = { formId: form_id, workspaceId: workspace.id, body: formData };
-        return await patchForm(apiObj);
+        const response: any = await patchForm(apiObj);
+        if (response?.data) {
+            setShowSaving({ status: true, text: 'Saved' });
+            setTimeout(() => {
+                setShowSaving({ status: false, text: 'Saving' });
+            }, 1500);
+        }
     };
 
     const saveFormDebounced = useCallback(
@@ -163,6 +171,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
     );
 
     useEffect(() => {
+        setShowSaving({ status: true, text: 'Saving...' });
         saveFormDebounced(builderState, consentState, headerImages);
     }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages, consentState, imagesRemoved]);
 
@@ -185,17 +194,6 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
             })
         );
     };
-
-    const getAddFieldPrompt = (
-        <>
-            {/*<FormBuilderBlock item={{ id: 'akjdflakjdshlkf', type: FormBuilderTagNames.LAYOUT_SHORT_TEXT, position: 0 }} draggableId="asdjhflkahsdlfkjh" setBackspaceCount={() => {}} />*/}
-            {/*<div className="h-10 group-hover:h-0"></div>*/}
-            {/*<div*/}
-            {/*    className="lg:invisible py-2 px-4 bg-gray-50 font-medium text-gray-400 rounded-md text-sm group-hover:visible">Click*/}
-            {/*    to add new field*/}
-            {/*</div>*/}
-        </>
-    );
 
     useEffect(() => {
         resetImages();
@@ -323,7 +321,22 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
                         }}
                     />
                 </div>
-                {!builderState.isFormDirty && <BuilderTips />}
+                <AnimatePresence mode="wait" initial={false}>
+                    {showSaving.status && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{
+                                ease: 'linear',
+                                duration: 0.5,
+                                x: { duration: 0.5 }
+                            }}
+                        >
+                            <div className="absolute px-5 py-2 rounded text-white bg-[#000000] bottom-5 right-5 lg:bottom-10 lg:right-10">{showSaving.text}</div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );
