@@ -70,7 +70,7 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
         return renderBlockContent(position);
     };
     return (
-        <div className="w-full">
+        <div className="w-full relative">
             <div
                 data-position={position}
                 data-tag={type}

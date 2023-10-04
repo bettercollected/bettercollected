@@ -1,33 +1,24 @@
-import React, {FocusEvent, FormEvent, KeyboardEvent, useCallback, useEffect} from 'react';
+import React, { FocusEvent, FormEvent, KeyboardEvent, useCallback } from 'react';
 
 import FormBuilderBlockContent from '@Components/FormBuilder/BuilderBlock/FormBuilderBlockContent';
-import {uuidv4} from '@mswjs/interceptors/lib/utils/uuid';
-import {Draggable, DraggableProvided, DraggableStateSnapshot} from 'react-beautiful-dnd';
-import {batch} from 'react-redux';
-import {v4} from 'uuid';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
+import { batch } from 'react-redux';
+import { v4 } from 'uuid';
 
+import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
-import {FormBuilderTagNames, NonInputFormBuilderTagNames} from '@app/models/enums/formBuilder';
-import {
-    resetBuilderMenuState,
-    setActiveField,
-    setAddNewField,
-    setBuilderMenuState,
-    setBuilderState,
-    setMoveField,
-    setUpdateCommandField,
-    setUpdateField
-} from '@app/store/form-builder/actions';
-import {selectBuilderState} from '@app/store/form-builder/selectors';
-import {IFormFieldProperties, IFormFieldState} from '@app/store/form-builder/types';
-import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {isContentEditableTag, isMultipleChoice} from '@app/utils/formBuilderBlockUtils';
-import {getLastItem} from '@app/utils/stringUtils';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderMenuState, setBuilderState, setMoveField, setUpdateCommandField } from '@app/store/form-builder/actions';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { IFormFieldProperties, IFormFieldState } from '@app/store/form-builder/types';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { isContentEditableTag, isMultipleChoice } from '@app/utils/formBuilderBlockUtils';
+import { getLastItem } from '@app/utils/stringUtils';
 
 import CustomContentEditable from '../ContentEditable/CustomContentEditable';
 import FormBuilderActionMenu from './FormBuilderActionMenu';
 import FormBuilderTagSelector from './FormBuilderTagSelector';
-import {useIsMobile} from "@app/lib/hooks/use-breakpoint";
 
 interface IBuilderBlockProps {
     item: IFormFieldState;
@@ -35,11 +26,10 @@ interface IBuilderBlockProps {
     setBackspaceCount: React.Dispatch<React.SetStateAction<number>>;
 }
 
-export default function FormBuilderBlock({item, draggableId, setBackspaceCount}: IBuilderBlockProps) {
+export default function FormBuilderBlock({ item, draggableId, setBackspaceCount }: IBuilderBlockProps) {
     const dispatch = useAppDispatch();
     const builderState = useAppSelector(selectBuilderState);
-    const {t} = useBuilderTranslation();
-
+    const { t } = useBuilderTranslation();
     const handleTagSelection = (type: FormBuilderTagNames) => {
         batch(() => {
             const field: IFormFieldState = {
@@ -50,7 +40,7 @@ export default function FormBuilderBlock({item, draggableId, setBackspaceCount}:
             };
             if (isMultipleChoice(type)) {
                 const choiceId = uuidv4();
-                const properties: IFormFieldProperties = {
+                field.properties = {
                     activeChoiceId: choiceId,
                     activeChoiceIndex: 0,
                     choices: {
@@ -61,7 +51,6 @@ export default function FormBuilderBlock({item, draggableId, setBackspaceCount}:
                         }
                     }
                 };
-                field.properties = properties;
             }
             dispatch(setAddNewField(field));
             dispatch(resetBuilderMenuState());
@@ -83,7 +72,7 @@ export default function FormBuilderBlock({item, draggableId, setBackspaceCount}:
                     const newIndex = item.position + direction;
 
                     if (newIndex >= 0 && newIndex < Object.keys(builderState.fields).length) {
-                        dispatch(setMoveField({oldIndex: item.position, newIndex}));
+                        dispatch(setMoveField({ oldIndex: item.position, newIndex }));
                     }
                 }
             });
@@ -104,7 +93,7 @@ export default function FormBuilderBlock({item, draggableId, setBackspaceCount}:
         [item.id, item.position, setBackspaceCount]
     );
 
-    const isMobile = useIsMobile()
+    const isMobile = useIsMobile();
     const getMarginTop = () => {
         if (item.type === FormBuilderTagNames.LAYOUT_LABEL) return 'mt-3';
         if (item.type === FormBuilderTagNames.LAYOUT_HEADER1 || item.type === FormBuilderTagNames.LAYOUT_HEADER2 || item.type === FormBuilderTagNames.LAYOUT_HEADER3 || item.type === FormBuilderTagNames.LAYOUT_HEADER4) return 'mt-3';
@@ -116,25 +105,16 @@ export default function FormBuilderBlock({item, draggableId, setBackspaceCount}:
             {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                 <div
                     ref={provided.innerRef}
-                    className={`relative flex w-full flex-col ${snapshot.isDragging ? 'bg-brand-100' : 'bg-transparent'}   ${getMarginTop()}`}
-                    onFocus={(event: FocusEvent<HTMLElement>) => {
-                    }}
-                    onBlur={(event: FocusEvent<HTMLElement>) => {
-                    }}
+                    className={`relative  px-12 md:px-[89px] builder-block flex w-full flex-col ${snapshot.isDragging ? 'bg-brand-100' : 'bg-transparent'}   ${getMarginTop()}`}
+                    onFocus={(event: FocusEvent<HTMLElement>) => {}}
+                    onBlur={(event: FocusEvent<HTMLElement>) => {}}
                     onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => onKeyDownCallback(event, provided)}
                     {...provided.draggableProps}
                 >
-                    <div
-                        className={`builder-block px-12 min-h-[24px] flex items-center md:px-[89px] ${getMarginTop()}`}>
-                        <FormBuilderActionMenu
-                            index={item.position}
-                            id={item.id}
-                            provided={provided}
-                            className={!isMobile && builderState.activeFieldIndex !== item.position ? 'invisible' : 'visible'}
-                        />
+                    <div className={` min-h-[24px] builder-block flex items-center  ${getMarginTop()}`}>
+                        <FormBuilderActionMenu index={item.position} id={item.id} provided={provided} className={!isMobile && builderState.activeFieldIndex !== item.position ? 'invisible' : 'visible'} />
                         {!isContentEditableTag(item.type) ? (
-                            <FormBuilderBlockContent id={`item-${item.id}`} type={item.type} position={item.position}
-                                                     field={item}/>
+                            <FormBuilderBlockContent id={`item-${item.id}`} type={item.type} position={item.position} field={item} />
                         ) : (
                             <div className="flex flex-col w-full relative">
                                 <div className={`w-full px-0 flex items-center min-h-[24px]`}>
@@ -145,10 +125,9 @@ export default function FormBuilderBlock({item, draggableId, setBackspaceCount}:
                                         value={item?.value ?? ''}
                                         position={item.position}
                                         showHideHolder={true}
-                                        placeholder={item.properties?.placeholder ?? t('COMPONENTS.COMMON.PLACEHOLDER')}
+                                        placeholder={item.properties?.placeholder ?? isMobile ? "Click '::' to insert fields" : t('COMPONENTS.COMMON.PLACEHOLDER')}
                                         className="text-[14px] text-black-800"
-                                        onBlurCallback={() => {
-                                        }}
+                                        onBlurCallback={() => {}}
                                         onFocusCallback={onFocusCallback}
                                         onKeyDownCallback={(event: KeyboardEvent<HTMLDivElement>) => {
                                             if (builderState?.menus?.commands?.isOpen)
@@ -175,10 +154,12 @@ export default function FormBuilderBlock({item, draggableId, setBackspaceCount}:
                                                         })
                                                     );
                                                 }
-                                                dispatch(setUpdateCommandField({
-                                                    ...builderState.fields[builderState.activeFieldId],
-                                                    value: event.currentTarget.innerText
-                                                }));
+                                                dispatch(
+                                                    setUpdateCommandField({
+                                                        ...builderState.fields[builderState.activeFieldId],
+                                                        value: event.currentTarget.innerText
+                                                    })
+                                                );
                                             });
                                         }}
                                     />
