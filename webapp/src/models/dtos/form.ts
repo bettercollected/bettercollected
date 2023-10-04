@@ -52,6 +52,7 @@ export interface StandardFormDto {
         responseExpiration?: string;
         responseExpirationType?: ResponseRetentionType;
         disableBranding: boolean;
+        hidden: boolean;
     };
     isPublished?: boolean;
     importerDetails: UserStatus;
