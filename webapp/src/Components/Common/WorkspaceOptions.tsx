@@ -1,55 +1,43 @@
-import MenuDropdown from "@Components/Common/Navigation/MenuDropdown/MenuDropdown";
-import EllipsisOption from "@Components/Common/Icons/EllipsisOption";
-import {ListItemIcon, MenuItem} from "@mui/material";
-import EditIcon from "@Components/Common/Icons/Edit";
-import {EyeIcon} from "@app/components/icons/eye-icon";
-import ShareIcon from "@Components/Common/Icons/ShareIcon";
-import React, {useState} from "react";
-import {StandardFormDto} from "@app/models/dtos/form";
+import React, { useState } from 'react';
+
+import EditIcon from '@Components/Common/Icons/Edit';
+import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
+import ShareIcon from '@Components/Common/Icons/ShareIcon';
+import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
+import { ListItemIcon, MenuItem } from '@mui/material';
+
+import { EyeIcon } from '@app/components/icons/eye-icon';
 
 interface IWorkspaceOptionsProps {
     onClickEdit: () => void;
-    onOpenLink: () => void
-    onShareWorkspace: () => void
+    onOpenLink: () => void;
+    onShareWorkspace: () => void;
+    isAdmin?: boolean;
 }
 
-export default function WorkspaceOptions({onClickEdit, onOpenLink, onShareWorkspace}: IWorkspaceOptionsProps) {
-
+export default function WorkspaceOptions({ isAdmin, onClickEdit, onOpenLink, onShareWorkspace }: IWorkspaceOptionsProps) {
     return (
-        <MenuDropdown
-            id="workspace-dropdown"
-            showExpandMore={false}
-            menuTitle="" menuContent={<EllipsisOption/>}>
-            <MenuItem
-                onClick={onClickEdit}
-            >
+        <MenuDropdown id="workspace-dropdown" showExpandMore={false} menuTitle="" menuContent={<EllipsisOption />}>
+            {isAdmin && (
+                <MenuItem onClick={onClickEdit}>
+                    <ListItemIcon>
+                        <EditIcon width={20} height={20} />
+                    </ListItemIcon>
+                    <span>Edit</span>
+                </MenuItem>
+            )}
+            <MenuItem onClick={onOpenLink}>
                 <ListItemIcon>
-                    <EditIcon width={20} height={20}/>
+                    <EyeIcon height={20} width={20} />
                 </ListItemIcon>
-                <span>
-                    Edit
-                </span>
+                <span>Open Link</span>
             </MenuItem>
-            <MenuItem
-                onClick={onOpenLink}
-            >
+            <MenuItem onClick={onShareWorkspace}>
                 <ListItemIcon>
-                    <EyeIcon height={20} width={20}/>
+                    <ShareIcon height={20} width={20} />
                 </ListItemIcon>
-                <span>
-                    Open Link
-                </span>
-            </MenuItem>
-            <MenuItem
-                onClick={onShareWorkspace}
-            >
-                <ListItemIcon>
-                    <ShareIcon height={20} width={20}/>
-                </ListItemIcon>
-                <span>
-                    Share Workspace
-                </span>
+                <span>Share Workspace</span>
             </MenuItem>
         </MenuDropdown>
-    )
+    );
 }

@@ -182,7 +182,7 @@ export const builder = createSlice({
             fieldsArray.forEach((field: IFormFieldState, index: number) => {
                 newFieldsMap[field.id] = { ...field, position: index };
             });
-            return { ...state, activeFieldId: newField.id, fields: newFieldsMap };
+            return { ...state, activeFieldId: newField.id, activeFieldIndex: action.payload.position, fields: newFieldsMap };
         },
         addDuplicateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             // TODO: fix duplicate for shortcut keys
