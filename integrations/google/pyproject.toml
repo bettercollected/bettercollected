@@ -47,6 +47,8 @@ google-auth-oauthlib = "^1.0.0"
 googleapis-common-protos = "^1.58.0"
 sentry-sdk = {extras = ["fastapi"], version = "^1.24.0"}
 elastic-apm = "^6.17.0"
+tink = "1.8.0"
+common = {path = "../../common"}
 
 [tool.poetry.dev-dependencies]
 pytest = "~7.2.0"
