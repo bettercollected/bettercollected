@@ -93,8 +93,8 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                 sx: {
                     width: 280,
                     overflow: 'hidden',
-                    borderRadius: 0,
-                    filter: 'drop-shadow(0px 0px 15px rgba(0, 0, 0, 0.15))',
+                    borderRadius: '8px',
+                    boxShadow: '0px 0px 40px 0px rgba(19, 73, 179, 0.25)',
                     mt: 0.5,
                     padding: 0
                 }
@@ -112,11 +112,8 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                     event.stopPropagation();
                 }}
             >
-                <div className="flex flex-col gap-2 py-3">
-                    <p className="px-5 text-xs font-semibold tracking-widest leading-none uppercase text-black-700">{t('COMPONENTS.OPTIONS.DEFAULT')}</p>
-                </div>
-
                 <MenuItem
+                    sx={{ paddingX: '16px', paddingY: '6px' }}
                     className="md:hidden"
                     onClick={() => {
                         batch(() => {
@@ -125,32 +122,33 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                         });
                     }}
                 >
-                    <ListItemIcon className="text-black-900">
-                        <PlusIcon width={20} height={20} />
+                    <ListItemIcon className="text-black-700">
+                        <PlusIcon width={24} height={24} />
                     </ListItemIcon>
-                    <span className=" text-black-700">{t('INSERT.DEFAULT')}</span>
+                    <span className="text-sm text-black-700">{t('INSERT.DEFAULT')}</span>
                 </MenuItem>
-                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={duplicateField}>
+
+                <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="flex items-center body4 !text-black-700 " onClick={deleteFieldWithId}>
                     <ListItemIcon className="text-black-900">
-                        <CopyIcon width={20} height={20} />
+                        <DeleteIcon width={24} height={24} />
                     </ListItemIcon>
                     <span className="leading-none flex items-center justify-between w-full">
-                        <span>{t('COMPONENTS.ACTIONS.DUPLICATE')}</span>
-                        <span className="italic text-xs text-black-500">Ctrl/Cmd + D</span>
-                    </span>
-                </MenuItem>
-                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100" onClick={deleteFieldWithId}>
-                    <ListItemIcon className="text-black-900">
-                        <DeleteIcon width={20} height={20} />
-                    </ListItemIcon>
-                    <span className="leading-none flex items-center justify-between w-full">
-                        <span>{t('COMPONENTS.ACTIONS.DELETE')}</span>
-                        <span className="italic text-xs text-black-500">Ctrl/Cmd + Del</span>
+                        <span className="text-sm">{t('COMPONENTS.ACTIONS.DELETE')}</span>
+                        <span className="italic text-xs text-black-500 hidden md:flex">Ctrl/Cmd + Del</span>
                     </span>
                 </MenuItem>
 
+                <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="flex items-center body4 !text-black-700 " onClick={duplicateField}>
+                    <ListItemIcon className="text-black-700">
+                        <CopyIcon width={24} height={24} />
+                    </ListItemIcon>
+                    <span className="leading-none flex items-center justify-between w-full">
+                        <span className="text-sm text-black-700">{t('COMPONENTS.ACTIONS.DUPLICATE')}</span>
+                        <span className="italic text-xs text-black-500 hidden md:flex">Ctrl/Cmd + D</span>
+                    </span>
+                </MenuItem>
                 {field?.type == FormBuilderTagNames.INPUT_EMAIL && (
-                    <MenuItem sx={{ paddingX: '20px', paddingY: '10px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
+                    <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="flex items-center body4 !text-black-700">
                         <FormControlLabel
                             slotProps={{
                                 typography: {
@@ -165,18 +163,15 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                     </MenuItem>
                 )}
 
-                <StepsOption field={field} />
-
                 {!hasLabelField() && (
                     <>
-                        <Divider />
-                        <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 xl:hidden hover:bg-brand-100" onClick={addFieldLabel}>
+                        <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="flex items-center body4 !text-black-700 xl:hidden hover:bg-brand-100" onClick={addFieldLabel}>
                             <ListItemIcon className=" rounded text-black-900">
                                 <span className="bg-black-100 w-5 h-5 text-center justify-center font-bold text-[14px] flex items-center">L</span>
                             </ListItemIcon>
                             <span className="leading-none flex items-center justify-between w-full">
                                 <span>{t('COMPONENTS.ACTIONS.ADD_LABEL')}</span>
-                                <span className="italic text-xs text-black-500">Alt + L</span>
+                                <span className="italic text-xs text-black-500 hidden md:flex">Alt + L</span>
                             </span>
                         </MenuItem>
                     </>
