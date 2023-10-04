@@ -1,9 +1,9 @@
 import datetime as dt
 from typing import Optional
 
-from configs.mongo_document import MongoDocument
+from common.configs.mongo_document import MongoDocument
 
-from models.form_scheduler_config import FormSchedulerConfigQuery
+from common.models import FormSchedulerConfigQuery
 
 
 class SchedulerFormConfigDocument(MongoDocument, FormSchedulerConfigQuery):
