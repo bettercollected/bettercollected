@@ -17,6 +17,7 @@ import { Typography } from '@mui/material';
 import moment from 'moment/moment';
 
 import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
+import { GroupIcon } from '@app/components/icons/group-icon';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
@@ -75,6 +76,24 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
         }
         return shareUrl;
     };
+    const visibility = () => {
+        if (form?.settings?.private) {
+            return {
+                icon: <GroupIcon className={'h-4 w-4'} />,
+                type: 'Groups'
+            };
+        } else if (form?.settings?.hidden) {
+            return {
+                icon: <PrivateIcon />,
+                type: t(localesCommon.hidden)
+            };
+        } else {
+            return {
+                icon: <PublicIcon />,
+                type: t(localesCommon.public)
+            };
+        }
+    };
 
     return (
         <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px]  border-transparent hover:border-brand-200 transition cursor-pointer rounded-lg shadow-formCardDefault hover:shadow-formCard ${className}`}>
@@ -101,8 +120,8 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                                     <DotIcon />
                                     {form?.isPublished || isResponderPortal ? (
                                         <div className="flex items-center text-black-600">
-                                            {form?.settings?.private ? <PrivateIcon /> : <PublicIcon />}
-                                            <p className={` text-sm ml-2 text-black-600`}>{form?.settings?.private ? t(localesCommon.hidden) : t(localesCommon.public)}</p>
+                                            {visibility().icon}
+                                            <p className={` text-sm ml-2 text-black-600`}>{visibility().type}</p>
                                         </div>
                                     ) : (
                                         <div className=" text-black-600 text-sm"> Last edited {moment.utc(form?.updatedAt).fromNow()}</div>
@@ -130,10 +149,16 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                 </div>
                 {!isResponderPortal && (
                     <div className="hidden lg:invisible lg:group-hover:visible lg:flex gap-2 items-center">
-                        {form?.isPublished && (
-                            <AppButton onClick={handleShareClick} variant={ButtonVariant.Ghost} size={ButtonSize.Small} icon={<ShareIcon width={20} height={20} />}>
-                                Share
-                            </AppButton>
+                        {form?.isPublished ? (
+                            form?.settings?.hidden ? (
+                                <></>
+                            ) : (
+                                <AppButton onClick={handleShareClick} variant={ButtonVariant.Ghost} size={ButtonSize.Small} icon={<ShareIcon width={20} height={20} />}>
+                                    Share
+                                </AppButton>
+                            )
+                        ) : (
+                            <></>
                         )}
                         <AppButton
                             onClick={() => {
