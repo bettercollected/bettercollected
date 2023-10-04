@@ -35,14 +35,14 @@ import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import Error from '@app/pages/_error';
-import { setForm } from '@app/store/forms/slice';
+import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFormUrl } from '@app/utils/urlUtils';
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;
-
+    const localStateForm = useAppSelector(selectForm);
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
     const locale = props._nextI18Next.initialLocale === 'en' ? '' : `${props._nextI18Next.initialLocale}/`;
@@ -149,20 +149,26 @@ export default function FormPage(props: any) {
                                         <span className="sm:block hidden">Edit Form</span>
                                     </AppButton>
                                 )}
-                                {form?.isPublished && (
-                                    <AppButton
-                                        variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
-                                        icon={<Share />}
-                                        className="!px-0 sm:!px-5"
-                                        onClick={() =>
-                                            openModal('SHARE_VIEW', {
-                                                url: getFormUrl(form, workspace),
-                                                title: t(formConstant.shareThisForm)
-                                            })
-                                        }
-                                    >
-                                        <span className="sm:block hidden">Share Form</span>
-                                    </AppButton>
+                                {form?.isPublished ? (
+                                    localStateForm?.settings?.hidden ? (
+                                        <></>
+                                    ) : (
+                                        <AppButton
+                                            variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
+                                            icon={<Share />}
+                                            className="!px-0 sm:!px-5"
+                                            onClick={() =>
+                                                openModal('SHARE_VIEW', {
+                                                    url: getFormUrl(form, workspace),
+                                                    title: t(formConstant.shareThisForm)
+                                                })
+                                            }
+                                        >
+                                            <span className="sm:block hidden">Share Form</span>
+                                        </AppButton>
+                                    )
+                                ) : (
+                                    <></>
                                 )}
                             </div>
                         </div>
