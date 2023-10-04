@@ -226,6 +226,8 @@ class FormService:
         )
         if not workspace_form:
             raise HTTPException(404, "Form not found in workspace")
+        if settings.hidden is not None:
+            workspace_form.settings.hidden = settings.hidden
         if settings.private is not None:
             workspace_form.settings.private = settings.private
         if settings.pinned is not None:
