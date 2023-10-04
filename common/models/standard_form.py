@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Optional
 from beanie import PydanticObjectId
 from pydantic import BaseModel, Field
 
+from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
+
 
 class EmbedProvider(str, enum.Enum):
     YOUTUBE = "youtube"
@@ -152,6 +154,14 @@ class StandardPaymentAnswer(BaseModel):
     name: Optional[str]
 
 
+class FileMetadata(BaseModel):
+    id: str
+    name: Optional[str]
+    type: Optional[str]
+    size: Optional[float]
+    url: Optional[str]
+
+
 class StandardChoiceAnswer(BaseModel):
     value: Optional[str]
     other: Optional[str]
@@ -223,6 +233,9 @@ class StandardFormSettings(BaseModel):
     response_data_owner_field: Optional[str]
     response_data_owner_fields: Optional[List[str]]
     screens: Optional[Dict[str, List[Dict[str, Any]]]]
+    privacy_policy_url: Optional[str]
+    response_expiration: Optional[str]
+    response_expiration_type: Optional[ResponseRetentionType]
     # If responses are set to editable then it can be used for tracking responses
     is_response_editable: Optional[bool]
     # State whether the form is accepting new responses
@@ -311,8 +324,12 @@ class StandardForm(BaseModel):
     form_id: Optional[str]
     type: Optional[str]
     title: Optional[str]
+    logo: Optional[str]
+    cover_image: Optional[str]
     description: Optional[str]
+    button_text: Optional[str]
     fields: Optional[List[StandardFormField]]
+    consent: Optional[List[Consent]]
     state: Optional[State] = Field(State())
     settings: Optional[StandardFormSettings] = StandardFormSettings()
     published_at: Optional[dt.datetime]
@@ -332,6 +349,7 @@ class StandardFormResponseAnswer(BaseModel):
     file_url: Optional[str]
     payment: Optional[StandardPaymentAnswer]
     phone_number: Optional[str]
+    file_metadata: Optional[FileMetadata]
 
 
 class ResponseState(BaseModel):
@@ -352,9 +370,13 @@ class StandardFormResponse(BaseModel):
     answers: Optional[
                  Dict[str, StandardFormResponseAnswer | Dict[str, Any]]
              ] | bytes | str
+    form_version: Optional[int]
     created_at: Optional[dt.datetime]
     updated_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
+    consent: Optional[List[ConsentResponse]]
+    expiration: Optional[str]
+    expiration_type: Optional[ResponseRetentionType]
     state: Optional[ResponseState] = Field(None)
     dataOwnerIdentifierType: Optional[str]
     dataOwnerIdentifier: Optional[str]
