@@ -3,11 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { Close } from '@app/components/icons/close';
 import { Hint } from '@app/components/icons/hint';
 import { consentPageInformation } from '@app/data/consent';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import { useBreakpoint, useIsMobile } from '@app/lib/hooks/use-breakpoint';
 
 export default function ConsentInformationPanel() {
     const [isOpen, setOpen] = useState(false);
-    const breakpoint = useBreakpoint();
+
+    const isMobile = useIsMobile();
 
     const getTitleDescription = (title = '', description: string) => {
         return (
@@ -19,10 +20,10 @@ export default function ConsentInformationPanel() {
     };
 
     useEffect(() => {
-        if (breakpoint !== 'xs' && !isOpen) {
+        if (!isMobile) {
             setOpen(true);
         }
-    }, [breakpoint]);
+    }, [isMobile]);
 
     if (!isOpen)
         return (
