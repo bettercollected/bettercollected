@@ -1,19 +1,20 @@
-import React, {useRef, useState} from 'react';
+import React, { useRef, useState } from 'react';
 
 import Image from 'next/image';
 
-import {uuidv4} from '@mswjs/interceptors/lib/utils/uuid';
-import {toast} from 'react-toastify';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { toast } from 'react-toastify';
 
 import deleteImg from '@app/assets/images/delete.png';
 import fileUploadImg from '@app/assets/images/file-upload.png';
-import {FileMetadata} from '@app/models/types/fileTypes';
-import {addAnswer} from '@app/store/fill-form/slice';
-import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {downloadFile, generateFileMetaData} from '@app/utils/fileUtils';
+import { FileMetadata } from '@app/models/types/fileTypes';
+import { addAnswer } from '@app/store/fill-form/slice';
+import { useAppDispatch } from '@app/store/hooks';
+import { downloadFile, generateFileMetaData } from '@app/utils/fileUtils';
 
-import {FormFieldProps} from './BetterCollectedForm';
+import { FormFieldProps } from './BetterCollectedForm';
 import useFormAtom from './atom';
+
 
 export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     const [isDragging, setIsDragging] = useState(false);

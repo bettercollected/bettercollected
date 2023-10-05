@@ -3,6 +3,7 @@ import { ElementType } from 'react';
 import { DividerClasses, DividerPropsVariantOverrides, Divider as MuiDivider, SxProps, Theme } from '@mui/material';
 import { OverridableStringUnion } from '@mui/types';
 
+
 interface IDividerProps {
     className?: string;
     absolute?: boolean;

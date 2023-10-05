@@ -1,5 +1,6 @@
-import React, {ReactNode} from 'react';
-import AppButton, {AppButtonProps} from "@Components/Common/Input/Button/AppButton";
+import React, { ReactNode } from 'react';
+
+import AppButton, { AppButtonProps } from '@Components/Common/Input/Button/AppButton';
 
 interface ModalbuttonProps extends AppButtonProps {
     children: ReactNode;

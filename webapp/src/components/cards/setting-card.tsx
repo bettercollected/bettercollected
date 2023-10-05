@@ -6,6 +6,7 @@ import { Typography } from '@mui/material';
 
 import AnchorLink from '../ui/links/anchor-link';
 
+
 interface ISettingCard {
     title: string;
     description: string;

@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import cn from 'classnames';
 import AvatarEditor from 'react-avatar-editor';
 
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
-import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
-import AppButton from '@Components/Common/Input/Button/AppButton';
+
 
 interface ICropImageModalViewProps {
     profileEditorRef: React.LegacyRef<AvatarEditor> | undefined;

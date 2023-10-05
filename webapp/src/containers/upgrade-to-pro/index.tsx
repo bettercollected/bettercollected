@@ -1,22 +1,22 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 
-import {useTranslation} from 'next-i18next';
-import {useRouter} from 'next/router';
+import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import Pro from '@Components/Common/Icons/Pro';
+import ModalButton from '@Components/Common/Input/Button/ModalButton';
 
 import PlanCard from '@app/components/pro-plan/plan-card';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
-import {buttonConstant} from '@app/constants/locales/button';
-import {pricingPlan} from '@app/constants/locales/pricingplan';
-import {upgradeConst} from '@app/constants/locales/upgrade';
-import {selectAuthStatus} from '@app/store/auth/selectors';
-import {useAppSelector} from '@app/store/hooks';
-import {useGetPlansQuery} from '@app/store/plans/api';
-import ModalButton from "@Components/Common/Input/Button/ModalButton";
+import { buttonConstant } from '@app/constants/locales/button';
+import { pricingPlan } from '@app/constants/locales/pricingplan';
+import { upgradeConst } from '@app/constants/locales/upgrade';
+import { selectAuthStatus } from '@app/store/auth/selectors';
+import { useAppSelector } from '@app/store/hooks';
+import { useGetPlansQuery } from '@app/store/plans/api';
 
 export interface IUpgradeToProModal {
     featureText?: string;
@@ -98,7 +98,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
 
             {data && (
                 <ActiveLink className="mt-10" href={url}>
-                    <ModalButton >{t(buttonConstant.continue)}</ModalButton>
+                    <ModalButton>{t(buttonConstant.continue)}</ModalButton>
                 </ActiveLink>
             )}
 

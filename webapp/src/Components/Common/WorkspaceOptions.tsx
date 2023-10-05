@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import EditIcon from '@Components/Common/Icons/Edit';
 import EllipsisOption from '@Components/Common/Icons/EllipsisOption';

@@ -1,4 +1,4 @@
-import React, { RefObject, useEffect, useState } from 'react';
+import { RefObject, useEffect, useState } from 'react';
 
 export default function useIsOverflow(ref: RefObject<HTMLElement | null>, callback?: (overflow: boolean) => void) {
     const [isOverflow, setIsOverflow] = useState(false);

@@ -1,20 +1,21 @@
-import React, {Dispatch, SetStateAction, useEffect, useState} from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
-import {useTranslation} from 'next-i18next';
-import {useRouter} from 'next/router';
+import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
-import {toast} from 'react-toastify';
+import AppTextField from '@Components/Common/Input/AppTextField';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { toast } from 'react-toastify';
 
 import Back from '@app/components/icons/back';
-import {useFullScreenModal} from '@app/components/modal-views/full-screen-modal-context';
-import {buttonConstant} from '@app/constants/locales/button';
-import {formResponderLogin} from '@app/constants/locales/form-responder-login';
-import {signInScreen} from '@app/constants/locales/signin-screen';
-import {usePostSendOtpForCreatorMutation, usePostSendOtpMutation, usePostVerifyOtpMutation} from '@app/store/auth/api';
-import {useAppSelector} from '@app/store/hooks';
-import AppButton from "@Components/Common/Input/Button/AppButton";
-import {ButtonSize, ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
-import AppTextField from "@Components/Common/Input/AppTextField";
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { buttonConstant } from '@app/constants/locales/button';
+import { formResponderLogin } from '@app/constants/locales/form-responder-login';
+import { signInScreen } from '@app/constants/locales/signin-screen';
+import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
+import { useAppSelector } from '@app/store/hooks';
+
 
 interface OtpCodePropType {
     email: string;

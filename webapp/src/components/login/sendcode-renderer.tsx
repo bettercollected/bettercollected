@@ -2,6 +2,8 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
+
 import FormProviderContext from '@app/Contexts/FormProviderContext';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
 import FormInput from '@app/components/ui/FormInput';
@@ -12,7 +14,7 @@ import { otpRenderer } from '@app/constants/locales/otp-renderer';
 import { IntegrationFormProviders } from '@app/models/dtos/provider';
 import { useAppSelector } from '@app/store/hooks';
 import { capitalize } from '@app/utils/stringUtils';
-import AppButton from "@Components/Common/Input/Button/AppButton";
+
 
 export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustomDomain }: any) {
     const workspace = useAppSelector((state) => state.workspace);

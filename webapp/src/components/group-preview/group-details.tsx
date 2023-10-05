@@ -1,16 +1,18 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 
-import {useTranslation} from 'next-i18next';
-import {toast} from 'react-toastify';
+import { useTranslation } from 'next-i18next';
+
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { toast } from 'react-toastify';
+
 import GroupInfo from '@app/components/group/group-info';
-import {buttonConstant} from '@app/constants/locales/button';
-import {toastMessage} from '@app/constants/locales/toast-message';
-import {ToastId} from '@app/constants/toastId';
-import {GroupInfoDto, ResponderGroupDto} from '@app/models/dtos/groups';
-import {selectIsAdmin} from '@app/store/auth/slice';
-import {useAppSelector} from '@app/store/hooks';
-import {useUpdateResponderGroupMutation} from '@app/store/workspaces/api';
-import AppButton from "@Components/Common/Input/Button/AppButton";
+import { buttonConstant } from '@app/constants/locales/button';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { ToastId } from '@app/constants/toastId';
+import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';
+import { selectIsAdmin } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
 
 export default function GroupDetailsTab({ group }: { group: ResponderGroupDto }) {
     const { t } = useTranslation();

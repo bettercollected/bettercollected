@@ -1,34 +1,36 @@
 import React from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
+import EditIcon from '@Components/Common/Icons/Edit';
 import Pro from '@Components/Common/Icons/Pro';
 import LockIcon from '@Components/Common/Icons/lock';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import {ButtonVariant} from '@Components/Common/Input/Button/AppButtonProps';
-import {FormControlLabel, Radio, RadioGroup} from '@mui/material';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
 import Switch from '@mui/material/Switch';
 import cn from 'classnames';
-import {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
 
-import {useModal} from '@app/components/modal-views/context';
-import {FormSettingsCard} from '@app/components/settings/card';
+import { useModal } from '@app/components/modal-views/context';
+import { FormSettingsCard } from '@app/components/settings/card';
 import environments from '@app/configs/environments';
-import {buttonConstant} from '@app/constants/locales/button';
-import {localesCommon} from '@app/constants/locales/common';
-import {formConstant} from '@app/constants/locales/form';
-import {toastMessage} from '@app/constants/locales/toast-message';
-import {StandardFormDto} from '@app/models/dtos/form';
-import {selectIsAdmin} from '@app/store/auth/slice';
-import {setFormSettings} from '@app/store/forms/slice';
-import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {usePatchFormSettingsMutation} from '@app/store/workspaces/api';
-import {selectWorkspace} from '@app/store/workspaces/slice';
+import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
+import { formConstant } from '@app/constants/locales/form';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { selectIsAdmin } from '@app/store/auth/slice';
+import { setFormSettings } from '@app/store/forms/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+
 import Globe from '../icons/flags/globe';
-import {useFullScreenModal} from '../modal-views/full-screen-modal-context';
+import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
 import FormLinkUpdateView from '../ui/form-link-update-view';
-import EditIcon from "@Components/Common/Icons/Edit";
+
 
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;

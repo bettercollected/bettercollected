@@ -6,7 +6,6 @@ import _ from 'lodash';
 
 import DragHandleIcon from '@Components/Common/Icons/DragHandle';
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
-import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import { FormCoverComponent, FormLogoComponent } from '@Components/FormBuilder/Header';
@@ -22,7 +21,6 @@ import { batch } from 'react-redux';
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import eventBus from '@app/lib/event-bus';
-import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
 import useUndoRedo from '@app/lib/use-undo-redo';

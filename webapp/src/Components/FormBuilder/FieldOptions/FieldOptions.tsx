@@ -1,8 +1,5 @@
 import React, { useState } from 'react';
 
-import { useTranslation } from 'next-i18next';
-
-import Divider from '@Components/Common/DataDisplay/Divider';
 import CopyIcon from '@Components/Common/Icons/Copy';
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import DragHandleIcon from '@Components/Common/Icons/DragHandle';
@@ -10,7 +7,6 @@ import PlusIcon from '@Components/Common/Icons/Plus';
 import MuiSwitch from '@Components/Common/Input/Switch';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import FormValidations from '@Components/FormBuilder/FieldOptions/FormValidations';
-import StepsOption from '@Components/FormBuilder/FieldOptions/StepsOption';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { FormControlLabel, ListItemIcon, MenuItem } from '@mui/material';
 import { DraggableProvided } from 'react-beautiful-dnd';
@@ -20,7 +16,7 @@ import { useModal } from '@app/components/modal-views/context';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addDuplicateField, resetBuilderMenuState, setAddNewField, setDeleteField, setIdentifierField, setUpdateField } from '@app/store/form-builder/actions';
+import { addDuplicateField, setAddNewField, setDeleteField, setIdentifierField } from '@app/store/form-builder/actions';
 import { selectBuilderState, selectFormField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';

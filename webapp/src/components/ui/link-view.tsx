@@ -1,16 +1,17 @@
 import React from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import {Typography} from '@mui/material';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import { Typography } from '@mui/material';
 import cn from 'classnames';
-import {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
 
-import {buttonConstant} from '@app/constants/locales/button';
-import {useCopyToClipboard} from '@app/lib/hooks/use-copy-to-clipboard';
-import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
-import AppButton from "@Components/Common/Input/Button/AppButton";
+import { buttonConstant } from '@app/constants/locales/button';
+import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
+
 
 interface ILinkViewProps {
     url: string;

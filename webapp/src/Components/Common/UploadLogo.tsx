@@ -2,12 +2,12 @@ import React, { useRef, useState } from 'react';
 
 import Image from 'next/image';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import cn from 'classnames';
 
 import Camera from '@app/components/icons/camera';
 import { Close } from '@app/components/icons/close';
-import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
-import AppButton from "@Components/Common/Input/Button/AppButton";
 
 interface IUploadLogo {
     className?: string;

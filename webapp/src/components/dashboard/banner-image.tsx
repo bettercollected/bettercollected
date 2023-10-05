@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
 import cn from 'classnames';
 import html2canvas from 'html2canvas';
 import { toast } from 'react-toastify';
@@ -18,7 +19,7 @@ import { BannerImageComponentPropType } from '@app/containers/dashboard/Workspac
 import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
-import AppButton from "@Components/Common/Input/Button/AppButton";
+
 
 export default function BannerImageComponent(props: BannerImageComponentPropType) {
     const { workspace, isFormCreator } = props;

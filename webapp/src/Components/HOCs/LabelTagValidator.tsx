@@ -8,6 +8,7 @@ import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
 
+
 interface LabelTagValidatorProps extends React.PropsWithChildren {
     position: number;
 }

@@ -5,7 +5,6 @@ import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import DeleteIcon from '@Components/Common/Icons/Delete';
 import { DotIcon } from '@Components/Common/Icons/DotIcon';
 import FormProviderIcon from '@Components/Common/Icons/FormProviderIcon';
 import Preview from '@Components/Common/Icons/Preview';

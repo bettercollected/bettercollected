@@ -1,5 +1,7 @@
 import { useTranslation } from 'next-i18next';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
+
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
 import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import Hamburger from '@app/components/ui/hamburger';
@@ -10,7 +12,7 @@ import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
 
 import LocaleDropdownUi from '../ui/locale-dropdown-ui';
-import AppButton from "@Components/Common/Input/Button/AppButton";
+
 
 interface IAuthNavbarProps {
     hideMenu?: boolean;

@@ -1,11 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 
 import cn from 'classnames';
 
 import { Hint } from '@app/components/icons/hint';
-import { useModal } from '@app/components/modal-views/context';
-import { ConsentPurposeModalMode, ConsentPurposeModalProps } from '@app/components/modal-views/modals/consent-purpose-modal-view';
-import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
+import { ConsentPurposeModalMode } from '@app/components/modal-views/modals/consent-purpose-modal-view';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { IConsentOption } from '@app/models/types/consentTypes';
 

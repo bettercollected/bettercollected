@@ -1,26 +1,26 @@
-import {Close} from "@app/components/icons/close";
-import {useModal} from "@app/components/modal-views/context";
-import Divider from "@Components/Common/DataDisplay/Divider";
-import {useCallback, useEffect, useRef, useState} from "react";
-import {BlockTypes, FormBuilderTagNames, KeyType} from "@app/models/enums/formBuilder";
-import {useAppDispatch, useAppSelector} from "@app/store/hooks";
-import { selectBuilderState} from "@app/store/form-builder/selectors";
-import {
-    allowedInputTags, allowedLayoutTags,
-    allowedQuestionAndAnswerTags,
-    allowedTags
-} from "@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector";
-import TagListItem from "@Components/FormBuilder/BuilderBlock/TagListItem";
-import {InputAdornment, List, ListSubheader} from "@mui/material";
-import TextField from "@mui/material/TextField";
-import {placeHolder} from "@app/constants/locales/placeholder";
-import cn from "classnames";
-import {SearchIcon} from "@app/components/icons/search";
-import {StyledTextField} from "@app/components/dashboard/workspace-forms-tab-content";
-import {useTranslation} from "next-i18next";
-import {batch} from "react-redux";
-import {resetBuilderMenuState, setAddNewField, setDeleteField} from "@app/store/form-builder/actions";
-import {v4} from "uuid";
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { useTranslation } from 'next-i18next';
+
+import Divider from '@Components/Common/DataDisplay/Divider';
+import { allowedInputTags, allowedLayoutTags, allowedQuestionAndAnswerTags, allowedTags } from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
+import TagListItem from '@Components/FormBuilder/BuilderBlock/TagListItem';
+import { InputAdornment, List, ListSubheader } from '@mui/material';
+import TextField from '@mui/material/TextField';
+import cn from 'classnames';
+import { batch } from 'react-redux';
+import { v4 } from 'uuid';
+
+import { StyledTextField } from '@app/components/dashboard/workspace-forms-tab-content';
+import { Close } from '@app/components/icons/close';
+import { SearchIcon } from '@app/components/icons/search';
+import { useModal } from '@app/components/modal-views/context';
+import { placeHolder } from '@app/constants/locales/placeholder';
+import { BlockTypes, FormBuilderTagNames, KeyType } from '@app/models/enums/formBuilder';
+import { resetBuilderMenuState, setAddNewField, setDeleteField } from '@app/store/form-builder/actions';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+
 
 export default function MobileInsertMenu({index}: { index?: number }) {
 

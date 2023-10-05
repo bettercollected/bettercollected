@@ -2,10 +2,11 @@ import React, { useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
-import { List, ListItem, ListItemButton, ListItemIcon, ListItemText, SxProps, Theme } from '@mui/material';
+import { List, ListItem, ListItemButton, ListItemIcon, SxProps, Theme } from '@mui/material';
 
 import { INavbarItem } from '@app/models/props/navbar';
 import { isValidRelativeURL } from '@app/utils/urlUtils';
+
 
 interface INavigationListProps {
     navigationList: Array<INavbarItem>;

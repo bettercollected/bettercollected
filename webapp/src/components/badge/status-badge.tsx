@@ -6,6 +6,7 @@ import _ from 'lodash';
 
 import { statusProps } from '@app/utils/validationUtils';
 
+
 export default function StatusBadge({ status, className = '' }: { status: string; className?: string }) {
     const { t } = useTranslation();
     const { currentStatus, cName, dotCName } = statusProps(status, t);

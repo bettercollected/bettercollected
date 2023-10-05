@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 import { DragDropContext, DragStart, DragUpdate, DropResult, DroppableProvided, DroppableStateSnapshot, OnDragEndResponder, OnDragStartResponder, OnDragUpdateResponder, ResponderProvided } from 'react-beautiful-dnd';
 

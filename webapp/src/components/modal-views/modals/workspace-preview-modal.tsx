@@ -1,13 +1,12 @@
 import React from 'react';
 
-import Link from 'next/link';
-
 import { Close } from '@app/components/icons/close';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import environments from '@app/configs/environments';
 import WorkspaceHomeContainer from '@app/containers/dashboard/WorkspaceHomeContainer';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
 
 export default function WorkspacePreviewModal() {
     const { closeModal } = useFullScreenModal();

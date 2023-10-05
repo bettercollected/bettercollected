@@ -18,6 +18,7 @@ import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useDeleteAccountMutation } from '@app/store/auth/api';
 
+
 export default function UserDeletionModal() {
     const { closeModal } = useModal();
     const [confirm, setConfirm] = useState('');

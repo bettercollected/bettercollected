@@ -13,6 +13,7 @@ import { useLazyGetLogoutQuery, useLazyGetStatusQuery } from '@app/store/auth/ap
 import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch } from '@app/store/hooks';
 
+
 export default function LogoutView(props: any) {
     const { closeModal } = useModal();
     const { t } = useTranslation();

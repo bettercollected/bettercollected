@@ -2,6 +2,8 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
+
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import SettingsCard from '@app/components/settings/card';
@@ -11,7 +13,7 @@ import { localesCommon } from '@app/constants/locales/common';
 import { upgradeConst } from '@app/constants/locales/upgrade';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import AppButton from "@Components/Common/Input/Button/AppButton";
+
 
 export default function UpdateCustomDomain() {
     const { t } = useTranslation();

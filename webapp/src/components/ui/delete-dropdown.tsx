@@ -10,6 +10,7 @@ import { MenuItem } from '@mui/material';
 import { localesCommon } from '@app/constants/locales/common';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 
+
 export default function DeleteDropDown({ onDropDownItemClick, className, label }: { onDropDownItemClick: (event?: any) => void; className?: string; label?: string }) {
     const { t } = useTranslation();
     return (
