@@ -6,15 +6,16 @@ class MyDocument extends Document {
     static async getInitialProps(ctx: DocumentContext): Promise<DocumentInitialProps> {
         return Document.getInitialProps(ctx);
     }
+
     render() {
         return (
             <Html lang="en-US" dir="ltr" className="light">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
                 <Head>
                     {this.props.styles}
                     {embedScript()}
                     {embedMicrosoftClarityScript()}
                 </Head>
-
                 <body>
                     <Main />
                     <NextScript />
@@ -59,4 +60,5 @@ function embedScript() {
         <></>
     );
 }
+
 export default MyDocument;
