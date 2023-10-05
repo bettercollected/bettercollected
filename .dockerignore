@@ -1,7 +1,4 @@
 .git*
-auth
-backend
-common
-integrations
-temporal
-webapp
+**/node_modules/
+**/.venv/
+**/venv/
