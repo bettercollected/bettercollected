@@ -42,7 +42,7 @@ DashboardDrawer.defaultProps = {
 const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
     const { t } = useTranslation();
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
-    const { data } = useGetWorkspaceStatsQuery(workspace.id);
+    const { data } = useGetWorkspaceStatsQuery(workspace.id, { skip: !workspace.id });
     const { openModal } = useFullScreenModal();
 
     const isProPlan = useAppSelector(selectIsProPlan);
