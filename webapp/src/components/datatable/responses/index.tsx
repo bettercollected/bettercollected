@@ -58,17 +58,15 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     };
     const { t } = useTranslation();
     const onRowClicked = (response: StandardFormResponseDto) => {
-        if (!requestForDeletion) {
-            if (!requestForDeletion)
-                router.push(
-                    {
-                        pathname: router.pathname,
-                        query: { ...router.query, sub_id: response.responseId }
-                    },
-                    undefined,
-                    { scroll: true, shallow: true }
-                );
-        }
+        if (!requestForDeletion)
+            router.push(
+                {
+                    pathname: router.pathname,
+                    query: { ...router.query, sub_id: response.responseId }
+                },
+                undefined,
+                { scroll: true, shallow: true }
+            );
     };
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
