@@ -28,7 +28,7 @@ ENV PATH="${POETRY_HOME}/bin:${VENV_PATH}/bin:${PATH}"
 WORKDIR /api
 
 COPY ./common ./common
-COPY./integrations/google ./integrations/google
+COPY ./integrations/google ./integrations/google
 WORKDIR $PYSETUP_PATH
 RUN make install
 
