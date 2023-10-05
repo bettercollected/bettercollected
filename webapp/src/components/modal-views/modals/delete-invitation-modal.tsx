@@ -14,7 +14,7 @@ import { WorkspaceInvitationDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { getFullNameFromUser } from '@app/utils/userUtils';
+
 
 interface IDeleteInvitationModalProps {
     invitation: WorkspaceInvitationDto;

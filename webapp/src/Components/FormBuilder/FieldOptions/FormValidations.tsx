@@ -5,7 +5,6 @@ import MuiSwitch from '@Components/Common/Input/Switch';
 import StepsOption from '@Components/FormBuilder/FieldOptions/StepsOption';
 import Validation from '@Components/FormBuilder/FieldOptions/Validation';
 import { ValidationType } from '@Components/FormBuilder/FieldOptions/types';
-import { FormControlLabel, MenuItem } from '@mui/material';
 import { useDispatch } from 'react-redux';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';

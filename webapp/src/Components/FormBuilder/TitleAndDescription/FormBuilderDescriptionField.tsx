@@ -3,11 +3,9 @@ import React, { useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 
 import styled from '@emotion/styled';
-import { commands } from '@uiw/react-md-editor';
 import katex from 'katex';
 import mermaid from 'mermaid';
 import { getCodeString } from 'rehype-rewrite';
-import rehypeSanitize from 'rehype-sanitize';
 
 const MDEditor: any = dynamic((): any => import('@uiw/react-md-editor').then((mod: any) => mod.default), {
     ssr: false,

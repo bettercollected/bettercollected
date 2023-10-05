@@ -1,5 +1,3 @@
-import { useEffect } from 'react';
-
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
@@ -12,7 +10,6 @@ import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { metaDataTitle } from '@app/constants/locales/meta-data-title';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
-import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';

@@ -1,9 +1,10 @@
-import React, { forwardRef } from 'react';
+import React from 'react';
 
 import { TextField, TextFieldProps } from '@mui/material';
 import cn from 'classnames';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+
 
 type AppTextFieldProps = TextFieldProps & {
     title?: string;

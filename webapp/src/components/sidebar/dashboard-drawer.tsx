@@ -8,9 +8,7 @@ import DeleteIcon from '@Components/Common/Icons/Delete';
 import { FormIcon } from '@Components/Common/Icons/FormIcon';
 import MembersIcon from '@Components/Common/Icons/Members';
 import ResponderIcon from '@Components/Common/Icons/Responder';
-import Toolbar from '@Components/Common/Layout/Toolbar';
 import { Box, LinearProgress, List, ListItem } from '@mui/material';
-import cn from 'classnames';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
@@ -33,6 +31,7 @@ import { useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import Globe from '../icons/flags/globe';
+
 
 DashboardDrawer.defaultProps = {
     drawerWidth: 289,

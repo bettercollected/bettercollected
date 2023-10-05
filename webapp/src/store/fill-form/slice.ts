@@ -6,7 +6,7 @@ import { AnswerDto } from '@app/models/dtos/form';
 import { FormValidationError } from '@app/store/fill-form/type';
 import { RootState } from '@app/store/store';
 
-import { IConsentAnswer, IConsentField, IConsentState } from '../consent/types';
+import { IConsentAnswer } from '../consent/types';
 
 interface FillIBuilderState {
     id: string;

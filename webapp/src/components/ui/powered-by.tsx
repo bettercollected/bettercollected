@@ -8,6 +8,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import AnchorLink from './links/anchor-link';
 
+
 interface IPoweredByProps {
     isFormCreatorPortal?: boolean;
 }

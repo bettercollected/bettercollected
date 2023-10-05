@@ -1,14 +1,10 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import ModalButton from '@Components/Common/Input/Button/ModalButton';
 import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
 import { toast } from 'react-toastify';
 
-import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import { buttonConstant } from '@app/constants/locales/button';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { updateWorkspace } from '@app/constants/locales/update-workspace';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';

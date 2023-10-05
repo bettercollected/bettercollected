@@ -2,15 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useRouter } from 'next/router';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
-
 import { Tab, TabItem, TabPanel, TabPanels } from '@app/components/ui/tab';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { useClickAway } from '@app/lib/hooks/use-click-away';
 import { authApi } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
-import { Hint } from '../icons/hint';
 
 interface TabMenuItem {
     title: React.ReactNode;

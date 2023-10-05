@@ -1,17 +1,18 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
 import SearchInput from '@Components/Common/Search/SearchInput';
 
 import ResponsesTable from '@app/components/datatable/responses';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
-import {formConstant} from '@app/constants/locales/form';
-import {selectForm} from '@app/store/forms/slice';
-import {useAppSelector} from '@app/store/hooks';
-import {useGetFormsSubmissionsQuery} from '@app/store/workspaces/api';
-import {IGetFormSubmissionsQuery} from '@app/store/workspaces/types';
+import { formConstant } from '@app/constants/locales/form';
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
+import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
+
 
 export default function FormResponsesTable({props}: any) {
     const {t} = useTranslation();

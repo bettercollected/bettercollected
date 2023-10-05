@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import Back from '@app/components/icons/back';
 import { buttonConstant } from '@app/constants/locales/button';
 
+
 export default function BackButton() {
     const router = useRouter();
     const { t } = useTranslation();

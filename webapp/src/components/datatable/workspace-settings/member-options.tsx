@@ -12,6 +12,7 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
 
+
 interface IMemberOptionProps {
     member?: WorkspaceMembersDto;
     invitation?: WorkspaceInvitationDto;

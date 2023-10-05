@@ -5,6 +5,7 @@ import { AvatarPropsVariantOverrides } from '@mui/material/Avatar/Avatar';
 import { OverridableStringUnion } from '@mui/types';
 import cn from 'classnames';
 
+
 interface IAuthAccountProfileImageProps {
     size?: number;
     image?: string;

@@ -2,6 +2,10 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import AppTextField from '@Components/Common/Input/AppTextField';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import ModalButton from '@Components/Common/Input/Button/ModalButton';
 import cn from 'classnames';
 import { toast } from 'react-toastify';
 
@@ -13,10 +17,7 @@ import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
-import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
-import ModalButton from "@Components/Common/Input/Button/ModalButton";
-import AppButton from "@Components/Common/Input/Button/AppButton";
-import AppTextField from "@Components/Common/Input/AppTextField";
+
 
 interface IAddMemberModalProps {
     handleAddMembers: (members: Array<string>) => void;

@@ -1,20 +1,21 @@
 import React from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
 import Plus from '@Components/Common/Icons/Plus';
-import {Typography} from '@mui/material';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Typography } from '@mui/material';
 
-import {useModal} from '@app/components/modal-views/context';
-import {buttonConstant} from '@app/constants/locales/button';
-import {localesCommon} from '@app/constants/locales/common';
-import {groupConstant} from '@app/constants/locales/group';
-import {handleRegexType} from '@app/models/enums/groupRegex';
-import {selectIsAdmin} from '@app/store/auth/slice';
-import {useAppSelector} from '@app/store/hooks';
-import {isEmptyString} from '@app/utils/stringUtils';
-import AppButton from "@Components/Common/Input/Button/AppButton";
-import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
+import { useModal } from '@app/components/modal-views/context';
+import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
+import { groupConstant } from '@app/constants/locales/group';
+import { handleRegexType } from '@app/models/enums/groupRegex';
+import { selectIsAdmin } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { isEmptyString } from '@app/utils/stringUtils';
+
 
 interface IRegexCardProps {
     handleRegex: (regex: string, type: handleRegexType) => void;

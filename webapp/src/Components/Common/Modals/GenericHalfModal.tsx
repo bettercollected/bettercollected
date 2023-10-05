@@ -7,6 +7,7 @@ import Divider from '@mui/material/Divider';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 
+
 interface IModalWrapperProps {
     headerTitle?: string;
     title?: string;

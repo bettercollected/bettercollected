@@ -1,16 +1,17 @@
-import {useMemo} from 'react';
+import { useMemo } from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
-import {debounce} from 'lodash';
+import { debounce } from 'lodash';
 
-import {InputAdornment} from '@mui/material';
+import { InputAdornment } from '@mui/material';
 import TextField from '@mui/material/TextField';
 import cn from 'classnames';
 
-import {StyledTextField} from '@app/components/dashboard/workspace-forms-tab-content';
-import {SearchIcon} from '@app/components/icons/search';
-import {placeHolder} from '@app/constants/locales/placeholder';
+import { StyledTextField } from '@app/components/dashboard/workspace-forms-tab-content';
+import { SearchIcon } from '@app/components/icons/search';
+import { placeHolder } from '@app/constants/locales/placeholder';
+
 
 interface ISearchInputProps {
     handleSearch: (event: any) => void;

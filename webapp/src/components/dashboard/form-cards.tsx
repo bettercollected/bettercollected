@@ -1,6 +1,5 @@
 import React from 'react';
 
-import FormsContainer from '@app/components/cards/form-container';
 import ActiveLink from '@app/components/ui/links/active-link';
 import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
 import environments from '@app/configs/environments';

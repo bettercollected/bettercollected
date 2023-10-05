@@ -5,7 +5,7 @@ import { ActionCreators } from 'redux-undo';
 
 import eventBus from '@app/lib/event-bus';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
-import { resetBuilderMenuState, setBuilderState } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState } from '@app/store/form-builder/actions';
 import { selectBuilderFutureState, selectBuilderPastState, selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';

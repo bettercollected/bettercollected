@@ -1,4 +1,5 @@
-import React from "react"
+import React from 'react';
+
 import { LoaderSizeTypes, LoaderVariantTypes } from '@app/components/ui/loader';
 
 type ShapeNames = 'rounded' | 'pill' | 'circle';

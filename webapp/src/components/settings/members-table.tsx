@@ -13,6 +13,7 @@ import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
 import { utcToLocalDate, utcToLocalTime } from '@app/utils/dateUtils';
 
+
 const customDataTableStyles = { ...dataTableCustomStyles };
 
 customDataTableStyles.rows.style.backgroundColor = 'white';

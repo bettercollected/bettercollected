@@ -1,8 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 import BackButtonMenuBar from '@Components/Common/BackButtonMenuBar';
 import AttentionText from '@Components/Consent/AttentionText';
-import ConsentBuilder from '@Components/Consent/Builder/ConsentBuilder';
 import ConsentInformationPanel from '@Components/Consent/ConsentInformationPanel';
 import ConsentForm from '@Components/Consent/Form/ConsentForm';
 import HintBox from '@Components/Consent/Form/HintBox';
@@ -23,7 +22,7 @@ export default function ConsentFullModalView({ onFormSubmit, form, isDisabled = 
     return (
         <div className="flex flex-col w-full min-h-screen !bg-white max-h-screen overflow-auto">
             <div className="absolute top-0 left-0 w-full bg-white z-[100] ">
-                <BackButtonMenuBar text={isPreview?'Back to Editor':'Back to Form'} onBack={closeModal} />
+                <BackButtonMenuBar text={isPreview ? 'Back to Editor' : 'Back to Form'} onBack={closeModal} />
             </div>
             <div className="mt-12">
                 <div className="mx-[15px] sm:mx-[40px] md:ml-[120px] xl:ml-[267px] w-fit md:w-[508px] mt-6">

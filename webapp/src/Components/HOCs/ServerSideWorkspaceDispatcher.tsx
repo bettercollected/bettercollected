@@ -4,6 +4,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppDispatch } from '@app/store/hooks';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
+
 interface IServerSideWorkspaceDispatcherProps {
     children: React.ReactNode | React.ReactNode[];
     workspace: WorkspaceDto | null | undefined;

@@ -11,6 +11,7 @@ import { Twitter } from '@app/components/icons/brands/twitter';
 import LinkView from '@app/components/ui/link-view';
 import { toastMessage } from '@app/constants/locales/toast-message';
 
+
 type SizeNames = 'large' | 'small';
 interface Props {
     url: string;

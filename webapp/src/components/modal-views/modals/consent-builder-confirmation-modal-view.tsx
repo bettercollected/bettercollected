@@ -1,17 +1,18 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 
-import {useRouter} from 'next/router';
+import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import ConsentModalTopBar from '@Components/Consent/ConsentModalTopBar';
 import ErrorText from '@Components/Consent/ErrorText';
 import HintBox from '@Components/Consent/Form/HintBox';
 import TermsAndCondition from '@Components/Consent/TermsAndCondition';
+
 import useForm from '@app/lib/hooks/use-form';
-import {selectBuilderState} from '@app/store/form-builder/selectors';
-import {useAppSelector} from '@app/store/hooks';
-import {usePublishFormMutation} from '@app/store/workspaces/api';
-import {selectWorkspace} from '@app/store/workspaces/slice';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { useAppSelector } from '@app/store/hooks';
+import { usePublishFormMutation } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function ConsentBuilderConfirmationModalView() {
     const router = useRouter();

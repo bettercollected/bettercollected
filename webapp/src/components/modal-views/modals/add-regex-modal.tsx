@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import AppTextField from '@Components/Common/Input/AppTextField';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -9,9 +13,7 @@ import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { handleRegexType } from '@app/models/enums/groupRegex';
 import { isEmptyString } from '@app/utils/stringUtils';
-import AppButton from "@Components/Common/Input/Button/AppButton";
-import AppTextField from "@Components/Common/Input/AppTextField";
-import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
+
 
 export default function AddRegexModal({ handleRegex }: { handleRegex: (regex: string, type: handleRegexType) => void }) {
     const { closeModal } = useModal();

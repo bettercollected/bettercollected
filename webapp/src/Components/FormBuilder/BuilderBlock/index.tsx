@@ -11,7 +11,7 @@ import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderMenuState, setBuilderState, setMoveField, setUpdateCommandField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { IFormFieldProperties, IFormFieldState } from '@app/store/form-builder/types';
+import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { isContentEditableTag, isMultipleChoice } from '@app/utils/formBuilderBlockUtils';
 import { getLastItem } from '@app/utils/stringUtils';

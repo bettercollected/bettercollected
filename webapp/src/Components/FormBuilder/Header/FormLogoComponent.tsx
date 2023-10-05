@@ -1,7 +1,8 @@
-import React, { FormEvent, HTMLAttributes, MouseEventHandler, useCallback, useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 
 import Image from 'next/image';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
 import { Close } from '@mui/icons-material';
 import cn from 'classnames';
 import { SetStateAction } from 'jotai';
@@ -10,7 +11,6 @@ import useFormBuilderAtom from '@app/Components/FormBuilder/builderAtom';
 import Camera from '@app/components/icons/camera';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
-import AppButton from "@Components/Common/Input/Button/AppButton";
 
 interface IFormLogoComponent {
     setIsLogoClicked: React.Dispatch<SetStateAction<boolean>>;
