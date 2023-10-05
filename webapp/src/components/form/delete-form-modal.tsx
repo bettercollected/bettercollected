@@ -35,5 +35,5 @@ export default function DeleteFormModal(props: any) {
             toast(t(toastMessage.formDeletionFail).toString(), { type: 'error' });
         }
     };
-    return <GenericHalfModal type="delete" positiveText="Delete" positiveAction={handleDelete} headerTitle="DeleteForm" title={`Are you sure to delete the form "${props?.form?.title || 'Untitled Form'}"?`} />;
+    return <GenericHalfModal type="danger" positiveText="Delete" positiveAction={handleDelete} headerTitle="Delete Form" title={`Are you sure to delete the form "${props?.form?.title || 'Untitled Form'}"?`} />;
 }

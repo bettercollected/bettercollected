@@ -37,6 +37,9 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
         const domain = !!workspace.customDomain ? workspace.customDomain : environments.CLIENT_DOMAIN;
+        if (workspace.customDomain) {
+            return `${protocol}${domain}`;
+        }
         const w_name = !!workspace.customDomain ? '' : workspace.workspaceName;
         return `${protocol}${domain}/${language}${w_name}`;
     };

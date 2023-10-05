@@ -1,5 +1,8 @@
 import { useTranslation } from 'next-i18next';
 
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import ModalButton from '@Components/Common/Input/Button/ModalButton';
+import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
 import { toast } from 'react-toastify';
 
 import { Close } from '@app/components/icons/close';
@@ -12,8 +15,6 @@ import { useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceMemberMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFullNameFromUser } from '@app/utils/userUtils';
-import ModalButton from "@Components/Common/Input/Button/ModalButton";
-import {ButtonSize, ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
 
 interface IDeleteMemberModalProps {
     member: WorkspaceMembersDto;
@@ -36,26 +37,5 @@ export default function DeleteMemberModal({ member }: IDeleteMemberModalProps) {
         closeModal();
     };
 
-    return (
-        <div className="rounded p-10 bg-white items-center w-full max-w-[465px] flex flex-col relative">
-            <Close
-                className="absolute top-5 right-5"
-                onClick={() => {
-                    closeModal();
-                }}
-            />
-            <div className="sh3 mb-5">
-                {t(localesCommon.remove)} {getFullNameFromUser(member)}?
-            </div>
-            <div className="body4 text-black-600 text-center mb-10">{t(localesCommon.removeWarningMessage)}</div>
-            <div className="flex w-full gap-2 justify-between">
-                <ModalButton data-testid="logout-button" buttonType={"Modal"} size={ButtonSize.Medium} variant={ButtonVariant.Danger} onClick={handleDelete}>
-                    {t(buttonConstant.delete)}
-                </ModalButton>
-                <ModalButton buttonType={"Modal"} size={ButtonSize.Medium} variant={ButtonVariant.Secondary} onClick={() => closeModal()}>
-                    {t(buttonConstant.cancel)}
-                </ModalButton>
-            </div>
-        </div>
-    );
+    return <GenericHalfModal type="danger" headerTitle="Delete Member" title={`Are you sure to delete ${getFullNameFromUser(member)}?`} subTitle={t(localesCommon.removeWarningMessage)} positiveAction={handleDelete} />;
 }

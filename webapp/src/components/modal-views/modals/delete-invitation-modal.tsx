@@ -1,5 +1,8 @@
 import { useTranslation } from 'next-i18next';
 
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import ModalButton from '@Components/Common/Input/Button/ModalButton';
+import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
 import { toast } from 'react-toastify';
 
 import { Close } from '@app/components/icons/close';
@@ -11,8 +14,7 @@ import { WorkspaceInvitationDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import {ButtonSize, ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
-import ModalButton from '@Components/Common/Input/Button/ModalButton';
+import { getFullNameFromUser } from '@app/utils/userUtils';
 
 interface IDeleteInvitationModalProps {
     invitation: WorkspaceInvitationDto;
@@ -35,6 +37,8 @@ export default function DeleteInvitationModal({ invitation }: IDeleteInvitationM
         closeModal();
     };
 
+    return <GenericHalfModal type="danger" headerTitle="Delete Invitation" title={`Are you sure to delete invitation of ${invitation.email}?`} positiveAction={handleDelete} />;
+
     return (
         <div className="rounded p-10 bg-white items-center w-full max-w-[465px] flex flex-col relative">
             <Close
@@ -47,10 +51,10 @@ export default function DeleteInvitationModal({ invitation }: IDeleteInvitationM
                 {t(localesCommon.removeInvitationFor)} {invitation.email}?
             </div>
             <div className="flex w-full gap-2 justify-between">
-                <ModalButton data-testid="logout-button" buttonType={"Modal"} size={ButtonSize.Medium} variant={ButtonVariant.Danger} onClick={handleDelete}>
+                <ModalButton data-testid="logout-button" buttonType={'Modal'} size={ButtonSize.Medium} variant={ButtonVariant.Danger} onClick={handleDelete}>
                     {t(buttonConstant.delete)}
                 </ModalButton>
-                <ModalButton buttonType={"Modal"} size={ButtonSize.Medium} variant={ButtonVariant.Secondary} onClick={() => closeModal()}>
+                <ModalButton buttonType={'Modal'} size={ButtonSize.Medium} variant={ButtonVariant.Secondary} onClick={() => closeModal()}>
                     {t(buttonConstant.cancel)}
                 </ModalButton>
             </div>
