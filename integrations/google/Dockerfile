@@ -16,8 +16,8 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_NO_INTERACTION=1 \
     POETRY_VERSION=1.3.2 \
     POETRY_INSTALL_OPTS="--no-interaction --without dev --no-root" \
-    PYSETUP_PATH="/api" \
-    VENV_PATH="/api/.venv"
+    PYSETUP_PATH="/api/integrations/google" \
+    VENV_PATH="/api/integrations/google/.venv"
 
 ENV PATH="${POETRY_HOME}/bin:${VENV_PATH}/bin:${PATH}"
 
@@ -25,7 +25,10 @@ ENV PATH="${POETRY_HOME}/bin:${VENV_PATH}/bin:${PATH}"
 # This is needed because Poetry doesn't support installing root package without
 # editable mode: https://github.com/python-poetry/poetry/issues/1382
 # Otherwise venv with source code would need to be copied to final image.
-COPY . $PYSETUP_PATH
+WORKDIR /api
+
+COPY ./common ./common
+COPY./integrations/google ./integrations/google
 WORKDIR $PYSETUP_PATH
 RUN make install
 
