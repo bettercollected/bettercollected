@@ -1,4 +1,3 @@
-# This digest SHA points to python:3.9-slim-bullseye tag
 FROM python:3.10 as builder
 
 # Configure environment variables
@@ -15,8 +14,8 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_NO_INTERACTION=1 \
     POETRY_VERSION=1.3.2 \
     POETRY_INSTALL_OPTS="--no-interaction --without dev --no-root" \
-    PYSETUP_PATH="/api" \
-    VENV_PATH="/api/.venv"
+    PYSETUP_PATH="/api/backend" \
+    VENV_PATH="/api/backend/.venv"
 
 ENV PATH="${POETRY_HOME}/bin:${VENV_PATH}/bin:${PATH}"
 
@@ -26,12 +25,12 @@ ENV PATH="${POETRY_HOME}/bin:${VENV_PATH}/bin:${PATH}"
 # Otherwise venv with source code would need to be copied to final image.
 RUN  curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/${POETRY_VERSION}/install-poetry.py | POETRY_HOME=$POETRY_HOME POETRY_VERSION=$POETRY_VERSION python3 -
 
-WORKDIR $PYSETUP_PATH
+WORKDIR /api
+COPY ./backend ./backend
+COPY ./common ./common
 
-COPY poetry.lock pyproject.toml $PYSETUP_PATH
-RUN poetry install --no-dev --no-interaction
-COPY  ./common ./common
-COPY  ./backend ./backend
+WORKDIR $PYSETUP_PATH
+RUN poetry install --only main --no-interaction
 EXPOSE 8000/tcp
 
 CMD ["uvicorn", "backend.app:get_application", "--host", "0.0.0.0", "--port", "8000"]

@@ -85,7 +85,7 @@ jobs:
           SERVICE_TAG: ${{ matrix.service }}
         run: |
           SERVICE_TAG=${SERVICE_TAG//\//-}
-          docker build -t bettercollected/${SERVICE_TAG}:${{ github.sha }} ${{ matrix.service }}  
+          docker build -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .  
   
 
   build_and_push:
@@ -104,8 +104,6 @@ jobs:
     steps:
       - name: Checkout code with submodules
         uses: actions/checkout@v2
-        with:
-          submodules: "recursive"
 
       - name: Set up Docker
         uses: docker/login-action@v1
@@ -120,7 +118,7 @@ jobs:
           SERVICE_TAG: ${{ matrix.service }}
         run: |
           SERVICE_TAG=${SERVICE_TAG//\//-}
-          docker build -t bettercollected/${SERVICE_TAG}:${{ github.sha }} ${{ matrix.service }}
+          docker build f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
           docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
 
       - name: Add Nightly, Latest and Release Tags
