@@ -12,10 +12,10 @@ interface IModalWrapperProps {
     title?: string;
     subTitle?: string;
     children?: ReactNode;
-    type?: 'delete' | 'confirmation';
+    type?: 'danger' | 'confirmation';
     positiveText?: string;
     negativeText?: string;
-    positiveAction?: () => void;
+    positiveAction?: (e?: any) => void;
 }
 
 export default function GenericHalfModal({ headerTitle, title, subTitle, type, positiveAction, positiveText, negativeText = 'Cancel', children }: IModalWrapperProps) {
@@ -27,16 +27,16 @@ export default function GenericHalfModal({ headerTitle, title, subTitle, type, p
                 <Close onClick={closeModal} />
             </div>
             <Divider />
-            <div className="flex flex-col p-10">
+            <div className="flex flex-col p-10 !pt-6">
                 {title && <span className="text-black-800 h2-new font-semibold">{title}</span>}
-                {subTitle && <span className="p2-new text-black-700"></span>}
+                {subTitle && <span className="p2-new text-sm mt-2 text-black-700">{subTitle}</span>}
                 {children}
                 <div className="flex w-full gap-4 mt-6">
                     <AppButton className="flex-1" size={ButtonSize.Medium} onClick={closeModal} variant={ButtonVariant.Secondary}>
                         {negativeText}
                     </AppButton>
-                    <AppButton className="flex-1" size={ButtonSize.Medium} variant={type === 'delete' ? ButtonVariant.Danger : ButtonVariant.Primary} onClick={positiveAction}>
-                        {positiveText}
+                    <AppButton className="flex-1" size={ButtonSize.Medium} variant={type === 'danger' ? ButtonVariant.Danger : ButtonVariant.Primary} onClick={positiveAction}>
+                        {type === 'danger' && !positiveText ? 'Delete' : positiveText}
                     </AppButton>
                 </div>
             </div>
