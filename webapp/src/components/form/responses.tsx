@@ -3,8 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { ChevronLeft } from '@mui/icons-material';
 import { Button } from '@mui/material';
 import { toast } from 'react-toastify';
@@ -12,13 +10,12 @@ import { toast } from 'react-toastify';
 import FormResponsesTable from '@app/components/datatable/form/form-responses';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { useModal } from '@app/components/modal-views/context';
-import { buttonConstant } from '@app/constants/locales/button';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetWorkspaceSubmissionQuery } from '@app/store/workspaces/types';
-import { utcToLocalDate, utcToLocalDateTIme } from '@app/utils/dateUtils';
+import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 
 export default function FormResponses() {
     const router = useRouter();

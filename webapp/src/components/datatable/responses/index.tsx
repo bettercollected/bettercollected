@@ -23,7 +23,7 @@ import { Page } from '@app/models/dtos/page';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { utcToLocalDate, utcToLocalTime } from '@app/utils/dateUtils';
+import { utcToLocalDate, utcToLocalDateTIme, utcToLocalTime } from '@app/utils/dateUtils';
 
 const responseTableStyles = {
     ...dataTableCustomStyles,
@@ -100,7 +100,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     const DeletedOn = ({ status, response }: { status: string; response: StandardFormResponseDto }) => {
         return (
             <div className="flex items-center gap-10 md:gap-20 xl:gap-40">
-                <span className="text-sm font-medium text-black-700">{status.toLowerCase() === 'pending' ? 'Not deleted yet' : utcToLocalDate(response.updatedAt)}</span>
+                <span className="text-sm font-medium text-black-700">{status.toLowerCase() === 'pending' ? 'Not deleted yet' : utcToLocalDateTIme(response.updatedAt)}</span>
             </div>
         );
     };
@@ -135,7 +135,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         },
         {
             name: requestForDeletion ? t(formConstant.requestedOn) : t(formConstant.respondedOn),
-            selector: (row: StandardFormResponseDto) => (!!row?.createdAt ? `${utcToLocalDate(row.createdAt)}` : ''),
+            selector: (row: StandardFormResponseDto) => (!!row?.createdAt ? `${utcToLocalDateTIme(row.createdAt)}` : ''),
             style: {
                 color: 'rgba(77, 77, 77, 1)',
                 paddingLeft: '16px',
