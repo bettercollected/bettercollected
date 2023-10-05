@@ -118,7 +118,7 @@ jobs:
           SERVICE_TAG: ${{ matrix.service }}
         run: |
           SERVICE_TAG=${SERVICE_TAG//\//-}
-          docker build f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
+          docker build -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
           docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
 
       - name: Add Nightly, Latest and Release Tags
