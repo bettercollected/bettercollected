@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
@@ -134,11 +135,16 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                                 Share
                             </AppButton>
                         )}
-                        <ActiveLink key={'edit'} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`}>
-                            <AppButton variant={ButtonVariant.Ghost} size={ButtonSize.Small} icon={<EditIcon />}>
-                                Edit
-                            </AppButton>
-                        </ActiveLink>
+                        <AppButton
+                            onClick={() => {
+                                router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
+                            }}
+                            variant={ButtonVariant.Ghost}
+                            size={ButtonSize.Small}
+                            icon={<EditIcon />}
+                        >
+                            Edit
+                        </AppButton>
                         <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                     </div>
                 )}
