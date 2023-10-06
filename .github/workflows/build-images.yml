@@ -166,15 +166,15 @@ jobs:
           key: ${{ secrets.SIRETO_BASTION_SSH_KEY }}
           port: ${{ secrets.SIRETO_BASTION_PORT }}
           script: |
-            SERVICE_TAG=${SERVICE_TAG//\//-}
-            if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
-              DOCKER_STACK=${{ vars.DEVELOP_STACK }}
-              DOCKER_HOST=${{ vars.DEVELOP_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
-            fi
-            if [[ "${{ github.ref }}" = "refs/tags/*" ]]; then
-              DOCKER_STACK=${{ vars.PROD_STACK }}
-              DOCKER_HOST=${{ vars.PROD_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
-            fi
+              SERVICE_TAG=$(echo $SERVICE_TAG | sed 's/\//-/g')
+              if [[ "${github.ref}" = "refs/heads/develop" ]]; then
+                DOCKER_STACK=$DEVELOP_STACK
+                DOCKER_HOST=$DEVELOP_HOST docker service update --image bettercollected/$SERVICE_TAG:$github.sha $DOCKER_STACK_$SERVICE_TAG
+              fi
+              if [[ "${github.ref}" = "refs/tags/*" ]]; then
+                DOCKER_STACK=$PROD_STACK
+                DOCKER_HOST=$PROD_HOST docker service update --image bettercollected/$SERVICE_TAG:$github.ref_name $DOCKER_STACK_$SERVICE_TAG
+              fi
         env:
           SERVICE_TAG: ${{ matrix.service }}
 
