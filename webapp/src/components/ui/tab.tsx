@@ -19,7 +19,7 @@ export function TabItem({ children, className }: React.PropsWithChildren<{ class
                     // {
                     //     'border-b-[2px] rounded-[1px]  border-black-900': selected
                     // },
-                    'hover:!text-brand-600 focus:outline-none !text-black-800 body6  !leading-none',
+                    ' hover:bg-black-200 hover:rounded focus:outline-none !text-black-800 body6  !leading-none',
                     className
                 )
             }
