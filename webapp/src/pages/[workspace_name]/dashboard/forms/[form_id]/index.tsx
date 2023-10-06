@@ -83,11 +83,6 @@ export default function FormPage(props: any) {
             icon: <SettingsIcon className="h-5 w-5" />,
             title: t(localesCommon.settings),
             path: 'Settings'
-        },
-        {
-            icon: <Group className="h-5 w-5" />,
-            title: t(groupConstant.groups) + ' (' + form.groups?.length + ')',
-            path: 'Groups'
         }
     ];
 
@@ -211,9 +206,6 @@ export default function FormPage(props: any) {
 
                             <TabPanel className="focus:outline-none" key="Settings">
                                 <FormSettings />
-                            </TabPanel>
-                            <TabPanel className="focus:outline-none" key="Groups">
-                                <FormGroups />
                             </TabPanel>
                         </FormPageLayer>
                     </ParamTab>
