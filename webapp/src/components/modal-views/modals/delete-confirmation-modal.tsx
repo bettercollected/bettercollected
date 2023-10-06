@@ -6,15 +6,15 @@ import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
 
 import { localesCommon } from '@app/constants/locales/common';
 
-
 interface IDeleteConfirmationModla {
     title: string;
     handleDelete: () => void;
     headerTitle?: string;
+    positiveText?: string;
 }
 
-export default function DeleteConfirmationModal({ title, handleDelete, headerTitle = 'Delete' }: IDeleteConfirmationModla) {
+export default function DeleteConfirmationModal({ title, handleDelete, headerTitle = 'Delete', positiveText = 'Delete' }: IDeleteConfirmationModla) {
     const { t } = useTranslation();
 
-    return <GenericHalfModal headerTitle={headerTitle} positiveAction={handleDelete} type="danger" title={title + '?'} subTitle={t(localesCommon.deleteMessage)} />;
+    return <GenericHalfModal headerTitle={headerTitle} positiveAction={handleDelete} positiveText={positiveText} type="danger" title={title + '?'} subTitle={t(localesCommon.deleteMessage)} />;
 }
