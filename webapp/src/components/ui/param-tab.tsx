@@ -78,9 +78,9 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
                 <Tab.List className="relative w-full text-sm gap-8">
                     <div className="flex justify-between pb-[24px] border-b-[1px] border-black-300 max-w-full gap-5 overflow-x-auto">
                         <div className="flex sm:gap-3 top-[-2px] justify-start xl:gap:6">
-                            {tabMenu.map((item) => (
-                                <TabItem key={item.path} className="min-w-fit">
-                                    <div className="flex items-center">
+                            {tabMenu.map((item, index) => (
+                                <TabItem key={item.path} className={`min-w-fit ${selectedTabIndex !== index ? 'hover:bg-black-100' : ''}`}>
+                                    <div className={`flex items-center ${selectedTabIndex === index ? 'text-black-900' : 'text-black-600'}`}>
                                         <div className="">{item.title}</div>
                                     </div>
                                 </TabItem>
