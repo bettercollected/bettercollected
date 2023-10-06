@@ -75,7 +75,7 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
                     <div className="sm:w-[240px]">
                         <SearchInput handleSearch={handleSearch} />
                     </div>
-                    <div className="grid mt-6 grid-flow-row grid-cols-1 gap-6">
+                    <div className="mt-6 flex flex-col gap-6">
                         {forms.map((form, idx) => {
                             return (
                                 <div onClick={handleCardClick} key={form.formId + idx}>
