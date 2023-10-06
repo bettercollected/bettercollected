@@ -35,7 +35,7 @@ export default function WorkspaceOptions({ isAdmin, onClickEdit, onShareWorkspac
                         <EyeIcon height={20} width={20} />
                     </ListItemIcon>
                 </ActiveLink>
-                <span>Open Link</span>
+                <span>Open Workspace</span>
             </MenuItem>
             <MenuItem onClick={onShareWorkspace}>
                 <ListItemIcon>
