@@ -86,7 +86,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                                 </div>
                             </div>
 
-                            <div className="flex-wrap flex gap-2">
+                            <div className="flex-wrap flex gap-2 min-w-fit">
                                 {data?.map((user) => (
                                     <div key={user.email}>
                                         <AuthAccountProfileImage image={user.profileImage} name={user?.firstName || user?.lastName || user?.email} size={40} variant="circular" />
@@ -106,7 +106,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                     )}
                     <ActiveLink href={getWorkspaceUrl()} target="_blank" referrerPolicy="no-referrer">
                         <AppButton icon={<EyeIcon width={20} height={20} />} variant={ButtonVariant.Ghost}>
-                            Open Link
+                            Open Workspace
                         </AppButton>
                     </ActiveLink>
                     <AppButton onClick={onClickShareWorkspaceButton} icon={<ShareIcon height={20} width={20} />} variant={ButtonVariant.Ghost}>
