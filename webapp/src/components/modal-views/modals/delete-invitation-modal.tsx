@@ -15,7 +15,6 @@ import { useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-
 interface IDeleteInvitationModalProps {
     invitation: WorkspaceInvitationDto;
 }
@@ -38,26 +37,4 @@ export default function DeleteInvitationModal({ invitation }: IDeleteInvitationM
     };
 
     return <GenericHalfModal type="danger" headerTitle="Delete Invitation" title={`Are you sure to delete invitation of ${invitation.email}?`} positiveAction={handleDelete} />;
-
-    return (
-        <div className="rounded p-10 bg-white items-center w-full max-w-[465px] flex flex-col relative">
-            <Close
-                className="absolute cursor-pointer top-5 right-5"
-                onClick={() => {
-                    closeModal();
-                }}
-            />
-            <div className="sh3 mb-5">
-                {t(localesCommon.removeInvitationFor)} {invitation.email}?
-            </div>
-            <div className="flex w-full gap-2 justify-between">
-                <ModalButton data-testid="logout-button" buttonType={'Modal'} size={ButtonSize.Medium} variant={ButtonVariant.Danger} onClick={handleDelete}>
-                    {t(buttonConstant.delete)}
-                </ModalButton>
-                <ModalButton buttonType={'Modal'} size={ButtonSize.Medium} variant={ButtonVariant.Secondary} onClick={() => closeModal()}>
-                    {t(buttonConstant.cancel)}
-                </ModalButton>
-            </div>
-        </div>
-    );
 }
