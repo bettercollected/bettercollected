@@ -143,7 +143,7 @@ jobs:
             docker push bettercollected/${SERVICE_TAG}:${{ github.ref_name }}
           fi
 
-  deploy_services:
+deploy_services:
     if: github.event_name != 'pull_request'
     needs: build_and_push
     strategy:
@@ -167,13 +167,13 @@ jobs:
           port: ${{ secrets.SIRETO_BASTION_PORT }}
           script: |
               SERVICE_TAG=$(echo $SERVICE_TAG | sed 's/\//-/g')
-              if [[ "${github.ref}" = "refs/heads/develop" ]]; then
+              if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
                 DOCKER_STACK=$DEVELOP_STACK
-                DOCKER_HOST=$DEVELOP_HOST docker service update --image bettercollected/$SERVICE_TAG:$github.sha $DOCKER_STACK_$SERVICE_TAG
+                DOCKER_HOST=$DEVELOP_HOST docker service update --image bettercollected/$SERVICE_TAG:${{ github.sha }} $DOCKER_STACK_$SERVICE_TAG
               fi
-              if [[ "${github.ref}" = "refs/tags/*" ]]; then
+              if [[ "${{ github.ref }}" = "refs/tags/"* ]]; then
                 DOCKER_STACK=$PROD_STACK
-                DOCKER_HOST=$PROD_HOST docker service update --image bettercollected/$SERVICE_TAG:$github.ref_name $DOCKER_STACK_$SERVICE_TAG
+                DOCKER_HOST=$PROD_HOST docker service update --image bettercollected/$SERVICE_TAG:${{ github.ref_name }} $DOCKER_STACK_$SERVICE_TAG
               fi
         env:
           SERVICE_TAG: ${{ matrix.service }}
