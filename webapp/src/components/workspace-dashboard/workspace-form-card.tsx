@@ -24,7 +24,6 @@ import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
-import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -46,7 +45,6 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
     const { openModal } = useModal();
     const router = useRouter();
     const { t } = useTranslation();
-    const { deleteFormFromGroup } = useGroupForm();
     useEffect(() => {
         router.prefetch(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}?view=Responses`);
     }, [router]);

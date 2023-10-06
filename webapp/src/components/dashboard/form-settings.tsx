@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -7,7 +7,7 @@ import EditIcon from '@Components/Common/Icons/Edit';
 import Pro from '@Components/Common/Icons/Pro';
 import LockIcon from '@Components/Common/Icons/lock';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
 import Switch from '@mui/material/Switch';
 import cn from 'classnames';
@@ -22,8 +22,9 @@ import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { StandardFormDto } from '@app/models/dtos/form';
+import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
-import { setFormSettings } from '@app/store/forms/slice';
+import { selectForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -40,7 +41,7 @@ export type FormSettingsTabView = 'VISIBILITY' | 'LINKS' | 'DEFAULT';
 
 export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabProps) {
     const { t } = useTranslation();
-    const form = useAppSelector((state) => state.form);
+    const form = useAppSelector(selectForm);
     const [patchFormSettings] = usePatchFormSettingsMutation();
     const workspace = useAppSelector((state) => state.workspace);
     const dispatch = useAppDispatch();
@@ -52,6 +53,17 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const customDomain = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
     const clientHostUrl = `${clientHost}/${customUrl}`;
     const customDomainUrl = `${customDomain}/${customUrl}`;
+    const defaultValueForVisibility = () => {
+        if (form?.settings?.hidden) return 'Private';
+        else if (form?.settings?.private) return 'Group';
+        else return 'Public';
+    };
+
+    const [currentVisibility, setCurrentVisibility] = useState(defaultValueForVisibility());
+
+    useEffect(() => {
+        setCurrentVisibility(defaultValueForVisibility());
+    }, [form?.settings?.hidden, form?.settings?.private]);
 
     const patchSettings = async (body: any, f: StandardFormDto) => {
         const response: any = await patchFormSettings({
@@ -74,7 +86,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     };
 
     const onPinnedChange = (event: any, f?: StandardFormDto) => {
-        console.log(f);
         if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
         patchSettings({ pinned: !f?.settings?.pinned }, f)
             .then((res) => {})
@@ -84,13 +95,25 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     };
 
     const onVisibilityChanged = ({ isPrivate = false, isHidden = false, f }: { isPrivate?: boolean; isHidden?: boolean; f?: StandardFormDto }) => {
-        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
-        const patchBody = { private: isPrivate, pinned: false, hidden: isHidden };
-        patchSettings(patchBody, f)
-            .then((res) => {})
-            .catch((e: any) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
-            });
+        const visibilityType = () => {
+            if (isHidden) return 'Private';
+            else if (isPrivate) return 'Group';
+            else return 'Public';
+        };
+        const handleOnConfirm = () => {
+            if (!f)
+                return toast(t(toastMessage.formSettingUpdateError).toString(), {
+                    type: 'error',
+                    toastId: 'errorToast'
+                });
+            const patchBody = { private: isPrivate, pinned: false, hidden: isHidden };
+            patchSettings(patchBody, f)
+                .then((res) => {})
+                .catch((e: any) => {
+                    toast(e.data, { type: 'error', toastId: 'errorToast' });
+                });
+        };
+        openModal('VISIBILITY_CONFIRMATION_MODAL_VIEW', { visibilityType: visibilityType(), handleOnConfirm });
     };
 
     const onDisableBrandingChange = (event: any, f?: StandardFormDto) => {
@@ -105,20 +128,14 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const isProPlan = useAppSelector(selectWorkspace).isPro;
     const isAdmin = useAppSelector(selectIsAdmin);
 
-    const defaultValueForVisibility = () => {
-        if (form?.settings?.hidden) return 'Private';
-        else if (form?.settings?.private) return 'Group';
-        else return 'Public';
-    };
-
     const showSettingsTabView = (view: FormSettingsTabView) => {
         switch (view) {
             case 'VISIBILITY':
                 return (
-                    <FormSettingsCard>
+                    <FormSettingsCard className={'mb-4'}>
                         <Divider />
                         {/* <p className="sh3">{t(formConstant.settings.visibility.title)}</p> */}
-                        <RadioGroup className="flex flex-col gap-6" defaultValue={defaultValueForVisibility()}>
+                        <RadioGroup className="flex flex-col gap-6" value={currentVisibility}>
                             <div className="flex flex-col">
                                 <FormControlLabel
                                     onChange={() => onVisibilityChanged({ f: form })}
@@ -151,7 +168,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             <Divider />
                             <div className="flex flex-col">
                                 <FormControlLabel
-                                    onChange={() => onVisibilityChanged({ isPrivate: true, f: form })}
+                                    onChange={() => patchSettings({ hidden: false, pinned: false, private: true }, form)}
                                     value="Group"
                                     control={<Radio />}
                                     label={
@@ -161,7 +178,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                         </div>
                                     }
                                 />
-                                <span className="ml-8 body4 !text-black-700">Only members in this group can see this form.</span>
+                                <span className="ml-8 body4 !text-black-700">{!(form?.groups.length === 0) ? 'Only members in this group can see this form.' : 'No Groups Selected.'}</span>
+                                {currentVisibility === 'Group' && <FormGroups groups={form?.groups} />}
                             </div>
                             <Divider />
                         </RadioGroup>
@@ -277,3 +295,27 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
 
     return <>{showSettingsTabView(view)}</>;
 }
+
+const FormGroups = ({ groups }: { groups: ResponderGroupDto[] }) => {
+    const fullScreenModal = useFullScreenModal();
+
+    return (
+        <div className={'flex flex-col gap-0.5 mt-2'}>
+            {groups.map((group: ResponderGroupDto) => {
+                return (
+                    <div key={group.id} className={'flex flex-row bg-black-200 px-6 py-[18px]'}>
+                        <div className={'w-full md:w-[400px]'}>
+                            <h1 className={'text-base font-semibold text-black-800'}>{group.name}</h1>
+                            <p className={'text-sm font-normal text-black-700'}>{group.description}</p>
+                        </div>
+                    </div>
+                );
+            })}
+            <div className={'mt-2'}>
+                <AppButton onClick={() => fullScreenModal.openModal('SELECT_GROUP_FULL_MODAL_VIEW')} icon={<GroupIcon />} variant={ButtonVariant.Secondary}>
+                    Add or Remove Group
+                </AppButton>
+            </div>
+        </div>
+    );
+};

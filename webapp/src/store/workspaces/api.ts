@@ -430,8 +430,8 @@ export const workspacesApi = createApi({
             query: (request) => ({
                 url: `workspaces/${request.workspaceId}/forms/${request.formId}/groups/add`,
                 method: 'PATCH',
-                params: {
-                    group_id: request.groupId
+                body: {
+                    group_ids: request.groups
                 }
             }),
             invalidatesTags: [FORM_TAG, GROUP_TAG]

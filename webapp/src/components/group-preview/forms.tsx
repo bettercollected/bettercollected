@@ -15,7 +15,6 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
-import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
@@ -30,7 +29,6 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
     const router = useRouter();
     const isAdmin = useAppSelector(selectIsAdmin);
 
-    const { addFormOnGroup } = useGroupForm();
     const handleCardClick = (event: any) => {
         event.preventDefault();
         event.stopPropagation();
