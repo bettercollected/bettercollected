@@ -108,7 +108,7 @@ class FormService:
             workspace_id=workspace_id, form_ids=form_ids, query=query, published=published
         )
 
-        if published:
+        if  not published:
             user_ids = [form["imported_by"] for form in forms]
             user_details = (
                 {"users_info": []}
