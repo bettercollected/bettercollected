@@ -167,7 +167,7 @@ export default function FormPage(props: any) {
                             </div>
                         </div>
                         <div className="flex gap-1 flex-row items-center">
-                            <FormProviderIcon />
+                            <FormProviderIcon provider={form?.settings?.provider} />
                         </div>
                         <Divider className="mt-6 hidden md:flex" />
                     </FormPageLayer>
