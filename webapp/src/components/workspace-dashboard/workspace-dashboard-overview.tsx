@@ -86,7 +86,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                                 </div>
                             </div>
 
-                            <div className="flex-wrap flex">
+                            <div className="flex-wrap flex gap-2">
                                 {data?.map((user) => (
                                     <div key={user.email}>
                                         <AuthAccountProfileImage image={user.profileImage} name={user?.firstName || user?.lastName || user?.email} size={40} variant="circular" />

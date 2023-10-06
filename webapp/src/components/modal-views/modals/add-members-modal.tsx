@@ -18,7 +18,6 @@ import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 
-
 interface IAddMemberModalProps {
     handleAddMembers: (members: Array<string>) => void;
     group?: ResponderGroupDto;
@@ -44,13 +43,13 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
         setEmail('');
     };
     return (
-        <div className=" p-6 relative bg-brand-100 rounded-[8px] ">
+        <div className=" p-6 relative bg-white rounded-[8px] ">
             <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
             <div className="sh1 !leading-none">{t(groupConstant.addMembers.default)}</div>
             <div className="body4 pt-6 !leading-none ">{t(groupConstant.addMembers.description)}</div>
             <form onSubmit={addEmail} className="flex gap-2 mt-4">
                 <div className="    ">
-                    <AppTextField  value={email} type="email" id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
+                    <AppTextField value={email} type="email" id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
                 </div>
                 <AppButton size={ButtonSize.Medium} disabled={!email} className={cn('font-semibold !px-6', !email && 'opacity-30')}>
                     {t(buttonConstant.add)}
@@ -77,7 +76,7 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
                 </>
             )}
             <div className="flex w-full mt-8 justify-end">
-                <ModalButton buttonType={"Modal"} onClick={() => handleAddMembers(emails)}  size={ButtonSize.Medium} disabled={emails.length === 0} type="submit">
+                <ModalButton buttonType={'Modal'} onClick={() => handleAddMembers(emails)} size={ButtonSize.Medium} disabled={emails.length === 0} type="submit">
                     {t(buttonConstant.addMembers)}
                 </ModalButton>
             </div>
