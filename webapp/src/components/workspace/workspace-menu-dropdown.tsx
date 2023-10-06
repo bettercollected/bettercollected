@@ -26,6 +26,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { generateRandomBgColor } from '@app/utils/backgroundColors';
 import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';
 
+
 interface IWorkspaceMenuDropdownProps {
     fullWidth?: boolean;
 }

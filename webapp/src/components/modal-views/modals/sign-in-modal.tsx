@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
@@ -11,6 +11,7 @@ import ImageWorkspacePreview from '@app/assets/images/workspace-preview1.png';
 import Logo from '@app/components/ui/logo';
 import { localesCommon } from '@app/constants/locales/common';
 import { signInScreen } from '@app/constants/locales/signin-screen';
+
 
 interface FeatureType {
     heading: string;

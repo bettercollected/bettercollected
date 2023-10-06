@@ -1,7 +1,5 @@
 import { useRef } from 'react';
 
-import _ from 'lodash';
-
 import { ListItem } from '@mui/material';
 
 import { BlockTypes } from '@app/models/enums/formBuilder';

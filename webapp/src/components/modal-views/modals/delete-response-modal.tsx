@@ -1,14 +1,12 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
 import { toast } from 'react-toastify';
 
-import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import { buttonConstant } from '@app/constants/locales/button';
 import { useDeleteResponseMutation } from '@app/store/workspaces/api';
-import ModalButton from "@Components/Common/Input/Button/ModalButton";
-import {ButtonSize, ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
+
 
 export default function DeleteResponseModal({ workspace, formId, responseId, navigateToForm = false }: any) {
     const { closeModal } = useModal();
@@ -27,23 +25,6 @@ export default function DeleteResponseModal({ workspace, formId, responseId, nav
             toast('Error Deleting Response', { type: 'error' });
         }
     };
-    return (
-        <div className="bg-white rounded relative p-10">
-            <Close
-                className="absolute top-5 right-5 cursor-pointer"
-                onClick={() => {
-                    closeModal();
-                }}
-            />
-            <div className="sh3 mb-5">Are you sure to delete this response?</div>
-            <div className="flex w-full gap-2 justify-between">
-                <ModalButton data-testid="logout-button" buttonType={"Modal"} size={ButtonSize.Medium} variant={ButtonVariant.Danger} onClick={handleDelete}>
-                    {t(buttonConstant.delete)}
-                </ModalButton>
-                <ModalButton buttonType={"Modal"} size={ButtonSize.Medium} variant={ButtonVariant.Secondary} onClick={() => closeModal()}>
-                    {t(buttonConstant.cancel)}
-                </ModalButton>
-            </div>
-        </div>
-    );
+
+    return <GenericHalfModal headerTitle="Delete response" title="Are you sure to delete this response?" type={'danger'} positiveAction={handleDelete} />;
 }

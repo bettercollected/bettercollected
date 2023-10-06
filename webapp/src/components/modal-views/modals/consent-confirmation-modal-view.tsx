@@ -6,7 +6,6 @@ import ErrorText from '@Components/Consent/ErrorText';
 import HintBox from '@Components/Consent/Form/HintBox';
 import TermsAndCondition from '@Components/Consent/TermsAndCondition';
 
-import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
 import AnchorLink from '@app/components/ui/links/anchor-link';
 import useForm from '@app/lib/hooks/use-form';
 import { ConsentCategoryType } from '@app/models/enums/consentEnum';

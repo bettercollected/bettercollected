@@ -16,7 +16,7 @@ export default function EditWorkspaceModal() {
     const { t } = useTranslation();
     const workspace: WorkspaceDto = useAppSelector((state) => state.workspace);
     return (
-        <div className="p-7 bg-brand-100 relative rounded-[8px]">
+        <div className="p-7 bg-white relative rounded-[8px]">
             <Close
                 className="absolute top-5 right-5 cursor-pointer"
                 onClick={() => {

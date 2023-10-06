@@ -1,25 +1,25 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import {CheckCircle} from '@mui/icons-material';
-import {Autocomplete, Box, createFilterOptions, TextField} from '@mui/material';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import ModalButton from '@Components/Common/Input/Button/ModalButton';
+import { CheckCircle } from '@mui/icons-material';
+import { Autocomplete, Box, TextField, createFilterOptions } from '@mui/material';
 import cn from 'classnames';
 
-import {Close} from '@app/components/icons/close';
-import {useModal} from '@app/components/modal-views/context';
-import {buttonConstant} from '@app/constants/locales/button';
-import {formConstant} from '@app/constants/locales/form';
-import {toolTipConstant} from '@app/constants/locales/tooltip';
-import {useGroupForm} from '@app/lib/hooks/use-group-form';
-import {StandardFormDto} from '@app/models/dtos/form';
-import {ResponderGroupDto} from '@app/models/dtos/groups';
-import {useAppSelector} from '@app/store/hooks';
-import {selectWorkspace} from '@app/store/workspaces/slice';
-import {isFormAlreadyInGroup} from '@app/utils/groupUtils';
-import {ButtonSize, ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
-import ModalButton from '@Components/Common/Input/Button/ModalButton';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
+import { buttonConstant } from '@app/constants/locales/button';
+import { formConstant } from '@app/constants/locales/form';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
+import { useGroupForm } from '@app/lib/hooks/use-group-form';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
 
 interface IAddGroupOnFormProps {
     responderGroups?: Array<ResponderGroupDto>;
@@ -35,7 +35,7 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
         if (responderGroups) addFormOnGroup({ groups: form.groups, group: selectedGroup, form, workspaceId: workspace.id });
     };
     return (
-        <div className="p-10 relative bg-brand-100 md:w-[658px] rounded-[8px]">
+        <div className="p-10 relative bg-white md:w-[658px] rounded-[8px]">
             <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
             <h4 className="h4">{t(formConstant.addgroup.title, { form: form.title })}</h4>
             <p className="mt-2 mb-8 body4  !text-black-700">{t(formConstant.addgroup.description)}</p>
@@ -74,7 +74,7 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
             )}
 
             <div className="flex justify-end">
-                <ModalButton disabled={!selectedGroup}  size={ButtonSize.Medium} onClick={handleAddForm}>
+                <ModalButton disabled={!selectedGroup} size={ButtonSize.Medium} onClick={handleAddForm}>
                     {t(buttonConstant.add)}
                 </ModalButton>
             </div>

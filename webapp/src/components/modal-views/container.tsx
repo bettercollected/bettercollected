@@ -4,7 +4,6 @@ import { useRouter } from 'next/router';
 
 import ImportProviderForms from '@app/components/form-integrations/import-provider-forms';
 import DeleteFormModal from '@app/components/form/delete-form-modal';
-import { Close } from '@app/components/icons/close';
 import LogoutView from '@app/components/logout/logout-view';
 import { MODAL_VIEW, useModal } from '@app/components/modal-views/context';
 import CustomizeUrlModal from '@app/components/modal-views/modals/customize-url-modal';
@@ -18,10 +17,10 @@ import MobileInsertMenu from '@app/components/modal-views/modals/mobile-insert-m
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
 import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
 import RequestForDeletionView from '@app/components/submission-request-for-deletion';
-import {Dialog} from '@app/components/ui/dialog';
-import {Transition} from '@app/components/ui/transition';
-import {resetBuilderMenuState} from '@app/store/form-builder/actions';
-import {useAppDispatch} from '@app/store/hooks';
+import { Dialog } from '@app/components/ui/dialog';
+import { Transition } from '@app/components/ui/transition';
+import { resetBuilderMenuState } from '@app/store/form-builder/actions';
+import { useAppDispatch } from '@app/store/hooks';
 
 import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
@@ -40,64 +39,64 @@ import UserDeletionModal from './modals/user-deletion-modal';
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
-        case 'REQUEST_FOR_DELETION_VIEW':
-            return <RequestForDeletionView {...modalProps} />;
-        case 'IMPORT_PROVIDER_FORMS_VIEW':
-            return <ImportProviderForms {...modalProps} />; // Done
-        case 'LOGOUT_VIEW':
-            return <LogoutView {...modalProps} />; // Done
-        case 'SHARE_VIEW':
-            return <ShareModalView {...modalProps} />; // Done
-        case 'UPDATE_WORKSPACE_DOMAIN':
-            return <UpdateWorkspaceSettings updateDomain={true} {...modalProps} />;
-        case 'UPDATE_WORKSPACE_HANDLE':
-            return <UpdateWorkspaceSettings updateDomain={false} />;
-        case 'DELETE_FORM_MODAL':
-            return <DeleteFormModal {...modalProps} />; // Done
-        case 'INVITE_MEMBER':
-            return <InviteMemberModal />;
-        case 'DELETE_MEMBER':
-            return <DeleteMemberModal {...modalProps} />;
-        case 'DELETE_INVITATION':
-            return <DeleteInvitationModal {...modalProps} />;
-        case 'CUSTOMIZE_URL':
-            return <CustomizeUrlModal {...modalProps} />;
-        case 'CROP_IMAGE':
-            return <CropImageModalView {...modalProps} />;
-        case 'DELETE_CUSTOM_DOMAIN':
-            return <DeleteCustomDomainModal />;
-        case 'EDIT_WORKSPACE_MODAL':
-            return <EditWorkspaceModal />;
-        case 'ADD_MEMBERS':
-            return <AddMembersModal {...modalProps} />;
-        case 'DELETE_CONFIRMATION':
-            return <DeleteConfirmationModal {...modalProps} />;
-        case 'USER_DELETION':
-            return <UserDeletionModal {...modalProps} />;
-        case 'ADD_GROUP_FORM':
-            return <AddGroupOnForm {...modalProps} />;
         case 'ADD_FORM_GROUP':
             return <AddFormOnGroup {...modalProps} />;
+        case 'ADD_GROUP_FORM':
+            return <AddGroupOnForm {...modalProps} />;
+        case 'ADD_MEMBERS':
+            return <AddMembersModal {...modalProps} />;
         case 'ADD_REGEX':
             return <AddRegexModal {...modalProps} />;
+        case 'CONSENT_BUILDER_CONFIRMATION_MODAL_VIEW':
+            return <ConsentBuilderConfirmationModalView {...modalProps} />;
+        case 'CONSENT_CONFIRMATION_MODAL_VIEW':
+            return <ConsentConfirmationModalView {...modalProps} />;
+        case 'CONSENT_PURPOSE_MODAL_VIEW':
+            return <ConsentPurposeModalView />;
+        case 'CONSENT_RETENTION_MODAL_VIEW':
+            return <ConsentRetentionModalView {...modalProps} />;
+        case 'CROP_IMAGE':
+            return <CropImageModalView {...modalProps} />;
+        case 'CUSTOMIZE_URL':
+            return <CustomizeUrlModal {...modalProps} />;
+        case 'DELETE_CONFIRMATION':
+            return <DeleteConfirmationModal {...modalProps} />;
+        case 'DELETE_CUSTOM_DOMAIN':
+            return <DeleteCustomDomainModal />;
+        case 'DELETE_FORM_MODAL':
+            return <DeleteFormModal {...modalProps} />; // Done
+        case 'DELETE_INVITATION':
+            return <DeleteInvitationModal {...modalProps} />;
+        case 'DELETE_MEMBER':
+            return <DeleteMemberModal {...modalProps} />;
         case 'DELETE_RESPONSE':
             return <DeleteResponseModal {...modalProps} />;
+        case 'EDIT_WORKSPACE_MODAL':
+            return <EditWorkspaceModal />;
         case 'FORM_BUILDER_ADD_FIELD_VIEW':
             return <FormBuilderAddFieldModal {...modalProps} />;
         case 'FORM_BUILDER_SPOTLIGHT_VIEW':
             return <FormBuilderSpotlightModal {...modalProps} />;
         case 'FORM_BUILDER_TIPS_MODAL_VIEW':
             return <FormBuilderTipsModalView {...modalProps} />;
-        case 'CONSENT_PURPOSE_MODAL_VIEW':
-            return <ConsentPurposeModalView />;
-        case 'CONSENT_CONFIRMATION_MODAL_VIEW':
-            return <ConsentConfirmationModalView {...modalProps} />;
-        case 'CONSENT_BUILDER_CONFIRMATION_MODAL_VIEW':
-            return <ConsentBuilderConfirmationModalView {...modalProps} />;
-        case 'CONSENT_RETENTION_MODAL_VIEW':
-            return <ConsentRetentionModalView {...modalProps} />;
+        case 'IMPORT_PROVIDER_FORMS_VIEW':
+            return <ImportProviderForms {...modalProps} />; // Done
+        case 'INVITE_MEMBER':
+            return <InviteMemberModal />;
+        case 'LOGOUT_VIEW':
+            return <LogoutView {...modalProps} />; // Done
         case 'MOBILE_INSERT_MENU':
             return <MobileInsertMenu {...modalProps} />;
+        case 'REQUEST_FOR_DELETION_VIEW':
+            return <RequestForDeletionView {...modalProps} />;
+        case 'SHARE_VIEW':
+            return <ShareModalView {...modalProps} />; // Done
+        case 'UPDATE_WORKSPACE_DOMAIN':
+            return <UpdateWorkspaceSettings updateDomain={true} {...modalProps} />;
+        case 'UPDATE_WORKSPACE_HANDLE':
+            return <UpdateWorkspaceSettings updateDomain={false} />;
+        case 'USER_DELETION':
+            return <UserDeletionModal {...modalProps} />;
         default:
             return <></>;
     }

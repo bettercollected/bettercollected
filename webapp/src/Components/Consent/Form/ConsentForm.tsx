@@ -1,26 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import FormButton from '@Components/Common/Input/Button/FormButton';
-import CheckBox from '@Components/Common/Input/CheckBox';
 import ErrorIcon from '@mui/icons-material/Error';
 import cn from 'classnames';
-import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { dataRetention, formPurpose } from '@app/data/consent';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
+import { ConsentCategoryType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
-import { IConsentOption } from '@app/models/types/consentTypes';
-import { setAddConsent, setPrivacyPolicy, setResponderRights } from '@app/store/consent/actions';
-import { useGetAllWorkspaceConsentsQuery } from '@app/store/consent/api';
-import { consent } from '@app/store/consent/consentSlice';
-import { selectConsentState } from '@app/store/consent/selectors';
 import { selectConsentAnswers } from '@app/store/fill-form/selectors';
-import { resetFillForm } from '@app/store/fill-form/slice';
-import { selectForm } from '@app/store/forms/slice';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { validateConsents } from '@app/utils/validations/consent/consentValidation';

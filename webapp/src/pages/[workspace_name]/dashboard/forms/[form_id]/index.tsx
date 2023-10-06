@@ -9,7 +9,6 @@ import EditIcon from '@Components/Common/Icons/Edit';
 import FormProviderIcon from '@Components/Common/Icons/FormProviderIcon';
 import Preview from '@Components/Common/Icons/Preview';
 import SettingsIcon from '@Components/Common/Icons/Settings';
-import SmallLogo from '@Components/Common/Icons/SmallLogo';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Group, Share } from '@mui/icons-material';
@@ -168,7 +167,7 @@ export default function FormPage(props: any) {
                             </div>
                         </div>
                         <div className="flex gap-1 flex-row items-center">
-                            <FormProviderIcon />
+                            <FormProviderIcon provider={form?.settings?.provider} />
                         </div>
                         <Divider className="mt-6 hidden md:flex" />
                     </FormPageLayer>

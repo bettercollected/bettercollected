@@ -8,7 +8,6 @@ import Invitations from '@app/components/member/invitations';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import { members } from '@app/constants/locales/members';
-import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 

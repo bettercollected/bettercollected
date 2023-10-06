@@ -4,7 +4,7 @@ import { useTranslation } from 'next-i18next';
 
 import FormSettingsTab from '@app/components/dashboard/form-settings';
 import { localesCommon } from '@app/constants/locales/common';
-import { formConstant } from '@app/constants/locales/form';
+
 
 export default function FormSettings() {
     const { t } = useTranslation();

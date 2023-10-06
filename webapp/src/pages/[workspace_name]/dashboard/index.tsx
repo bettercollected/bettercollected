@@ -1,9 +1,7 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
-import CreateFormButton from '@Components/Common/CreateFormButton';
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 
@@ -23,10 +21,9 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
     const { t: builderTranslation } = useTranslation('builder');
 
     const workspace = useAppSelector(selectWorkspace);
-    const router = useRouter();
 
     const workspaceQuery = {
-        workspace_id: workspace.id
+        workspace_id: props.workspace.id
     };
 
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
@@ -83,7 +80,7 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                 />
             )}
             <div className="bg-white pt-4 pb-5 px-5 lg:px-10 shadow-overview">
-                <WorkspaceDashboardOverview workspace={workspace} />
+                <WorkspaceDashboardOverview workspace={props.workspace} />
             </div>
             <div className="px-5 pt-12 lg:px-10">
                 <WorkspaceDashboardForms hasCustomDomain={hasCustomDomain} workspace={workspace} workspaceForms={workspaceForms} />

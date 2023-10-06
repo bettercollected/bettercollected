@@ -22,9 +22,6 @@ services=("auth" "integrations/google" "integrations/typeform" "backend" "tempor
 # Initialize an array to hold the background process IDs
 pids=()
 
-echo "Initializing and updating submodules"
-git submodule update --init --remote --recursive
-
 # Function to set up a service
 setup_service() {
     service="$1"
@@ -72,7 +69,7 @@ for service in "${services[@]}"; do
 done
 
 setup_webapp() {
-  cd webapp
+  cd webapp || exit
   yarn
 }
 

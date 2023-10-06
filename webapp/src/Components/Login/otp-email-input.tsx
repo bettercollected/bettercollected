@@ -1,21 +1,23 @@
-import React, {Dispatch, SetStateAction, useState} from 'react';
+import React, { Dispatch, SetStateAction, useState } from 'react';
 
-import {useTranslation} from 'next-i18next';
-import {useRouter} from 'next/router';
+import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
+import AppTextField from '@Components/Common/Input/AppTextField';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import Divider from '@mui/material/Divider';
-import {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
+
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
 import environments from '@app/configs/environments';
-import {formResponderLogin} from '@app/constants/locales/form-responder-login';
-import {signInScreen} from '@app/constants/locales/signin-screen';
-import {signUpScreen} from '@app/constants/locales/signup-screen';
-import {usePostSendOtpForCreatorMutation, usePostSendOtpMutation} from '@app/store/auth/api';
-import {useAppSelector} from '@app/store/hooks';
-import {capitalize} from '@app/utils/stringUtils';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import {ButtonSize, ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
-import AppTextField from "@Components/Common/Input/AppTextField";
+import { formResponderLogin } from '@app/constants/locales/form-responder-login';
+import { signInScreen } from '@app/constants/locales/signin-screen';
+import { signUpScreen } from '@app/constants/locales/signup-screen';
+import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation } from '@app/store/auth/api';
+import { useAppSelector } from '@app/store/hooks';
+import { capitalize } from '@app/utils/stringUtils';
+
 
 interface OtpEmailInputPropType {
     isCreator: boolean;

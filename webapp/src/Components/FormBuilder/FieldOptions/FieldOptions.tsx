@@ -1,8 +1,5 @@
 import React, { useState } from 'react';
 
-import { useTranslation } from 'next-i18next';
-
-import Divider from '@Components/Common/DataDisplay/Divider';
 import CopyIcon from '@Components/Common/Icons/Copy';
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import DragHandleIcon from '@Components/Common/Icons/DragHandle';
@@ -10,7 +7,6 @@ import PlusIcon from '@Components/Common/Icons/Plus';
 import MuiSwitch from '@Components/Common/Input/Switch';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import FormValidations from '@Components/FormBuilder/FieldOptions/FormValidations';
-import StepsOption from '@Components/FormBuilder/FieldOptions/StepsOption';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { FormControlLabel, ListItemIcon, MenuItem } from '@mui/material';
 import { DraggableProvided } from 'react-beautiful-dnd';
@@ -20,7 +16,7 @@ import { useModal } from '@app/components/modal-views/context';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addDuplicateField, resetBuilderMenuState, setAddNewField, setDeleteField, setIdentifierField, setUpdateField } from '@app/store/form-builder/actions';
+import { addDuplicateField, setAddNewField, setDeleteField, setIdentifierField } from '@app/store/form-builder/actions';
 import { selectBuilderState, selectFormField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -102,8 +98,8 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
             id="block-options-menu"
             menuTitle={t('COMPONENTS.OPTIONS.TOOLTIP_TITLE')}
             menuContent={
-                <div className={`flex items-center justify-center cursor-pointer rounded-sm text-neutral-400 `} {...provided.dragHandleProps} tabIndex={-1}>
-                    <DragHandleIcon className={isMobile && builderState.activeFieldId === id ? 'text-black-800' : ''} tabIndex={-1} width={24} height={24} />
+                <div className={`flex items-center justify-center cursor-pointer rounded-sm`} {...provided.dragHandleProps} tabIndex={-1}>
+                    <DragHandleIcon className={builderState.activeFieldId === id ? 'text-black-800' : 'text-black-600'} tabIndex={-1} width={24} height={24} />
                 </div>
             }
         >
@@ -129,7 +125,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                 </MenuItem>
 
                 <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="flex items-center body4 !text-black-700 " onClick={deleteFieldWithId}>
-                    <ListItemIcon className="text-black-900">
+                    <ListItemIcon className="text-black-00">
                         <DeleteIcon width={24} height={24} />
                     </ListItemIcon>
                     <span className="leading-none flex items-center justify-between w-full">

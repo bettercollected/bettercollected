@@ -3,7 +3,7 @@ import React, { useCallback, useEffect } from 'react';
 import { batch } from 'react-redux';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
-import { setActiveChoice, setAddNewChoice, setAddNewField, setBuilderState, setDeleteChoice, setDeleteField, setUpdateField } from '@app/store/form-builder/actions';
+import { setAddNewChoice, setAddNewField, setDeleteChoice, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';

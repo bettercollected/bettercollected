@@ -17,13 +17,13 @@ import AuthAccountProfileImage from '@app/components/auth/account-profile-image'
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
-import { localesCommon } from '@app/constants/locales/common';
 import { profileMenu } from '@app/constants/locales/profile-menu';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
 
 interface IAuthAccountMenuDropdownProps {
     isClientDomain?: boolean;

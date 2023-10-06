@@ -1,19 +1,20 @@
 import React from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
 import Plus from '@Components/Common/Icons/Plus';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 
-import {useModal} from '@app/components/modal-views/context';
-import {inviteCollaborator} from '@app/constants/locales/inviteCollaborator';
-import {members} from '@app/constants/locales/members';
-import {useAppSelector} from '@app/store/hooks';
-import {useGetWorkspaceMembersQuery} from '@app/store/workspaces/members-n-invitations-api';
+import { useModal } from '@app/components/modal-views/context';
+import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';
+import { members } from '@app/constants/locales/members';
+import { useAppSelector } from '@app/store/hooks';
+import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 
 import MembersTable from '../settings/members-table';
 import Loader from '../ui/loader';
-import AppButton from "@Components/Common/Input/Button/AppButton";
-import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
+
 
 export default function Collaborators() {
     const workspace = useAppSelector((state) => state.workspace);
