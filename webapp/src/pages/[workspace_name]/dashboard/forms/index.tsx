@@ -194,33 +194,6 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
                     <StyledPagination shape="rounded" count={workspaceForms?.data?.pages || 0} page={workspaceQuery.page || 1} onChange={handlePageChange} />
                 </div>
             )}
-            {/*{!workspaceForms.data && !workspaceForms?.isLoading && (*/}
-            {/*    <div className="py-10 w-full h-full">*/}
-            {/*        <h1 className="h3-new">{t(localesCommon.forms)}</h1>*/}
-            {/*        <div*/}
-            {/*            className="flex flex-col mt-4 mb-6 gap-6 justify-center md:flex-row md:justify-between md:items-center">*/}
-            {/*            <div className="flex gap-3">*/}
-            {/*                <ImportFormsButton*/}
-            {/*                    className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON}/>*/}
-            {/*                <CreateFormButton/>*/}
-            {/*            </div>*/}
-            {/*        </div>*/}
-            {/*        <Divider/>*/}
-            {/*        <>*/}
-            {/*            <DataTable*/}
-            {/*                className="p-0 mt-2 !overflow-auto"*/}
-            {/*                // @ts-ignore*/}
-            {/*                columns={dataTableFormColumns}*/}
-            {/*                data={forms}*/}
-            {/*                customStyles={formTableStyles}*/}
-            {/*                highlightOnHover={false}*/}
-            {/*                pointerOnHover={false}*/}
-            {/*                onRowClicked={onRowCLicked}*/}
-            {/*            />*/}
-
-            {/*        </>*/}
-            {/*    </div>*/}
-            {/*)}*/}
         </SidebarLayout>
     );
 }

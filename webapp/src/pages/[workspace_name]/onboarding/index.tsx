@@ -4,8 +4,6 @@ import { GetServerSidePropsContext } from 'next';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import _ from 'lodash';
-
 import AppButton from '@Components/Common/Input/Button/AppButton';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
@@ -18,8 +16,8 @@ import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuth } from '@app/store/auth/slice';
-import { useCreateWorkspaceMutation, useLazyGetWorkspaceNameAvailabilityQuery, useLazyGetWorkspaceNameSuggestionsQuery, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { useAppSelector } from '@app/store/hooks';
+import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 
 interface FormDataDto {
     title: string;
@@ -83,7 +81,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                 <p className="pt-2 text-black-800 text-base">{t(onBoarding.welcomeMessage)}</p>
                 {/* <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">{t(onBoarding.description)}</p> */}
                 <AppButton className="mt-12 !py-3 px-8 bg-new-blue-500 hover:bg-brand-600" onClick={increaseStep}>
-                {t(onBoarding.addYourOrganization)}
+                    {t(onBoarding.addYourOrganization)}
                 </AppButton>
                 {/* <p className="body2 !text-black-600 italic">{t(onBoarding.timeMessage)}</p> */}
             </div>

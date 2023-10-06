@@ -1,5 +1,4 @@
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import { parseNumber } from 'libphonenumber-js';
 
 import { FileMetadata } from '@app/models/types/fileTypes';
 

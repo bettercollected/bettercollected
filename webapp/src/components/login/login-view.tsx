@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -7,6 +7,7 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 
 import { SignInModal } from '../modal-views/modals/sign-in-modal';
+
 
 export default function LoginView(props: any) {
     const { closeModal } = useFullScreenModal();

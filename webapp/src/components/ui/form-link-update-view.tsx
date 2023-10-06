@@ -1,22 +1,23 @@
 import React from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
 import CopyIcon from '@Components/Common/Icons/Copy';
+import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import {ButtonVariant} from '@Components/Common/Input/Button/AppButtonProps';
-import {toast} from 'react-toastify';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { toast } from 'react-toastify';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
-import {toastMessage} from '@app/constants/locales/toast-message';
-import {selectForm} from '@app/store/forms/slice';
-import {useAppSelector} from '@app/store/hooks';
-import {selectWorkspace} from '@app/store/workspaces/slice';
+import Globe from '@app/components/icons/flags/globe';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
-import {useModal} from '../modal-views/context';
-import Globe from "@app/components/icons/flags/globe";
-import AppTextField from "@Components/Common/Input/AppTextField";
-import {useFullScreenModal} from "@app/components/modal-views/full-screen-modal-context";
+import { useModal } from '../modal-views/context';
+
 
 interface ICurrentLinkUpdate {
     isCustomDomain?: boolean;

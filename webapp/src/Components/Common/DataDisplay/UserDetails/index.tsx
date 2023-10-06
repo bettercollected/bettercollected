@@ -1,7 +1,6 @@
 import React from 'react';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import { UserDto } from '@app/models/dtos/UserDto';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { getFullNameFromUser } from '@app/utils/userUtils';
 

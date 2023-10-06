@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import { ChevronLeft } from '@mui/icons-material';
 import { Widget } from '@typeform/embed-react';
@@ -21,7 +22,6 @@ import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
-import AppButton from "@Components/Common/Input/Button/AppButton";
 
 export default function SingleFormPage(props: any) {
     const { back, slug, hasCustomDomain, workspace, form: fetched_form, error: fetched_form_error } = props;

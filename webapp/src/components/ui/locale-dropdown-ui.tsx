@@ -11,6 +11,7 @@ import Globe from '@app/components/icons/flags/globe';
 import Netherland from '@app/components/icons/flags/netherland';
 import USA from '@app/components/icons/flags/usa';
 
+
 export default function LocaleDropdownUi() {
     const router = useRouter();
     const { pathname, asPath, query } = router;

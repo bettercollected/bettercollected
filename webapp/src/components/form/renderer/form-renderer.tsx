@@ -1,5 +1,8 @@
 import React from 'react';
 
+import AppTextField from '@Components/Common/Input/AppTextField';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import LongText from '@Components/Form/LongText';
 import styled from '@emotion/styled';
@@ -9,21 +12,18 @@ import MenuItem from '@mui/material/MenuItem';
 import Radio from '@mui/material/Radio';
 import Rating from '@mui/material/Rating';
 import TextField from '@mui/material/TextField';
-import {AdapterDayjs} from '@mui/x-date-pickers/AdapterDayjs';
-import {DatePicker} from '@mui/x-date-pickers/DatePicker';
-import {LocalizationProvider} from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import SelectDropdown from '@app/components/dropdown/select';
 import Loader from '@app/components/ui/loader';
-import {StandardFormFieldDto} from '@app/models/dtos/form';
-import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import AppTextField from "@Components/Common/Input/AppTextField";
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 
 const StyledTextField = styled.div`
-  textarea:disabled {
-    color: rgba(0, 0, 0, 0.38);
-  }
+    textarea:disabled {
+        color: rgba(0, 0, 0, 0.38);
+    }
 `;
 
 export enum QUESTION_TYPE {
@@ -78,7 +78,7 @@ FormRenderer.defaultProps = {
     enabled: false
 };
 
-export default function FormRenderer({form, response, enabled, isDisabled = false}: FormRendererProps) {
+export default function FormRenderer({ form, response, enabled, isDisabled = false }: FormRendererProps) {
     const renderGridRowColumns = (question: any) => {
         const gridRowQuestions = question.properties?.fields;
         const gridColumnOptions = question.properties?.fields[0].properties.choices;
@@ -116,7 +116,7 @@ export default function FormRenderer({form, response, enabled, isDisabled = fals
 
                                 return (
                                     <div key={idx}>
-                                        <Component checked={handleCheckedAnswer(gcp)}/>
+                                        <Component checked={handleCheckedAnswer(gcp)} />
                                     </div>
                                 );
                             })}
@@ -136,9 +136,8 @@ export default function FormRenderer({form, response, enabled, isDisabled = fals
                 {description && <div>{description}</div>}
                 {strippedLink && (
                     <div className="relative w-full aspect-video">
-                        <iframe src={embedUrl} width="100%" className="aspect-video" frameBorder="0" marginHeight={0}
-                                marginWidth={0}>
-                            <Loader/>
+                        <iframe src={embedUrl} width="100%" className="aspect-video" frameBorder="0" marginHeight={0} marginWidth={0}>
+                            <Loader />
                         </iframe>
                     </div>
                 )}
@@ -154,23 +153,19 @@ export default function FormRenderer({form, response, enabled, isDisabled = fals
                 const answer = ans?.date ?? '';
                 return (
                     <LocalizationProvider dateAdapter={AdapterDayjs}>
-                        <DatePicker label="" renderInput={(params) => <TextField {...params} />} onChange={(e) => {
-                        }} inputFormat={date_format} value={answer} disabled={true}/>
+                        <DatePicker label="" renderInput={(params) => <TextField {...params} />} onChange={(e) => {}} inputFormat={date_format} value={answer} disabled={true} />
                     </LocalizationProvider>
                 );
             case QUESTION_TYPE.LONG_TEXT:
-                return <LongText field={question} ans={ans} enabled={enabled}/>;
+                return <LongText field={question} ans={ans} enabled={enabled} />;
             case QUESTION_TYPE.MULTIPLE_CHOICE:
                 const choiceAnswer = ans?.choice?.value ?? ans?.choices?.values;
                 return (
                     <StyledTextField>
                         {question.properties.choices?.map((option: any, idx: number) => (
                             <div key={idx} className="flex items-center gap-3">
-                                {option?.attachment?.href &&
-                                    <img width={80} height={80} src={option?.attachment?.href}/>}
-                                <FormControlLabel control={question.properties?.allow_multiple_selection ?
-                                    <Checkbox checked={choiceAnswer?.includes(option?.label)}/> :
-                                    <Radio checked={option?.label == choiceAnswer}/>} label={option?.label}/>
+                                {option?.attachment?.href && <img width={80} height={80} src={option?.attachment?.href} />}
+                                <FormControlLabel control={question.properties?.allow_multiple_selection ? <Checkbox checked={choiceAnswer?.includes(option?.label)} /> : <Radio checked={option?.label == choiceAnswer} />} label={option?.label} />
                             </div>
                         ))}
                     </StyledTextField>
@@ -184,8 +179,7 @@ export default function FormRenderer({form, response, enabled, isDisabled = fals
                 for (let i = 0; i < steps; i++) {
                     if (i >= start_form)
                         numberBoxes.push(
-                            <span key={i}
-                                  className={`border border-gray-900 rounded mx-1 px-2 py-1 ${selected_answer !== undefined && selected_answer === i ? 'bg-gray-900 text-gray-200' : 'bg-gray-200 text-gray-900'}`}>
+                            <span key={i} className={`border border-gray-900 rounded mx-1 px-2 py-1 ${selected_answer !== undefined && selected_answer === i ? 'bg-gray-900 text-gray-200' : 'bg-gray-200 text-gray-900'}`}>
                                 {i}
                             </span>
                         );
@@ -234,8 +228,7 @@ export default function FormRenderer({form, response, enabled, isDisabled = fals
                 }
 
             case QUESTION_TYPE.RATING:
-                return <Rating name="size-large" size="large" defaultValue={ans?.number || 0} precision={1}
-                               max={!!question.properties.steps ? parseInt(question.properties.steps) : 3} readOnly/>;
+                return <Rating name="size-large" size="large" defaultValue={ans?.number || 0} precision={1} max={!!question.properties.steps ? parseInt(question.properties.steps) : 3} readOnly />;
 
             case QUESTION_TYPE.DROP_DOWN:
                 let dropdownOptions: any = [];
@@ -260,7 +253,7 @@ export default function FormRenderer({form, response, enabled, isDisabled = fals
                 return (
                     <AppButton size={ButtonSize.Medium}>
                         Upload File
-                        <AppTextField type="file" hidden/>
+                        <AppTextField type="file" hidden />
                     </AppButton>
                 );
             case QUESTION_TYPE.GROUP:
@@ -278,13 +271,9 @@ export default function FormRenderer({form, response, enabled, isDisabled = fals
                 // Render no input element for statement
                 return <></>;
             case QUESTION_TYPE.SHORT_TEXT:
-                return <AppTextField
-                    value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name}
-                    disabled/>;
+                return <AppTextField value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled />;
             case QUESTION_TYPE.EMAIL:
-                return <AppTextField
-                    value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name}
-                    disabled/>;
+                return <AppTextField value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled />;
             default:
                 return <></>;
         }
@@ -294,8 +283,7 @@ export default function FormRenderer({form, response, enabled, isDisabled = fals
         const match = href.match(/https:\/\/vimeo\.com\/(\d+)/);
         if (match) {
             const videoId = match[1];
-            return <iframe width="100%" height="550" className="aspect-video"
-                           src={`https://player.vimeo.com/video/${videoId}`} allow="autoplay; encrypted-media"/>;
+            return <iframe width="100%" height="550" className="aspect-video" src={`https://player.vimeo.com/video/${videoId}`} allow="autoplay; encrypted-media" />;
         } else {
             return <a href={href}>Click here to see video attachment.</a>;
         }
@@ -315,7 +303,7 @@ export default function FormRenderer({form, response, enabled, isDisabled = fals
     function renderQuestionAttachment(attachment: any) {
         switch (attachment.type) {
             case AttachmentType.IMAGE:
-                return <img className="min-h-[200px]" src={attachment.href} alt={attachment.properties?.description}/>;
+                return <img className="min-h-[200px]" src={attachment.href} alt={attachment.properties?.description} />;
             case AttachmentType.VIDEO:
                 if (attachment?.href == null) break;
                 const embed_provider = attachment.embed_provider;
@@ -338,11 +326,11 @@ export default function FormRenderer({form, response, enabled, isDisabled = fals
     );
 
     return (
-        <div data-testid="form-renderer" className="relative  w-full  md:px-0">
+        <div data-testid="form-renderer" className="relative  w-full flex justify-center  md:px-0">
             {form?.settings?.provider === 'self' ? (
-                <BetterCollectedForm form={form} response={response} enabled={enabled} isDisabled={isDisabled}/>
+                <BetterCollectedForm form={form} response={response} enabled={enabled} isDisabled={isDisabled} />
             ) : (
-                <div className="flex flex-col gap-4 max-w-[700px] !bg-white rounded">
+                <div className="flex flex-col gap-4 max-w-[700px] w-full !bg-white rounded">
                     <div className="p-6 bg-white rounded-lg flex flex-col gap-4">
                         <h1 className="font-semibold h4">{form?.title}</h1>
                         {/* {form?.description && <MarkdownText description={form?.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />} */}
@@ -350,8 +338,7 @@ export default function FormRenderer({form, response, enabled, isDisabled = fals
                     {form?.fields?.map((question: StandardFormFieldDto, idx: number) => {
                         return (
                             <div key={question?.id + idx} className={`px-6 py-3 bg-white relative rounded-lg`}>
-                                {question?.validations?.required &&
-                                    <div className="absolute top-5 right-5 text-red-500">*</div>}
+                                {question?.validations?.required && <div className="absolute top-5 right-5 text-red-500">*</div>}
                                 {renderQuestionField(question, response?.answers)}
                             </div>
                         );

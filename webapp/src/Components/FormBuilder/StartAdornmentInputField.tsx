@@ -1,4 +1,4 @@
-import { ChangeEvent, ChangeEventHandler, FocusEventHandler, useEffect, useRef } from 'react';
+import { ChangeEvent, ChangeEventHandler, FocusEventHandler, useRef } from 'react';
 
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { ArrowDropDown, TrendingUpSharp } from '@mui/icons-material';
@@ -8,9 +8,6 @@ import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import useFormBuilderState from '@app/containers/form-builder/context';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setActiveChoice, setActiveField } from '@app/store/form-builder/actions';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 interface IStartAdornmentInputFieldProps {
     type: FormBuilderTagNames;

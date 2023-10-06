@@ -4,6 +4,7 @@ import 'vanilla-cookieconsent';
 
 import pluginConfig from './cookie-consent-config';
 
+
 const CookieConsent = () => {
     useEffect(() => {
         /**

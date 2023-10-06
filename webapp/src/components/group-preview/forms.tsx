@@ -4,10 +4,8 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import SearchInput from '@Components/Common/Search/SearchInput';
-import { CheckCircle } from '@mui/icons-material';
-import { MenuItem, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 
 import { Plus } from '@app/components/icons/plus';
 import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
@@ -21,7 +19,6 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
 
 import { useModal } from '../modal-views/context';
 

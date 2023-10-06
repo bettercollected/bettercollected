@@ -5,7 +5,6 @@ import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import DeleteIcon from '@Components/Common/Icons/Delete';
 import { DotIcon } from '@Components/Common/Icons/DotIcon';
 import FormProviderIcon from '@Components/Common/Icons/FormProviderIcon';
 import Preview from '@Components/Common/Icons/Preview';
@@ -151,7 +150,7 @@ export default function Submission(props: any) {
                     <div className="w-full flex flex-col mt-12 gap-2 px-5 md:px-10 lg:px-28">
                         <span className="!text-pink h2-new">{form?.title || 'Untitled Form'}</span>
                         <div className="text-black-600 text-sm flex flex-wrap gap-2 items-center">
-                            <FormProviderIcon provider={form?.settings?.provider} />
+                            <FormProviderIcon provider={form?.form?.settings?.provider} />
                             <DotIcon />
                             <div className="min-w-fit">Submitted: {utcToLocalDate(form?.response?.createdAt)}</div>
                         </div>

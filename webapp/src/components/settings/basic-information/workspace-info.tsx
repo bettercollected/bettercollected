@@ -17,6 +17,7 @@ import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
+
 export default function WorkspaceInfo({ workspace }: any) {
     const dispatch = useAppDispatch();
     const { t } = useTranslation();

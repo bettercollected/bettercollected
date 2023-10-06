@@ -14,6 +14,7 @@ import AuthAccountProfileImage from '@app/components/auth/account-profile-image'
 import { EyeIcon } from '@app/components/icons/eye-icon';
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -37,6 +38,9 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
         const domain = !!workspace.customDomain ? workspace.customDomain : environments.CLIENT_DOMAIN;
+        if (workspace.customDomain) {
+            return `${protocol}${domain}`;
+        }
         const w_name = !!workspace.customDomain ? '' : workspace.workspaceName;
         return `${protocol}${domain}/${language}${w_name}`;
     };
@@ -44,13 +48,9 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
     const onClickEditButton = () => {
         openModal('EDIT_WORKSPACE_MODAL');
     };
-    const onClickOpenLinkButton = () => {
-        fullScreenModal.openModal('WORKSPACE_PREVIEW');
-    };
     const onClickInviteCollaboratorButton = () => {
         openModal('INVITE_MEMBER');
     };
-
     const onClickShareWorkspaceButton = () => {
         openModal('SHARE_VIEW', {
             url: getWorkspaceUrl(),
@@ -72,7 +72,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                         </div>
                     </div>
                     <div className="lg:hidden">
-                        <WorkspaceOptions isAdmin={isAdmin} onClickEdit={onClickEditButton} onOpenLink={onClickOpenLinkButton} onShareWorkspace={onClickShareWorkspaceButton} />
+                        <WorkspaceOptions workspaceUrl={getWorkspaceUrl()} isAdmin={isAdmin} onClickEdit={onClickEditButton} onShareWorkspace={onClickShareWorkspaceButton} />
                     </div>
                 </div>
 
@@ -86,7 +86,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                                 </div>
                             </div>
 
-                            <div className="flex-wrap flex">
+                            <div className="flex-wrap flex gap-2">
                                 {data?.map((user) => (
                                     <div key={user.email}>
                                         <AuthAccountProfileImage image={user.profileImage} name={user?.firstName || user?.lastName || user?.email} size={40} variant="circular" />
@@ -104,9 +104,11 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                             Edit
                         </AppButton>
                     )}
-                    <AppButton onClick={onClickOpenLinkButton} icon={<EyeIcon width={20} height={20} />} variant={ButtonVariant.Ghost}>
-                        Open Link
-                    </AppButton>
+                    <ActiveLink href={getWorkspaceUrl()} target="_blank" referrerPolicy="no-referrer">
+                        <AppButton icon={<EyeIcon width={20} height={20} />} variant={ButtonVariant.Ghost}>
+                            Open Link
+                        </AppButton>
+                    </ActiveLink>
                     <AppButton onClick={onClickShareWorkspaceButton} icon={<ShareIcon height={20} width={20} />} variant={ButtonVariant.Ghost}>
                         Share Workspace
                     </AppButton>

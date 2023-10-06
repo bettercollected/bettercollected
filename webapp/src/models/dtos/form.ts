@@ -1,14 +1,10 @@
-import {ValidationType} from '@Components/FormBuilder/FieldOptions/types';
+import { UserStatus } from '@app/models/dtos/UserStatus';
+import { IConsentField } from '@app/store/consent/types';
+import { IFormFieldValidation } from '@app/store/form-builder/types';
 
-import {UserDto} from '@app/models/dtos/UserDto';
-import {UserStatus} from '@app/models/dtos/UserStatus';
-import {FormBuilderTagNames} from '@app/models/enums/formBuilder';
-import {IConsentField} from '@app/store/consent/types';
-import {IFormFieldValidation} from '@app/store/form-builder/types';
-
-import {ResponseRetentionType} from '../enums/consentEnum';
-import {FileMetadata} from '../types/fileTypes';
-import {ResponderGroupDto} from './groups';
+import { ResponseRetentionType } from '../enums/consentEnum';
+import { FileMetadata } from '../types/fileTypes';
+import { ResponderGroupDto } from './groups';
 
 export interface StandardFormFieldDto {
     id: string;
@@ -22,9 +18,9 @@ export interface StandardFormFieldDto {
     description?: string | null;
     type:
         | {
-        type: string;
-        options: Array<any>;
-    }
+              type: string;
+              options: Array<any>;
+          }
         | any;
     isMediaContent?: boolean;
     mediaContent?: boolean;
@@ -66,7 +62,7 @@ export interface StandardFormDto {
     coverImage?: string;
     logo?: string;
     createdAt?: string;
-    updatedAt?: string
+    updatedAt?: string;
 }
 
 export interface StandardFormResponseDto {

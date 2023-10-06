@@ -6,13 +6,13 @@ import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import MarkdownText from '@Components/Common/Markdown';
 import { toast } from 'react-toastify';
 
-import ReactContentEditable from '@app/components/inline-editable';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';
+
 
 interface IPublicWorkspaceTitleAndDescriptionProps {
     isFormCreator: boolean;

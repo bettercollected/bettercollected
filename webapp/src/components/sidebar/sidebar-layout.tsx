@@ -8,6 +8,7 @@ import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown'
 import AuthNavbar from '@app/components/auth/navbar';
 import DashboardDrawer from '@app/components/sidebar/dashboard-drawer';
 
+
 interface ISidebarLayout {
     children: any;
     DrawerComponent?: any;

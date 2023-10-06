@@ -2,6 +2,7 @@ import React from 'react';
 
 import { disabledIconStyle, iconStyle, svgStyle } from './styles/google';
 
+
 const darkSvg = (
     <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="46px" height="46px" viewBox="0 0 46 46" style={svgStyle}>
         <defs>

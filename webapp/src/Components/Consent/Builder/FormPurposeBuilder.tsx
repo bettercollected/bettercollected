@@ -2,13 +2,11 @@ import React from 'react';
 
 import { useModal } from '@app/components/modal-views/context';
 import { ConsentPurposeModalMode, ConsentPurposeModalProps } from '@app/components/modal-views/modals/consent-purpose-modal-view';
-import { dataRetention, formPurpose } from '@app/data/consent';
+import { formPurpose } from '@app/data/consent';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ConsentCategoryType } from '@app/models/enums/consentEnum';
 import { IConsentOption } from '@app/models/types/consentTypes';
-import { selectConsentState } from '@app/store/consent/selectors';
 import { IConsentField } from '@app/store/consent/types';
-import { useAppSelector } from '@app/store/hooks';
 
 import ConsentAddInput from './ConsentAddInput';
 import ConsentBuilderField from './ConsentBuilderField';

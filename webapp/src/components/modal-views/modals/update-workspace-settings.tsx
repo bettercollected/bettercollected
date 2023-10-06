@@ -90,7 +90,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false, customSl
     };
 
     return (
-        <div className="w-full !bg-brand-100 relative  rounded-lg shadow-md p-10  max-w-[502px] sm:max-w-lg md:max-w-xl">
+        <div className="w-full !bg-white relative  rounded-lg shadow-md p-10  max-w-[502px] sm:max-w-lg md:max-w-xl">
             <Close
                 className="absolute cursor-pointer top-5 right-5"
                 onClick={() => {

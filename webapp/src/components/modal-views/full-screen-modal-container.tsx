@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 
 import LoginView from '@app/components/login/login-view';
 import { UPGRADE_MODAL_VIEW, useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import FormCreateSlugFullModalView from '@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
 import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
 import WorkspacePreviewModal from '@app/components/modal-views/modals/workspace-preview-modal';
 import { Dialog } from '@app/components/ui/dialog';
@@ -14,8 +15,6 @@ import CreateConsentFullModalView from './full-screen-modals/create-consent-full
 import FormSettingFullModalView from './full-screen-modals/form-setting-full-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
-import FormCreateSlugFullModalView
-    from "@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view";
 
 function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
     switch (view) {
@@ -36,7 +35,7 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
         case 'FORM_SETTINGS_FULL_MODAL_VIEW':
             return <FormSettingFullModalView {...modalProps} />;
         case 'FORM_CREATE_SLUG_VIEW':
-            return <FormCreateSlugFullModalView {...modalProps}/>
+            return <FormCreateSlugFullModalView {...modalProps} />;
         default:
             return <></>;
     }

@@ -6,12 +6,13 @@ import _ from 'lodash';
 
 import DragHandleIcon from '@Components/Common/Icons/DragHandle';
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
-import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import { FormCoverComponent, FormLogoComponent } from '@Components/FormBuilder/Header';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
 import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
+import { Check } from '@mui/icons-material';
+import { CircularProgress } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 import { DragStart, DragUpdate, DropResult, ResponderProvided } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
@@ -20,7 +21,6 @@ import { batch } from 'react-redux';
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import eventBus from '@app/lib/event-bus';
-import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
 import useUndoRedo from '@app/lib/use-undo-redo';
@@ -171,7 +171,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
     );
 
     useEffect(() => {
-        setShowSaving({ status: true, text: 'Saving...' });
+        setShowSaving({ status: true, text: 'Saving' });
         saveFormDebounced(builderState, consentState, headerImages);
     }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages, consentState, imagesRemoved]);
 
@@ -333,7 +333,10 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
                                 x: { duration: 0.5 }
                             }}
                         >
-                            <div className="absolute px-5 py-2 rounded text-white bg-[#000000] bottom-5 right-5 lg:bottom-10 lg:right-10">{showSaving.text}</div>
+                            <div className="absolute px-5 py-2 rounded  bg-black-200 text-black-800 bottom-5 right-5 flex justify-center w-[120px] gap-2 lg:bottom-10 lg:right-10">
+                                {showSaving.text === 'Saving' ? <CircularProgress size={24} /> : <Check className="text-green-500" height={24} width={24} />}
+                                {showSaving.text}
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>

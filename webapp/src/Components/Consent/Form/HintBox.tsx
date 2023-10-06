@@ -1,11 +1,8 @@
 import React from 'react';
 
-import { extend } from 'lodash';
-
 import cn from 'classnames';
 
 import { Hint } from '@app/components/icons/hint';
-import AnchorLink from '@app/components/ui/links/anchor-link';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 
 type HintBoxSize = 'small' | 'normal';
