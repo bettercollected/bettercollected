@@ -143,40 +143,40 @@ jobs:
             docker push bettercollected/${SERVICE_TAG}:${{ github.ref_name }}
           fi
 
-deploy_services:
-    if: github.event_name != 'pull_request'
-    needs: build_and_push
-    strategy:
-      matrix:
-        service:
-          - auth
-          - backend
-          - integrations/google
-          - integrations/typeform
-          - webapp
-          - temporal/worker
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy built Image
-        id: docker_deploy
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.SIRETO_BASTION_HOST }}
-          username: ${{ secrets.SIRETO_BASTION_USERNAME }}
-          key: ${{ secrets.SIRETO_BASTION_SSH_KEY }}
-          port: ${{ secrets.SIRETO_BASTION_PORT }}
-          script: |
-              SERVICE_TAG=$(echo $SERVICE_TAG | sed 's/\//-/g')
-              if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
-                DOCKER_STACK=$DEVELOP_STACK
-                DOCKER_HOST=$DEVELOP_HOST docker service update --image bettercollected/$SERVICE_TAG:${{ github.sha }} $DOCKER_STACK_$SERVICE_TAG
-              fi
-              if [[ "${{ github.ref }}" = "refs/tags/"* ]]; then
-                DOCKER_STACK=$PROD_STACK
-                DOCKER_HOST=$PROD_HOST docker service update --image bettercollected/$SERVICE_TAG:${{ github.ref_name }} $DOCKER_STACK_$SERVICE_TAG
-              fi
-        env:
-          SERVICE_TAG: ${{ matrix.service }}
+  deploy_services:
+      if: github.event_name != 'pull_request'
+      needs: build_and_push
+      strategy:
+        matrix:
+          service:
+            - auth
+            - backend
+            - integrations/google
+            - integrations/typeform
+            - webapp
+            - temporal/worker
+      runs-on: ubuntu-latest
+      steps:
+        - name: Deploy built Image
+          id: docker_deploy
+          uses: appleboy/ssh-action@v0.1.10
+          with:
+            host: ${{ secrets.SIRETO_BASTION_HOST }}
+            username: ${{ secrets.SIRETO_BASTION_USERNAME }}
+            key: ${{ secrets.SIRETO_BASTION_SSH_KEY }}
+            port: ${{ secrets.SIRETO_BASTION_PORT }}
+            script: |
+                SERVICE_TAG=$(echo $SERVICE_TAG | sed 's/\//-/g')
+                if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
+                  DOCKER_STACK=$DEVELOP_STACK
+                  DOCKER_HOST=$DEVELOP_HOST docker service update --image bettercollected/$SERVICE_TAG:${{ github.sha }} $DOCKER_STACK_$SERVICE_TAG
+                fi
+                if [[ "${{ github.ref }}" = "refs/tags/"* ]]; then
+                  DOCKER_STACK=$PROD_STACK
+                  DOCKER_HOST=$PROD_HOST docker service update --image bettercollected/$SERVICE_TAG:${{ github.ref_name }} $DOCKER_STACK_$SERVICE_TAG
+                fi
+          env:
+            SERVICE_TAG: ${{ matrix.service }}
 
        
 
