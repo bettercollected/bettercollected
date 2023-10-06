@@ -32,7 +32,6 @@ import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
-
 interface IFormOptionsDropdownMenuProps {
     workspace: WorkspaceDto;
     form: StandardFormDto;
@@ -229,24 +228,24 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             <MenuDropdown width={210} onClick={(e: any) => handleClick(e, form)} id="form-menu" menuTitle={t(toolTipConstant.formOptions)} menuContent={<EllipsisOption />} showExpandMore={false}>
                 {menuItemOpen}
                 {currentActiveForm?.form?.settings?.provider === 'self' && environments.ENABLE_FORM_BUILDER && menuItemEdit}
+                {form?.isPublished &&
+                    (!!currentActiveForm?.form?.settings?.private ? (
+                        <Tooltip title={t(toolTipConstant.visibility)}>
+                            <span>{menuItemPinSettings}</span>
+                        </Tooltip>
+                    ) : (
+                        menuItemPinSettings
+                    ))}
+                {form?.isPublished && menuItemCopy}
+                {form?.isPublished && menuItemCustomizeLink}
+                {form?.isPublished && menuItemAddToGroup}
                 {form?.isPublished && (
-                    <>
-                        {!!currentActiveForm?.form?.settings?.private ? (
-                            <Tooltip title={t(toolTipConstant.visibility)}>
-                                <span>{menuItemPinSettings}</span>
-                            </Tooltip>
-                        ) : (
-                            menuItemPinSettings
-                        )}
-                        {menuItemCopy}
-                        {menuItemCustomizeLink}
-                        {menuItemAddToGroup}
-                        <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)}>
-                            <ListItemIcon>{!currentActiveForm?.form?.settings?.private ? <PrivateIcon width={20} height={20} /> : <PublicIcon width={20} height={20} />}</ListItemIcon>
-                            <span>{t(!currentActiveForm?.form?.settings?.private ? formConstant.menu.makeFormPrivate : formConstant.menu.makeFormPublic)}</span>
-                        </MenuItem>
-                    </>
+                    <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)}>
+                        <ListItemIcon>{!currentActiveForm?.form?.settings?.private ? <PrivateIcon width={20} height={20} /> : <PublicIcon width={20} height={20} />}</ListItemIcon>
+                        <span>{t(!currentActiveForm?.form?.settings?.private ? formConstant.menu.makeFormPrivate : formConstant.menu.makeFormPublic)}</span>
+                    </MenuItem>
                 )}
+
                 <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4">
                     <ListItemIcon>
                         <DeleteIcon width={20} height={20} className="text-black-900 stroke-[1.5]" />
