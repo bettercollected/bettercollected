@@ -98,8 +98,8 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
             id="block-options-menu"
             menuTitle={t('COMPONENTS.OPTIONS.TOOLTIP_TITLE')}
             menuContent={
-                <div className={`flex items-center justify-center cursor-pointer rounded-sm text-neutral-400 `} {...provided.dragHandleProps} tabIndex={-1}>
-                    <DragHandleIcon className={isMobile && builderState.activeFieldId === id ? 'text-black-800' : ''} tabIndex={-1} width={24} height={24} />
+                <div className={`flex items-center justify-center cursor-pointer rounded-sm`} {...provided.dragHandleProps} tabIndex={-1}>
+                    <DragHandleIcon className={builderState.activeFieldId === id ? 'text-black-800' : 'text-black-600'} tabIndex={-1} width={24} height={24} />
                 </div>
             }
         >
@@ -125,7 +125,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                 </MenuItem>
 
                 <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="flex items-center body4 !text-black-700 " onClick={deleteFieldWithId}>
-                    <ListItemIcon className="text-black-900">
+                    <ListItemIcon className="text-black-00">
                         <DeleteIcon width={24} height={24} />
                     </ListItemIcon>
                     <span className="leading-none flex items-center justify-between w-full">
