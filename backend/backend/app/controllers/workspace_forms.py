@@ -106,6 +106,21 @@ class WorkspaceFormsRouter(Routable):
         )
         return MinifiedForm(**response.dict())
 
+    @post("/search")
+    async def search_forms_in_workspace(
+        self,
+        workspace_id: PydanticObjectId,
+        query: str,
+        published: bool = False,
+        user: User = Depends(get_user_if_logged_in),
+    ):
+        if not user and not published:
+            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
+        forms = await self._form_service.search_form_in_workspace(
+            workspace_id=workspace_id, query=query, published=published, user=user
+        )
+        return forms
+
     @patch(
         "/{form_id}",
         response_model=MinifiedForm,
@@ -207,21 +222,6 @@ class WorkspaceFormsRouter(Routable):
             response_id=response_id,
             user=user,
         )
-
-    @post("/search")
-    async def search_forms_in_workspace(
-            self,
-            workspace_id: PydanticObjectId,
-            query: str,
-            published: bool = False,
-            user: User = Depends(get_user_if_logged_in),
-    ):
-        if not user and not published:
-            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
-        forms = await self._form_service.search_form_in_workspace(
-            workspace_id=workspace_id, query=query, published=published, user=user
-        )
-        return forms
 
     @get(
         "/{form_id}",
