@@ -2,6 +2,8 @@ from http import HTTPStatus
 from typing import Dict, Any, List
 
 from beanie import PydanticObjectId
+from common.constants import MESSAGE_DATABASE_EXCEPTION
+from common.models.user import User
 from pymongo.errors import (
     InvalidOperation,
     InvalidURI,
@@ -12,8 +14,6 @@ from pymongo.errors import (
 from backend.app.exceptions import HTTPException
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from common.constants import MESSAGE_DATABASE_EXCEPTION
-from common.models.user import User
 
 
 class WorkspaceFormRepository:
@@ -70,15 +70,18 @@ class WorkspaceFormRepository:
             )
 
     async def get_workspace_forms_in_workspace(
-            self,
-            workspace_id: PydanticObjectId,
-            is_not_admin: bool = False,
-            user: User = None,
-            match_query: Dict[str, Any] = None,
-            id_only: bool = False,
+        self,
+        workspace_id: PydanticObjectId,
+        is_not_admin: bool = False,
+        user: User = None,
+        match_query: Dict[str, Any] = None,
+        pinned_only: bool = False,
+        id_only: bool = False,
     ) -> List[WorkspaceFormDocument]:
         try:
             query = {"workspace_id": workspace_id}
+            if pinned_only:
+                query["settings.pinned"] = True
             if is_not_admin and not user:
                 query["$and"] = [{"settings.hidden": False}, {"settings.private": False}]
             if not is_not_admin and user:
@@ -164,17 +167,19 @@ class WorkspaceFormRepository:
             )
 
     async def get_form_ids_in_workspace(
-            self,
-            workspace_id: PydanticObjectId,
-            is_not_admin: bool = False,
-            user: User = None,
-            match_query: Dict[str, Any] = None,
+        self,
+        workspace_id: PydanticObjectId,
+        is_not_admin: bool = False,
+        user: User = None,
+        pinned_only: bool = False,
+        match_query: Dict[str, Any] = None,
     ):
         workspace_forms = await self.get_workspace_forms_in_workspace(
             workspace_id=workspace_id,
             is_not_admin=is_not_admin,
             user=user,
             match_query=match_query,
+            pinned_only=pinned_only,
             id_only=True,
         )
         return list(set([a["form_id"] for a in workspace_forms]))

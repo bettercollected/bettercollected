@@ -4,6 +4,11 @@ from typing import List
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, patch, post, delete
+from common.constants import MESSAGE_UNAUTHORIZED
+from common.models.consent import ResponseRetentionType
+from common.models.form_import import FormImportRequestBody
+from common.models.standard_form import StandardForm
+from common.models.user import User
 from fastapi import Depends, UploadFile, Form
 from fastapi_pagination import Page
 from loguru import logger
@@ -31,11 +36,6 @@ from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.config import settings
-from common.constants import MESSAGE_UNAUTHORIZED
-from common.models.consent import ResponseRetentionType
-from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm
-from common.models.user import User
 
 
 @router(
@@ -64,16 +64,17 @@ class WorkspaceFormsRouter(Routable):
 
     @get("", response_model=Page[MinifiedForm])
     async def get_workspace_forms(
-            self,
-            workspace_id: PydanticObjectId,
-            sort: SortRequest = Depends(),
-            user: User = Depends(get_user_if_logged_in),
-            published: bool = False,
+        self,
+        workspace_id: PydanticObjectId,
+        sort: SortRequest = Depends(),
+        user: User = Depends(get_user_if_logged_in),
+        published: bool = False,
+        pinned_only: bool = False
     ) -> Page[MinifiedForm]:
         if not user and not published:
             raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
         forms = await self._form_service.get_forms_in_workspace(
-            workspace_id=workspace_id, sort=sort, published=published, user=user
+            workspace_id=workspace_id, sort=sort, published=published,pinned_only=pinned_only, user=user
         )
         return forms
 
