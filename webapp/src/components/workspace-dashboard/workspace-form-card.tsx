@@ -159,16 +159,18 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                         ) : (
                             <></>
                         )}
-                        <AppButton
-                            onClick={() => {
-                                router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
-                            }}
-                            variant={ButtonVariant.Ghost}
-                            size={ButtonSize.Small}
-                            icon={<EditIcon />}
-                        >
-                            Edit
-                        </AppButton>
+                        {form?.settings?.provider === 'self' && (
+                            <AppButton
+                                onClick={() => {
+                                    router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
+                                }}
+                                variant={ButtonVariant.Ghost}
+                                size={ButtonSize.Small}
+                                icon={<EditIcon />}
+                            >
+                                Edit
+                            </AppButton>
+                        )}
                         <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                     </div>
                 )}
