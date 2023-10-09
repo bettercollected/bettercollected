@@ -19,9 +19,12 @@ interface IWorkspaceDashboardFormsProps {
     workspaceForms: any;
     workspace: WorkspaceDto;
     hasCustomDomain: boolean;
+    title?: string;
+    showButtons?: boolean;
+    showPinned?: boolean;
 }
 
-export default function WorkspaceDashboardForms({ workspaceForms, workspace, hasCustomDomain }: IWorkspaceDashboardFormsProps) {
+export default function WorkspaceDashboardForms({ workspaceForms, showPinned = true, workspace, hasCustomDomain, title, showButtons = true }: IWorkspaceDashboardFormsProps) {
     const forms = workspaceForms?.data?.items;
     const { t } = useTranslation();
 
@@ -38,11 +41,13 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
     return (
         <div className="w-full mb-10 flex flex-col gap-5 h-fit">
             <div className="min-h-9 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                <p className="sh1">{t(localesCommon.forms)}</p>
-                <div className="flex gap-3">
-                    <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
-                    <CreateFormButton />
-                </div>
+                <p className="sh1"> {title || t(localesCommon.forms)}</p>
+                {showButtons && (
+                    <div className="flex gap-3">
+                        <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
+                        <CreateFormButton />
+                    </div>
+                )}
             </div>
             {forms?.length === 0 ? (
                 <div className="w-full h-full flex flex-col items-center justify-center rounded-lg py-[84px]">
@@ -60,7 +65,7 @@ export default function WorkspaceDashboardForms({ workspaceForms, workspace, has
                     {forms?.length !== 0 &&
                         forms?.map((form: StandardFormDto, index: number) => (
                             <ActiveLink key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
-                                <WorkspaceFormCard index={index} form={form} workspace={workspace} hasCustomDomain={hasCustomDomain} />
+                                <WorkspaceFormCard index={index} showPinned={showPinned} form={form} workspace={workspace} hasCustomDomain={hasCustomDomain} />
                             </ActiveLink>
                         ))}
                 </div>
