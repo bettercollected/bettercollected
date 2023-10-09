@@ -67,8 +67,8 @@ export default function ConsentBuilder({ className, isPreview = false, form }: C
                     <div className="flex space-x-2">
                         <CheckBox
                             id="responder-rights"
-                            disabled={isPreview}
-                            checked={isDeletionRequestChecked}
+                            disabled={true}
+                            checked={true}
                             onChange={(event, checked) => {
                                 setIsDeletionRequestChecked(checked);
                             }}

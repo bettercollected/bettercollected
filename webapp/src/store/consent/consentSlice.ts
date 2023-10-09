@@ -34,9 +34,9 @@ export const consent = createSlice({
     reducers: {
         setFormConsent: (state, action) => {
             state.formId = action.payload.formId;
-            state.consents = action.payload.consent;
-            state.responseExpiration = action.payload.settings.responseExpiration;
-            state.responseExpirationType = action.payload.settings.responseExpirationType;
+            state.consents = action.payload?.consent && action.payload?.consent?.length > 0 ? action.payload.consent : initialState.consents;
+            state.responseExpiration = action.payload.settings.responseExpiration || initialState.responseExpiration;
+            state.responseExpirationType = action.payload.settings.responseExpirationType || initialState.responseExpirationType;
             state.privacyPolicyUrl = action.payload.settings.privacyPolicyUrl || environments.FORM_PRIVACY_POLICY_URL;
         },
         setAddConsent: (state, action: PayloadAction<IConsentField>) => {

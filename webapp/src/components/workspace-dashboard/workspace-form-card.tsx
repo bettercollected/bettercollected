@@ -165,7 +165,9 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                         )}
                         {form?.settings?.provider === 'self' && (
                             <AppButton
-                                onClick={() => {
+                                onClick={(event: any) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
                                     router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
                                 }}
                                 variant={ButtonVariant.Ghost}
