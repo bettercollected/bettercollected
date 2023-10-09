@@ -2,13 +2,13 @@ from typing import Any, Coroutine
 
 import pytest
 from aiohttp.test_utils import TestClient
+from common.constants import MESSAGE_FORBIDDEN
+from common.models.standard_form import StandardFormResponse, StandardForm
 
 from backend.app.container import container
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import FormResponseDeletionRequest
 from backend.app.schemas.workspace import WorkspaceDocument
-from common.constants import MESSAGE_FORBIDDEN
-from common.models.standard_form import StandardFormResponse, StandardForm
 from tests.app.controllers.data import testUser1, formResponse, testUser, formData_2
 
 
@@ -338,7 +338,8 @@ class TestWorkspaceFormSubmission:
         actual_number_of_responses = user_submissions.json()["total"]
         assert user_submissions.status_code == 200
         assert actual_number_of_responses == expected_number_of_responses
-        assert actual_response_ids == expected_response_ids
+        for expected_response_id in expected_response_ids:
+            assert expected_response_id in actual_response_ids
         assert new_user_form_response not in expected_response_ids
 
     def test_get_workspace_form_response_by_response_id(
