@@ -198,6 +198,7 @@ export const workspacesApi = createApi({
                 method: 'GET',
                 params: {
                     published: !!body.published,
+                    pinned_only: body.pinned_only,
                     page: body.page,
                     size: body.size
                 }
