@@ -21,6 +21,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface IWorkspaceDashboardOverviewProps {
     workspace: WorkspaceDto;
@@ -34,6 +35,8 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
     const { t } = useTranslation();
     const language = router?.locale === 'en' ? '' : `${router?.locale}/`;
     const { data } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
+
+    const reduxWorkspace = useAppSelector(selectWorkspace);
 
     const getWorkspaceUrl = () => {
         const protocol = environments.CLIENT_DOMAIN.includes('localhost') ? 'http://' : 'https://';
@@ -64,10 +67,10 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                 <div className="flex gap-2 w-full justify-between items-start">
                     <div className="flex flex-col gap-4">
                         <div className="flex  items-center gap-4">
-                            <AuthAccountProfileImage name={workspace?.title || 'Untitled'} size={72} image={workspace?.profileImage} />
+                            <AuthAccountProfileImage name={reduxWorkspace?.title || 'Untitled'} size={72} image={reduxWorkspace?.profileImage} />
                             <div className="flex flex-col gap-2">
-                                <div className="h3-new">{workspace?.title || 'Untitled'}</div>
-                                <div className="p2-new text-black-600 max-w-[409px] line-clamp-2 max-h-[42px]">{workspace?.description || ''}</div>
+                                <div className="h3-new">{reduxWorkspace?.title || 'Untitled'}</div>
+                                <div className="p2-new text-black-600 max-w-[200px] md:max-w-[300px] lg:max-w-[409px] line-clamp-2 max-h-[42px]">{reduxWorkspace?.description || ''}</div>
                             </div>
                         </div>
                     </div>
