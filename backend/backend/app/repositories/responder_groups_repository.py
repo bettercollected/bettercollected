@@ -216,44 +216,45 @@ class ResponderGroupsRepository:
         for group_id in ids_to_add:
             await self.add_group_to_form(form_id, group_id)
 
-        return await ResponderGroupFormDocument.find({"form_id": form_id}).aggregate([
-            {
-                "$lookup": {
-                    "from": "responder_group_member",
-                    "localField": "group_id",
-                    "foreignField": "group_id",
-                    "as": "emails",
-                },
-            },
-            {
-                "$lookup": {
-                    "from": "responder_group",
-                    "localField": "group_id",
-                    "foreignField": "_id",
-                    "as": "groups",
-                }
-            },
-            {
-                "$unwind": {
-                    "path": "$groups"
-                }
-            },
-            {
-                "$unset": "_id"
-
-            },
-            {
-                "$project": {
-                    "name": "$groups.name",
-                    "description": "$groups.description",
-                    "regex": "$groups.regex",
-                    "emails": "$emails.identifier",
-                    "form_id": 1
-
-                }
-            },
-        ]
-        ).to_list()
+        return await ResponderGroupFormDocument.find({"form_id":form_id}).to_list()
+        # return await ResponderGroupFormDocument.find({"form_id": form_id}).aggregate([
+        #     {
+        #         "$lookup": {
+        #             "from": "responder_group_member",
+        #             "localField": "group_id",
+        #             "foreignField": "group_id",
+        #             "as": "emails",
+        #         },
+        #     },
+        #     {
+        #         "$lookup": {
+        #             "from": "responder_group",
+        #             "localField": "group_id",
+        #             "foreignField": "_id",
+        #             "as": "groups",
+        #         }
+        #     },
+        #     {
+        #         "$unwind": {
+        #             "path": "$groups"
+        #         }
+        #     },
+        #     {
+        #         "$unset": "_id"
+        #
+        #     },
+        #     {
+        #         "$project": {
+        #             "name": "$groups.name",
+        #             "description": "$groups.description",
+        #             "regex": "$groups.regex",
+        #             "emails": "$emails.identifier",
+        #             "form_id": 1
+        #
+        #         }
+        #     },
+        # ]
+        # ).to_list()
 
     async def remove_group_from_form(self, form_id: str, group_id: PydanticObjectId):
         await ResponderGroupFormDocument.find_one(
