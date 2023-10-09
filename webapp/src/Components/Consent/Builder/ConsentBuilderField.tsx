@@ -50,7 +50,7 @@ export default function ConsentBuilderField({ consent, className, hint, disabled
         >
             <div className="flex items-center justify-between">
                 <div className="flex space-x-2 ">
-                    {consent.type === 'checkbox' && <CheckBox disabled className="!m-0" />}
+                    {consent.type === 'checkbox' && <CheckBox disabled defaultChecked={disabled} className="!m-0" />}
                     <div className="h6-new">
                         {consent.title} {consent.required && <span className="ml-2 text-new-pink">*</span>}
                     </div>
