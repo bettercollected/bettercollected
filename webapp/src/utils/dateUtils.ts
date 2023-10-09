@@ -2,9 +2,9 @@ import moment from 'moment/moment';
 
 export const utcToLocalDate = (dateStr: any) => moment.utc(dateStr).local().format('Do MMMM, YYYY');
 
-export const utcToLocalTime = (dateStr: any) => moment.utc(dateStr).local().format('hh:MM A');
+export const utcToLocalTime = (dateStr: any) => moment.utc(dateStr).local().format('hh:mm A');
 
-export const utcToLocalDateTIme = (dateStr: any) => moment.utc(dateStr).local().format('Do MMMM, YYYY hh:MM A');
+export const utcToLocalDateTIme = (dateStr: any) => moment.utc(dateStr).local().format('Do MMMM, YYYY hh:mm A');
 
 /**
  * Formats a date and time in the "yyyy-mm-dd:hh:mm:ss" format, optionally adding days and hours.
