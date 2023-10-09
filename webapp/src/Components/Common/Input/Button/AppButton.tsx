@@ -4,7 +4,6 @@ import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppBu
 import { CircularProgress } from '@mui/material';
 import cn from 'classnames';
 
-
 export interface AppButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     isLoading?: boolean;
     variant?: ButtonVariant;
@@ -45,7 +44,7 @@ export default function AppButton({ children, className, disabled, isLoading, ic
     return (
         <button
             disabled={isLoading || disabled}
-            className={cn('rounded gap-2 min-w-fit flex justify-center items-center px-5', disabled ? 'cursor-not-allowed' : 'cursor-pointer', getClassnamesForSize(), getClassNamesForVariant(), className)}
+            className={cn('rounded gap-2 min-w-fit flex justify-center items-center px-4', disabled ? 'cursor-not-allowed' : 'cursor-pointer', getClassnamesForSize(), getClassNamesForVariant(), className)}
             {...buttonProps}
         >
             {!isLoading && icon}

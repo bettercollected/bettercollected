@@ -3,6 +3,9 @@ from http import HTTPStatus
 from typing import List
 
 from beanie import PydanticObjectId
+from common.constants import MESSAGE_FORBIDDEN
+from common.models.standard_form import StandardForm
+from common.models.user import User
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
 
@@ -23,9 +26,6 @@ from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
-from common.constants import MESSAGE_FORBIDDEN
-from common.models.standard_form import StandardForm
-from common.models.user import User
 
 
 class FormService:
@@ -42,11 +42,12 @@ class FormService:
         self.user_tags_service = user_tags_service
 
     async def get_forms_in_workspace(
-            self,
-            workspace_id: PydanticObjectId,
-            sort: SortRequest,
-            published: bool,
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        sort: SortRequest,
+        published: bool,
+        pinned_only: bool,
+        user: User,
     ) -> Page[MinifiedForm]:
         has_access_to_workspace = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -55,7 +56,7 @@ class FormService:
             raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
 
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
-            workspace_id, not has_access_to_workspace, user
+            workspace_id, not has_access_to_workspace, pinned_only=pinned_only, user=user
         )
         if published:
             forms_query = self._form_repo.get_published_forms_in_workspace(
@@ -108,7 +109,7 @@ class FormService:
             workspace_id=workspace_id, form_ids=form_ids, query=query, published=published
         )
 
-        if published:
+        if not published:
             user_ids = [form["imported_by"] for form in forms]
             user_details = (
                 {"users_info": []}

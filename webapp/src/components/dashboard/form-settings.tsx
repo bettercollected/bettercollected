@@ -253,29 +253,31 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 </FormSettingsCard>
                             </>
                         )}
-                        <FormSettingsCard>
-                            <div className="flex flex-col items-start w-full">
-                                <div className="body1">Form Purpose and Data Usage</div>
-                                <hr className="h-0.5 w-full bg-black-200 my-2" />
+                        {form?.settings?.provider === 'self' && (
+                            <FormSettingsCard>
+                                <div className="flex flex-col items-start w-full">
+                                    <div className="body1">Form Purpose and Data Usage</div>
+                                    <hr className="h-0.5 w-full bg-black-200 my-2" />
 
-                                <div className=" w-full flex flex-row justify-between items-center gap-4">
-                                    <div className="text-sm !text-black-700">{`This page is to help you to provide you with a clear understanding of how how your information is handled in our form. Our aim is to ensure you're fully informed and comfortable with how we handle your data.`}</div>
-                                    <AppButton
-                                        variant={ButtonVariant.Ghost}
-                                        className="h5-new !text-new-blue-500 w-60 cursor-pointer"
-                                        onClick={() => {
-                                            fullScreenModal.openModal('CREATE_CONSENT_FULL_MODAL_VIEW', {
-                                                form,
-                                                isPreview: true
-                                            });
-                                        }}
-                                    >
-                                        See Details
-                                    </AppButton>
+                                    <div className=" w-full flex flex-row justify-between items-center gap-4">
+                                        <div className="text-sm !text-black-700">{`This page is to help you to provide you with a clear understanding of how how your information is handled in our form. Our aim is to ensure you're fully informed and comfortable with how we handle your data.`}</div>
+                                        <AppButton
+                                            variant={ButtonVariant.Ghost}
+                                            className="h5-new !text-new-blue-500 w-60 cursor-pointer"
+                                            onClick={() => {
+                                                fullScreenModal.openModal('CREATE_CONSENT_FULL_MODAL_VIEW', {
+                                                    form,
+                                                    isPreview: true
+                                                });
+                                            }}
+                                        >
+                                            See Details
+                                        </AppButton>
+                                    </div>
+                                    <hr className="h-0.5 w-full bg-black-200 my-2" />
                                 </div>
-                                <hr className="h-0.5 w-full bg-black-200 my-2" />
-                            </div>
-                        </FormSettingsCard>
+                            </FormSettingsCard>
+                        )}
                         <div className="mt-6">
                             <AppButton
                                 onClick={() => {

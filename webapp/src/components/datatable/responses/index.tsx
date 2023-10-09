@@ -25,16 +25,17 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 
-
 const responseTableStyles = {
     ...dataTableCustomStyles,
     rows: {
         style: {
             ...dataTableCustomStyles.rows.style,
-            border: '1px solid transparent',
+            borderColor: '#EEEEEE !important',
+            // border: '1px solid transparent',
             '&:hover': {
                 cursor: 'pointer',
-                border: '1px solid #0764EB'
+                background: '#EEEEEE'
+                // border: '1px solid #0764EB'
             }
         }
     }

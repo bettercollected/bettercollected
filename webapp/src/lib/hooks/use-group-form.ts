@@ -41,7 +41,6 @@ export function useGroupForm() {
                 groupId: group?.id,
                 formId: form.formId
             }).unwrap();
-
             dispatch(setForm({ ...form, groups: form.groups?.filter((formGroup) => formGroup.id !== group?.id) }));
 
             toast(t(toastMessage.removed).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });

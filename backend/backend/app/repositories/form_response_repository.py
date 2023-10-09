@@ -3,6 +3,11 @@ from typing import Any, Dict, List
 
 import fastapi_pagination.ext.beanie
 from beanie import PydanticObjectId
+from common.base.repo import BaseRepository
+from common.enums.form_provider import FormProvider
+from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
+from common.models.user import User
+from common.services.crypto_service import crypto_service
 from fastapi_pagination import Page
 
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
@@ -17,12 +22,6 @@ from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
 )
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
-from common.base.repo import BaseRepository
-from common.enums.form_provider import FormProvider
-from common.models.consent import ResponseRetentionType
-from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
-from common.models.user import User
-from common.services.crypto_service import crypto_service
 
 
 class FormResponseRepository(BaseRepository):
@@ -47,6 +46,11 @@ class FormResponseRepository(BaseRepository):
             },
             {"$set": {"form_title": "$form.title"}},
             {"$unwind": "$form_title"},
+            {
+                "$sort": {
+                    "created_at": -1
+                }
+            }
         ]
 
         aggregate_query.extend(
