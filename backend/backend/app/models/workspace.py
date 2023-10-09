@@ -38,6 +38,7 @@ class WorkspaceFormSettings(BaseModel):
     embed_url: Optional[str]
     custom_url: Optional[str]
     private: Optional[bool] = False
+    hidden: Optional[bool] = False
     response_data_owner_field: Optional[str]
     provider: Optional[str]
     privacy_policy_url: Optional[str]

@@ -26,15 +26,21 @@ interface IAddFormOnGroupProps {
     forms: Array<StandardFormDto>;
     group: ResponderGroupDto;
 }
+
 export default function AddFormOnGroup({ forms, group }: IAddFormOnGroupProps) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
-    const [selectedForm, setSelectedForm] = useState<StandardFormDto | null>(null);
+    const [selectedForm, setSelectedForm] = useState<StandardFormDto | null>();
     const { addFormOnGroup } = useGroupForm();
     const workspace = useAppSelector(selectWorkspace);
     const handleAddForm = () => {
         if (selectedForm) {
-            addFormOnGroup({ group, groups: selectedForm?.groups, form: selectedForm, workspaceId: workspace.id });
+            addFormOnGroup({
+                groupsForUpdate: [group],
+                groups: selectedForm?.groups,
+                form: selectedForm,
+                workspaceId: workspace.id
+            });
         }
     };
     return (
@@ -60,7 +66,17 @@ export default function AddFormOnGroup({ forms, group }: IAddFormOnGroupProps) {
                     sx={{ width: '100%' }}
                     renderOption={(props, option: StandardFormDto) => {
                         return (
-                            <Tooltip title={isFormAlreadyInGroup(option.groups, group.id) ? t(toolTipConstant.formIsAlreadyOnGroup, { form: option.title, group: group.name }) : ''} key={option.formId}>
+                            <Tooltip
+                                title={
+                                    isFormAlreadyInGroup(option.groups, group.id)
+                                        ? t(toolTipConstant.formIsAlreadyOnGroup, {
+                                              form: option.title,
+                                              group: group.name
+                                          })
+                                        : ''
+                                }
+                                key={option.formId}
+                            >
                                 <div>
                                     <Box component="li" {...props} className={cn(' MuiAutocomplete-option !py-2', isFormAlreadyInGroup(option.groups, group.id) && 'cursor-not-allowed pointer-events-none opacity-30')}>
                                         <div className="flex justify-between w-full items-center">

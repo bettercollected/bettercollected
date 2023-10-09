@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import ModalButton from '@Components/Common/Input/Button/ModalButton';
 import { CheckCircle } from '@mui/icons-material';
 import { Autocomplete, Box, TextField, createFilterOptions } from '@mui/material';
@@ -25,6 +25,7 @@ interface IAddGroupOnFormProps {
     responderGroups?: Array<ResponderGroupDto>;
     form: StandardFormDto;
 }
+
 export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFormProps) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
@@ -32,7 +33,13 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
     const { addFormOnGroup } = useGroupForm();
     const workspace = useAppSelector(selectWorkspace);
     const handleAddForm = () => {
-        if (responderGroups) addFormOnGroup({ groups: form.groups, group: selectedGroup, form, workspaceId: workspace.id });
+        if (responderGroups)
+            addFormOnGroup({
+                groups: form.groups,
+                groupsForUpdate: [...form.groups, selectedGroup],
+                form,
+                workspaceId: workspace.id
+            });
     };
     return (
         <div className="p-10 relative bg-white md:w-[658px] rounded-[8px]">
@@ -57,7 +64,17 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
                     sx={{ width: '100%' }}
                     renderOption={(props, option: ResponderGroupDto) => {
                         return (
-                            <Tooltip title={isFormAlreadyInGroup(form.groups, option.id) ? t(toolTipConstant.formIsAlreadyOnGroup, { form: form.title, group: option.name }) : ''} key={option.id}>
+                            <Tooltip
+                                title={
+                                    isFormAlreadyInGroup(form.groups, option.id)
+                                        ? t(toolTipConstant.formIsAlreadyOnGroup, {
+                                              form: form.title,
+                                              group: option.name
+                                          })
+                                        : ''
+                                }
+                                key={option.id}
+                            >
                                 <div>
                                     <Box component="li" {...props} className={cn(' MuiAutocomplete-option !py-2', isFormAlreadyInGroup(form.groups, option.id) && 'cursor-not-allowed pointer-events-none opacity-30')}>
                                         <div className="flex justify-between w-full items-center">

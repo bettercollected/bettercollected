@@ -46,7 +46,7 @@ def get_workspace_group_url(
     workspace_form: Coroutine[Any, Any, FormDocument],
     workspace_group: Coroutine,
 ):
-    return f"{workspace_form_common_url}/{workspace_form.form_id}/groups/add?group_id={workspace_group.id}"
+    return f"{workspace_form_common_url}/{workspace_form.form_id}/groups/add"
 
 
 async def create_form_request_body():
@@ -422,12 +422,12 @@ class TestWorkspaceForm:
         workspace_group: Coroutine,
         test_user_cookies: dict[str, str],
     ):
-        group_form = client.patch(get_workspace_group_url, cookies=test_user_cookies)
+        group_form = client.patch(get_workspace_group_url, cookies=test_user_cookies,json={"group_ids": [str(workspace_group.id)]})
 
         expected_added_form = (await ResponderGroupFormDocument.find().to_list())[
             0
         ].form_id
-        actual_added_form = group_form.json()["form_id"]
+        actual_added_form = group_form.json()[0]["form_id"]
         assert group_form.status_code == 200
         assert actual_added_form == expected_added_form
 
@@ -441,7 +441,7 @@ class TestWorkspaceForm:
         test_user_cookies_1: dict[str, str],
     ):
         unauthorized_client = client.patch(
-            get_workspace_group_url, cookies=test_user_cookies_1
+            get_workspace_group_url, cookies=test_user_cookies_1,json={"group_ids": [str(workspace_group.id)]}
         )
 
         expected_response_message = MESSAGE_FORBIDDEN

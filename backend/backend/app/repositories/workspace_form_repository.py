@@ -18,7 +18,7 @@ from common.models.user import User
 
 class WorkspaceFormRepository:
     async def update(
-        self, item_id: str, item: WorkspaceFormDocument
+            self, item_id: str, item: WorkspaceFormDocument
     ) -> WorkspaceFormDocument:
         workspace_form = await WorkspaceFormDocument.find_one(
             WorkspaceFormDocument.id == item_id
@@ -28,11 +28,11 @@ class WorkspaceFormRepository:
         return await item.save()
 
     async def save_workspace_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        user_id: str,
-        workspace_form_settings: WorkspaceFormSettings,
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            user_id: str,
+            workspace_form_settings: WorkspaceFormSettings,
     ):
         workspace_form = await WorkspaceFormDocument.find_one(
             {"workspace_id": workspace_id, "form_id": form_id, "user_id": user_id}
@@ -48,10 +48,10 @@ class WorkspaceFormRepository:
 
     # TODO : Refactor this functions to include repo related only
     async def get_workspace_form_in_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        query: str,
-        is_admin=True,
+            self,
+            workspace_id: PydanticObjectId,
+            query: str,
+            is_admin=True,
     ):
         try:
             query = {
@@ -70,17 +70,20 @@ class WorkspaceFormRepository:
             )
 
     async def get_workspace_forms_in_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        is_not_admin: bool = False,
-        user: User = None,
-        match_query: Dict[str, Any] = None,
-        id_only: bool = False,
+            self,
+            workspace_id: PydanticObjectId,
+            is_not_admin: bool = False,
+            user: User = None,
+            match_query: Dict[str, Any] = None,
+            id_only: bool = False,
     ) -> List[WorkspaceFormDocument]:
         try:
             query = {"workspace_id": workspace_id}
             if is_not_admin and not user:
-                query["settings.private"] = False
+                query["$and"] = [{"settings.hidden": False}, {"settings.private": False}]
+            if not is_not_admin and user:
+                query["$or"] = [{"settings.hidden": False}, {"settings.hidden": {"$exists": False}},
+                                {"user_id": user.id}]
             if match_query:
                 query.update(match_query)
             aggregation_pipeline = []
@@ -120,23 +123,28 @@ class WorkspaceFormRepository:
                         },
                         {
                             "$match": {
-                                "$or": [
-                                    {"settings.private": False},
-                                    {"emails.identifier": user.sub},
+                                "$and": [
+                                    {"settings.hidden": False},
                                     {
-                                        "$and": [
+                                        "$or": [
+                                            {"settings.private": False},
+                                            {"emails.identifier": user.sub},
                                             {
-                                                "$expr": {
-                                                    "$regexMatch": {
-                                                        "input": user.sub,
-                                                        "regex": "$regex",
-                                                    }
-                                                }
+                                                "$and": [
+                                                    {
+                                                        "$expr": {
+                                                            "$regexMatch": {
+                                                                "input": user.sub,
+                                                                "regex": "$regex",
+                                                            }
+                                                        }
+                                                    },
+                                                    {"regex": {"$ne": ""}},
+                                                ]
                                             },
-                                            {"regex": {"$ne": ""}},
                                         ]
-                                    },
-                                ]
+                                    }
+                                ],
                             }
                         },
                     ]
@@ -156,11 +164,11 @@ class WorkspaceFormRepository:
             )
 
     async def get_form_ids_in_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        is_not_admin: bool = False,
-        user: User = None,
-        match_query: Dict[str, Any] = None,
+            self,
+            workspace_id: PydanticObjectId,
+            is_not_admin: bool = False,
+            user: User = None,
+            match_query: Dict[str, Any] = None,
     ):
         workspace_forms = await self.get_workspace_forms_in_workspace(
             workspace_id=workspace_id,
@@ -172,7 +180,7 @@ class WorkspaceFormRepository:
         return list(set([a["form_id"] for a in workspace_forms]))
 
     async def get_workspace_form_with_custom_slug_form_id(
-        self, workspace_id: PydanticObjectId, custom_url: str
+            self, workspace_id: PydanticObjectId, custom_url: str
     ):
         return await WorkspaceFormDocument.find_one(
             {
@@ -188,7 +196,7 @@ class WorkspaceFormRepository:
         return [workspace_form.workspace_id for workspace_form in workspace_forms]
 
     async def delete_form_in_workspace(
-        self, workspace_id: PydanticObjectId, form_id: str
+            self, workspace_id: PydanticObjectId, form_id: str
     ):
         workspace_form = await WorkspaceFormDocument.find_one(
             {"form_id": form_id, "workspace_id": workspace_id}
@@ -199,7 +207,7 @@ class WorkspaceFormRepository:
         return workspace_form
 
     async def check_is_form_imported_in_other_workspace(
-        self, workspace_id: PydanticObjectId, form_id: str
+            self, workspace_id: PydanticObjectId, form_id: str
     ):
         workspace_forms = await WorkspaceFormDocument.find(
             {"form_id": form_id}
@@ -213,7 +221,7 @@ class WorkspaceFormRepository:
                     )
 
     async def get_form_ids_imported_by_user(
-        self, workspace_id: PydanticObjectId, user_id: str
+            self, workspace_id: PydanticObjectId, user_id: str
     ):
         forms = await WorkspaceFormDocument.find(
             {"workspace_id": workspace_id, "user_id": user_id}
@@ -221,7 +229,7 @@ class WorkspaceFormRepository:
         return [form.form_id for form in forms]
 
     async def get_form_ids_in_workspaces_and_imported_by_user(
-        self, workspace_ids: List[PydanticObjectId], user: User
+            self, workspace_ids: List[PydanticObjectId], user: User
     ):
         forms = await WorkspaceFormDocument.find(
             {
