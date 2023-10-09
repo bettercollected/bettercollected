@@ -109,9 +109,11 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                             </Tooltip>
                             {!isResponderPortal && !form?.isPublished && <div className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">Draft</div>}
                         </div>
-                        <div className="flex-1 lg:hidden">
-                            <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
-                        </div>
+                        {!group && (
+                            <div className="flex-1 lg:hidden">
+                                <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-center max-w-full flex-wrap gap-2">
                         <FormProviderIcon provider={form?.settings?.provider} />
@@ -163,7 +165,9 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                         )}
                         {form?.settings?.provider === 'self' && (
                             <AppButton
-                                onClick={() => {
+                                onClick={(event: any) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
                                     router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
                                 }}
                                 variant={ButtonVariant.Ghost}
@@ -178,7 +182,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                 )}
                 {!!group && (
                     <DeleteDropDown
-                        className="invisible group-hover:visible"
+                        className="lg:invisible lg:group-hover:visible"
                         onDropDownItemClick={(event) => {
                             event.stopPropagation();
                             event.preventDefault();
