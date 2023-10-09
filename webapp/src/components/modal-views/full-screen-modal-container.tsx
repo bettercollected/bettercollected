@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import LoginView from '@app/components/login/login-view';
 import { UPGRADE_MODAL_VIEW, useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import FormCreateSlugFullModalView from '@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
+import SelectGroupFullModalView from '@app/components/modal-views/full-screen-modals/select-group-modal-view';
 import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
 import WorkspacePreviewModal from '@app/components/modal-views/modals/workspace-preview-modal';
 import { Dialog } from '@app/components/ui/dialog';
@@ -36,6 +37,8 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
             return <FormSettingFullModalView {...modalProps} />;
         case 'FORM_CREATE_SLUG_VIEW':
             return <FormCreateSlugFullModalView {...modalProps} />;
+        case 'SELECT_GROUP_FULL_MODAL_VIEW':
+            return <SelectGroupFullModalView {...modalProps} />;
         default:
             return <></>;
     }

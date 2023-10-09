@@ -36,6 +36,7 @@ import EditWorkspaceModal from './modals/edit-workspace-modal';
 import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
 import FormBuilderTipsModalView from './modals/form-builder-tips-modal-view';
 import UserDeletionModal from './modals/user-deletion-modal';
+import VisibilityConfirmationModalView from './modals/visibility-confirmation-modal-view';
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
@@ -97,6 +98,8 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <UpdateWorkspaceSettings updateDomain={false} />;
         case 'USER_DELETION':
             return <UserDeletionModal {...modalProps} />;
+        case 'VISIBILITY_CONFIRMATION_MODAL_VIEW':
+            return <VisibilityConfirmationModalView {...modalProps} />;
         default:
             return <></>;
     }

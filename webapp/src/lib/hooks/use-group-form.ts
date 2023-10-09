@@ -1,8 +1,10 @@
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -16,14 +18,21 @@ interface IDeleteFormFromGroupProps {
     workspaceId: string;
     form: StandardFormDto;
 }
-interface IAddFormOnGroupProps extends IDeleteFormFromGroupProps {
+
+interface IAddFormOnGroupProps {
     groups: Array<ResponderGroupDto>;
+    groupsForUpdate: Array<ResponderGroupDto | null> | null;
+    workspaceId: string;
+    form: StandardFormDto;
 }
+
 export function useGroupForm() {
     const [addForm] = useAddFormOnGroupMutation();
     const [removeForm] = useDeleteGroupFormMutation();
     const dispatch = useAppDispatch();
+    const router = useRouter();
     const { closeModal } = useModal();
+    const fullScreenModal = useFullScreenModal();
     const { t } = useTranslation();
     const deleteFormFromGroup = async ({ group, workspaceId, form }: IDeleteFormFromGroupProps) => {
         try {
@@ -42,19 +51,29 @@ export function useGroupForm() {
         }
     };
 
-    const addFormOnGroup = async ({ groups, group, workspaceId, form }: IAddFormOnGroupProps) => {
+    const addFormOnGroup = async ({ groups, groupsForUpdate, workspaceId, form }: IAddFormOnGroupProps) => {
         try {
+            let groupIds = [];
+            if (groupsForUpdate) {
+                for (let group of groupsForUpdate) {
+                    groupIds.push(group?.id);
+                }
+            }
             await addForm({
                 workspaceId: workspaceId,
-                groupId: group?.id,
+                groups: groupIds,
                 formId: form.formId
             });
-
-            dispatch(setForm({ ...form, groups: [...groups, group] }));
-
+            //     .then((data: any) => {
+            //     const dataArray = Array.from(data);
+            //     dispatch(setForm({ ...form, groups: [...groups, ...dataArray] }));
+            // });
+            router.push(router.asPath);
             toast(t(toastMessage.addedOnGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
-            closeModal();
+            // closeModal();
+            // fullScreenModal.closeModal();
         } catch (error) {
+            console.log(error);
             toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
     };
