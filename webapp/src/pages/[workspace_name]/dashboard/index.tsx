@@ -28,6 +28,16 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
 
     const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
 
+    const pinnedFormsQuery = {
+        workspace_id: workspace.id,
+        pinned_only: true
+    };
+
+    const pinnedFormsResponse = useGetWorkspaceFormsQuery(pinnedFormsQuery);
+    const pinnedForms = pinnedFormsResponse?.data?.items || [];
+
+    const forms = workspaceForms?.data?.items || [];
+
     return (
         <DashboardLayout boxClassName="bg-black-100">
             {environments.ENABLE_JOYRIDE_TOURS && (
@@ -83,7 +93,8 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                 <WorkspaceDashboardOverview workspace={props.workspace} />
             </div>
             <div className="px-5 pt-12 lg:px-10">
-                <WorkspaceDashboardForms hasCustomDomain={hasCustomDomain} workspace={workspace} workspaceForms={workspaceForms} />
+                {pinnedForms?.length > 0 && <WorkspaceDashboardForms showPinned={false} workspaceForms={pinnedFormsResponse} title="Pinned Forms" workspace={workspace} hasCustomDomain={hasCustomDomain} />}
+                <WorkspaceDashboardForms workspaceForms={workspaceForms} showButtons={pinnedForms?.length === 0} workspace={workspace} hasCustomDomain={hasCustomDomain} />
             </div>
         </DashboardLayout>
     );
