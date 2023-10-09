@@ -1,6 +1,5 @@
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
-import { useRouter } from 'next/router';
 
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';

@@ -1,13 +1,11 @@
 import { GetServerSidePropsContext } from 'next';
-import dynamic from 'next/dynamic';
 
 import environments from '@app/configs/environments';
+import WorkspaceHomeContainer from '@app/containers/dashboard/WorkspaceHomeContainer';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { checkHasClientDomain, checkHasCustomDomain, getRequestHost } from '@app/utils/serverSidePropsUtils';
-
-const WorkspaceHomeContainer = dynamic(() => import('@app/containers/dashboard/WorkspaceHomeContainer'), { ssr: false });
 
 interface IHome extends IServerSideProps {}
 

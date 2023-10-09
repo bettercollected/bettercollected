@@ -19,11 +19,13 @@ import moment from 'moment/moment';
 import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
 import { GroupIcon } from '@app/components/icons/group-icon';
 import { useModal } from '@app/components/modal-views/context';
+import DeleteDropDown from '@app/components/ui/delete-dropdown';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
+import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -41,10 +43,11 @@ interface IWorkspaceFormCardProps {
     showVisibility?: boolean;
 }
 
-export default function WorkspaceFormCard({ form, hasCustomDomain, index, workspace, isResponderPortal = false, className = '', showPinned = true, showVisibility = true }: IWorkspaceFormCardProps) {
+export default function WorkspaceFormCard({ form, hasCustomDomain, group, workspace, isResponderPortal = false, className = '', showPinned = true, showVisibility = true }: IWorkspaceFormCardProps) {
     const { openModal } = useModal();
     const router = useRouter();
     const { t } = useTranslation();
+    const { deleteFormFromGroup } = useGroupForm();
     useEffect(() => {
         router.prefetch(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}?view=Responses`);
     }, [router]);
@@ -145,7 +148,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                         )}
                     </div>
                 </div>
-                {!isResponderPortal && (
+                {!isResponderPortal && !group && (
                     <div className="hidden lg:invisible lg:group-hover:visible lg:flex gap-2 items-center">
                         {form?.isPublished ? (
                             form?.settings?.hidden ? (
@@ -158,18 +161,35 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, index, worksp
                         ) : (
                             <></>
                         )}
-                        <AppButton
-                            onClick={() => {
-                                router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
-                            }}
-                            variant={ButtonVariant.Ghost}
-                            size={ButtonSize.Small}
-                            icon={<EditIcon />}
-                        >
-                            Edit
-                        </AppButton>
+                        {form?.settings?.provider === 'self' && (
+                            <AppButton
+                                onClick={() => {
+                                    router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
+                                }}
+                                variant={ButtonVariant.Ghost}
+                                size={ButtonSize.Small}
+                                icon={<EditIcon />}
+                            >
+                                Edit
+                            </AppButton>
+                        )}
                         <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                     </div>
+                )}
+                {!!group && (
+                    <DeleteDropDown
+                        className="invisible group-hover:visible"
+                        onDropDownItemClick={(event) => {
+                            event.stopPropagation();
+                            event.preventDefault();
+                            openModal('DELETE_CONFIRMATION', {
+                                positiveText: 'Remove',
+                                headerTitle: 'Remove Form',
+                                title: t(localesCommon.remove) + ' ' + form.title,
+                                handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form })
+                            });
+                        }}
+                    />
                 )}
             </div>
         </div>

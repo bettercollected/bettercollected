@@ -3,13 +3,13 @@ from typing import List
 from beanie import PydanticObjectId
 from beanie.odm.enums import SortDirection
 from beanie.odm.queries.aggregation import AggregationQuery
+from common.models.standard_form import StandardForm
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.FormVersion import FormVersion
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
-from common.models.standard_form import StandardForm
 
 
 class FormRepository:
@@ -153,6 +153,33 @@ class FormRepository:
         query_document = FormDocument
         if published:
             query_document = FormVersionsDocument
+
+        aggregation_pipeline = [
+            {
+                "$lookup": {
+                    "from": "workspace_forms",
+                    "localField": "form_id",
+                    "foreignField": "form_id",
+                    "as": "workspace_form",
+                }
+            },
+            {"$unwind": "$workspace_form"},
+            {"$match": {"workspace_form.workspace_id": workspace_id}},
+            {
+                "$set": {
+                    "settings": "$workspace_form.settings",
+                    "imported_by": "$workspace_form.user_id",
+                }
+            },
+
+        ]
+
+        if published:
+            aggregation_pipeline.extend([
+                {"$sort": {"version": -1}},
+                {"$group": {"_id": "$form_id", "latestVersion": {"$first": "$$ROOT"}}},
+                {"$replaceRoot": {"newRoot": "$latestVersion"}},
+            ])
         return (
             await query_document.find(
                 {
@@ -163,26 +190,7 @@ class FormRepository:
                     ],
                 }
             )
-            .aggregate(
-                [
-                    {
-                        "$lookup": {
-                            "from": "workspace_forms",
-                            "localField": "form_id",
-                            "foreignField": "form_id",
-                            "as": "workspace_form",
-                        }
-                    },
-                    {"$unwind": "$workspace_form"},
-                    {"$match": {"workspace_form.workspace_id": workspace_id}},
-                    {
-                        "$set": {
-                            "settings": "$workspace_form.settings",
-                            "imported_by": "$workspace_form.user_id",
-                        }
-                    },
-                ]
-            )
+            .aggregate(aggregation_pipeline=aggregation_pipeline)
             .to_list()
         )
 
