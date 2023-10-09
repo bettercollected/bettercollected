@@ -166,7 +166,7 @@ jobs:
           key: ${{ secrets.SIRETO_BASTION_SSH_KEY }}
           port: ${{ secrets.SIRETO_BASTION_PORT }}
           script: |
-            SERVICE_TAG=${${{ matrix.service }}//\//-}
+            SERVICE_TAG=$(echo ${{ matrix.service }} | tr '/' '-')
             if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
               DOCKER_STACK=${{ vars.DEVELOP_STACK }}
               DOCKER_HOST=${{ vars.DEVELOP_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
