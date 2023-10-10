@@ -1,34 +1,58 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import { escapeRegExp } from 'lodash';
+
 import CreateFormButton from '@Components/Common/CreateFormButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import SearchInput from '@Components/Common/Search/SearchInput';
 import BeaconComponent from '@Components/Joyride/JoyrideBeacon';
 
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
+import WorkspaceDashboardFormsCard from '@app/components/workspace-dashboard/workspace-dashboard-form-cards';
 import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
 import { localesCommon } from '@app/constants/locales/common';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
+import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface IWorkspaceDashboardFormsProps {
-    workspaceForms: any;
     workspace: WorkspaceDto;
     hasCustomDomain: boolean;
     title?: string;
     showButtons?: boolean;
-    showPinned?: boolean;
 }
 
-export default function WorkspaceDashboardForms({ workspaceForms, showPinned = true, workspace, hasCustomDomain, title, showButtons = true }: IWorkspaceDashboardFormsProps) {
-    const forms = workspaceForms?.data?.items;
+export default function WorkspaceDashboardForms({ title, showButtons, hasCustomDomain }: IWorkspaceDashboardFormsProps) {
     const { t } = useTranslation();
+    const workspace = useAppSelector(selectWorkspace);
+    const workspaceQuery = {
+        workspace_id: workspace.id
+    };
+    const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
+    const [searchWorkspaceForms] = useSearchWorkspaceFormsMutation();
+    const forms = workspaceForms?.data?.items || [];
+    const [allForms, setAllForms] = useState([]);
 
-    const ref = React.useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!!workspaceForms?.data) {
+            setAllForms(workspaceForms?.data?.items);
+        }
+    }, [workspaceForms?.data]);
+
+    const handleSearch = async (event: any) => {
+        const response: any = await searchWorkspaceForms({
+            workspace_id: workspace.id,
+            query: escapeRegExp(event.target.value)
+        });
+        setAllForms(response?.data);
+    };
 
     if (workspaceForms.isLoading) {
         return (
@@ -39,9 +63,15 @@ export default function WorkspaceDashboardForms({ workspaceForms, showPinned = t
     }
 
     return (
-        <div className="w-full mb-10 flex flex-col gap-5 h-fit">
+        <div className="w-full mb-4 flex flex-col gap-5 h-fit">
             <div className="min-h-9 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                <p className="sh1"> {title || t(localesCommon.forms)}</p>
+                <div className="sh1 flex flex-row gap-6 items-center">
+                    <div className={'flex flex-row gap-1'}>
+                        <h1>{title || t(localesCommon.forms)}</h1>
+                        <h2>{`(${forms?.length})`}</h2>
+                    </div>
+                    <SearchInput handleSearch={handleSearch} />
+                </div>
                 {showButtons && (
                     <div className="flex gap-3">
                         <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
@@ -49,27 +79,7 @@ export default function WorkspaceDashboardForms({ workspaceForms, showPinned = t
                     </div>
                 )}
             </div>
-            {forms?.length === 0 ? (
-                <div className="w-full h-full flex flex-col items-center justify-center rounded-lg py-[84px]">
-                    <p className="h3-new text-black-800 font-semibold">You haven&apos;t created or imported any forms.</p>
-                    <p className="p1-new text-black-700 mb-6 mt-2">Create your first privacy friendly form.</p>
-                    <div ref={ref} className="relative">
-                        <CreateFormButton variant={ButtonVariant.Tertiary} />
-                        <div className="absolute -bottom-1 -right-1">
-                            <BeaconComponent />
-                        </div>
-                    </div>
-                </div>
-            ) : (
-                <div className="flex flex-col gap-6">
-                    {forms?.length !== 0 &&
-                        forms?.map((form: StandardFormDto, index: number) => (
-                            <ActiveLink key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
-                                <WorkspaceFormCard index={index} showPinned={showPinned} form={form} workspace={workspace} hasCustomDomain={hasCustomDomain} />
-                            </ActiveLink>
-                        ))}
-                </div>
-            )}
+            <WorkspaceDashboardFormsCard showPinned={true} workspaceForms={allForms} workspace={workspace} hasCustomDomain={hasCustomDomain} />
         </div>
     );
 }

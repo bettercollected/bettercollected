@@ -32,7 +32,6 @@ import { validateFormFieldAnswer } from '@app/utils/validationUtils';
 
 import useFormAtom from './atom';
 
-
 export interface FormFieldProps {
     field: StandardFormFieldDto;
     ans?: any;
@@ -49,7 +48,7 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
         case FormBuilderTagNames.LAYOUT_HEADER2:
         // return <div className={'!mt-8 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_LABEL:
-            return <div className={contentEditableClassNames(false, field?.type) + ' mt-6 '}>{field?.value}</div>;
+            return <div className={contentEditableClassNames(false, field?.type, enabled) + ' mt-6 '}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_MARKDOWN:
             return <MarkdownText text={field.value ?? ''} />;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
@@ -114,7 +113,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
     useEffect(() => {
         dispatch(setDataResponseOwnerField(form?.settings?.responseDataOwnerField || ''));
-    }, [ form]);
+    }, [form]);
 
     const onFormSubmitCallback = async (consentAnswers: Record<string, ConsentAnswerDto>) => {
         if (isPreview) {
