@@ -180,6 +180,22 @@ class FormRepository:
                 {"$group": {"_id": "$form_id", "latestVersion": {"$first": "$$ROOT"}}},
                 {"$replaceRoot": {"newRoot": "$latestVersion"}},
             ])
+        if not published:
+            aggregation_pipeline.extend([
+                {
+                    "$lookup": {
+                        "from": "form_versions",
+                        "localField": "form_id",
+                        "foreignField": "form_id",
+                        "as": "versions",
+                    }
+                },
+                {
+                    "$set": {
+                        "is_published": {"$gt": [{"$size": "$versions"}, 0]}
+                    }
+                }
+            ])
         return (
             await query_document.find(
                 {
