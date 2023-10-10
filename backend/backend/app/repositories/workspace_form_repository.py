@@ -83,7 +83,15 @@ class WorkspaceFormRepository:
             if pinned_only:
                 query["settings.pinned"] = True
             if is_not_admin and not user:
-                query["$and"] = [{"settings.hidden": False}, {"settings.private": False}]
+                query["$and"] = [
+                    {
+                        "$or": [
+                            {"settings.hidden": False},
+                            {"settings.hidden": {"$exists": False}}
+                        ]
+                    },
+                    {"settings.private": False}
+                ]
             if not is_not_admin and user:
                 query["$or"] = [{"settings.hidden": False}, {"settings.hidden": {"$exists": False}},
                                 {"user_id": user.id}]
@@ -127,7 +135,11 @@ class WorkspaceFormRepository:
                         {
                             "$match": {
                                 "$and": [
-                                    {"settings.hidden": False},
+                                    {
+                                        "$or": [
+                                            {"settings.hidden": False}, {"settings.hidden": {"$exists": False}}
+                                        ]
+                                    },
                                     {
                                         "$or": [
                                             {"settings.private": False},
