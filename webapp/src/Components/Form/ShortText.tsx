@@ -10,7 +10,6 @@ import { selectAuth } from '@app/store/auth/slice';
 import { addAnswer, deleteAnswer, selectFormResponderOwnerField } from '@app/store/fill-form/slice';
 import { useAppSelector } from '@app/store/hooks';
 
-
 interface IShortTextProps {
     field: StandardFormFieldDto;
     ans?: any;
@@ -84,6 +83,11 @@ export default function ShortText({ ans, enabled, field, helperText }: IShortTex
             <FormInputField
                 style={{
                     margin: '0px !important'
+                }}
+                sx={{
+                    '& .MuiInputBase-input.Mui-disabled': {
+                        WebkitTextFillColor: '#1D1D1D'
+                    }
                 }}
                 type={getInputType()}
                 value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name || ans?.date || ans?.phone_number}

@@ -7,7 +7,6 @@ import Checkbox from '@mui/material/Checkbox';
 import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
-
 export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
     const dispatch = useAppDispatch();
     const answer = useAppSelector(selectAnswer(field.id));
@@ -33,7 +32,19 @@ export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
             {(field?.properties?.choices || []).map((choice: any, index: number) => (
                 <div key={choice?.id} className="flex w-fit  items-center relative">
                     {index === 0 && field?.validations?.required && <FieldRequired className="-right-5" />}
-                    <Checkbox id={choice?.value} className="!p-0" size="medium" disabled={!enabled} checked={!!ans?.choices?.values?.includes(choice?.value) || !!answerChoices?.includes(choice?.value)} onClick={() => handleSelectChoice(choice)} />
+                    <Checkbox
+                        sx={{
+                            '&, &.Mui-checked.Mui-disabled': {
+                                color: '#4D4D4D'
+                            }
+                        }}
+                        id={choice?.value}
+                        className="!p-0"
+                        size="medium"
+                        disabled={!enabled}
+                        checked={!!ans?.choices?.values?.includes(choice?.value) || !!answerChoices?.includes(choice?.value)}
+                        onClick={() => handleSelectChoice(choice)}
+                    />
                     <label htmlFor={choice?.value} className="!ml-2 body4">
                         {choice?.value}
                     </label>
