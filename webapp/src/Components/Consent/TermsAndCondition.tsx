@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import CheckBox from '@Components/Common/Input/CheckBox';
 import cn from 'classnames';

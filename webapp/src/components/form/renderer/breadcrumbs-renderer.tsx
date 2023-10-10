@@ -4,6 +4,7 @@ import { ChevronRight } from '@mui/icons-material';
 
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 
+
 interface BreadcrumbRendererProps {
     items: Array<BreadcrumbsItem>;
 }

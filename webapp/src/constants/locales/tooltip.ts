@@ -11,7 +11,7 @@ export const toolTipConstant = {
     editWorkspace: 'TOOLTIP.EDIT_WORKSPACE',
     shareWorkspace: 'TOOLTIP.SHARE_WORKSPACE',
     formProviderHidden: 'TOOLTIP.FORM_PROVIDER_HIDDEN',
-    copyLink: 'TOOLTIP.COPY_LICK',
+    copyLink: 'TOOLTIP.COPY_LINK',
     hideForm: 'TOOLTIP.HIDE_FORM',
     pinned: 'TOOLTIP.PINNED',
     Options: 'TOOLTIP.OPTIONS',

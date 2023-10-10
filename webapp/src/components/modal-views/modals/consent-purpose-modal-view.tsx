@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import MuiSwitch from '@Components/Common/Input/Switch';
@@ -8,7 +8,6 @@ import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import ContentEditable from 'react-contenteditable';
 import { toast } from 'react-toastify';
 
-import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
 import { IConsentOption } from '@app/models/types/consentTypes';
 import { setAddConsent, setUpdateConsent } from '@app/store/consent/actions';
 import { useCreateWorkspaceConsentMutation } from '@app/store/consent/api';

@@ -3,21 +3,21 @@ import React, { Dispatch, SetStateAction, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import AppTextField from '@Components/Common/Input/AppTextField';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import Divider from '@mui/material/Divider';
 import { toast } from 'react-toastify';
 
-import FormProviderContext from '@app/Contexts/FormProviderContext';
-import BetterInput from '@app/components/Common/input';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
-import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { signUpScreen } from '@app/constants/locales/signup-screen';
-import { IntegrationFormProviders } from '@app/models/dtos/provider';
 import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 import { capitalize } from '@app/utils/stringUtils';
+
 
 interface OtpEmailInputPropType {
     isCreator: boolean;
@@ -128,10 +128,10 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                 </>
             )}
             <p className="text-base font-semibold mb-3 mt-[44px] text-black-900">{constants.emailInputLabel}</p>
-            <BetterInput type={'email'} required={true} placeholder={constants.enterYourEmail} value={email} onChange={handleEmailInput} />
-            <Button type={'submit'} variant="solid" isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={`body1 w-full mt-6 ${isModal ? 'mb-10' : ''}`} size={'extraMedium'}>
+            <AppTextField type={'email'} required={true} placeholder={constants.enterYourEmail} value={email} onChange={handleEmailInput} />
+            <AppButton type={'submit'} variant={ButtonVariant.Primary} isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={`w-full mt-6 ${isModal ? 'mb-10' : ''}`} size={ButtonSize.Medium}>
                 {constants.sendCodeButton}
-            </Button>
+            </AppButton>
         </form>
     );
 }

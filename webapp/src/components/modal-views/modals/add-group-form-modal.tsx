@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import ModalButton from '@Components/Common/Input/Button/ModalButton';
 import { CheckCircle } from '@mui/icons-material';
 import { Autocomplete, Box, TextField, createFilterOptions } from '@mui/material';
 import cn from 'classnames';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { formConstant } from '@app/constants/locales/form';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
@@ -24,6 +25,7 @@ interface IAddGroupOnFormProps {
     responderGroups?: Array<ResponderGroupDto>;
     form: StandardFormDto;
 }
+
 export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFormProps) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
@@ -31,10 +33,16 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
     const { addFormOnGroup } = useGroupForm();
     const workspace = useAppSelector(selectWorkspace);
     const handleAddForm = () => {
-        if (responderGroups) addFormOnGroup({ groups: form.groups, group: selectedGroup, form, workspaceId: workspace.id });
+        if (responderGroups)
+            addFormOnGroup({
+                groups: form.groups,
+                groupsForUpdate: [...form.groups, selectedGroup],
+                form,
+                workspaceId: workspace.id
+            });
     };
     return (
-        <div className="p-10 relative bg-brand-100 md:w-[658px] rounded-[8px]">
+        <div className="p-10 relative bg-white md:w-[658px] rounded-[8px]">
             <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
             <h4 className="h4">{t(formConstant.addgroup.title, { form: form.title })}</h4>
             <p className="mt-2 mb-8 body4  !text-black-700">{t(formConstant.addgroup.description)}</p>
@@ -56,7 +64,17 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
                     sx={{ width: '100%' }}
                     renderOption={(props, option: ResponderGroupDto) => {
                         return (
-                            <Tooltip title={isFormAlreadyInGroup(form.groups, option.id) ? t(toolTipConstant.formIsAlreadyOnGroup, { form: form.title, group: option.name }) : ''} key={option.id}>
+                            <Tooltip
+                                title={
+                                    isFormAlreadyInGroup(form.groups, option.id)
+                                        ? t(toolTipConstant.formIsAlreadyOnGroup, {
+                                              form: form.title,
+                                              group: option.name
+                                          })
+                                        : ''
+                                }
+                                key={option.id}
+                            >
                                 <div>
                                     <Box component="li" {...props} className={cn(' MuiAutocomplete-option !py-2', isFormAlreadyInGroup(form.groups, option.id) && 'cursor-not-allowed pointer-events-none opacity-30')}>
                                         <div className="flex justify-between w-full items-center">
@@ -73,9 +91,9 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
             )}
 
             <div className="flex justify-end">
-                <Button disabled={!selectedGroup} size="medium" onClick={handleAddForm}>
+                <ModalButton disabled={!selectedGroup} size={ButtonSize.Medium} onClick={handleAddForm}>
                     {t(buttonConstant.add)}
-                </Button>
+                </ModalButton>
             </div>
         </div>
     );

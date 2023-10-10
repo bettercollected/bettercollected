@@ -27,6 +27,7 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, children, handleDra
             <Drawer
                 container={container}
                 variant="temporary"
+                className="border-r border-r-black-200"
                 open={mobileOpen}
                 onClose={handleDrawerToggle}
                 anchor={anchor}
@@ -36,7 +37,13 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, children, handleDra
                 sx={{
                     width: drawerWidth,
                     flexShrink: 0,
-                    [`& .MuiDrawer-paper`]: { width: drawerWidth, borderRadius: 0, boxSizing: 'border-box' },
+                    [`& .MuiDrawer-paper`]: {
+                        width: drawerWidth,
+                        borderRadius: 0,
+                        boxSizing: 'border-box',
+                        borderWidth: '0px 1px 0px 0px',
+                        borderColor: '#EEEEEE'
+                    },
                     display: mobileDrawerDisplayProps
                 }}
             >
@@ -46,11 +53,18 @@ export default function MuiDrawer({ drawerWidth, mobileOpen, children, handleDra
             {/* Desktop drawer */}
             <Drawer
                 variant="permanent"
+                className="border-r border-r-black-200"
                 anchor={anchor}
                 sx={{
                     width: drawerWidth,
                     flexShrink: 0,
-                    [`& .MuiDrawer-paper`]: { width: drawerWidth, borderRadius: 0, boxSizing: 'border-box' },
+                    [`& .MuiDrawer-paper`]: {
+                        width: drawerWidth,
+                        borderRadius: 0,
+                        boxSizing: 'border-box',
+                        borderWidth: '0px 1px 0px 0px',
+                        borderColor: '#EEEEEE'
+                    },
                     display: desktopDrawerDisplayProps
                 }}
                 open

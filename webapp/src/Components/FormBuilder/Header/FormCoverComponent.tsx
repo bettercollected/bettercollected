@@ -1,19 +1,17 @@
-import React, {useRef, useState} from 'react';
+import React, { useRef, useState } from 'react';
 
 import Image from 'next/image';
 
 import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 import cn from 'classnames';
 import html2canvas from 'html2canvas';
-import {SetStateAction} from 'jotai';
-import {TransformComponent, TransformWrapper} from 'react-zoom-pan-pinch';
+import { SetStateAction } from 'jotai';
+import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
 import Upload from '@app/components/icons/upload';
-import Button from '@app/components/ui/button';
-import {selectBuilderState} from '@app/store/form-builder/selectors';
-import {IBuilderState} from '@app/store/form-builder/types';
-import {useAppSelector} from '@app/store/hooks';
-import {downloadFile} from '@app/utils/fileUtils';
+import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { IBuilderState } from '@app/store/form-builder/types';
+import { useAppSelector } from '@app/store/hooks';
 
 interface IFormCoverComponent {
     setIsCoverClicked: React.Dispatch<SetStateAction<boolean>>;
@@ -22,12 +20,12 @@ interface IFormCoverComponent {
 }
 
 const FormCoverComponent = (props: IFormCoverComponent) => {
-    const {setIsCoverClicked, imagesRemoved, setImagesRemoved} = props;
+    const { setIsCoverClicked, imagesRemoved, setImagesRemoved } = props;
     const [imageURL, setImageURL] = useState<string>('');
     const [showButtonsOnHOver, setShowButtonsOnHOver] = useState(false);
     const [isSaveButtonClicked, setIsSaveButtonClicked] = useState(false);
     const inputRef = useRef<HTMLInputElement | null>(null);
-    const {setCoverImage, resetImages} = useFormBuilderAtom();
+    const { setCoverImage, resetImages } = useFormBuilderAtom();
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
     const handleFileChange = (event: any) => {
         if (!event.target.files.length) return;
@@ -63,7 +61,7 @@ const FormCoverComponent = (props: IFormCoverComponent) => {
         if (!croppedImageDiv) return;
         html2canvas(croppedImageDiv).then((canvas: HTMLCanvasElement) => {
             canvas.toBlob(async (blob: any) => {
-                const file = new File([blob], 'formbannerimage.png', {type: blob.type});
+                const file = new File([blob], 'formbannerimage.png', { type: blob.type });
                 setImageURL(URL.createObjectURL(file));
                 setIsSaveButtonClicked(true);
                 setCoverImage(file);
@@ -81,36 +79,27 @@ const FormCoverComponent = (props: IFormCoverComponent) => {
     const getImageComponent = (url: string) => {
         return (
             <>
-                <Image layout="fill" objectFit="cover" src={url} alt="test" objectPosition="center"
-                       className={cn(showButtonsOnHOver && 'brightness-75')}/>
-                {showButtonsOnHOver && <HoveredButtons onClickUpdateButton={onClickUpdateButton}
-                                                       onClickRemoveButton={onClickRemoveButton}/>}
+                <Image layout="fill" objectFit="cover" src={url} alt="test" objectPosition="center" className={cn(showButtonsOnHOver && 'brightness-75')} />
+                {showButtonsOnHOver && <HoveredButtons onClickUpdateButton={onClickUpdateButton} onClickRemoveButton={onClickRemoveButton} />}
             </>
         );
     };
 
     return (
-        <div
-            className="w-full  aspect-banner-mobile lg:aspect-banner-desktop bg-new-blue-200 hover:bg-new-blue-300 my-0 flex justify-center items-center text-black-900 overflow-hidden">
-            <input type="file" id="form_banner" ref={inputRef} accept="image/*" hidden onChange={handleFileChange}/>
+        <div className="w-full  aspect-banner-mobile lg:aspect-banner-desktop bg-new-blue-200 hover:bg-new-blue-300 my-0 flex justify-center items-center text-black-900 overflow-hidden">
+            <input type="file" id="form_banner" ref={inputRef} accept="image/*" hidden onChange={handleFileChange} />
             {imageURL ? (
-                <div className="relative z-0 w-full  aspect-banner-mobile lg:aspect-banner-desktop"
-                     onMouseEnter={handleOnMouseEnter} onMouseLeave={handleOnMouseLeave}>
-                    {isSaveButtonClicked ? getImageComponent(imageURL) :
-                        <DragImagePositionComponent imageURL={imageURL} showButtonsOnHOver={showButtonsOnHOver}
-                                                    onClickCancelButton={onClickCancelButton}
-                                                    onClickSaveButton={onClickSaveButton}/>}
+                <div className="relative z-0 w-full  aspect-banner-mobile lg:aspect-banner-desktop" onMouseEnter={handleOnMouseEnter} onMouseLeave={handleOnMouseLeave}>
+                    {isSaveButtonClicked ? getImageComponent(imageURL) : <DragImagePositionComponent imageURL={imageURL} showButtonsOnHOver={showButtonsOnHOver} onClickCancelButton={onClickCancelButton} onClickSaveButton={onClickSaveButton} />}
                 </div>
             ) : (
                 <>
                     {builderState?.coverImage ? (
-                        <div className="relative z-0 w-full aspect-banner-mobile lg:aspect-banner-desktop"
-                             onMouseEnter={handleOnMouseEnter} onMouseLeave={handleOnMouseLeave}>
+                        <div className="relative z-0 w-full aspect-banner-mobile lg:aspect-banner-desktop" onMouseEnter={handleOnMouseEnter} onMouseLeave={handleOnMouseLeave}>
                             {getImageComponent(builderState?.coverImage || '')}
                         </div>
                     ) : (
-                        <EmptyCoverItems onClickUpdateButton={onClickUpdateButton}
-                                         onClickRemoveButton={onClickRemoveButton}/>
+                        <EmptyCoverItems onClickUpdateButton={onClickUpdateButton} onClickRemoveButton={onClickRemoveButton} />
                     )}
                 </>
             )}
@@ -120,33 +109,29 @@ const FormCoverComponent = (props: IFormCoverComponent) => {
 
 export default FormCoverComponent;
 
-const HoveredButtons = ({onClickUpdateButton, onClickRemoveButton}: any) => {
+const HoveredButtons = ({ onClickUpdateButton, onClickRemoveButton }: any) => {
     return (
-        <div
-            className="absolute z-10 bottom-6 right-6 cursor-pointer flex gap-2 justify-end font-semibold  text-black-100">
+        <div className="absolute z-10 bottom-6 right-6 cursor-pointer flex gap-2 justify-end font-semibold  text-black-100">
             {onClickRemoveButton && (
-                <button
-                    className="px-2 py-1 text-xs sm:text-sm rounded !text-black-900 !font-semibold hover:opacity-80 !bg-black-100 focus:!ring-0"
-                    onClick={onClickRemoveButton}>
+                <button className="px-2 py-1 text-xs sm:text-sm rounded !text-black-900 !font-semibold hover:opacity-80 !bg-black-100 focus:!ring-0" onClick={onClickRemoveButton}>
                     Remove Cover
                 </button>
             )}
             {onClickUpdateButton && (
-                <button className="px-2 py-1 rounded text-xs sm:text-sm !font-semibold text-black-100 hover:opacity-80 !bg-black-900 focus:!ring-0"
-                        onClick={onClickUpdateButton}>
-                   Update New Cover
+                <button className="px-2 py-1 rounded text-xs sm:text-sm !font-semibold text-black-100 hover:opacity-80 !bg-black-900 focus:!ring-0" onClick={onClickUpdateButton}>
+                    Update New Cover
                 </button>
             )}
         </div>
     );
 };
 
-const DragImagePositionComponent = ({imageURL, showButtonsOnHOver, onClickCancelButton, onClickSaveButton}: any) => {
+const DragImagePositionComponent = ({ imageURL, showButtonsOnHOver, onClickCancelButton, onClickSaveButton }: any) => {
     const transformComponentRef = useRef(null);
     return (
         <>
             <TransformWrapper centerOnInit ref={transformComponentRef}>
-                {({resetTransform}) => {
+                {({ resetTransform }) => {
                     return (
                         <TransformComponent
                             wrapperStyle={{
@@ -157,28 +142,21 @@ const DragImagePositionComponent = ({imageURL, showButtonsOnHOver, onClickCancel
                                 cursor: 'grabbing'
                             }}
                         >
-                            <img style={{width: '100vw', height: '100vh', objectFit: 'fill'}} src={imageURL} alt="test"
-                                 className={cn(showButtonsOnHOver && 'brightness-75 aspect-banner-mobile lg:aspect-banner-desktop')}/>
+                            <img style={{ width: '100vw', height: '100vh', objectFit: 'fill' }} src={imageURL} alt="test" className={cn(showButtonsOnHOver && 'brightness-75 aspect-banner-mobile lg:aspect-banner-desktop')} />
                         </TransformComponent>
                     );
                 }}
             </TransformWrapper>
 
             <div className="flex justify-center items-center pointer-events-none">
-                <span
-                    className="absolute z-[10000] top-1/3 md:top-1/2 w-fit h-fit body4 !text-white cursor-pointer mb-10 md:md-0 !font-semibold py-2 px-4 bg-black-700 rounded opacity-80">Drag Image To Reposition</span>
+                <span className="absolute z-[10000] top-1/3 md:top-1/2 w-fit h-fit body4 !text-white cursor-pointer mb-10 md:md-0 !font-semibold py-2 px-4 bg-black-700 rounded opacity-80">Drag Image To Reposition</span>
             </div>
 
-            <div
-                className="absolute bottom-6 right-8 cursor-pointer flex gap-4 justify-end font-semibold  text-black-100 !z-[100]">
-                <button
-                    className=" px-2 py-1 text-sm rounded !text-black-900 !font-semibold hover:opacity-80 !bg-black-100 focus:!ring-0"
-                    onClick={onClickCancelButton}>
+            <div className="absolute bottom-6 right-8 cursor-pointer flex gap-4 justify-end font-semibold  text-black-100 !z-[100]">
+                <button className=" px-2 py-1 text-sm rounded !text-black-900 !font-semibold hover:opacity-80 !bg-black-100 focus:!ring-0" onClick={onClickCancelButton}>
                     Cancel
                 </button>
-                <button
-                    className="px-2 py-1 text-sm rounded !font-semibold hover:opacity-80 !bg-black-900 focus:!ring-0"
-                    onClick={onClickSaveButton}>
+                <button className="px-2 py-1 text-sm rounded !font-semibold hover:opacity-80 !bg-black-900 focus:!ring-0" onClick={onClickSaveButton}>
                     Save Cover
                 </button>
             </div>
@@ -186,24 +164,19 @@ const DragImagePositionComponent = ({imageURL, showButtonsOnHOver, onClickCancel
     );
 };
 
-const EmptyCoverItems = ({onClickUpdateButton, onClickRemoveButton}: {
-    onClickUpdateButton: () => void;
-    onClickRemoveButton: () => void
-}) => {
+const EmptyCoverItems = ({ onClickUpdateButton, onClickRemoveButton }: { onClickUpdateButton: () => void; onClickRemoveButton: () => void }) => {
     return (
         <div className="relative w-full h-full">
             <div className="flex flex-col items-center justify-center h-full">
                 <div className="flex flex-col items-center cursor-pointer mb-10 md:mb-0" onClick={onClickUpdateButton}>
-                    <Upload className="w-[32px] h-[32px] md:w-[62px] md:h-[62px]"/>
+                    <Upload className="w-[32px] h-[32px] md:w-[62px] md:h-[62px]" />
                     <h1 className="text-sm md:body1 !font-semibold">Upload Banner Image</h1>
                     <h1 className="text-xs md:body4">5:1 aspect ratio recommended</h1>
                 </div>
             </div>
             {onClickRemoveButton && (
                 <div className="absolute z-10 bottom-6 right-8 ">
-                    <div
-                        className="z-[1000] !text-black-900 text-[12px] px-2 py-1 rounded !font-semibold hover:opacity-80 !bg-black-100 focus:!ring-0"
-                        onClick={onClickRemoveButton}>
+                    <div className="z-[1000] !text-black-900 text-[12px] px-2 py-1 rounded !font-semibold hover:opacity-80 !bg-black-100 focus:!ring-0" onClick={onClickRemoveButton}>
                         Remove Cover
                     </div>
                 </div>

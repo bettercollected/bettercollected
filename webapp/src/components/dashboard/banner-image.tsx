@@ -2,13 +2,13 @@ import React, { useRef, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
 import cn from 'classnames';
 import html2canvas from 'html2canvas';
 import { toast } from 'react-toastify';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
 import uploadImage from '@app/assets/images/upload.png';
-import Button from '@app/components/ui/button';
 import Image from '@app/components/ui/image';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -19,6 +19,7 @@ import { BannerImageComponentPropType } from '@app/containers/dashboard/Workspac
 import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
+
 
 export default function BannerImageComponent(props: BannerImageComponentPropType) {
     const { workspace, isFormCreator } = props;
@@ -129,17 +130,17 @@ function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileU
     return (
         <div className={`absolute bottom-2 right-2 hidden ${getUpdateOptionsClassName()}`}>
             <div className="flex justify-between">
-                {!isLoading && !image && <Button onClick={onClickFileUploadButton}>{t(buttonConstant.update)}</Button>}
+                {!isLoading && !image && <AppButton onClick={onClickFileUploadButton}>{t(buttonConstant.update)}</AppButton>}
                 {!isLoading && image && (
-                    <Button className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2" size="small" onClick={onCLickCancelButton}>
+                    <AppButton className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2"  onClick={onCLickCancelButton}>
                         {t(buttonConstant.cancel)}
-                    </Button>
+                    </AppButton>
                 )}
                 {!!image && (
                     <>
-                        <Button isLoading={isLoading} onClick={onClickFileSaveButton}>
+                        <AppButton isLoading={isLoading} onClick={onClickFileSaveButton}>
                             {isLoading ? t(buttonConstant.saving) : t(buttonConstant.save)}
-                        </Button>
+                        </AppButton>
                     </>
                 )}
             </div>

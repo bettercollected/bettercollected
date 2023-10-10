@@ -3,8 +3,6 @@ import React, { useEffect } from 'react';
 import { batch } from 'react-redux';
 
 import { useModal } from '@app/components/modal-views/context';
-import ArrowCommandListener from '@app/lib/builders/listeners/implementations/ArrowCommandListener';
-import EnterCommandListener from '@app/lib/builders/listeners/implementations/EnterCommandListener';
 import SpotlightCommandListener from '@app/lib/builders/listeners/implementations/SpotlightCommandListener';
 import ICommandListener from '@app/lib/builders/listeners/interfaces/ICommandListener';
 import CommandManager from '@app/lib/builders/managers/CommandManager';

@@ -1,19 +1,20 @@
-import BetterInput from "@app/components/Common/input";
-import AppButton from "@Components/Common/Input/Button/AppButton";
-import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
-import React, {useState} from "react";
-import {
-    IFormCreateSlugFullModalViewProps
-} from "@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view";
-import {setFormSettings} from "@app/store/forms/slice";
-import {toast} from "react-toastify";
-import {localesCommon} from "@app/constants/locales/common";
-import {toastMessage} from "@app/constants/locales/toast-message";
-import {usePatchFormSettingsMutation} from "@app/store/workspaces/api";
-import {useAppDispatch, useAppSelector} from "@app/store/hooks";
-import {useTranslation} from "next-i18next";
-import AppTextField from "@Components/Common/Input/AppTextField";
-import {validationMessage} from "@app/constants/locales/validation-message";
+import React, { useState } from 'react';
+
+import { useTranslation } from 'next-i18next';
+
+import AppTextField from '@Components/Common/Input/AppTextField';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { toast } from 'react-toastify';
+
+import { IFormCreateSlugFullModalViewProps } from '@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
+import { localesCommon } from '@app/constants/locales/common';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { validationMessage } from '@app/constants/locales/validation-message';
+import { setFormSettings } from '@app/store/forms/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
+
 
 interface IFormSlugProps extends IFormCreateSlugFullModalViewProps {
     onSave: () => void

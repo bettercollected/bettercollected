@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
-import FormButton from '@Components/Common/Input/Button/FormButton';
 import MarkdownText from '@Components/Common/Markdown';
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
@@ -20,8 +19,6 @@ import cn from 'classnames';
 import { toast } from 'react-toastify';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import Button from '@app/components/ui/button';
-import Logo from '@app/components/ui/logo';
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { ConsentAnswerDto } from '@app/store/consent/types';
@@ -30,11 +27,11 @@ import { FormValidationError } from '@app/store/fill-form/type';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { getApiFormattedDateTime } from '@app/utils/dateUtils';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 import { validateFormFieldAnswer } from '@app/utils/validationUtils';
 
 import useFormAtom from './atom';
+
 
 export interface FormFieldProps {
     field: StandardFormFieldDto;

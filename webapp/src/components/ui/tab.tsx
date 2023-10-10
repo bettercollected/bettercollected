@@ -4,6 +4,7 @@ import { Tab } from '@headlessui/react';
 import cn from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 
+
 export { Tab };
 
 //
@@ -18,7 +19,7 @@ export function TabItem({ children, className }: React.PropsWithChildren<{ class
                     // {
                     //     'border-b-[2px] rounded-[1px]  border-black-900': selected
                     // },
-                    'hover:!text-brand-600 focus:outline-none !text-black-800 body6 pb-4  !leading-none',
+                    ' hover:bg-black-200 hover:rounded focus:outline-none !text-black-800 body6  !leading-none',
                     className
                 )
             }
@@ -61,7 +62,7 @@ export function TabPanels({ children, className }: React.PropsWithChildren<{ cla
 //
 export function TabPanel({ children, className }: React.PropsWithChildren<{ className?: string }>) {
     return (
-        <Tab.Panel className={className}>
+        <Tab.Panel className={'focus:outline-none ' + className}>
             <motion.div animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 32 }} exit={{ opacity: 0, y: -32 }} transition={{ duration: 0.2 }}>
                 {children}
             </motion.div>

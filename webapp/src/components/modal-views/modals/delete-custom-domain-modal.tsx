@@ -1,12 +1,10 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
 import { toast } from 'react-toastify';
 
-import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
-import { buttonConstant } from '@app/constants/locales/button';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { updateWorkspace } from '@app/constants/locales/update-workspace';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -23,7 +21,7 @@ export default function DeleteCustomDomainModal() {
     const workspace = useAppSelector((state) => state.workspace);
 
     const deleteCustomDomain = async (e: any) => {
-        e.preventDefault();
+        e?.preventDefault();
         const res: any = await deleteWorkspaceDomain(workspace.id);
         if (res.data) {
             dispatch(setWorkspace(res.data));
@@ -35,24 +33,6 @@ export default function DeleteCustomDomainModal() {
     };
 
     return (
-        <div className="w-full   relative bg-white rounded-lg shadow-md p-10  max-w-[502px] sm:max-w-lg md:max-w-xl">
-            <Close
-                className="absolute cursor-pointer top-5 right-5"
-                onClick={() => {
-                    closeModal();
-                }}
-            />
-            <div className="sh1 mb-4 leading-tight tracking-tight md:text-2xl text-black-900">{t(updateWorkspace.settings.domain.confirmationTitle)}</div>
-            <div className="text-black-700 pb-10 ">{t(updateWorkspace.settings.domain.confirmationDesc)}</div>
-
-            <div className="flex w-full gap-4 justify-end">
-                <Button data-testid="logout-button" className="flex-1" variant="solid" size="medium" color="danger" isLoading={!!result?.isLoading} onClick={deleteCustomDomain}>
-                    {t(buttonConstant.yes)}
-                </Button>
-                <Button variant="solid" color="gray" size="medium" className="!bg-black-500 flex-1" onClick={() => closeModal()}>
-                    {t(buttonConstant.cancel)}
-                </Button>
-            </div>
-        </div>
+        <GenericHalfModal type="danger" headerTitle="Reset Custom Domain" positiveText="Yes" positiveAction={deleteCustomDomain} title={t(updateWorkspace.settings.domain.confirmationTitle)} subTitle={t(updateWorkspace.settings.domain.confirmationDesc)} />
     );
 }

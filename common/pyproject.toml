@@ -29,7 +29,7 @@ description = "This project was generated with fastapi-mvc."
 authors = ["nabin6246 <nabin62246@gmail.com>"]
 license = "no"
 readme = "README.md"
-repository = "https://your.repo.url.here"
+packages = [{ include = "common" }]
 classifiers = [
     "Intended Audience :: Developers",
     "Natural Language :: English",
@@ -42,10 +42,9 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-fastapi = "~0.92.0"
 beanie = "^1.17.0"
 cryptography = "^39.0.1"
-tink = "^1.7.0"
+tink = "^1.8.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "~7.2.0"
@@ -60,11 +59,8 @@ Sphinx = "~5.3.0"
 Pallets-Sphinx-Themes = "~2.0.2"
 myst-parser = "~0.18.1"
 
-[tool.poetry.urls]
-"Issues" = "https://your.repo.url.here/issues"
-
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 

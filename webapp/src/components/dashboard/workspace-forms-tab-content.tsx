@@ -60,10 +60,18 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
         published: true
     };
     const { isLoading, data, isError } = useGetWorkspaceFormsQuery(query, { pollingInterval: 30000 });
+
+    const pinnedFormsQuery = {
+        workspace_id: workspaceId,
+        published: true,
+        pinned_only: true
+    };
+
+    const pinnedFormsResponse = useGetWorkspaceFormsQuery(pinnedFormsQuery);
+    const pinnedForms = pinnedFormsResponse?.data;
+
     const [searchWorkspaceForms] = useSearchWorkspaceFormsMutation();
-    const [pinnedForms, setPinnedForms] = useState<any>([]);
     const [allForms, setAllForms] = useState<any>([]);
-    const [showUnpinnedForms, setShowUnpinnedForms] = useState(false);
     const { t } = useTranslation();
 
     const handleSearch = async (event: any) => {
@@ -82,11 +90,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
 
     useEffect(() => {
         if (!!data) {
-            const pinnedForms = data.items.filter((form) => form.settings?.pinned);
-            const unpinnedForms = data.items.filter((form) => !form.settings?.pinned);
-            setPinnedForms(pinnedForms);
             setAllForms(data.items);
-            setShowUnpinnedForms(unpinnedForms.length > 0);
         }
     }, [data]);
 
@@ -102,12 +106,12 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
 
     return (
         <div className="py-6 px-5 lg:px-10 xl:px-20 flex flex-col gap-6">
-            {pinnedForms.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms} />}
-            {showUnpinnedForms && pinnedForms.length !== 0 && <Divider />}
+            {pinnedForms?.items?.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} />}
+            {pinnedForms?.items?.length !== 0 && <Divider />}
             <div className={`w-full md:w-[282px]`}>
                 <SearchInput handleSearch={handleSearch} />
             </div>
-            {allForms.length !== 0 && <FormCards title={pinnedForms.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} />}
+            {allForms.length !== 0 && <FormCards title={pinnedForms?.items?.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} />}
         </div>
     );
 }

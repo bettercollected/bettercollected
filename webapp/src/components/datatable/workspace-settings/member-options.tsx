@@ -12,6 +12,7 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
 
+
 interface IMemberOptionProps {
     member?: WorkspaceMembersDto;
     invitation?: WorkspaceInvitationDto;
@@ -96,7 +97,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                     className="body4 hover:bg-red-100 !text-red-500"
                 >
                     <ListItemIcon>
-                        <Delete width={20} height={20} />
+                        <Delete className="text-red-500" width={20} height={20} />
                     </ListItemIcon>
                     <span>{t(member ? buttonConstant.deleteMember : buttonConstant.removeInvitation)}</span>
                 </MenuItem>

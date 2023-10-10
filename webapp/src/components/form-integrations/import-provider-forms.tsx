@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { Autocomplete, Box, TextField, createFilterOptions } from '@mui/material';
@@ -13,7 +15,6 @@ import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { Close } from '@app/components/icons/close';
 import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
 import { useModal } from '@app/components/modal-views/context';
-import Button from '@app/components/ui/button';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
@@ -212,9 +213,9 @@ export default function ImportProviderForms(props: any) {
                     renderInput={(params) => <TextField {...params} label={provider === Provider.google ? t(importFormConstant.textLabel.googleForm) : t(importFormConstant.textLabel.typeform)} />}
                 />
                 <div>
-                    <Button isLoading={!!minifiedFormsResult?.isLoading} onClick={() => handleNext(provider)} disabled={!selectedForm} size="medium">
+                    <AppButton isLoading={!!minifiedFormsResult?.isLoading} onClick={() => handleNext(provider)} disabled={!selectedForm} size={ButtonSize.Medium}>
                         {t(buttonConstant.next)}
-                    </Button>
+                    </AppButton>
                 </div>
             </div>
         </>
@@ -274,9 +275,9 @@ export default function ImportProviderForms(props: any) {
                         }}
                         renderInput={(params) => <TextField {...params} label={responseOwnerTag.label} />}
                     />
-                    <Button className="!font-medium" isLoading={!!importFormResult?.isLoading || !!singleFormFromProviderResult?.isLoading} onClick={handleImportForm} disabled={!selectedForm || !!singleFormFromProviderResult?.isLoading} size="medium">
+                    <AppButton isLoading={!!importFormResult?.isLoading || !!singleFormFromProviderResult?.isLoading} onClick={handleImportForm} disabled={!selectedForm || !!singleFormFromProviderResult?.isLoading} size={ButtonSize.Medium}>
                         {t(buttonConstant.importNow)}
-                    </Button>
+                    </AppButton>
                 </div>
             </div>
         </>

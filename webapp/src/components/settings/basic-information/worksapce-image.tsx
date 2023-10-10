@@ -7,6 +7,7 @@ import SettingsCard from '@app/components/settings/card';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useAppSelector } from '@app/store/hooks';
 
+
 export default function WorkspaceImage() {
     const workspace = useAppSelector((state) => state.workspace);
     const { t } = useTranslation();

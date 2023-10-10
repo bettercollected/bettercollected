@@ -8,6 +8,7 @@ import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
 
+
 interface LabelTagValidatorProps extends React.PropsWithChildren {
     position: number;
 }
@@ -58,9 +59,9 @@ export default function LabelTagValidator({ children, position }: LabelTagValida
         <div id={`label-tag-validator-${position}`} className="group">
             {children}
             {hasMissingLabel && (
-                <div className=" absolute -right-32 top-2 hidden xl:block">
+                <div className=" min-w-fit absolute div-left-to-parent-right top-2 hidden xl:block">
                     <div className="flex space-x-2 items-center text-xs font-medium text-gray-400">
-                        <div className="text-sm p-1 cursor-pointer hover:bg-black-100 rounded" onClick={addLabel}>
+                        <div className="text-sm p-1 cursor-pointer hover:bg-black-100 rounded min-w-fit" onClick={addLabel}>
                             {t('COMPONENTS.ACTIONS.ADD_LABEL')}
                         </div>
                         {hintBox('Alt')}

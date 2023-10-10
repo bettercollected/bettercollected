@@ -1,14 +1,14 @@
-import React, { FormEvent, HTMLAttributes, MouseEventHandler, useCallback, useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 
 import Image from 'next/image';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
 import { Close } from '@mui/icons-material';
 import cn from 'classnames';
 import { SetStateAction } from 'jotai';
 
 import useFormBuilderAtom from '@app/Components/FormBuilder/builderAtom';
 import Camera from '@app/components/icons/camera';
-import Button from '@app/components/ui/button';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -88,9 +88,9 @@ function AddLogoOptions({ onClickCloseIcon, onClickRemoveLogoButton }: any) {
             <label htmlFor="form_logo" className="w-full rounded py-3 px-4 h-[36px] body4 bg-black-900 font-semibold hover:opacity-80 flex justify-center items-center">
                 <span className="text-black-100 text-xs sm:text-sm">Update New Logo</span>
             </label>
-            <Button size="small" className="!text-black-900 font-semibold !bg-black-300 hover:bg-black-400 focus:!ring-0" onClick={onClickRemoveLogoButton}>
+            <AppButton className="!text-black-900 font-semibold !bg-black-300 hover:!bg-black-400 " onClick={onClickRemoveLogoButton}>
                 Remove Logo
-            </Button>
+            </AppButton>
         </div>
     );
 }

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { atom, useAtom } from 'jotai';
 
 const formBuilderAtom = atom({ backspaceCount: 0 });

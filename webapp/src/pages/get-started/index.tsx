@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 import Image, { StaticImageData } from 'next/image';
 import { useRouter } from 'next/router';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
 import GetStartedStepper from '@Components/GetStarted/Stepper';
 import cn from 'classnames';
 
@@ -12,7 +13,6 @@ import GetStartedFormBrand from '@app/assets/images/getstarted-formbrand.png';
 import GetStartedProvidersImage from '@app/assets/images/getstarted-providers.png';
 import UserFitImage from '@app/assets/images/happy.png';
 import UserNotFitImage from '@app/assets/images/sad.png';
-import Button from '@app/components/ui/button/button';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Logo from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
@@ -203,17 +203,9 @@ const GetStarted = (props: any) => {
     ];
 
     const previewGetStartedStep = (step: IGetStartedStep) => {
-        const nextButton = !!step.nextButtonProps?.nextBtn && (
-            <Button size="large" onClick={() => handleNext({ id: step.id, answer: 'yes' })}>
-                {step.nextButtonProps.nextBtn.btnText}
-            </Button>
-        );
+        const nextButton = !!step.nextButtonProps?.nextBtn && <AppButton onClick={() => handleNext({ id: step.id, answer: 'yes' })}>{step.nextButtonProps.nextBtn.btnText}</AppButton>;
 
-        const noButton = !!step.nextButtonProps?.noBtn && (
-            <Button size="large" onClick={() => handleNext({ id: step.id, answer: 'no' })} className="!bg-white !text-brand  border-[1px] border-brand">
-                {step.nextButtonProps.noBtn.btnText}
-            </Button>
-        );
+        const noButton = !!step.nextButtonProps?.noBtn && <AppButton onClick={() => handleNext({ id: step.id, answer: 'no' })}>{step.nextButtonProps.noBtn.btnText}</AppButton>;
 
         const hasYesNoBoth = !!step.nextButtonProps?.nextBtn?.btnText && !!step.nextButtonProps?.noBtn?.btnText;
 
@@ -259,9 +251,7 @@ const GetStarted = (props: any) => {
                     <div className="relative h-40 my-10 flex items-center justify-center">
                         <Image src={UserFitImage} alt="User Fit" layout="fixed" />
                     </div>
-                    <Button size="large" onClick={() => router.push(signUpLink)}>
-                        {t(getStarted.userIsFit.buttonText)}
-                    </Button>
+                    <AppButton onClick={() => router.push(signUpLink)}>{t(getStarted.userIsFit.buttonText)}</AppButton>
                 </div>
             </div>
         );
@@ -280,9 +270,7 @@ const GetStarted = (props: any) => {
                         <Image src={UserNotFitImage} alt="User not fit" layout="fixed" />
                     </div>
 
-                    <Button size="large" onClick={() => router.push(signUpLink)}>
-                        {t(getStarted.userIsNotFit.buttonText)}
-                    </Button>
+                    <AppButton onClick={() => router.push(signUpLink)}>{t(getStarted.userIsNotFit.buttonText)}</AppButton>
                 </div>
             </div>
         );

@@ -4,11 +4,9 @@ import CheckBox from '@Components/Common/Input/CheckBox';
 import cn from 'classnames';
 
 import { OnlyClassNameInterface } from '@app/models/interfaces';
-import { setUpdateConsent } from '@app/store/consent/actions';
-import { IConsentAnswer, IConsentField } from '@app/store/consent/types';
-import { selectConsentAnswers } from '@app/store/fill-form/selectors';
-import { addConsentAnswer, selectAnswer } from '@app/store/fill-form/slice';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { IConsentAnswer } from '@app/store/consent/types';
+import { addConsentAnswer } from '@app/store/fill-form/slice';
+import { useAppDispatch } from '@app/store/hooks';
 
 interface ConsentFieldProps extends OnlyClassNameInterface {
     consent: IConsentAnswer;

@@ -1,19 +1,20 @@
 import React from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import SearchInput from '@Components/Common/Search/SearchInput';
 
 import MemberCard from '@app/components/cards/member-card';
-import {Plus} from '@app/components/icons/plus';
-import {useModal} from '@app/components/modal-views/context';
-import {buttonConstant} from '@app/constants/locales/button';
-import {groupConstant} from '@app/constants/locales/group';
-import {ResponderGroupDto} from '@app/models/dtos/groups';
-import {selectIsAdmin} from '@app/store/auth/slice';
-import {useAppSelector} from '@app/store/hooks';
-import AppButton from "@Components/Common/Input/Button/AppButton";
-import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
+import { Plus } from '@app/components/icons/plus';
+import { useModal } from '@app/components/modal-views/context';
+import { buttonConstant } from '@app/constants/locales/button';
+import { groupConstant } from '@app/constants/locales/group';
+import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { selectIsAdmin } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
+
 
 interface IGroupMemberProps {
     group?: ResponderGroupDto;

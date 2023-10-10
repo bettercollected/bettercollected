@@ -1,5 +1,4 @@
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
-import { ConsentAnswerDto } from '@app/store/consent/types';
 
 const consentPageInformation = {
     title: 'What Is This Page?',

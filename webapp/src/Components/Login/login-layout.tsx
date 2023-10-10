@@ -18,6 +18,7 @@ import { signInScreen } from '@app/constants/locales/signin-screen';
 import { signUpScreen } from '@app/constants/locales/signup-screen';
 import Layout from '@app/layouts/_layout';
 
+
 interface ConstantType {
     signInEmailTitle: string;
     signInEmailDescription: string;
@@ -127,4 +128,3 @@ const OtpCodeContent = ({ isSignup, constants }: IContentProps) => {
         </>
     );
 };
-

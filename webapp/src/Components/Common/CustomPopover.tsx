@@ -20,6 +20,7 @@ export default function CustomPopover({ children, content }: any) {
         <div>
             <div onClick={handleClick}>{children}</div>
             <Popover
+                onClick={handleClose}
                 id={id}
                 open={open}
                 anchorEl={anchorEl}

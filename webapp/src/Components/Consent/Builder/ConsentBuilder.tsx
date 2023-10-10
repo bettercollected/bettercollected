@@ -6,13 +6,12 @@ import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import cn from 'classnames';
 
 import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { dataRetention, formPurpose } from '@app/data/consent';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { IConsentOption } from '@app/models/types/consentTypes';
-import { resetConsentState, setAddConsent, setPrivacyPolicy, setResponderRights } from '@app/store/consent/actions';
+import { setPrivacyPolicy } from '@app/store/consent/actions';
 import { useGetAllWorkspaceConsentsQuery } from '@app/store/consent/api';
 import { selectConsentState } from '@app/store/consent/selectors';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -20,8 +19,6 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { validateConsentBuilder } from '@app/utils/validations/consent/consentBuilderValidation';
 
 import ErrorText from '../ErrorText';
-import ConsentAddInput from './ConsentAddInput';
-import ConsentBuilderField from './ConsentBuilderField';
 import ConsentInput from './ConsentInput';
 import DataRetentionBuilder from './DataRetentionBuilder';
 import FormPurposeBuilder from './FormPurposeBuilder';
@@ -70,8 +67,8 @@ export default function ConsentBuilder({ className, isPreview = false, form }: C
                     <div className="flex space-x-2">
                         <CheckBox
                             id="responder-rights"
-                            disabled={isPreview}
-                            checked={isDeletionRequestChecked}
+                            disabled={true}
+                            checked={true}
                             onChange={(event, checked) => {
                                 setIsDeletionRequestChecked(checked);
                             }}

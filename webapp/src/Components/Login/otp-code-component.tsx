@@ -3,17 +3,19 @@ import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import AppTextField from '@Components/Common/Input/AppTextField';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { toast } from 'react-toastify';
 
-import BetterInput from '@app/components/Common/input';
 import Back from '@app/components/icons/back';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
+
 
 interface OtpCodePropType {
     email: string;
@@ -23,11 +25,11 @@ interface OtpCodePropType {
 }
 
 export default function OtpCodeComponent(props: OtpCodePropType) {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
 
-    const { isModal } = props;
+    const {isModal} = props;
 
-    const { closeModal } = useFullScreenModal();
+    const {closeModal} = useFullScreenModal();
 
     const workspace = useAppSelector((state) => state.workspace);
 
@@ -36,15 +38,17 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
     const [otp, setOtp] = useState('');
     const [counter, setCounter] = useState(60);
 
+    const [isError, setIsError] = useState(false)
+
     useEffect(() => {
         counter > 0 && setTimeout(() => setCounter(counter - 1), 1000);
     }, [counter]);
 
-    const [postVerifyOtp, { isLoading }] = usePostVerifyOtpMutation();
+    const [postVerifyOtp, {isLoading}] = usePostVerifyOtpMutation();
     const [postSendOtp] = usePostSendOtpMutation();
     const [postSendOtpForCreator] = usePostSendOtpForCreatorMutation();
 
-    const { fromProPlan } = router.query;
+    const {fromProPlan} = router.query;
 
     const constants = {
         subHeading2: t(signInScreen.continueWIth),
@@ -64,6 +68,7 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
 
     const handleOtpChange = (e: any) => {
         setOtp(e.target.value);
+        setIsError(false)
     };
 
     const handleGoBackOnStepOne = () => {
@@ -72,11 +77,12 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
 
     const handleResponseToast = async (res: any) => {
         if (!!res?.data) {
-            toast(constants.otpVerificationSuccess, { type: 'success' });
+            toast(constants.otpVerificationSuccess, {type: 'success'});
             props.isCreator && closeModal();
             await router.reload();
         } else {
-            toast(constants.otpVerificationFailure, { type: 'error' });
+            setIsError(true)
+            toast(constants.otpVerificationFailure, {type: 'error'});
         }
     };
 
@@ -109,7 +115,7 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
         };
         const data = {
             body: req,
-            params: { prospective_pro_user: fromProPlan }
+            params: {prospective_pro_user: fromProPlan}
         };
         const res = await postVerifyOtp(data);
         await handleResponseToast(res);
@@ -117,8 +123,10 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
 
     return (
         <div className="w-full">
-            <div className={`absolute flex items-center cursor-pointer gap-1 hover:text-brand ${isModal ? 'top-16' : ' top-24'}`} onClick={handleGoBackOnStepOne}>
-                <Back />
+            <div
+                className={`absolute flex items-center cursor-pointer gap-1 hover:text-brand ${isModal ? 'top-16' : ' top-24'}`}
+                onClick={handleGoBackOnStepOne}>
+                <Back/>
                 <p className={'hover:text-brand'}>{constants.backButtonTitle}</p>
             </div>
             <h3 className={`h4 mb-3 ${isModal ? 'mt-5' : ' mt-[44px]'}`}>{constants.verificationTitle}</h3>
@@ -126,12 +134,15 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
 
             <form onSubmit={handleOtpPost} className={`w-full ${isModal && 'mt-10'}`}>
                 <p className={`mb-[8px] text-black-900 text-md font-semibold ${!isModal && 'mt-10 '}`}>{constants.enterOtpCode}</p>
-                <BetterInput placeholder={constants.enterOtpCodePlaceholder} value={otp} onChange={handleOtpChange} />
-                <Button type={'submit'} variant="solid" isLoading={isLoading} className={' w-full my-4'} size={'extraMedium'}>
+                <AppTextField isError placeholder={constants.enterOtpCodePlaceholder} value={otp}
+                              onChange={handleOtpChange}/>
+                {isError && <span className={'text-red-500 text-sm mt-1'}>Incorrect Code. Try Again!</span>}
+                <AppButton className={'w-full mt-12'} type={'submit'} variant={ButtonVariant.Primary}
+                           size={ButtonSize.Medium} isLoading={isLoading}>
                     {constants.signInButton}
-                </Button>
+                </AppButton>
             </form>
-            <div className={`flex items-center gap-2  text-black-900 ${isModal ? 'mb-[84px]' : 'mb-16'}`}>
+            <div className={`flex items-center gap-2 mt-2 text-black-900 ${isModal ? 'mb-[84px]' : 'mb-16'}`}>
                 <p className="body4">{constants.didnotReceiveCode}</p>
                 <>
                     {counter !== 0 && (

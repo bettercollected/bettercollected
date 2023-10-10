@@ -2,15 +2,13 @@ import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
 
 import TextArea from '@Components/Common/Input/TextArea';
 import MarkdownText from '@Components/Common/Markdown';
-import { Key, Visibility, VisibilityOff } from '@mui/icons-material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import cn from 'classnames';
 import { useDispatch } from 'react-redux';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
-import eventBus from '@app/lib/event-bus';
 import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
 import useUndoRedo from '@app/lib/use-undo-redo';
-import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { KeyType } from '@app/models/enums/formBuilder';
 import { setActiveField, setUpdateField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
