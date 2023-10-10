@@ -1,22 +1,22 @@
 import React from 'react';
 
-import { useTranslation } from 'next-i18next';
+import {useTranslation} from 'next-i18next';
 
 import CopyIcon from '@Components/Common/Icons/Copy';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { toast } from 'react-toastify';
+import {ButtonVariant} from '@Components/Common/Input/Button/AppButtonProps';
+import {toast} from 'react-toastify';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
 import Globe from '@app/components/icons/flags/globe';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import { toastMessage } from '@app/constants/locales/toast-message';
-import { selectForm } from '@app/store/forms/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
+import {useFullScreenModal} from '@app/components/modal-views/full-screen-modal-context';
+import {toastMessage} from '@app/constants/locales/toast-message';
+import {selectForm} from '@app/store/forms/slice';
+import {useAppSelector} from '@app/store/hooks';
+import {selectWorkspace} from '@app/store/workspaces/slice';
 
-import { useModal } from '../modal-views/context';
+import {useModal} from '../modal-views/context';
 
 
 interface ICurrentLinkUpdate {
@@ -71,13 +71,13 @@ export default function FormLinkUpdateView({
                         >
                             Copy Link
                         </AppButton>
-                        {!isCustomDomain && <AppButton variant={ButtonVariant.Tertiary} icon={
+                        {!isProUser && <AppButton variant={ButtonVariant.Tertiary} icon={
                             <Globe className="h-[18px] w-[18px]"/>
                         }
-                                                       disabled={isDisable}
-                                                       onClick={
-                                                           handleOnClickCustomDomain
-                                                       }>
+                                                  disabled={isDisable}
+                                                  onClick={
+                                                      handleOnClickCustomDomain
+                                                  }>
                             {/* {t(updateWorkspace.common.change)} */}
                             Use Custom Domain
                         </AppButton>}
