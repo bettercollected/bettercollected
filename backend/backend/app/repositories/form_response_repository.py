@@ -248,11 +248,10 @@ class FormResponseRepository(BaseRepository):
     ):
         response_document = FormResponseDocument(**response.dict())
         response_document.response_id = str(PydanticObjectId())
-        if workspace_id and type(
-            response_document.answers == StandardFormResponseAnswer
-        ):
+        if workspace_id:
             for k, v in response_document.answers.items():
-                response_document.answers[k] = v.dict()
+                if type(v) == StandardFormResponseAnswer:
+                    response_document.answers[k] = v.dict()
             response_document.answers = crypto_service.encrypt(
                 workspace_id=workspace_id,
                 form_id=form_id,

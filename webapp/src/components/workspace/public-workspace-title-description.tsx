@@ -61,7 +61,7 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
                 <Tooltip title={trimTooltipTitle(fullWorkspaceName)}>
                     <h4 className="h4 w-fit">{strippedWorkspaceTitle}</h4>
                 </Tooltip>
-                <MarkdownText className="max-w-[700px] overflow-hidden" text={workspace.description} />
+                <MarkdownText className="lg:max-w-[700px] max-w-[200px]  overflow-hidden" text={workspace.description} />
             </div>
         </div>
     );
