@@ -14,10 +14,10 @@ This repository contains only the shared files that are used in other repositori
 3. When running `git commit` command, use terminal instead of IDE commit feature as we'll see errors if the commit fails because of autoformatting or some other reason and we can fix it and re-commit.
 
 ### Directory structure
-1. [configs](configs) consist the configurations.
-2. [constants](constants) consist the global constants.
-3. [enums](enums) consist all the application enums.
-4. [exceptions](exceptions) consist custom exception classes.
-5. [models](models) consist all the models.
-6. [schemas](schemas) consist all the schemas.
-7. [utils](utils) consist different utility functions.
+1. [configs](common/configs) consist the configurations.
+2. [constants](common/constants) consist the global constants.
+3. [enums](common/enums) consist all the application enums.
+4. [exceptions](common/exceptions) consist custom exception classes.
+5. [models](common/models) consist all the models.
+6. [schemas](common/schemas) consist all the schemas.
+7. [utils](common/utils) consist different utility functions.

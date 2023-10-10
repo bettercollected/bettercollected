@@ -19,6 +19,7 @@ import { privacyPolicyTooltip, termsOfServiceTooltip } from '@app/constants/tool
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchWorkspacePoliciesMutation } from '@app/store/workspaces/api';
 
+
 const StyledTextField = styled.div`
     width: 100%;
 

@@ -85,7 +85,7 @@ jobs:
           SERVICE_TAG: ${{ matrix.service }}
         run: |
           SERVICE_TAG=${SERVICE_TAG//\//-}
-          docker build -t bettercollected/${SERVICE_TAG}:${{ github.sha }} ${{ matrix.service }}  
+          docker build -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .  
   
 
   build_and_push:
@@ -104,8 +104,6 @@ jobs:
     steps:
       - name: Checkout code with submodules
         uses: actions/checkout@v2
-        with:
-          submodules: "recursive"
 
       - name: Set up Docker
         uses: docker/login-action@v1
@@ -120,7 +118,7 @@ jobs:
           SERVICE_TAG: ${{ matrix.service }}
         run: |
           SERVICE_TAG=${SERVICE_TAG//\//-}
-          docker build -t bettercollected/${SERVICE_TAG}:${{ github.sha }} ${{ matrix.service }}
+          docker build -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
           docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
 
       - name: Add Nightly, Latest and Release Tags
@@ -168,19 +166,13 @@ jobs:
           key: ${{ secrets.SIRETO_BASTION_SSH_KEY }}
           port: ${{ secrets.SIRETO_BASTION_PORT }}
           script: |
-            SERVICE_TAG=${SERVICE_TAG//\//-}
+            SERVICE_TAG=$(echo ${{ matrix.service }} | tr '/' '-')
             if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
-              DOCKER_HOST=${{ vars.DEVELOP_HOST }}
               DOCKER_STACK=${{ vars.DEVELOP_STACK }}
-              docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
+              DOCKER_HOST=${{ vars.DEVELOP_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
             fi
             if [[ "${{ github.ref }}" = "refs/tags/*" ]]; then
-              DOCKER_HOST=${{ vars.PROD_HOST }}
               DOCKER_STACK=${{ vars.PROD_STACK }}
-              docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
+              DOCKER_HOST=${{ vars.PROD_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
             fi
-        env:
-          SERVICE_TAG: ${{ matrix.service }}
-
-       
 

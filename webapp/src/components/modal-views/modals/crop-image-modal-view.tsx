@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import cn from 'classnames';
 import AvatarEditor from 'react-avatar-editor';
 
-import Button from '@app/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
+
 
 interface ICropImageModalViewProps {
     profileEditorRef: React.LegacyRef<AvatarEditor> | undefined;
@@ -32,13 +34,11 @@ export default function CropImageModalView({ profileEditorRef, uploadImage, clos
                     <input name="scale" type="range" onChange={(e) => setScale(parseFloat(e.target.value))} min={1} max={4} step="0.01" defaultValue={1} />
                     <span>+</span>
                 </div>
-                <div className="flex justify-around w-full">
-                    <Button
+                <div className="flex gap-2 justify-around w-full">
+                    <AppButton
                         data-testid="save-button"
                         isLoading={isLoading}
-                        variant="solid"
-                        color="info"
-                        className="hover:!translate-y-0 mr-2 flex-1 !rounded shadow-none"
+                        className="w-full"
                         disabled={!uploadImage}
                         onClick={(e) => {
                             onSave(e);
@@ -46,10 +46,10 @@ export default function CropImageModalView({ profileEditorRef, uploadImage, clos
                         }}
                     >
                         {t(buttonConstant.saveImage)}
-                    </Button>
-                    <Button variant="solid" color="info" disabled={isLoading} className="hover:!translate-y-0 !rounded !bg-black-500 hover:!bg-black-600 flex-1 !shadow-none" onClick={closeModal}>
+                    </AppButton>
+                    <AppButton  disabled={isLoading} variant={ButtonVariant.Secondary}  className="w-full" onClick={closeModal}>
                         {t(buttonConstant.cancel)}
-                    </Button>
+                    </AppButton>
                 </div>
             </div>
         </div>

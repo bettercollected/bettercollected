@@ -1,23 +1,22 @@
-import {useState} from 'react';
+import { useState } from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
-import {toast} from 'react-toastify';
+import AppTextField from '@Components/Common/Input/AppTextField';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import { toast } from 'react-toastify';
 
-import BetterInput from '@app/components/Common/input';
-import {Close} from '@app/components/icons/close';
-import {useModal} from '@app/components/modal-views/context';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
-import Button from '@app/components/ui/button';
-import {buttonConstant} from '@app/constants/locales/button';
-import {localesCommon} from '@app/constants/locales/common';
-import {inviteCollaborator} from '@app/constants/locales/inviteCollaborator';
-import {toastMessage} from '@app/constants/locales/toast-message';
-import {useAppSelector} from '@app/store/hooks';
-import {
-    useGetWorkspaceMembersQuery,
-    useInviteToWorkspaceMutation
-} from '@app/store/workspaces/members-n-invitations-api';
+import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
+import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { useAppSelector } from '@app/store/hooks';
+import { useGetWorkspaceMembersQuery, useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
+
 
 export default function InviteMemberModal() {
     const [trigger, {data, isLoading}] = useInviteToWorkspaceMutation();
@@ -62,28 +61,27 @@ export default function InviteMemberModal() {
         closeModal();
     };
     return (
-        <SettingsCard className="!space-y-0 relative py-6 px-10">
+        <SettingsCard className="!space-y-0 relative py-6 pb-10 px-10">
             <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8"/>
             <div className="sh1 !leading-none">{t(inviteCollaborator.default)}</div>
             <div className="body4 pt-6 !leading-none ">{t(inviteCollaborator.description)}</div>
             <form onSubmit={handleSendInvitation} className="flex pt-8  flex-col justify-start">
                 <div className="body1 mb-3 !leading-none">{t(localesCommon.enterEmail)}</div>
-                <BetterInput
+                <AppTextField
                     disabled={isLoading}
                     data-testid="otp-input"
                     spellCheck={false}
                     value={invitationMail}
                     type="email"
-                    className="!mb-0"
                     placeholder={t(localesCommon.enterEmail)}
                     onChange={(event) => {
                         setInvitationMail(event.target.value);
                     }}
                 />
-                <div className="flex w-full mt-8 justify-end">
-                    <Button disabled={isLoading} isLoading={isLoading} size="small" type="submit">
+                <div className="flex flex-col w-full mt-4 justify-end">
+                    <AppButton size={ButtonSize.Medium} disabled={isLoading} isLoading={isLoading} type="submit">
                         {t(buttonConstant.sendInvitation)}
-                    </Button>
+                    </AppButton>
                 </div>
             </form>
         </SettingsCard>

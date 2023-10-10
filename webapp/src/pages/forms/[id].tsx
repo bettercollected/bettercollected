@@ -4,9 +4,9 @@ import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import { ChevronLeft } from '@mui/icons-material';
-import { Button } from '@mui/material';
 import { Widget } from '@typeform/embed-react';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
@@ -52,13 +52,13 @@ export default function SingleFormPage(props: any) {
         return (
             <div className="min-h-screen min-w-screen  flex flex-col items-center justify-center">
                 <span>You are trying to access a private form. Please login to continue.</span>
-                <Button
+                <AppButton
                     onClick={() => {
                         openModal('LOGIN_VIEW');
                     }}
                 >
                     Login
-                </Button>
+                </AppButton>
             </div>
         );
     }

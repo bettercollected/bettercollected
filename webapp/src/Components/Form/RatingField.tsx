@@ -9,6 +9,7 @@ import { Star, StarBorder } from '@mui/icons-material';
 import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
+
 export default function RatingField({ field, ans, enabled }: FormFieldProps) {
     const dispatch = useAppDispatch();
     const [hovered, setHovered] = useState(ans?.number || -1);

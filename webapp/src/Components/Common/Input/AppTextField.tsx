@@ -1,9 +1,10 @@
-import React, {forwardRef} from 'react';
+import React from 'react';
 
-import {TextField, TextFieldProps} from '@mui/material';
+import { TextField, TextFieldProps } from '@mui/material';
 import cn from 'classnames';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+
 
 type AppTextFieldProps = TextFieldProps & {
     title?: string;
@@ -11,36 +12,18 @@ type AppTextFieldProps = TextFieldProps & {
     showIcon?: boolean;
     icon?: React.ReactNode;
     iconPosition?: 'start' | 'end';
-    isError?: boolean,
-    isDisabled?: boolean,
-    onClick?: () => void
+    isError?: boolean;
+    isDisabled?: boolean;
+    onClick?: () => void;
+    dataTestId?: string;
 };
 
-const Description: React.FC<React.PropsWithChildren> = ({children}) => <p
-    className="p2 pb-2 !text-new-black-800">{children}</p>;
+const Description: React.FC<React.PropsWithChildren> = ({ children }) => <p className="p2 pb-2 !text-new-black-800">{children}</p>;
 const AppTextField: React.FC<AppTextFieldProps> & {
-    Description: React.FC<React.PropsWithChildren>
+    Description: React.FC<React.PropsWithChildren>;
 } = (props: AppTextFieldProps) => {
-    const {
-        id,
-        title,
-        type = 'text',
-        required = false,
-        placeholder,
-        multiline,
-        inputProps,
-        inputMode,
-        className,
-        showIcon = true,
-        icon,
-        children,
-        iconPosition = 'start',
-        isError,
-        isDisabled,
-        onClick,
-        ...otherProps
-    } = props;
-    const {t} = useBuilderTranslation();
+    const { id, title, type = 'text', required = false, placeholder, multiline, inputProps, inputMode, className, showIcon = true, icon, children, iconPosition = 'start', isError, isDisabled, onClick, dataTestId = '', ...otherProps } = props;
+    const { t } = useBuilderTranslation();
 
     const getIcon = (position: 'start' | 'end') => {
         if (position === iconPosition) {
@@ -69,6 +52,7 @@ const AppTextField: React.FC<AppTextFieldProps> & {
                 disabled={isDisabled}
                 inputProps={
                     inputProps || {
+                        'data-testid': dataTestId,
                         style: {
                             paddingTop: 0,
                             paddingBottom: 0,
@@ -82,7 +66,7 @@ const AppTextField: React.FC<AppTextFieldProps> & {
                     }
                 }
                 InputProps={{
-                    sx: {':before': {content: 'none'}},
+                    sx: { ':before': { content: 'none' } },
                     startAdornment: getIcon('start'),
                     endAdornment: getIcon('end')
                 }}

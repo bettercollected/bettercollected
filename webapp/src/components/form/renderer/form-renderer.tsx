@@ -1,5 +1,8 @@
 import React from 'react';
 
+import AppTextField from '@Components/Common/Input/AppTextField';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import LongText from '@Components/Form/LongText';
 import styled from '@emotion/styled';
@@ -13,13 +16,9 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
-import BetterInput from '@app/components/Common/input';
 import SelectDropdown from '@app/components/dropdown/select';
-import Button from '@app/components/ui/button';
 import Loader from '@app/components/ui/loader';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { selectInvalidFields } from '@app/store/fill-form/slice';
-import { useAppSelector } from '@app/store/hooks';
 
 const StyledTextField = styled.div`
     textarea:disabled {
@@ -252,10 +251,10 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                 return renderGridRowColumns(question);
             case QUESTION_TYPE.FILE_UPLOAD:
                 return (
-                    <Button variant="solid" size="medium" className="mt-3">
+                    <AppButton size={ButtonSize.Medium}>
                         Upload File
-                        <BetterInput type="file" hidden />
-                    </Button>
+                        <AppTextField type="file" hidden />
+                    </AppButton>
                 );
             case QUESTION_TYPE.GROUP:
                 return (
@@ -272,9 +271,9 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                 // Render no input element for statement
                 return <></>;
             case QUESTION_TYPE.SHORT_TEXT:
-                return <BetterInput value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled />;
+                return <AppTextField value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled />;
             case QUESTION_TYPE.EMAIL:
-                return <BetterInput value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled />;
+                return <AppTextField value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name} disabled />;
             default:
                 return <></>;
         }
@@ -327,11 +326,11 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
     );
 
     return (
-        <div data-testid="form-renderer" className="relative  w-full  md:px-0">
+        <div data-testid="form-renderer" className="relative  w-full flex justify-center  md:px-0">
             {form?.settings?.provider === 'self' ? (
                 <BetterCollectedForm form={form} response={response} enabled={enabled} isDisabled={isDisabled} />
             ) : (
-                <div className="flex flex-col gap-4 max-w-[700px] !bg-white rounded">
+                <div className="flex flex-col gap-4 max-w-[700px] w-full !bg-white rounded">
                     <div className="p-6 bg-white rounded-lg flex flex-col gap-4">
                         <h1 className="font-semibold h4">{form?.title}</h1>
                         {/* {form?.description && <MarkdownText description={form?.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />} */}

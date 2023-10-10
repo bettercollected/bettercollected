@@ -6,8 +6,9 @@ import Radio from '@mui/material/Radio';
 import { enableES5 } from 'immer';
 import { useDispatch } from 'react-redux';
 
-import { addAnswer, selectAnswer, selectAnswers } from '@app/store/fill-form/slice';
+import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppSelector } from '@app/store/hooks';
+
 
 export default function MultipleChoiceField({ field, ans, enabled }: FormFieldProps) {
     const dispatch = useDispatch();

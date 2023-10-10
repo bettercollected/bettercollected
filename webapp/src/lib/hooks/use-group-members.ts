@@ -7,7 +7,6 @@ import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { useAddResponderOnGroupMutation, useDeleteResponderFromGroupMutation } from '@app/store/workspaces/api';
-import { isEmailInGroup } from '@app/utils/groupUtils';
 
 interface IGroupMembersprops {
     emails?: Array<string>;

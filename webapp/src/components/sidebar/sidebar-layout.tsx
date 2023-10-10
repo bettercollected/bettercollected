@@ -8,6 +8,7 @@ import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown'
 import AuthNavbar from '@app/components/auth/navbar';
 import DashboardDrawer from '@app/components/sidebar/dashboard-drawer';
 
+
 interface ISidebarLayout {
     children: any;
     DrawerComponent?: any;
@@ -31,7 +32,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
                 <DrawerComponent drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
                 <Box className={`float-none lg:float-right lg:min-h-screen bg-black-100 min-h-calc-68 mt-[68px] lg:mt-0`} component="main" sx={{ display: 'flex', width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
                     <div className="flex flex-col w-full">
-                        <div className="flex w-full py-3 z-[1000] sticky top-[68px] lg:top-0 bg-white justify-between px-5 border-b lg:px-10 items-center">
+                        <div className="flex w-full py-3 z-[1000] sticky top-[68px] lg:top-0 bg-white justify-between px-5 border-b border-b-black-200 lg:px-10 items-center">
                             <span className="h3-new">My Workspace</span>
                             <div className="hidden lg:flex">
                                 <AuthAccountMenuDropdown hideMenu={false} isClientDomain={false} />

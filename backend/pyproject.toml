@@ -43,11 +43,12 @@ fastapi-pagination = "^0.12.3"
 python-whois = "^0.8.0"
 camel-converter = "^3.0.0"
 sentry-sdk = {extras = ["fastapi"], version = "^1.24.0"}
-tink = "^1.7.0"
+tink = "^1.8.0"
 temporalio = "^1.2.0"
 mongomock-motor = "^0.0.20"
 elastic-apm = "^6.17.0"
 schemathesis = "^3.19.6"
+common = {path = "../common"}
 
 [tool.poetry.scripts]
 backend = 'backend.cli:cli'

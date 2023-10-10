@@ -125,6 +125,7 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
         tags=tags,
+        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."}}
     )
 
     # GET: Get Single Form from the provider
@@ -134,6 +135,10 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
         tags=tags,
+        responses={400:{"message":"Bad Request"},401:{"message":"Authorization token is missing."},
+                   404:{"message": "Not found"},
+                   405: {"description": "Method not allowed"}
+                   }
     )
     # TODO : Refactor this import form as all forms
 
@@ -144,6 +149,7 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
         tags=tags,
+        responses={400:{"message":"Bad Request"}, 404:{"message":"Not found: The resource you are requesting is not available."}, 401:{"message":"Authorization token is missing."}}
     )
     # TODO : Refactor this import form as all forms
 
@@ -153,6 +159,11 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
         tags=tags,
+        responses={400:{"message":"Bad Request"}, 404: {"message": "Not found: The resource you are requesting is not available."},
+                   401: {"message": "Authorization token is missing."},
+                   405: {"description": "Method not allowed"}
+                   }
+
     )
 
     # POST: Creates form in the provider and our platform
@@ -162,6 +173,10 @@ def register_plugin_class(
         status_code=HTTPStatus.CREATED,
         methods=[HTTPMethods.POST],
         tags=tags,
+        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."},
+                   404: {"message": "Not found"},
+                   405: {"description": "Method not allowed"}
+                   }
     )
 
     # PATCH: Updates form in the provider and our platform
@@ -171,6 +186,10 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.PATCH],
         tags=tags,
+        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."},
+                   404: {"message": "Not found"},
+                   405: {"description": "Method not allowed"}
+                   }
     )
 
     # DELETE: Delete form from the provider and our platform
@@ -180,6 +199,10 @@ def register_plugin_class(
         status_code=HTTPStatus.NO_CONTENT,
         methods=[HTTPMethods.DELETE],
         tags=tags,
+        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."},
+                   404: {"message": "Not found"},
+                   405: {"description": "Method not allowed"}
+                   }
     )
 
     # GET: List form responses from the provider
@@ -189,6 +212,10 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
         tags=tags,
+        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."},
+                   404: {"message": "Not found"},
+                   405: {"description": "Method not allowed"}
+                   }
     )
 
     # GET: Get Single Form Response from the provider
@@ -198,6 +225,10 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
         tags=tags,
+        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."},
+                   404: {"message": "Not found"},
+                   405: {"description": "Method not allowed"}
+                   }
     )
 
     # DELETE: Delete form response from the provider and our platform
@@ -207,4 +238,8 @@ def register_plugin_class(
         status_code=HTTPStatus.NO_CONTENT,
         methods=[HTTPMethods.DELETE],
         tags=tags,
+        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."},
+                   404: {"message": "Not found"},
+                   405: {"description": "Method not allowed"}
+                   }
     )

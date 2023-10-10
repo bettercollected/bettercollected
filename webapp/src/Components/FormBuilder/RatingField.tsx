@@ -5,9 +5,6 @@ import _ from 'lodash';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { Star, StarBorder } from '@mui/icons-material';
 
-import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { useAppSelector } from '@app/store/hooks';
-
 interface IRatingFieldProps {
     field: any;
     id: any;

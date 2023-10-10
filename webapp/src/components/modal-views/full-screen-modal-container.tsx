@@ -2,12 +2,12 @@ import { Fragment, useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
-import { Close } from '@app/components/icons/close';
 import LoginView from '@app/components/login/login-view';
 import { UPGRADE_MODAL_VIEW, useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import FormCreateSlugFullModalView from '@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
+import SelectGroupFullModalView from '@app/components/modal-views/full-screen-modals/select-group-modal-view';
 import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
 import WorkspacePreviewModal from '@app/components/modal-views/modals/workspace-preview-modal';
-import Button from '@app/components/ui/button';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
@@ -16,8 +16,6 @@ import CreateConsentFullModalView from './full-screen-modals/create-consent-full
 import FormSettingFullModalView from './full-screen-modals/form-setting-full-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
-import FormCreateSlugFullModalView
-    from "@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view";
 
 function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
     switch (view) {
@@ -38,7 +36,9 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
         case 'FORM_SETTINGS_FULL_MODAL_VIEW':
             return <FormSettingFullModalView {...modalProps} />;
         case 'FORM_CREATE_SLUG_VIEW':
-            return <FormCreateSlugFullModalView {...modalProps}/>
+            return <FormCreateSlugFullModalView {...modalProps} />;
+        case 'SELECT_GROUP_FULL_MODAL_VIEW':
+            return <SelectGroupFullModalView {...modalProps} />;
         default:
             return <></>;
     }
@@ -65,9 +65,9 @@ export default function FullScreenModalContainer() {
 
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
                 <div className="sr-only">
-                    <Button size="small" color="gray" shape="circle" onClick={closeModal} className="opacity-50 hover:opacity-80 ">
-                        <Close className="h-auto w-[13px]" />
-                    </Button>
+                    {/*<Button size="small" color="gray" shape="circle" onClick={closeModal} className="opacity-50 hover:opacity-80 ">*/}
+                    {/*    <Close className="h-auto w-[13px]" />*/}
+                    {/*</Button>*/}
                 </div>
 
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">

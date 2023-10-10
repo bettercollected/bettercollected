@@ -15,6 +15,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import { InfoIcon } from '../icons/info-icon';
 
+
 interface ITextFieldHandler {
     formData: FormDataDto;
     workspaceNameSuggestion: string;

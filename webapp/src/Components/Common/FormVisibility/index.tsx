@@ -7,6 +7,7 @@ import PublicIcon from '@Components/Common/Icons/Public';
 
 import { localesCommon } from '@app/constants/locales/common';
 
+
 interface IFormVisibilityProps {
     isPrivate: boolean;
     size?: 'small' | 'medium';

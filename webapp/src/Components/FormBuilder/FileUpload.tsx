@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import Image from 'next/image';
 
-import deleteImg from '@app/assets/images/delete.png';
 import fileUploadImg from '@app/assets/images/file-upload.png';
 
 interface FileUploadProps {

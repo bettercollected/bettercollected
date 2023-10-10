@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 import { Close } from '@app/components/icons/close';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import UpgradeToProContainer from '@app/containers/upgrade-to-pro';
+
 
 export default function UpgradeToProModal() {
     const { closeModal } = useFullScreenModal();

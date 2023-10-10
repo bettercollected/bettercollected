@@ -30,7 +30,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
     return (
         <Component
             href={{
-                pathname: deletionRequests ? '' : isCustomDomain ? `/submissions/${response.responseId}` : `${workspaceName}/submissions/${response.responseId}`
+                pathname: disabled ? '' : isCustomDomain ? `/submissions/${response.responseId}` : `${workspaceName}/submissions/${response.responseId}`
             }}
             className={`relative flex flex-col items-start justify-between h-full bg-white border-[1px] border-brand-100 ${
                 disabled ? 'opacity-60 !text-black-600' : 'shadow-formCardDefault hover:border-brand-200  hover:shadow-formCard'

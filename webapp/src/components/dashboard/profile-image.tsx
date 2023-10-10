@@ -15,6 +15,7 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 
 import AuthAccountProfileImage from '../auth/account-profile-image';
 
+
 export default function ProfileImageComponent(props: BannerImageComponentPropType) {
     const { workspace, isFormCreator } = props;
     const { t } = useTranslation();

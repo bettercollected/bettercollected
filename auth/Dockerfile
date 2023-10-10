@@ -16,12 +16,15 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_NO_INTERACTION=1 \
     POETRY_VERSION=1.3.2 \
     POETRY_INSTALL_OPTS="--no-interaction --without dev --no-root" \
-    PYSETUP_PATH="/api" \
-    VENV_PATH="/api/.venv"
+    PYSETUP_PATH="/api/auth" \
+    VENV_PATH="/api/auth/.venv"
 
 ENV PATH="${POETRY_HOME}/bin:${VENV_PATH}/bin:${PATH}"
 
-COPY . $PYSETUP_PATH
+WORKDIR /api
+COPY ./auth ./auth
+COPY ./common ./common
+
 WORKDIR $PYSETUP_PATH
 RUN make install
 

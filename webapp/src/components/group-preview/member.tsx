@@ -12,7 +12,7 @@ import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useGroupMember } from '@app/lib/hooks/use-group-members';
-import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';
+import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { handleRegexType } from '@app/models/enums/groupRegex';
 import { selectIsAdmin } from '@app/store/auth/slice';

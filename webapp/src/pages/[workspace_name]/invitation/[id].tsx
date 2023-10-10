@@ -4,11 +4,12 @@ import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { toast } from 'react-toastify';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import AuthNavbar from '@app/components/auth/navbar';
-import Button from '@app/components/ui/button';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -106,12 +107,12 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
                         <div className="body3 mb-10 !text-black-700">{t(invitationConstant.title2)}</div>
                         <div className="flex flex-col space-y-4 items-center">
                             <div className="flex sm:flex-row flex-col gap-5 justify-between items-center">
-                                <Button disabled={isLoading} className="w-full sm:w-fit" size="large" onClick={onAccept}>
+                                <AppButton disabled={isLoading} size={ButtonSize.Big} onClick={onAccept}>
                                     {t(buttonConstant.joinWorkspace)}
-                                </Button>
-                                <Button className="w-full sm:w-fit text-white bg-black-500 hover:!bg-black-600" disabled={isLoading} size="large" onClick={onDecline}>
+                                </AppButton>
+                                <AppButton variant={ButtonVariant.Secondary} disabled={isLoading} size={ButtonSize.Big} onClick={onDecline}>
                                     {t(buttonConstant.decline)}
-                                </Button>
+                                </AppButton>
                             </div>
                         </div>
                         <div className="mt-5 body3 !text-black-700">{t(invitationConstant.expiryLink)}</div>

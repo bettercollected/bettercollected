@@ -7,6 +7,7 @@ import PoweredBy from '@app/components/ui/powered-by';
 import { localesCommon } from '@app/constants/locales/common';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
+
 interface FooterProps {
     workspace: WorkspaceDto;
     isCustomDomain: boolean;

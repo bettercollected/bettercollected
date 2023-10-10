@@ -126,6 +126,7 @@ module.exports = {
             },
             boxShadow: {
                 main: '0px 6px 18px rgba(0, 0, 0, 0.04)',
+                overview: '0px 0px 30px 0px rgba(3, 3, 80, 0.08)',
                 light: '0px 4px 4px rgba(0, 0, 0, 0.08)',
                 large: '0px 8px 16px rgba(17, 24, 39, 0.1)',
                 card: '0px 2px 6px rgba(0, 0, 0, 0.06)',

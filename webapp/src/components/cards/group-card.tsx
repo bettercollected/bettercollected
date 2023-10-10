@@ -4,20 +4,17 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import { Typography } from '@mui/material';
-import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { members } from '@app/constants/locales/members';
-import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useDeleteResponderGroupMutation } from '@app/store/workspaces/api';
 
 import DeleteDropDown from '../ui/delete-dropdown';
+
 
 interface IGroupCardProps {
     responderGroup: ResponderGroupDto;
@@ -38,7 +35,10 @@ export default function GroupCard({ responderGroup, handleDelete, isFormGroup = 
         router.push(`/${workspace.workspaceName}/dashboard/responders-groups/${responderGroup.id}`);
     };
     return (
-        <div onClick={handlePreviewGroup} className="flex cursor-pointer flex-col justify-between border-[2px] border-brand-100 hover:border-black-500 transition shadow-formCard bg-white items-start p-5 rounded-[8px] relative">
+        <div
+            onClick={handlePreviewGroup}
+            className="flex cursor-pointer flex-col justify-between border-[1px] border-transparent hover:border-brand-100 transition shadow-formCardDefault hover:shadow-formCard bg-white items-start p-5 rounded-[8px] relative"
+        >
             {(isAdmin || isFormGroup) && (
                 <DeleteDropDown
                     onDropDownItemClick={(event) => {
@@ -73,13 +73,6 @@ export default function GroupCard({ responderGroup, handleDelete, isFormGroup = 
                     )}
                 </>
             )}
-
-            {/* <Button className="!px-3 !py-[9px] !bg-white border !border-black-400  hover:!bg-brand-200" size="medium">
-                <div className="flex items-center gap-[5px]">
-                    <Send className="h-[20px] w-[20px] text-black-900" />
-                    <Typography>Send Form</Typography>
-                </div>
-            </Button> */}
         </div>
     );
 }
