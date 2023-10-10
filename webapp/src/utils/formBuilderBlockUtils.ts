@@ -19,10 +19,12 @@ export function isContentEditableTag(tag: string): boolean {
  * Return tailwind classNames for the selected layout blocks tag
  * @param isPlaceholder
  * @param tag - tagName
+ *@param enabled
  */
-export function contentEditableClassNames(isPlaceholder: boolean, tag: string = FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
+export function contentEditableClassNames(isPlaceholder: boolean, tag: string = FormBuilderTagNames.LAYOUT_SHORT_TEXT, enabled?: boolean) {
     let className = ' outline-none placeholder-gray-400 ';
     if (isPlaceholder) className += 'text-neutral-200 ';
+    else if (!enabled) className += 'text-black-600';
     else className += 'text-black-900 ';
 
     switch (tag) {
