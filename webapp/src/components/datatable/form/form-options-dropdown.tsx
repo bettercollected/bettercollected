@@ -30,7 +30,11 @@ import {StandardFormDto} from '@app/models/dtos/form';
 import {WorkspaceDto} from '@app/models/dtos/workspaceDto';
 import {setFormSettings} from '@app/store/forms/slice';
 import {useAppDispatch} from '@app/store/hooks';
-import {useGetAllRespondersGroupQuery, usePatchFormSettingsMutation} from '@app/store/workspaces/api';
+import {
+    useDuplicateFormMutation,
+    useGetAllRespondersGroupQuery,
+    usePatchFormSettingsMutation
+} from '@app/store/workspaces/api';
 
 interface IFormOptionsDropdownMenuProps {
     workspace: WorkspaceDto;
@@ -62,6 +66,7 @@ export default function FormOptionsDropdownMenu({
 
     const dispatch = useAppDispatch();
     const [patchFormSettings] = usePatchFormSettingsMutation();
+    const [duplicateForm] = useDuplicateFormMutation()
     const {t} = useTranslation();
 
     const isCustomDomain = !!workspace.customDomain;
@@ -124,6 +129,11 @@ export default function FormOptionsDropdownMenu({
             });
     };
 
+    const handleDuplicateFrom = () => {
+        duplicateForm({workspaceId: workspace.id, formId: form.formId}).then().catch((e: any) => {
+            toast("Could not duplicate form", {type: "error", toastId: 'errorToast'})
+        })
+    }
     const menuItemPinSettings = (
         <MenuItem sx={{paddingX: '20px', paddingY: '10px', height: '36px'}} className="body4 hover:bg-brand-100"
                   onClick={(e) => onPinnedChange(e, currentActiveForm?.form)}
@@ -242,6 +252,18 @@ export default function FormOptionsDropdownMenu({
                         <span>{t(!currentActiveForm?.form?.settings?.hidden ? formConstant.menu.makeFormPrivate : formConstant.menu.makeFormPublic)}</span>
                     </MenuItem>
                 )}
+
+                {form?.settings?.provider === "self" &&
+                    <MenuItem sx={{paddingX: '20px', paddingY: '10px', height: '36px'}}
+                              className="body4 hover:bg-brand-100" onClick={handleDuplicateFrom}>
+                        <ListItemIcon>
+                            <CopyIcon width={20} height={20}/>
+                        </ListItemIcon>
+                        <span>
+                        Duplicate Form
+                    </span>
+                    </MenuItem>
+                }
 
                 <MenuItem
                     onClick={() => openModal('DELETE_FORM_MODAL', {form: currentActiveForm?.form, redirectToDashboard})}
