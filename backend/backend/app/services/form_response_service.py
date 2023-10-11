@@ -138,7 +138,11 @@ class FormResponseService:
         if not response:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         form = await FormVersionsDocument.find_one(
-            {"form_id": response.form_id, "version": response.form_version if response.form_version else 1})
+            {
+                "form_id": response.form_id,
+                "version": response.form_version if response.form_version else 1,
+            }
+        )
         if not form:
             form = await FormDocument.find_one({"form_id": response.form_id})
         deletion_request = await FormResponseDeletionRequest.find_one(
@@ -168,8 +172,11 @@ class FormResponseService:
             workspace_id=workspace_id, response=response
         )
         for key, decrypted_answer in decrypted_response.answers.items():
-            decrypted_answer = decrypted_answer.dict() if isinstance(decrypted_answer, StandardFormResponseAnswer) \
+            decrypted_answer = (
+                decrypted_answer.dict()
+                if isinstance(decrypted_answer, StandardFormResponseAnswer)
                 else decrypted_answer
+            )
             if decrypted_answer.get("file_metadata") is not None:
                 file_url = self._aws_service.generate_presigned_url(
                     decrypted_answer["file_metadata"].get("id")

@@ -53,13 +53,13 @@ workspace_settings = {
     "pinned": True,
     "customUrl": "custom_url",
     "private": True,
-    'hidden': False,
+    "hidden": False,
     "privacyPolicyUrl": None,
     "responseDataOwnerField": "customUser",
     "responseExpiration": None,
     "responseExpirationType": None,
-    'disableBranding': None,
-    'isPublished': None
+    "disableBranding": None,
+    "isPublished": None,
 }
 
 workspace_tag = {"title": "BetterCollected-Team"}

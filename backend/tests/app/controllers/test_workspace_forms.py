@@ -57,7 +57,6 @@ async def create_form_request_body():
 
 
 class TestWorkspaceForm:
-
     def test_duplicate_form(
         self,
         client: TestClient,
@@ -68,7 +67,9 @@ class TestWorkspaceForm:
     ):
         duplicate_form_api = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/duplicate"
 
-        duplicate_form_response = client.post(duplicate_form_api, cookies=test_user_cookies)
+        duplicate_form_response = client.post(
+            duplicate_form_api, cookies=test_user_cookies
+        )
 
         actual_response = StandardForm(**duplicate_form_response.json())
         assert duplicate_form_response.status_code == 200
@@ -89,7 +90,9 @@ class TestWorkspaceForm:
     ):
         duplicate_form_api = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/duplicate"
 
-        duplicate_form_response = client.post(duplicate_form_api, cookies=test_user_cookies_1)
+        duplicate_form_response = client.post(
+            duplicate_form_api, cookies=test_user_cookies_1
+        )
 
         assert duplicate_form_response.status_code == 403
 
@@ -103,7 +106,9 @@ class TestWorkspaceForm:
     ):
         duplicate_form_api = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form_1.form_id}/duplicate"
 
-        duplicate_form_response = client.post(duplicate_form_api, cookies=test_user_cookies)
+        duplicate_form_response = client.post(
+            duplicate_form_api, cookies=test_user_cookies
+        )
 
         assert duplicate_form_response.status_code == 404
 
@@ -470,7 +475,11 @@ class TestWorkspaceForm:
         workspace_group: Coroutine,
         test_user_cookies: dict[str, str],
     ):
-        group_form = client.patch(get_workspace_group_url, cookies=test_user_cookies,json={"group_ids": [str(workspace_group.id)]})
+        group_form = client.patch(
+            get_workspace_group_url,
+            cookies=test_user_cookies,
+            json={"group_ids": [str(workspace_group.id)]},
+        )
 
         expected_added_form = (await ResponderGroupFormDocument.find().to_list())[
             0
@@ -489,7 +498,9 @@ class TestWorkspaceForm:
         test_user_cookies_1: dict[str, str],
     ):
         unauthorized_client = client.patch(
-            get_workspace_group_url, cookies=test_user_cookies_1,json={"group_ids": [str(workspace_group.id)]}
+            get_workspace_group_url,
+            cookies=test_user_cookies_1,
+            json={"group_ids": [str(workspace_group.id)]},
         )
 
         expected_response_message = MESSAGE_FORBIDDEN
