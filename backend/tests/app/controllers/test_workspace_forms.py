@@ -1,8 +1,10 @@
 import json
-from typing import Any, Coroutine, Generator
+from typing import Any, Coroutine
 
 import pytest
 from aiohttp.test_utils import TestClient
+from common.constants import MESSAGE_FORBIDDEN
+from common.models.standard_form import StandardForm
 
 from backend.app.container import container
 from backend.app.schemas.responder_group import ResponderGroupFormDocument
@@ -13,10 +15,6 @@ from backend.app.schemas.standard_form_response import (
 )
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from backend.app.schemas.workspace_user import WorkspaceUserDocument
-from common.constants import MESSAGE_FORBIDDEN
-from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm, StandardFormResponse
 from tests.app.controllers.data import (
     formData,
     formResponse,
@@ -59,6 +57,56 @@ async def create_form_request_body():
 
 
 class TestWorkspaceForm:
+
+    def test_duplicate_form(
+        self,
+        client: TestClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form_common_url: str,
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        duplicate_form_api = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/duplicate"
+
+        duplicate_form_response = client.post(duplicate_form_api, cookies=test_user_cookies)
+
+        actual_response = StandardForm(**duplicate_form_response.json())
+        assert duplicate_form_response.status_code == 200
+        assert actual_response.form_id != workspace_form.form_id
+        assert workspace_form.fields == actual_response.fields
+        assert workspace_form.description == actual_response.description
+        assert workspace_form.button_text == actual_response.button_text
+        assert workspace_form.logo == actual_response.logo
+        assert workspace_form.cover_image == actual_response.cover_image
+
+    def test_unauthorized_user_form_duplication_fails(
+        self,
+        client: TestClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form_common_url: str,
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies_1: dict[str, str],
+    ):
+        duplicate_form_api = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/duplicate"
+
+        duplicate_form_response = client.post(duplicate_form_api, cookies=test_user_cookies_1)
+
+        assert duplicate_form_response.status_code == 403
+
+    def test_unauthorized_user_form_duplication_fails(
+        self,
+        client: TestClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form_common_url: str,
+        workspace_form_1: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        duplicate_form_api = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form_1.form_id}/duplicate"
+
+        duplicate_form_response = client.post(duplicate_form_api, cookies=test_user_cookies)
+
+        assert duplicate_form_response.status_code == 404
+
     def test_get_workspace_forms(
         self,
         client: TestClient,
