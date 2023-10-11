@@ -7,6 +7,7 @@ from common.constants import MESSAGE_FORBIDDEN
 from common.models.standard_form import StandardForm
 
 from backend.app.container import container
+from backend.app.models.response_dtos import StandardFormCamelModel
 from backend.app.schemas.responder_group import ResponderGroupFormDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
@@ -57,6 +58,24 @@ async def create_form_request_body():
 
 
 class TestWorkspaceForm:
+
+    def test_publishing_form(
+        self,
+        client: TestClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form_common_url: str,
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        publish_form_url = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/publish"
+
+        published_form = client.post(
+            publish_form_url, cookies=test_user_cookies
+        )
+        actual_response = StandardFormCamelModel(**published_form.json())
+        assert workspace_form.form_id == actual_response.form_id
+        assert actual_response.version is not None
+
     def test_duplicate_form(
         self,
         client: TestClient,
