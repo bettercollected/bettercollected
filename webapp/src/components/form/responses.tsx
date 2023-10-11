@@ -21,7 +21,7 @@ import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 export default function FormResponses() {
     const router = useRouter();
     let submissionId: string = (router?.query?.sub_id as string) ?? '';
-    const [trigger, { isLoading, isError, error }] = useLazyGetWorkspaceSubmissionQuery();
+    const [trigger] = useLazyGetWorkspaceSubmissionQuery();
     const { t } = useTranslation();
     const form = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
@@ -30,7 +30,7 @@ export default function FormResponses() {
     const { openModal } = useModal();
 
     useEffect(() => {
-        if (!!submissionId) {
+        if (!!submissionId && workspace?.id) {
             const submissionQuery: IGetWorkspaceSubmissionQuery = {
                 workspace_id: workspace.id,
                 submission_id: submissionId
@@ -43,7 +43,7 @@ export default function FormResponses() {
                     toast.error('Error fetching submission data.', { toastId: 'errorToast' });
                 });
         }
-    }, [submissionId]);
+    }, [submissionId, workspace?.id]);
 
     return (
         <>
@@ -86,7 +86,7 @@ export default function FormResponses() {
                             </Button>
                         )}
                     </div>
-                    <div className="gap-2 flex flex-col mt-5">
+                    <div className="gap-2 flex flex-col my-5">
                         <div className="text-sm text-black-700">
                             {t(formPage.responsesSubmittedBy)}: <b>{submissionForm?.response?.dataOwnerIdentifier || t(formPage.responsesAnonymous)}</b>
                         </div>
@@ -100,3 +100,4 @@ export default function FormResponses() {
         </>
     );
 }
+
