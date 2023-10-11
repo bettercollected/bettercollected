@@ -1,6 +1,5 @@
 import json
 from http import HTTPStatus
-from typing import List
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, patch, post, delete
@@ -17,7 +16,6 @@ from starlette.requests import Request
 from backend.app.container import container
 from backend.app.decorators.user_tag_decorators import user_tag
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.response_group_dto import ResponderGroupDto
 from backend.app.models.dtos.worksapce_form_dto import GroupsDto
 from backend.app.models.enum.FormVersion import FormVersion
 from backend.app.models.enum.user_tag_enum import UserTagType
@@ -151,12 +149,30 @@ class WorkspaceFormsRouter(Routable):
         )
         return StandardFormCamelModel(**response.dict())
 
+    @post("/{form_id}/duplicate",
+          response_model=MinifiedForm)
+    async def duplicate_form(self,
+                             workspace_id: PydanticObjectId,
+                             form_id: PydanticObjectId,
+                             user: User = Depends(get_logged_user)
+                             ):
+
+        if not settings.api_settings.ENABLE_FORM_CREATION:
+            raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
+
+        response = await self.workspace_form_service.duplicate_form(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            user=user
+        )
+        return StandardFormCamelModel(**response.dict())
+
     @post("/{form_id}/publish", response_model=MinifiedForm)
     async def publish_form(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: PydanticObjectId,
-            user: User = Depends(get_logged_user),
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
     ):
         form = await self.workspace_form_service.publish_form(
             workspace_id=workspace_id, form_id=form_id, user=user
