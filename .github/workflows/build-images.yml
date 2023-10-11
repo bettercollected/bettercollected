@@ -171,7 +171,7 @@ jobs:
               DOCKER_STACK=${{ vars.DEVELOP_STACK }}
               DOCKER_HOST=${{ vars.DEVELOP_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
             fi
-            if [[ "${{ github.ref }}" = "refs/tags/*" ]]; then
+            if [[ "${{ github.ref }}" = "refs/tags/"* ]]; then
               DOCKER_STACK=${{ vars.PROD_STACK }}
               DOCKER_HOST=${{ vars.PROD_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
             fi
