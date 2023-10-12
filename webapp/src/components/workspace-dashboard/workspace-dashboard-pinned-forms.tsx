@@ -1,24 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { escapeRegExp } from 'lodash';
-
 import CreateFormButton from '@Components/Common/CreateFormButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import SearchInput from '@Components/Common/Search/SearchInput';
-import BeaconComponent from '@Components/Joyride/JoyrideBeacon';
 
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
-import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import WorkspaceDashboardFormsCard from '@app/components/workspace-dashboard/workspace-dashboard-form-cards';
-import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
 import { localesCommon } from '@app/constants/locales/common';
-import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
-import { useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
 
 interface IWorkspaceDashboardPinnedFormsProps {
     workspacePinnedForms: any;
