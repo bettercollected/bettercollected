@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
@@ -20,7 +19,6 @@ import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options
 import { GroupIcon } from '@app/components/icons/group-icon';
 import { useModal } from '@app/components/modal-views/context';
 import DeleteDropDown from '@app/components/ui/delete-dropdown';
-import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
