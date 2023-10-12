@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
@@ -13,14 +14,7 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Group, Share } from '@mui/icons-material';
 
-import FormResponsesTable from '@app/components/datatable/form/form-responses';
-import FormGroups from '@app/components/form/groups';
-import FormLinks from '@app/components/form/links';
-import FormPreview from '@app/components/form/preview';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
-import FormResponses from '@app/components/form/responses';
-import FormSettings from '@app/components/form/settings';
-import FormVisibilities from '@app/components/form/visibility';
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
@@ -29,7 +23,7 @@ import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
-import { groupConstant } from '@app/constants/locales/group';
+import { formPage } from '@app/constants/locales/form-page';
 import Layout from '@app/layouts/_layout';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -39,6 +33,13 @@ import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFormUrl } from '@app/utils/urlUtils';
+
+const FormResponses = dynamic(() => import('@app/components/form/responses'));
+const FormResponsesTable = dynamic(() => import('@app/components/datatable/form/form-responses'));
+const FormVisibilities = dynamic(() => import('@app/components/form/visibility'));
+const FormLinks = dynamic(() => import('@app/components/form/links'));
+const FormSettings = dynamic(() => import('@app/components/form/settings'));
+const FormPreview = dynamic(() => import('@app/components/form/preview'));
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;
@@ -103,12 +104,12 @@ export default function FormPage(props: any) {
                 },
                 {
                     icon: <Group className="h-5 w-5" />,
-                    title: 'Form Visibility',
+                    title: t(formConstant.settings.visibility.title),
                     path: 'FormVisibility'
                 },
                 {
                     icon: <Group className="h-5 w-5" />,
-                    title: 'Form Links ',
+                    title: t(formConstant.settings.formLink.title),
                     path: 'FormLinks'
                 }
             ]
@@ -141,7 +142,7 @@ export default function FormPage(props: any) {
                                             router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
                                         }}
                                     >
-                                        <span className="sm:block hidden">Edit Form</span>
+                                        <span className="sm:block hidden">{t(formPage.editForm)}</span>
                                     </AppButton>
                                 )}
                                 {form?.isPublished ? (
@@ -159,7 +160,7 @@ export default function FormPage(props: any) {
                                                 })
                                             }
                                         >
-                                            <span className="sm:block hidden">Share Form</span>
+                                            <span className="sm:block hidden">{t(formPage.shareForm)}</span>
                                         </AppButton>
                                     )
                                 ) : (
