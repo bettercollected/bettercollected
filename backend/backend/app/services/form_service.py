@@ -263,6 +263,10 @@ class FormService:
             workspace_form.settings.response_data_owner_field = (
                 settings.responseDataOwnerField
             )
+        if settings.formCloseDate is not None:
+            workspace_form.settings.form_close_date = (
+                settings.formCloseDate
+            )
         return await self._workspace_form_repo.update(workspace_form.id, workspace_form)
 
     async def delete_form(self, form_id: str):
