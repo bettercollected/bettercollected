@@ -1,21 +1,23 @@
-import { Fragment, useEffect } from 'react';
+import {Fragment, useEffect} from 'react';
 
-import { useRouter } from 'next/router';
+import {useRouter} from 'next/router';
 
 import LoginView from '@app/components/login/login-view';
-import { UPGRADE_MODAL_VIEW, useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import FormCreateSlugFullModalView from '@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
+import {UPGRADE_MODAL_VIEW, useFullScreenModal} from '@app/components/modal-views/full-screen-modal-context';
+import FormCreateSlugFullModalView
+    from '@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
 import SelectGroupFullModalView from '@app/components/modal-views/full-screen-modals/select-group-modal-view';
 import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
 import WorkspacePreviewModal from '@app/components/modal-views/modals/workspace-preview-modal';
-import { Dialog } from '@app/components/ui/dialog';
-import { Transition } from '@app/components/ui/transition';
+import {Dialog} from '@app/components/ui/dialog';
+import {Transition} from '@app/components/ui/transition';
 
 import ConsentFullModalView from './full-screen-modals/consent-full-modal-view';
 import CreateConsentFullModalView from './full-screen-modals/create-consent-full-modal-view';
 import FormSettingFullModalView from './full-screen-modals/form-setting-full-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
+import ScheduleFormCloseDateModal from "@app/components/modal-views/modals/schedule-form-close-date-modal";
 
 function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
     switch (view) {
@@ -28,7 +30,7 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
         case 'UPGRADE_TO_PRO':
             return <UpgradeToProModal {...modalProps} />;
         case 'WORKSPACE_PREVIEW':
-            return <WorkspacePreviewModal />;
+            return <WorkspacePreviewModal/>;
         case 'CREATE_CONSENT_FULL_MODAL_VIEW':
             return <CreateConsentFullModalView {...modalProps} />;
         case 'CONSENT_FULL_MODAL_VIEW':
@@ -39,6 +41,8 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
             return <FormCreateSlugFullModalView {...modalProps} />;
         case 'SELECT_GROUP_FULL_MODAL_VIEW':
             return <SelectGroupFullModalView {...modalProps} />;
+        case "SELECT_FORM_CLOSE_DATE":
+            return <ScheduleFormCloseDateModal {...modalProps}/>;
         default:
             return <></>;
     }
@@ -46,7 +50,7 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
 
 export default function FullScreenModalContainer() {
     const router = useRouter();
-    const { isOpen, closeModal, modalProps, view } = useFullScreenModal();
+    const {isOpen, closeModal, modalProps, view} = useFullScreenModal();
 
     useEffect(() => {
         // close search modal when route change
@@ -58,9 +62,14 @@ export default function FullScreenModalContainer() {
 
     return (
         <Transition appear show={isOpen} as={Fragment}>
-            <Dialog as="div" className="fixed inset-0 z-[2500] h-full w-full overflow-y-auto overflow-x-hidden  text-center" onClose={closeModal}>
-                <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-                    <Dialog.Overlay className={`fixed inset-0 z-40  ${view === 'UPGRADE_TO_PRO' || view === 'FORM_BUILDER_PREVIEW' ? '!bg-white' : 'bg-gray-700 bg-opacity-60'}   cursor-pointer`} />
+            <Dialog as="div"
+                    className="fixed inset-0 z-[2500] h-full w-full overflow-y-auto overflow-x-hidden  text-center"
+                    onClose={closeModal}>
+                <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0"
+                                  enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100"
+                                  leaveTo="opacity-0">
+                    <Dialog.Overlay
+                        className={`fixed inset-0 z-40  ${view === 'UPGRADE_TO_PRO' || view === 'FORM_BUILDER_PREVIEW' ? '!bg-white' : 'bg-gray-700 bg-opacity-60'}   cursor-pointer`}/>
                 </Transition.Child>
 
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
@@ -70,7 +79,9 @@ export default function FullScreenModalContainer() {
                     {/*</Button>*/}
                 </div>
 
-                <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
+                <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105"
+                                  enterTo="opacity-100 scale-100" leave="ease-in duration-200"
+                                  leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
                     <div
                         data-testid="modal-view"
                         className={`relative min-h-screen flex flex-col items-center content-center !w-full  z-50  ${view === 'UPGRADE_TO_PRO' || view === 'FORM_BUILDER_PREVIEW' ? '!bg-white' : ''} text-left align-middle md:w-fit`}
