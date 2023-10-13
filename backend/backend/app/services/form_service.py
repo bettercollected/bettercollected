@@ -62,6 +62,7 @@ class FormService:
             not has_access_to_workspace,
             pinned_only=pinned_only,
             user=user,
+            filter_closed=published or pinned_only
         )
         if published:
             forms_query = self._form_repo.get_published_forms_in_workspace(
