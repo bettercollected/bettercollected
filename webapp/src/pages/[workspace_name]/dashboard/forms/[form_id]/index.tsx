@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
@@ -33,6 +33,7 @@ import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFormUrl } from '@app/utils/urlUtils';
+import { validateFormOpen } from '@app/utils/validationUtils';
 
 const FormResponses = dynamic(() => import('@app/components/form/responses'));
 const FormResponsesTable = dynamic(() => import('@app/components/datatable/form/form-responses'));
@@ -46,11 +47,26 @@ export default function FormPage(props: any) {
     const localStateForm = useAppSelector(selectForm);
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
+    const reduxStoreForm = useAppSelector(selectForm);
     const locale = props._nextI18Next.initialLocale === 'en' ? '' : `${props._nextI18Next.initialLocale}/`;
     const breakpoint = useBreakpoint();
     const router = useRouter();
     const { openModal } = useModal();
     const workspace = useAppSelector(selectWorkspace);
+    const paramTabs = [
+        {
+            icon: <Preview className="h-5 w-5" />,
+            title: t(formConstant.preview),
+            path: 'Preview'
+        },
+        {
+            icon: <SettingsIcon className="h-5 w-5" />,
+            title: t(localesCommon.settings),
+            path: 'Settings'
+        }
+    ];
+
+    const isFormOpen = validateFormOpen(reduxStoreForm?.settings?.formCloseDate);
 
     useEffect(() => {
         dispatch(setForm(props.form));
@@ -74,22 +90,10 @@ export default function FormPage(props: any) {
             disabled: true
         }
     ];
-    const paramTabs = [
-        {
-            icon: <Preview className="h-5 w-5" />,
-            title: t(formConstant.preview),
-            path: 'Preview'
-        },
-        {
-            icon: <SettingsIcon className="h-5 w-5" />,
-            title: t(localesCommon.settings),
-            path: 'Settings'
-        }
-    ];
 
     if (form?.isPublished) {
         paramTabs.splice(
-            1,
+            2,
             0,
             ...[
                 {
@@ -106,14 +110,16 @@ export default function FormPage(props: any) {
                     icon: <Group className="h-5 w-5" />,
                     title: t(formConstant.settings.visibility.title),
                     path: 'FormVisibility'
-                },
-                {
-                    icon: <Group className="h-5 w-5" />,
-                    title: t(formConstant.settings.formLink.title),
-                    path: 'FormLinks'
                 }
             ]
         );
+        if (isFormOpen) {
+            paramTabs.splice(5, 0, {
+                icon: <Group className="h-5 w-5" />,
+                title: t(formConstant.settings.formLink.title),
+                path: 'FormLinks'
+            });
+        }
     }
 
     const handleBackClick = async () => {
@@ -145,26 +151,20 @@ export default function FormPage(props: any) {
                                         <span className="sm:block hidden">{t(formPage.editForm)}</span>
                                     </AppButton>
                                 )}
-                                {form?.isPublished ? (
-                                    localStateForm?.settings?.hidden ? (
-                                        <></>
-                                    ) : (
-                                        <AppButton
-                                            variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
-                                            icon={<Share />}
-                                            className="!px-0 sm:!px-5"
-                                            onClick={() =>
-                                                openModal('SHARE_VIEW', {
-                                                    url: getFormUrl(form, workspace),
-                                                    title: t(formConstant.shareThisForm)
-                                                })
-                                            }
-                                        >
-                                            <span className="sm:block hidden">{t(formPage.shareForm)}</span>
-                                        </AppButton>
-                                    )
-                                ) : (
-                                    <></>
+                                {form?.isPublished && isFormOpen && !localStateForm?.settings?.hidden && (
+                                    <AppButton
+                                        variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
+                                        icon={<Share />}
+                                        className="!px-0 sm:!px-5"
+                                        onClick={() =>
+                                            openModal('SHARE_VIEW', {
+                                                url: getFormUrl(form, workspace),
+                                                title: t(formConstant.shareThisForm)
+                                            })
+                                        }
+                                    >
+                                        <span className="sm:block hidden">{t(formPage.shareForm)}</span>
+                                    </AppButton>
                                 )}
                             </div>
                         </div>
@@ -179,6 +179,11 @@ export default function FormPage(props: any) {
                         <FormPageLayer className="w-full">
                             <TabPanel className="focus:outline-none" key="Preview">
                                 <FormPreview />
+                            </TabPanel>
+                        </FormPageLayer>
+                        <FormPageLayer className="md:px-32 px-2">
+                            <TabPanel className="focus:outline-none" key="Settings">
+                                <FormSettings />
                             </TabPanel>
                         </FormPageLayer>
                         {form?.isPublished ? (
@@ -197,17 +202,15 @@ export default function FormPage(props: any) {
                                     <TabPanel className="focus:outline-none" key="FormVisibility">
                                         <FormVisibilities />
                                     </TabPanel>
-                                    <TabPanel className="focus:outline-none" key="FormLinks">
-                                        <FormLinks />
-                                    </TabPanel>
+                                    {isFormOpen && (
+                                        <TabPanel className="focus:outline-none" key="FormLinks">
+                                            <FormLinks />
+                                        </TabPanel>
+                                    )}
                                 </>
                             ) : (
                                 <></>
                             )}
-
-                            <TabPanel className="focus:outline-none" key="Settings">
-                                <FormSettings />
-                            </TabPanel>
                         </FormPageLayer>
                     </ParamTab>
                 </div>

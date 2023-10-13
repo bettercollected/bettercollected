@@ -32,6 +32,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/dateUtils';
+import { validateFormOpen } from '@app/utils/validationUtils';
 
 import Globe from '../icons/flags/globe';
 import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
@@ -145,6 +146,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
 
     const closeFormChecked = !!form?.settings?.formCloseDate && moment.utc().isAfter(moment.utc(form?.settings?.formCloseDate));
 
+    const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
+
     const closeForm = () => {
         onFormClosedChange(moment.utc());
         closeModal();
@@ -241,7 +244,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
             case 'DEFAULT':
                 return (
                     <div className=" flex flex-col gap-7 mb-10 ">
-                        {form?.isPublished && (
+                        {form?.isPublished && isFormOpen && (
                             <>
                                 {!form?.settings?.private && (
                                     <FormSettingsCard>
@@ -300,7 +303,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 </div>
                             </FormSettingsCard>
                         )}
-                        {form?.settings?.provider === 'self' && (
+                        {form?.settings?.provider === 'self' && form?.isPublished && (
                             <FormSettingsCard>
                                 <div className="flex flex-col items-start w-full">
                                     <div className="body1">{t(formPage.closeForm)}</div>
