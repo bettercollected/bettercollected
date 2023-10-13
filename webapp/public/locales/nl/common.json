@@ -728,6 +728,12 @@
           "AVOID_USING": "Vermijd het gebruik van spaties of speciale tekens. Alleen '-' en '_' worden geaccepteerd.",
           "SAVE_CHANGES": "Wijzigingen opslaan"
         }
+      },
+      "CLOSE_FORM": {
+        "DEFAULT": "Formulier Sluiten",
+        "DESCRIPTION": "Deze actie zorgt ervoor dat niemand toegang heeft tot of het formulier kan invullen. U kunt ervoor kiezen om een sluitingsdatum in te plannen of ervoor kiezen om het onmiddellijk te sluiten.",
+        "SCHEDULE": "Plan een datum in",
+        "AUTOMATICALLY_CLOSE_ON": "Dit formulier wordt automatisch gesloten op"
       }
     },
     "DELETION_REQUEST": {
