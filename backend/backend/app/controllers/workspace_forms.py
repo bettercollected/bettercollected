@@ -62,17 +62,17 @@ class WorkspaceFormsRouter(Routable):
 
     @get("", response_model=Page[MinifiedForm])
     async def get_workspace_forms(
-        self,
-        workspace_id: PydanticObjectId,
-        sort: SortRequest = Depends(),
-        user: User = Depends(get_user_if_logged_in),
-        published: bool = False,
-        pinned_only: bool = False
+            self,
+            workspace_id: PydanticObjectId,
+            sort: SortRequest = Depends(),
+            user: User = Depends(get_user_if_logged_in),
+            published: bool = False,
+            pinned_only: bool = False
     ) -> Page[MinifiedForm]:
         if not user and not published:
             raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
         forms = await self._form_service.get_forms_in_workspace(
-            workspace_id=workspace_id, sort=sort, published=published,pinned_only=pinned_only, user=user
+            workspace_id=workspace_id, sort=sort, published=published, pinned_only=pinned_only, user=user
         )
         return forms
 
@@ -106,11 +106,11 @@ class WorkspaceFormsRouter(Routable):
 
     @post("/search")
     async def search_forms_in_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        query: str,
-        published: bool = False,
-        user: User = Depends(get_user_if_logged_in),
+            self,
+            workspace_id: PydanticObjectId,
+            query: str,
+            published: bool = False,
+            user: User = Depends(get_user_if_logged_in),
     ):
         if not user and not published:
             raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED)
@@ -156,7 +156,6 @@ class WorkspaceFormsRouter(Routable):
                              form_id: PydanticObjectId,
                              user: User = Depends(get_logged_user)
                              ):
-
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
 
@@ -169,10 +168,10 @@ class WorkspaceFormsRouter(Routable):
 
     @post("/{form_id}/publish", response_model=MinifiedForm)
     async def publish_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            user: User = Depends(get_logged_user),
     ):
         form = await self.workspace_form_service.publish_form(
             workspace_id=workspace_id, form_id=form_id, user=user

@@ -18,6 +18,7 @@ from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
@@ -441,7 +442,7 @@ class WorkspaceFormService:
         )
 
     async def publish_form(
-        self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User
+            self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -451,7 +452,9 @@ class WorkspaceFormService:
     async def get_form_workspace_by_id(self, workspace_id: PydanticObjectId):
         return await self.form_import_service.get_form_workspace_by_id(workspace_id=workspace_id)
 
-    async def duplicate_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User):
+    # for duplicate and template of form
+    async def duplicate_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                             user: User, is_template: bool = False):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
@@ -460,21 +463,26 @@ class WorkspaceFormService:
         if not workspace_form:
             return HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
-        duplicated_form = FormDocument()
-        duplicated_form.form_id = str(PydanticObjectId())
+        duplicated_form = FormTemplateDocument() if is_template else FormDocument()
         duplicated_form.fields = form.fields
         duplicated_form.logo = form.logo
         duplicated_form.cover_image = form.cover_image
-        duplicated_form.title = (form.title if form.title else "Untitled") + " (Copy)"
+        duplicated_form.title = form.title if is_template else (form.title if form.title else "Untitled") + " (Copy)"
         duplicated_form.description = form.description
         duplicated_form.button_text = form.button_text
+        if is_template:
+            duplicated_form.workspace_id = workspace_id
+            duplicated_form.created_by = user.id
+        else:
+            duplicated_form.form_id = str(PydanticObjectId())
         duplicated_form = await duplicated_form.save()
-        workspace_form = WorkspaceFormDocument(form_id=str(duplicated_form.form_id), workspace_id=workspace_id,
-                                               user_id=user.id, settings=WorkspaceFormSettings())
-        workspace_form.settings.provider = "self"
-        workspace_form.settings.custom_url = str(duplicated_form.id)
-        workspace_form = await workspace_form.save()
-        duplicated_form.settings = workspace_form.settings
+        if not is_template:
+            workspace_form = WorkspaceFormDocument(form_id=str(duplicated_form.form_id), workspace_id=workspace_id,
+                                                   user_id=user.id, settings=WorkspaceFormSettings())
+            workspace_form.settings.provider = "self"
+            workspace_form.settings.custom_url = str(duplicated_form.id)
+            workspace_form = await workspace_form.save()
+            duplicated_form.settings = workspace_form.settings
         return duplicated_form
 
 # async def upload_images_of_form
