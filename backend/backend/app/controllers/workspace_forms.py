@@ -127,6 +127,26 @@ class WorkspaceFormsRouter(Routable):
         )
         return forms
 
+    @get(
+        "/{form_id}",
+        response_model=MinifiedForm,
+    )
+    async def _get_form_by_id(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        published: bool = False,
+        user: User = Depends(get_user_if_logged_in),
+    ):
+        if not user and not published:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED
+            )
+        form = await self._form_service.get_form_by_id(
+            workspace_id=workspace_id, form_id=form_id, published=published, user=user
+        )
+        return form
+
     @patch(
         "/{form_id}",
         response_model=MinifiedForm,
@@ -244,26 +264,6 @@ class WorkspaceFormsRouter(Routable):
             response_id=response_id,
             user=user,
         )
-
-    @get(
-        "/{form_id}",
-        response_model=MinifiedForm,
-    )
-    async def _get_form_by_id(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        published: bool = False,
-        user: User = Depends(get_user_if_logged_in),
-    ):
-        if not user and not published:
-            raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED
-            )
-        form = await self._form_service.get_form_by_id(
-            workspace_id=workspace_id, form_id=form_id, published=published, user=user
-        )
-        return form
 
     @get("/{form_id}/versions/{version}", response_model=MinifiedForm)
     async def get_form_with_version(

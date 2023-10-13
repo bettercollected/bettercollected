@@ -1,3 +1,4 @@
+from datetime import datetime
 from http import HTTPStatus
 from typing import Dict, Any, List
 
@@ -77,11 +78,19 @@ class WorkspaceFormRepository:
         match_query: Dict[str, Any] = None,
         pinned_only: bool = False,
         id_only: bool = False,
+        filter_closed=False
     ) -> List[WorkspaceFormDocument]:
         try:
             query = {"workspace_id": workspace_id}
             if pinned_only:
                 query["settings.pinned"] = True
+
+            if not is_not_admin and user:
+                query["$or"] = [
+                    {"settings.hidden": False},
+                    {"settings.hidden": {"$exists": False}},
+                    {"user_id": user.id},
+                ]
             if is_not_admin and not user:
                 query["$and"] = [
                     {
@@ -92,15 +101,22 @@ class WorkspaceFormRepository:
                     },
                     {"settings.private": False},
                 ]
-            if not is_not_admin and user:
-                query["$or"] = [
-                    {"settings.hidden": False},
-                    {"settings.hidden": {"$exists": False}},
-                    {"user_id": user.id},
-                ]
             if match_query:
                 query.update(match_query)
             aggregation_pipeline = []
+
+            if filter_closed:
+                aggregation_pipeline.append(
+                    {
+                        "$match": {
+                            "$or": [
+                                {"settings.form_close_date": {"$exists": False}},
+                                {"settings.form_close_date": ""},
+                                {"settings.form_close_date": {"$gte": datetime.utcnow().isoformat()}}
+                            ]
+                        }
+                    }
+                )
             if is_not_admin and user:
                 aggregation_pipeline.extend(
                     [
@@ -189,6 +205,7 @@ class WorkspaceFormRepository:
         user: User = None,
         pinned_only: bool = False,
         match_query: Dict[str, Any] = None,
+        filter_closed: bool = False
     ):
         workspace_forms = await self.get_workspace_forms_in_workspace(
             workspace_id=workspace_id,
@@ -197,6 +214,7 @@ class WorkspaceFormRepository:
             match_query=match_query,
             pinned_only=pinned_only,
             id_only=True,
+            filter_closed=filter_closed
         )
         return list(set([a["form_id"] for a in workspace_forms]))
 
