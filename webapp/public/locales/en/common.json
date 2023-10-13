@@ -738,6 +738,12 @@
           "AVOID_USING": "Avoid using spaces or special characters. Only “-” and “_” is accepted.",
           "SAVE_CHANGES": "Save Changes"
         }
+      },
+      "CLOSE_FORM": {
+        "DEFAULT": "Close form",
+        "DESCRIPTION": "This action will ensure that no one can access or fill out the form. You can either schedule a closing date or choose to close it immediately.",
+        "SCHEDULE": "Schedule a date",
+        "AUTOMATICALLY_CLOSE_ON": "This form will automatically close on"
       }
     },
     "DELETION_REQUEST": {

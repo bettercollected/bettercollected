@@ -303,12 +303,12 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                         {form?.settings?.provider === 'self' && (
                             <FormSettingsCard>
                                 <div className="flex flex-col items-start w-full">
-                                    <div className="body1">Close Form</div>
+                                    <div className="body1">{t(formPage.closeForm)}</div>
                                     <hr className="h-0.5 w-full bg-black-200 my-2" />
                                     {(!form?.settings?.formCloseDate || moment.utc(form?.settings?.formCloseDate).isBefore(moment.utc())) && (
                                         <>
                                             <div className=" w-full flex flex-row justify-between items-center gap-4">
-                                                <div className="text-sm !text-black-700">This action will ensure that no one can access or fill out the form. You can either schedule a closing date or choose to close it immediately.</div>
+                                                <div className="text-sm !text-black-700">{t(formPage.closeFormDescription)}</div>
                                                 <Switch
                                                     data-testid="close-form-switch"
                                                     // checked={false}
@@ -333,7 +333,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                                         });
                                                     }}
                                                 >
-                                                    Schedule a date
+                                                    {t(formPage.schedule)}
                                                 </AppButton>
                                             )}
                                         </>
@@ -341,7 +341,9 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
 
                                     {form?.settings?.formCloseDate && moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
                                         <div className="my-2 flex justify-between p-5 bg-black-200 w-full rounded-md">
-                                            <div>This form will be automatically closed on {utcToLocalDateTIme(form?.settings?.formCloseDate)}</div>
+                                            <div>
+                                                {t(formPage.automaticallyCloseOn)} {utcToLocalDateTIme(form?.settings?.formCloseDate)}
+                                            </div>
                                             <div>
                                                 <div onClick={reopenForm}>
                                                     <Close width="24px" height="24px" className="text-black-800" />
