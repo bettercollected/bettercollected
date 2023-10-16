@@ -60,6 +60,7 @@ workspace_settings = {
     "responseExpirationType": None,
     "disableBranding": None,
     "isPublished": None,
+    "formCloseDate": None
 }
 
 workspace_tag = {"title": "BetterCollected-Team"}
