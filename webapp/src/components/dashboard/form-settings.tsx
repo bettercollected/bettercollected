@@ -11,8 +11,10 @@ import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppBu
 import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
 import Switch from '@mui/material/Switch';
 import cn from 'classnames';
+import moment from 'moment/moment';
 import { toast } from 'react-toastify';
 
+import { Close } from '@app/components/icons/close';
 import { GroupIcon } from '@app/components/icons/group-icon';
 import { useModal } from '@app/components/modal-views/context';
 import { FormSettingsCard } from '@app/components/settings/card';
@@ -29,6 +31,8 @@ import { selectForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { utcToLocalDateTIme } from '@app/utils/dateUtils';
+import { validateFormOpen } from '@app/utils/validationUtils';
 
 import Globe from '../icons/flags/globe';
 import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
@@ -46,7 +50,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const [patchFormSettings] = usePatchFormSettingsMutation();
     const workspace = useAppSelector((state) => state.workspace);
     const dispatch = useAppDispatch();
-    const { openModal } = useModal();
+    const { openModal, closeModal } = useModal();
+    const { openModal: openFullScreenModal } = useFullScreenModal();
     const fullScreenModal = useFullScreenModal();
     const isCustomDomain = workspace?.isPro && !!workspace.customDomain;
     const customUrl = form?.settings?.customUrl || '';
@@ -54,6 +59,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const customDomain = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
     const clientHostUrl = `${clientHost}/${customUrl}`;
     const customDomainUrl = `${customDomain}/${customUrl}`;
+
     const defaultValueForVisibility = () => {
         if (form?.settings?.hidden) return 'Private';
         else if (form?.settings?.private) return 'Group';
@@ -117,6 +123,15 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         openModal('VISIBILITY_CONFIRMATION_MODAL_VIEW', { visibilityType: visibilityType(), handleOnConfirm });
     };
 
+    const onFormClosedChange = (date: moment.Moment | string) => {
+        const patchBody = { formCloseDate: date };
+        patchSettings(patchBody, form)
+            .then(() => {})
+            .catch(() => {
+                toast('Something went wrong!!!', { type: 'error' });
+            });
+    };
+
     const onDisableBrandingChange = (event: any, f?: StandardFormDto) => {
         if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
         patchSettings({ disableBranding: !f?.settings?.disableBranding }, f)
@@ -128,6 +143,19 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
 
     const isProPlan = useAppSelector(selectWorkspace).isPro;
     const isAdmin = useAppSelector(selectIsAdmin);
+
+    const closeFormChecked = !!form?.settings?.formCloseDate && moment.utc().isAfter(moment.utc(form?.settings?.formCloseDate));
+
+    const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
+
+    const closeForm = () => {
+        onFormClosedChange(moment.utc());
+        closeModal();
+    };
+    const reopenForm = () => {
+        onFormClosedChange('');
+        closeModal();
+    };
 
     const showSettingsTabView = (view: FormSettingsTabView) => {
         switch (view) {
@@ -216,7 +244,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
             case 'DEFAULT':
                 return (
                     <div className=" flex flex-col gap-7 mb-10 ">
-                        {form?.isPublished && (
+                        {form?.isPublished && isFormOpen && (
                             <>
                                 {!form?.settings?.private && (
                                     <FormSettingsCard>
@@ -271,6 +299,61 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             {t(formPage.formPurposeSeeDetails)}
                                         </AppButton>
                                     </div>
+                                    <hr className="h-0.5 w-full bg-black-200 my-2" />
+                                </div>
+                            </FormSettingsCard>
+                        )}
+                        {form?.settings?.provider === 'self' && form?.isPublished && (
+                            <FormSettingsCard>
+                                <div className="flex flex-col items-start w-full">
+                                    <div className="body1">{t(formPage.closeForm)}</div>
+                                    <hr className="h-0.5 w-full bg-black-200 my-2" />
+                                    {(!form?.settings?.formCloseDate || moment.utc(form?.settings?.formCloseDate).isBefore(moment.utc())) && (
+                                        <>
+                                            <div className=" w-full flex flex-row justify-between items-center gap-4">
+                                                <div className="text-sm !text-black-700">{t(formPage.closeFormDescription)}</div>
+                                                <Switch
+                                                    data-testid="close-form-switch"
+                                                    // checked={false}
+                                                    checked={closeFormChecked}
+                                                    onClick={(event) => {
+                                                        if (closeFormChecked) {
+                                                            openModal('REOPEN_FORM_CONFIRMATION_MODAL', { reopenForm });
+                                                        } else {
+                                                            openModal('CLOSE_FORM_CONFIRMATION_MODAL', { closeForm });
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                            {!closeFormChecked && !moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
+                                                <AppButton
+                                                    className="mt-2"
+                                                    variant={ButtonVariant.Ghost}
+                                                    onClick={() => {
+                                                        openFullScreenModal('SELECT_FORM_CLOSE_DATE', {
+                                                            onFormClosedChange: onFormClosedChange,
+                                                            closeDate: form?.settings?.formCloseDate
+                                                        });
+                                                    }}
+                                                >
+                                                    {t(formPage.schedule)}
+                                                </AppButton>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {form?.settings?.formCloseDate && moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
+                                        <div className="my-2 flex justify-between p-5 bg-black-200 w-full rounded-md">
+                                            <div>
+                                                {t(formPage.automaticallyCloseOn)} {utcToLocalDateTIme(form?.settings?.formCloseDate)}
+                                            </div>
+                                            <div>
+                                                <div onClick={reopenForm}>
+                                                    <Close width="24px" height="24px" className="text-black-800" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                     <hr className="h-0.5 w-full bg-black-200 my-2" />
                                 </div>
                             </FormSettingsCard>

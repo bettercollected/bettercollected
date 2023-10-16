@@ -31,7 +31,7 @@ class TestWorkspaces:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_1: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
-        mock_get_workspace_by_query
+        mock_get_workspace_by_query,
     ):
         get_workspace_url = f"{common_url}?workspace_name={testUser.id}"
         with mock_get_workspace_by_query:

@@ -217,6 +217,10 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
         };
     }, [builderState]);
 
+    useEffect(() => {
+        setBackspaceCount(0);
+    }, [builderState.activeFieldId, builderState.activeChoiceId]);
+
     const isLastFieldEmptyTextField = () => {
         const fields = Object.values(builderState.fields);
         const lastField = fields[fields.length - 1];

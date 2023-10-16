@@ -7,7 +7,6 @@ import { List, ListItem, ListItemButton, ListItemIcon, SxProps, Theme } from '@m
 import { INavbarItem } from '@app/models/props/navbar';
 import { isValidRelativeURL } from '@app/utils/urlUtils';
 
-
 interface INavigationListProps {
     navigationList: Array<INavbarItem>;
     className?: string;
@@ -18,14 +17,14 @@ export default function NavigationList({ navigationList, className = '', sx = {}
     const router = useRouter();
 
     useEffect(() => {
-        navigationList.forEach((lst) => {
+        navigationList?.forEach((lst) => {
             if (isValidRelativeURL(lst.url)) router.prefetch(lst.url);
         });
     }, [navigationList, router]);
 
     return (
         <List disablePadding sx={sx} className={className}>
-            {navigationList.map((element) => {
+            {navigationList?.map((element) => {
                 const active = element.url == router.asPath;
                 return (
                     <div key={element.key} className={`body4 rounded-lg mt-1 ${active ? 'bg-brand-500 !text-white' : 'text-black-600 hover:bg-brand-100'}`}>

@@ -2,10 +2,9 @@ import datetime as dt
 from typing import Optional
 
 from beanie import PydanticObjectId
+from common.models.consent import ResponseRetentionType
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
-
-from common.models.consent import ResponseRetentionType
 
 
 class WorkspaceRequestDto(BaseModel):
@@ -45,6 +44,7 @@ class WorkspaceFormSettings(BaseModel):
     response_expiration: Optional[str]
     response_expiration_type: Optional[ResponseRetentionType]
     disable_branding: Optional[bool]
+    form_close_date: Optional[dt.datetime | str]
 
 
 class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):

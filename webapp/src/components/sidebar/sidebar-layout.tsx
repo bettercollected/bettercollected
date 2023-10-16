@@ -1,13 +1,29 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
+
+import DashboardIcon from '@Components/Common/Icons/Dashboard';
+import DeleteIcon from '@Components/Common/Icons/Delete';
+import { FormIcon } from '@Components/Common/Icons/FormIcon';
+import MembersIcon from '@Components/Common/Icons/Members';
+import ResponderIcon from '@Components/Common/Icons/Responder';
 import { Box } from '@mui/material';
 import cn from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
 import AuthNavbar from '@app/components/auth/navbar';
+import Globe from '@app/components/icons/flags/globe';
 import DashboardDrawer from '@app/components/sidebar/dashboard-drawer';
-
+import { localesCommon } from '@app/constants/locales/common';
+import dashboardConstants from '@app/constants/locales/dashboard';
+import { formConstant } from '@app/constants/locales/form';
+import { members } from '@app/constants/locales/members';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { INavbarItem } from '@app/models/props/navbar';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface ISidebarLayout {
     children: any;
@@ -23,17 +39,74 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
         setMobileOpen(!mobileOpen);
     };
 
+    const router = useRouter();
+
+    const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
+    const { t } = useTranslation();
+    const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
+
+    const topNavList: Array<INavbarItem> = [
+        {
+            key: 'dashboard',
+            name: t('MY_WORKSPACE'),
+            url: commonWorkspaceUrl,
+            icon: <DashboardIcon />
+        },
+        {
+            key: 'forms',
+            name: t(localesCommon.forms),
+            url: `${commonWorkspaceUrl}/forms`,
+            icon: <FormIcon />
+        },
+        {
+            key: 'responders',
+            name: t(localesCommon.respondersAndGroups),
+            url: `${commonWorkspaceUrl}/responders-groups`,
+            icon: <ResponderIcon />
+        },
+        {
+            key: 'deletion_requests',
+            name: t(formConstant.deletionRequests),
+            url: `${commonWorkspaceUrl}/deletion-requests`,
+            icon: <DeleteIcon className="stroke-2" />
+        }
+    ];
+    const bottomNavList: Array<INavbarItem> = [
+        {
+            key: 'members',
+            name: t(members.default),
+            url: `/${workspace?.workspaceName}/dashboard/members`,
+            icon: <MembersIcon />
+        },
+        {
+            key: 'urls',
+            name: t(dashboardConstants.drawer.manageURLs),
+            url: `/${workspace?.workspaceName}/dashboard/urls`,
+            icon: <Globe />
+        }
+    ];
+
+    const allNavList = [...topNavList, ...bottomNavList];
+
+    const getHeader = () => {
+        const matchingNavList = allNavList.filter((item) => item.url.match(router.asPath));
+        if (matchingNavList.length > 0) {
+            return matchingNavList[0].name;
+        }
+        return 'My Workspace';
+    };
+
     return (
         <AnimatePresence mode="wait" initial={true} onExitComplete={() => window.scrollTo(0, 0)}>
             <div className="relative min-h-screen w-full">
                 <div className="lg:hidden">
                     <AuthNavbar handleDrawerToggle={handleDrawerToggle} mobileOpen={mobileOpen} />
                 </div>
-                <DrawerComponent drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
+                <DrawerComponent drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} topNavList={topNavList} bottomNavList={bottomNavList} />
                 <Box className={`float-none lg:float-right lg:min-h-screen bg-black-100 min-h-calc-68 mt-[68px] lg:mt-0`} component="main" sx={{ display: 'flex', width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
                     <div className="flex flex-col w-full">
                         <div className="flex w-full py-3 z-[1000] sticky top-[68px] lg:top-0 bg-white justify-between px-5 border-b border-b-black-200 lg:px-10 items-center">
-                            <span className="h3-new">My Workspace</span>
+                            <span className="h3-new">{getHeader()}</span>
                             <div className="hidden lg:flex">
                                 <AuthAccountMenuDropdown hideMenu={false} isClientDomain={false} />
                             </div>
