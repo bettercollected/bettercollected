@@ -32,7 +32,6 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import Globe from '../icons/flags/globe';
 
-
 DashboardDrawer.defaultProps = {
     drawerWidth: 289,
     mobileOpen: false
@@ -93,52 +92,8 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
     );
 };
 
-export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerToggle }: IDrawerProps) {
-    const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
-    const { t } = useTranslation();
+export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerToggle, bottomNavList, topNavList }: IDrawerProps) {
     const isAdmin = useAppSelector(selectIsAdmin);
-    const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
-
-    const topNavList: Array<INavbarItem> = [
-        {
-            key: 'dashboard',
-            name: t(localesCommon.dashboard),
-            url: commonWorkspaceUrl,
-            icon: <DashboardIcon />
-        },
-        {
-            key: 'forms',
-            name: t(localesCommon.forms),
-            url: `${commonWorkspaceUrl}/forms`,
-            icon: <FormIcon />
-        },
-        {
-            key: 'responders',
-            name: t(localesCommon.respondersAndGroups),
-            url: `${commonWorkspaceUrl}/responders-groups`,
-            icon: <ResponderIcon />
-        },
-        {
-            key: 'deletion_requests',
-            name: t(formConstant.deletionRequests),
-            url: `${commonWorkspaceUrl}/deletion-requests`,
-            icon: <DeleteIcon className="stroke-2" />
-        }
-    ];
-    const bottomNavList: Array<INavbarItem> = [
-        {
-            key: 'members',
-            name: t(members.default),
-            url: `/${workspace?.workspaceName}/dashboard/members`,
-            icon: <MembersIcon />
-        },
-        {
-            key: 'urls',
-            name: t(dashboardConstants.drawer.manageURLs),
-            url: `/${workspace?.workspaceName}/dashboard/urls`,
-            icon: <Globe />
-        }
-    ];
 
     return (
         <>
