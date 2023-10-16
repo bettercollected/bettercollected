@@ -36,5 +36,9 @@ export const formPage = {
     responsesDeletedResponse: 'FORM_PAGE.RESPONSES.DELETE_RESPONSE',
     responsesSubmittedAt: 'FORM_PAGE.RESPONSES.SUBMITTED_AT',
     responsesSubmittedBy: 'FORM_PAGE.RESPONSES.SUBMITTED_BY',
-    responsesAnonymous: 'FORM_PAGE.RESPONSES.ANONYMOUS'
+    responsesAnonymous: 'FORM_PAGE.RESPONSES.ANONYMOUS',
+    closeForm: 'FORM_PAGE.SETTINGS.CLOSE_FORM.DEFAULT',
+    closeFormDescription: 'FORM_PAGE.SETTINGS.CLOSE_FORM.DESCRIPTION',
+    schedule: 'FORM_PAGE.SETTINGS.CLOSE_FORM.SCHEDULE',
+    automaticallyCloseOn: 'FORM_PAGE.SETTINGS.CLOSE_FORM.AUTOMATICALLY_CLOSE_ON'
 };

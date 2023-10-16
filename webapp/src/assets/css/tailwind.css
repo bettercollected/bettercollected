@@ -103,6 +103,10 @@ input.spin-button-hidden::-webkit-inner-spin-button {
     margin: 0;
 }
 
+.css-1anqmj6-MuiPopper-root-MuiPickersPopper-root {
+    z-index: 10000 !important;
+}
+
 .h1 {
     @apply text-[96px] font-semibold leading-[130px] tracking-[-1%] text-black-900;
 }

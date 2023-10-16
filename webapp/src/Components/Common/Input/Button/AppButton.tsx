@@ -35,6 +35,8 @@ export default function AppButton({
                 return disabled ? 'bg-black-300 text-black-500' : 'bg-red-400 text-white hover:bg-red-500 ';
             case ButtonVariant.Ghost:
                 return disabled ? 'bg-transparent text-black-500' : 'text-brand-500 border border-transparent hover:bg-black-200 active:border-brand-500 active:bg-black-300';
+            case ButtonVariant.DangerGhost:
+                return disabled ? 'bg-black-300 text-black-500' : 'bg-red-100 text-red hover:bg-red-200 focus:ring-red-500 focus-ring active:bg-red-300';
         }
     };
 

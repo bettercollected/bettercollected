@@ -58,7 +58,7 @@ export default function ConsentBuilderConfirmationModalView() {
     };
     return (
         <form onSubmit={onSubmit} className="bg-white rounded-2xl w-fit md:w-[476px] h-content">
-            <ConsentModalTopBar />
+            <ConsentModalTopBar title={'Confirm and Publish'} />
             <div className="pt-5 px-6">
                 <HintBox
                     size="small"

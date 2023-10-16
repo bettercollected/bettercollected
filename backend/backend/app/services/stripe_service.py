@@ -11,12 +11,12 @@ from common.services.jwt_service import JwtService
 
 class StripeService:
     def __init__(
-            self,
-            http_client: HttpClient,
-            plugin_proxy_service: PluginProxyService,
-            form_provider_service: FormPluginProviderService,
-            jwt_service: JwtService,
-            workspace_service: WorkspaceService,
+        self,
+        http_client: HttpClient,
+        plugin_proxy_service: PluginProxyService,
+        form_provider_service: FormPluginProviderService,
+        jwt_service: JwtService,
+        workspace_service: WorkspaceService,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service

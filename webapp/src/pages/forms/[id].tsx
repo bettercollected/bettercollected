@@ -1,32 +1,34 @@
-import React, {useRef} from 'react';
+import React, { useRef } from 'react';
 
-import {useTranslation} from 'next-i18next';
-import {NextSeo} from 'next-seo';
-import {useRouter} from 'next/router';
+import { useTranslation } from 'next-i18next';
+import { NextSeo } from 'next-seo';
+import Image from 'next/image';
+import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
-import {ChevronLeft} from '@mui/icons-material';
-import {Widget} from '@typeform/embed-react';
+import { ChevronLeft } from '@mui/icons-material';
+import { Widget } from '@typeform/embed-react';
 
-import {useFullScreenModal} from '@app/components/modal-views/full-screen-modal-context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
 import PoweredBy from '@app/components/ui/powered-by';
 import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
-import {localesCommon} from '@app/constants/locales/common';
+import { localesCommon } from '@app/constants/locales/common';
 import Layout from '@app/layouts/_layout';
-import {getGlobalServerSidePropsByDomain} from '@app/lib/serverSideProps';
-import {StandardFormDto} from '@app/models/dtos/form';
-import {useGetWorkspaceFormQuery} from '@app/store/workspaces/api';
-import {checkHasCustomDomain, getServerSideAuthHeaderConfig} from '@app/utils/serverSidePropsUtils';
+import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
+import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import { validateFormOpen } from '@app/utils/validationUtils';
 
 export default function SingleFormPage(props: any) {
-    const {back, slug, hasCustomDomain, workspace, form: fetched_form, error: fetched_form_error} = props;
+    const { back, slug, hasCustomDomain, workspace, form: fetched_form, error: fetched_form_error } = props;
 
-    const {data, isLoading, error} = useGetWorkspaceFormQuery({
+    const { data, isLoading, error } = useGetWorkspaceFormQuery({
         workspace_id: workspace.id,
         custom_url: slug,
         published: true
@@ -35,17 +37,34 @@ export default function SingleFormPage(props: any) {
     const router = useRouter();
     const form: StandardFormDto | undefined = data;
 
-    const social_preview = fetched_form_error ? form : fetched_form;
-
     const title = fetched_form?.title ?? workspace?.title;
     const description = fetched_form?.description?.slice(0, 100) ?? '';
     const url = globalConstants.socialPreview.url;
 
     const iframeRef = useRef(null);
-    const {openModal} = useFullScreenModal();
+    const { openModal } = useFullScreenModal();
 
     const responderUri = form?.settings?.embedUrl || '';
-    const {t} = useTranslation();
+    const { t } = useTranslation();
+
+    const isFormClosed = !validateFormOpen(form?.settings?.formCloseDate);
+
+    const showBranding = !workspace?.isPro || !form?.settings?.disableBranding;
+
+    if (data && isFormClosed)
+        return (
+            <div className="h-screen w-screen bg-white flex flex-col items-center">
+                <div className=" w-full aspect-banner-mobile  lg:aspect-thank_you_cover  relative flex items-center justify-center">
+                    <Image src="/images/thankyou_cover.png" layout="fill" objectFit="cover" alt="ALternative" />
+                </div>
+                <div className="px-5  flex flex-col items-center">
+                    <div className="h2-new text-black-800 font-bold mt-[60px] ">This Form Is Closed</div>
+                    <div className="h4-new text-black-800 mt-4 text-center">The form &quot;{form?.title || 'Untitled'}&quot; is no longer accepting responses.</div>
+                    <div className="p2-new mt-2 text-black-700 text-sm text-center">Try contacting the owner of the form if you think that this is a mistake.</div>
+                </div>
+                {showBranding && <PoweredBy />}
+            </div>
+        );
 
     // @ts-ignore
     if (error && error?.status === 401) {
@@ -66,12 +85,12 @@ export default function SingleFormPage(props: any) {
     if (error) {
         return (
             <div className="min-h-screen min-w-screen text-center flex items-center justify-center">
-                Error loading form!! <br/>
+                Error loading form!! <br />
                 Either the form does not exist or you do not have access to this form.
             </div>
         );
     }
-    if (isLoading) return <FullScreenLoader/>;
+    if (isLoading) return <FullScreenLoader />;
     const hasFileUpload = (fields: Array<any>) => {
         let isUploadField = false;
         if (fields && Array.isArray(fields) && fields.length > 0) {
@@ -95,10 +114,10 @@ export default function SingleFormPage(props: any) {
             .push(
                 {
                     pathname: pathName,
-                    query: {view: 'forms'}
+                    query: { view: 'forms' }
                 },
                 undefined,
-                {scroll: true, shallow: true}
+                { scroll: true, shallow: true }
             )
             .then((r) => r)
             .catch((e) => e);
@@ -130,31 +149,22 @@ export default function SingleFormPage(props: any) {
                 />
                 <div className="relative !bg-white !min-h-screen">
                     {back && (
-                        <div
-                            className="flex cursor-pointer mt-5 items-center gap-2 px-5 lg:px-20 w-auto z-10 hover:!-translate-y-0 focus:-translate-y-0"
-                            onClick={() => goToForms()}>
-                            <ChevronLeft height={24} width={24}/>
+                        <div className="flex cursor-pointer mt-5 items-center gap-2 px-5 lg:px-20 w-auto z-10 hover:!-translate-y-0 focus:-translate-y-0" onClick={() => goToForms()}>
+                            <ChevronLeft height={24} width={24} />
                             <span className="sh1">{t(localesCommon.forms)}</span>
                         </div>
                     )}
-                    <div
-                        className="absolute left-0 right-0 top-16 bottom-0 !p-0 w-full items-start justify-between rounded-lg bg-white">
+                    <div className="absolute left-0 right-0 top-16 bottom-0 !p-0 w-full items-start justify-between rounded-lg bg-white">
                         <div className="flex flex-col items-center gap-8 justify-between p-10">
                             <div className="py-6 px-3 max-w-xs text-center">
-                                <svg aria-hidden="true"
-                                     className="mx-auto mb-4 text-yellow-500 w-14 h-14 dark:text-gray-200" fill="none"
-                                     stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                <svg aria-hidden="true" className="mx-auto mb-4 text-yellow-500 w-14 h-14 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 <h3 className="mb-5 text-lg font-bold text-gray-700 dark:text-gray-400">{form?.title}</h3>
                                 <p className="mb-5 text-sm font-normal text-gray-500 dark:text-gray-400">{form?.description}</p>
 
-                                <div
-                                    className="px-4 py-10 mb-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300"
-                                    role="alert">
-                                    <span className="font-medium">Warning!</span> This form consists file upload. You
-                                    may need to open it in a new tab to fill it out.
+                                <div className="px-4 py-10 mb-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300" role="alert">
+                                    <span className="font-medium">Warning!</span> This form consists file upload. You may need to open it in a new tab to fill it out.
                                 </div>
                                 <ActiveLink
                                     href={responderUri}
@@ -198,9 +208,8 @@ export default function SingleFormPage(props: any) {
                 <div className="!min-h-screen relative">
                     <div className="absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0'">
                         {form?.settings?.provider === 'google' && !!responderUri && (
-                            <iframe ref={iframeRef} src={`${responderUri}?embedded=true`} width="100%" height="100%"
-                                    frameBorder="0">
-                                <Loader/>
+                            <iframe ref={iframeRef} src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0">
+                                <Loader />
                             </iframe>
                         )}
                     </div>
@@ -209,11 +218,8 @@ export default function SingleFormPage(props: any) {
         );
     }
 
-    const showBranding = (!workspace?.isPro || !form?.settings?.disableBranding)
-
     return (
-        <Layout showNavbar={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain}
-                showAuthAccount={true} className="relative !bg-white !min-h-screen">
+        <Layout showNavbar={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showAuthAccount={true} className="relative !bg-white !min-h-screen">
             <NextSeo
                 title={title}
                 description={description}
@@ -234,17 +240,15 @@ export default function SingleFormPage(props: any) {
                     ]
                 }}
             />
-            <div
-                className={`absolute left-0 right-0 top-0 bottom-0 !bg-white !p-0 !m-0 ${showBranding ? "!mb-6" : ""}`}>
-                {form?.settings?.provider === 'typeform' &&
-                    <Widget id={form?.formId} style={{height: '100vh'}} className="my-form"/>}
+            <div className={`absolute left-0 right-0 top-0 bottom-0 !bg-white !p-0 !m-0 ${showBranding ? '!mb-6' : ''}`}>
+                {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (
                     <div className="flex !bg-white justify-center overflow-auto h-full w-full pb-6">
-                        <BetterCollectedForm form={form} enabled={true} isCustomDomain={hasCustomDomain}/>
+                        <BetterCollectedForm form={form} enabled={true} isCustomDomain={hasCustomDomain} />
                     </div>
                 )}
             </div>
-            {showBranding && <PoweredBy/>}
+            {showBranding && <PoweredBy />}
         </Layout>
     );
 }
@@ -271,7 +275,7 @@ export async function getServerSideProps(_context: any) {
     let form = null;
     const config = getServerSideAuthHeaderConfig(_context);
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
-    const {id} = _context.query;
+    const { id } = _context.query;
     try {
         const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${id}`, config);
         form = (await formResponse?.json().catch((e: any) => e)) ?? null;
@@ -298,12 +302,4 @@ export async function getServerSideProps(_context: any) {
             }
         };
     }
-
-    // return {
-    //     props: {
-    //         ...globalProps,
-    //         slug,
-    //         back
-    //     }
-    // };
 }
