@@ -1,3 +1,4 @@
+import datetime
 import json
 from typing import Any, Coroutine
 
@@ -440,6 +441,25 @@ class TestWorkspaceForm:
         assert patch_settings.status_code == 200
         assert actual_response == expected_response
 
+    async def test_patch_form_close_date_in_workspace_form(
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        workspace_form_common_url: str,
+        workspace_form: FormDocument,
+        test_user_cookies: dict[str, str],
+    ):
+        patch_url = f"{workspace_form_common_url}/{workspace_form.form_id}/settings"
+        close_date = datetime.datetime.utcnow().isoformat()
+
+        patch_settings = client.patch(
+            patch_url, cookies=test_user_cookies, json={"formCloseDate": close_date}
+        )
+
+        actual_response = patch_settings.json()
+        assert patch_settings.status_code == 200
+        assert close_date == actual_response.get("settings").get("formCloseDate")
+
     def test_multiple_same_patch_setting_in_workspace_fails(
         self,
         client: TestClient,
@@ -679,7 +699,6 @@ class TestWorkspaceForm:
             import_form = client.post(
                 import_form_url, cookies=test_user_cookies, json=form_body
             )
-
             expected_response = "Upgrade plan to import more forms"
             actual_response = import_form.json()
             assert import_form.status_code == 403
