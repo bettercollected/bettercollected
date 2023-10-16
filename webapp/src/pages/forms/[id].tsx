@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -36,8 +37,6 @@ export default function SingleFormPage(props: any) {
     const router = useRouter();
     const form: StandardFormDto | undefined = data;
 
-    const social_preview = fetched_form_error ? form : fetched_form;
-
     const title = fetched_form?.title ?? workspace?.title;
     const description = fetched_form?.description?.slice(0, 100) ?? '';
     const url = globalConstants.socialPreview.url;
@@ -50,13 +49,20 @@ export default function SingleFormPage(props: any) {
 
     const isFormClosed = !validateFormOpen(form?.settings?.formCloseDate);
 
+    const showBranding = !workspace?.isPro || !form?.settings?.disableBranding;
+
     if (data && isFormClosed)
         return (
-            <div className="h-screen w-screen flex flex-col gap-8 items-center justify-center">
-                <div className="h2-new">{form?.title || 'Untitled Form'}</div>
-                {form?.description && <div className="p2-new">{form?.description}</div>}
-
-                <div className="h3-new">Sorry this form has already been closed.</div>
+            <div className="h-screen w-screen bg-white flex flex-col items-center">
+                <div className=" w-full aspect-banner-mobile  lg:aspect-thank_you_cover  relative flex items-center justify-center">
+                    <Image src="/images/thankyou_cover.png" layout="fill" objectFit="cover" alt="ALternative" />
+                </div>
+                <div className="px-5  flex flex-col items-center">
+                    <div className="h2-new text-black-800 font-bold mt-[60px] ">This Form Is Closed</div>
+                    <div className="h4-new text-black-800 mt-4 text-center">The form &quot;{form?.title || 'Untitled'}&quot; is no longer accepting responses.</div>
+                    <div className="p2-new mt-2 text-black-700 text-sm text-center">Try contacting the owner of the form if you think that this is a mistake.</div>
+                </div>
+                {showBranding && <PoweredBy />}
             </div>
         );
 
@@ -212,8 +218,6 @@ export default function SingleFormPage(props: any) {
         );
     }
 
-    const showBranding = !workspace?.isPro || !form?.settings?.disableBranding;
-
     return (
         <Layout showNavbar={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showAuthAccount={true} className="relative !bg-white !min-h-screen">
             <NextSeo
@@ -298,12 +302,4 @@ export async function getServerSideProps(_context: any) {
             }
         };
     }
-
-    // return {
-    //     props: {
-    //         ...globalProps,
-    //         slug,
-    //         back
-    //     }
-    // };
 }
