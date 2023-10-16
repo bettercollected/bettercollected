@@ -90,10 +90,16 @@ export const builder = createSlice({
                 activeFieldId: action.payload.id
             };
         },
-        setAddNewChoice: (state: IBuilderState, action: { payload: IChoiceFieldState; type: string }) => {
-            const activeField = state.fields[state.activeFieldId];
+        setAddNewChoice: (
+            state: IBuilderState,
+            action: {
+                payload: { fieldId?: string; choice: IChoiceFieldState };
+                type: string;
+            }
+        ) => {
+            const activeField = state.fields[action.payload?.fieldId ? action.payload?.fieldId : state.activeFieldId];
             const newChoices = Object.values(convertProxyToObject(activeField.properties?.choices || {}));
-            newChoices.splice(action.payload.position, 0, { ...action.payload });
+            newChoices.splice(action.payload.choice.position, 0, { ...action.payload.choice });
             const choices: any = {};
             newChoices.forEach((choice: any, index: number) => {
                 choices[choice.id] = { ...choice, position: index };
@@ -107,8 +113,8 @@ export const builder = createSlice({
                         properties: {
                             ...activeField.properties,
                             choices,
-                            activeChoiceId: action.payload.id,
-                            activeChoiceIndex: action.payload.position
+                            activeChoiceId: action.payload.choice.id,
+                            activeChoiceIndex: action.payload.choice.position
                         }
                     }
                 }
@@ -181,7 +187,12 @@ export const builder = createSlice({
             fieldsArray.forEach((field: IFormFieldState, index: number) => {
                 newFieldsMap[field.id] = { ...field, position: index };
             });
-            return { ...state, activeFieldId: newField.id, activeFieldIndex: action.payload.position, fields: newFieldsMap };
+            return {
+                ...state,
+                activeFieldId: newField.id,
+                activeFieldIndex: action.payload.position,
+                fields: newFieldsMap
+            };
         },
         addDuplicateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             // TODO: fix duplicate for shortcut keys
