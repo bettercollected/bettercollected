@@ -686,7 +686,7 @@ category = "main"
 optional = false
 python-versions = "^3.10"
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 beanie = "^1.17.0"
@@ -3806,4 +3806,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "78687f1045a56ba4e3c6db249783f586ef6ed3bf0c1d330736411589403d9637"
+content-hash = "f843bcf9ea8de3e61228949915e73948974734ba18963264ed3f726606522543"
