@@ -99,7 +99,7 @@ class TestFormTemplates:
         test_user_cookies: dict[str, str],
         workspace_1_public_template: FormTemplateDocument,
     ):
-        import_url = f"/api/v1/workspaces/{workspace.id}/template/import?template_id={workspace_1_public_template.id}"
+        import_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_public_template.id}/import"
 
         imported_template = client.post(import_url, cookies=test_user_cookies)
 
@@ -118,7 +118,7 @@ class TestFormTemplates:
         test_user_cookies: dict[str, str],
         workspace_1_private_template: FormTemplateDocument,
     ):
-        import_url = f"/api/v1/workspaces/{workspace.id}/template/import?template_id={workspace_1_private_template.id}"
+        import_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_private_template.id}/import"
 
         imported_template = client.post(import_url, cookies=test_user_cookies)
 
@@ -134,7 +134,7 @@ class TestFormTemplates:
         test_user_cookies_1: dict[str, str],
         workspace_1_public_template: FormTemplateDocument,
     ):
-        import_url = f"/api/v1/workspaces/{workspace.id}/template/import?template_id={workspace_1_public_template.id}"
+        import_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_public_template.id}/import"
 
         imported_template = client.post(import_url, cookies=test_user_cookies_1)
 
