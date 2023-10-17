@@ -1,7 +1,7 @@
-import React, { ReactNode } from 'react';
+import React, {ReactNode} from 'react';
 
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { CircularProgress } from '@mui/material';
+import {ButtonSize, ButtonVariant} from '@Components/Common/Input/Button/AppButtonProps';
+import {CircularProgress} from '@mui/material';
 import cn from 'classnames';
 
 export interface AppButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -12,7 +12,17 @@ export interface AppButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEle
     postFixIcon?: ReactNode;
 }
 
-export default function AppButton({ children, className, disabled, isLoading, icon, postFixIcon, variant = ButtonVariant.Primary, size = ButtonSize.Small, ...buttonProps }: AppButtonProps) {
+export default function AppButton({
+                                      children,
+                                      className,
+                                      disabled,
+                                      isLoading,
+                                      icon,
+                                      postFixIcon,
+                                      variant = ButtonVariant.Primary,
+                                      size = ButtonSize.Small,
+                                      ...buttonProps
+                                  }: AppButtonProps) {
     const getClassNamesForVariant = () => {
         switch (variant) {
             case ButtonVariant.Primary:
@@ -25,6 +35,8 @@ export default function AppButton({ children, className, disabled, isLoading, ic
                 return disabled ? 'bg-black-300 text-black-500' : 'bg-red-400 text-white hover:bg-red-500 ';
             case ButtonVariant.Ghost:
                 return disabled ? 'bg-transparent text-black-500' : 'text-brand-500 border border-transparent hover:bg-black-200 active:border-brand-500 active:bg-black-300';
+            case ButtonVariant.DangerGhost:
+                return disabled ? 'bg-black-300 text-black-500' : 'bg-red-100 text-red hover:bg-red-200 focus:ring-red-500 focus-ring active:bg-red-300';
         }
     };
 
@@ -44,11 +56,11 @@ export default function AppButton({ children, className, disabled, isLoading, ic
     return (
         <button
             disabled={isLoading || disabled}
-            className={cn('rounded gap-2 min-w-fit flex justify-center items-center px-4', disabled ? 'cursor-not-allowed' : 'cursor-pointer', getClassnamesForSize(), getClassNamesForVariant(), className)}
+            className={cn('rounded gap-2 min-w-fit flex justify-center items-center px-4', disabled || isLoading ? 'cursor-not-allowed' : 'cursor-pointer', getClassnamesForSize(), getClassNamesForVariant(), className)}
             {...buttonProps}
         >
             {!isLoading && icon}
-            {!disabled && isLoading && <CircularProgress size={14} color="inherit" />}
+            {!disabled && isLoading && <CircularProgress size={14} color="inherit"/>}
             {children}
             {!isLoading && postFixIcon}
         </button>

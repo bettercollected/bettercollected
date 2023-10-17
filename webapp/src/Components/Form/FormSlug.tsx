@@ -9,25 +9,25 @@ import { toast } from 'react-toastify';
 
 import { IFormCreateSlugFullModalViewProps } from '@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
 import { localesCommon } from '@app/constants/locales/common';
+import { formPage } from '@app/constants/locales/form-page';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { validationMessage } from '@app/constants/locales/validation-message';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
-
 interface IFormSlugProps extends IFormCreateSlugFullModalViewProps {
-    onSave: () => void
+    onSave: () => void;
 }
 
-export const FormSlug = ({customSlug, link, onSave}: IFormSlugProps) => {
+export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
     const formId = customSlug;
     const [slug, setSlug] = useState(customSlug);
     const [isError, setIsError] = useState(false);
     const workspace = useAppSelector((state) => state.workspace);
-    const [patchFormSettings, {isLoading}] = usePatchFormSettingsMutation();
+    const [patchFormSettings, { isLoading }] = usePatchFormSettingsMutation();
     const dispatch = useAppDispatch();
-    const {t} = useTranslation();
+    const { t } = useTranslation();
 
     const handleOnchange = (e: any) => {
         setIsError(false);
@@ -52,34 +52,34 @@ export const FormSlug = ({customSlug, link, onSave}: IFormSlugProps) => {
             if (response.data) {
                 const settings = response.data.settings;
                 dispatch(setFormSettings(settings));
-                toast(t(localesCommon.updated).toString(), {type: 'success'});
+                toast(t(localesCommon.updated).toString(), { type: 'success' });
             } else {
-                toast(t(toastMessage.formSettingUpdateError).toString(), {type: 'error'});
+                toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
                 return response.error;
             }
             onSave();
         }
     };
 
-
-    return <div className={"px-4 sm:px-20 md:px-[120px] w-full py-16 flex flex-col gap-12"}>
-        <div className={'flex flex-col gap-1'}>
-            <h1 className={"h2-new"}>Change Slug</h1>
-            <p className={"text-sm font-normal text-black-700"}>Give your forms a touch of professionalism and ensure
-                brand consistency by incorporating your custom slug</p>
+    return (
+        <div className={'px-4 sm:px-20 md:px-[120px] w-full py-16 flex flex-col gap-12'}>
+            <div className={'flex flex-col gap-1'}>
+                <h1 className={'h2-new'}>{t(formPage.linksSlugTitle)}</h1>
+                <p className={'text-sm font-normal text-black-700'}>{t(formPage.linksSlugDescription)}</p>
+            </div>
+            <div className={'flex flex-col gap-2 !max-w-[660px]'}>
+                <h1 className={'h4-new'}>{t(formPage.linksSlugEnterSlug)}</h1>
+                <p className={'text-sm font-normal text-black-700'}>{t(formPage.linksSlugAvoidUsing)}</p>
+                <p className={'text-sm font-normal text-black-700'}>
+                    {' '}
+                    {link}/<span className={'text-pink-500'}>{slug}</span>
+                </p>
+                <AppTextField isError={isError} value={slug} onChange={(event) => handleOnchange(event)} />
+                {!slug.match(slugRegex) && isError && <p className="body4 !text-red-500 h-[10px]">{t(validationMessage.slug)}</p>}
+            </div>
+            <AppButton type={'submit'} onClick={handleUpdate} className={'w-[130px]'} variant={ButtonVariant.Secondary}>
+                {t(formPage.linksSlugSaveChanges)}
+            </AppButton>
         </div>
-        <div className={"flex flex-col gap-2 !max-w-[660px]"}>
-            <h1 className={"h4-new"}>Enter Slug</h1>
-            <p className={"text-sm font-normal text-black-700"}>Avoid using spaces or special characters. Only “-” and
-                “_” is accepted.</p>
-            <p className={"text-sm font-normal text-black-700"}> {link}/<span
-                className={"text-pink-500"}>{slug}</span></p>
-            <AppTextField isError={isError}
-                          value={slug} onChange={(event) => handleOnchange(event)}/>
-            {!slug.match(slugRegex) && isError &&
-                <p className="body4 !text-red-500 h-[10px]">{t(validationMessage.slug)}</p>}
-        </div>
-        <AppButton type={"submit"} onClick={handleUpdate} className={"w-[130px]"} variant={ButtonVariant.Secondary}>Save
-            Changes</AppButton>
-    </div>
-}
+    );
+};

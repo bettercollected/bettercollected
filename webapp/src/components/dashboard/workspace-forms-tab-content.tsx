@@ -15,7 +15,7 @@ import { formConstant } from '@app/constants/locales/form';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
+import { useGetWorkspaceFormsQuery, useLazySearchWorkspaceFormsQuery } from '@app/store/workspaces/api';
 
 interface IWorkspaceFormsTabContentProps {
     workspace: WorkspaceDto;
@@ -70,7 +70,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
     const pinnedFormsResponse = useGetWorkspaceFormsQuery(pinnedFormsQuery);
     const pinnedForms = pinnedFormsResponse?.data;
 
-    const [searchWorkspaceForms] = useSearchWorkspaceFormsMutation();
+    const [searchWorkspaceForms] = useLazySearchWorkspaceFormsQuery();
     const [allForms, setAllForms] = useState<any>([]);
     const { t } = useTranslation();
 

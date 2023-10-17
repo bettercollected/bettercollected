@@ -6,6 +6,7 @@ import ImportProviderForms from '@app/components/form-integrations/import-provid
 import DeleteFormModal from '@app/components/form/delete-form-modal';
 import LogoutView from '@app/components/logout/logout-view';
 import { MODAL_VIEW, useModal } from '@app/components/modal-views/context';
+import CloseFormConfirmationModal from '@app/components/modal-views/modals/close-form-confirmation-modal';
 import CustomizeUrlModal from '@app/components/modal-views/modals/customize-url-modal';
 import DeleteCustomDomainModal from '@app/components/modal-views/modals/delete-custom-domain-modal';
 import DeleteInvitationModal from '@app/components/modal-views/modals/delete-invitation-modal';
@@ -14,6 +15,7 @@ import DeleteResponseModal from '@app/components/modal-views/modals/delete-respo
 import FormBuilderAddFieldModal from '@app/components/modal-views/modals/form-builder-add-field-modal';
 import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
 import MobileInsertMenu from '@app/components/modal-views/modals/mobile-insert-menu';
+import ReopenFormConfirmationModal from '@app/components/modal-views/modals/reopen-form-confirmation-modal';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
 import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
 import RequestForDeletionView from '@app/components/submission-request-for-deletion';
@@ -100,6 +102,10 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <UserDeletionModal {...modalProps} />;
         case 'VISIBILITY_CONFIRMATION_MODAL_VIEW':
             return <VisibilityConfirmationModalView {...modalProps} />;
+        case 'CLOSE_FORM_CONFIRMATION_MODAL':
+            return <CloseFormConfirmationModal {...modalProps} />;
+        case 'REOPEN_FORM_CONFIRMATION_MODAL':
+            return <ReopenFormConfirmationModal {...modalProps} />;
         default:
             return <></>;
     }

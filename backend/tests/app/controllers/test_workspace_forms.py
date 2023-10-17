@@ -1,10 +1,14 @@
+import datetime
 import json
-from typing import Any, Coroutine, Generator
+from typing import Any, Coroutine
 
 import pytest
 from aiohttp.test_utils import TestClient
+from common.constants import MESSAGE_FORBIDDEN
+from common.models.standard_form import StandardForm
 
 from backend.app.container import container
+from backend.app.models.response_dtos import StandardFormCamelModel
 from backend.app.schemas.responder_group import ResponderGroupFormDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
@@ -13,10 +17,6 @@ from backend.app.schemas.standard_form_response import (
 )
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from backend.app.schemas.workspace_user import WorkspaceUserDocument
-from common.constants import MESSAGE_FORBIDDEN
-from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm, StandardFormResponse
 from tests.app.controllers.data import (
     formData,
     formResponse,
@@ -59,6 +59,79 @@ async def create_form_request_body():
 
 
 class TestWorkspaceForm:
+
+    def test_publishing_form(
+        self,
+        client: TestClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form_common_url: str,
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        publish_form_url = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/publish"
+
+        published_form = client.post(
+            publish_form_url, cookies=test_user_cookies
+        )
+        actual_response = StandardFormCamelModel(**published_form.json())
+        assert workspace_form.form_id == actual_response.form_id
+        assert actual_response.version is not None
+
+    def test_duplicate_form(
+        self,
+        client: TestClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form_common_url: str,
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        duplicate_form_api = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/duplicate"
+
+        duplicate_form_response = client.post(
+            duplicate_form_api, cookies=test_user_cookies
+        )
+
+        actual_response = StandardForm(**duplicate_form_response.json())
+        assert duplicate_form_response.status_code == 200
+        assert actual_response.form_id != workspace_form.form_id
+        assert workspace_form.fields == actual_response.fields
+        assert workspace_form.description == actual_response.description
+        assert workspace_form.button_text == actual_response.button_text
+        assert workspace_form.logo == actual_response.logo
+        assert workspace_form.cover_image == actual_response.cover_image
+
+    def test_unauthorized_user_form_duplication_fails(
+        self,
+        client: TestClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form_common_url: str,
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies_1: dict[str, str],
+    ):
+        duplicate_form_api = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/duplicate"
+
+        duplicate_form_response = client.post(
+            duplicate_form_api, cookies=test_user_cookies_1
+        )
+
+        assert duplicate_form_response.status_code == 403
+
+    def test_unauthorized_user_form_duplication_fails(
+        self,
+        client: TestClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form_common_url: str,
+        workspace_form_1: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        duplicate_form_api = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form_1.form_id}/duplicate"
+
+        duplicate_form_response = client.post(
+            duplicate_form_api, cookies=test_user_cookies
+        )
+
+        assert duplicate_form_response.status_code == 404
+
     def test_get_workspace_forms(
         self,
         client: TestClient,
@@ -368,6 +441,25 @@ class TestWorkspaceForm:
         assert patch_settings.status_code == 200
         assert actual_response == expected_response
 
+    async def test_patch_form_close_date_in_workspace_form(
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        workspace_form_common_url: str,
+        workspace_form: FormDocument,
+        test_user_cookies: dict[str, str],
+    ):
+        patch_url = f"{workspace_form_common_url}/{workspace_form.form_id}/settings"
+        close_date = datetime.datetime.utcnow().isoformat()
+
+        patch_settings = client.patch(
+            patch_url, cookies=test_user_cookies, json={"formCloseDate": close_date}
+        )
+
+        actual_response = patch_settings.json()
+        assert patch_settings.status_code == 200
+        assert close_date == actual_response.get("settings").get("formCloseDate")
+
     def test_multiple_same_patch_setting_in_workspace_fails(
         self,
         client: TestClient,
@@ -422,7 +514,11 @@ class TestWorkspaceForm:
         workspace_group: Coroutine,
         test_user_cookies: dict[str, str],
     ):
-        group_form = client.patch(get_workspace_group_url, cookies=test_user_cookies,json={"group_ids": [str(workspace_group.id)]})
+        group_form = client.patch(
+            get_workspace_group_url,
+            cookies=test_user_cookies,
+            json={"group_ids": [str(workspace_group.id)]},
+        )
 
         expected_added_form = (await ResponderGroupFormDocument.find().to_list())[
             0
@@ -441,7 +537,9 @@ class TestWorkspaceForm:
         test_user_cookies_1: dict[str, str],
     ):
         unauthorized_client = client.patch(
-            get_workspace_group_url, cookies=test_user_cookies_1,json={"group_ids": [str(workspace_group.id)]}
+            get_workspace_group_url,
+            cookies=test_user_cookies_1,
+            json={"group_ids": [str(workspace_group.id)]},
         )
 
         expected_response_message = MESSAGE_FORBIDDEN
@@ -601,7 +699,6 @@ class TestWorkspaceForm:
             import_form = client.post(
                 import_form_url, cookies=test_user_cookies, json=form_body
             )
-
             expected_response = "Upgrade plan to import more forms"
             actual_response = import_form.json()
             assert import_form.status_code == 403

@@ -1,34 +1,70 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import { escapeRegExp } from 'lodash';
+
 import CreateFormButton from '@Components/Common/CreateFormButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import BeaconComponent from '@Components/Joyride/JoyrideBeacon';
+import StyledPagination from '@Components/Common/Pagination';
+import SearchInput from '@Components/Common/Search/SearchInput';
 
 import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
-import ActiveLink from '@app/components/ui/links/active-link';
 import Loader from '@app/components/ui/loader';
-import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
+import WorkspaceDashboardFormsCard from '@app/components/workspace-dashboard/workspace-dashboard-form-cards';
+import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
+import { useGetWorkspaceFormsQuery, useLazySearchWorkspaceFormsQuery } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface IWorkspaceDashboardFormsProps {
-    workspaceForms: any;
     workspace: WorkspaceDto;
     hasCustomDomain: boolean;
     title?: string;
     showButtons?: boolean;
-    showPinned?: boolean;
+    showPagination?: boolean;
 }
 
-export default function WorkspaceDashboardForms({ workspaceForms, showPinned = true, workspace, hasCustomDomain, title, showButtons = true }: IWorkspaceDashboardFormsProps) {
-    const forms = workspaceForms?.data?.items;
+export default function WorkspaceDashboardForms({ title, showButtons, hasCustomDomain, showPagination }: IWorkspaceDashboardFormsProps) {
     const { t } = useTranslation();
+    const workspace = useAppSelector(selectWorkspace);
 
-    const ref = React.useRef<HTMLDivElement>(null);
+    const [showSearchedResults, setShowSearchedResults] = useState(false);
+
+    const [workspaceQuery, setWorkspaceQuery] = useState({
+        workspace_id: workspace.id,
+        page: 1,
+        size: globalConstants.pageSize
+    });
+
+    const [searchedForms, setSearchedForms] = useState<Array<StandardFormDto>>([]);
+
+    const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, {
+        pollingInterval: 30000,
+        skip: !workspaceQuery.workspace_id
+    });
+
+    useEffect(() => {
+        setWorkspaceQuery({ ...workspaceQuery, workspace_id: workspace.id });
+    }, [workspace.id]);
+
+    const [searchWorkspaceForms] = useLazySearchWorkspaceFormsQuery();
+    const handleSearch = async (event: any) => {
+        if (!event.target.value) {
+            setShowSearchedResults(false);
+            setSearchedForms([]);
+        } else {
+            const response: any = await searchWorkspaceForms({
+                workspace_id: workspace.id,
+                query: escapeRegExp(event.target.value)
+            });
+            setSearchedForms(response?.data);
+            setShowSearchedResults(true);
+        }
+    };
 
     if (workspaceForms.isLoading) {
         return (
@@ -38,10 +74,22 @@ export default function WorkspaceDashboardForms({ workspaceForms, showPinned = t
         );
     }
 
+    const handlePageChange = (event: any, page: number) => {
+        setWorkspaceQuery({
+            ...workspaceQuery,
+            page: page
+        });
+    };
     return (
         <div className="w-full mb-10 flex flex-col gap-5 h-fit">
-            <div className="min-h-9 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                <p className="sh1"> {title || t(localesCommon.forms)}</p>
+            <div className="flex flex-col gap-6 mb-5 md:flex-row md:items-center md:justify-between">
+                <div className="sh1 flex flex-row gap-6 items-center">
+                    <div className={'flex flex-row gap-1'}>
+                        <h1>{title || t(localesCommon.forms)}</h1>
+                        {showPagination && <h2>{`(${showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0})`}</h2>}
+                    </div>
+                    <SearchInput handleSearch={handleSearch} />
+                </div>
                 {showButtons && (
                     <div className="flex gap-3">
                         <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
@@ -49,25 +97,10 @@ export default function WorkspaceDashboardForms({ workspaceForms, showPinned = t
                     </div>
                 )}
             </div>
-            {forms?.length === 0 ? (
-                <div className="w-full h-full flex flex-col items-center justify-center rounded-lg py-[84px]">
-                    <p className="h3-new text-black-800 font-semibold">You haven&apos;t created or imported any forms.</p>
-                    <p className="p1-new text-black-700 mb-6 mt-2">Create your first privacy friendly form.</p>
-                    <div ref={ref} className="relative">
-                        <CreateFormButton variant={ButtonVariant.Tertiary} />
-                        <div className="absolute -bottom-1 -right-1">
-                            <BeaconComponent />
-                        </div>
-                    </div>
-                </div>
-            ) : (
-                <div className="flex flex-col gap-6">
-                    {forms?.length !== 0 &&
-                        forms?.map((form: StandardFormDto, index: number) => (
-                            <ActiveLink key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
-                                <WorkspaceFormCard index={index} showPinned={showPinned} form={form} workspace={workspace} hasCustomDomain={hasCustomDomain} />
-                            </ActiveLink>
-                        ))}
+            <WorkspaceDashboardFormsCard showPinned={true} showEmpty={showSearchedResults} workspaceForms={showSearchedResults ? searchedForms : workspaceForms?.data?.items} workspace={workspace} hasCustomDomain={hasCustomDomain} />
+            {showPagination && !showSearchedResults && Array.isArray(workspaceForms?.data?.items) && workspaceForms?.data?.total > globalConstants.pageSize && (
+                <div className="my-8 flex justify-center">
+                    <StyledPagination shape="rounded" count={workspaceForms?.data?.pages || 0} page={workspaceQuery.page || 1} onChange={handlePageChange} />
                 </div>
             )}
         </div>

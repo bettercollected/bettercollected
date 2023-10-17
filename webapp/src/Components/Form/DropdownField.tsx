@@ -8,7 +8,6 @@ import MenuItem from '@mui/material/MenuItem';
 import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
-
 export default function DropdownField({ field, ans, enabled }: FormFieldProps) {
     const dispatch = useAppDispatch();
     const answer = useAppSelector(selectAnswer(field.id));
@@ -27,6 +26,11 @@ export default function DropdownField({ field, ans, enabled }: FormFieldProps) {
                 MenuProps={{
                     style: { zIndex: 35001 }
                 }}
+                sx={{
+                    '.MuiSelect-select.Mui-disabled': {
+                        WebkitTextFillColor: '#1D1D1D'
+                    }
+                }}
                 style={{
                     paddingTop: '3.5px',
                     paddingBottom: '3.5px',
@@ -41,7 +45,6 @@ export default function DropdownField({ field, ans, enabled }: FormFieldProps) {
             >
                 {field?.properties?.choices?.map((choice: any, index: number) => (
                     <MenuItem key={choice.id} value={choice?.value} className="relative">
-                        {index === 0 && field?.validations?.required && <FieldRequired className="-right-5" />}
                         {choice.value}
                     </MenuItem>
                 ))}

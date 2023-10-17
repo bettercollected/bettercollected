@@ -217,6 +217,10 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
         };
     }, [builderState]);
 
+    useEffect(() => {
+        setBackspaceCount(0);
+    }, [builderState.activeFieldId, builderState.activeChoiceId]);
+
     const isLastFieldEmptyTextField = () => {
         const fields = Object.values(builderState.fields);
         const lastField = fields[fields.length - 1];
@@ -333,7 +337,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
                                 x: { duration: 0.5 }
                             }}
                         >
-                            <div className="absolute px-5 py-2 rounded  bg-black-200 text-black-800 bottom-5 right-5 flex justify-center w-[120px] gap-2 lg:bottom-10 lg:right-10">
+                            <div className="fixed px-5 py-2 rounded  bg-black-200 text-black-800 bottom-5 right-5 flex justify-center w-[120px] gap-2 lg:bottom-10 lg:right-10">
                                 {showSaving.text === 'Saving' ? <CircularProgress size={24} /> : <Check className="text-green-500" height={24} width={24} />}
                                 {showSaving.text}
                             </div>

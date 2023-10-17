@@ -10,7 +10,8 @@ export type UPGRADE_MODAL_VIEW =
     | 'CONSENT_FULL_MODAL_VIEW'
     | 'FORM_SETTINGS_FULL_MODAL_VIEW'
     | 'FORM_CREATE_SLUG_VIEW'
-    | 'SELECT_GROUP_FULL_MODAL_VIEW';
+    | 'SELECT_GROUP_FULL_MODAL_VIEW'
+    | 'SELECT_FORM_CLOSE_DATE';
 
 const modalAtom = atom({ isOpen: false, modalProps: null, view: '' });
 

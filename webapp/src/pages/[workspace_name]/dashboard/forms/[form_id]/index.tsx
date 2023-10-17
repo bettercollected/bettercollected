@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
@@ -13,14 +14,7 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Group, Share } from '@mui/icons-material';
 
-import FormResponsesTable from '@app/components/datatable/form/form-responses';
-import FormGroups from '@app/components/form/groups';
-import FormLinks from '@app/components/form/links';
-import FormPreview from '@app/components/form/preview';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
-import FormResponses from '@app/components/form/responses';
-import FormSettings from '@app/components/form/settings';
-import FormVisibilities from '@app/components/form/visibility';
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
@@ -29,7 +23,7 @@ import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
-import { groupConstant } from '@app/constants/locales/group';
+import { formPage } from '@app/constants/locales/form-page';
 import Layout from '@app/layouts/_layout';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -39,17 +33,40 @@ import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFormUrl } from '@app/utils/urlUtils';
+import { validateFormOpen } from '@app/utils/validationUtils';
+
+const FormResponses = dynamic(() => import('@app/components/form/responses'));
+const FormResponsesTable = dynamic(() => import('@app/components/datatable/form/form-responses'));
+const FormVisibilities = dynamic(() => import('@app/components/form/visibility'));
+const FormLinks = dynamic(() => import('@app/components/form/links'));
+const FormSettings = dynamic(() => import('@app/components/form/settings'));
+const FormPreview = dynamic(() => import('@app/components/form/preview'));
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;
     const localStateForm = useAppSelector(selectForm);
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
+    const reduxStoreForm = useAppSelector(selectForm);
     const locale = props._nextI18Next.initialLocale === 'en' ? '' : `${props._nextI18Next.initialLocale}/`;
     const breakpoint = useBreakpoint();
     const router = useRouter();
     const { openModal } = useModal();
     const workspace = useAppSelector(selectWorkspace);
+    const paramTabs = [
+        {
+            icon: <Preview className="h-5 w-5" />,
+            title: t(formConstant.preview),
+            path: 'Preview'
+        },
+        {
+            icon: <SettingsIcon className="h-5 w-5" />,
+            title: t(localesCommon.settings),
+            path: 'Settings'
+        }
+    ];
+
+    const isFormOpen = validateFormOpen(reduxStoreForm?.settings?.formCloseDate);
 
     useEffect(() => {
         dispatch(setForm(props.form));
@@ -73,22 +90,10 @@ export default function FormPage(props: any) {
             disabled: true
         }
     ];
-    const paramTabs = [
-        {
-            icon: <Preview className="h-5 w-5" />,
-            title: t(formConstant.preview),
-            path: 'Preview'
-        },
-        {
-            icon: <SettingsIcon className="h-5 w-5" />,
-            title: t(localesCommon.settings),
-            path: 'Settings'
-        }
-    ];
 
     if (form?.isPublished) {
         paramTabs.splice(
-            1,
+            2,
             0,
             ...[
                 {
@@ -103,16 +108,18 @@ export default function FormPage(props: any) {
                 },
                 {
                     icon: <Group className="h-5 w-5" />,
-                    title: 'Form Visibility',
+                    title: t(formConstant.settings.visibility.title),
                     path: 'FormVisibility'
-                },
-                {
-                    icon: <Group className="h-5 w-5" />,
-                    title: 'Form Links ',
-                    path: 'FormLinks'
                 }
             ]
         );
+        if (isFormOpen) {
+            paramTabs.splice(5, 0, {
+                icon: <Group className="h-5 w-5" />,
+                title: t(formConstant.settings.formLink.title),
+                path: 'FormLinks'
+            });
+        }
     }
 
     const handleBackClick = async () => {
@@ -141,29 +148,23 @@ export default function FormPage(props: any) {
                                             router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
                                         }}
                                     >
-                                        <span className="sm:block hidden">Edit Form</span>
+                                        <span className="sm:block hidden">{t(formPage.editForm)}</span>
                                     </AppButton>
                                 )}
-                                {form?.isPublished ? (
-                                    localStateForm?.settings?.hidden ? (
-                                        <></>
-                                    ) : (
-                                        <AppButton
-                                            variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
-                                            icon={<Share />}
-                                            className="!px-0 sm:!px-5"
-                                            onClick={() =>
-                                                openModal('SHARE_VIEW', {
-                                                    url: getFormUrl(form, workspace),
-                                                    title: t(formConstant.shareThisForm)
-                                                })
-                                            }
-                                        >
-                                            <span className="sm:block hidden">Share Form</span>
-                                        </AppButton>
-                                    )
-                                ) : (
-                                    <></>
+                                {form?.isPublished && isFormOpen && !localStateForm?.settings?.hidden && (
+                                    <AppButton
+                                        variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
+                                        icon={<Share />}
+                                        className="!px-0 sm:!px-5"
+                                        onClick={() =>
+                                            openModal('SHARE_VIEW', {
+                                                url: getFormUrl(form, workspace),
+                                                title: t(formConstant.shareThisForm)
+                                            })
+                                        }
+                                    >
+                                        <span className="sm:block hidden">{t(formPage.shareForm)}</span>
+                                    </AppButton>
                                 )}
                             </div>
                         </div>
@@ -178,6 +179,11 @@ export default function FormPage(props: any) {
                         <FormPageLayer className="w-full">
                             <TabPanel className="focus:outline-none" key="Preview">
                                 <FormPreview />
+                            </TabPanel>
+                        </FormPageLayer>
+                        <FormPageLayer className="md:px-32 px-2">
+                            <TabPanel className="focus:outline-none" key="Settings">
+                                <FormSettings />
                             </TabPanel>
                         </FormPageLayer>
                         {form?.isPublished ? (
@@ -196,17 +202,15 @@ export default function FormPage(props: any) {
                                     <TabPanel className="focus:outline-none" key="FormVisibility">
                                         <FormVisibilities />
                                     </TabPanel>
-                                    <TabPanel className="focus:outline-none" key="FormLinks">
-                                        <FormLinks />
-                                    </TabPanel>
+                                    {isFormOpen && (
+                                        <TabPanel className="focus:outline-none" key="FormLinks">
+                                            <FormLinks />
+                                        </TabPanel>
+                                    )}
                                 </>
                             ) : (
                                 <></>
                             )}
-
-                            <TabPanel className="focus:outline-none" key="Settings">
-                                <FormSettings />
-                            </TabPanel>
                         </FormPageLayer>
                     </ParamTab>
                 </div>

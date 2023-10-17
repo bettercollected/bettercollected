@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
@@ -20,7 +19,6 @@ import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options
 import { GroupIcon } from '@app/components/icons/group-icon';
 import { useModal } from '@app/components/modal-views/context';
 import DeleteDropDown from '@app/components/ui/delete-dropdown';
-import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -30,6 +28,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
+import { validateFormOpen } from '@app/utils/validationUtils';
 
 interface IWorkspaceFormCardProps {
     form: StandardFormDto;
@@ -96,6 +95,8 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
         }
     };
 
+    const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
+
     return (
         <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px]  border-transparent hover:border-brand-200 transition cursor-pointer rounded-lg shadow-formCardDefault hover:shadow-formCard ${className}`}>
             <div className="rounded w-full group px-5 py-4 flex items-center justify-between">
@@ -108,6 +109,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                 </Typography>
                             </Tooltip>
                             {!isResponderPortal && !form?.isPublished && <div className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">Draft</div>}
+                            {!isResponderPortal && form?.isPublished && !isFormOpen && <div className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">Closed</div>}
                         </div>
                         {!group && (
                             <div className="flex-1 lg:hidden">
@@ -152,16 +154,10 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                 </div>
                 {!isResponderPortal && !group && (
                     <div className="hidden lg:invisible lg:group-hover:visible lg:flex gap-2 items-center">
-                        {form?.isPublished ? (
-                            form?.settings?.hidden ? (
-                                <></>
-                            ) : (
-                                <AppButton onClick={handleShareClick} variant={ButtonVariant.Ghost} size={ButtonSize.Small} icon={<ShareIcon width={20} height={20} />}>
-                                    Share
-                                </AppButton>
-                            )
-                        ) : (
-                            <></>
+                        {form?.isPublished && !form?.settings?.hidden && isFormOpen && (
+                            <AppButton onClick={handleShareClick} variant={ButtonVariant.Ghost} size={ButtonSize.Small} icon={<ShareIcon width={20} height={20} />}>
+                                Share
+                            </AppButton>
                         )}
                         {form?.settings?.provider === 'self' && (
                             <AppButton

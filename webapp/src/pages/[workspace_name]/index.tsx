@@ -7,7 +7,7 @@ import { useAppSelector } from '@app/store/hooks';
 export default function WorkspacePage({ workspace }: { workspace: WorkspaceDto }) {
     const isAdmin = useAppSelector(selectIsAdmin);
     return (
-        <Layout isCustomDomain={false} isClientDomain={isAdmin} showNavbar={true} hideMenu={false} className="!p-0 bg-white flex flex-col min-h-screen">
+        <Layout isCustomDomain={false} isClientDomain={isAdmin} showNavbar={true} hideMenu={false} className="!p-0 bg-black-100 flex flex-col min-h-screen">
             <WorkspaceHomeContainer isCustomDomain={false} />
         </Layout>
     );
