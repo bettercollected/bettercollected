@@ -62,6 +62,7 @@ class FormService:
             not has_access_to_workspace,
             pinned_only=pinned_only,
             user=user,
+            filter_closed=published or pinned_only
         )
         if published:
             forms_query = self._form_repo.get_published_forms_in_workspace(
@@ -262,6 +263,10 @@ class FormService:
         if settings.responseDataOwnerField is not None:
             workspace_form.settings.response_data_owner_field = (
                 settings.responseDataOwnerField
+            )
+        if settings.formCloseDate is not None:
+            workspace_form.settings.form_close_date = (
+                settings.formCloseDate
             )
         return await self._workspace_form_repo.update(workspace_form.id, workspace_form)
 

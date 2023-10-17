@@ -10,4 +10,6 @@ export interface IDrawerProps {
     mobileOpen?: boolean;
     className?: string;
     handleDrawerToggle: () => void;
+    topNavList: Array<any>;
+    bottomNavList: Array<any>;
 }

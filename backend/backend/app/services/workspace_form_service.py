@@ -475,7 +475,7 @@ class WorkspaceFormService:
             )
         )
         if not workspace_form:
-            return HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
         duplicated_form = FormTemplateDocument() if is_template else FormDocument()
         duplicated_form.fields = form.fields
