@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import AddMember from '@Components/Common/Icons/Add-member';
@@ -14,27 +14,24 @@ import PrivateIcon from '@Components/Common/Icons/Private';
 import PublicIcon from '@Components/Common/Icons/Public';
 import ShareIcon from '@Components/Common/Icons/ShareIcon';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import {ListItemIcon, MenuItem} from '@mui/material';
-import {toast} from 'react-toastify';
+import { ListItemIcon, MenuItem } from '@mui/material';
+import { toast } from 'react-toastify';
 
-import {useModal} from '@app/components/modal-views/context';
+import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
-import {buttonConstant} from '@app/constants/locales/button';
-import {localesCommon} from '@app/constants/locales/common';
-import {formConstant} from '@app/constants/locales/form';
-import {toastMessage} from '@app/constants/locales/toast-message';
-import {toolTipConstant} from '@app/constants/locales/tooltip';
-import {useCopyToClipboard} from '@app/lib/hooks/use-copy-to-clipboard';
-import {StandardFormDto} from '@app/models/dtos/form';
-import {WorkspaceDto} from '@app/models/dtos/workspaceDto';
-import {setFormSettings} from '@app/store/forms/slice';
-import {useAppDispatch} from '@app/store/hooks';
-import {
-    useDuplicateFormMutation,
-    useGetAllRespondersGroupQuery,
-    usePatchFormSettingsMutation
-} from '@app/store/workspaces/api';
+import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
+import { formConstant } from '@app/constants/locales/form';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { toolTipConstant } from '@app/constants/locales/tooltip';
+import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { setFormSettings } from '@app/store/forms/slice';
+import { useAppDispatch } from '@app/store/hooks';
+import { useDuplicateFormMutation, useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
+import { validateFormOpen } from '@app/utils/validationUtils';
 
 interface IFormOptionsDropdownMenuProps {
     workspace: WorkspaceDto;
@@ -45,35 +42,29 @@ interface IFormOptionsDropdownMenuProps {
     showShare?: boolean;
 }
 
-export default function FormOptionsDropdownMenu({
-                                                    workspace,
-                                                    form,
-                                                    hasCustomDomain,
-                                                    className = '',
-                                                    redirectToDashboard = false,
-                                                    showShare = false
-                                                }: IFormOptionsDropdownMenuProps) {
-    const {openModal} = useModal();
+export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDomain, className = '', redirectToDashboard = false, showShare = false }: IFormOptionsDropdownMenuProps) {
+    const { openModal } = useModal();
 
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
     const [currentActiveForm, setCurrentActiveForm] = React.useState<{
         form: StandardFormDto;
         shareUrl: string;
     } | null>(null);
-    const {data} = useGetAllRespondersGroupQuery(workspace.id);
+    const { data } = useGetAllRespondersGroupQuery(workspace.id);
 
     const [_, copyToClipboard] = useCopyToClipboard();
 
     const dispatch = useAppDispatch();
     const [patchFormSettings] = usePatchFormSettingsMutation();
-    const [duplicateForm] = useDuplicateFormMutation()
-    const {t} = useTranslation();
+    const [duplicateForm] = useDuplicateFormMutation();
+    const { t } = useTranslation();
 
     const isCustomDomain = !!workspace.customDomain;
 
     const clientHost = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms`;
     const customDomain = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
 
+    const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
     const handleShareUrl = () => {
         const slug = form.settings?.customUrl;
         let shareUrl = '';
@@ -90,7 +81,7 @@ export default function FormOptionsDropdownMenu({
         event.stopPropagation();
         setAnchorEl(event.currentTarget);
         const shareUrl = handleShareUrl();
-        setCurrentActiveForm({form: f, shareUrl});
+        setCurrentActiveForm({ form: f, shareUrl });
     };
 
     const patchSettings = async (body: any, f: StandardFormDto) => {
@@ -103,43 +94,41 @@ export default function FormOptionsDropdownMenu({
             const settings = response.data.settings;
             dispatch(setFormSettings(settings));
         } else {
-            toast(t(toastMessage.formSettingUpdateError).toString(), {type: 'error'});
+            toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
             return response.error;
         }
     };
 
     const onPinnedChange = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), {type: 'error', toastId: 'errorToast'});
-        patchSettings({pinned: !f?.settings?.pinned}, f)
-            .then((res) => {
-            })
+        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
+        patchSettings({ pinned: !f?.settings?.pinned }, f)
+            .then((res) => {})
             .catch((e) => {
-                toast(e.data, {type: 'error', toastId: 'errorToast'});
+                toast(e.data, { type: 'error', toastId: 'errorToast' });
             });
     };
 
     const onPrivateChanged = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), {type: 'error', toastId: 'errorToast'});
-        const patchBody = {private: !f?.settings?.private, pinned: false};
+        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
+        const patchBody = { private: !f?.settings?.private, pinned: false };
         patchSettings(patchBody, f)
-            .then((res) => {
-            })
+            .then((res) => {})
             .catch((e: any) => {
-                toast(e.data, {type: 'error', toastId: 'errorToast'});
+                toast(e.data, { type: 'error', toastId: 'errorToast' });
             });
     };
 
     const handleDuplicateFrom = () => {
-        duplicateForm({workspaceId: workspace.id, formId: form.formId}).then().catch((e: any) => {
-            toast("Could not duplicate form", {type: "error", toastId: 'errorToast'})
-        })
-    }
+        duplicateForm({ workspaceId: workspace.id, formId: form.formId })
+            .then()
+            .catch((e: any) => {
+                toast('Could not duplicate form', { type: 'error', toastId: 'errorToast' });
+            });
+    };
     const menuItemPinSettings = (
-        <MenuItem sx={{paddingX: '20px', paddingY: '10px', height: '36px'}} className="body4 hover:bg-brand-100"
-                  onClick={(e) => onPinnedChange(e, currentActiveForm?.form)}
-                  disabled={!!currentActiveForm?.form?.settings?.private}>
+        <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPinnedChange(e, currentActiveForm?.form)} disabled={!!currentActiveForm?.form?.settings?.private}>
             <ListItemIcon>
-                <Pin width={20} height={20} className="text-black-900"/>
+                <Pin width={20} height={20} className="text-black-900" />
             </ListItemIcon>
             <span>{currentActiveForm?.form?.settings?.pinned ? t(formConstant.unPinForm) : t(formConstant.menu.pinForm)}</span>
         </MenuItem>
@@ -147,9 +136,9 @@ export default function FormOptionsDropdownMenu({
 
     const menuItemOpen = (
         <ActiveLink key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
-            <MenuItem sx={{paddingX: '20px', paddingY: '10px', height: '36px'}} className="body4 hover:bg-brand-100">
+            <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
                 <ListItemIcon>
-                    <Eye width={20} height={20} className="text-black-900"/>
+                    <Eye width={20} height={20} className="text-black-900" />
                 </ListItemIcon>
                 {t(buttonConstant.open)}
             </MenuItem>
@@ -158,9 +147,9 @@ export default function FormOptionsDropdownMenu({
 
     const menuItemEdit = (
         <ActiveLink key={'edit'} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`}>
-            <MenuItem sx={{paddingX: '20px', paddingY: '10px', height: '36px'}} className="body4 hover:bg-brand-100">
+            <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
                 <ListItemIcon>
-                    <EditIcon width={20} height={20} className="text-black-900"/>
+                    <EditIcon width={20} height={20} className="text-black-900" />
                 </ListItemIcon>
                 {t(buttonConstant.edit)}
             </MenuItem>
@@ -169,17 +158,17 @@ export default function FormOptionsDropdownMenu({
 
     const menuItemCopy = (
         <MenuItem
-            sx={{paddingX: '20px', paddingY: '10px', height: '36px'}}
+            sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
             className="body4 hover:bg-brand-100"
             onClick={() => {
                 if (currentActiveForm?.shareUrl) {
                     copyToClipboard(currentActiveForm?.shareUrl);
-                    toast(t(toastMessage.formUrlCopied).toString(), {type: 'success'});
+                    toast(t(toastMessage.formUrlCopied).toString(), { type: 'success' });
                 }
             }}
         >
             <ListItemIcon>
-                <CopyIcon width={20} height={20} className="text-black-900"/>
+                <CopyIcon width={20} height={20} className="text-black-900" />
             </ListItemIcon>
             {t(buttonConstant.copyLink)}
         </MenuItem>
@@ -187,7 +176,7 @@ export default function FormOptionsDropdownMenu({
 
     const menuItemCustomizeLink = (
         <MenuItem
-            sx={{paddingX: '20px', paddingY: '10px', height: '36px'}}
+            sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
             className="body4 hover:bg-brand-100"
             onClick={() => {
                 openModal('CUSTOMIZE_URL', {
@@ -197,7 +186,7 @@ export default function FormOptionsDropdownMenu({
             }}
         >
             <ListItemIcon>
-                <EditIcon width={20} height={20} className="text-black-900 stroke-[1.5]"/>
+                <EditIcon width={20} height={20} className="text-black-900 stroke-[1.5]" />
             </ListItemIcon>
             {t(buttonConstant.customizeLink)}
         </MenuItem>
@@ -206,7 +195,7 @@ export default function FormOptionsDropdownMenu({
         <Tooltip title={data?.length === 0 ? t(localesCommon.noGroupFound) : ''}>
             <span>
                 <MenuItem
-                    sx={{paddingX: '20px', paddingY: '10px', height: '36px'}}
+                    sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
                     disabled={data?.length === 0}
                     className="body4 hover:bg-brand-100"
                     onClick={() => {
@@ -217,7 +206,7 @@ export default function FormOptionsDropdownMenu({
                     }}
                 >
                     <ListItemIcon>
-                        <AddMember width={20} height={20}/>
+                        <AddMember width={20} height={20} />
                     </ListItemIcon>
                     {t(buttonConstant.addToGroup)}
                 </MenuItem>
@@ -227,12 +216,11 @@ export default function FormOptionsDropdownMenu({
 
     return (
         <div className={className + ' !text-black-900'} onClick={(e) => e.preventDefault()}>
-            <MenuDropdown width={210} onClick={(e: any) => handleClick(e, form)} id="form-menu"
-                          menuTitle={t(toolTipConstant.formOptions)} menuContent={<EllipsisOption/>}
-                          showExpandMore={false}>
+            <MenuDropdown width={210} onClick={(e: any) => handleClick(e, form)} id="form-menu" menuTitle={t(toolTipConstant.formOptions)} menuContent={<EllipsisOption />} showExpandMore={false}>
                 {menuItemOpen}
                 {currentActiveForm?.form?.settings?.provider === 'self' && environments.ENABLE_FORM_BUILDER && menuItemEdit}
                 {form?.isPublished &&
+                    isFormOpen &&
                     (!!currentActiveForm?.form?.settings?.private ? (
                         <Tooltip title={t(toolTipConstant.visibility)}>
                             <span>{menuItemPinSettings}</span>
@@ -240,36 +228,28 @@ export default function FormOptionsDropdownMenu({
                     ) : (
                         menuItemPinSettings
                     ))}
-                {form?.isPublished && !form?.settings?.hidden && menuItemCopy}
-                {form?.isPublished && !form?.settings?.hidden && menuItemCustomizeLink}
+                {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCopy}
+                {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCustomizeLink}
                 {form?.isPublished && menuItemAddToGroup}
                 {form?.isPublished && (
-                    <MenuItem sx={{paddingX: '20px', paddingY: '10px', height: '36px'}}
-                              className="body4 hover:bg-brand-100"
-                              onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)}>
-                        <ListItemIcon>{!currentActiveForm?.form?.settings?.private ?
-                            <PrivateIcon width={20} height={20}/> : <PublicIcon width={20} height={20}/>}</ListItemIcon>
+                    <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)}>
+                        <ListItemIcon>{!currentActiveForm?.form?.settings?.private ? <PrivateIcon width={20} height={20} /> : <PublicIcon width={20} height={20} />}</ListItemIcon>
                         <span>{t(!currentActiveForm?.form?.settings?.hidden ? formConstant.menu.makeFormPrivate : formConstant.menu.makeFormPublic)}</span>
                     </MenuItem>
                 )}
 
-                {form?.settings?.provider === "self" &&
-                    <MenuItem sx={{paddingX: '20px', paddingY: '10px', height: '36px'}}
-                              className="body4 hover:bg-brand-100" onClick={handleDuplicateFrom}>
+                {form?.settings?.provider === 'self' && (
+                    <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={handleDuplicateFrom}>
                         <ListItemIcon>
-                            <CopyIcon width={20} height={20}/>
+                            <CopyIcon width={20} height={20} />
                         </ListItemIcon>
-                        <span>
-                        Duplicate Form
-                    </span>
+                        <span>Duplicate Form</span>
                     </MenuItem>
-                }
+                )}
 
-                <MenuItem
-                    onClick={() => openModal('DELETE_FORM_MODAL', {form: currentActiveForm?.form, redirectToDashboard})}
-                    sx={{paddingX: '20px', paddingY: '10px', height: '36px'}} className="body4">
+                <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4">
                     <ListItemIcon>
-                        <DeleteIcon width={20} height={20} className="text-black-900 stroke-[1.5]"/>
+                        <DeleteIcon width={20} height={20} className="text-black-900" strokeWidth={1} />
                     </ListItemIcon>
                     <span>{t(formConstant.menu.deleteForm)}</span>
                 </MenuItem>

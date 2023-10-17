@@ -47,7 +47,7 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
     };
     const addChoice = (index: number) => {
         //@ts-ignore
-        dispatch(setAddNewChoice(createNewChoice(index + 1)));
+        dispatch(setAddNewChoice({ fieldId: field.id, choice: createNewChoice(index + 1) }));
     };
     const deleteChoice = (id: string) => {
         const choices = { ...field.properties?.choices };

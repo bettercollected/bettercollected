@@ -30,8 +30,11 @@ export default function MultipleChoiceKeyEventListener({ children, field }: { ch
                     event.stopPropagation();
                     if (choices[activeChoiceId].value !== '') {
                         const newChoice = createNewChoice(activeChoiceIndex + 1);
-                        dispatch(setAddNewChoice(newChoice));
-
+                        const choice = {
+                            fieldId: formField.id,
+                            choice: newChoice
+                        };
+                        dispatch(setAddNewChoice(choice));
                         setTimeout(() => document.getElementById(`choice-${newChoice.id}`)?.focus(), 1);
                     } else if (choices[activeChoiceId].value === '' && Object.values(choices).length > 1) {
                         dispatch(setDeleteChoice(activeChoiceId));
