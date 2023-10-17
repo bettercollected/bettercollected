@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 
 import Image from 'next/image';
-import { useRouter } from 'next/router';
 
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import MarkdownText from '@Components/Common/Markdown';
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
@@ -15,7 +16,6 @@ import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
 import ThankYouPage from '@Components/Form/ThankYouPage';
-import cn from 'classnames';
 import { toast } from 'react-toastify';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
@@ -41,12 +41,10 @@ export interface FormFieldProps {
 const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?: any) => {
     switch (field?.type) {
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
-        // return <div className={contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_HEADER3:
         case FormBuilderTagNames.LAYOUT_HEADER1:
         case FormBuilderTagNames.LAYOUT_HEADER4:
         case FormBuilderTagNames.LAYOUT_HEADER2:
-        // return <div className={'!mt-8 ' + contentEditableClassNames(false, field?.type)}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_LABEL:
             return <div className={contentEditableClassNames(false, field?.type, enabled) + ' mt-6 '}>{field?.value}</div>;
         case FormBuilderTagNames.LAYOUT_MARKDOWN:
@@ -97,11 +95,9 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const responseDataOwnerField = useAppSelector(selectFormResponderOwnerField);
     const invalidFields = useAppSelector(selectInvalidFields);
     const workspace = useAppSelector(selectWorkspace);
-    const router = useRouter();
     const { files, resetFormFiles } = useFormAtom();
 
     const [isFormSubmitted, setIsFormSubmitted] = useState(false);
-    const [isButtonClicked, setIsButtonClicked] = useState(false);
 
     useEffect(() => {
         dispatch(resetFillForm());
@@ -114,6 +110,8 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     useEffect(() => {
         dispatch(setDataResponseOwnerField(form?.settings?.responseDataOwnerField || ''));
     }, [form]);
+
+    const [isResponseValid, setResponseValid] = useState(true);
 
     const onFormSubmitCallback = async (consentAnswers: Record<string, ConsentAnswerDto>) => {
         if (isPreview) {
@@ -168,6 +166,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         form?.fields.forEach((field: StandardFormFieldDto, index: number) => {
             const validationErrors = validateFormFieldAnswer(field, answers[field.id]);
             if (validationErrors.length > 0) {
+                setResponseValid(false);
                 isResponseValid = false;
             }
             invalidFields[field.id] = validationErrors;
@@ -175,8 +174,25 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
         if (!isResponseValid) {
             dispatch(setInvalidFields(invalidFields));
+            let firstInvalidFieldId = '';
+            debugger;
+            for (let field of form.fields) {
+                if (Object.keys(invalidFields).includes(field.id) && invalidFields[field.id].length > 0) {
+                    firstInvalidFieldId = field.id;
+                    break;
+                }
+            }
+            console.log(firstInvalidFieldId);
+            document.getElementById(firstInvalidFieldId)?.scrollIntoView({
+                behavior: 'smooth',
+                inline: 'center',
+                block: 'center'
+            });
+            const errorInputDiv = document.getElementById(`input-${firstInvalidFieldId}`);
+            errorInputDiv?.focus({ preventScroll: true });
             return;
         }
+        setResponseValid(true);
         if (isPreview) {
             openModal('CONSENT_FULL_MODAL_VIEW', { form: form, isPreview: true, onFormSubmit: onFormSubmitCallback });
             return;
@@ -221,15 +237,16 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
                 <div className="flex flex-col w-full gap-2">
                     {form?.fields.map((field: StandardFormFieldDto) => (
-                        <div key={field?.id} className="relative w-full">
+                        <div key={field?.id} className="relative w-full" id={field?.id}>
                             {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
                             <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
                         </div>
                     ))}
                     <div>
-                        <button className={cn('mt-10 py-3 text-white rounded min-w-[130px] px-5 !text-[14px] bg-black-900  !font-semibold ', enabled ? 'cursor-pointer' : 'cursor-not-allowed')} type="submit" disabled={!enabled}>
+                        {!isResponseValid && <div className="text-red-500 my-2 text-sm">*Invalid answers in one or more fields. Check and correct the highlighted entries.</div>}
+                        <AppButton variant={ButtonVariant.Secondary} type="submit" disabled={!enabled}>
                             {form?.buttonText || 'Submit'}
-                        </button>
+                        </AppButton>
                     </div>
                 </div>
             </form>

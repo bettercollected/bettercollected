@@ -45,7 +45,6 @@ export default function DropdownField({ field, ans, enabled }: FormFieldProps) {
             >
                 {field?.properties?.choices?.map((choice: any, index: number) => (
                     <MenuItem key={choice.id} value={choice?.value} className="relative">
-                        {index === 0 && field?.validations?.required && <FieldRequired className="-right-5" />}
                         {choice.value}
                     </MenuItem>
                 ))}
