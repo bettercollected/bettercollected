@@ -55,7 +55,17 @@ export default function EndAdornmentInputField({ field, id, placeholder }: IEndA
     return (
         <div className="relative w-full h-full">
             {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
-            <FormBuilderInput autoFocus={false} onChange={onChange} placeholder={placeholder} id={id} value={field.properties?.placeholder || ''} inputRef={inputRef} />
+            <FormBuilderInput
+                autoFocus={false}
+                onChange={onChange}
+                placeholder={placeholder}
+                id={id}
+                value={field.properties?.placeholder || ''}
+                inputRef={inputRef}
+                InputProps={{
+                    endAdornment: getIcon(field.type)
+                }}
+            />
         </div>
     );
 }
