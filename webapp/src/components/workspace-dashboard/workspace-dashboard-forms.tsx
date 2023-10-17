@@ -97,7 +97,7 @@ export default function WorkspaceDashboardForms({ title, showButtons, hasCustomD
                     </div>
                 )}
             </div>
-            <WorkspaceDashboardFormsCard showPinned={true} showEmpty={true} workspaceForms={showSearchedResults ? searchedForms : workspaceForms?.data?.items} workspace={workspace} hasCustomDomain={hasCustomDomain} />
+            <WorkspaceDashboardFormsCard showPinned={true} showEmpty={showSearchedResults} workspaceForms={showSearchedResults ? searchedForms : workspaceForms?.data?.items} workspace={workspace} hasCustomDomain={hasCustomDomain} />
             {showPagination && !showSearchedResults && Array.isArray(workspaceForms?.data?.items) && workspaceForms?.data?.total > globalConstants.pageSize && (
                 <div className="my-8 flex justify-center">
                     <StyledPagination shape="rounded" count={workspaceForms?.data?.pages || 0} page={workspaceQuery.page || 1} onChange={handlePageChange} />
