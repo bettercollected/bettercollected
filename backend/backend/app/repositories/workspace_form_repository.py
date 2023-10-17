@@ -112,6 +112,7 @@ class WorkspaceFormRepository:
                             "$or": [
                                 {"settings.form_close_date": {"$exists": False}},
                                 {"settings.form_close_date": ""},
+                                {"settings.form_close_date": None},
                                 {"settings.form_close_date": {"$gte": datetime.utcnow().isoformat()}}
                             ]
                         }
