@@ -212,9 +212,6 @@ class Conditional(BaseModel):
     value: Optional[Any]
 
 
-Conditional.update_forward_refs()
-
-
 class ConditionalPayload(BaseModel):
     field: Optional[Any]
     operator: Optional[str]
@@ -308,6 +305,7 @@ class StandardFormField(BaseModel):
 
 StandardFieldProperty.update_forward_refs()
 Conditional.update_forward_refs()
+StandardFormField.update_forward_refs()
 
 
 class State(BaseModel):
