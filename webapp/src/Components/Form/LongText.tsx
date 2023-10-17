@@ -38,6 +38,7 @@ export default function LongText({ ans, enabled, field }: ILongTextProps) {
                 placeholder={field?.properties?.placeholder}
                 multiline
                 InputProps={{
+                    id: `input-${field.id}`,
                     style: {
                         padding: '12px 16px'
                     }

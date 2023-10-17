@@ -5,7 +5,6 @@ import { useDispatch } from 'react-redux';
 import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { addAnswer, deleteAnswer } from '@app/store/fill-form/slice';
 
-
 interface IPhoneNumberProps {
     field: StandardFormFieldDto;
     ans?: any;
@@ -26,5 +25,5 @@ export default function PhoneNumber({ ans, enabled, field }: IPhoneNumberProps) 
         }
     };
 
-    return <PhoneInput disabled={!enabled} placeholder={field?.properties?.placeholder} value={ans?.phone_number} onChange={onChange} />;
+    return <PhoneInput inputProps={{ id: `input-${field.id}` }} disabled={!enabled} placeholder={field?.properties?.placeholder} value={ans?.phone_number} onChange={onChange} />;
 }
