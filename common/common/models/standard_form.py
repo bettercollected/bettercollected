@@ -192,11 +192,23 @@ class FieldType(str, enum.Enum):
     MATRIX = "matrix"
 
 
+class ConditionalType(str, enum.Enum):
+    SINGLE = "single"
+    NESTED = "nested"
+
+
+class LogicalOperator(str, enum.Enum):
+    AND = "and"
+    OR = "or"
+
+
 class Conditional(BaseModel):
+    type: Optional[ConditionalType]
     comparison: Optional[Comparison]
     field: Optional["StandardFormField"]
-    fieldType: Optional[FieldType]
-    matrixId: Optional[str]
+    conditionals: Optional[List["Conditional"]]
+    logical_operator: Optional[LogicalOperator]
+    field_type: Optional[FieldType]
     value: Optional[Any]
 
 
@@ -242,11 +254,6 @@ class StandardFormSettings(BaseModel):
     is_closed: Optional[bool]
 
 
-class LogicalOperator(str, enum.Enum):
-    AND = "and"
-    OR = "or"
-
-
 class StandardFieldProperty(BaseModel):
     hidden: Optional[bool]
     description: Optional[str]
@@ -264,8 +271,8 @@ class StandardFieldProperty(BaseModel):
     date_format: Optional[str]
     actions: Optional[List[ConditionalActions]]
     conditionals: Optional[List[Conditional]]
-    logicalOperator: Optional[LogicalOperator]
-    updateId: Optional[str]
+    logical_operator: Optional[LogicalOperator]
+    update_id: Optional[str]
 
 
 class StandardFieldValidations(BaseModel):
@@ -298,6 +305,7 @@ class StandardFormField(BaseModel):
 
 StandardFieldProperty.update_forward_refs()
 Conditional.update_forward_refs()
+StandardFormField.update_forward_refs()
 
 
 class State(BaseModel):

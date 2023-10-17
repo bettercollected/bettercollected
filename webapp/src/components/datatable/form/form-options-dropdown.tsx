@@ -186,7 +186,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             }}
         >
             <ListItemIcon>
-                <EditIcon width={20} height={20} className="text-black-900 stroke-[1.5]" />
+                <EditIcon width={20} height={20} className="text-black-800 stroke-[1]" />
             </ListItemIcon>
             {t(buttonConstant.customizeLink)}
         </MenuItem>
@@ -249,7 +249,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
 
                 <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4">
                     <ListItemIcon>
-                        <DeleteIcon width={20} height={20} className="text-black-900" strokeWidth={1} />
+                        <DeleteIcon width={20} height={20} className="text-black-800" strokeWidth={1} />
                     </ListItemIcon>
                     <span>{t(formConstant.menu.deleteForm)}</span>
                 </MenuItem>
