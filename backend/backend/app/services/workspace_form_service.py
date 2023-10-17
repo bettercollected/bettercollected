@@ -35,20 +35,20 @@ from backend.app.utils import AiohttpClient
 
 class WorkspaceFormService:
     def __init__(
-            self,
-            form_provider_service: FormPluginProviderService,
-            plugin_proxy_service: PluginProxyService,
-            workspace_user_service: WorkspaceUserService,
-            form_service: FormService,
-            workspace_form_repository: WorkspaceFormRepository,
-            form_schedular: FormSchedular,
-            form_import_service: FormImportService,
-            schedular: AsyncIOScheduler,
-            form_response_service: FormResponseService,
-            responder_groups_service: ResponderGroupsService,
-            user_tags_service: UserTagsService,
-            temporal_service: TemporalService,
-            aws_service: AWSS3Service,
+        self,
+        form_provider_service: FormPluginProviderService,
+        plugin_proxy_service: PluginProxyService,
+        workspace_user_service: WorkspaceUserService,
+        form_service: FormService,
+        workspace_form_repository: WorkspaceFormRepository,
+        form_schedular: FormSchedular,
+        form_import_service: FormImportService,
+        schedular: AsyncIOScheduler,
+        form_response_service: FormResponseService,
+        responder_groups_service: ResponderGroupsService,
+        user_tags_service: UserTagsService,
+        temporal_service: TemporalService,
+        aws_service: AWSS3Service,
     ):
         self.form_provider_service = form_provider_service
         self.plugin_proxy_service = plugin_proxy_service
@@ -66,12 +66,12 @@ class WorkspaceFormService:
 
     # TODO : Use plugin interface for importing for now endpoint is used here
     async def import_form_to_workspace(
-            self,
-            workspace_id: PydanticObjectId,
-            provider: str,
-            form_import: FormImportRequestBody,
-            user: User,
-            request: Request,
+        self,
+        workspace_id: PydanticObjectId,
+        provider: str,
+        form_import: FormImportRequestBody,
+        user: User,
+        request: Request,
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id, user
@@ -137,7 +137,7 @@ class WorkspaceFormService:
         return response_data
 
     async def check_if_user_can_import_more_forms(
-            self, user: User, workspace_id: PydanticObjectId
+        self, user: User, workspace_id: PydanticObjectId
     ):
         if user.plan == Plans.PRO:
             return True
@@ -151,7 +151,7 @@ class WorkspaceFormService:
         return True
 
     async def delete_form_from_workspace(
-            self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self, workspace_id: PydanticObjectId, form_id: str, user: User
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -184,25 +184,25 @@ class WorkspaceFormService:
         )
 
     async def get_form_ids_in_workspaces_and_imported_by_user(
-            self, workspace_ids: List[PydanticObjectId], user: User
+        self, workspace_ids: List[PydanticObjectId], user: User
     ):
         return await self.workspace_form_repository.get_form_ids_in_workspaces_and_imported_by_user(
             workspace_ids=workspace_ids, user=user
         )
 
     async def get_form_ids_imported_by_user(
-            self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
+        self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
     ):
         return await self.workspace_form_repository.get_form_ids_imported_by_user(
             workspace_id, str(user_id)
         )
 
     async def add_groups_to_form(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: str,
-            group_ids: List[PydanticObjectId],
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        group_ids: List[PydanticObjectId],
+        user: User,
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -212,11 +212,11 @@ class WorkspaceFormService:
         )
 
     async def delete_group_from_form(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: str,
-            group_id: PydanticObjectId,
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        group_id: PydanticObjectId,
+        user: User,
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -246,8 +246,8 @@ class WorkspaceFormService:
         return await self.workspace_form_repository.delete_forms(form_ids=form_ids)
 
     def generate_presigned_file_url(
-            self,
-            key: str,
+        self,
+        key: str,
     ):
         # await self.workspace_user_service.check_is_admin_in_workspace(
         #     workspace_id=workspace_id, user=user
@@ -274,12 +274,12 @@ class WorkspaceFormService:
         return self._aws_service.generate_presigned_url(key)
 
     async def create_form(
-            self,
-            workspace_id: PydanticObjectId,
-            form: StandardForm,
-            user: User,
-            logo: UploadFile = None,
-            cover_image: UploadFile = None,
+        self,
+        workspace_id: PydanticObjectId,
+        form: StandardForm,
+        user: User,
+        logo: UploadFile = None,
+        cover_image: UploadFile = None,
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -322,13 +322,13 @@ class WorkspaceFormService:
         return saved_form
 
     async def update_form(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: PydanticObjectId,
-            form: StandardForm,
-            user: User,
-            logo: UploadFile = None,
-            cover_image: UploadFile = None,
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        form: StandardForm,
+        user: User,
+        logo: UploadFile = None,
+        cover_image: UploadFile = None,
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -353,9 +353,13 @@ class WorkspaceFormService:
                     form.settings.privacy_policy_url
                 )
             if form.settings.response_expiration is not None:
-                workspace_form.settings.response_expiration = form.settings.response_expiration
+                workspace_form.settings.response_expiration = (
+                    form.settings.response_expiration
+                )
             if form.settings.response_expiration_type is not None:
-                workspace_form.settings.response_expiration_type = form.settings.response_expiration_type
+                workspace_form.settings.response_expiration_type = (
+                    form.settings.response_expiration_type
+                )
             await workspace_form.save()
 
         existing_form = await self.form_service.get_form_document_by_id(str(form_id))
@@ -393,12 +397,12 @@ class WorkspaceFormService:
         return response
 
     async def submit_response(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: PydanticObjectId,
-            response: StandardFormResponse,
-            user: User,
-            form_files: list[FormFileResponse] = None,
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        response: StandardFormResponse,
+        user: User,
+        form_files: list[FormFileResponse] = None,
     ):
         if form_files:
             response = await self.upload_files_to_s3_and_update_url(
@@ -428,11 +432,11 @@ class WorkspaceFormService:
         )
 
     async def delete_form_response(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: PydanticObjectId,
-            response_id: PydanticObjectId,
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        response_id: PydanticObjectId,
+        user: User,
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -442,7 +446,7 @@ class WorkspaceFormService:
         )
 
     async def publish_form(
-            self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User
+        self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -450,16 +454,26 @@ class WorkspaceFormService:
         return await self.form_service.publish_form(form_id=form_id)
 
     async def get_form_workspace_by_id(self, workspace_id: PydanticObjectId):
-        return await self.form_import_service.get_form_workspace_by_id(workspace_id=workspace_id)
+        return await self.form_import_service.get_form_workspace_by_id(
+            workspace_id=workspace_id
+        )
 
     # for duplicate and template of form
-    async def duplicate_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
-                             user: User, is_template: bool = False):
+    async def duplicate_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        user: User,
+        is_template: bool = False,
+    ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        workspace_form = await self.workspace_form_repository.get_workspace_form_in_workspace(workspace_id=workspace_id,
-                                                                                              query=str(form_id))
+        workspace_form = (
+            await self.workspace_form_repository.get_workspace_form_in_workspace(
+                workspace_id=workspace_id, query=str(form_id)
+            )
+        )
         if not workspace_form:
             return HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
@@ -467,7 +481,11 @@ class WorkspaceFormService:
         duplicated_form.fields = form.fields
         duplicated_form.logo = form.logo
         duplicated_form.cover_image = form.cover_image
-        duplicated_form.title = form.title if is_template else (form.title if form.title else "Untitled") + " (Copy)"
+        duplicated_form.title = (
+            form.title
+            if is_template
+            else (form.title if form.title else "Untitled") + " (Copy)"
+        )
         duplicated_form.description = form.description
         duplicated_form.button_text = form.button_text
         if is_template:
@@ -477,12 +495,17 @@ class WorkspaceFormService:
             duplicated_form.form_id = str(PydanticObjectId())
         duplicated_form = await duplicated_form.save()
         if not is_template:
-            workspace_form = WorkspaceFormDocument(form_id=str(duplicated_form.form_id), workspace_id=workspace_id,
-                                                   user_id=user.id, settings=WorkspaceFormSettings())
+            workspace_form = WorkspaceFormDocument(
+                form_id=str(duplicated_form.form_id),
+                workspace_id=workspace_id,
+                user_id=user.id,
+                settings=WorkspaceFormSettings(),
+            )
             workspace_form.settings.provider = "self"
             workspace_form.settings.custom_url = str(duplicated_form.id)
             workspace_form = await workspace_form.save()
             duplicated_form.settings = workspace_form.settings
         return duplicated_form
+
 
 # async def upload_images_of_form

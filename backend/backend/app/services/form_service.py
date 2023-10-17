@@ -30,11 +30,11 @@ from backend.config import settings
 
 class FormService:
     def __init__(
-            self,
-            workspace_user_repo: WorkspaceUserRepository,
-            form_repo: FormRepository,
-            workspace_form_repo: WorkspaceFormRepository,
-            user_tags_service: UserTagsService,
+        self,
+        workspace_user_repo: WorkspaceUserRepository,
+        form_repo: FormRepository,
+        workspace_form_repo: WorkspaceFormRepository,
+        user_tags_service: UserTagsService,
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
@@ -49,14 +49,19 @@ class FormService:
         pinned_only: bool,
         user: User,
     ) -> Page[MinifiedForm]:
-        has_access_to_workspace = await self._workspace_user_repo.has_user_access_in_workspace(
-            workspace_id=workspace_id, user=user
+        has_access_to_workspace = (
+            await self._workspace_user_repo.has_user_access_in_workspace(
+                workspace_id=workspace_id, user=user
+            )
         )
         if not published and not has_access_to_workspace:
             raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
 
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
-            workspace_id, not has_access_to_workspace, pinned_only=pinned_only, user=user
+            workspace_id,
+            not has_access_to_workspace,
+            pinned_only=pinned_only,
+            user=user,
         )
         if published:
             forms_query = self._form_repo.get_published_forms_in_workspace(
@@ -100,13 +105,16 @@ class FormService:
         return await response.json()
 
     async def search_form_in_workspace(
-            self, workspace_id: PydanticObjectId, query: str, published: bool, user: User
+        self, workspace_id: PydanticObjectId, query: str, published: bool, user: User
     ):
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id, is_not_admin=True, user=user
         )
         forms = await self._form_repo.search_form_in_workspace(
-            workspace_id=workspace_id, form_ids=form_ids, query=query, published=published
+            workspace_id=workspace_id,
+            form_ids=form_ids,
+            query=query,
+            published=published,
         )
 
         if not published:
@@ -126,7 +134,11 @@ class FormService:
         return [MinifiedForm(**form) for form in forms]
 
     async def get_form_by_id(
-            self, workspace_id: PydanticObjectId, form_id: str, user: User, published: bool = False
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        user: User,
+        published: bool = False,
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -211,11 +223,11 @@ class FormService:
         return await self._form_repo.save_form(form_document)
 
     async def patch_settings_in_workspace_form(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: str,
-            settings: SettingsPatchDto,
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        settings: SettingsPatchDto,
+        user: User,
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -281,29 +293,29 @@ class FormService:
         )
 
     def has_form_been_updated(
-            self, form: FormDocument, latest_version: FormVersionsDocument
+        self, form: FormDocument, latest_version: FormVersionsDocument
     ):
         if not latest_version:
             return True
         if (
-                form.title == latest_version.title
-                and form.description == latest_version.description
-                and form.consent == latest_version.consent
-                and form.fields == latest_version.fields
-                and form.logo == latest_version.logo
-                and form.cover_image == latest_version.cover_image
-                and form.button_text == latest_version.button_text
-                and form.state == latest_version.state
+            form.title == latest_version.title
+            and form.description == latest_version.description
+            and form.consent == latest_version.consent
+            and form.fields == latest_version.fields
+            and form.logo == latest_version.logo
+            and form.cover_image == latest_version.cover_image
+            and form.button_text == latest_version.button_text
+            and form.state == latest_version.state
         ):
             return False
         return True
 
     async def get_form_by_version(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: str,
-            version: str | int,
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        version: str | int,
+        user: User,
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
