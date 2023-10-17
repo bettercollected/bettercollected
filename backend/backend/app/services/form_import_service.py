@@ -92,7 +92,10 @@ class FormImportService:
             deletion_requests_query
         ).update_many(
             {
-                "$set": {"status": DeletionRequestStatus.SUCCESS, "updated_at": datetime.datetime.utcnow()},
+                "$set": {
+                    "status": DeletionRequestStatus.SUCCESS,
+                    "updated_at": datetime.datetime.utcnow(),
+                },
             }
         )
         if updated_result.modified_count >= 1:
@@ -104,4 +107,3 @@ class FormImportService:
                 tag=UserTagType.DELETION_REQUEST_PROCESSED,
             )
         return standard_form
-

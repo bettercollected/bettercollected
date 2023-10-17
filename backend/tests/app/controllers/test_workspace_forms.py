@@ -422,7 +422,11 @@ class TestWorkspaceForm:
         workspace_group: Coroutine,
         test_user_cookies: dict[str, str],
     ):
-        group_form = client.patch(get_workspace_group_url, cookies=test_user_cookies,json={"group_ids": [str(workspace_group.id)]})
+        group_form = client.patch(
+            get_workspace_group_url,
+            cookies=test_user_cookies,
+            json={"group_ids": [str(workspace_group.id)]},
+        )
 
         expected_added_form = (await ResponderGroupFormDocument.find().to_list())[
             0
@@ -441,7 +445,9 @@ class TestWorkspaceForm:
         test_user_cookies_1: dict[str, str],
     ):
         unauthorized_client = client.patch(
-            get_workspace_group_url, cookies=test_user_cookies_1,json={"group_ids": [str(workspace_group.id)]}
+            get_workspace_group_url,
+            cookies=test_user_cookies_1,
+            json={"group_ids": [str(workspace_group.id)]},
         )
 
         expected_response_message = MESSAGE_FORBIDDEN

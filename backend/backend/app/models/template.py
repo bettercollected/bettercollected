@@ -30,5 +30,3 @@ class StandardFormTemplate(BaseModel):
 
 class StandardFormTemplateCamelModel(CamelModel, StandardFormTemplate):
     pass
-
-

@@ -240,16 +240,14 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_consent_repo=workspace_consent_repo,
     )
 
-    form_template_repo = providers.Singleton(
-        FormTemplateRepository
-    )
+    form_template_repo = providers.Singleton(FormTemplateRepository)
 
     form_template_service = providers.Singleton(
         FormTemplateService,
         workspace_user_service=workspace_user_service,
         form_template_repo=form_template_repo,
         workspace_form_service=workspace_form_service,
-        aws_service=aws_service
+        aws_service=aws_service,
     )
 
 
