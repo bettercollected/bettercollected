@@ -105,11 +105,7 @@ class FormRepository:
                             "as": "versions",
                         }
                     },
-                    {
-                        "$set": {
-                            "is_published": {"$gt": [{"$size": "$versions"}, 0]}
-                        }
-                    }
+                    {"$set": {"is_published": {"$gt": [{"$size": "$versions"}, 0]}}},
                 ]
             )
         forms = FormDocument.find({"form_id": {"$in": form_id_list}}).aggregate(
@@ -148,7 +144,11 @@ class FormRepository:
         return form_versions_query
 
     async def search_form_in_workspace(
-        self, workspace_id: PydanticObjectId, form_ids: List[str], query: str, published: bool = False
+        self,
+        workspace_id: PydanticObjectId,
+        form_ids: List[str],
+        query: str,
+        published: bool = False,
     ):
         query_document = FormDocument
         if published:
@@ -171,15 +171,35 @@ class FormRepository:
                     "imported_by": "$workspace_form.user_id",
                 }
             },
-
         ]
 
         if published:
-            aggregation_pipeline.extend([
-                {"$sort": {"version": -1}},
-                {"$group": {"_id": "$form_id", "latestVersion": {"$first": "$$ROOT"}}},
-                {"$replaceRoot": {"newRoot": "$latestVersion"}},
-            ])
+            aggregation_pipeline.extend(
+                [
+                    {"$sort": {"version": -1}},
+                    {
+                        "$group": {
+                            "_id": "$form_id",
+                            "latestVersion": {"$first": "$$ROOT"},
+                        }
+                    },
+                    {"$replaceRoot": {"newRoot": "$latestVersion"}},
+                ]
+            )
+        if not published:
+            aggregation_pipeline.extend(
+                [
+                    {
+                        "$lookup": {
+                            "from": "form_versions",
+                            "localField": "form_id",
+                            "foreignField": "form_id",
+                            "as": "versions",
+                        }
+                    },
+                    {"$set": {"is_published": {"$gt": [{"$size": "$versions"}, 0]}}},
+                ]
+            )
         return (
             await query_document.find(
                 {
@@ -219,7 +239,9 @@ class FormRepository:
         form_document.description = form.description
         form_document.button_text = form.button_text
         form_document.consent = form.consent if form.consent else form_document.consent
-        form_document.settings = form.settings if form.settings else form_document.settings
+        form_document.settings = (
+            form.settings if form.settings else form_document.settings
+        )
         return await form_document.save()
 
     async def get_form_document_by_id(self, form_id: str):

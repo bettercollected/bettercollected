@@ -7,7 +7,6 @@ import { FormInputField } from '@app/components/Common/input';
 import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { addAnswer, deleteAnswer } from '@app/store/fill-form/slice';
 
-
 interface ILongTextProps {
     field: StandardFormFieldDto;
     ans?: any;
@@ -39,6 +38,7 @@ export default function LongText({ ans, enabled, field }: ILongTextProps) {
                 placeholder={field?.properties?.placeholder}
                 multiline
                 InputProps={{
+                    id: `input-${field.id}`,
                     style: {
                         padding: '12px 16px'
                     }
@@ -46,6 +46,11 @@ export default function LongText({ ans, enabled, field }: ILongTextProps) {
                 inputProps={{
                     style: {
                         fontSize: 14
+                    }
+                }}
+                sx={{
+                    '& .MuiInputBase-input.Mui-disabled': {
+                        WebkitTextFillColor: '#1D1D1D'
                     }
                 }}
                 minRows={3}

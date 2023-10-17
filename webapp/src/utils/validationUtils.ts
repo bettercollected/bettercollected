@@ -1,5 +1,7 @@
 import _ from 'lodash';
 
+import moment from 'moment/moment';
+
 import { formConstant } from '@app/constants/locales/form';
 import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
@@ -106,4 +108,8 @@ export const validateFormFieldAnswer = (field: StandardFormFieldDto, answer: Ans
         }
     }
     return errors;
+};
+
+export const validateFormOpen = (date?: string) => {
+    return !date || moment.utc(date).isAfter(moment.utc());
 };

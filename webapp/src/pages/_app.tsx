@@ -4,6 +4,7 @@ import { appWithTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { ThemeProvider } from 'next-themes';
 import type { AppProps } from 'next/app';
+import dynamic from 'next/dynamic';
 
 import AuthStatusDispatcher from '@Components/HOCs/AuthStatusDispatcher';
 import EnabledFormProviders from '@Components/HOCs/EnabledFormProviders';
@@ -27,8 +28,6 @@ import 'vanilla-cookieconsent/dist/cookieconsent.css';
 
 import '@app/assets/css/globals.css';
 import CookieConsent from '@app/components/cookie/cookie-consent';
-import ModalContainer from '@app/components/modal-views/container';
-import FullScreenModalContainer from '@app/components/modal-views/full-screen-modal-container';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import NextNProgress from '@app/components/ui/nprogress';
 import createEmotionCache from '@app/configs/createEmotionCache';
@@ -39,6 +38,9 @@ import { usePreserveScroll } from '@app/lib/hooks/use-preserve-scroll';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
+
+const ModalContainer = dynamic(() => import('@app/components/modal-views/container'));
+const FullScreenModalContainer = dynamic(() => import('@app/components/modal-views/full-screen-modal-container'));
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();

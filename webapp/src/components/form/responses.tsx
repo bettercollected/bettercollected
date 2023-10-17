@@ -10,6 +10,7 @@ import { toast } from 'react-toastify';
 import FormResponsesTable from '@app/components/datatable/form/form-responses';
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { useModal } from '@app/components/modal-views/context';
+import { formPage } from '@app/constants/locales/form-page';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
@@ -17,11 +18,10 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetWorkspaceSubmissionQuery } from '@app/store/workspaces/types';
 import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 
-
 export default function FormResponses() {
     const router = useRouter();
     let submissionId: string = (router?.query?.sub_id as string) ?? '';
-    const [trigger, { isLoading, isError, error }] = useLazyGetWorkspaceSubmissionQuery();
+    const [trigger] = useLazyGetWorkspaceSubmissionQuery();
     const { t } = useTranslation();
     const form = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
@@ -30,7 +30,7 @@ export default function FormResponses() {
     const { openModal } = useModal();
 
     useEffect(() => {
-        if (!!submissionId) {
+        if (!!submissionId && workspace?.id) {
             const submissionQuery: IGetWorkspaceSubmissionQuery = {
                 workspace_id: workspace.id,
                 submission_id: submissionId
@@ -43,7 +43,7 @@ export default function FormResponses() {
                     toast.error('Error fetching submission data.', { toastId: 'errorToast' });
                 });
         }
-    }, [submissionId]);
+    }, [submissionId, workspace?.id]);
 
     return (
         <>
@@ -64,7 +64,7 @@ export default function FormResponses() {
                                 }}
                             >
                                 <ChevronLeft width={24} height={24} />
-                                Back to responses
+                                {t(formPage.responsesBackToResponses)}:
                             </span>
                         </div>
 
@@ -82,16 +82,16 @@ export default function FormResponses() {
                                     });
                                 }}
                             >
-                                Delete Response
+                                {t(formPage.responsesDeletedResponse)}:
                             </Button>
                         )}
                     </div>
-                    <div className="gap-2 flex flex-col mt-5">
+                    <div className="gap-2 flex flex-col my-5">
                         <div className="text-sm text-black-700">
-                            Submitted by: <b>{submissionForm?.response?.dataOwnerIdentifier || 'Anonymous'}</b>
+                            {t(formPage.responsesSubmittedBy)}: <b>{submissionForm?.response?.dataOwnerIdentifier || t(formPage.responsesAnonymous)}</b>
                         </div>
                         <div className="text-sm text-black-700">
-                            Submitted at: <b>{utcToLocalDateTIme(submissionForm?.response?.createdAt) || 'Anonymous'}</b>
+                            {t(formPage.responsesSubmittedAt)}: <b>{utcToLocalDateTIme(submissionForm?.response?.createdAt) || t(formPage.responsesAnonymous)}</b>
                         </div>
                     </div>
                     <FormRenderer form={submissionForm.form} response={submissionForm.response} isDisabled />
@@ -100,3 +100,4 @@ export default function FormResponses() {
         </>
     );
 }
+

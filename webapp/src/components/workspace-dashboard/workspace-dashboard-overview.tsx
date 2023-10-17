@@ -13,7 +13,6 @@ import WorkspaceOptions from '@Components/Common/WorkspaceOptions';
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { EyeIcon } from '@app/components/icons/eye-icon';
 import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -29,7 +28,6 @@ interface IWorkspaceDashboardOverviewProps {
 
 const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewProps) => {
     const { openModal } = useModal();
-    const fullScreenModal = useFullScreenModal();
     const isAdmin = useAppSelector(selectIsAdmin);
     const router = useRouter();
     const { t } = useTranslation();
@@ -70,7 +68,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                             <AuthAccountProfileImage name={reduxWorkspace?.title || 'Untitled'} size={72} image={reduxWorkspace?.profileImage} />
                             <div className="flex flex-col gap-2">
                                 <div className="h3-new">{reduxWorkspace?.title || 'Untitled'}</div>
-                                <div className="p2-new text-black-600 max-w-[200px] md:max-w-[300px] lg:max-w-[409px] line-clamp-2 max-h-[42px]">{reduxWorkspace?.description || ''}</div>
+                                <div className="p2-new text-black-600 max-w-[200px] md:max-w-[300px] lg:max-w-[409px] line-clamp-2">{reduxWorkspace?.description || ''}</div>
                             </div>
                         </div>
                     </div>

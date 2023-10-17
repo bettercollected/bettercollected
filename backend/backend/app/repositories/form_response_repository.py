@@ -46,11 +46,7 @@ class FormResponseRepository(BaseRepository):
             },
             {"$set": {"form_title": "$form.title"}},
             {"$unwind": "$form_title"},
-            {
-                "$sort": {
-                    "created_at": -1
-                }
-            }
+            {"$sort": {"created_at": -1}},
         ]
 
         aggregate_query.extend(

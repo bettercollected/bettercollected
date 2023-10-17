@@ -296,7 +296,7 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
         }),
-        searchWorkspaceForms: builder.mutation<Array<StandardFormDto>, ISearchWorkspaceFormsQuery>({
+        searchWorkspaceForms: builder.query<Array<StandardFormDto>, ISearchWorkspaceFormsQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspace_id}/forms/search`,
                 method: 'POST',
@@ -311,6 +311,14 @@ export const workspacesApi = createApi({
                 url: `/workspaces/${request.workspaceId}/forms/${request.formId}/settings`,
                 method: 'PATCH',
                 body: request.body,
+                credentials: 'include'
+            }),
+            invalidatesTags: [WORKSPACE_TAGS]
+        }),
+        duplicateForm: builder.mutation<any, { workspaceId: string; formId: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/duplicate`,
+                method: 'POST',
                 credentials: 'include'
             }),
             invalidatesTags: [WORKSPACE_TAGS]
@@ -484,7 +492,7 @@ export const {
     useLazyGetWorkspaceSubmissionQuery,
     useLazyGetWorkspaceNameSuggestionsQuery,
     useLazyGetWorkspaceNameAvailabilityQuery,
-    useSearchWorkspaceFormsMutation,
+    useLazySearchWorkspaceFormsQuery,
     useGetFormsSubmissionsQuery,
     usePatchFormMutation,
     useDeleteResponseMutation,
@@ -494,6 +502,7 @@ export const {
     useCreateWorkspaceMutation,
     usePatchExistingWorkspaceMutation,
     usePatchThemeMutation,
+    useDuplicateFormMutation,
     usePatchWorkspacePoliciesMutation,
     useGetAllMineWorkspacesQuery,
     useLazyGetAllMineWorkspacesQuery,

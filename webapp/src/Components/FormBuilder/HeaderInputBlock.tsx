@@ -58,7 +58,7 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
             position={position}
             id={id}
             value={field?.value || ''}
-            className={'w-full  ' + contentEditableClassNames(false, field?.type)}
+            className={'w-full  ' + contentEditableClassNames(false, field?.type, true)}
             onChangeCallback={onChange}
             placeholder={t('COMPONENTS.HEADER.' + getPlaceholder(field?.type))}
             onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {

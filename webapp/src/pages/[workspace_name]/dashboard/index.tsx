@@ -8,6 +8,7 @@ import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/Joyrid
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
 import WorkspaceDashboardOverview from '@app/components/workspace-dashboard/workspace-dashboard-overview';
+import WorkspaceDashboardPinnedForms from '@app/components/workspace-dashboard/workspace-dashboard-pinned-forms';
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
@@ -22,21 +23,13 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
 
     const workspace = useAppSelector(selectWorkspace);
 
-    const workspaceQuery = {
-        workspace_id: props.workspace.id
-    };
-
-    const workspaceForms = useGetWorkspaceFormsQuery<any>(workspaceQuery, { pollingInterval: 30000 });
-
     const pinnedFormsQuery = {
-        workspace_id: workspace.id,
+        workspace_id: props.workspace.id,
         pinned_only: true
     };
 
-    const pinnedFormsResponse = useGetWorkspaceFormsQuery(pinnedFormsQuery);
+    const pinnedFormsResponse = useGetWorkspaceFormsQuery(pinnedFormsQuery, { skip: !workspace.id });
     const pinnedForms = pinnedFormsResponse?.data?.items || [];
-
-    const forms = workspaceForms?.data?.items || [];
 
     return (
         <DashboardLayout boxClassName="bg-black-100">
@@ -93,8 +86,8 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                 <WorkspaceDashboardOverview workspace={props.workspace} />
             </div>
             <div className="px-5 pt-12 lg:px-10">
-                {pinnedForms?.length > 0 && <WorkspaceDashboardForms showPinned={false} workspaceForms={pinnedFormsResponse} title="Pinned Forms" workspace={workspace} hasCustomDomain={hasCustomDomain} />}
-                <WorkspaceDashboardForms workspaceForms={workspaceForms} showButtons={pinnedForms?.length === 0} workspace={workspace} hasCustomDomain={hasCustomDomain} />
+                {pinnedForms?.length > 0 && <WorkspaceDashboardPinnedForms workspacePinnedForms={pinnedFormsResponse} title="Pinned Forms" workspace={workspace} hasCustomDomain={hasCustomDomain} />}
+                <WorkspaceDashboardForms showButtons={pinnedForms?.length === 0} workspace={workspace} hasCustomDomain={hasCustomDomain} />
             </div>
         </DashboardLayout>
     );

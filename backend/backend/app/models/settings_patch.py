@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 
 from pydantic import BaseModel
@@ -10,3 +11,4 @@ class SettingsPatchDto(BaseModel):
     responseDataOwnerField: Optional[str]
     disableBranding: Optional[bool]
     hidden: Optional[bool] = False
+    formCloseDate: Optional[datetime.datetime | str]
