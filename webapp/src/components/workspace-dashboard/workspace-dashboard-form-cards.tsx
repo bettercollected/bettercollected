@@ -14,9 +14,10 @@ interface IWorkspaceDashboardFormsCardProps {
     workspace: WorkspaceDto;
     hasCustomDomain: boolean;
     showPinned?: boolean;
+    showEmpty?: boolean;
 }
 
-export default function WorkspaceDashboardFormsCard({ workspaceForms, workspace, hasCustomDomain, showPinned = false }: IWorkspaceDashboardFormsCardProps) {
+export default function WorkspaceDashboardFormsCard({ workspaceForms, workspace, hasCustomDomain, showPinned = false, showEmpty = false }: IWorkspaceDashboardFormsCardProps) {
     const forms = workspaceForms;
     const ref = React.useRef<HTMLDivElement>(null);
 
@@ -24,16 +25,20 @@ export default function WorkspaceDashboardFormsCard({ workspaceForms, workspace,
     return (
         <div className="w-full mb-4 flex flex-col gap-5 h-fit">
             {forms?.length === 0 ? (
-                <div className="w-full h-full flex flex-col items-center justify-center rounded-lg py-[84px]">
-                    <p className="h3-new text-black-800 font-semibold">You haven&apos;t created or imported any forms.</p>
-                    <p className="p1-new text-black-700 mb-6 mt-2">Create your first privacy friendly form.</p>
-                    <div ref={ref} className="relative">
-                        <CreateFormButton variant={ButtonVariant.Tertiary} />
-                        <div className="absolute -bottom-1 -right-1">
-                            <BeaconComponent />
+                showEmpty ? (
+                    <div className=" h4-new flex h-full justify-center text-black-800 items-center w-full min-h-[150px]">No forms found</div>
+                ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center rounded-lg py-[84px]">
+                        <p className="h3-new text-black-800 font-semibold">You haven&apos;t created or imported any forms.</p>
+                        <p className="p1-new text-black-700 mb-6 mt-2">Create your first privacy friendly form.</p>
+                        <div ref={ref} className="relative">
+                            <CreateFormButton variant={ButtonVariant.Tertiary} />
+                            <div className="absolute -bottom-1 -right-1">
+                                <BeaconComponent />
+                            </div>
                         </div>
                     </div>
-                </div>
+                )
             ) : (
                 <div className="flex flex-col gap-6">
                     {forms?.length !== 0 &&
