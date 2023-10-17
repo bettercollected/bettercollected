@@ -1,10 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { escapeRegExp } from 'lodash';
-
-import SearchInput from '@Components/Common/Search/SearchInput';
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 
@@ -16,7 +13,7 @@ import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
-import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
+import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function CreatorDashboard({ hasCustomDomain, ...props }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
@@ -31,7 +28,7 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
         pinned_only: true
     };
 
-    const pinnedFormsResponse = useGetWorkspaceFormsQuery(pinnedFormsQuery);
+    const pinnedFormsResponse = useGetWorkspaceFormsQuery(pinnedFormsQuery, { skip: !workspace.id });
     const pinnedForms = pinnedFormsResponse?.data?.items || [];
 
     return (

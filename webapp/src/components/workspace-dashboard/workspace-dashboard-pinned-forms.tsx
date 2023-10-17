@@ -33,7 +33,7 @@ export default function WorkspaceDashboardPinnedForms({ workspacePinnedForms, wo
 
     // @ts-ignore
     return (
-        <div className="w-full mb-4 flex flex-col gap-5 h-fit">
+        <div className="w-full mb-10 flex flex-col gap-5 h-fit">
             <div className="min-h-9 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <div className="sh1 flex flex-row gap-6 items-center">
                     <div className={'flex flex-row gap-1'}>
