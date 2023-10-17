@@ -1,14 +1,17 @@
+import os
 from http import HTTPStatus
 
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN
 from common.models.standard_form import StandardForm
+from fastapi import UploadFile
 from gunicorn.config import User
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.template import StandardFormTemplate
 from backend.app.repositories.template import FormTemplateRepository
+from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
@@ -16,10 +19,11 @@ from backend.config import settings
 
 class FormTemplateService:
     def __init__(self, workspace_user_service: WorkspaceUserService, form_template_repo: FormTemplateRepository,
-                 workspace_form_service: WorkspaceFormService):
+                 aws_service: AWSS3Service, workspace_form_service: WorkspaceFormService):
         self.workspace_user_service = workspace_user_service
         self.form_template_repo = form_template_repo
         self.workspace_form_service = workspace_form_service
+        self._aws_service = aws_service
 
     async def get_templates(self, workspace_id: PydanticObjectId, user: User):
         if not workspace_id:
@@ -58,3 +62,64 @@ class FormTemplateService:
         minified_form = MinifiedForm(**template.dict())
         return await self.workspace_form_service.create_form(workspace_id=workspace_id,
                                                              form=StandardForm(**minified_form.dict()), user=user)
+
+    async def create_new_template(self, workspace_id: PydanticObjectId, logo: UploadFile, cover_image: UploadFile,
+                                  user: User, template_body: StandardFormTemplate,
+                                  ):
+        await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
+        template_body.id = PydanticObjectId()
+        if logo:
+            logo_url = await self._aws_service.upload_file_to_s3(
+                file=logo.file,
+                key=f"{template_body.id}_logo{os.path.splitext(logo.filename)[1]}",
+            )
+            template_body.logo = logo_url
+        if cover_image:
+            cover_image_url = await self._aws_service.upload_file_to_s3(
+                file=cover_image.file,
+                key=f"{template_body.id}_cover{os.path.splitext(cover_image.filename)[1]}",
+            )
+            template_body.cover_image = cover_image_url
+        return await self.form_template_repo.create_new_template(workspace_id=workspace_id, template_body=template_body,
+                                                                 user=user)
+
+    async def update_template(self, workspace_id: PydanticObjectId, template_id: PydanticObjectId, user: User,
+                              template_body: StandardFormTemplate, logo: UploadFile, cover_image: UploadFile):
+        await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
+        template = await self.form_template_repo.get_template_by_id(template_id)
+        if template.workspace_id != workspace_id:
+            raise HTTPException(HTTPStatus.FORBIDDEN, 'You are not allowed to update this template.')
+        if template_body.settings:
+            if template_body.settings.is_public is not None:
+                template.settings.is_public = template_body.settings.is_public
+        if logo:
+            logo_url = await self._aws_service.upload_file_to_s3(
+                file=logo.file,
+                key=str(template_id) + f"_logo{os.path.splitext(logo.filename)[1]}",
+                previous_image=template.logo,
+            )
+            template_body.logo = logo_url
+        else:
+            template_body.logo = template_body.logo if template_body.logo is not None else template.logo
+        if cover_image:
+            cover_image_url = await self._aws_service.upload_file_to_s3(
+                file=cover_image.file,
+                key=str(template_id) + f"_cover{os.path.splitext(cover_image.filename)[1]}",
+                previous_image=template.cover_image,
+            )
+            template_body.cover_image = cover_image_url
+        else:
+            template_body.cover_image = (
+                template_body.cover_image
+                if template_body.cover_image is not None
+                else template.cover_image
+            )
+        return await self.form_template_repo.update_template(template_id=template_id, template_body=template_body)
+
+    async def delete_template(self, workspace_id: PydanticObjectId, template_id: PydanticObjectId, user: User):
+        await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
+        template = await self.form_template_repo.get_template_by_id(template_id)
+        if template.workspace_id != workspace_id:
+            raise HTTPException(HTTPStatus.FORBIDDEN, 'You are not allowed to perform this action.')
+        return await self.form_template_repo.delete_template(template_id)
+

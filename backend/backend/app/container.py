@@ -248,7 +248,8 @@ class AppContainer(containers.DeclarativeContainer):
         FormTemplateService,
         workspace_user_service=workspace_user_service,
         form_template_repo=form_template_repo,
-        workspace_form_service=workspace_form_service
+        workspace_form_service=workspace_form_service,
+        aws_service=aws_service
     )
 
 
