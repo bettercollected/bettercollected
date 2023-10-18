@@ -6,6 +6,7 @@
 @import './tailwind.css';
 @import './range-slider.css';
 @import './scrollbar.css';
+@import "./mui.css";
 
 html,
 body {
@@ -74,6 +75,7 @@ body {
     max-height: calc(100vh - 68px);
     overflow: auto;
 }
+
 .geIUsg div:first-child {
     white-space: nowrap;
     overflow: visible !important;
@@ -106,6 +108,6 @@ body {
     border-radius: 3px 0 0 3px;
 }
 
-.form-title{
+.form-title {
     width: calc(100% - 56px);
 }
