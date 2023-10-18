@@ -302,6 +302,8 @@ class WorkspaceFormService:
         workspace_form_settings = WorkspaceFormSettings(
             custom_url=form.form_id,
             provider="self",
+            private=False,
+            hidden=True,
             privacy_policy_url=form.settings.privacy_policy_url,
             response_expiration=form.settings.response_expiration,
             response_expiration_type=form.settings.response_expiration_type
@@ -484,7 +486,7 @@ class WorkspaceFormService:
             form_id=str(duplicated_form.form_id),
             workspace_id=workspace_id,
             user_id=user.id,
-            settings=WorkspaceFormSettings(),
+            settings=WorkspaceFormSettings(hidden=True, private=False),
         )
         workspace_form.settings.provider = "self"
         workspace_form.settings.custom_url = str(duplicated_form.id)
