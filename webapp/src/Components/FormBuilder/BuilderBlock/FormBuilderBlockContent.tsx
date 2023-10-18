@@ -63,9 +63,14 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
         }
     };
 
-    const renderValidatedBlockContent = (position: number) => {
+    const renderValidatedBlockContent = (position: number, id: string) => {
         if (type !== FormBuilderTagNames.LAYOUT_LABEL) {
-            return <LabelTagValidator position={position}> {renderBlockContent(position)}</LabelTagValidator>;
+            return (
+                <LabelTagValidator position={position} id={id}>
+                    {' '}
+                    {renderBlockContent(position)}
+                </LabelTagValidator>
+            );
         }
         return renderBlockContent(position);
     };
@@ -78,7 +83,7 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
                     dispatch(setActiveField({ position: field?.position, id: field?.id }));
                 }}
             >
-                {renderValidatedBlockContent(position)}
+                {renderValidatedBlockContent(position, field?.id)}
             </div>
         </div>
     );

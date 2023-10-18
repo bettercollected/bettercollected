@@ -11,7 +11,7 @@ import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
 import useUndoRedo from '@app/lib/use-undo-redo';
 import { KeyType } from '@app/models/enums/formBuilder';
 import { setActiveField, setUpdateField } from '@app/store/form-builder/actions';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { selectActiveFieldId, selectBuilderState } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
 
 interface MarkdownEditorProps {
@@ -27,11 +27,8 @@ const MarkdownEditor = ({ id, field }: MarkdownEditorProps) => {
     const { isUndoRedoInProgress } = useUndoRedo();
 
     const dispatch = useDispatch();
-    const builderState = useAppSelector(selectBuilderState);
 
-    // const { t } = useBuilderTranslation();
-
-    const activeFieldIndex = builderState.activeFieldIndex;
+    const activeFieldIndex = useAppSelector(selectActiveFieldId);
 
     const getEditingLinePosition = () => {
         const textArea = inputRef.current;
