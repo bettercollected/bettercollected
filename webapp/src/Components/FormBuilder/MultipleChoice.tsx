@@ -28,9 +28,6 @@ export default function MultipleChoice({ field, id }: IMultipleChoiceProps) {
     const dispatch = useDispatch();
     const { handleUserTypingEnd } = useUserTypingDetection();
     const { isUndoRedoInProgress } = useUndoRedo();
-
-    const builderState: IBuilderState = useAppSelector(selectBuilderState);
-
     const handleChoiceValueChange = (id: string, value: string) => {
         if (isUndoRedoInProgress) return;
         dispatch(

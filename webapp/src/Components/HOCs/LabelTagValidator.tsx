@@ -3,40 +3,39 @@ import React, { useCallback, useEffect } from 'react';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setAddNewField } from '@app/store/form-builder/actions';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { selectActiveFieldId, selectBuilderState, selectFormField, selectPreviousField } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
-
 
 interface LabelTagValidatorProps extends React.PropsWithChildren {
     position: number;
+    id: string;
 }
 
-export default function LabelTagValidator({ children, position }: LabelTagValidatorProps) {
-    const builderState = useAppSelector(selectBuilderState);
-
+export default function LabelTagValidator({ children, position, id }: LabelTagValidatorProps) {
     const { t } = useBuilderTranslation();
 
-    const dispatch = useAppDispatch();
+    const dispatch = useAppAsyncDispatch();
+    const previousField = useAppSelector(selectPreviousField(id));
+    const field: IFormFieldState = useAppSelector(selectFormField(id));
+    const activeFieldId = useAppSelector(selectActiveFieldId);
     const hintBox = (text: string) => {
         return <div className="bg-gray-100 p-1 rounded-sm">{text}</div>;
     };
-    const validateField = useCallback(
-        (field: IFormFieldState) => {
-            if (NonInputFormBuilderTagNames.includes(field.type)) return true;
+    const validateField = (field: IFormFieldState) => {
+        if (NonInputFormBuilderTagNames.includes(field.type)) return true;
 
-            const previousField: any = Object.values(builderState.fields)[field.position - 1];
-            return previousField?.type === FormBuilderTagNames.LAYOUT_LABEL;
-        },
-        [builderState.fields]
-    );
-
-    const field = builderState.fields[builderState.activeFieldId];
-    const hasMissingLabel = field ? !validateField(field) && field.position === position : false;
+        return previousField?.type === FormBuilderTagNames.LAYOUT_LABEL;
+    };
+    const hasMissingLabel = field ? !validateField(field) && activeFieldId === field.id : false;
 
     const addLabel = () => {
-        dispatch(setAddNewField(createNewField(builderState.activeFieldIndex - 1, FormBuilderTagNames.LAYOUT_LABEL)));
+        const newField = createNewField(field?.position - 1, FormBuilderTagNames.LAYOUT_LABEL);
+        dispatch(setAddNewField(newField)).then(() => {
+            const Element = document.getElementById('item-' + newField.id);
+            Element?.focus();
+        });
     };
 
     const onKeyDownCallback = useCallback(
@@ -45,7 +44,7 @@ export default function LabelTagValidator({ children, position }: LabelTagValida
                 addLabel();
             }
         },
-        [builderState.activeFieldIndex, dispatch, hasMissingLabel]
+        [field?.position, hasMissingLabel]
     );
     useEffect(() => {
         document.addEventListener('keydown', onKeyDownCallback);
@@ -53,7 +52,7 @@ export default function LabelTagValidator({ children, position }: LabelTagValida
         return () => {
             document.removeEventListener('keydown', onKeyDownCallback);
         };
-    }, [onKeyDownCallback]);
+    }, [field?.position, activeFieldId]);
 
     return (
         <div id={`label-tag-validator-${position}`} className="group">
