@@ -220,8 +220,6 @@ interface ICustomContentEditableProps {
 function CustomContentEditable({ id, tagName, type, placeholder, value, position, showHideHolder = false, className = '', onChangeCallback, onKeyUpCallback, onKeyDownCallback, onFocusCallback, onBlurCallback }: ICustomContentEditableProps) {
     const contentEditableRef = useRef<HTMLElement>(null);
 
-    const { isOpen } = useModal();
-
     const onChangeHandler = (event: ContentEditableEvent) => {
         onChangeCallback(event);
     };

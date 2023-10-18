@@ -9,7 +9,7 @@ import { SetStateAction } from 'jotai';
 
 import useFormBuilderAtom from '@app/Components/FormBuilder/builderAtom';
 import Camera from '@app/components/icons/camera';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { selectBuilderState, selectLogo } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
 
 interface IFormLogoComponent {
@@ -20,13 +20,17 @@ interface IFormLogoComponent {
 }
 
 const FormLogoComponent = (props: IFormLogoComponent) => {
+    // Props
     const { setIsLogoClicked, className, setImagesRemoved, imagesRemoved } = props;
+
+    // State
     const [isAddLogoClicked, setIsAddLogoClicked] = useState(false);
     const [isUpdateButtonClicked, setIsUpdateButtonClicked] = useState(false);
     const [selectedImageURL, setSelectedImageURL] = useState<string | null>(null);
-    const { setLogoImage } = useFormBuilderAtom();
-    const { logo } = useAppSelector(selectBuilderState);
 
+    // Hooks
+    const { setLogoImage } = useFormBuilderAtom();
+    const logo = useAppSelector(selectLogo);
     const onClickUpdateNewLogoButton = () => {
         setIsAddLogoClicked(true);
     };
