@@ -41,37 +41,45 @@ import { throttle } from '@app/utils/throttleUtils';
 import useFormBuilderState from './context';
 
 export default function FormBuilder({ workspace, _nextI18Next }: { workspace: WorkspaceDto; _nextI18Next: any }) {
+    // Hooks
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
-    const { openModal } = useFullScreenModal();
-    const { openModal: openHalfScreenModal } = useModal();
-    const { t } = useBuilderTranslation();
-    const { handleUserTypingEnd } = useUserTypingDetection();
-    const { isUndoRedoInProgress } = useUndoRedo();
     const builderDragDropRef = useRef<HTMLDivElement | null>(null);
-    const consentState = useAppSelector(selectConsentState);
     const router = useRouter();
 
-    const { form_id } = router.query;
-    const builderState: IBuilderState = useAppSelector(selectBuilderState);
-
-    const [showLogo, setShowLogo] = useState(false);
-    const [showCover, setShowCover] = useState(false);
-
-    const onBlurCallbackRef = useRef<any>(null);
-    const { headerImages, resetImages } = useFormBuilderAtom();
-
-    const { backspaceCount, setBackspaceCount } = useFormBuilderState();
-
-    const [patchForm, { isLoading: patching }] = usePatchFormMutation();
-
-    const [imagesRemoved, setImagesRemoved] = useState<{ logo: boolean; cover: boolean }>({ logo: false, cover: false });
-
+    // Modals
+    const { openModal } = useFullScreenModal();
+    const { openModal: openHalfScreenModal } = useModal();
     const fullScreenModal = useFullScreenModal();
     const modal = useModal();
 
+    // Translation
+    const { t } = useBuilderTranslation();
+
+    // User Interaction
+    const { handleUserTypingEnd } = useUserTypingDetection();
+    const { isUndoRedoInProgress } = useUndoRedo();
+
+    // Selectors and State
+    const consentState = useAppSelector(selectConsentState);
+    const builderState: IBuilderState = useAppSelector(selectBuilderState);
+    const { form_id } = router.query;
+
+    // Form Builder State
+    const { backspaceCount, setBackspaceCount } = useFormBuilderState();
+    const { headerImages, resetImages } = useFormBuilderAtom();
+
+    // Saving State
+    const [patchForm, { isLoading: patching }] = usePatchFormMutation();
     const [showSaving, setShowSaving] = useState({ status: false, text: 'Saving' });
 
+    // Display State
+    const [showLogo, setShowLogo] = useState(false);
+    const [showCover, setShowCover] = useState(false);
+    const [imagesRemoved, setImagesRemoved] = useState<{ logo: boolean; cover: boolean }>({ logo: false, cover: false });
+
+    // Callbacks and Refs
+    const onBlurCallbackRef = useRef<any>(null);
     //
 
     useEffect(() => {
