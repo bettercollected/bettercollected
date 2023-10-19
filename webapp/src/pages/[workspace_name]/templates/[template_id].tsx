@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
@@ -8,18 +9,23 @@ import SettingsIcon from '@Components/Common/Icons/Settings';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
+import { toast } from 'react-toastify';
 
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { localesCommon } from '@app/constants/locales/common';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
-import { useGetTemplateByIdQuery } from '@app/store/template/api';
+import { useGetTemplateByIdQuery, useImportTemplateMutation } from '@app/store/template/api';
 import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
 
 const SingleTemplate = (props: any) => {
     const { workspace, notFound, templateId } = props;
     const router = useRouter();
     const { openModal } = useFullScreenModal();
+    const { t } = useTranslation();
+
+    const [importTemplate] = useImportTemplateMutation();
     if (notFound) {
         return <div>Not Found</div>;
     }
@@ -32,7 +38,22 @@ const SingleTemplate = (props: any) => {
         return <LoadingIcon />;
     }
     const handleClickBack = () => {
-        router.back();
+        router.push(`/${workspace.workspaceName}/dashboard/templates`);
+    };
+
+    const handleImportTemplate = async () => {
+        const request = {
+            workspace_id: workspace.id,
+            template_id: templateId
+        };
+        const response: any = await importTemplate(request);
+        if (response?.data) {
+            toast('Imported Successfully', { type: 'success' });
+            console.log('response', response?.data);
+            await router.replace(`/${workspace.workspaceName}/templates/${response?.data?.id}`);
+        } else {
+            toast('Error Occurred').toString(), { type: 'error' };
+        }
     };
 
     // @ts-ignore
@@ -50,7 +71,9 @@ const SingleTemplate = (props: any) => {
                             Settings
                         </AppButton>
                     ) : (
-                        <AppButton variant={ButtonVariant.Secondary}>Import Template</AppButton>
+                        <AppButton variant={ButtonVariant.Secondary} onClick={handleImportTemplate}>
+                            Import Template
+                        </AppButton>
                     )}
 
                     <AppButton>Use Template</AppButton>
