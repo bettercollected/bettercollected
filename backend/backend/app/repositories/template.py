@@ -11,8 +11,10 @@ from backend.app.schemas.template import FormTemplateDocument
 
 class FormTemplateRepository:
     async def get_templates_with_creator(
-            self, workspace_id: PydanticObjectId,
-            template_id: PydanticObjectId = None, predefined_workspace: bool = False
+        self,
+        workspace_id: PydanticObjectId,
+        template_id: PydanticObjectId = None,
+        predefined_workspace: bool = False,
     ):
         query = {"workspace_id": workspace_id}
         if predefined_workspace:
@@ -21,39 +23,38 @@ class FormTemplateRepository:
             query["template_id"] = template_id
         return (
             await FormTemplateDocument.find(query)
-            .aggregate([
-                {
-                    "$set": {"id": "$_id"}
-                },
-                {
-                    "$lookup": {
-                        "from": "workspaces",
-                        "localField": "imported_from",
-                        "foreignField": "_id",
-                        "as": "workspace",
-                    }
-                },
-                {
-                    "$unwind": {
-                        "path": "$workspace",
-                        "preserveNullAndEmptyArrays": True
-                    }
-                },
-                {
-                    "$set": {
-                        "imported_from": "$workspace.title"
-                    }
-                }
-
-            ])
+            .aggregate(
+                [
+                    {"$set": {"id": "$_id"}},
+                    {
+                        "$lookup": {
+                            "from": "workspaces",
+                            "localField": "imported_from",
+                            "foreignField": "_id",
+                            "as": "workspace",
+                        }
+                    },
+                    {
+                        "$unwind": {
+                            "path": "$workspace",
+                            "preserveNullAndEmptyArrays": True,
+                        }
+                    },
+                    {"$set": {"imported_from": "$workspace.title"}},
+                ]
+            )
             .to_list()
         )
 
     async def get_template_by_id(self, template_id: PydanticObjectId):
         return await FormTemplateDocument.find_one({"_id": template_id})
 
-    async def get_template_by_id_with_creator(self, workspace_id: PydanticObjectId, template_id: PydanticObjectId):
-        templates = await self.get_templates_with_creator(workspace_id=workspace_id, template_id=template_id)
+    async def get_template_by_id_with_creator(
+        self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
+    ):
+        templates = await self.get_templates_with_creator(
+            workspace_id=workspace_id, template_id=template_id
+        )
 
         if len(templates) > 0:
             return templates[0]
@@ -61,7 +62,7 @@ class FormTemplateRepository:
         raise HTTPException(HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
 
     async def import_template_to_workspace(
-            self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
+        self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
     ):
         template = await self.get_template_by_id(template_id)
         imported_template = FormTemplateDocument(**template.dict())
@@ -72,10 +73,10 @@ class FormTemplateRepository:
         return imported_template
 
     async def create_new_template(
-            self,
-            workspace_id: PydanticObjectId,
-            template_body: StandardFormTemplate,
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        template_body: StandardFormTemplate,
+        user: User,
     ):
         template = FormTemplateDocument(**template_body.dict())
         template.workspace_id = workspace_id
@@ -83,7 +84,7 @@ class FormTemplateRepository:
         return await template.save()
 
     async def update_template(
-            self, template_id: PydanticObjectId, template_body: StandardFormTemplate
+        self, template_id: PydanticObjectId, template_body: StandardFormTemplate
     ):
         template = await FormTemplateDocument.find_one({"_id": template_id})
         template.fields = template_body.fields
