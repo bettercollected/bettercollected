@@ -10,18 +10,19 @@ import { useModal } from '@app/components/modal-views/context';
 interface IVisibilityConfirmationModalViewProps {
     visibilityType: string;
     handleOnConfirm: () => void;
+    isTemplate?: boolean;
 }
 
-const VisibilityConfirmationModalView = ({ visibilityType, handleOnConfirm }: IVisibilityConfirmationModalViewProps) => {
+const VisibilityConfirmationModalView = ({ visibilityType, handleOnConfirm, isTemplate = false }: IVisibilityConfirmationModalViewProps) => {
     const { closeModal } = useModal();
     const title: any = {
-        Public: ['Are you sure you want to make the form ', 'Public'],
-        Private: ['Are you sure you want to make the form ', 'Private'],
+        Public: [`Are you sure you want to make the ${isTemplate ? 'template' : 'form'} `, 'Public'],
+        Private: [`Are you sure you want to make the ${isTemplate ? 'template' : 'form'} `, 'Private'],
         Group: ['No Groups Selected.', '']
     };
     const description: any = {
-        Public: 'Anyone with the link of your form page can access and view the form.',
-        Private: 'No one will be able to access or view this form.',
+        Public: isTemplate ? 'Everyone with the link can use this template. You can share this template.' : 'Anyone with the link of your form page can access and view the form.',
+        Private: isTemplate ? 'Only your organization can use this template. You cannot share this template.' : 'No one will be able to access or view this form.',
         Group: "You haven't selected any groups for your form. In this case, your form will be made public by default."
     };
 
