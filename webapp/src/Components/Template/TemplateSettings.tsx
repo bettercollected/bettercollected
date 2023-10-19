@@ -48,7 +48,7 @@ const TemplateSettings = ({ template }: { template: IFormTemplateDto }) => {
             toast(t(localesCommon.updated).toString(), { type: 'success' });
             setTemplateVisibility(response?.data?.settings?.isPublic ? 'Public' : 'Private');
         } else {
-            toast('Error Occured').toString(), { type: 'error' };
+            toast('Error Occurred').toString(), { type: 'error' };
         }
     };
 
@@ -73,7 +73,7 @@ const TemplateSettings = ({ template }: { template: IFormTemplateDto }) => {
                 template_id: template?.id
             });
             if (response?.data) {
-                toast(t(localesCommon.updated).toString(), { type: 'success' });
+                toast('Deleted Successfully', { type: 'success' });
                 router.replace(`/${workspace.workspaceName}/dashboard/templates`);
             } else {
                 toast('Error Occurred').toString(), { type: 'error' };
