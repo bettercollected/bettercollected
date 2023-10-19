@@ -16,6 +16,7 @@ import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown'
 import AuthNavbar from '@app/components/auth/navbar';
 import Globe from '@app/components/icons/flags/globe';
 import DashboardDrawer from '@app/components/sidebar/dashboard-drawer';
+import LocaleDropdownUi from '@app/components/ui/locale-dropdown-ui';
 import { localesCommon } from '@app/constants/locales/common';
 import dashboardConstants from '@app/constants/locales/dashboard';
 import { formConstant } from '@app/constants/locales/form';
@@ -107,7 +108,8 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
                     <div className="flex flex-col w-full">
                         <div className="flex w-full py-3 z-[1000] sticky top-[68px] lg:top-0 bg-white justify-between px-5 border-b border-b-black-200 lg:px-10 items-center">
                             <span className="h3-new">{getHeader()}</span>
-                            <div className="hidden lg:flex">
+                            <div className="hidden lg:flex gap-4">
+                                <LocaleDropdownUi />
                                 <AuthAccountMenuDropdown hideMenu={false} isClientDomain={false} />
                             </div>
                         </div>

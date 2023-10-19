@@ -81,7 +81,9 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                     <div className="flex  lg:flex-col lg:items-end gap-4">
                         <div className="flex flex-col gap-2 lg:items-end">
                             <div className="flex items-center gap-4">
-                                <span className="h5-new min-w-[max-content]  text-black-700">Collaborators ({data?.length || 1 - 1})</span>
+                                <span className="h5-new min-w-[max-content]  text-black-700">
+                                    {t('MEMBERS.COLLABORATORS.DEFAULT')} ({data?.length || 1 - 1})
+                                </span>
                                 <div className="lg:hidden">
                                     <InviteCollaboratorButton onClick={onClickInviteCollaboratorButton} />
                                 </div>
@@ -102,16 +104,16 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                 <div className="flex gap-2">
                     {isAdmin && (
                         <AppButton onClick={onClickEditButton} icon={<EditIcon />} variant={ButtonVariant.Ghost}>
-                            Edit
+                            {t('BUTTON.EDIT')}
                         </AppButton>
                     )}
                     <ActiveLink href={getWorkspaceUrl()} target="_blank" referrerPolicy="no-referrer">
                         <AppButton icon={<EyeIcon width={20} height={20} />} variant={ButtonVariant.Ghost}>
-                            Open Workspace
+                            {t('BUTTON.OPEN_WORKSPACE')}
                         </AppButton>
                     </ActiveLink>
                     <AppButton onClick={onClickShareWorkspaceButton} icon={<ShareIcon height={20} width={20} />} variant={ButtonVariant.Ghost}>
-                        Share Workspace
+                        {t('SHARE_WORKSPACE')}
                     </AppButton>
                 </div>
                 {isAdmin && <InviteCollaboratorButton onClick={onClickInviteCollaboratorButton} />}
@@ -121,9 +123,10 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
 };
 
 function InviteCollaboratorButton({ onClick }: { onClick: () => void }) {
+    const { t } = useTranslation();
     return (
         <AppButton onClick={onClick} icon={<PlusIcon width={20} height={20} />} variant={ButtonVariant.Ghost} size={ButtonSize.Small}>
-            Invite Collaborator
+            {t('BUTTON.INVITE_COLLABORATOR')}
         </AppButton>
     );
 }

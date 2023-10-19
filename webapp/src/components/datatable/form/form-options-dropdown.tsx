@@ -243,7 +243,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                         <ListItemIcon>
                             <CopyIcon width={20} height={20} />
                         </ListItemIcon>
-                        <span>Duplicate Form</span>
+                        <span>{t('FORM_MENU.DUPLICATE_FORM')}</span>
                     </MenuItem>
                 )}
 
