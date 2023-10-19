@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
 import LoadingIcon from '@Components/Common/Icons/Loading';
@@ -37,15 +38,21 @@ const SingleTemplate = (props: any) => {
     // @ts-ignore
     return (
         <Layout showNavbar className={'bg-white !px-0'}>
+            <NextSeo title={data?.title + ' | ' + workspace.workspaceName} noindex={false} nofollow={false} />
             <div className={'py-3 px-5 flex justify-between'}>
                 <div className="flex items-center gap-1 pt-2 cursor-pointer" onClick={handleClickBack}>
                     <ChevronForward className=" rotate-180 h-6 w-6 p-[2px] " />
                     <p className={'text-sm text-black-700 font-normal'}>Back</p>
                 </div>
                 <div className={'flex flex-row gap-4'}>
-                    <AppButton icon={<SettingsIcon />} variant={ButtonVariant.Ghost} onClick={() => openModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', { template: data })}>
-                        Settings
-                    </AppButton>
+                    {data?.workspaceId === workspace.id ? (
+                        <AppButton icon={<SettingsIcon />} variant={ButtonVariant.Ghost} onClick={() => openModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', { template: data })}>
+                            Settings
+                        </AppButton>
+                    ) : (
+                        <AppButton variant={ButtonVariant.Secondary}>Import Template</AppButton>
+                    )}
+
                     <AppButton>Use Template</AppButton>
                 </div>
             </div>
