@@ -12,6 +12,10 @@ class StandardTemplateSetting(BaseModel):
     is_public: Optional[bool] = False
 
 
+class StandardTemplateSettingsCamelModel(StandardTemplateSetting, CamelModel):
+    pass
+
+
 class StandardFormTemplate(BaseModel):
     id: Optional[PydanticObjectId]
     workspace_id: Optional[PydanticObjectId]
@@ -28,5 +32,13 @@ class StandardFormTemplate(BaseModel):
     imported_from: Optional[PydanticObjectId]
 
 
+class StandardFormTemplateResponse(StandardFormTemplate):
+    imported_from: Optional[str]
+
+
+class StandardFormTemplateResponseCamelModel(CamelModel, StandardFormTemplateResponse):
+    settings: StandardTemplateSettingsCamelModel = StandardTemplateSettingsCamelModel()
+
+
 class StandardFormTemplateCamelModel(CamelModel, StandardFormTemplate):
-    pass
+    settings: StandardTemplateSettingsCamelModel = StandardTemplateSettingsCamelModel()
