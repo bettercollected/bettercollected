@@ -28,7 +28,7 @@ export default function FormPage({ workspace, hasCustomDomain }: { workspace: Wo
     return (
         <SidebarLayout boxClassName="px-5 lg:px-10 pt-10">
             <NextSeo title={t(localesCommon.forms) + ' | ' + workspaceName} noindex={true} nofollow={true} />
-            {pinnedForms?.length > 0 && <WorkspaceDashboardPinnedForms workspacePinnedForms={pinnedFormsResponse} title="Pinned Forms" workspace={workspace} hasCustomDomain={hasCustomDomain} />}
+            {pinnedForms?.length > 0 && <WorkspaceDashboardPinnedForms workspacePinnedForms={pinnedFormsResponse} title={t('PINNED_FORMS')} workspace={workspace} hasCustomDomain={hasCustomDomain} />}
             <WorkspaceDashboardForms showPagination={true} showButtons={pinnedForms?.length === 0} workspace={workspace} hasCustomDomain={hasCustomDomain} />
         </SidebarLayout>
     );
