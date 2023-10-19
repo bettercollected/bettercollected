@@ -15,6 +15,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
 import AuthNavbar from '@app/components/auth/navbar';
 import Globe from '@app/components/icons/flags/globe';
+import { TemplateIcon } from '@app/components/icons/template';
 import DashboardDrawer from '@app/components/sidebar/dashboard-drawer';
 import { localesCommon } from '@app/constants/locales/common';
 import dashboardConstants from '@app/constants/locales/dashboard';
@@ -69,6 +70,12 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
             name: t(formConstant.deletionRequests),
             url: `${commonWorkspaceUrl}/deletion-requests`,
             icon: <DeleteIcon className="stroke-2" />
+        },
+        {
+            key: 'templates',
+            name: 'Templates',
+            url: `${commonWorkspaceUrl}/templates`,
+            icon: <TemplateIcon className={'stroke-2'} />
         }
     ];
     const bottomNavList: Array<INavbarItem> = [
