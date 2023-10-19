@@ -19,7 +19,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
     };
 
     return (
-        <div className={'flex flex-col gap-1'} onClick={handleClickCard}>
+        <div className={'flex flex-col gap-1 cursor-pointer'} onClick={handleClickCard}>
             <div className={'h-40 w-[205px] bg-blue-500'}>
                 <h1>sahdjhasjd</h1>
             </div>
