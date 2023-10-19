@@ -102,7 +102,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     const DeletedOn = ({ status, response }: { status: string; response: StandardFormResponseDto }) => {
         return (
             <div className="flex items-center gap-10 md:gap-20 xl:gap-40">
-                <span className="text-sm font-medium text-black-700">{status.toLowerCase() === 'pending' ? 'Not deleted yet' : utcToLocalDateTIme(response.updatedAt)}</span>
+                <span className="text-sm font-medium text-black-700">{status.toLowerCase() === 'pending' ? t('NOT_DELETED_YET') : utcToLocalDateTIme(response.updatedAt)}</span>
             </div>
         );
     };
@@ -164,7 +164,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 }
             },
             {
-                name: 'Deleted On',
+                name: t('DELETED_ON'),
                 selector: (row: StandardFormResponseDto) =>
                     DeletedOn({
                         status: row?.status || t(formConstant.status.pending),
