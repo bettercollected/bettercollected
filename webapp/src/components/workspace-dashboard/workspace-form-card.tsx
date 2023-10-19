@@ -77,15 +77,15 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
         return shareUrl;
     };
     const visibility = () => {
-        if (form?.settings?.private) {
-            return {
-                icon: <GroupIcon className={'h-4 w-4'} />,
-                type: 'Groups'
-            };
-        } else if (form?.settings?.hidden) {
+        if (form?.settings?.hidden) {
             return {
                 icon: <PrivateIcon />,
                 type: t(localesCommon.hidden)
+            };
+        } else if (form?.settings?.private) {
+            return {
+                icon: <GroupIcon className={'h-4 w-4'} />,
+                type: 'Groups'
             };
         } else {
             return {
