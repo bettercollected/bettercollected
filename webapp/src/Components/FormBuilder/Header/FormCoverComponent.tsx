@@ -9,7 +9,7 @@ import { SetStateAction } from 'jotai';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
 import Upload from '@app/components/icons/upload';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { selectBuilderState, selectCoverImage } from '@app/store/form-builder/selectors';
 import { IBuilderState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -20,13 +20,21 @@ interface IFormCoverComponent {
 }
 
 const FormCoverComponent = (props: IFormCoverComponent) => {
+    // Props
     const { setIsCoverClicked, imagesRemoved, setImagesRemoved } = props;
+
+    // State
     const [imageURL, setImageURL] = useState<string>('');
-    const [showButtonsOnHOver, setShowButtonsOnHOver] = useState(false);
+    const [showButtonsOnHover, setShowButtonsOnHover] = useState(false);
     const [isSaveButtonClicked, setIsSaveButtonClicked] = useState(false);
+
+    // Ref
     const inputRef = useRef<HTMLInputElement | null>(null);
-    const { setCoverImage, resetImages } = useFormBuilderAtom();
-    const builderState: IBuilderState = useAppSelector(selectBuilderState);
+
+    // Hooks
+    const { setCoverImage } = useFormBuilderAtom();
+    const coverImage = useAppSelector(selectCoverImage);
+
     const handleFileChange = (event: any) => {
         if (!event.target.files.length) return;
         setImageURL(URL.createObjectURL(event.target.files[0]));
@@ -34,10 +42,10 @@ const FormCoverComponent = (props: IFormCoverComponent) => {
     };
 
     const handleOnMouseEnter = (event: any) => {
-        setShowButtonsOnHOver(true);
+        setShowButtonsOnHover(true);
     };
     const handleOnMouseLeave = (event: any) => {
-        setShowButtonsOnHOver(false);
+        setShowButtonsOnHover(false);
     };
 
     const onClickRemoveButton = () => {
@@ -79,8 +87,8 @@ const FormCoverComponent = (props: IFormCoverComponent) => {
     const getImageComponent = (url: string) => {
         return (
             <>
-                <Image layout="fill" objectFit="cover" src={url} alt="test" objectPosition="center" className={cn(showButtonsOnHOver && 'brightness-75')} />
-                {showButtonsOnHOver && <HoveredButtons onClickUpdateButton={onClickUpdateButton} onClickRemoveButton={onClickRemoveButton} />}
+                <Image layout="fill" objectFit="cover" src={url} alt="test" objectPosition="center" className={cn(showButtonsOnHover && 'brightness-75')} />
+                {showButtonsOnHover && <HoveredButtons onClickUpdateButton={onClickUpdateButton} onClickRemoveButton={onClickRemoveButton} />}
             </>
         );
     };
@@ -90,13 +98,13 @@ const FormCoverComponent = (props: IFormCoverComponent) => {
             <input type="file" id="form_banner" ref={inputRef} accept="image/*" hidden onChange={handleFileChange} />
             {imageURL ? (
                 <div className="relative z-0 w-full  aspect-banner-mobile lg:aspect-banner-desktop" onMouseEnter={handleOnMouseEnter} onMouseLeave={handleOnMouseLeave}>
-                    {isSaveButtonClicked ? getImageComponent(imageURL) : <DragImagePositionComponent imageURL={imageURL} showButtonsOnHOver={showButtonsOnHOver} onClickCancelButton={onClickCancelButton} onClickSaveButton={onClickSaveButton} />}
+                    {isSaveButtonClicked ? getImageComponent(imageURL) : <DragImagePositionComponent imageURL={imageURL} showButtonsOnHOver={showButtonsOnHover} onClickCancelButton={onClickCancelButton} onClickSaveButton={onClickSaveButton} />}
                 </div>
             ) : (
                 <>
-                    {builderState?.coverImage ? (
+                    {coverImage ? (
                         <div className="relative z-0 w-full aspect-banner-mobile lg:aspect-banner-desktop" onMouseEnter={handleOnMouseEnter} onMouseLeave={handleOnMouseLeave}>
-                            {getImageComponent(builderState?.coverImage || '')}
+                            {getImageComponent(coverImage || '')}
                         </div>
                     ) : (
                         <EmptyCoverItems onClickUpdateButton={onClickUpdateButton} onClickRemoveButton={onClickRemoveButton} />

@@ -10,27 +10,29 @@ import TermsAndCondition from '@Components/Consent/TermsAndCondition';
 
 import useForm from '@app/lib/hooks/use-form';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { usePublishFormMutation } from '@app/store/workspaces/api';
+import { usePatchFormSettingsMutation, usePublishFormMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function ConsentBuilderConfirmationModalView() {
     const router = useRouter();
     const { error, setError } = useForm();
     const [formPurposeTermChecked, setFormPurposeTermChecked] = useState(true);
+    const form = useAppSelector(selectForm);
+    const [makeFormPublic, setMakeFormPublic] = useState(!form?.isPublished);
     const [publishForm, { isLoading }] = usePublishFormMutation();
+    const [patchFormSettings] = usePatchFormSettingsMutation();
     const builderState = useAppSelector(selectBuilderState);
     const workspace = useAppSelector(selectWorkspace);
 
     const handleFormPurposeTermChange = (checked: boolean) => {
         setFormPurposeTermChecked(checked);
     };
-    const formPurposeTermsAndConditionDetails = (
-        <TermsAndCondition onAgree={handleFormPurposeTermChange} className="border-b border-new-black-300 p-5">
-            <TermsAndCondition.Title>{`I have mentioned all the form's purposes.`}</TermsAndCondition.Title>
-            <TermsAndCondition.Description>{`This confirms that you have clearly mentioned all the purposes for which data is being collected in your forms.`}</TermsAndCondition.Description>
-        </TermsAndCondition>
-    );
+
+    const handleMakeFormPublicChanged = (checked: boolean) => {
+        setMakeFormPublic(checked);
+    };
 
     useEffect(() => {
         const blockEscape = (event: KeyboardEvent) => {
@@ -50,6 +52,18 @@ export default function ConsentBuilderConfirmationModalView() {
             return;
         }
         try {
+            if (!form?.isPublished) {
+                const request = {
+                    workspaceId: workspace.id,
+                    formId: form.formId,
+                    body: {
+                        private: !makeFormPublic,
+                        hidden: !makeFormPublic
+                    }
+                };
+                const patchSettingsResponse = await patchFormSettings(request);
+                debugger;
+            }
             const response: any = await publishForm({ workspaceId: workspace.id, formId: builderState.id });
             if (response.data) {
                 router.push(`/${workspace.workspaceName}/dashboard/forms/${builderState.id}`);
@@ -70,6 +84,16 @@ export default function ConsentBuilderConfirmationModalView() {
                     <TermsAndCondition.Title>{`I have mentioned all the form's purposes.`}</TermsAndCondition.Title>
                     <TermsAndCondition.Description>{`This confirms that you have clearly mentioned all the purposes for which data is being collected in your forms.`}</TermsAndCondition.Description>
                 </TermsAndCondition>
+
+                {!form?.isPublished && (
+                    <TermsAndCondition selected={makeFormPublic} onAgree={handleMakeFormPublicChanged} className="border-b border-new-black-300 p-5">
+                        <TermsAndCondition.Title>
+                            {`Make form `}
+                            <span className="text-pink-600">Public</span>
+                        </TermsAndCondition.Title>
+                        <TermsAndCondition.Description>{`This form is public for anyone with the link or visible to all responders in your workspace. Otherwise, it's private, and the link won't work, keeping the form hidden from your workspace.`}</TermsAndCondition.Description>
+                    </TermsAndCondition>
+                )}
             </div>
             <div className="p-10">
                 {error && <ErrorText text="Please accept all terms and conditions before proceeding." />}

@@ -6,14 +6,14 @@ import FieldOptions from '@Components/FormBuilder/FieldOptions/FieldOptions';
 
 import { useModal } from '@app/components/modal-views/context';
 import { resetBuilderMenuState, setDeleteField } from '@app/store/form-builder/actions';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
+import { selectActiveFieldId, selectBuilderState } from '@app/store/form-builder/selectors';
 import { useAppAsyncDispatch, useAppSelector } from '@app/store/hooks';
 
 const FormBuilderActionMenu = ({ id, provided, className = '', index }: any) => {
     const { openModal } = useModal();
     const asyncDispatch = useAppAsyncDispatch();
 
-    const activeField = useAppSelector(selectBuilderState).activeFieldId;
+    const activeField = useAppSelector(selectActiveFieldId);
 
     return (
         <div className={`builder-block-actions flex justify-start items-center min-h-6 rounded-sm w-fit ${id === activeField ? '!text-black-800' : 'text-black-600'}  gap-1 bg-white md:bg-transparent  ${className}`}>

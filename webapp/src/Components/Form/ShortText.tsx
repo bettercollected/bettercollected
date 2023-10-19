@@ -106,6 +106,7 @@ export default function ShortText({ ans, enabled, field, helperText }: IShortTex
                         outline: 'gray'
                     }
                 }}
+                id={`input-${field.id}`}
                 fullWidth
                 onChange={onChange}
             />
