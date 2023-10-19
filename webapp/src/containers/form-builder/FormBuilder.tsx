@@ -17,6 +17,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { DragStart, DragUpdate, DropResult, ResponderProvided } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 import { batch } from 'react-redux';
+import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
@@ -33,6 +34,7 @@ import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useCreateTemplateFromFormMutation } from '@app/store/template/api';
 import { usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
@@ -81,6 +83,9 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
     // Callbacks and Refs
     const onBlurCallbackRef = useRef<any>(null);
     //
+
+    // RTK
+    const [createFormAsTemplate] = useCreateTemplateFromFormMutation();
 
     useEffect(() => {
         setShowLogo(!!builderState.logo);
@@ -173,6 +178,24 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
         }
     };
 
+    const onSaveAsTemplate = async () => {
+        try {
+            const request = {
+                workspace_id: workspace.id,
+                form_id: form_id as string
+            };
+            const response: any = await createFormAsTemplate(request);
+            if (response?.data) {
+                toast('Created Successfully', { type: 'success' });
+                router.replace(`/${workspace.workspaceName}/dashboard/templates`);
+            } else {
+                toast('Error Occurred').toString(), { type: 'error' };
+            }
+        } catch (err) {
+            toast('Error Occurred').toString(), { type: 'error' };
+        }
+    };
+
     const saveFormDebounced = useCallback(
         _.debounce((builderState, consentState, headerImages) => onFormSave(builderState, consentState, headerImages), 2000),
         []
@@ -247,6 +270,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
                 onFormPublish={onFormPublish}
                 onClickSettings={onClickSettings}
                 onClickTips={onClickTips}
+                onSaveAsTemplate={onSaveAsTemplate}
                 isUpdating={patching}
             />
             {showCover && <FormCoverComponent setIsCoverClicked={setShowCover} imagesRemoved={imagesRemoved} setImagesRemoved={setImagesRemoved} />}
