@@ -19,11 +19,11 @@ from backend.config import settings
 
 class FormTemplateService:
     def __init__(
-            self,
-            workspace_user_service: WorkspaceUserService,
-            form_template_repo: FormTemplateRepository,
-            aws_service: AWSS3Service,
-            workspace_form_service: WorkspaceFormService,
+        self,
+        workspace_user_service: WorkspaceUserService,
+        form_template_repo: FormTemplateRepository,
+        aws_service: AWSS3Service,
+        workspace_form_service: WorkspaceFormService,
     ):
         self.workspace_user_service = workspace_user_service
         self.form_template_repo = form_template_repo
@@ -39,11 +39,12 @@ class FormTemplateService:
             await self.workspace_user_service.check_user_has_access_in_workspace(
                 workspace_id=workspace_id, user=user
             )
-        return await self.form_template_repo.get_templates_with_creator(workspace_id=workspace_id,
-                                                                        predefined_workspace=predefined_workspace)
+        return await self.form_template_repo.get_templates_with_creator(
+            workspace_id=workspace_id, predefined_workspace=predefined_workspace
+        )
 
     async def get_template_by_id(
-            self, workspace_id: PydanticObjectId, user: User, template_id: PydanticObjectId
+        self, workspace_id: PydanticObjectId, user: User, template_id: PydanticObjectId
     ):
         if not workspace_id:
             workspace_id = settings.template_settings.PREDEFINED_WORKSPACE_ID
@@ -61,7 +62,7 @@ class FormTemplateService:
         return template
 
     async def import_form_to_workspace(
-            self, workspace_id: PydanticObjectId, user: User, template_id: PydanticObjectId
+        self, workspace_id: PydanticObjectId, user: User, template_id: PydanticObjectId
     ):
         await self.get_template_by_id(
             workspace_id=workspace_id, user=user, template_id=template_id
@@ -71,7 +72,7 @@ class FormTemplateService:
         )
 
     async def create_form_from_template(
-            self, workspace_id: PydanticObjectId, template_id: PydanticObjectId, user: User
+        self, workspace_id: PydanticObjectId, template_id: PydanticObjectId, user: User
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -85,12 +86,12 @@ class FormTemplateService:
         )
 
     async def create_new_template(
-            self,
-            workspace_id: PydanticObjectId,
-            logo: UploadFile,
-            cover_image: UploadFile,
-            user: User,
-            template_body: StandardFormTemplate,
+        self,
+        workspace_id: PydanticObjectId,
+        logo: UploadFile,
+        cover_image: UploadFile,
+        user: User,
+        template_body: StandardFormTemplate,
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -113,13 +114,13 @@ class FormTemplateService:
         )
 
     async def update_template(
-            self,
-            workspace_id: PydanticObjectId,
-            template_id: PydanticObjectId,
-            user: User,
-            template_body: StandardFormTemplate,
-            logo: UploadFile,
-            cover_image: UploadFile,
+        self,
+        workspace_id: PydanticObjectId,
+        template_id: PydanticObjectId,
+        user: User,
+        template_body: StandardFormTemplate,
+        logo: UploadFile,
+        cover_image: UploadFile,
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -144,7 +145,7 @@ class FormTemplateService:
             cover_image_url = await self._aws_service.upload_file_to_s3(
                 file=cover_image.file,
                 key=str(template_id)
-                    + f"_cover{os.path.splitext(cover_image.filename)[1]}",
+                + f"_cover{os.path.splitext(cover_image.filename)[1]}",
                 previous_image=template.cover_image,
             )
             template_body.cover_image = cover_image_url
@@ -158,8 +159,13 @@ class FormTemplateService:
             template_id=template_id, template_body=template_body
         )
 
-    async def update_template_settings(self, workspace_id: PydanticObjectId, template_id: PydanticObjectId, user: User,
-                                       settings: StandardTemplateSetting):
+    async def update_template_settings(
+        self,
+        workspace_id: PydanticObjectId,
+        template_id: PydanticObjectId,
+        user: User,
+        settings: StandardTemplateSetting,
+    ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
@@ -174,7 +180,7 @@ class FormTemplateService:
         return template
 
     async def delete_template(
-            self, workspace_id: PydanticObjectId, template_id: PydanticObjectId, user: User
+        self, workspace_id: PydanticObjectId, template_id: PydanticObjectId, user: User
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
