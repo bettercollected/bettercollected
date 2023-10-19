@@ -96,7 +96,7 @@ class FormTemplateRouter(Routable):
         return response
 
     @post("/workspaces/{workspace_id}/template/{template_id}/import",
-          response_model=StandardFormTemplateResponseCamelModel
+          response_model=StandardFormTemplateCamelModel
           )
     async def import_template_to_workspace(
             self,
