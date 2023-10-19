@@ -37,7 +37,8 @@ export type MODAL_VIEW =
     | 'MOBILE_INSERT_MENU'
     | 'VISIBILITY_CONFIRMATION_MODAL_VIEW'
     | 'CLOSE_FORM_CONFIRMATION_MODAL'
-    | 'REOPEN_FORM_CONFIRMATION_MODAL';
+    | 'REOPEN_FORM_CONFIRMATION_MODAL'
+    | 'DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 
