@@ -16,7 +16,7 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import { localesCommon } from '@app/constants/locales/common';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
-import { useGetTemplateByIdQuery, useImportTemplateMutation } from '@app/store/template/api';
+import { useCreateFormFromTemplateMutation, useGetTemplateByIdQuery, useImportTemplateMutation } from '@app/store/template/api';
 import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
 
 const SingleTemplate = (props: any) => {
@@ -26,9 +26,8 @@ const SingleTemplate = (props: any) => {
     const { t } = useTranslation();
 
     const [importTemplate] = useImportTemplateMutation();
-    if (notFound) {
-        return <div>Not Found</div>;
-    }
+    const [createFormFromTemplate] = useCreateFormFromTemplateMutation();
+
     const { data, isLoading } = useGetTemplateByIdQuery({
         workspace_id: workspace.id,
         template_id: templateId
@@ -41,17 +40,35 @@ const SingleTemplate = (props: any) => {
         router.push(`/${workspace.workspaceName}/dashboard/templates`);
     };
 
+    const request = {
+        workspace_id: workspace.id,
+        template_id: templateId
+    };
+
     const handleImportTemplate = async () => {
-        const request = {
-            workspace_id: workspace.id,
-            template_id: templateId
-        };
-        const response: any = await importTemplate(request);
-        if (response?.data) {
-            toast('Imported Successfully', { type: 'success' });
-            console.log('response', response?.data);
-            await router.replace(`/${workspace.workspaceName}/templates/${response?.data?.id}`);
-        } else {
+        try {
+            const response: any = await importTemplate(request);
+            if (response?.data) {
+                toast('Imported Successfully', { type: 'success' });
+                await router.replace(`/${workspace.workspaceName}/templates/${response?.data?.id}`);
+            } else {
+                toast('Error Occurred').toString(), { type: 'error' };
+            }
+        } catch (err) {
+            toast('Error Occurred').toString(), { type: 'error' };
+        }
+    };
+
+    const handleUseTemplate = async () => {
+        try {
+            const response: any = await createFormFromTemplate(request);
+            if (response?.data) {
+                toast('Created Form Successfully', { type: 'success' });
+                await router.replace(`/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`);
+            } else {
+                toast('Error Occurred').toString(), { type: 'error' };
+            }
+        } catch (err) {
             toast('Error Occurred').toString(), { type: 'error' };
         }
     };
@@ -76,7 +93,7 @@ const SingleTemplate = (props: any) => {
                         </AppButton>
                     )}
 
-                    <AppButton>Use Template</AppButton>
+                    <AppButton onClick={handleUseTemplate}>Use Template</AppButton>
                 </div>
             </div>
 
