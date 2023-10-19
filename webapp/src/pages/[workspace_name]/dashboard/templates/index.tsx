@@ -1,25 +1,27 @@
 import React from 'react';
 
+import { NextSeo } from 'next-seo';
+
 import LoadingIcon from '@Components/Common/Icons/Loading';
 import TemplateSection from '@Components/Template/TemplateSection';
 
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import environments from '@app/configs/environments';
+import { localesCommon } from '@app/constants/locales/common';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useGetTemplatesQuery } from '@app/store/template/api';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 const TemplatePage = (props: any) => {
     const { predefined_templates, workspace, notFound } = props;
-    console.log('predefined', predefined_templates);
     const { data, isLoading } = useGetTemplatesQuery(workspace?.id);
-    console.log('workspace_template', data);
     if (isLoading) {
         return <LoadingIcon />;
     }
     const p = [...predefined_templates, ...predefined_templates, ...predefined_templates];
     return (
         <SidebarLayout boxClassName=" h-full">
+            <NextSeo title={'Templates | ' + workspace.workspaceName} noindex={false} nofollow={false} />
             <TemplateSection title={'Default'} templates={p} className={'h-[400px] overflow-hidden'} />
             <TemplateSection title={'Your Workspace'} templates={data} />
         </SidebarLayout>

@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
 import TemplateSection from '@Components/Template/TemplateSection';
@@ -23,6 +24,7 @@ const TemplateAllPages = (props: any) => {
     };
     return (
         <Layout showNavbar className={'bg-white !px-0'}>
+            <NextSeo title={'All-Templates | ' + workspace.workspaceName} noindex={false} nofollow={false} />
             <div className="flex w-full items-center gap-1 px-5 pt-2 cursor-pointer" onClick={handleClickBack}>
                 <ChevronForward className=" rotate-180 h-6 w-6 p-[2px] " />
                 <p className={'text-sm text-black-700 font-normal'}>Back</p>
