@@ -2,10 +2,12 @@ import React, { useRef } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
-import Image from 'next/image';
 import { useRouter } from 'next/router';
 
+import SmallLogo from '@Components/Common/Icons/SmallLogo';
 import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import HeaderImageWrapper from '@Components/Common/Wrapper/HeaderImageWrapper';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import { ChevronLeft } from '@mui/icons-material';
 import { Widget } from '@typeform/embed-react';
@@ -53,41 +55,50 @@ export default function SingleFormPage(props: any) {
 
     if (data && isFormClosed)
         return (
-            <div className="h-screen w-screen bg-white flex flex-col items-center">
-                <div className=" w-full aspect-banner-mobile  lg:aspect-thank_you_cover  relative flex items-center justify-center">
-                    <Image src="/images/thankyou_cover.png" layout="fill" objectFit="cover" alt="ALternative" />
-                </div>
+            <HeaderImageWrapper>
                 <div className="px-5  flex flex-col items-center">
                     <div className="h2-new text-black-800 font-bold mt-[60px] ">This Form Is Closed</div>
                     <div className="h4-new text-black-800 mt-4 text-center">The form &quot;{form?.title || 'Untitled'}&quot; is no longer accepting responses.</div>
                     <div className="p2-new mt-2 text-black-700 text-sm text-center">Try contacting the owner of the form if you think that this is a mistake.</div>
                 </div>
                 {showBranding && <PoweredBy />}
-            </div>
+            </HeaderImageWrapper>
         );
 
     // @ts-ignore
     if (error && error?.status === 401) {
         return (
-            <div className="min-h-screen min-w-screen  flex flex-col items-center justify-center">
-                <span>You are trying to access a private form. Please login to continue.</span>
+            <HeaderImageWrapper className="my-16">
+                <span className="text-black-700 mb-5">You are trying to access a private form. Please login to continue.</span>
                 <AppButton
+                    size={ButtonSize.Medium}
                     onClick={() => {
                         openModal('LOGIN_VIEW');
                     }}
                 >
                     Login
                 </AppButton>
-            </div>
+            </HeaderImageWrapper>
         );
     }
 
     if (error) {
         return (
-            <div className="min-h-screen min-w-screen text-center flex items-center justify-center">
-                Error loading form!! <br />
-                Either the form does not exist or you do not have access to this form.
-            </div>
+            <HeaderImageWrapper className="my-16 gap-4">
+                <div className="flex flex-col gap-2 items-center">
+                    <span className="h4-new text-black-800">Error loading form!!</span>
+                    <span className="p2-new text-black-700 text-center">Either the form does not exist or you do not have access to this form.</span>
+                </div>
+                <div
+                    className={`px-3 py-2 flex gap-2 cursor-pointer mt-10 bg-white items-center rounded-md border-gray-200 border-[2px]`}
+                    onClick={() => {
+                        router.push('https://bettercollected.com');
+                    }}
+                >
+                    <SmallLogo className="w-6 h-6" />
+                    <span className="body3 text-black-700">Try bettercollected</span>
+                </div>
+            </HeaderImageWrapper>
         );
     }
     if (isLoading) return <FullScreenLoader />;

@@ -17,7 +17,7 @@ import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addDuplicateField, setAddNewField, setDeleteField, setIdentifierField } from '@app/store/form-builder/actions';
-import { selectBuilderState, selectFormField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
+import { selectActiveFieldId, selectActiveFieldIndex, selectBuilderState, selectFormField, selectPreviousField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
@@ -29,13 +29,22 @@ interface IFieldOptionsProps {
 }
 
 export default function FieldOptions({ provided, id, position }: IFieldOptionsProps) {
-    const field: IFormFieldState = useAppSelector(selectFormField(id));
-    const dispatch = useAppDispatch();
-    const responseOwnerField = useAppSelector(selectResponseOwnerField);
-    const [open, setOpen] = useState(false);
+    // Hooks
     const { t } = useBuilderTranslation();
-    const builderState = useAppSelector(selectBuilderState);
     const isMobile = useIsMobile();
+
+    // Redux State
+    const field: IFormFieldState = useAppSelector(selectFormField(id));
+    const responseOwnerField = useAppSelector(selectResponseOwnerField);
+    const activeFieldId = useAppSelector(selectActiveFieldId);
+    const previousField = useAppSelector(selectPreviousField(id));
+
+    // Redux Dispatch
+    const dispatch = useAppDispatch();
+
+    // Local State
+    const [open, setOpen] = useState(false);
+
     const duplicateField = () => {
         const newField: IFormFieldState = { ...field };
         newField.id = uuidv4();
@@ -61,12 +70,11 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
 
     const hasLabelField = () => {
         if (NonInputFormBuilderTagNames.includes(field.type)) return true;
-        const previousField: any = Object.values(builderState.fields)[field.position - 1];
         return previousField?.type === FormBuilderTagNames.LAYOUT_LABEL;
     };
 
     const addFieldLabel = () => {
-        dispatch(setAddNewField(createNewField(builderState.activeFieldIndex - 1, FormBuilderTagNames.LAYOUT_LABEL)));
+        dispatch(setAddNewField(createNewField(position - 1, FormBuilderTagNames.LAYOUT_LABEL)));
     };
 
     return (
@@ -99,7 +107,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
             menuTitle={t('COMPONENTS.OPTIONS.TOOLTIP_TITLE')}
             menuContent={
                 <div className={`flex items-center justify-center cursor-pointer rounded-sm`} {...provided.dragHandleProps} tabIndex={-1}>
-                    <DragHandleIcon className={builderState.activeFieldId === id ? 'text-black-800' : 'text-black-600'} tabIndex={-1} width={24} height={24} />
+                    <DragHandleIcon className={activeFieldId === id ? 'text-black-800' : 'text-black-600'} tabIndex={-1} width={24} height={24} />
                 </div>
             }
         >

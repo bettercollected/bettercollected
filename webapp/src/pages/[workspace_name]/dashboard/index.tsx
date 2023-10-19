@@ -1,10 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { escapeRegExp } from 'lodash';
-
-import SearchInput from '@Components/Common/Search/SearchInput';
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 
@@ -16,7 +13,7 @@ import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
-import { useGetWorkspaceFormsQuery, useSearchWorkspaceFormsMutation } from '@app/store/workspaces/api';
+import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function CreatorDashboard({ hasCustomDomain, ...props }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
@@ -31,7 +28,7 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
         pinned_only: true
     };
 
-    const pinnedFormsResponse = useGetWorkspaceFormsQuery(pinnedFormsQuery);
+    const pinnedFormsResponse = useGetWorkspaceFormsQuery(pinnedFormsQuery, { skip: !workspace.id });
     const pinnedForms = pinnedFormsResponse?.data?.items || [];
 
     return (
@@ -89,7 +86,7 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                 <WorkspaceDashboardOverview workspace={props.workspace} />
             </div>
             <div className="px-5 pt-12 lg:px-10">
-                {pinnedForms?.length > 0 && <WorkspaceDashboardPinnedForms workspacePinnedForms={pinnedFormsResponse} title="Pinned Forms" workspace={workspace} hasCustomDomain={hasCustomDomain} />}
+                {pinnedForms?.length > 0 && <WorkspaceDashboardPinnedForms workspacePinnedForms={pinnedFormsResponse} title={t('PINNED_FORMS')} workspace={workspace} hasCustomDomain={hasCustomDomain} />}
                 <WorkspaceDashboardForms showButtons={pinnedForms?.length === 0} workspace={workspace} hasCustomDomain={hasCustomDomain} />
             </div>
         </DashboardLayout>

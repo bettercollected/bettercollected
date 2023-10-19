@@ -186,7 +186,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             }}
         >
             <ListItemIcon>
-                <EditIcon width={20} height={20} className="text-black-900 stroke-[1.5]" />
+                <EditIcon width={20} height={20} className="text-black-800 stroke-[1]" />
             </ListItemIcon>
             {t(buttonConstant.customizeLink)}
         </MenuItem>
@@ -231,25 +231,25 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCopy}
                 {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCustomizeLink}
                 {form?.isPublished && menuItemAddToGroup}
-                {form?.isPublished && (
-                    <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)}>
-                        <ListItemIcon>{!currentActiveForm?.form?.settings?.private ? <PrivateIcon width={20} height={20} /> : <PublicIcon width={20} height={20} />}</ListItemIcon>
-                        <span>{t(!currentActiveForm?.form?.settings?.hidden ? formConstant.menu.makeFormPrivate : formConstant.menu.makeFormPublic)}</span>
-                    </MenuItem>
-                )}
+                {/*{form?.isPublished && (*/}
+                {/*    <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)}>*/}
+                {/*        <ListItemIcon>{!currentActiveForm?.form?.settings?.private ? <PrivateIcon width={20} height={20} /> : <PublicIcon width={20} height={20} />}</ListItemIcon>*/}
+                {/*        <span>{t(!currentActiveForm?.form?.settings?.hidden ? formConstant.menu.makeFormPrivate : formConstant.menu.makeFormPublic)}</span>*/}
+                {/*    </MenuItem>*/}
+                {/*)}*/}
 
                 {form?.settings?.provider === 'self' && (
                     <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={handleDuplicateFrom}>
                         <ListItemIcon>
                             <CopyIcon width={20} height={20} />
                         </ListItemIcon>
-                        <span>Duplicate Form</span>
+                        <span>{t('FORM_MENU.DUPLICATE_FORM')}</span>
                     </MenuItem>
                 )}
 
                 <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4">
                     <ListItemIcon>
-                        <DeleteIcon width={20} height={20} className="text-black-900" strokeWidth={1} />
+                        <DeleteIcon width={20} height={20} className="text-black-800" strokeWidth={1} />
                     </ListItemIcon>
                     <span>{t(formConstant.menu.deleteForm)}</span>
                 </MenuItem>

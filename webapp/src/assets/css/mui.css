@@ -1,0 +1,18 @@
+.css-3dah0e-MuiModal-root-MuiDialog-root {
+    position: fixed;
+    z-index: 10000 !important;
+    right: 0;
+    bottom: 0;
+    top: 0;
+    left: 0;
+}
+
+.css-1nf2ro8 {
+    position: fixed;
+    z-index: 10000 !important;
+    inset: 0px;
+}
+
+.MuiPopper-root {
+    z-index: 10000 !important
+}

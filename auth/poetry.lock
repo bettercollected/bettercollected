@@ -216,18 +216,18 @@ files = [
 
 [[package]]
 name = "boto3"
-version = "1.28.59"
+version = "1.28.64"
 description = "The AWS SDK for Python"
 category = "main"
 optional = false
 python-versions = ">= 3.7"
 files = [
-    {file = "boto3-1.28.59-py3-none-any.whl", hash = "sha256:7623b52c135becf145f762a9cc4203a1fb30055bb1cc7a254f82e5f7954d44a1"},
-    {file = "boto3-1.28.59.tar.gz", hash = "sha256:aa861e5568a564a5ce2fff5413d6ae2cda0eed7399b3a949bc861a20915e2046"},
+    {file = "boto3-1.28.64-py3-none-any.whl", hash = "sha256:a99150a30c038c73e89662836820a8cce914afab5ea377942a37c484b85f4438"},
+    {file = "boto3-1.28.64.tar.gz", hash = "sha256:a5cf93b202568e9d378afdc84be55a6dedf11d30156289fe829e23e6d7dccabb"},
 ]
 
 [package.dependencies]
-botocore = ">=1.31.59,<1.32.0"
+botocore = ">=1.31.64,<1.32.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.7.0,<0.8.0"
 
@@ -236,20 +236,20 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.31.59"
+version = "1.31.64"
 description = "Low-level, data-driven core of boto 3."
 category = "main"
 optional = false
 python-versions = ">= 3.7"
 files = [
-    {file = "botocore-1.31.59-py3-none-any.whl", hash = "sha256:6485a700744c60fcbf4bba4fcacb22067f601e79fb0c27fae04cf07b03c5e8f9"},
-    {file = "botocore-1.31.59.tar.gz", hash = "sha256:159f637300206a0b37b49c1bee61265650843f591e9cb62e9adcb3d1c2afec91"},
+    {file = "botocore-1.31.64-py3-none-any.whl", hash = "sha256:7b709310343a5b430ec9025b2e17c0bac6b16c05f1ac1d9521dece3f10c71bac"},
+    {file = "botocore-1.31.64.tar.gz", hash = "sha256:d8eb4b724ac437343359b318d73de0cfae0fecb24095827e56135b0ad6b44caf"},
 ]
 
 [package.dependencies]
 jmespath = ">=0.7.1,<2.0.0"
 python-dateutil = ">=2.1,<3.0.0"
-urllib3 = ">=1.25.4,<1.27"
+urllib3 = {version = ">=1.25.4,<2.1", markers = "python_version >= \"3.10\""}
 
 [package.extras]
 crt = ["awscrt (==0.16.26)"]
@@ -506,7 +506,7 @@ category = "main"
 optional = false
 python-versions = "^3.10"
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 beanie = "^1.17.0"
@@ -3194,4 +3194,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "f283e4c15b389f886bfdb1f50df9e8453f6c9cdf399c02fa825bbde8eddea5ce"
+content-hash = "1be594f5c15d15319d615991c561e251dc4c11e9846597ec79dd097b9331eaa8"
