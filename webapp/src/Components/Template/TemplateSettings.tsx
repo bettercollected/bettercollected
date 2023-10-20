@@ -26,14 +26,12 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 const TemplateSettings = ({ template }: { template: IFormTemplateDto }) => {
     const { t } = useTranslation();
-    const router = useRouter();
     const [templateVisibility, setTemplateVisibility] = useState(template?.settings?.isPublic ? 'Public' : 'Private');
     const { openModal } = useModal();
     const workspace = useAppSelector(selectWorkspace);
     const adminHost = `${environments.ADMIN_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.ADMIN_DOMAIN}/templates/${template.id}`;
 
     const [updateTemplateSettings] = usePatchTemplateSettingsMutation();
-    const [deleteTemplate] = useDeleteTemplateMutation();
 
     const patchSettings = async (isPublic: boolean) => {
         const request = {
@@ -64,23 +62,6 @@ const TemplateSettings = ({ template }: { template: IFormTemplateDto }) => {
             },
             isTemplate: true
         });
-    };
-
-    const handleDeleteTemplate = async () => {
-        try {
-            const response: any = await deleteTemplate({
-                workspace_id: workspace?.id,
-                template_id: template?.id
-            });
-            if (response?.data) {
-                toast('Deleted Successfully', { type: 'success' });
-                router.replace(`/${workspace.workspaceName}/dashboard/templates`);
-            } else {
-                toast('Error Occurred').toString(), { type: 'error' };
-            }
-        } catch (err) {
-            toast('Error Occurred').toString(), { type: 'error' };
-        }
     };
 
     return (
@@ -130,7 +111,7 @@ const TemplateSettings = ({ template }: { template: IFormTemplateDto }) => {
                 <h1 className={'text-base font-medium text-black-800 pb-4'}>Delete Template</h1>
                 <Divider />
                 <p className={'text-sm font-normal text-black-700'}>Once you delete a template, it will be permanently removed, and no one with the link will be able to access it.</p>
-                <AppButton className={'md: w-[140px]'} variant={ButtonVariant.Danger} onClick={() => openModal('DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW', { handleDelete: handleDeleteTemplate })}>
+                <AppButton className={'md: w-[140px]'} variant={ButtonVariant.Danger} onClick={() => openModal('DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW', { template })}>
                     Delete Template
                 </AppButton>
                 <Divider />
