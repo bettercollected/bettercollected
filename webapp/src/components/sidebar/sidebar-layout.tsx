@@ -74,7 +74,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
         },
         {
             key: 'templates',
-            name: 'Templates',
+            name: t('TEMPLATE.TEMPLATES'),
             url: `${commonWorkspaceUrl}/templates`,
             icon: <TemplateIcon className={'stroke-2'} />
         }

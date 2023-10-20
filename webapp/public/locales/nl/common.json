@@ -616,6 +616,10 @@
     "TITLE": "Servicevoorwaarden",
     "DESCRIPTION": "Onze Servicevoorwaarden bepalen de regels en richtlijnen voor het gebruik van onze services."
   },
+  "TEMPLATE": {
+    "TEMPLATES": "Sjablonen",
+    "DELETE_TEMPLATE": "Sjabloon Verwijderen"
+  },
   "TOAST": {
     "COPIED": "Gekopieerd!",
     "COULD_NOT_IMPORT_FORM": "Kan het formulier niet importeren.",

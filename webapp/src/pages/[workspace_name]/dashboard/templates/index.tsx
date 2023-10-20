@@ -22,7 +22,7 @@ const TemplatePage = (props: any) => {
     return (
         <SidebarLayout boxClassName=" h-full">
             <NextSeo title={'Templates | ' + workspace.workspaceName} noindex={false} nofollow={false} />
-            <TemplateSection title={'Default'} templates={p} className={'h-[400px] overflow-hidden'} />
+            {predefined_templates && Array.isArray(predefined_templates) && predefined_templates.length > 0 && <TemplateSection title={'Default'} templates={predefined_templates} className={'h-[400px] overflow-hidden'} />}
             <TemplateSection title={'Your Workspace'} templates={data} />
         </SidebarLayout>
     );
