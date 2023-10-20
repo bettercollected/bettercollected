@@ -7,12 +7,11 @@ import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import Hamburger from '@app/components/ui/hamburger';
 import Logo from '@app/components/ui/logo';
 import { buttonConstant } from '@app/constants/locales/button';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import { useBreakpoint, useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
 
 import LocaleDropdownUi from '../ui/locale-dropdown-ui';
-
 
 interface IAuthNavbarProps {
     hideMenu?: boolean;
@@ -49,34 +48,22 @@ export function Header(props: any) {
 }
 
 export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerToggle, isCustomDomain = false, isFooter = false, isClientDomain = false, hideMenu = false, showAuthAccount }: IAuthNavbarProps) {
-    const screenSize = useBreakpoint();
     const { t } = useTranslation();
-    const isMobileView = () => {
-        switch (screenSize) {
-            case 'xs':
-            case '2xs':
-            case 'sm':
-            case 'md':
-                return true;
-            default:
-                return false;
-        }
-    };
-
+    const inMobile = useIsMobile();
     return (
         <Header className="!z-[1300]">
             <div className="flex flex-row w-full h-full py-2 md:py-0 justify-between items-center">
                 <div className="flex gap-4">
-                    {isMobileView() && showHamburgerIcon && <Hamburger isOpen={mobileOpen} className="!shadow-none mr-2 !bg-white hover:!bg-white !text-black-900 !flex !justify-start" onClick={handleDrawerToggle} />}
+                    {inMobile && showHamburgerIcon && <Hamburger isOpen={mobileOpen} className="!shadow-none mr-2 !bg-white hover:!bg-white !text-black-900 !flex !justify-start" onClick={handleDrawerToggle} />}
                     <Logo isCustomDomain={isCustomDomain} isFooter={isFooter} isClientDomain={isClientDomain} />
                 </div>
                 <div className="flex items-center justify-center gap-7">
-                    {!isMobileView() && (
+                    {inMobile && (
                         <>
                             <LocaleDropdownUi />
                             {showPlans && (
                                 <ProPlanHoc hideChildrenIfPro={true}>
-                                    <AppButton >{t(buttonConstant.upgrade)}</AppButton>
+                                    <AppButton>{t(buttonConstant.upgrade)}</AppButton>
                                 </ProPlanHoc>
                             )}
                         </>

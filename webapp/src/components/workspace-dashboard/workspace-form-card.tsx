@@ -77,15 +77,15 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
         return shareUrl;
     };
     const visibility = () => {
-        if (form?.settings?.private) {
-            return {
-                icon: <GroupIcon className={'h-4 w-4'} />,
-                type: 'Groups'
-            };
-        } else if (form?.settings?.hidden) {
+        if (form?.settings?.hidden) {
             return {
                 icon: <PrivateIcon />,
                 type: t(localesCommon.hidden)
+            };
+        } else if (form?.settings?.private) {
+            return {
+                icon: <GroupIcon className={'h-4 w-4'} />,
+                type: t('GROUP.GROUPS')
             };
         } else {
             return {
@@ -108,8 +108,8 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                     {form?.title || t(localesCommon.untitled)}
                                 </Typography>
                             </Tooltip>
-                            {!isResponderPortal && !form?.isPublished && <div className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">Draft</div>}
-                            {!isResponderPortal && form?.isPublished && !isFormOpen && <div className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">Closed</div>}
+                            {!isResponderPortal && !form?.isPublished && <div className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">{t('FORM.DRAFT')}</div>}
+                            {!isResponderPortal && form?.isPublished && !isFormOpen && <div className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">{t('FORM.CLOSED')}</div>}
                         </div>
                         {!group && (
                             <div className="flex-1 lg:hidden">
@@ -129,7 +129,9 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                             <p className={` text-sm ml-2 text-black-600`}>{visibility().type}</p>
                                         </div>
                                     ) : (
-                                        <div className=" text-black-600 text-sm"> Last edited {moment.utc(form?.updatedAt).fromNow()}</div>
+                                        <div className=" text-black-600 text-sm">
+                                            {t('FORM.LAST_EDITED')} {moment.utc(form?.updatedAt).fromNow()}
+                                        </div>
                                     )}
                                 </>
                             </Tooltip>
@@ -139,7 +141,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                             <>
                                 <DotIcon />
                                 <span className="text-sm text-black-600">
-                                    {form?.responses} Response{(form?.responses || 0) > 1 && 's'}
+                                    {form?.responses} {t(`FORM.RESPONSE${(form?.responses || 0) > 1 ? 'S' : ''}`)}
                                 </span>
                             </>
                         )}
@@ -147,7 +149,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                         {(form?.isPublished || isResponderPortal) && showPinned && form?.settings?.pinned && (
                             <>
                                 <DotIcon />
-                                <span className="text-sm text-[#FE3678]">Pinned</span>
+                                <span className="text-sm text-[#FE3678]">{t('FORM.PINNED')}</span>
                             </>
                         )}
                     </div>
@@ -156,7 +158,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                     <div className="hidden lg:invisible lg:group-hover:visible lg:flex gap-2 items-center">
                         {form?.isPublished && !form?.settings?.hidden && isFormOpen && (
                             <AppButton onClick={handleShareClick} variant={ButtonVariant.Ghost} size={ButtonSize.Small} icon={<ShareIcon width={20} height={20} />}>
-                                Share
+                                {t('BUTTON.SHARE')}
                             </AppButton>
                         )}
                         {form?.settings?.provider === 'self' && (
@@ -170,7 +172,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                 size={ButtonSize.Small}
                                 icon={<EditIcon />}
                             >
-                                Edit
+                                {t('BUTTON.EDIT')}
                             </AppButton>
                         )}
                         <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />

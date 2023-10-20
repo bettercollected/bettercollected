@@ -86,7 +86,7 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                 <WorkspaceDashboardOverview workspace={props.workspace} />
             </div>
             <div className="px-5 pt-12 lg:px-10">
-                {pinnedForms?.length > 0 && <WorkspaceDashboardPinnedForms workspacePinnedForms={pinnedFormsResponse} title="Pinned Forms" workspace={workspace} hasCustomDomain={hasCustomDomain} />}
+                {pinnedForms?.length > 0 && <WorkspaceDashboardPinnedForms workspacePinnedForms={pinnedFormsResponse} title={t('PINNED_FORMS')} workspace={workspace} hasCustomDomain={hasCustomDomain} />}
                 <WorkspaceDashboardForms showButtons={pinnedForms?.length === 0} workspace={workspace} hasCustomDomain={hasCustomDomain} />
             </div>
         </DashboardLayout>
