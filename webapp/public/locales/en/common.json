@@ -138,7 +138,7 @@
   "EDIT_FORM": "Edit Form",
   "EDIT_WORKSPACE": {
     "TITLE": "Edit Workspace",
-    "DESCRIPTION": "Create a group to send forms to entire groups, streamlining the process and saving time.",
+    "DESCRIPTION": "",
     "UPLOAD_BANNER_IMAGE": "Upload Banner Image",
     "BANNER_ASPECT_RATIO": "5:1 aspect ratio recommended"
   },
