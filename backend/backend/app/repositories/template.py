@@ -49,6 +49,10 @@ class FormTemplateRepository:
     async def get_template_by_id(self, template_id: PydanticObjectId):
         return await FormTemplateDocument.find_one({"_id": template_id})
 
+    async def get_template_by_workspace_id_n_template_id(self, workspace_id: PydanticObjectId,
+                                                         template_id: PydanticObjectId):
+        return await FormTemplateDocument.find_one({"_id": template_id, "workspace_id": workspace_id})
+
     async def get_template_by_id_with_creator(
         self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
     ):
