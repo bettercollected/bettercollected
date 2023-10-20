@@ -1,5 +1,13 @@
 {
-  "AN": "een",
+  "ACCOUNT_DELETION_CONFIRMATION": {
+    "TITLE": "Weet u zeker dat u uw account wilt verwijderen?",
+    "POINT_1": "Al je werkruimte wordt verwijderd.",
+    "POINT_2": "Alle geïmporteerde formulieren worden verwijderd.",
+    "POINT_3": "Alle gemaakte groepen worden verwijderd.",
+    "POINT_4": "Uw werkruimtelink of uw aangepaste formulierlink zal niet meer werken.",
+    "INPUT_TEXT_LABEL": "Typ <span class='font-medium'>BEVESTIG</span> en klik op Nu verwijderen om de actie te voltooien"
+  },
+  "ADDED": "Toegevoegd",
   "ADD_CNAME_RECORD_MESSAGE": "Voeg CNAME-record van uw domein toe om te verwijzen naar 'custom'.",
   "ADD_WORKSPACE_LOGO": "Voeg een werkruimtelogo toe",
   "ADVANCE": "Vooruitgang",
@@ -10,6 +18,7 @@
   },
   "ADVANCED_SETTINGS": "Geavanceerde instellingen",
   "ALL_FORMS": "Alle formulieren",
+  "AN": "een",
   "AND": "en",
   "BASIC_INFORMATION": "Basisinformatie",
   "BECOME_A_BETTER_COLLECTOR": "Word een betere gegevensverzamelaar",
@@ -50,6 +59,7 @@
     "LOGIN": "log in",
     "LOGOUT": "Uitloggen",
     "NEXT": "Volgende",
+    "OPEN_WORKSPACE": "Open Werkruimte",
     "PREVIOUS": "Vorige",
     "PRO": "PRO",
     "REQUEST_AN_INTEGRATION": "Vraag een integratie aan",
@@ -88,11 +98,13 @@
     "ADD_TO_GROUP": "Toevoegen aan groep",
     "OPEN": "openen"
   },
-  "ADDED": "Toegevoegd",
+  "CHOOSE_YOUR_FORM": "Kies uw formulier",
+  "CONFIRM": "BEVESTIGEN",
   "CONTACT_US": {
     "DESCRIPTION": "Vragen of opmerkingen? Schrijf ons gewoon een bericht",
     "DEFAULT": "Contacteer ons"
   },
+  "CREATE_FORM": "Maak Formulier",
   "CUSTOMIZE_DOMAIN": {
     "DEFAULT": "Domein aanpassen",
     "DESCRIPTION": "Pas uw werkruimte-URL aan zodat uw publiek weet dat u het bent."
@@ -102,15 +114,6 @@
     "POINT_1": "Maak het relevant voor uw bedrijf of organisatie.",
     "POINT_2": "Vermijd het gebruik van spaties of speciale tekens. Alleen '-' en '_' worden geaccepteerd.",
     "POINT_3": "Houd het kort en bondig."
-  },
-  "CONFIRM": "BEVESTIGEN",
-  "ACCOUNT_DELETION_CONFIRMATION": {
-    "TITLE": "Weet u zeker dat u uw account wilt verwijderen?",
-    "POINT_1": "Al je werkruimte wordt verwijderd.",
-    "POINT_2": "Alle geïmporteerde formulieren worden verwijderd.",
-    "POINT_3": "Alle gemaakte groepen worden verwijderd.",
-    "POINT_4": "Uw werkruimtelink of uw aangepaste formulierlink zal niet meer werken.",
-    "INPUT_TEXT_LABEL": "Typ <span class='font-medium'>BEVESTIG</span> en klik op Nu verwijderen om de actie te voltooien"
   },
   "CUSTOMIZE_URL": "URL aanpassen",
   "CUSTOM_DOMAIN": "Aangepast domein",
@@ -127,21 +130,24 @@
     "DEFAULT": "Verwijderen",
     "MESSAGE": "Als deze actie eenmaal is voltooid, kan deze niet meer ongedaan worden gemaakt."
   },
+  "DELETED_ON": "Verwijderd op",
   "DELETION_REMAINING": "verwijdering resterend",
   "DESCRIPTION": "Beschrijving",
   "DOMAIN": "Domein",
   "EARLY_ACCESS": "Krijg vroege toegang!",
+  "EDIT_FORM": "Bewerk Formulier",
   "EDIT_WORKSPACE": {
     "TITLE": "Werkruimte bewerken",
-    "DESCRIPTION": "Maak een groep om formulieren naar hele groepen te sturen, stroomlijn het proces en bespaar tijd.",
+    "DESCRIPTION": "",
     "UPLOAD_BANNER_IMAGE": "Bannerafbeelding uploaden",
     "BANNER_ASPECT_RATIO": "5:1 beeldverhouding aanbevolen"
   },
   "EMAIL": "E-mail",
   "EMAIL_ADDRESS": "E-mailadres",
   "ENTER_EMAIL": "Voer e-mailadres in",
-  "GO_TO_RESPONSE": "Ga naar antwoord",
+  "EXAMPLE": "Voorbeeld:",
   "FORM": {
+    "CLOSED": "Gesloten",
     "DEFAULT": "Formulier",
     "UNPIN_FORM": "Formulier losmaken",
     "COLLECTED_RESPONSES": "Verzamelde reacties",
@@ -151,6 +157,7 @@
     "DELETION_REQUESTS": "Verwijderverzoeken",
     "DELETION_RESPONSE.DESCRIPTION": "U heeft geen reactie ingediend op de formulieren in deze werkruimte.",
     "DELETION_RESPONSE_WARNING_MESSAGE": "Weet u zeker dat u wilt verzoeken om verwijdering van uw reactie?",
+    "DRAFT": "Concept",
     "EMPTY": {
       "DESCRIPTION": "Importeer uw Google Forms of Typeforms",
       "TITLE": "Importeer uw eerste formulier"
@@ -170,6 +177,7 @@
     "IMPORTED_DATE": "Geïmporteerde datum",
     "IMPORTED_FORMS": "Geïmporteerde formulieren",
     "IMPORT_UNLIMITED": "Importeer onbeperkte formulieren",
+    "LAST_EDITED": "Laatst bewerkt",
     "PINNED": "Vastgezet",
     "PINNED_DESCRIPTION": "Toon dit formulier in vastgezette sectie",
     "RECENT_FORMS": "Recente formulieren",
@@ -229,10 +237,81 @@
   "FORM_LINK_WITH_PREVIOUS_DOMAIN_WONT_WORK": "Formulierlinks met vorig domein werken niet meer na updaten.",
   "FORM_LINK_WITH_PREVIOUS_WORKSPACE_HANDLE_WONT_WORK": "Formulierkoppelingen met vorige werkruimtehandvat werken niet na updaten.",
   "FORM_MENU": {
-    "DELETE_FORM": "Formulier verwijderen",
-    "PIN_FORM": "Pin formulier",
-    "SHARE": "deel",
-    "VISIBILITY": "Zichtbaarheid"
+    "DELETE_FORM": "Verwijder formulier",
+    "PIN_FORM": "Vastzetten formulier",
+    "SHARE": "Delen",
+    "VISIBILITY": "Zichtbaarheid",
+    "MAKE_FORM_PRIVATE": "Maak formulier privé",
+    "MAKE_FORM_PUBLIC": "Maak formulier openbaar",
+    "DUPLICATE_FORM": "Dupliceer formulier"
+  },
+  "FORM_PAGE": {
+    "EDIT_FORM": "Bewerk formulier",
+    "SHARE_FORM": "Deel formulier",
+    "PRO": "Pro",
+    "SEARCH_BY_EMAIL": "Zoeken op e-mail",
+    "SETTINGS": {
+      "DEFAULT": {
+        "DESCRIPTION": "Pas moeiteloos formulierlinks aan en beheer je formulieren effectief.",
+        "PIN_FORM": {
+          "TITLE": "Formulier vastzetten",
+          "DESCRIPTION": "Wanneer je een formulier vastzet in bettercollected, wordt het formulier bovenaan geplaatst, zodat het het eerste is wat je publiek kan zien op je formulierpagina."
+        },
+        "BRANDING": {
+          "TITLE": "bettercolleceted branding",
+          "DESCRIPTION": "Toon 'Aangedreven door: bettercollected' in je formulier."
+        },
+        "FORM_PURPOSE": {
+          "TITLE": "Doel en Gebruik van het formulier",
+          "DESCRIPTION": "Deze pagina is bedoeld om je een duidelijk inzicht te geven in hoe je informatie wordt behandeld in ons formulier. Ons doel is ervoor te zorgen dat je volledig op de hoogte bent en je comfortabel voelt met hoe we je gegevens behandelen.",
+          "SEE_DETAILS": "Bekijk details"
+        }
+      },
+      "VISIBILITY": {
+        "TITLE": "Formulier zichtbaarheid",
+        "DESCRIPTION": "Je keuze voor formulierzichtbaarheid heeft rechtstreeks invloed op wie het formulier op je formulierpagina kan bekijken en openen.",
+        "PUBLIC": "Iedereen kan dit formulier zien.",
+        "PRIVATE": "Alleen jij kunt dit formulier zien.",
+        "GROUPS": {
+          "TITLE": "Alleen voor bepaalde groepen",
+          "GROUPS0": "Geen groepen geselecteerd.",
+          "GROUPS1": "Alleen leden van deze groep kunnen dit formulier zien."
+        },
+        "ADD_OR_REMOVE": "Groep toevoegen of verwijderen"
+      },
+      "LINKS": {
+        "DESCRIPTION": "Maak gepersonaliseerde formulierlinks die aansluiten bij hun merk of specifieke eisen. Een link-slug is een beknopt, beschrijvend deel van een URL dat de inhoud van de webpagina identificeert.",
+        "CHANGE_SLUG": "Slug wijzigen",
+        "CUSTOM_DOMAIN_LINK": "Link met aangepast domein",
+        "DEFAULT_LINK": "Standaard link",
+        "COPY_LINK": "Kopieer link",
+        "USE_CUSTOM_DOMAIN": "Gebruik aangepast domein",
+        "SLUG": {
+          "TITLE": "Slug wijzigen",
+          "DESCRIPTION": "Geef je formulieren een professionele uitstraling en zorg voor merkconsistentie door je aangepaste slug toe te voegen",
+          "ENTER_SLUG": "Voer slug in",
+          "AVOID_USING": "Vermijd het gebruik van spaties of speciale tekens. Alleen '-' en '_' worden geaccepteerd.",
+          "SAVE_CHANGES": "Wijzigingen opslaan"
+        }
+      },
+      "CLOSE_FORM": {
+        "DEFAULT": "Formulier Sluiten",
+        "DESCRIPTION": "Deze actie zorgt ervoor dat niemand toegang heeft tot of het formulier kan invullen. U kunt ervoor kiezen om een sluitingsdatum in te plannen of ervoor kiezen om het onmiddellijk te sluiten.",
+        "SCHEDULE": "Plan een datum in",
+        "AUTOMATICALLY_CLOSE_ON": "Dit formulier wordt automatisch gesloten op"
+      }
+    },
+    "DELETION_REQUEST": {
+      "DESCRIPTION": "Hieronder vind je een lijst met respondenten die hebben verzocht om het verwijderen van hun ingediende reacties."
+    },
+    "RESPONSES": {
+      "DESCRIPTION": "Hieronder vind je een lijst met respondenten die hebben verzocht om het verwijderen van hun ingediende reacties.",
+      "BACK_TO_RESPONSES": "Terug naar reacties",
+      "DELETE_RESPONSE": "Verwijder reactie",
+      "SUBMITTED_BY": "Ingediend door",
+      "SUBMITTED_AT": "Ingediend op",
+      "ANONYMOUS": "Anoniem"
+    }
   },
   "GET_STARTED": {
     "0_FIT_STEP": {
@@ -269,9 +348,7 @@
       "BUTTON_TEXT": "Probeer het eens"
     }
   },
-  "EXAMPLE": "Voorbeeld:",
-  "CHOOSE_YOUR_FORM": "Kies uw formulier",
-  "NO_GROUP_FOUND": "Geen groep gevonden",
+  "GO_TO_RESPONSE": "Ga naar antwoord",
   "GROUP": {
     "DEFAULT": "Groep",
     "GROUPS": "Groepen",
@@ -357,12 +434,9 @@
   "LINK_TO_PRIVACY_POLICY": "Link naar privacybeleid",
   "LINK_TO_TERMS_OF_SERVICES": "Link naar Servicevoorwaarden",
   "LOGOUT_MESSAGE": "Weet u zeker dat u wilt uitloggen?",
-  "EDIT_FORM": "Bewerk Formulier",
-  "CREATE_FORM": "Maak Formulier",
-  "SUBMISSIONS": "Inzendingen",
   "MANAGE": "Beheren",
-  "MANAGE_WORKSPACE": "Werkruimte beheren",
   "MANAGE_URLS": "Beheer URL's",
+  "MANAGE_WORKSPACE": "Werkruimte beheren",
   "MEMBER": "Lid",
   "MEMBERS": {
     "DEFAULT": "Leden",
@@ -381,8 +455,11 @@
     }
   },
   "MENU_DROPDOWN.CREATE_WORKSPACE": "Maak een nieuwe werkruimte aan",
+  "MY_WORKSPACE": "Mijn werkruimte",
   "NEW_LINK": "Nieuwe koppeling",
+  "NOT_DELETED_YET": "Nog niet verwijderd",
   "NO_DESCRIPTION": "Geen beschrijving beschikbaar voor dit bedrijf.",
+  "NO_GROUP_FOUND": "Geen groep gevonden",
   "NO_IMAGE": "Geen afbeelding beschikbaar",
   "OF": "Van",
   "ONBOARDING": {
@@ -453,6 +530,7 @@
   "REMOVE": "Verwijderen",
   "REMOVE_INVITATION_FOR": "Uitnodiging verwijderen voor",
   "REMOVE_WARNING_MESSAGE": "Het verwijderen van een lid zal ook alle door de gebruiker geïmporteerde formulieren verwijderen",
+  "RESPONDERS_AND_GROUPS": "Antwoorders en Groepen",
   "RESPONDER_SECTION": {
     "FEATURES_HEADING": "Zodra je bent ingelogd, kun je het volgende doen:",
     "FEATURE_1": "Alle vormen van werkruimte bekijken",
@@ -463,7 +541,6 @@
     "OTP_VERIFICATION_SUCCESS_TOAST": "Met succes geverifieerd",
     "OTP_VERIFICATION_FAILURE_TOAST": "Verificatie mislukt"
   },
-  "RESPONDERS_AND_GROUPS": "Responders en groepen",
   "SAVE": "Opslaan",
   "SEND_CODE": {
     "DESCRIPTION": "OTP-code wordt naar deze e-mail verzonden",
@@ -532,8 +609,9 @@
     "DEFAULT": "Slak",
     "VALIDATION_MESSAGE": "Voer een geldige slug in"
   },
-  "STATUS": "Status",
   "STAP": "Stap",
+  "STATUS": "Status",
+  "SUBMISSIONS": "Inzendingen",
   "TERMS_OF_SERVICES": {
     "TITLE": "Servicevoorwaarden",
     "DESCRIPTION": "Onze Servicevoorwaarden bepalen de regels en richtlijnen voor het gebruik van onze services."
@@ -598,10 +676,6 @@
   },
   "UNTITLED": "Zonder titel",
   "UPDATED": "Bijgewerkt",
-  "UPDATE_WORKSPACE_HANDLE": "Bijgewerkte werkruimtehandle",
-  "UPDATE_YOUR_CUSTOM_DOMAIN": "Update uw aangepaste domein",
-  "UPDATE_YOUR_PROFILE_IMAGE": "Werk uw Workspace-profielfoto bij",
-  "WORKSPACE_HANDLE": "Werkruimtehandvat",
   "UPDATE_WORKSPACE": {
     "COMMON": {
       "CONSEQUENCE": "Wat zal er gebeuren?",
@@ -636,6 +710,9 @@
       "POINT_2": "Alle links met een oude domeinnaam werken niet meer."
     }
   },
+  "UPDATE_WORKSPACE_HANDLE": "Bijgewerkte werkruimtehandle",
+  "UPDATE_YOUR_CUSTOM_DOMAIN": "Update uw aangepaste domein",
+  "UPDATE_YOUR_PROFILE_IMAGE": "Werk uw Workspace-profielfoto bij",
   "UPGRADE": {
     "PRO_INCLUDES": "PRO Plan omvat",
     "DEFAULT_SLOGAN": "Upgrade naar PRO-abonnement voor meer functies",
@@ -663,7 +740,7 @@
     }
   },
   "WORKSPACE": {
-    "ALL_RESPONDERS": "Alle respondenten",
+    "ALL_RESPONDERS": "Alle antwoorders",
     "DEFAULT": "werkruimte",
     "BANNER": "Werkruimtebanner",
     "BANNER_EMPTY_MESSAGE": "Je kunt slepen om de afbeelding aan te passen.",
@@ -680,72 +757,5 @@
     "WORKSPACE_NAME_INVALID_CHARACTER": "workspace handle mag alleen kleine letters, cijfers en een lage streep bevatten",
     "URL": "Workspace-URL"
   },
-  "FORM_PAGE": {
-    "EDIT_FORM": "Bewerk formulier",
-    "SHARE_FORM": "Deel formulier",
-    "PRO": "Pro",
-    "SEARCH_BY_EMAIL": "Zoeken op e-mail",
-    "SETTINGS": {
-      "DEFAULT": {
-        "DESCRIPTION": "Pas moeiteloos formulierlinks aan en beheer je formulieren effectief.",
-        "PIN_FORM": {
-          "TITLE": "Formulier vastzetten",
-          "DESCRIPTION": "Wanneer je een formulier vastzet in bettercollected, wordt het formulier bovenaan geplaatst, zodat het het eerste is wat je publiek kan zien op je formulierpagina."
-        },
-        "BRANDING": {
-          "TITLE": "bettercolleceted branding",
-          "DESCRIPTION": "Toon 'Aangedreven door: bettercollected' in je formulier."
-        },
-        "FORM_PURPOSE": {
-          "TITLE": "Doel en Gebruik van het formulier",
-          "DESCRIPTION": "Deze pagina is bedoeld om je een duidelijk inzicht te geven in hoe je informatie wordt behandeld in ons formulier. Ons doel is ervoor te zorgen dat je volledig op de hoogte bent en je comfortabel voelt met hoe we je gegevens behandelen.",
-          "SEE_DETAILS": "Bekijk details"
-        }
-      },
-      "VISIBILITY": {
-        "TITLE": "Formulier zichtbaarheid",
-        "DESCRIPTION": "Je keuze voor formulierzichtbaarheid heeft rechtstreeks invloed op wie het formulier op je formulierpagina kan bekijken en openen.",
-        "PUBLIC": "Iedereen kan dit formulier zien.",
-        "PRIVATE": "Alleen jij kunt dit formulier zien.",
-        "GROUPS": {
-          "TITLE": "Alleen voor bepaalde groepen",
-          "GROUPS0": "Geen groepen geselecteerd.",
-          "GROUPS1": "Alleen leden van deze groep kunnen dit formulier zien."
-        },
-        "ADD_OR_REMOVE": "Groep toevoegen of verwijderen"
-      },
-      "LINKS": {
-        "DESCRIPTION": "Maak gepersonaliseerde formulierlinks die aansluiten bij hun merk of specifieke eisen. Een link-slug is een beknopt, beschrijvend deel van een URL dat de inhoud van de webpagina identificeert.",
-        "CHANGE_SLUG": "Slug wijzigen",
-        "CUSTOM_DOMAIN_LINK": "Link met aangepast domein",
-        "DEFAULT_LINK": "Standaard link",
-        "COPY_LINK": "Kopieer link",
-        "USE_CUSTOM_DOMAIN": "Gebruik aangepast domein",
-        "SLUG": {
-          "TITLE": "Slug wijzigen",
-          "DESCRIPTION": "Geef je formulieren een professionele uitstraling en zorg voor merkconsistentie door je aangepaste slug toe te voegen",
-          "ENTER_SLUG": "Voer slug in",
-          "AVOID_USING": "Vermijd het gebruik van spaties of speciale tekens. Alleen '-' en '_' worden geaccepteerd.",
-          "SAVE_CHANGES": "Wijzigingen opslaan"
-        }
-      },
-      "CLOSE_FORM": {
-        "DEFAULT": "Formulier Sluiten",
-        "DESCRIPTION": "Deze actie zorgt ervoor dat niemand toegang heeft tot of het formulier kan invullen. U kunt ervoor kiezen om een sluitingsdatum in te plannen of ervoor kiezen om het onmiddellijk te sluiten.",
-        "SCHEDULE": "Plan een datum in",
-        "AUTOMATICALLY_CLOSE_ON": "Dit formulier wordt automatisch gesloten op"
-      }
-    },
-    "DELETION_REQUEST": {
-      "DESCRIPTION": "Hieronder vind je een lijst met respondenten die hebben verzocht om het verwijderen van hun ingediende reacties."
-    },
-    "RESPONSES": {
-      "DESCRIPTION": "Hieronder vind je een lijst met respondenten die hebben verzocht om het verwijderen van hun ingediende reacties.",
-      "BACK_TO_RESPONSES": "Terug naar reacties",
-      "DELETE_RESPONSE": "Verwijder reactie",
-      "SUBMITTED_BY": "Ingediend door",
-      "SUBMITTED_AT": "Ingediend op",
-      "ANONYMOUS": "Anoniem"
-    }
-  }
+  "WORKSPACE_HANDLE": "Werkruimtehandvat"
 }

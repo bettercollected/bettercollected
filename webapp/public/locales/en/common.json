@@ -1,5 +1,13 @@
 {
-  "AN": "an",
+  "ACCOUNT_DELETION_CONFIRMATION": {
+    "TITLE": "Are you sure you want to delete Account?",
+    "POINT_1": "All your workspace will be deleted.",
+    "POINT_2": "All imported forms will be deleted.",
+    "POINT_3": "All created groups will be deleted.",
+    "POINT_4": "Your workspace link or your custom form link will not work anymore.",
+    "INPUT_TEXT_LABEL": "Type <span class='font-medium'>CONFIRM</span> and click on Delete Now to complete action"
+  },
+  "ADDED": "Added",
   "ADD_CNAME_RECORD_MESSAGE": "Add CNAME record of your domain to point to 'custom.",
   "ADD_WORKSPACE_LOGO": "Add a workspace logo",
   "ADVANCE": "Advance",
@@ -10,6 +18,7 @@
   },
   "ADVANCED_SETTINGS": "Advanced Settings",
   "ALL_FORMS": "All forms",
+  "AN": "an",
   "AND": "and",
   "BASIC_INFORMATION": "Basic Information",
   "BECOME_A_BETTER_COLLECTOR": "Become a better data collector",
@@ -22,7 +31,6 @@
     "SUBMISSIONS": "Submissions",
     "MY_SUBMISSIONS": "My Submissions"
   },
-  "NO_GROUP_FOUND": "No Group Found",
   "BUTTON": {
     "ADD": "Add",
     "ADD_MEMBERS": "Add Members",
@@ -51,6 +59,7 @@
     "LOGIN": "Login",
     "LOGOUT": "Logout",
     "NEXT": "Next",
+    "OPEN_WORKSPACE": "Open Workspace",
     "PREVIOUS": "Previous",
     "PRO": "PRO",
     "REQUEST_AN_INTEGRATION": "Request an integration",
@@ -89,10 +98,13 @@
     "ADD_TO_GROUP": "Add to group",
     "OPEN": "Open"
   },
+  "CHOOSE_YOUR_FORM": "Choose your form",
+  "CONFIRM": "CONFIRM",
   "CONTACT_US": {
     "DESCRIPTION": "Any questions or remarks? Just write us a message",
     "DEFAULT": "Contact us"
   },
+  "CREATE_FORM": "Create Form",
   "CUSTOMIZE_DOMAIN": {
     "DEFAULT": "Customize domain",
     "DESCRIPTION": "Customize your Workspace URL so that your audience can know that it’s you."
@@ -118,22 +130,24 @@
     "DEFAULT": "Delete",
     "MESSAGE": "Once this action is completed, it can't be undone."
   },
-  "ADDED": "Added",
+  "DELETED_ON": "Deleted On",
   "DELETION_REMAINING": "deletion remaining",
   "DESCRIPTION": "Description",
   "DOMAIN": "Domain",
   "EARLY_ACCESS": "Get early access!",
+  "EDIT_FORM": "Edit Form",
   "EDIT_WORKSPACE": {
     "TITLE": "Edit Workspace",
-    "DESCRIPTION": "Create a group to send forms to entire groups, streamlining the process and saving time.",
+    "DESCRIPTION": "",
     "UPLOAD_BANNER_IMAGE": "Upload Banner Image",
     "BANNER_ASPECT_RATIO": "5:1 aspect ratio recommended"
   },
   "EMAIL": "Email",
   "EMAIL_ADDRESS": "Email Address",
   "ENTER_EMAIL": "Enter Email",
-  "GO_TO_RESPONSE": "Go To Response",
+  "EXAMPLE": "Example:",
   "FORM": {
+    "CLOSED": "Closed",
     "DEFAULT": "Form",
     "UNPIN_FORM": "Unpin form",
     "COLLECTED_RESPONSES": "Collected responses",
@@ -143,6 +157,7 @@
     "DELETION_REQUESTS": "Deletion Requests",
     "DELETION_RESPONSE.DESCRIPTION": "You have not submitted any response on the forms provided in this workspace.",
     "DELETION_RESPONSE_WARNING_MESSAGE": "Are you sure you want to request your response to be deleted?",
+    "DRAFT": "Draft",
     "EMPTY": {
       "DESCRIPTION": "Import your Google Forms or Typeforms",
       "TITLE": "Import your first form"
@@ -162,6 +177,7 @@
     "IMPORTED_DATE": "Imported date",
     "IMPORTED_FORMS": "Imported forms",
     "IMPORT_UNLIMITED": "Import unlimited forms",
+    "LAST_EDITED": "Last edited",
     "PINNED": "Pinned",
     "PINNED_DESCRIPTION": "Show this form in pinned section",
     "RECENT_FORMS": "Recent forms",
@@ -217,7 +233,6 @@
       "DESCRIPTION": "Add form on group to grant access to group specific member"
     }
   },
-  "CHOOSE_YOUR_FORM": "Choose your form",
   "FORMS": "Forms",
   "FORMS_LINK": "Forms Links",
   "FORM_LINK_WITH_PREVIOUS_DOMAIN_WONT_WORK": "Form links with previous domain won't work after updating.",
@@ -228,7 +243,76 @@
     "SHARE": "Share",
     "VISIBILITY": "Visibility",
     "MAKE_FORM_PRIVATE": "Make form private",
-    "MAKE_FORM_PUBLIC": "Make form public"
+    "MAKE_FORM_PUBLIC": "Make form public",
+    "DUPLICATE_FORM": "Duplicate Form"
+  },
+  "FORM_PAGE": {
+    "EDIT_FORM": "Edit Form",
+    "SHARE_FORM": "Share Form",
+    "PRO": "Pro",
+    "SEARCH_BY_EMAIL": "Search by Email",
+    "SETTINGS": {
+      "DEFAULT": {
+        "DESCRIPTION": "Effortlessly customize form links and manage their forms effectively.",
+        "PIN_FORM": {
+          "TITLE": "Pin Form",
+          "DESCRIPTION": "When you pin a form in bettercollected, the form will be added to the top of the form so that it is the first thing that your audience can see from your form page."
+        },
+        "BRANDING": {
+          "TITLE": "bettercolleceted branding",
+          "DESCRIPTION": "Show Powered by: bettercollected in your form."
+        },
+        "FORM_PURPOSE": {
+          "TITLE": "Form Purpose and Data Usage",
+          "DESCRIPTION": "This page is to help you to provide you with a clear understanding of how how your information is handled in our form. Our aim is to ensure you're fully informed and comfortable with how we handle your data.",
+          "SEE_DETAILS": "See Details"
+        }
+      },
+      "VISIBILITY": {
+        "TITLE": "Form Visibility",
+        "DESCRIPTION": "Your choice of form visibility directly impacts who can view and access the form within your form page.",
+        "PUBLIC": "Everyone can see this form.",
+        "PRIVATE": "Only you can see this form.",
+        "GROUPS": {
+          "TITLE": "Only For Certain Groups",
+          "GROUPS0": "No Groups Selected.",
+          "GROUPS1": "Only members in this group can see this form."
+        },
+        "ADD_OR_REMOVE": "Add or Remove Group"
+      },
+      "LINKS": {
+        "DESCRIPTION": "Create personalized form links that align with their branding or specific requirements. A link slug is a brief, descriptive part of a URL that identifies web page content.",
+        "CHANGE_SLUG": "Change Slug",
+        "CUSTOM_DOMAIN_LINK": "Custom Domain Link",
+        "DEFAULT_LINK": "Default Link",
+        "COPY_LINK": "Copy Link",
+        "USE_CUSTOM_DOMAIN": "Use Custom Domain",
+        "SLUG": {
+          "TITLE": "Change Slug",
+          "DESCRIPTION": "Give your forms a touch of professionalism and ensure brand consistency by incorporating your custom slug",
+          "ENTER_SLUG": "Enter Slug",
+          "AVOID_USING": "Avoid using spaces or special characters. Only “-” and “_” is accepted.",
+          "SAVE_CHANGES": "Save Changes"
+        }
+      },
+      "CLOSE_FORM": {
+        "DEFAULT": "Close form",
+        "DESCRIPTION": "This action will ensure that no one can access or fill out the form. You can either schedule a closing date or choose to close it immediately.",
+        "SCHEDULE": "Schedule a date",
+        "AUTOMATICALLY_CLOSE_ON": "This form will automatically close on"
+      }
+    },
+    "DELETION_REQUEST": {
+      "DESCRIPTION": "Below, you will find a list of responders who have requested the deletion of their submitted responses."
+    },
+    "RESPONSES": {
+      "DESCRIPTION": "Below, you will find a list of responders who have requested the deletion of their submitted responses.",
+      "BACK_TO_RESPONSES": "Back to responses",
+      "DELETE_RESPONSE": "Delete Response",
+      "SUBMITTED_BY": "Submitted by",
+      "SUBMITTED_AT": "Submitted at",
+      "ANONYMOUS": "Anonymous"
+    }
   },
   "GET_STARTED": {
     "0_FIT_STEP": {
@@ -265,7 +349,7 @@
       "BUTTON_TEXT": " Give it a try"
     }
   },
-  "EXAMPLE": "Example:",
+  "GO_TO_RESPONSE": "Go To Response",
   "GROUP": {
     "DEFAULT": "Group",
     "GROUPS": "Groups",
@@ -354,12 +438,9 @@
   "LINK_TO_PRIVACY_POLICY": "Link to Privacy Policy",
   "LINK_TO_TERMS_OF_SERVICES": "Link to Terms of Service",
   "LOGOUT_MESSAGE": "Are you sure you want to logout?",
-  "EDIT_FORM": "Edit Form",
-  "CREATE_FORM": "Create Form",
-  "SUBMISSIONS": "Submissions",
   "MANAGE": "Manage",
-  "MANAGE_WORKSPACE": "Manage Workspace",
   "MANAGE_URLS": "Manage URLs",
+  "MANAGE_WORKSPACE": "Manage Workspace",
   "MEMBER": "Member",
   "MEMBERS": {
     "DEFAULT": "Members",
@@ -380,7 +461,9 @@
   "MENU_DROPDOWN.CREATE_WORKSPACE": "Create a new workspace",
   "MY_WORKSPACE": "My Workspace",
   "NEW_LINK": "New link",
+  "NOT_DELETED_YET": "Not deleted yet",
   "NO_DESCRIPTION": "No description available for this company.",
+  "NO_GROUP_FOUND": "No Group Found",
   "NO_IMAGE": "No image available",
   "OF": "of",
   "ONBOARDING": {
@@ -451,6 +534,7 @@
   "REMOVE": "Remove",
   "REMOVE_INVITATION_FOR": "Remove invitation for",
   "REMOVE_WARNING_MESSAGE": "Removing a member will also remove all forms imported by the user",
+  "RESPONDERS_AND_GROUPS": "Responders and Groups",
   "RESPONDER_SECTION": {
     "FEATURES_HEADING": "Once you sign in you will be able to:",
     "FEATURE_1": "See all forms of workspace",
@@ -461,7 +545,6 @@
     "OTP_VERIFICATION_SUCCESS_TOAST": "Verified successfully",
     "OTP_VERIFICATION_FAILURE_TOAST": "Verification failed"
   },
-  "RESPONDERS_AND_GROUPS": "Responders and Groups",
   "SAVE": "Save",
   "SEND_CODE": {
     "DESCRIPTION": "OTP code will be sent to this email",
@@ -532,6 +615,7 @@
   },
   "STATUS": "Status",
   "STEP": "Step",
+  "SUBMISSIONS": "Submissions",
   "TERMS_OF_SERVICES": {
     "TITLE": "Terms Of Services",
     "DESCRIPTION": "Our Terms of Services establish the rules and guidelines for using our services."
@@ -600,10 +684,6 @@
   },
   "UNTITLED": "Untitled",
   "UPDATED": "Updated",
-  "UPDATE_WORKSPACE_HANDLE": "Updated workspace handle",
-  "UPDATE_YOUR_CUSTOM_DOMAIN": "Update your Custom Domain",
-  "UPDATE_YOUR_PROFILE_IMAGE": "Update your Workspace Profile picture",
-  "WORKSPACE_HANDLE": "Workspace Handle",
   "UPDATE_WORKSPACE": {
     "COMMON": {
       "CONSEQUENCE": "What will happen?",
@@ -638,15 +718,9 @@
       "POINT_2": "Any links with old domain name will no longer work."
     }
   },
-  "CONFIRM": "CONFIRM",
-  "ACCOUNT_DELETION_CONFIRMATION": {
-    "TITLE": "Are you sure you want to delete Account?",
-    "POINT_1": "All your workspace will be deleted.",
-    "POINT_2": "All imported forms will be deleted.",
-    "POINT_3": "All created groups will be deleted.",
-    "POINT_4": "Your workspace link or your custom form link will not work anymore.",
-    "INPUT_TEXT_LABEL": "Type <span class='font-medium'>CONFIRM</span> and click on Delete Now to complete action"
-  },
+  "UPDATE_WORKSPACE_HANDLE": "Updated workspace handle",
+  "UPDATE_YOUR_CUSTOM_DOMAIN": "Update your Custom Domain",
+  "UPDATE_YOUR_PROFILE_IMAGE": "Update your Workspace Profile picture",
   "UPGRADE": {
     "PRO_INCLUDES": "PRO Plan Includes",
     "DEFAULT_SLOGAN": "Upgrade To PRO Plan For More Features",
@@ -691,72 +765,5 @@
     "WORKSPACE_NAME_INVALID_CHARACTER": "Workspace handle must only contain lowercase letters, numbers and underscore",
     "URL": "Workspace URL"
   },
-  "FORM_PAGE": {
-    "EDIT_FORM": "Edit Form",
-    "SHARE_FORM": "Share Form",
-    "PRO": "Pro",
-    "SEARCH_BY_EMAIL": "Search by Email",
-    "SETTINGS": {
-      "DEFAULT": {
-        "DESCRIPTION": "Effortlessly customize form links and manage their forms effectively.",
-        "PIN_FORM": {
-          "TITLE": "Pin Form",
-          "DESCRIPTION": "When you pin a form in bettercollected, the form will be added to the top of the form so that it is the first thing that your audience can see from your form page."
-        },
-        "BRANDING": {
-          "TITLE": "bettercolleceted branding",
-          "DESCRIPTION": "Show Powered by: bettercollected in your form."
-        },
-        "FORM_PURPOSE": {
-          "TITLE": "Form Purpose and Data Usage",
-          "DESCRIPTION": "This page is to help you to provide you with a clear understanding of how how your information is handled in our form. Our aim is to ensure you're fully informed and comfortable with how we handle your data.",
-          "SEE_DETAILS": "See Details"
-        }
-      },
-      "VISIBILITY": {
-        "TITLE": "Form Visibility",
-        "DESCRIPTION": "Your choice of form visibility directly impacts who can view and access the form within your form page.",
-        "PUBLIC": "Everyone can see this form.",
-        "PRIVATE": "Only you can see this form.",
-        "GROUPS": {
-          "TITLE": "Only For Certain Groups",
-          "GROUPS0": "No Groups Selected.",
-          "GROUPS1": "Only members in this group can see this form."
-        },
-        "ADD_OR_REMOVE": "Add or Remove Group"
-      },
-      "LINKS": {
-        "DESCRIPTION": "Create personalized form links that align with their branding or specific requirements. A link slug is a brief, descriptive part of a URL that identifies web page content.",
-        "CHANGE_SLUG": "Change Slug",
-        "CUSTOM_DOMAIN_LINK": "Custom Domain Link",
-        "DEFAULT_LINK": "Default Link",
-        "COPY_LINK": "Copy Link",
-        "USE_CUSTOM_DOMAIN": "Use Custom Domain",
-        "SLUG": {
-          "TITLE": "Change Slug",
-          "DESCRIPTION": "Give your forms a touch of professionalism and ensure brand consistency by incorporating your custom slug",
-          "ENTER_SLUG": "Enter Slug",
-          "AVOID_USING": "Avoid using spaces or special characters. Only “-” and “_” is accepted.",
-          "SAVE_CHANGES": "Save Changes"
-        }
-      },
-      "CLOSE_FORM": {
-        "DEFAULT": "Close form",
-        "DESCRIPTION": "This action will ensure that no one can access or fill out the form. You can either schedule a closing date or choose to close it immediately.",
-        "SCHEDULE": "Schedule a date",
-        "AUTOMATICALLY_CLOSE_ON": "This form will automatically close on"
-      }
-    },
-    "DELETION_REQUEST": {
-      "DESCRIPTION": "Below, you will find a list of responders who have requested the deletion of their submitted responses."
-    },
-    "RESPONSES": {
-      "DESCRIPTION": "Below, you will find a list of responders who have requested the deletion of their submitted responses.",
-      "BACK_TO_RESPONSES": "Back to responses",
-      "DELETE_RESPONSE": "Delete Response",
-      "SUBMITTED_BY": "Submitted by",
-      "SUBMITTED_AT": "Submitted at",
-      "ANONYMOUS": "Anonymous"
-    }
-  }
+  "WORKSPACE_HANDLE": "Workspace Handle"
 }
