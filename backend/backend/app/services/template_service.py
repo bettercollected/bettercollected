@@ -2,7 +2,7 @@ import os
 from http import HTTPStatus
 
 from beanie import PydanticObjectId
-from common.constants import MESSAGE_FORBIDDEN
+from common.constants import MESSAGE_NOT_FOUND
 from common.models.standard_form import StandardForm
 from fastapi import UploadFile
 from gunicorn.config import User
@@ -44,20 +44,19 @@ class FormTemplateService:
         )
 
     async def get_template_by_id(
-        self, workspace_id: PydanticObjectId, user: User, template_id: PydanticObjectId
+        self, user: User, template_id: PydanticObjectId, workspace_id: PydanticObjectId = None
     ):
-        if not workspace_id:
-            workspace_id = settings.template_settings.PREDEFINED_WORKSPACE_ID
+        if template_id and workspace_id:
+            template = await self.form_template_repo.get_template_by_workspace_id_n_template_id(
+                workspace_id=workspace_id, template_id=template_id)
         else:
+            template = await self.form_template_repo.get_template_by_id(template_id)
+
+        if template is None:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
+        if not template.settings.is_public:
             await self.workspace_user_service.check_user_has_access_in_workspace(
                 workspace_id=workspace_id, user=user
-            )
-        template = await self.form_template_repo.get_template_by_id(template_id)
-        if not template:
-            raise HTTPException(HTTPStatus.NOT_FOUND, "Template not found")
-        if not template.settings.is_public and (template.workspace_id != workspace_id):
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
         return template
 
@@ -65,7 +64,7 @@ class FormTemplateService:
         self, workspace_id: PydanticObjectId, user: User, template_id: PydanticObjectId
     ):
         await self.get_template_by_id(
-            workspace_id=workspace_id, user=user, template_id=template_id
+            user=user, template_id=template_id
         )
         return await self.form_template_repo.import_template_to_workspace(
             workspace_id, template_id

@@ -10,17 +10,14 @@ from backend.app.container import container
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.template import (
     StandardFormTemplateCamelModel,
-    StandardFormTemplate,
     StandardFormTemplateResponse,
-    StandardTemplateSetting,
     StandardFormTemplateResponseCamelModel,
     StandardTemplateSettingsCamelModel,
 )
 from backend.app.router import router
 from backend.app.services.template_service import FormTemplateService
-from backend.app.services.user_service import get_logged_user
+from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_form_service import WorkspaceFormService
-from backend.config.template_settings import TemplateSettings
 
 
 @router(
@@ -60,7 +57,7 @@ class FormTemplateRouter(Routable):
         self,
         template_id: PydanticObjectId,
         workspace_id: PydanticObjectId = None,
-        user: User = Depends(get_logged_user),
+        user: User = Depends(get_user_if_logged_in),
     ):
         response = await self.form_template_service.get_template_by_id(
             workspace_id=workspace_id, user=user, template_id=template_id
