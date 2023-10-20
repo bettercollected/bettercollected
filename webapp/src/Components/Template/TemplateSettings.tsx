@@ -133,8 +133,10 @@ const ShareLinkOptions = ({ adminHost }: { adminHost: string }) => {
         });
     };
     return (
-        <div onClick={handleOnCopy} className={'cursor-pointer'}>
-            <AppTextField isDisabled className={'mt-4 mb-2 w-3/4'} value={adminHost} />
+        <div>
+            <div className="cursor-pointer" onClick={handleOnCopy}>
+                <AppTextField isDisabled className={'mt-4 mb-2 w-3/4'} value={adminHost} />
+            </div>
             <AppButton variant={ButtonVariant.Secondary} icon={<CopyIcon />} onClick={handleOnCopy}>
                 Copy Link
             </AppButton>
