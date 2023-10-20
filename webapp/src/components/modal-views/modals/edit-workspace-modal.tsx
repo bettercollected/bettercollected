@@ -24,7 +24,7 @@ export default function EditWorkspaceModal() {
                 }}
             />
             <h4 className="h4 text-black-900">{t(editWorkspace.title)}</h4>
-            <p className="body4 text-black-700">{t(editWorkspace.description)}</p>
+            {/*<p className="body4 text-black-700">{t(editWorkspace.description)}</p>*/}
             <WorkspaceBanner />
 
             <WorkspaceInfo workspace={workspace} />
