@@ -38,7 +38,7 @@ export const templateApi = createApi({
                 url: `/templates/${data.template_id}`,
                 method: 'GET',
                 params: {
-                    workspace_id: data.workspace_id ? data.workspace_id : ''
+                    workspace_id: data.workspace_id ? data.workspace_id : undefined
                 }
             }),
             providesTags: [FORM_TEMPLATE]

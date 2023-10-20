@@ -13,7 +13,6 @@ import { toast } from 'react-toastify';
 
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import { localesCommon } from '@app/constants/locales/common';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useCreateFormFromTemplateMutation, useGetTemplateByIdQuery, useImportTemplateMutation } from '@app/store/template/api';
@@ -92,11 +91,9 @@ const SingleTemplate = (props: any) => {
                             Import Template
                         </AppButton>
                     )}
-
                     <AppButton onClick={handleUseTemplate}>Use Template</AppButton>
                 </div>
             </div>
-
             {data && <BetterCollectedForm isDisabled form={convertFormTemplateToStandardForm(data)} />}
         </Layout>
     );

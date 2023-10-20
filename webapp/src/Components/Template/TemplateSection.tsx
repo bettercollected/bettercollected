@@ -37,7 +37,8 @@ const TemplateSection = ({ templates, title, className }: ITemplateSectionProps)
                         </div>
                     </Link>
                 ) : (
-                    <AppButton onClick={() => openModal('IMPORT_TEMPLATE_MODAL_VIEW')}>Import Template</AppButton>
+                    <></>
+                    // <AppButton onClick={() => openModal('IMPORT_TEMPLATE_MODAL_VIEW')}>Import Template</AppButton>
                 )}
             </div>
             <div className={`flex flex-row w-full gap-6 ${title == 'Default' ? 'flex-nowrap' : 'flex-wrap'}`}>
