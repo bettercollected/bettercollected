@@ -1,12 +1,10 @@
 import json
-from typing import Any, Coroutine
 
 import pytest
 from aiohttp.test_utils import TestClient
 from beanie import PydanticObjectId
-from common.constants import MESSAGE_FORBIDDEN
+from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 
-from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
@@ -476,41 +474,56 @@ class TestFormTemplates:
         actual_template_id = template_by_id.json().get("id")
         assert actual_template_id == expected_template_id
 
-    def test_unauthorized_user_get_template_by_id(
-            self,
-            client: TestClient,
-            test_user_cookies_1: dict[str, str],
-            workspace: WorkspaceDocument,
-            predefined_workspace_template: FormTemplateDocument,
-            workspace_template: FormTemplateDocument,
+    def test_unauthorized_user_get_private_template_by_id_fails(
+        self,
+        client: TestClient,
+        test_user_cookies_1: dict[str, str],
+        workspace: WorkspaceDocument,
+        workspace_1_private_template: FormTemplateDocument,
     ):
         get_url = (
-            f"/api/v1/templates/{workspace_template.id}?workspace_id={workspace.id}"
+            f"/api/v1/templates/{workspace_1_private_template.id}?workspace_id={workspace.id}"
+        )
+        template_by_id = client.get(get_url, cookies=test_user_cookies_1)
+
+        expected_response_message = MESSAGE_NOT_FOUND
+        actual_response_message = template_by_id.json()
+        assert template_by_id.status_code == 404
+        assert actual_response_message == expected_response_message
+
+    def test_unauthorized_user_get_public_template_by_id(
+        self,
+        client: TestClient,
+        test_user_cookies_1: dict[str, str],
+        workspace_1: WorkspaceDocument,
+        workspace_1_public_template: FormTemplateDocument,
+    ):
+        get_url = (
+            f"/api/v1/templates/{workspace_1_public_template.id}?workspace_id={workspace_1.id}"
         )
 
         template_by_id = client.get(get_url, cookies=test_user_cookies_1)
 
-        expected_response_message = MESSAGE_FORBIDDEN
+        expected_response_message = workspace_1_public_template
         actual_response_message = template_by_id.json()
-        assert template_by_id.status_code == 403
-        assert actual_response_message == expected_response_message
+        assert template_by_id.status_code == 200
+        assert actual_response_message.get("id") == str(expected_response_message.id)
 
     def test_get_non_existent_template_by_id(
-            self,
-            client: TestClient,
-            test_user_cookies: dict[str, str],
-            workspace: WorkspaceDocument,
-            predefined_workspace_template: FormTemplateDocument,
-            workspace_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        test_user_cookies: dict[str, str],
+        workspace: WorkspaceDocument,
+        predefined_workspace_template: FormTemplateDocument,
+        workspace_template: FormTemplateDocument,
     ):
         get_url = f"/api/v1/templates/{PydanticObjectId()}?workspace_id={workspace.id}"
 
         template_by_id = client.get(get_url, cookies=test_user_cookies)
 
-        expected_response = "Template not found"
         actual_response = template_by_id.json()
         assert template_by_id.status_code == 404
-        assert actual_response == expected_response
+        assert actual_response == MESSAGE_NOT_FOUND
 
     def test_get_other_workspace_private_template_by_id(
             self,
@@ -523,9 +536,9 @@ class TestFormTemplates:
 
         template_by_id = client.get(get_url, cookies=test_user_cookies)
 
-        expected_response_message = MESSAGE_FORBIDDEN
+        expected_response_message = MESSAGE_NOT_FOUND
         actual_response_message = template_by_id.json()
-        assert template_by_id.status_code == 403
+        assert template_by_id.status_code == 404
         assert actual_response_message == expected_response_message
 
     def test_get_other_workspace_public_template_by_id(
@@ -539,6 +552,6 @@ class TestFormTemplates:
 
         template_by_id = client.get(get_url, cookies=test_user_cookies)
 
-        expected_template_id = str(workspace_1_public_template.id)
-        actual_template_id = template_by_id.json().get("id")
-        assert actual_template_id == expected_template_id
+        actual_response = template_by_id.json()
+        assert template_by_id.status_code == 404
+        assert actual_response == MESSAGE_NOT_FOUND
