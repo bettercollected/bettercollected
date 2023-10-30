@@ -32,9 +32,6 @@ const SingleTemplate = (props: any) => {
         template_id: templateId
     });
 
-    if (isLoading) {
-        return <LoadingIcon />;
-    }
     const handleClickBack = () => {
         router.push(`/${workspace.workspaceName}/dashboard/templates`);
     };
