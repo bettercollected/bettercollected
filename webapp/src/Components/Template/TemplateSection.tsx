@@ -1,8 +1,11 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
 import Link from 'next/link';
 
+import Empty from '@Components/Common/Icons/Empty';
 import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 
 import { useModal } from '@app/components/modal-views/context';
@@ -21,6 +24,7 @@ interface ITemplateSectionProps {
 const TemplateSection = ({ templates, title, className }: ITemplateSectionProps) => {
     const workspace = useAppSelector(selectWorkspace);
     const { openModal } = useModal();
+    const { t } = useTranslation();
     let isPredefinedTemplate: boolean = false;
     if (title == 'Default' || !title) {
         isPredefinedTemplate = true;
@@ -37,13 +41,29 @@ const TemplateSection = ({ templates, title, className }: ITemplateSectionProps)
                         </div>
                     </Link>
                 ) : (
-                    <></>
-                    // <AppButton onClick={() => openModal('IMPORT_TEMPLATE_MODAL_VIEW')}>Import Template</AppButton>
+                    <>
+                        <AppButton onClick={() => openModal('IMPORT_TEMPLATE_MODAL_VIEW')}>Import Template</AppButton>
+                    </>
                 )}
             </div>
             <div className={`flex flex-row w-full gap-6 ${title == 'Default' ? 'flex-nowrap' : 'flex-wrap'}`}>
                 {templates && templates?.map((template: IFormTemplateDto, index: number) => <TemplateCard key={index} template={template} isPredefinedTemplate={isPredefinedTemplate} />)}
             </div>
+
+            {!templates ||
+                (templates.length == 0 && (
+                    <div className="flex flex-col gap-2 w-full items-center">
+                        <Empty />
+                        <div className="mt-10 h4-new text-black-800">{t('TEMPLATE.NOT_FOUND.TITLE')}</div>
+                        <div className="p2-new text-black-700">{t('TEMPLATE.NOT_FOUND.DESC')}</div>
+                        <div className="flex gap-4 mt-10">
+                            <AppButton variant={ButtonVariant.Secondary} onClick={() => openModal('IMPORT_TEMPLATE_MODAL_VIEW')}>
+                                Import Template
+                            </AppButton>
+                            {/*<AppButton onClick={() => {}}> Create Template</AppButton>*/}
+                        </div>
+                    </div>
+                ))}
         </div>
     );
 };
