@@ -30,10 +30,12 @@ interface IFormBuilderMenuBarProps {
     onClickSettings: React.MouseEventHandler<HTMLButtonElement>;
     onClickTips: React.MouseEventHandler<HTMLButtonElement>;
     onSaveAsTemplate: React.MouseEventHandler<HTMLButtonElement>;
+    onSaveTemplate?: React.MouseEventHandler<HTMLButtonElement>;
     isUpdating?: boolean;
+    isTemplate: boolean;
 }
 
-export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormCover, onClickSettings, onClickTips, onPreview, onFormPublish, onSaveAsTemplate }: IFormBuilderMenuBarProps) {
+export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormCover, onClickSettings, onClickTips, onPreview, onFormPublish, onSaveAsTemplate, isTemplate, onSaveTemplate }: IFormBuilderMenuBarProps) {
     const { t } = useBuilderTranslation();
 
     const breakpoint = useBreakpoint();
@@ -70,10 +72,12 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
                 </IconButton> */}
             <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             {!collapseMenu && <Divider orientation="vertical" className="hidden lg:flex" flexItem />}
-            <IconButton color="inherit" className={optionButtonClassName} onClick={onPreview}>
-                <VisibilityOutlinedIcon />
-                <span className=" text-black-700 ">{t('PREVIEW.DEFAULT')}</span>
-            </IconButton>
+            {!isTemplate && (
+                <IconButton color="inherit" className={optionButtonClassName} onClick={onPreview}>
+                    <VisibilityOutlinedIcon />
+                    <span className=" text-black-700 ">{t('PREVIEW.DEFAULT')}</span>
+                </IconButton>
+            )}
             {/*</Tooltip>*/}
             <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             {/*<Tooltip title={t('PUBLISH.DEFAULT')}>*/}
@@ -83,9 +87,13 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
                 {/*<AppButton variant={ButtonVariant.Secondary} onClick={onSaveAsTemplate}>*/}
                 {/*    Save as Template*/}
                 {/*</AppButton>*/}
-                <AppButton icon={<PublishIcon />} onClick={onFormPublish}>
-                    {t('PUBLISH.DEFAULT')}
-                </AppButton>
+                {isTemplate ? (
+                    <AppButton onClick={onSaveTemplate}>Save Template</AppButton>
+                ) : (
+                    <AppButton icon={<PublishIcon />} onClick={onFormPublish}>
+                        {t('PUBLISH.DEFAULT')}
+                    </AppButton>
+                )}
             </div>
         </Toolbar>
     );
