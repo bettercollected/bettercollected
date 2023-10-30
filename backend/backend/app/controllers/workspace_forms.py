@@ -184,7 +184,6 @@ class WorkspaceFormsRouter(Routable):
         form_id: PydanticObjectId,
         user: User = Depends(get_logged_user),
     ):
-
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
 

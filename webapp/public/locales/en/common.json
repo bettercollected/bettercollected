@@ -620,6 +620,10 @@
     "TITLE": "Terms Of Services",
     "DESCRIPTION": "Our Terms of Services establish the rules and guidelines for using our services."
   },
+  "TEMPLATE": {
+    "TEMPLATES": "Templates",
+    "DELETE_TEMPLATE": "Delete Template"
+  },
   "TOAST": {
     "COPIED": "Copied!",
     "COULD_NOT_IMPORT_FORM": "Could not import the form.",
