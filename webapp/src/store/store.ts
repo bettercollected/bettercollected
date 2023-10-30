@@ -11,6 +11,7 @@ import builder from '@app/store/form-builder/builderSlice';
 import formSlice from '@app/store/forms/slice';
 import { plansApi } from '@app/store/plans/api';
 import { providerApi } from '@app/store/providers/api';
+import { templateApi } from '@app/store/template/api';
 import joyrideSlice from '@app/store/tours/slice';
 import { workspacesApi } from '@app/store/workspaces/api';
 import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitations-api';
@@ -21,7 +22,7 @@ import consentSlice from './consent/consentSlice';
 
 // Add more middlewares here
 // const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
-const middlewares = [authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware, consentApi.middleware];
+const middlewares = [authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware, consentApi.middleware, templateApi.middleware];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
@@ -38,7 +39,8 @@ const reducers = {
     [plansApi.reducerPath]: plansApi.reducer,
     [workspacesApi.reducerPath]: workspacesApi.reducer,
     [consentSlice.reducerPath]: consentSlice.reducer,
-    [consentApi.reducerPath]: consentApi.reducer
+    [consentApi.reducerPath]: consentApi.reducer,
+    [templateApi.reducerPath]: templateApi.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);

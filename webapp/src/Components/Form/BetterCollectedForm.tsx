@@ -175,7 +175,6 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         if (!isResponseValid) {
             dispatch(setInvalidFields(invalidFields));
             let firstInvalidFieldId = '';
-            debugger;
             for (let field of form.fields) {
                 if (Object.keys(invalidFields).includes(field.id) && invalidFields[field.id].length > 0) {
                     firstInvalidFieldId = field.id;
@@ -236,7 +235,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 </div>
 
                 <div className="flex flex-col w-full gap-2">
-                    {form?.fields.map((field: StandardFormFieldDto) => (
+                    {form?.fields?.map((field: StandardFormFieldDto) => (
                         <div key={field?.id} className="relative w-full" id={field?.id}>
                             {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
                             <FieldValidations field={field} inValidations={invalidFields[field?.id]} />

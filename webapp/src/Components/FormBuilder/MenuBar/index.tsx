@@ -29,10 +29,11 @@ interface IFormBuilderMenuBarProps {
     onFormPublish: React.MouseEventHandler<HTMLButtonElement>;
     onClickSettings: React.MouseEventHandler<HTMLButtonElement>;
     onClickTips: React.MouseEventHandler<HTMLButtonElement>;
+    onSaveAsTemplate: React.MouseEventHandler<HTMLButtonElement>;
     isUpdating?: boolean;
 }
 
-export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormCover, onClickSettings, onClickTips, onPreview, onFormPublish }: IFormBuilderMenuBarProps) {
+export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormCover, onClickSettings, onClickTips, onPreview, onFormPublish, onSaveAsTemplate }: IFormBuilderMenuBarProps) {
     const { t } = useBuilderTranslation();
 
     const breakpoint = useBreakpoint();
@@ -78,10 +79,14 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
             {/*<Tooltip title={t('PUBLISH.DEFAULT')}>*/}
             {/*</Tooltip>*/}
             <Divider orientation="vertical" className="hidden lg:flex" flexItem />
-
-            <AppButton icon={<PublishIcon />} className={'absolute right-5 hidden lg:flex'} onClick={onFormPublish}>
-                {t('PUBLISH.DEFAULT')}
-            </AppButton>
+            <div className={'absolute right-10 hidden lg:flex gap-4'}>
+                {/*<AppButton variant={ButtonVariant.Secondary} onClick={onSaveAsTemplate}>*/}
+                {/*    Save as Template*/}
+                {/*</AppButton>*/}
+                <AppButton icon={<PublishIcon />} onClick={onFormPublish}>
+                    {t('PUBLISH.DEFAULT')}
+                </AppButton>
+            </div>
         </Toolbar>
     );
     return (

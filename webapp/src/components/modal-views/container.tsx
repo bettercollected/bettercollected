@@ -12,7 +12,9 @@ import DeleteCustomDomainModal from '@app/components/modal-views/modals/delete-c
 import DeleteInvitationModal from '@app/components/modal-views/modals/delete-invitation-modal';
 import DeleteMemberModal from '@app/components/modal-views/modals/delete-member-modal';
 import DeleteResponseModal from '@app/components/modal-views/modals/delete-response-modal';
+import DeleteTemplateConfirmationModalView from '@app/components/modal-views/modals/delete-template-modal-view';
 import FormBuilderAddFieldModal from '@app/components/modal-views/modals/form-builder-add-field-modal';
+import ImportTemplateModalView from '@app/components/modal-views/modals/import-template-modal-view';
 import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
 import MobileInsertMenu from '@app/components/modal-views/modals/mobile-insert-menu';
 import ReopenFormConfirmationModal from '@app/components/modal-views/modals/reopen-form-confirmation-modal';
@@ -106,6 +108,10 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <CloseFormConfirmationModal {...modalProps} />;
         case 'REOPEN_FORM_CONFIRMATION_MODAL':
             return <ReopenFormConfirmationModal {...modalProps} />;
+        case 'DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW':
+            return <DeleteTemplateConfirmationModalView {...modalProps} />;
+        case 'IMPORT_TEMPLATE_MODAL_VIEW':
+            return <ImportTemplateModalView {...modalProps} />;
         default:
             return <></>;
     }
