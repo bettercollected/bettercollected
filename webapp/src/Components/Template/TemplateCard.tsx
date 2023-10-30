@@ -49,7 +49,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                         id="template-options"
                         menuTitle={''}
                         menuContent={
-                            <div className="!rotate-90">
+                            <div className="">
                                 <EllipsisOption />
                             </div>
                         }
