@@ -129,7 +129,7 @@ class FormTemplateRouter(Routable):
 
     @patch(
         "/workspaces/{workspace_id}/template/{template_id}",
-        response_model=StandardFormTemplateResponse,
+        response_model=StandardFormTemplateCamelModel,
     )
     async def update_template(
         self,
