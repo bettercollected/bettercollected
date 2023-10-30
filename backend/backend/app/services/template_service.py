@@ -63,6 +63,7 @@ class FormTemplateService:
     async def import_form_to_workspace(
         self, workspace_id: PydanticObjectId, user: User, template_id: PydanticObjectId
     ):
+        await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
         await self.get_template_by_id(
             user=user, template_id=template_id
         )
