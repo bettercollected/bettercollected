@@ -15,9 +15,6 @@ import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 const TemplatePage = (props: any) => {
     const { predefined_templates, workspace, notFound } = props;
     const { data, isLoading } = useGetTemplatesQuery(workspace?.id);
-    if (isLoading) {
-        return <LoadingIcon />;
-    }
     const p = [...predefined_templates, ...predefined_templates, ...predefined_templates];
     return (
         <SidebarLayout boxClassName=" h-full">
