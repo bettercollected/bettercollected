@@ -5,6 +5,9 @@ from http import HTTPStatus
 
 import loguru
 from beanie import PydanticObjectId
+from common.configs.crypto import Crypto
+from common.models.standard_form import StandardFormResponse
+from common.utils.asyncio_run import asyncio_run
 from temporalio.client import (
     Client,
     Schedule,
@@ -22,12 +25,10 @@ from temporalio.service import RPCError
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.DeleteResponseParams import DeleteResponseParams
 from backend.app.models.dataclasses.ImportFormParams import ImportFormParams
+from backend.app.models.dataclasses.SavePreviewParams import SavePreviewParams
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.utils.date_utils import get_formatted_date_from_str
 from backend.config import settings
-from common.configs.crypto import Crypto
-from common.models.standard_form import StandardFormResponse
-from common.utils.asyncio_run import asyncio_run
 
 
 class TemporalService:
@@ -35,6 +36,7 @@ class TemporalService:
         self.server_uri = server_uri
         self.namespace = namespace
         self.crypto = crypto
+        self.client = None
         if settings.schedular_settings.ENABLED:
             self.connect_to_temporal_server(server_uri=server_uri, namespace=namespace)
 
@@ -78,6 +80,24 @@ class TemporalService:
             raise HTTPException(
                 status_code=HTTPStatus.CONFLICT, content="Workflow has already started."
             )
+
+    async def start_save_preview_workflow(self, template_id: PydanticObjectId, user_tokens: UserTokens):
+        await self.check_temporal_client_and_try_to_connect_if_not_connected()
+        try:
+            encrypted_tokens = self.crypto.encrypt(json.dumps(asdict(user_tokens)))
+            params = SavePreviewParams(template_id=str(template_id),
+                                       template_url=f"{settings.api_settings.CLIENT_URL}/templates/" + str(
+                                           template_id) + "/preview",
+                                       token=encrypted_tokens)
+            await self.client.start_workflow("save_template_preview",
+                                             arg=params,
+                                             id="save_preview_image_" + str(template_id),
+                                             task_queue=settings.temporal_settings.worker_queue,
+                                             retry_policy=RetryPolicy(maximum_attempts=4)
+                                             )
+            return "Workflow Started"
+        except WorkflowAlreadyStartedError as e:
+            loguru.logger.info("Workflow has already started")
 
     async def add_scheduled_job_for_importing_form(
         self, workspace_id: PydanticObjectId, form_id: str
