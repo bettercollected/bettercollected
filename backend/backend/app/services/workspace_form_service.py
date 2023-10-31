@@ -32,6 +32,7 @@ from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.utils import AiohttpClient
+from backend.config import settings
 
 
 class WorkspaceFormService:
@@ -497,7 +498,7 @@ class WorkspaceFormService:
             duplicated_form.form_id = str(PydanticObjectId())
         duplicated_form = await duplicated_form.save()
 
-        if is_template:
+        if is_template and settings.schedular_settings.ENABLED:
             await self.temporal_service.start_save_preview_workflow(duplicated_form.id, user_tokens=user_tokens)
         if not is_template:
             workspace_form = WorkspaceFormDocument(
