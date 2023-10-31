@@ -38,7 +38,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
     return (
         <div className={'flex flex-col gap-2 '}>
             <div className={'h-[192px] w-[186px] cursor-pointer relative border-black-200 border rounded-xl'} onClick={handleClickCard}>
-                <Image alt={template.title} src={'/images/no_preview.png'} layout={'fill'} />
+                <Image alt={template.title} src={template.previewImage || '/images/no_preview.png'} layout={'fill'} />
             </div>
             <div className="w-full flex justify-between items-center">
                 <span className={'h5-new font-semibold max-w-[150px] truncate text-black-800'}>{template.title}</span>

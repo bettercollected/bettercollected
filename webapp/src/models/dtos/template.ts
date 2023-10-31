@@ -6,6 +6,7 @@ export interface IFormTemplateSettings {
 }
 
 export interface IFormTemplateDto {
+    previewImage: string;
     id: string;
     workspaceId: string;
     type: string;
