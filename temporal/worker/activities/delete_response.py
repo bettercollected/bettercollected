@@ -1,5 +1,3 @@
-import json
-
 from temporalio import activity, workflow
 
 from models.delete_response import DeleteResponseParams
