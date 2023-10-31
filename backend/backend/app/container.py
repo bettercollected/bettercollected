@@ -3,6 +3,9 @@ from pathlib import Path
 
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from common.configs.crypto import Crypto
+from common.services.http_client import HttpClient
+from common.services.jwt_service import JwtService
 from dependency_injector import containers, providers
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -44,9 +47,6 @@ from backend.app.services.workspace_responders_service import WorkspaceResponder
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
-from common.configs.crypto import Crypto
-from common.services.http_client import HttpClient
-from common.services.jwt_service import JwtService
 
 current_path = Path(os.path.abspath(os.path.dirname(__file__))).absolute()
 
@@ -248,6 +248,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_template_repo=form_template_repo,
         workspace_form_service=workspace_form_service,
         aws_service=aws_service,
+        temporal_service=temporal_service
     )
 
 
