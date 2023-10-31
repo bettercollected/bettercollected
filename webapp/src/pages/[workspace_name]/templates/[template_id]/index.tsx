@@ -101,6 +101,7 @@ export default SingleTemplate;
 export async function getServerSideProps(_context: any) {
     const props = await getAuthUserPropsWithWorkspace(_context);
     const { template_id } = _context.params;
+    console.log(template_id);
     if (!props.props) {
         return props;
     }
