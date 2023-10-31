@@ -151,6 +151,22 @@ class FormTemplateRouter(Routable):
         )
         return response
 
+    @patch("/workspaces/{workspace_id}/template/{template_id}/preview")
+    async def patch_template_preview_image(
+        self,
+        workspace_id: PydanticObjectId,
+        template_id: PydanticObjectId,
+        preview_image: UploadFile = None,
+        user: User = Depends(get_logged_user)
+    ):
+        response = await self.form_template_service.update_template_preview(
+            workspace_id=workspace_id,
+            template_id=template_id,
+            preview_image=preview_image,
+            user=user
+        )
+        return response
+
     @patch(
         "/workspaces/{workspace_id}/template/{template_id}/settings",
         response_model=StandardFormTemplateCamelModel,
