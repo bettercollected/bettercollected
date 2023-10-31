@@ -8,10 +8,12 @@ from fastapi import UploadFile
 from gunicorn.config import User
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.repositories.template import FormTemplateRepository
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.services.temporal_service import TemporalService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
@@ -24,11 +26,13 @@ class FormTemplateService:
         form_template_repo: FormTemplateRepository,
         aws_service: AWSS3Service,
         workspace_form_service: WorkspaceFormService,
+        temporal_service: TemporalService
     ):
         self.workspace_user_service = workspace_user_service
         self.form_template_repo = form_template_repo
         self.workspace_form_service = workspace_form_service
         self._aws_service = aws_service
+        self.temporal_service = temporal_service
 
     async def get_templates(self, workspace_id: PydanticObjectId, user: User):
         predefined_workspace = False
@@ -121,6 +125,7 @@ class FormTemplateService:
         template_body: StandardFormTemplate,
         logo: UploadFile,
         cover_image: UploadFile,
+        user_tokens: UserTokens
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -155,9 +160,12 @@ class FormTemplateService:
                 if template_body.cover_image is not None
                 else template.cover_image
             )
-        return await self.form_template_repo.update_template(
+        updated_template = await self.form_template_repo.update_template(
             template_id=template_id, template_body=template_body
         )
+        if settings.schedular_settings.ENABLED:
+            await self.temporal_service.start_save_preview_workflow(template_id=template_id, user_tokens=user_tokens)
+        return updated_template
 
     async def update_template_settings(
         self,
