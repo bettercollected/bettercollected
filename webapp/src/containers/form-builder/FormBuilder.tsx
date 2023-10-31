@@ -42,7 +42,7 @@ import { throttle } from '@app/utils/throttleUtils';
 
 import useFormBuilderState from './context';
 
-export default function FormBuilder({ workspace, _nextI18Next, isTemplate = false, templateId }: { workspace: WorkspaceDto; _nextI18Next: any; isTemplate?: boolean; templateId: string }) {
+export default function FormBuilder({ workspace, _nextI18Next, isTemplate = false, templateId }: { workspace: WorkspaceDto; _nextI18Next: any; isTemplate?: boolean; templateId?: string }) {
     // Hooks
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
