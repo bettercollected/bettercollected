@@ -34,7 +34,7 @@ import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useCreateTemplateFromFormMutation } from '@app/store/template/api';
+import { useCreateTemplateFromFormMutation, usePatchTemplateMutation } from '@app/store/template/api';
 import { usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
@@ -42,7 +42,7 @@ import { throttle } from '@app/utils/throttleUtils';
 
 import useFormBuilderState from './context';
 
-export default function FormBuilder({ workspace, _nextI18Next }: { workspace: WorkspaceDto; _nextI18Next: any }) {
+export default function FormBuilder({ workspace, _nextI18Next, isTemplate = false, templateId }: { workspace: WorkspaceDto; _nextI18Next: any; isTemplate?: boolean; templateId?: string }) {
     // Hooks
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
@@ -86,6 +86,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
 
     // RTK
     const [createFormAsTemplate] = useCreateTemplateFromFormMutation();
+    const [updateTemplate] = usePatchTemplateMutation();
 
     useEffect(() => {
         setShowLogo(!!builderState.logo);
@@ -108,7 +109,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
 
     const onPreview = () => {
         asyncDispatch(resetBuilderMenuState()).then(() => {
-            fullScreenModal.openModal('FORM_BUILDER_PREVIEW', { publish: onFormPublish, imagesRemoved });
+            fullScreenModal.openModal('FORM_BUILDER_PREVIEW', { publish: onFormPublish, imagesRemoved, isTemplate });
         });
     };
 
@@ -163,8 +164,8 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
             responseExpiration: consentState.responseExpiration,
             responseExpirationType: consentState.responseExpirationType
         };
-        publishRequest.buttonText = builderState.buttonText;
         publishRequest.consent = consentState.consents;
+        publishRequest.buttonText = builderState.buttonText;
         if (imagesRemoved.logo) publishRequest.logo = '';
         if (imagesRemoved.cover) publishRequest.cover_image = '';
         formData.append('form_body', JSON.stringify(publishRequest));
@@ -175,6 +176,39 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
             setTimeout(() => {
                 setShowSaving({ status: false, text: 'Saving' });
             }, 1500);
+        }
+    };
+
+    const onSaveTemplate = async () => {
+        const templateData = new FormData();
+        if (headerImages.coverImage) templateData.append('cover_image', headerImages.coverImage);
+        if (headerImages.logo) templateData.append('logo', headerImages.logo);
+        const publishRequest: any = {};
+        publishRequest.title = builderState.title;
+        publishRequest.description = builderState.description;
+        let fields: any = Object.values(builderState.fields || {});
+        fields = fields.map((field: IFormFieldState) => {
+            if (field.properties?.choices) {
+                return { ...field, properties: { ...field.properties, choices: Object.values(field.properties?.choices) } };
+            }
+            return field;
+        });
+        publishRequest.fields = fields;
+        publishRequest.buttonText = builderState.buttonText;
+        if (imagesRemoved.logo) publishRequest.logo = '';
+        if (imagesRemoved.cover) publishRequest.cover_image = '';
+        templateData.append('template_body', JSON.stringify(publishRequest));
+        const apiObj: any = { template_id: templateId, workspace_id: workspace.id, body: templateData };
+        try {
+            const response: any = await updateTemplate(apiObj);
+            if (response?.data) {
+                toast('Successful', { type: 'success' });
+                await router.replace(`/${workspace.workspaceName}/dashboard/templates`);
+            } else {
+                toast('Error Occurred').toString(), { type: 'error' };
+            }
+        } catch (err) {
+            toast('Error Occurred').toString(), { type: 'error' };
         }
     };
 
@@ -202,8 +236,10 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
     );
 
     useEffect(() => {
-        setShowSaving({ status: true, text: 'Saving' });
-        saveFormDebounced(builderState, consentState, headerImages);
+        if (!isTemplate) {
+            setShowSaving({ status: true, text: 'Saving' });
+            saveFormDebounced(builderState, consentState, headerImages);
+        }
     }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages, consentState, imagesRemoved]);
 
     const openTagSelector = (event: any) => {
@@ -272,6 +308,8 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
                 onClickTips={onClickTips}
                 onSaveAsTemplate={onSaveAsTemplate}
                 isUpdating={patching}
+                isTemplate={isTemplate}
+                onSaveTemplate={onSaveTemplate}
             />
             {showCover && <FormCoverComponent setIsCoverClicked={setShowCover} imagesRemoved={imagesRemoved} setImagesRemoved={setImagesRemoved} />}
             <div className="h-full w-full max-w-4xl mx-auto py-12">

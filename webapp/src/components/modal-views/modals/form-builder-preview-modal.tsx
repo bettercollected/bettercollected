@@ -24,7 +24,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import { useFullScreenModal } from '../full-screen-modal-context';
 
-export default function FormBuilderPreviewModal({ publish, isFormSubmitted = false, imagesRemoved = {} }: { publish: () => void; isFormSubmitted: boolean; imagesRemoved: any }) {
+export default function FormBuilderPreviewModal({ publish, isFormSubmitted = false, imagesRemoved = {}, isTemplate }: { publish: () => void; isFormSubmitted: boolean; imagesRemoved: any; isTemplate?: boolean }) {
     const [formToRender, setFormToRender] = useState(initFormState);
     const { closeModal } = useFullScreenModal();
     const builderState = useAppSelector(selectBuilderState);
@@ -98,14 +98,17 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
                     <Back />
                     Back to Editor
                 </div>
-                <div className={'flex flex-row gap-4'}>
-                    <AppButton variant={ButtonVariant.Secondary} onClick={makeTemplate}>
-                        Make Template
-                    </AppButton>
-                    <AppButton icon={<PublishIcon />} onClick={publish}>
-                        Publish Form
-                    </AppButton>
-                </div>
+                {!isTemplate && (
+                    <div className={'flex flex-row gap-4'}>
+                        <AppButton variant={ButtonVariant.Secondary} onClick={makeTemplate}>
+                            Make Template
+                        </AppButton>
+                        <AppButton icon={<PublishIcon />} onClick={publish}>
+                            Publish Form
+                        </AppButton>
+                    </div>
+                )}
+
                 {/*<div*/}
                 {/*    className="flex gap-2 items-center cursor-pointer"*/}
                 {/*    onClick={() => {*/}

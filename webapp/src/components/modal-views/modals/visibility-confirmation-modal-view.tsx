@@ -32,7 +32,7 @@ const VisibilityConfirmationModalView = ({ visibilityType, handleOnConfirm, isTe
     };
 
     return (
-        <div className={'w-[470px] rounded-xl bg-white'}>
+        <div className={'md:w-[470px] rounded-xl bg-white'}>
             <div className={'flex justify-between p-4'}>
                 <h1 className={'text-sm font-normal text-black-800'}>Confirm Visibility</h1>
                 <Close onClick={closeModal} />
@@ -44,7 +44,7 @@ const VisibilityConfirmationModalView = ({ visibilityType, handleOnConfirm, isTe
                 </h1>
                 <h2 className={'text-sm font-normal mb-3 text-black-700'}>{description[visibilityType]}</h2>
                 <div className={'flex flex-row gap-4 w-full'}>
-                    <ModalButton buttonType={'Modal'} size={ButtonSize.Medium} variant={ButtonVariant.Secondary}>
+                    <ModalButton buttonType={'Modal'} size={ButtonSize.Medium} variant={ButtonVariant.Secondary} onClick={closeModal}>
                         Cancel
                     </ModalButton>
                     <ModalButton buttonType={'Modal'} size={ButtonSize.Medium} onClick={onClickConfirm}>

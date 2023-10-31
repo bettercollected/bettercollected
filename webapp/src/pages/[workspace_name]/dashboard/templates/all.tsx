@@ -29,7 +29,7 @@ const TemplateAllPages = (props: any) => {
                 <ChevronForward className=" rotate-180 h-6 w-6 p-[2px] " />
                 <p className={'text-sm text-black-700 font-normal'}>Back</p>
             </div>
-            <div className={'flex flex-col mt-4 px-12'}>
+            <div className={'flex flex-col mt-4 px-2 md:px-12'}>
                 <h1 className={'text-xl font-semibold text-black-800'}>All Templates</h1>
                 <TemplateSection templates={d} className={'md:pl-[130px] md:pr:[80px]'} />
             </div>

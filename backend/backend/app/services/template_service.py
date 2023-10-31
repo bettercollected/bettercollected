@@ -56,7 +56,7 @@ class FormTemplateService:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
         if not template.settings.is_public:
             await self.workspace_user_service.check_user_has_access_in_workspace(
-                workspace_id=workspace_id, user=user
+                workspace_id=workspace_id if workspace_id else template.workspace_id, user=user
             )
         return template
 
@@ -193,3 +193,11 @@ class FormTemplateService:
                 HTTPStatus.FORBIDDEN, "You are not allowed to perform this action."
             )
         return await self.form_template_repo.delete_template(template_id)
+
+    async def update_template_preview(self, template_id: PydanticObjectId,
+                                      preview_image: UploadFile):
+        template = await self.form_template_repo.get_template_by_id(template_id=template_id)
+        preview_image = await self._aws_service.upload_file_to_s3(file=preview_image.file, key=template_id,
+                                                                  previous_image=template.preview_image)
+        template.preview_image = preview_image
+        return await template.save()

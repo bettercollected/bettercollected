@@ -58,7 +58,7 @@ export default function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, h
                     <Logo isCustomDomain={isCustomDomain} isFooter={isFooter} isClientDomain={isClientDomain} />
                 </div>
                 <div className="flex items-center justify-center gap-7">
-                    {inMobile && (
+                    {!inMobile && (
                         <>
                             <LocaleDropdownUi />
                             {showPlans && (
