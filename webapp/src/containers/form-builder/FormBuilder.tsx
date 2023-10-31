@@ -109,7 +109,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
 
     const onPreview = () => {
         asyncDispatch(resetBuilderMenuState()).then(() => {
-            fullScreenModal.openModal('FORM_BUILDER_PREVIEW', { publish: onFormPublish, imagesRemoved });
+            fullScreenModal.openModal('FORM_BUILDER_PREVIEW', { publish: onFormPublish, imagesRemoved, isTemplate });
         });
     };
 
@@ -202,7 +202,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         try {
             const response: any = await updateTemplate(apiObj);
             if (response?.data) {
-                toast('Template Updated', { type: 'success' });
+                toast('Successful', { type: 'success' });
                 await router.replace(`/${workspace.workspaceName}/dashboard/templates`);
             } else {
                 toast('Error Occurred').toString(), { type: 'error' };

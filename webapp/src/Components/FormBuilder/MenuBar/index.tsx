@@ -72,12 +72,11 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
                 </IconButton> */}
             <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             {!collapseMenu && <Divider orientation="vertical" className="hidden lg:flex" flexItem />}
-            {!isTemplate && (
-                <IconButton color="inherit" className={optionButtonClassName} onClick={onPreview}>
-                    <VisibilityOutlinedIcon />
-                    <span className=" text-black-700 ">{t('PREVIEW.DEFAULT')}</span>
-                </IconButton>
-            )}
+
+            <IconButton color="inherit" className={optionButtonClassName} onClick={onPreview}>
+                <VisibilityOutlinedIcon />
+                <span className=" text-black-700 ">{t('PREVIEW.DEFAULT')}</span>
+            </IconButton>
             {/*</Tooltip>*/}
             <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             {/*<Tooltip title={t('PUBLISH.DEFAULT')}>*/}
@@ -130,12 +129,20 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
                             <HamburgerIcon width={24} height={24} />
                         </div>
                     </CustomPopover>
-                    <button className="text-sm text-black-700" onClick={onPreview}>
-                        Preview
-                    </button>
-                    <AppButton variant={ButtonVariant.Ghost} className={'absolute right-5 lg:hidden'} onClick={onFormPublish}>
-                        Publish Form{' '}
-                    </AppButton>
+                    {isTemplate ? (
+                        <AppButton variant={ButtonVariant.Ghost} className={'absolute right-5 lg:hidden'} onClick={onSaveTemplate}>
+                            Save Template
+                        </AppButton>
+                    ) : (
+                        <>
+                            <button className="text-sm text-black-700" onClick={onPreview}>
+                                Preview
+                            </button>
+                            <AppButton variant={ButtonVariant.Ghost} className={'absolute right-5 lg:hidden'} onClick={onFormPublish}>
+                                Publish Form{' '}
+                            </AppButton>
+                        </>
+                    )}
                 </div>
             ) : (
                 <Actions />
