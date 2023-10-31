@@ -96,7 +96,7 @@ class FormTemplateRouter(Routable):
 
     @post(
         "/workspaces/{workspace_id}/template",
-        response_model=StandardFormTemplateResponseCamelModel,
+        response_model=StandardFormTemplateResponse,
     )
     async def create_new_template(
         self,
@@ -114,7 +114,7 @@ class FormTemplateRouter(Routable):
             logo=logo,
             cover_image=cover_image,
         )
-        return response
+        return StandardFormTemplateResponse(**response.dict())
 
     @post(
         "/workspaces/{workspace_id}/template/{template_id}/import",
