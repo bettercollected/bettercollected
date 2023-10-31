@@ -69,6 +69,8 @@ class TestFormTemplates:
         expected_template_id = (
             ((await FormTemplateDocument.find().to_list())[0]).dict().get("id")
         )
+
+        assert template.status_code == 200
         actual_template_id = template.json().get("id")
         assert actual_template_id == str(expected_template_id)
 
