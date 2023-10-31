@@ -29,7 +29,7 @@ async def save_preview(save_preview_params: SavePreviewParams):
     driver.add_cookie(auth_cookie)
     driver.refresh()
 
-    await sleep(5)
+    await sleep(20)
 
     screenshot = driver.get_screenshot_as_png()
     driver.close()
