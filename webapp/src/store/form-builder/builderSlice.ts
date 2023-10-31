@@ -251,7 +251,7 @@ export const builder = createSlice({
         },
         setEditForm: (state, action) => {
             const fields: any = {};
-            action.payload.fields.forEach((field: any, index: number) => {
+            action.payload.fields?.forEach((field: any, index: number) => {
                 const choices: any = {};
 
                 field?.properties?.choices?.map((choice: IChoiceFieldState, index: number) => {

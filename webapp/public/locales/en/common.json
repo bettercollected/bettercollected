@@ -622,7 +622,11 @@
   },
   "TEMPLATE": {
     "TEMPLATES": "Templates",
-    "DELETE_TEMPLATE": "Delete Template"
+    "DELETE_TEMPLATE": "Delete Template",
+    "NOT_FOUND": {
+      "TITLE": "No templates found",
+      "DESC": "You haven’t created or imported any templates"
+    }
   },
   "TOAST": {
     "COPIED": "Copied!",

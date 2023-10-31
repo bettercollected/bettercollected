@@ -24,7 +24,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useDeleteTemplateMutation, usePatchTemplateSettingsMutation } from '@app/store/template/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-const TemplateSettings = ({ template }: { template: IFormTemplateDto }) => {
+const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto; showTitle: boolean }) => {
     const { t } = useTranslation();
     const [templateVisibility, setTemplateVisibility] = useState(template?.settings?.isPublic ? 'Public' : 'Private');
     const { openModal } = useModal();
@@ -66,6 +66,7 @@ const TemplateSettings = ({ template }: { template: IFormTemplateDto }) => {
 
     return (
         <div className={'flex flex-col gap-4'}>
+            {showTitle && <h1 className={'text-3xl mb-4 font-semibold text-black-800'}>{template.title}</h1>}
             <div className={'flex flex-col gap-2'}>
                 <h1 className={'text-2xl font-semibold text-black-800'}>Settings</h1>
                 <p className={'text-sm font-normal text-black-700'}>Modify template visibility to either public or private, or delete the template.</p>
