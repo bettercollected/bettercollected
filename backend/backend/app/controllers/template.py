@@ -157,6 +157,8 @@ class FormTemplateRouter(Routable):
         cover_image: UploadFile = None,
         template_body: str = Form(),
         user: User = Depends(get_logged_user),
+        access_token=Depends(get_access_token),
+        refresh_token=Depends(get_refresh_token),
     ):
         template = json.loads(template_body)
         response = await self.form_template_service.update_template(
@@ -166,6 +168,7 @@ class FormTemplateRouter(Routable):
             template_body=StandardFormTemplateCamelModel(**template),
             logo=logo,
             cover_image=cover_image,
+            user_tokens=UserTokens(access_token=access_token, refresh_token=refresh_token)
         )
         return response
 
