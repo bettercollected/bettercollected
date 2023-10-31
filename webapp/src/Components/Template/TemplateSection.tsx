@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Empty from '@Components/Common/Icons/Empty';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import CreateTemplateButton from '@Components/Template/CreateTemplateButton';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 
 import { useModal } from '@app/components/modal-views/context';
@@ -21,7 +22,7 @@ interface ITemplateSectionProps {
     className?: string;
 }
 
-const TemplateSection = ({ templates, title, className }: ITemplateSectionProps) => {
+const TemplateSection = ({ templates, title = '', className }: ITemplateSectionProps) => {
     const workspace = useAppSelector(selectWorkspace);
     const { openModal } = useModal();
     const { t } = useTranslation();
@@ -30,10 +31,12 @@ const TemplateSection = ({ templates, title, className }: ITemplateSectionProps)
         isPredefinedTemplate = true;
     }
     return (
-        <div className={`flex flex-col gap-6 p-10 w-full ${title == 'Default' && 'bg-white'} ${className}`}>
-            <div className={'flex flex-row justify-between'}>
+        <div className={`flex flex-col gap-6 p-10 px-4 md:px-10 w-full ${title == 'Default' && 'bg-white'} ${className}`}>
+            <div className={`flex  md:flex-row justify-between ' ${title == 'Default' ? 'flex-row' : 'flex-col gap-2'}`}>
                 <h1 className={'text-xl font-semibold text-black-800'}>{title}</h1>
-                {title === 'Default' ? (
+                {title === '' ? (
+                    <></>
+                ) : title === 'Default' ? (
                     <Link href={`/${workspace.workspaceName}/dashboard/templates/all`}>
                         <div className={'flex flex-row gap-2 items-center text-blue-500 cursor-pointer'}>
                             <VisibilityOutlinedIcon />
@@ -41,12 +44,15 @@ const TemplateSection = ({ templates, title, className }: ITemplateSectionProps)
                         </div>
                     </Link>
                 ) : (
-                    <>
-                        <AppButton onClick={() => openModal('IMPORT_TEMPLATE_MODAL_VIEW')}>Import Template</AppButton>
-                    </>
+                    <div className={'flex flex-row gap-4'}>
+                        <AppButton variant={ButtonVariant.Secondary} onClick={() => openModal('IMPORT_TEMPLATE_MODAL_VIEW')}>
+                            Import Template
+                        </AppButton>
+                        <CreateTemplateButton />
+                    </div>
                 )}
             </div>
-            <div className={`flex flex-row w-full gap-6 ${title == 'Default' ? 'flex-nowrap' : 'flex-wrap'}`}>
+            <div className={`flex flex-row  w-full gap-6 ${title == 'Default' ? 'flex-nowrap overflow-auto' : 'flex-wrap justify-center md:justify-start'}`}>
                 {templates && templates?.map((template: IFormTemplateDto, index: number) => <TemplateCard key={index} template={template} isPredefinedTemplate={isPredefinedTemplate} />)}
             </div>
 
