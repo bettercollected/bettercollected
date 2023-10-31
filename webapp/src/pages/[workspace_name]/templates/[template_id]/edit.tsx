@@ -47,7 +47,7 @@ export default function EditFromPage(props: any) {
         <HistoryKeyListener>
             <FormBuilderKeyListener>
                 <NextSeo title={`${template.title} | Edit`} noindex={true} nofollow={true} />
-                <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
+                <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col " childClassName={'h-screen md:h-full'}>
                     <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} templateId={templateId} isTemplate />
                 </Layout>
             </FormBuilderKeyListener>
