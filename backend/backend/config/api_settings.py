@@ -13,6 +13,7 @@ class ApiSettings(BaseSettings):
     ALLOWED_COLLABORATORS = 10
     ALLOWED_WORKSPACES = 3
     ENABLE_FORM_CREATION = False
+    CLIENT_URL = "http://localhost:3000"
 
     class Config:
         env_prefix = "API_"

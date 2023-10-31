@@ -13,6 +13,7 @@ from fastapi import UploadFile
 from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.response_dtos import FormFileResponse
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
@@ -465,6 +466,7 @@ class WorkspaceFormService:
         form_id: PydanticObjectId,
         user: User,
         is_template: bool = False,
+        user_tokens: UserTokens = None
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -494,6 +496,9 @@ class WorkspaceFormService:
         else:
             duplicated_form.form_id = str(PydanticObjectId())
         duplicated_form = await duplicated_form.save()
+
+        if is_template:
+            await self.temporal_service.start_save_preview_workflow(duplicated_form.id, user_tokens=user_tokens)
         if not is_template:
             workspace_form = WorkspaceFormDocument(
                 form_id=str(duplicated_form.form_id),

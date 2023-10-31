@@ -7,6 +7,7 @@ from fastapi import Depends, UploadFile, Form
 from gunicorn.config import User
 
 from backend.app.container import container
+from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.minified_form import MinifiedForm
 from backend.app.models.template import (
     StandardFormTemplateCamelModel,
@@ -16,7 +17,8 @@ from backend.app.models.template import (
 )
 from backend.app.router import router
 from backend.app.services.template_service import FormTemplateService
-from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
+from backend.app.services.user_service import get_logged_user, get_user_if_logged_in, get_api_key, get_access_token, \
+    get_refresh_token
 from backend.app.services.workspace_form_service import WorkspaceFormService
 
 
@@ -64,15 +66,31 @@ class FormTemplateRouter(Routable):
         )
         return StandardFormTemplateCamelModel(**response.dict())
 
+    @patch("/template/{template_id}/preview")
+    async def patch_template_preview_image(
+        self,
+        template_id: PydanticObjectId,
+        preview_image: UploadFile = None,
+        api_key=Depends(get_api_key)
+    ):
+        response = await self.form_template_service.update_template_preview(
+            template_id=template_id,
+            preview_image=preview_image,
+        )
+        return response
+
     @post("/workspaces/{workspace_id}/form/{form_id}/template")
     async def create_template_from_form(
         self,
         workspace_id: PydanticObjectId,
         form_id: PydanticObjectId,
         user: User = Depends(get_logged_user),
+        access_token=Depends(get_access_token),
+        refresh_token=Depends(get_refresh_token),
     ):
+        user_tokens = UserTokens(access_token=access_token, refresh_token=refresh_token)
         response = await self.workspace_form_service.duplicate_form(
-            workspace_id=workspace_id, form_id=form_id, is_template=True, user=user
+            workspace_id=workspace_id, form_id=form_id, is_template=True, user=user, user_tokens=user_tokens
         )
         return StandardFormTemplateResponse(**response.dict())
 
@@ -148,22 +166,6 @@ class FormTemplateRouter(Routable):
             template_body=StandardFormTemplateCamelModel(**template),
             logo=logo,
             cover_image=cover_image,
-        )
-        return response
-
-    @patch("/workspaces/{workspace_id}/template/{template_id}/preview")
-    async def patch_template_preview_image(
-        self,
-        workspace_id: PydanticObjectId,
-        template_id: PydanticObjectId,
-        preview_image: UploadFile = None,
-        user: User = Depends(get_logged_user)
-    ):
-        response = await self.form_template_service.update_template_preview(
-            workspace_id=workspace_id,
-            template_id=template_id,
-            preview_image=preview_image,
-            user=user
         )
         return response
 
