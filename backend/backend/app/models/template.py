@@ -30,6 +30,7 @@ class StandardFormTemplate(BaseModel):
     settings: Optional[StandardTemplateSetting] = StandardTemplateSetting()
     created_by: Optional[str]
     imported_from: Optional[PydanticObjectId]
+    preview_image: Optional[str]
 
 
 class StandardFormTemplateResponse(StandardFormTemplate):
