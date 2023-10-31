@@ -21,6 +21,7 @@ import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
 const SingleTemplate = (props: any) => {
     const { workspace, notFound, templateId } = props;
     const router = useRouter();
+    const { isPredefinedTemplate } = router.query;
     const { openModal } = useFullScreenModal();
     const { t } = useTranslation();
 
@@ -28,7 +29,7 @@ const SingleTemplate = (props: any) => {
     const [createFormFromTemplate] = useCreateFormFromTemplateMutation();
 
     const { data, isLoading } = useGetTemplateByIdQuery({
-        workspace_id: workspace.id,
+        workspace_id: isPredefinedTemplate ? '' : workspace.id,
         template_id: templateId
     });
 
@@ -71,14 +72,14 @@ const SingleTemplate = (props: any) => {
 
     // @ts-ignore
     return (
-        <Layout showNavbar className={'bg-white !px-0'}>
+        <Layout showNavbar className={'bg-white !px-0'} childClassName={'!h-screen'}>
             <NextSeo title={data?.title + ' | ' + workspace.workspaceName} noindex={false} nofollow={false} />
-            <div className={'py-3 px-5 flex justify-between'}>
-                <div className="flex items-center gap-1 pt-2 cursor-pointer" onClick={handleClickBack}>
-                    <ChevronForward className=" rotate-180 h-6 w-6 p-[2px] " />
+            <div className={'py-3 px-5 flex justify-between items-center'}>
+                <div className="flex items-center gap-1 pt-0 md:pt-2 cursor-pointer" onClick={handleClickBack}>
+                    <ChevronForward className=" rotate-180 h-6 w-6  p-[2px]" />
                     <p className={'text-sm text-black-700 font-normal'}>Back</p>
                 </div>
-                <div className={'flex flex-row gap-4'}>
+                <div className={'flex flex-row gap-1 md:gap-4'}>
                     {data?.workspaceId === workspace.id ? (
                         <AppButton icon={<SettingsIcon />} variant={ButtonVariant.Ghost} onClick={() => openModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', { template: data })}>
                             Settings
@@ -91,7 +92,7 @@ const SingleTemplate = (props: any) => {
                     <AppButton onClick={handleUseTemplate}>Use Template</AppButton>
                 </div>
             </div>
-            {data && <BetterCollectedForm isDisabled form={convertFormTemplateToStandardForm(data)} />}
+            {data && <BetterCollectedForm form={convertFormTemplateToStandardForm(data)} />}
         </Layout>
     );
 };
@@ -101,7 +102,6 @@ export default SingleTemplate;
 export async function getServerSideProps(_context: any) {
     const props = await getAuthUserPropsWithWorkspace(_context);
     const { template_id } = _context.params;
-    console.log(template_id);
     if (!props.props) {
         return props;
     }
