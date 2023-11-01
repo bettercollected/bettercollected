@@ -19,6 +19,7 @@ import workspaceSlice from '@app/store/workspaces/slice';
 
 import { consentApi } from './consent/api';
 import consentSlice from './consent/consentSlice';
+import mutationStatusSlice from './mutations/slice';
 
 // Add more middlewares here
 // const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
@@ -27,6 +28,7 @@ const middlewares = [authApi.middleware, membersNInvitationsApi.middleware, plan
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
 const reducers = {
+    [mutationStatusSlice.reducerPath]: mutationStatusSlice.reducer,
     [authSlice.reducerPath]: authSlice.reducer,
     [formSlice.reducerPath]: formSlice.reducer,
     [joyrideSlice.reducerPath]: joyrideSlice.reducer,
@@ -49,7 +51,6 @@ export const rootReducer: Reducer<RootState> = (state, action) => {
     if (action.type === RESET_STATE_ACTION_TYPE) {
         state = {} as RootState;
     }
-
     return combinedReducer(state, action);
 };
 
@@ -58,20 +59,9 @@ export const store = configureStore({
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
             serializableCheck: false
-            // serializableCheck: {
-            //     ignoredActions: [
-            //         FLUSH,
-            //         REHYDRATE,
-            //         PAUSE,
-            //         PERSIST,
-            //         PURGE,
-            //         REGISTER,
-            //     ]
-            // }
         }).concat(middlewares),
     preloadedState: {},
     devTools: !environments.IS_IN_PRODUCTION_MODE
-    // enhancers: environments.IS_IN_PRODUCTION_MODE ? [] : [monitorReducerEnhancer]
 });
 
 export const persistor = persistStore(store);
