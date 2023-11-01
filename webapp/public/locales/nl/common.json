@@ -43,6 +43,7 @@
     "CHECK_MY_DATA": "Controleer mijn gegevens",
     "CONTINUE": "Doorgaan",
     "CONTINUE_WITH_GOOGLE": "Doorgaan met Google",
+    "CONFIRM": "Bevestigen",
     "COPY_LINK": "Link kopiëren",
     "CREATE_FORM": "Formulier maken",
     "CREATE_WORKSPACE": "Maak een werkruimte",
@@ -495,6 +496,7 @@
     "YEARLY": "JAARLIJKS"
   },
   "PINNED_FORMS": "Vastgemaakte formulieren",
+  "PUBLISH_FORM": " Publiceren.",
   "PLACEHOLDER": {
     "ENTER_CUSTOM_DOMAIN": "Voer uw aangepaste domein in",
     "ENTER_WORKSPACE_HANDLE": "Voer de werkruimtehandle in",
@@ -618,7 +620,39 @@
   },
   "TEMPLATE": {
     "TEMPLATES": "Sjablonen",
-    "DELETE_TEMPLATE": "Sjabloon Verwijderen"
+    "DELETE_TEMPLATE": "Sjabloon Verwijderen",
+    "DELETE_TEMPLATE_DESCRIPTION": "Zodra je een sjabloon verwijdert, wordt het permanent verwijderd en kan niemand met de link er toegang toe krijgen.",
+    "NOT_FOUND": {
+      "TITLE": "Geen sjablonen gevonden",
+      "DESC": "Je hebt geen sjablonen aangemaakt of geïmporteerd"
+    },
+    "DEFAULT": "Standaard",
+    "YOUR_WORKSPACE": "Je Werkruimte",
+    "SHOW_ALL": "Toon Alles",
+    "ALL_TEMPLATES": "Alle Sjablonen",
+    "BUTTONS": {
+      "IMPORT_TEMPLATE": "Sjabloon Importeren",
+      "CREATE_TEMPLATE": "Sjabloon Maken",
+      "USE_TEMPLATE": "Gebruik Sjabloon",
+      "SAVE_TEMPLATE": "Sla Sjabloon op",
+      "MAKE_TEMPLATE": "Maak Sjabloon"
+    },
+    "CREATED": "Aangemaakt",
+    "SETTINGS": {
+      "TITLE": "Instellingen",
+      "DESCRIPTION": "Pas de zichtbaarheid van het sjabloon aan naar openbaar of privé, of verwijder het sjabloon.",
+      "DELETE_DESCRIPTION": "Zodra je een sjabloon verwijdert, wordt het permanent verwijderd, en niemand met de link kan er nog toegang toe krijgen.",
+      "VISIBILITY": {
+        "TEMPLATE_VISIBILITY": "Zichtbaarheid van het sjabloon",
+        "PUBLIC": "Iedereen met de link kan dit sjabloon gebruiken. Je kunt dit sjabloon delen.",
+        "PRIVATE": "Alleen jouw organisatie kan dit sjabloon gebruiken. Je kunt dit sjabloon niet delen."
+      }
+    },
+    "DELETE_MODAL": {
+      "HEADER": "Formuliersjabloon Verwijderen",
+      "TITLE": "Weet je zeker dat je dit sjabloon wilt verwijderen?",
+      "SUBTITLE": "Zodra de maker je sjabloon verwijdert, wordt het permanent verwijderd."
+    }
   },
   "TOAST": {
     "COPIED": "Gekopieerd!",
@@ -761,5 +795,23 @@
     "WORKSPACE_NAME_INVALID_CHARACTER": "workspace handle mag alleen kleine letters, cijfers en een lage streep bevatten",
     "URL": "Workspace-URL"
   },
-  "WORKSPACE_HANDLE": "Werkruimtehandvat"
+  "WORKSPACE_HANDLE": "Werkruimtehandvat",
+  "VISIBILITY_MODAL": {
+    "TITLE": "Bevestig Zichtbaarheid",
+    "TEMPLATE": {
+      "TITLE": "sjabloon",
+      "DESCRIPTION_PUBLIC": "Iedereen met de link kan dit sjabloon gebruiken. Je kunt dit sjabloon delen.",
+      "DESCRIPTION_PRIVATE": "Alleen jouw organisatie kan dit sjabloon gebruiken. Je kunt dit sjabloon niet delen."
+    },
+    "FORM": {
+      "TITLE": "formulier",
+      "DESCRIPTION_PUBLIC": "Iedereen met de link naar jouw formulierpagina kan toegang krijgen en het formulier bekijken.",
+      "DESCRIPTION_PRIVATE": "Niemand kan toegang krijgen tot of dit formulier bekijken."
+    },
+    "GROUP": {
+      "TITLE": "Geen Groepen Geselecteerd.",
+      "DESCRIPTION": "Je hebt geen groepen geselecteerd voor je formulier. In dit geval wordt je formulier standaard openbaar gemaakt."
+    },
+    "ARE_YOU_SURE": "Weet je zeker dat je de"
+  }
 }

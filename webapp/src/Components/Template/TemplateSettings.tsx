@@ -68,11 +68,11 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
         <div className={'flex flex-col gap-4'}>
             {showTitle && <h1 className={'text-3xl mb-4 font-semibold text-black-800'}>{template.title}</h1>}
             <div className={'flex flex-col gap-2'}>
-                <h1 className={'text-2xl font-semibold text-black-800'}>Settings</h1>
-                <p className={'text-sm font-normal text-black-700'}>Modify template visibility to either public or private, or delete the template.</p>
+                <h1 className={'text-2xl font-semibold text-black-800'}>{t('TEMPLATE.SETTINGS.TITLE')}</h1>
+                <p className={'text-sm font-normal text-black-700'}>{t('TEMPLATE.SETTINGS.DESCRIPTION')}</p>
             </div>
             <div className={'pt-[56px] pb-12 flex flex-col w-3/4'}>
-                <h1 className={'text-base font-medium text-black-800 pb-4'}>Template Visibility</h1>
+                <h1 className={'text-base font-medium text-black-800 pb-4'}>{t('TEMPLATE.SETTINGS.VISIBILITY.TEMPLATE_VISIBILITY')}</h1>
                 <RadioGroup className="flex flex-col gap-4" value={templateVisibility}>
                     <Divider />
                     <div className="flex flex-col">
@@ -87,7 +87,7 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                                 </div>
                             }
                         />
-                        <span className=" body4 !text-black-700">Everyone with the link can use this template. You can share this template.</span>
+                        <span className=" body4 !text-black-700">{t('TEMPLATE.SETTINGS.VISIBILITY.PUBLIC')}</span>
                         {templateVisibility == 'Public' && <ShareLinkOptions adminHost={adminHost} />}
                     </div>
                     <Divider />
@@ -103,17 +103,17 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                                 </div>
                             }
                         />
-                        <span className="body4 !text-black-700">Only your organization can use this template. You cannot share this template.</span>
+                        <span className="body4 !text-black-700">{t('TEMPLATE.SETTINGS.VISIBILITY.PRIVATE')}</span>
                     </div>
                     <Divider />
                 </RadioGroup>
             </div>
             <div className={'flex flex-col gap-4 w-3/4'}>
-                <h1 className={'text-base font-medium text-black-800 pb-4'}>Delete Template</h1>
+                <h1 className={'text-base font-medium text-black-800 pb-4'}>{t('TEMPLATE.DELETE_TEMPLATE')}</h1>
                 <Divider />
-                <p className={'text-sm font-normal text-black-700'}>Once you delete a template, it will be permanently removed, and no one with the link will be able to access it.</p>
+                <p className={'text-sm font-normal text-black-700'}>{t('TEMPLATE.SETTINGS.DELETE_DESCRIPTION')}</p>
                 <AppButton className={'md: w-[140px]'} variant={ButtonVariant.Danger} onClick={() => openModal('DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW', { template })}>
-                    Delete Template
+                    {t('TEMPLATE.DELETE_TEMPLATE')}
                 </AppButton>
                 <Divider />
             </div>
@@ -139,7 +139,7 @@ const ShareLinkOptions = ({ adminHost }: { adminHost: string }) => {
                 <AppTextField isDisabled className={'mt-4 mb-2 w-3/4'} value={adminHost} />
             </div>
             <AppButton variant={ButtonVariant.Secondary} icon={<CopyIcon />} onClick={handleOnCopy}>
-                Copy Link
+                {t('TOOLTIP.COPY_LINK')}
             </AppButton>
         </div>
     );

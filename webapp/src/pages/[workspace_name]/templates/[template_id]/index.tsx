@@ -75,19 +75,19 @@ const SingleTemplate = (props: any) => {
             <div className={'py-3 px-5 flex justify-between items-center'}>
                 <div className="flex items-center gap-1 pt-0 md:pt-2 cursor-pointer" onClick={handleClickBack}>
                     <ChevronForward className=" rotate-180 h-6 w-6  p-[2px]" />
-                    <p className={'text-sm text-black-700 font-normal'}>Back</p>
+                    <p className={'text-sm text-black-700 font-normal'}>{t('BUTTON.BACK')}</p>
                 </div>
                 <div className={'flex flex-row gap-1 md:gap-4'}>
                     {data?.workspaceId === workspace.id ? (
                         <AppButton icon={<SettingsIcon />} variant={ButtonVariant.Ghost} onClick={() => openModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', { template: data })}>
-                            Settings
+                            {t('SETTINGS')}
                         </AppButton>
                     ) : (
                         <AppButton variant={ButtonVariant.Secondary} onClick={handleImportTemplate}>
-                            Import Template
+                            {t('TEMPLATE.BUTTONS.IMPORT_TEMPLATE')}
                         </AppButton>
                     )}
-                    <AppButton onClick={handleUseTemplate}>Use Template</AppButton>
+                    <AppButton onClick={handleUseTemplate}> {t('TEMPLATE.BUTTONS.USE_TEMPLATE')}</AppButton>
                 </div>
             </div>
             {data && <BetterCollectedForm form={convertFormTemplateToStandardForm(data)} />}
