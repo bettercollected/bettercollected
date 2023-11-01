@@ -30,7 +30,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
     const { openModal } = useModal();
     const fullScreenModal = useFullScreenModal();
     const handleClickCard = () => {
-        router.push(`/${workspace.workspaceName}/templates/${template.id}?${isPredefinedTemplate ? 'isPredefinedTemplate=true' : ''}`);
+        router.push(`/${workspace.workspaceName}/templates/${template.id}`);
     };
 
     const handleClickEditCard = () => {
