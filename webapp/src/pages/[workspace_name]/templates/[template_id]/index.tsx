@@ -21,7 +21,6 @@ import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
 const SingleTemplate = (props: any) => {
     const { workspace, notFound, templateId } = props;
     const router = useRouter();
-    const { isPredefinedTemplate } = router.query;
     const { openModal } = useFullScreenModal();
     const { t } = useTranslation();
 
@@ -29,7 +28,6 @@ const SingleTemplate = (props: any) => {
     const [createFormFromTemplate] = useCreateFormFromTemplateMutation();
 
     const { data, isLoading } = useGetTemplateByIdQuery({
-        workspace_id: isPredefinedTemplate ? '' : workspace.id,
         template_id: templateId
     });
 
