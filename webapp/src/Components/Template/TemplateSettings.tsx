@@ -71,10 +71,10 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                 <h1 className={'text-2xl font-semibold text-black-800'}>{t('TEMPLATE.SETTINGS.TITLE')}</h1>
                 <p className={'text-sm font-normal text-black-700'}>{t('TEMPLATE.SETTINGS.DESCRIPTION')}</p>
             </div>
-            <div className={'pt-[56px] pb-12 flex flex-col w-3/4'}>
+            <div className={'pt-[56px] pb-8 flex flex-col w-3/4'}>
                 <h1 className={'text-base font-medium text-black-800 pb-4'}>{t('TEMPLATE.SETTINGS.VISIBILITY.TEMPLATE_VISIBILITY')}</h1>
                 <RadioGroup className="flex flex-col gap-4" value={templateVisibility}>
-                    <Divider />
+                    <Divider className={'text-black-300'} />
                     <div className="flex flex-col">
                         <FormControlLabel
                             value="Public"
@@ -90,7 +90,7 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                         <span className=" body4 !text-black-700">{t('TEMPLATE.SETTINGS.VISIBILITY.PUBLIC')}</span>
                         {templateVisibility == 'Public' && <ShareLinkOptions adminHost={adminHost} />}
                     </div>
-                    <Divider />
+                    <Divider className={'text-black-200'} />
                     <div className="flex flex-col">
                         <FormControlLabel
                             value="Private"
@@ -105,17 +105,18 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                         />
                         <span className="body4 !text-black-700">{t('TEMPLATE.SETTINGS.VISIBILITY.PRIVATE')}</span>
                     </div>
-                    <Divider />
+                    <Divider className={'text-black-200'} />
                 </RadioGroup>
             </div>
             <div className={'flex flex-col gap-4 w-3/4'}>
-                <h1 className={'text-base font-medium text-black-800 pb-4'}>{t('TEMPLATE.DELETE_TEMPLATE')}</h1>
-                <Divider />
+                <h1 className={'text-base font-medium text-black-800'}>{t('TEMPLATE.DELETE_TEMPLATE')}</h1>
+                <Divider className={'text-black-200'} />
+
                 <p className={'text-sm font-normal text-black-700'}>{t('TEMPLATE.SETTINGS.DELETE_DESCRIPTION')}</p>
                 <AppButton className={'md: w-[140px]'} variant={ButtonVariant.Danger} onClick={() => openModal('DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW', { template })}>
                     {t('TEMPLATE.DELETE_TEMPLATE')}
                 </AppButton>
-                <Divider />
+                <Divider className={'text-black-200'} />
             </div>
         </div>
     );
