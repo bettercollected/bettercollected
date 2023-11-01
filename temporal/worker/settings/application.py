@@ -12,6 +12,7 @@ class ApplicationSettings(BaseSettings):
     aes_hex_key: str = ""
     worker_queue: str = "default"
     workers: int = 10
+    cookie_domain: str = "localhost"
 
 
 settings = ApplicationSettings()
