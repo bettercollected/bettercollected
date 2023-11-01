@@ -42,8 +42,15 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
             <div className={'h-[192px] w-[186px] cursor-pointer relative border-black-200 border overflow-hidden rounded-xl'} onClick={handleClickCard}>
                 <Image alt={template.title} src={template.previewImage || '/images/no_preview.png'} layout={'fill'} />
             </div>
-            <div className="w-full flex justify-between items-center">
-                <span className={'h5-new font-semibold max-w-[150px] truncate text-black-800'}>{template.title || t('UNTITLED')}</span>
+            <div className="w-full flex justify-between items-start">
+                <div className="flex flex-col gap-2">
+                    <span className={'h5-new font-semibold max-w-[150px] truncate text-black-800'}>{template.title || t('UNTITLED')}</span>
+                    {!isPredefinedTemplate && (
+                        <h1 className={'text-xs font-normal text-black-600'}>
+                            Created: <span className={'text-black-800'}>{template?.importedFrom ? template.importedFrom : 'Default'}</span>
+                        </h1>
+                    )}
+                </div>
                 {!isPredefinedTemplate && (
                     <MenuDropdown
                         width={180}
@@ -80,11 +87,6 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                     </MenuDropdown>
                 )}
             </div>
-            {!isPredefinedTemplate && (
-                <h1 className={'text-xs font-normal text-black-600'}>
-                    Created: <span className={'text-black-800'}>{template?.importedFrom ? template.importedFrom : 'Default'}</span>
-                </h1>
-            )}
         </div>
     );
 };

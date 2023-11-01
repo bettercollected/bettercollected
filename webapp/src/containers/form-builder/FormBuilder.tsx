@@ -34,6 +34,7 @@ import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { updateStatus } from '@app/store/mutations/slice';
 import { useCreateTemplateFromFormMutation, usePatchTemplateMutation } from '@app/store/template/api';
 import { usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
@@ -180,6 +181,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
     };
 
     const onSaveTemplate = async () => {
+        dispatch(updateStatus({ endpoint: 'patchTemplate', status: 'loading' }));
         const templateData = new FormData();
         if (headerImages.coverImage) templateData.append('cover_image', headerImages.coverImage);
         if (headerImages.logo) templateData.append('logo', headerImages.logo);
@@ -202,12 +204,17 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         try {
             const response: any = await updateTemplate(apiObj);
             if (response?.data) {
+                dispatch(updateStatus({ endpoint: 'patchTemplate', status: 'success' }));
                 toast('Successful', { type: 'success' });
                 await router.replace(`/${workspace.workspaceName}/dashboard/templates`);
             } else {
+                dispatch(updateStatus({ endpoint: 'patchTemplate', status: 'failed' }));
+
                 toast('Error Occurred').toString(), { type: 'error' };
             }
         } catch (err) {
+            dispatch(updateStatus({ endpoint: 'patchTemplate', status: 'failed' }));
+
             toast('Error Occurred').toString(), { type: 'error' };
         }
     };

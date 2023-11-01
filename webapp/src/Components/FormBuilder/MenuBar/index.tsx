@@ -19,6 +19,8 @@ import Toolbar from '@mui/material/Toolbar';
 
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+import { useAppSelector } from '@app/store/hooks';
+import { selectPatchingTemplate } from '@app/store/mutations/selectors';
 
 interface IFormBuilderMenuBarProps {
     onInsert: React.MouseEventHandler<HTMLButtonElement>;
@@ -41,6 +43,10 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
     const breakpoint = useBreakpoint();
 
     const router = useRouter();
+
+    const mutationStatus = useAppSelector((state) => state.mutationStatus);
+    // @ts-ignore
+    const loading = mutationStatus.patchTemplate === 'loading';
 
     const collapseMenu = ['2xs', 'xs', 'sm', 'md'].indexOf(breakpoint) !== -1;
 
@@ -87,7 +93,9 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
                 {/*    Save as Template*/}
                 {/*</AppButton>*/}
                 {isTemplate ? (
-                    <AppButton onClick={onSaveTemplate}>Save Template</AppButton>
+                    <AppButton onClick={onSaveTemplate} isLoading={loading}>
+                        Save Template
+                    </AppButton>
                 ) : (
                     <AppButton icon={<PublishIcon />} onClick={onFormPublish}>
                         {t('PUBLISH.DEFAULT')}
