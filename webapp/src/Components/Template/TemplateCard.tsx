@@ -67,7 +67,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                             <ListItemIcon>
                                 <EditIcon width={20} height={20} className="text-black-800" strokeWidth={1} />
                             </ListItemIcon>
-                            <span>Edit</span>
+                            <span>{t('BUTTON.EDIT')}</span>
                         </MenuItem>
                         <MenuItem
                             onClick={() =>
@@ -82,11 +82,16 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                             <ListItemIcon>
                                 <SettingsIcon width={20} height={20} className="text-black-800" strokeWidth={1} />
                             </ListItemIcon>
-                            <span>Settings</span>
+                            <span>{t('SETTINGS')}</span>
                         </MenuItem>
                     </MenuDropdown>
                 )}
             </div>
+            {!isPredefinedTemplate && (
+                <h1 className={'text-xs font-normal text-black-600'}>
+                    {t('TEMPLATE.CREATED')}: <span className={'text-black-800'}>{template?.importedFrom ? template.importedFrom : t('TEMPLATE.DEFAULT')}</span>
+                </h1>
+            )}
         </div>
     );
 };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import UploadIcon from '@Components/Common/Icons/FormBuilder/UploadIcon';
@@ -31,6 +32,7 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
     const consentState = useAppSelector(selectConsentState);
     const { headerImages } = useFormBuilderAtom();
     const router = useRouter();
+    const { t } = useTranslation();
 
     const updateRequest = useAppSelector((state1) => state1.workspacesApi.mutations);
 
@@ -96,15 +98,15 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
                     }}
                 >
                     <Back />
-                    Back to Editor
+                    <span className={'hidden md:block'}>Back to Editor</span>
                 </div>
                 {!isTemplate && (
                     <div className={'flex flex-row gap-4'}>
                         <AppButton variant={ButtonVariant.Secondary} onClick={makeTemplate}>
-                            Make Template
+                            {t('TEMPLATE.BUTTONS.MAKE_TEMPLATE')}
                         </AppButton>
                         <AppButton icon={<PublishIcon />} onClick={publish}>
-                            Publish Form
+                            {t('PUBLISH_FORM')}
                         </AppButton>
                     </div>
                 )}
