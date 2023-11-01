@@ -45,7 +45,7 @@ const SingleTemplate = (props: any) => {
             const response: any = await importTemplate(request);
             if (response?.data) {
                 toast('Imported Successfully', { type: 'success' });
-                await router.replace(`/${workspace.workspaceName}/templates/${response?.data?.id}`);
+                await router.replace(`/${workspace.workspaceName}/dashboard/templates`);
             } else {
                 toast('Error Occurred').toString(), { type: 'error' };
             }
