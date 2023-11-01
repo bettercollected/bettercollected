@@ -24,7 +24,7 @@ async def save_preview(save_preview_params: SavePreviewParams):
 
     decrypted_token = crypto.decrypt(save_preview_params.token)
     user_token = UserTokens(**json.loads(decrypted_token))
-    auth_cookie = {"name": "Authorization", "value": user_token.access_token, "domain": "localhost"}
+    auth_cookie = {"name": "Authorization", "value": user_token.access_token, "domain": settings.cookie_domain}
     driver.get(save_preview_params.template_url)
     driver.add_cookie(auth_cookie)
     driver.refresh()
