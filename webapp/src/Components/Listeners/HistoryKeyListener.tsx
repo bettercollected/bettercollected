@@ -46,7 +46,7 @@ export default function HistoryKeyListener({ children }: React.PropsWithChildren
                     setTimeout(() => eventBus.emit(EventBusEventType.History.UndoRedoCompleted), 50);
                 }
             }),
-        [builderFutureState?.activeFieldId, builderFutureState?.fields, builderPastState, dispatch]
+        [builderFutureState?.activeFieldId, builderFutureState?.fields, builderPastState]
     );
 
     useEffect(() => {
