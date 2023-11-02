@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
@@ -30,7 +30,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
     const { openModal } = useModal();
     const fullScreenModal = useFullScreenModal();
     const handleClickCard = () => {
-        router.push(`/${workspace.workspaceName}/templates/${template.id}?${isPredefinedTemplate ? 'isPredefinedTemplate=true' : ''}`);
+        router.push(`/${workspace.workspaceName}/templates/${template.id}`);
     };
 
     const handleClickEditCard = () => {
@@ -39,15 +39,15 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
 
     return (
         <div className={'flex flex-col gap-2 '}>
-            <div className={'h-[192px] w-[186px] cursor-pointer relative border-black-200 border overflow-hidden rounded-xl'} onClick={handleClickCard}>
+            <div className={'h-[192px] w-[186px] cursor-pointer relative border-black-200 border overflow-hidden rounded hover:shadow-hover'} onClick={handleClickCard}>
                 <Image alt={template.title} src={template.previewImage || '/images/no_preview.png'} layout={'fill'} />
             </div>
             <div className="w-full flex justify-between items-start">
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-[5px]">
                     <span className={'h5-new font-semibold max-w-[150px] truncate text-black-800'}>{template.title || t('UNTITLED')}</span>
                     {!isPredefinedTemplate && (
                         <h1 className={'text-xs font-normal text-black-600'}>
-                            Created: <span className={'text-black-800'}>{template?.importedFrom ? template.importedFrom : 'Default'}</span>
+                            {t('TEMPLATE.CREATED')}: <span className={'text-black-800'}>{template?.importedFrom ? template.importedFrom : t('TEMPLATE.DEFAULT')}</span>
                         </h1>
                     )}
                 </div>
@@ -57,17 +57,23 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                         showExpandMore={false}
                         id="template-options"
                         menuTitle={''}
+                        showIconBtnEffect
+                        PaperProps={{
+                            sx: {
+                                boxShadow: '0px 0px 12px 0px rgba(7, 100, 235, 0.45)'
+                            }
+                        }}
                         menuContent={
-                            <div className="">
+                            <div>
                                 <EllipsisOption />
                             </div>
                         }
                     >
                         <MenuItem onClick={handleClickEditCard} className="body4">
                             <ListItemIcon>
-                                <EditIcon width={20} height={20} className="text-black-800" strokeWidth={1} />
+                                <EditIcon width={20} height={20} className="text-black-600" strokeWidth={2} />
                             </ListItemIcon>
-                            <span>Edit</span>
+                            <span>{t('BUTTON.EDIT')}</span>
                         </MenuItem>
                         <MenuItem
                             onClick={() =>
@@ -76,13 +82,13 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                                     showTitle: true
                                 })
                             }
-                            sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
+                            // sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
                             className="body4"
                         >
                             <ListItemIcon>
-                                <SettingsIcon width={20} height={20} className="text-black-800" strokeWidth={1} />
+                                <SettingsIcon width={20} height={20} className="text-black-600" strokeWidth={2} />
                             </ListItemIcon>
-                            <span>Settings</span>
+                            <span>{t('SETTINGS')}</span>
                         </MenuItem>
                     </MenuDropdown>
                 )}
@@ -90,5 +96,4 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
         </div>
     );
 };
-
 export default TemplateCard;

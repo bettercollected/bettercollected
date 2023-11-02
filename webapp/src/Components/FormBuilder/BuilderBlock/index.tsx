@@ -77,7 +77,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                 }
             });
         },
-        [builderState.fields, dispatch, item.position]
+        [builderState.fields, item.position]
     );
 
     const onFocusCallback = useCallback(

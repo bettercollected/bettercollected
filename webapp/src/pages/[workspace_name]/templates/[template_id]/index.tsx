@@ -21,7 +21,6 @@ import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
 const SingleTemplate = (props: any) => {
     const { workspace, notFound, templateId } = props;
     const router = useRouter();
-    const { isPredefinedTemplate } = router.query;
     const { openModal } = useFullScreenModal();
     const { t } = useTranslation();
 
@@ -29,7 +28,6 @@ const SingleTemplate = (props: any) => {
     const [createFormFromTemplate] = useCreateFormFromTemplateMutation();
 
     const { data, isLoading } = useGetTemplateByIdQuery({
-        workspace_id: isPredefinedTemplate ? '' : workspace.id,
         template_id: templateId
     });
 
@@ -47,7 +45,7 @@ const SingleTemplate = (props: any) => {
             const response: any = await importTemplate(request);
             if (response?.data) {
                 toast('Imported Successfully', { type: 'success' });
-                await router.replace(`/${workspace.workspaceName}/templates/${response?.data?.id}`);
+                await router.replace(`/${workspace.workspaceName}/dashboard/templates`);
             } else {
                 toast('Error Occurred').toString(), { type: 'error' };
             }
@@ -77,19 +75,19 @@ const SingleTemplate = (props: any) => {
             <div className={'py-3 px-5 flex justify-between items-center'}>
                 <div className="flex items-center gap-1 pt-0 md:pt-2 cursor-pointer" onClick={handleClickBack}>
                     <ChevronForward className=" rotate-180 h-6 w-6  p-[2px]" />
-                    <p className={'text-sm text-black-700 font-normal'}>Back</p>
+                    <p className={'text-sm text-black-700 font-normal'}>{t('BUTTON.BACK')}</p>
                 </div>
                 <div className={'flex flex-row gap-1 md:gap-4'}>
                     {data?.workspaceId === workspace.id ? (
                         <AppButton icon={<SettingsIcon />} variant={ButtonVariant.Ghost} onClick={() => openModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', { template: data })}>
-                            Settings
+                            {t('SETTINGS')}
                         </AppButton>
                     ) : (
                         <AppButton variant={ButtonVariant.Secondary} onClick={handleImportTemplate}>
-                            Import Template
+                            {t('TEMPLATE.BUTTONS.IMPORT_TEMPLATE')}
                         </AppButton>
                     )}
-                    <AppButton onClick={handleUseTemplate}>Use Template</AppButton>
+                    <AppButton onClick={handleUseTemplate}> {t('TEMPLATE.BUTTONS.USE_TEMPLATE')}</AppButton>
                 </div>
             </div>
             {data && <BetterCollectedForm form={convertFormTemplateToStandardForm(data)} />}

@@ -15,7 +15,7 @@ async def delete_user(token: str):
     decrypted_token = crypto.decrypt(token)
     user_token = UserTokens(**json.loads(decrypted_token))
     cookies = {"Authorization": user_token.access_token, "RefreshToken": user_token.refresh_token}
-    headers = {"api_key": settings.api_key}
+    headers = {"api-key": settings.api_key}
     response = requests.delete(url=settings.server_url + "/auth/user", cookies=cookies, headers=headers)
     if response.status_code != 200:
         raise RuntimeError("Could not delete user")
