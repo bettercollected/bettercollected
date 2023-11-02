@@ -248,7 +248,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
             setShowSaving({ status: true, text: 'Saving' });
             saveFormDebounced(builderState, consentState, headerImages);
         }
-    }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages, consentState, imagesRemoved]);
+    }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages, consentState, imagesRemoved, builderState.settings]);
 
     const openTagSelector = (event: any) => {
         const viewportHeight = window.innerHeight;
