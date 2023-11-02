@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -27,7 +27,13 @@ export default function GenericHalfModal({ headerTitle, title, subTitle, type, p
         <div className="flex flex-col bg-white rounded-md w-full min-w-[350px] max-w-[500px]">
             <div className="p-4 flex items-center justify-between">
                 <span className="text-black-800 text-sm p2-new">{headerTitle}</span>
-                <Close onClick={closeModal} />
+                <div className={'absolute top-3 right-5 cursor-pointer hover:bg-black-200 hover:rounded-sm p-1'}>
+                    <Close
+                        onClick={() => {
+                            closeModal();
+                        }}
+                    />
+                </div>
             </div>
             <Divider />
             <div className="flex flex-col p-10 !pt-6">
