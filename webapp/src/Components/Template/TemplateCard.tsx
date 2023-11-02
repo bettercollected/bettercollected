@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
@@ -39,15 +39,15 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
 
     return (
         <div className={'flex flex-col gap-2 '}>
-            <div className={'h-[192px] w-[186px] cursor-pointer relative border-black-200 border overflow-hidden rounded-xl'} onClick={handleClickCard}>
+            <div className={'h-[192px] w-[186px] cursor-pointer relative border-black-200 border overflow-hidden rounded hover:shadow-hover'} onClick={handleClickCard}>
                 <Image alt={template.title} src={template.previewImage || '/images/no_preview.png'} layout={'fill'} />
             </div>
             <div className="w-full flex justify-between items-start">
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-[5px]">
                     <span className={'h5-new font-semibold max-w-[150px] truncate text-black-800'}>{template.title || t('UNTITLED')}</span>
                     {!isPredefinedTemplate && (
                         <h1 className={'text-xs font-normal text-black-600'}>
-                            Created: <span className={'text-black-800'}>{template?.importedFrom ? template.importedFrom : 'Default'}</span>
+                            {t('TEMPLATE.CREATED')}: <span className={'text-black-800'}>{template?.importedFrom ? template.importedFrom : t('TEMPLATE.DEFAULT')}</span>
                         </h1>
                     )}
                 </div>
@@ -57,13 +57,14 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                         showExpandMore={false}
                         id="template-options"
                         menuTitle={''}
+                        showIconBtnEffect
                         PaperProps={{
                             sx: {
                                 boxShadow: '0px 0px 12px 0px rgba(7, 100, 235, 0.45)'
                             }
                         }}
                         menuContent={
-                            <div className="">
+                            <div>
                                 <EllipsisOption />
                             </div>
                         }
@@ -92,11 +93,6 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                     </MenuDropdown>
                 )}
             </div>
-            {!isPredefinedTemplate && (
-                <h1 className={'text-xs font-normal text-black-600'}>
-                    {t('TEMPLATE.CREATED')}: <span className={'text-black-800'}>{template?.importedFrom ? template.importedFrom : t('TEMPLATE.DEFAULT')}</span>
-                </h1>
-            )}
         </div>
     );
 };
