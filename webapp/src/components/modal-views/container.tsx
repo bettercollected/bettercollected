@@ -126,7 +126,7 @@ export default function ModalContainer() {
     const closeModalHandler = useCallback(() => {
         dispatch(resetBuilderMenuState());
         closeModal();
-    }, [closeModal, dispatch]);
+    }, [closeModal]);
 
     useEffect(() => {
         // close search modal when route change

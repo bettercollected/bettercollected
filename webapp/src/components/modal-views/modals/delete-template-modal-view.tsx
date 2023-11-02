@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
@@ -11,6 +12,7 @@ import { useDeleteTemplateMutation } from '@app/store/template/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function DeleteTemplateConfirmationModalView({ template }: { template: IFormTemplateDto }) {
+    const { t } = useTranslation();
     const [deleteTemplate] = useDeleteTemplateMutation();
     const router = useRouter();
     const workspace = useAppSelector(selectWorkspace);
@@ -30,14 +32,5 @@ export default function DeleteTemplateConfirmationModalView({ template }: { temp
             toast('Error Occurred').toString(), { type: 'error' };
         }
     };
-    return (
-        <GenericHalfModal
-            headerTitle="Delete Form Template"
-            positiveAction={handleDeleteTemplate}
-            positiveText="Delete"
-            type="danger"
-            title={'Are You Sure To Delete This Template?'}
-            subTitle={'Once the creator deletes your response, it will be permanently removed.'}
-        />
-    );
+    return <GenericHalfModal headerTitle={t('TEMPLATE.DELETE_MODAL.HEADER')} positiveAction={handleDeleteTemplate} positiveText={t('BUTTON.DELETE')} type="danger" title={t('TEMPLATE.DELETE_MODAL.TITLE')} subTitle={t('TEMPLATE.DELETE_MODAL.SUBTITLE')} />;
 }

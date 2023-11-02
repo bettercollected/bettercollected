@@ -34,7 +34,7 @@ async def save_preview(save_preview_params: SavePreviewParams):
     screenshot = driver.get_screenshot_as_png()
     driver.close()
     image_file = BytesIO(screenshot)
-    headers = {"api_key": settings.api_key}
+    headers = {"api-key": settings.api_key}
     url = settings.server_url + f"/template/{save_preview_params.template_id}/preview"
     files = {"preview_image": ("preview_image.png", image_file, "image/png")}
     response = requests.patch(url, files=files, headers=headers)

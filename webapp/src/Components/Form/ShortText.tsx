@@ -63,7 +63,7 @@ export default function ShortText({ ans, enabled, field, helperText }: IShortTex
             answer.email = auth.email;
             dispatch(addAnswer(answer));
         }
-    }, [responseDataOwnerField, auth, field.id, dispatch]);
+    }, [responseDataOwnerField, auth, field.id]);
 
     const getInputType = () => {
         switch (field?.type) {

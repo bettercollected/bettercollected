@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { NextSeo } from 'next-seo';
 
 import LoadingIcon from '@Components/Common/Icons/Loading';
@@ -13,13 +15,14 @@ import { useGetTemplatesQuery } from '@app/store/template/api';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 const TemplatePage = (props: any) => {
+    const { t } = useTranslation();
     const { predefined_templates, workspace, notFound } = props;
     const { data, isLoading } = useGetTemplatesQuery(workspace?.id);
     return (
         <SidebarLayout boxClassName=" h-full">
-            <NextSeo title={'Templates | ' + workspace.workspaceName} noindex={false} nofollow={false} />
-            {predefined_templates && Array.isArray(predefined_templates) && predefined_templates.length > 0 && <TemplateSection title={'Default'} templates={predefined_templates} className={'h-[400px] overflow-hidden'} />}
-            <TemplateSection title={'Your Workspace'} templates={data} />
+            <NextSeo title={t('TEMPLATE.TEMPLATES') + ' | ' + workspace.workspaceName} noindex={false} nofollow={false} />
+            {predefined_templates && Array.isArray(predefined_templates) && predefined_templates.length > 0 && <TemplateSection title={t('TEMPLATE.DEFAULT')} templates={predefined_templates} className={'h-[400px] overflow-hidden'} />}
+            <TemplateSection title={t('TEMPLATE.YOUR_WORKSPACE')} templates={data} />
         </SidebarLayout>
     );
 };

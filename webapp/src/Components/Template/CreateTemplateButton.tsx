@@ -16,7 +16,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 export default function CreateTemplateButton({ variant }: { variant?: ButtonVariant }) {
     const router = useRouter();
     const workspace = useAppSelector(selectWorkspace);
-    const { t: builderTranslation } = useTranslation('builder');
+    const { t } = useTranslation();
 
     const [postCreateTemplate, { isLoading: posting }] = useCreateTemplateMutation();
     const dispatch = useAppDispatch();
@@ -43,7 +43,7 @@ export default function CreateTemplateButton({ variant }: { variant?: ButtonVari
         <>
             {environments.ENABLE_FORM_BUILDER && (
                 <AppButton className="min-w-[160px]" variant={variant} onClick={onClickButton} isLoading={posting}>
-                    Create Template
+                    {t('TEMPLATE.BUTTONS.CREATE_TEMPLATE')}
                 </AppButton>
             )}
         </>

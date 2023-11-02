@@ -27,7 +27,7 @@ const TemplateSection = ({ templates, title = '', className }: ITemplateSectionP
     const { openModal } = useModal();
     const { t } = useTranslation();
     let isPredefinedTemplate: boolean = false;
-    if (title == 'Default' || !title) {
+    if (title == 'Default' || title === 'Standaard' || !title) {
         isPredefinedTemplate = true;
     }
     return (
@@ -37,17 +37,17 @@ const TemplateSection = ({ templates, title = '', className }: ITemplateSectionP
                     <h1 className={'text-xl font-semibold text-black-800'}>{title}</h1>
                     {title === '' ? (
                         <></>
-                    ) : title === 'Default' ? (
+                    ) : title === 'Default' || title === 'Standaard' ? (
                         <Link href={`/${workspace.workspaceName}/dashboard/templates/all`}>
                             <div className={'flex flex-row gap-2 items-center text-blue-500 cursor-pointer'}>
                                 <VisibilityOutlinedIcon />
-                                <p className={'text-sm font-medium text-blue-500'}>Show All</p>
+                                <p className={'text-sm font-medium text-blue-500'}>{t('TEMPLATE.SHOW_ALL')}</p>
                             </div>
                         </Link>
                     ) : (
                         <div className={'flex flex-row gap-4'}>
                             <AppButton variant={ButtonVariant.Secondary} onClick={() => openModal('IMPORT_TEMPLATE_MODAL_VIEW')}>
-                                Import Template
+                                {t('TEMPLATE.BUTTONS.IMPORT_TEMPLATE')}
                             </AppButton>
                             <CreateTemplateButton />
                         </div>
@@ -67,7 +67,7 @@ const TemplateSection = ({ templates, title = '', className }: ITemplateSectionP
                         <div className="flex gap-4 mt-10">
                             <div className={'flex flex-row gap-4'}>
                                 <AppButton variant={ButtonVariant.Secondary} onClick={() => openModal('IMPORT_TEMPLATE_MODAL_VIEW')}>
-                                    Import Template
+                                    {t('TEMPLATE.BUTTONS.IMPORT_TEMPLATE')}
                                 </AppButton>
                                 <CreateTemplateButton />
                             </div>
