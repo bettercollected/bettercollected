@@ -85,9 +85,10 @@ interface IBetterCollectedFormProps {
     isPreview?: boolean;
     closeModal?: () => void;
     isDisabled?: boolean;
+    isTemplate?: boolean;
 }
 
-export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, isPreview = false, closeModal, isDisabled = false }: IBetterCollectedFormProps) {
+export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, isPreview = false, closeModal, isDisabled = false, isTemplate = false }: IBetterCollectedFormProps) {
     const dispatch = useAppDispatch();
     const { openModal, closeModal: closeFullScreenModal } = useFullScreenModal();
     const [submitResponse] = useSubmitResponseMutation();
@@ -161,6 +162,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     };
     const onSubmitForm = async (event: any) => {
         event.preventDefault();
+        if (isTemplate) return;
         const invalidFields: Record<string, Array<FormValidationError>> = {};
         let isResponseValid = true;
         form?.fields.forEach((field: StandardFormFieldDto, index: number) => {

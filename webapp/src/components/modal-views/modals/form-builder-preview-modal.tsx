@@ -121,7 +121,9 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
                 {/*    Publish*/}
                 {/*</div>*/}
             </div>
-            <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6">{isFormSubmitted ? <ThankYouPage isDisabled={true} /> : <BetterCollectedForm form={formToRender} enabled={true} isPreview={true} closeModal={closeModal} />}</div>
+            <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6">
+                {isFormSubmitted ? <ThankYouPage isDisabled={true} /> : <BetterCollectedForm form={formToRender} enabled={true} isPreview={true} closeModal={closeModal} isTemplate={isTemplate} />}
+            </div>
             {(!workspace?.isPro || !form?.settings?.disableBranding) && <PoweredBy isFormCreatorPortal={true} />}
         </div>
     );
