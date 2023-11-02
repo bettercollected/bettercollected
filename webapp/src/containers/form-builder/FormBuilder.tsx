@@ -6,6 +6,7 @@ import _ from 'lodash';
 
 import DragHandleIcon from '@Components/Common/Icons/DragHandle';
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
+import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import { FormCoverComponent, FormLogoComponent } from '@Components/FormBuilder/Header';
@@ -402,6 +403,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
                         }}
                     />
                 </div>
+                {!builderState.isFormDirty && <BuilderTips />}
                 <AnimatePresence mode="wait" initial={false}>
                     {showSaving.status && (
                         <motion.div
