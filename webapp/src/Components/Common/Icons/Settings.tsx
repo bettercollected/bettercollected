@@ -8,7 +8,7 @@ export default function SettingsIcon(props: React.SVGAttributes<{}>) {
                 stroke="currentColor"
                 strokeWidth="2"
             />
-            <path d="M14 12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10C13.1046 10 14 10.8954 14 12Z" stroke="currentColor" strokeWidth="2" />
+            <path d="M14 12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10C13.1046 10 14 10.8954 14 12Z" stroke="currentColor" />
         </svg>
     );
 }

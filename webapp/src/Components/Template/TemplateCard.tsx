@@ -57,6 +57,11 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                         showExpandMore={false}
                         id="template-options"
                         menuTitle={''}
+                        PaperProps={{
+                            sx: {
+                                boxShadow: '0px 0px 12px 0px rgba(7, 100, 235, 0.45)'
+                            }
+                        }}
                         menuContent={
                             <div className="">
                                 <EllipsisOption />
@@ -65,7 +70,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                     >
                         <MenuItem onClick={handleClickEditCard} className="body4">
                             <ListItemIcon>
-                                <EditIcon width={20} height={20} className="text-black-800" strokeWidth={1} />
+                                <EditIcon width={20} height={20} className="text-black-600" strokeWidth={2} />
                             </ListItemIcon>
                             <span>{t('BUTTON.EDIT')}</span>
                         </MenuItem>
@@ -76,11 +81,11 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                                     showTitle: true
                                 })
                             }
-                            sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
+                            // sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
                             className="body4"
                         >
                             <ListItemIcon>
-                                <SettingsIcon width={20} height={20} className="text-black-800" strokeWidth={1} />
+                                <SettingsIcon width={20} height={20} className="text-black-600" strokeWidth={2} />
                             </ListItemIcon>
                             <span>{t('SETTINGS')}</span>
                         </MenuItem>
@@ -95,5 +100,4 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
         </div>
     );
 };
-
 export default TemplateCard;
