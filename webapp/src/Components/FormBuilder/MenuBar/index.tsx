@@ -57,7 +57,7 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
         'flex text-black-700  text-sm lg:text-normal justify-start px-5 !py-3 !lg:p-2 !lg:p-3 lg:!px-3 !lg:px-5 border-1   lg:w-fit w-full hover-none border-solid border-gray-500 md:gap-2 rounded-none ' + (collapseMenu ? 'h-fit' : 'h-[48px]');
 
     const Actions = () => (
-        <Toolbar className=" !px-0 lg:px-6 divide-y divide-black-200 lg:divide-y-0  flex flex-col lg:flex-row body4 w-full relative justify-center">
+        <Toolbar className=" !px-0 lg:px-6 divide-y divide-black-200 lg:divide-y-0  flex flex-col lg:flex-row body4 w-full relative justify-center" variant={'dense'}>
             <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             <IconButton color="inherit" className={optionButtonClassName} onClick={onAddFormLogo}>
                 <CircleOutlinedIcon />
