@@ -3,6 +3,8 @@ import React, { useCallback, useEffect } from 'react';
 import { batch } from 'react-redux';
 import { ActionCreators } from 'redux-undo';
 
+import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import eventBus from '@app/lib/event-bus';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { resetBuilderMenuState } from '@app/store/form-builder/actions';
@@ -16,12 +18,16 @@ export default function HistoryKeyListener({ children }: React.PropsWithChildren
     const dispatch = useAppDispatch();
     const builderPastState: IBuilderState | null = useAppSelector(selectBuilderPastState);
     const builderFutureState: IBuilderState | null = useAppSelector(selectBuilderFutureState);
-    const builderstate: IBuilderState = useAppSelector(selectBuilderState);
+    const builderState: IBuilderState = useAppSelector(selectBuilderState);
+    const fullScreenModal = useFullScreenModal();
+    const modal = useModal();
 
     const onKeyDownCallback = useCallback(
         (event: KeyboardEvent) =>
             batch(() => {
-                if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === 'z') {
+                if (builderState.menus?.commands?.isOpen || fullScreenModal.isOpen || modal.isOpen || builderState.menus?.spotlightField?.isOpen) {
+                    return;
+                } else if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === 'z') {
                     eventBus.emit(EventBusEventType.History.UndoRedoStart);
                     dispatch(ActionCreators.undo());
                     dispatch(resetBuilderMenuState());
@@ -46,7 +52,7 @@ export default function HistoryKeyListener({ children }: React.PropsWithChildren
                     setTimeout(() => eventBus.emit(EventBusEventType.History.UndoRedoCompleted), 50);
                 }
             }),
-        [builderFutureState?.activeFieldId, builderFutureState?.fields, builderPastState]
+        [builderFutureState?.activeFieldId, builderFutureState?.fields, builderPastState, modal, fullScreenModal.isOpen]
     );
 
     useEffect(() => {
@@ -55,7 +61,7 @@ export default function HistoryKeyListener({ children }: React.PropsWithChildren
         return () => {
             document.removeEventListener('keydown', onKeyDownCallback);
         };
-    }, [onKeyDownCallback, builderPastState, builderFutureState]);
+    }, [onKeyDownCallback, builderPastState, builderFutureState, fullScreenModal.isOpen, modal]);
 
     return <div>{children}</div>;
 }
