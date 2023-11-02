@@ -27,7 +27,7 @@ const TemplateAllPages = (props: any) => {
     return (
         <Layout showNavbar className={'bg-white !px-0'}>
             <NextSeo title={t('TEMPLATE.ALL_TEMPLATES') + ' | ' + workspace.workspaceName} noindex={false} nofollow={false} />
-            <div className="flex w-full items-center gap-1 px-5 pt-2 cursor-pointer" onClick={handleClickBack}>
+            <div className="flex w-full items-center gap-1 px-2 md:px-5 pt-2 cursor-pointer" onClick={handleClickBack}>
                 <ChevronForward className=" rotate-180 h-6 w-6 p-[2px] " />
                 <p className={'text-sm text-black-700 font-normal'}>{t('BUTTON.BACK')}</p>
             </div>

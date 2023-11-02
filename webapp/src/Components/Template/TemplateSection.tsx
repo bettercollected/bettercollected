@@ -37,7 +37,7 @@ const TemplateSection = ({ templates, title = '', className }: ITemplateSectionP
                     <h1 className={'text-xl font-semibold text-black-800'}>{title}</h1>
                     {title === '' ? (
                         <></>
-                    ) : title === 'Default' || title === 'Standaard' ? (
+                    ) : isPredefinedTemplate ? (
                         <Link href={`/${workspace.workspaceName}/dashboard/templates/all`}>
                             <div className={'flex flex-row gap-2 items-center text-blue-500 cursor-pointer'}>
                                 <VisibilityOutlinedIcon />
@@ -54,7 +54,7 @@ const TemplateSection = ({ templates, title = '', className }: ITemplateSectionP
                     )}
                 </div>
             )}
-            <div className={`flex flex-row  w-full gap-6 ${title == 'Default' ? 'flex-nowrap overflow-auto' : 'flex-wrap justify-center md:justify-start'}`}>
+            <div className={`flex flex-row  w-full gap-6 ${title == 'Default' || title === 'Standaard' ? 'flex-nowrap overflow-auto' : 'flex-wrap justify-center md:justify-start'}`}>
                 {templates && templates?.map((template: IFormTemplateDto, index: number) => <TemplateCard key={index} template={template} isPredefinedTemplate={isPredefinedTemplate} />)}
             </div>
 
