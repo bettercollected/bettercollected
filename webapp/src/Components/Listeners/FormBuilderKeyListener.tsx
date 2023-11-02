@@ -129,19 +129,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                 }
             });
         },
-        [
-            builderState.activeFieldId,
-            builderState.fields,
-            builderState.menus?.commands?.isOpen,
-            builderState.menus?.spotlightField?.isOpen,
-            builderState.activeFieldIndex,
-            fullScreenModal.isOpen,
-            modal,
-            dispatch,
-            backspaceCount,
-            asyncDispatch,
-            setBackspaceCount
-        ]
+        [builderState.activeFieldId, builderState.fields, builderState.menus?.commands?.isOpen, builderState.menus?.spotlightField?.isOpen, builderState.activeFieldIndex, fullScreenModal.isOpen, modal, backspaceCount]
     );
 
     useEffect(() => {
