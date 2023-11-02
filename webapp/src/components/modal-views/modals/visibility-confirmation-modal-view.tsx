@@ -38,7 +38,13 @@ const VisibilityConfirmationModalView = ({ visibilityType, handleOnConfirm, isTe
         <div className={'md:w-[466px] rounded-xl bg-white'}>
             <div className={'flex justify-between p-4'}>
                 <h1 className={'text-sm font-normal text-black-800'}>{t('VISIBILITY_MODAL.TITLE')}</h1>
-                <Close onClick={closeModal} />
+                <div className={'absolute top-3 right-5 cursor-pointer hover:bg-black-200 hover:rounded-sm p-1'}>
+                    <Close
+                        onClick={() => {
+                            closeModal();
+                        }}
+                    />
+                </div>
             </div>
             <Divider />
             <div className={'pt-6 p-10 flex flex-col gap-3'}>

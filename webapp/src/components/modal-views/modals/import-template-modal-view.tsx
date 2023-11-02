@@ -34,12 +34,13 @@ const ImportTemplateModalView = () => {
         <div className=" bg-white w-[466px] rounded-[8px]">
             <div className={'flex justify-between px-4 py-[18px]'}>
                 <h1 className={'text-sm font-normal text-black-800'}>Import Template</h1>
-                <Close
-                    className="absolute top-5 right-5 cursor-pointer"
-                    onClick={() => {
-                        closeModal();
-                    }}
-                />
+                <div className={'absolute top-3 right-5 cursor-pointer hover:bg-black-200 hover:rounded-sm p-1'}>
+                    <Close
+                        onClick={() => {
+                            closeModal();
+                        }}
+                    />
+                </div>
             </div>
             <Divider />
             <div className={'p-10 pt-6 flex flex-col gap-2'}>
