@@ -17,11 +17,15 @@ import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 const TemplatePage = (props: any) => {
     const { t } = useTranslation();
     const { predefined_templates, workspace, notFound } = props;
+    let p = [...predefined_templates, ...predefined_templates, ...predefined_templates];
+    if (p.length > 7) {
+        p = p.slice(0, 7);
+    }
     const { data, isLoading } = useGetTemplatesQuery(workspace?.id);
     return (
         <SidebarLayout boxClassName=" h-full">
             <NextSeo title={t('TEMPLATE.TEMPLATES') + ' | ' + workspace.workspaceName} noindex={false} nofollow={false} />
-            {predefined_templates && Array.isArray(predefined_templates) && predefined_templates.length > 0 && <TemplateSection title={t('TEMPLATE.DEFAULT')} templates={predefined_templates} className={'h-[400px] overflow-hidden'} />}
+            {predefined_templates && Array.isArray(predefined_templates) && predefined_templates.length > 0 && <TemplateSection title={t('TEMPLATE.DEFAULT')} templates={p} className={'h-[400px]'} />}
             <TemplateSection title={t('TEMPLATE.YOUR_WORKSPACE')} templates={data} />
         </SidebarLayout>
     );
