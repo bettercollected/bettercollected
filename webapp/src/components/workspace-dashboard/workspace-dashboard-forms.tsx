@@ -88,7 +88,7 @@ export default function WorkspaceDashboardForms({ title, showButtons, hasCustomD
                         <h1>{title || t(localesCommon.forms)}</h1>
                         {showPagination && <h2>{`(${showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0})`}</h2>}
                     </div>
-                    <SearchInput handleSearch={handleSearch} />
+                    <SearchInput placeholder={'Search Form'} handleSearch={handleSearch} />
                 </div>
                 {showButtons && (
                     <div className="flex gap-3">
