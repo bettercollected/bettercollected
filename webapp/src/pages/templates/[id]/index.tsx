@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useRouter } from 'next/router';
@@ -10,12 +10,10 @@ import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import { MenuItem } from '@mui/material';
 import { toast } from 'react-toastify';
 
-import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import ActiveLink from '@app/components/ui/links/active-link';
 import Layout from '@app/layouts/_layout';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { selectAuthStatus } from '@app/store/auth/selectors';
-import { useAppSelector } from '@app/store/hooks';
+import { useGetStatusQuery } from '@app/store/auth/api';
 import { useCreateFormFromTemplateMutation, useGetTemplateByIdQuery, useImportTemplateMutation } from '@app/store/template/api';
 import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
@@ -27,16 +25,21 @@ export default function TemplatePage(props: any) {
         template_id: templateId
     });
 
-    const { openModal } = useFullScreenModal();
-
-    const auth = useAppSelector(selectAuthStatus);
+    const { data: auth, isError } = useGetStatusQuery(undefined, {
+        refetchOnFocus: true
+    });
 
     const router = useRouter();
 
     const [importTemplate] = useImportTemplateMutation();
     const [createFormFromTemplate] = useCreateFormFromTemplateMutation();
 
-    const { data: myWorkspaces, isLoading: myWorkspaceLoading } = useGetAllMineWorkspacesQuery();
+    const { data: myWorkspaces, isLoading: myWorkspaceLoading, refetch } = useGetAllMineWorkspacesQuery();
+    console.log(auth);
+
+    useEffect(() => {
+        refetch();
+    }, [auth]);
 
     const handleImportTemplate = async (workspace: WorkspaceDto) => {
         const request = {
@@ -78,7 +81,7 @@ export default function TemplatePage(props: any) {
         <Layout showNavbar className="bg-white !px-0">
             <div className={'py-3 px-5 flex justify-end'}>
                 <div className={'flex flex-row gap-4'}>
-                    {auth ? (
+                    {!isError && auth ? (
                         <>
                             <ButtonActionWrapper handleAction={handleImportTemplate} workspaces={myWorkspaces}>
                                 <AppButton disabled={!data} variant={ButtonVariant.Secondary}>
@@ -90,15 +93,9 @@ export default function TemplatePage(props: any) {
                             </ButtonActionWrapper>
                         </>
                     ) : (
-                        <div>
-                            <AppButton
-                                onClick={() => {
-                                    openModal('LOGIN_VIEW');
-                                }}
-                            >
-                                Login to use or import template
-                            </AppButton>
-                        </div>
+                        <ActiveLink href="/login" target="_blank" referrerPolicy="no-referrer">
+                            <AppButton variant={ButtonVariant.Ghost}>Login to Use or Import template</AppButton>
+                        </ActiveLink>
                     )}
                 </div>
             </div>
