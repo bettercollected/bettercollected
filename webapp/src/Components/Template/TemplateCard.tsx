@@ -86,7 +86,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                             className="body4"
                         >
                             <ListItemIcon>
-                                <SettingsIcon width={20} height={20} className="text-black-600" strokeWidth={2} />
+                                <SettingsIcon width={20} height={20} className="text-black-600" />
                             </ListItemIcon>
                             <span>{t('SETTINGS')}</span>
                         </MenuItem>
