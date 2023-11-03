@@ -38,13 +38,13 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
     };
 
     return (
-        <div className={'flex flex-col gap-2 '}>
-            <div className={'h-[192px] w-[186px] cursor-pointer relative border-black-200 border overflow-hidden rounded hover:shadow-hover'} onClick={handleClickCard}>
+        <div className={'flex flex-col gap-2 min-w-[150px] w-[150px] md:min-w-[186px] '}>
+            <div className={'h-[170px]  md:h-[192px] cursor-pointer relative border-black-200 border overflow-hidden rounded hover:shadow-hover'} onClick={handleClickCard}>
                 <Image alt={template.title} src={template.previewImage || '/images/no_preview.png'} layout={'fill'} />
             </div>
             <div className="w-full flex justify-between items-start">
                 <div className="flex flex-col gap-[5px]">
-                    <span className={'h5-new font-semibold max-w-[150px] truncate text-black-800'}>{template.title || t('UNTITLED')}</span>
+                    <span className={'h5-new font-semibold max-w-[110px] md:max-w-[150px] truncate text-black-800'}>{template.title || t('UNTITLED')}</span>
                     {!isPredefinedTemplate && (
                         <h1 className={'text-xs font-normal text-black-600'}>
                             {t('TEMPLATE.CREATED')}: <span className={'text-black-800'}>{template?.importedFrom ? template.importedFrom : t('TEMPLATE.DEFAULT')}</span>
