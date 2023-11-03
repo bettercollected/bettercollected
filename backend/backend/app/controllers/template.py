@@ -126,7 +126,7 @@ class FormTemplateRouter(Routable):
         template_id: PydanticObjectId,
         user: User = Depends(get_logged_user),
     ):
-        response = await self.form_template_service.import_form_to_workspace(
+        response = await self.form_template_service.import_form_template_to_workspace(
             workspace_id, user, template_id
         )
         return StandardFormTemplateCamelModel(**response.dict())
