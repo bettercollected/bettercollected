@@ -1,4 +1,3 @@
-from asyncio import sleep
 
 from temporalio import activity, workflow
 from temporalio.exceptions import FailureError
@@ -13,22 +12,23 @@ with workflow.unsafe.imports_passed_through():
     from io import BytesIO
     from models.user_tokens import UserTokens
     import json
+    from asyncio import sleep
 
 
 @activity.defn(name="save_preview")
 async def save_preview(save_preview_params: SavePreviewParams):
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
     driver = webdriver.Chrome(options=options)
     driver.set_window_size(960, 930)
-
     decrypted_token = crypto.decrypt(save_preview_params.token)
     user_token = UserTokens(**json.loads(decrypted_token))
     auth_cookie = {"name": "Authorization", "value": user_token.access_token, "domain": settings.cookie_domain}
     driver.get(save_preview_params.template_url)
     driver.add_cookie(auth_cookie)
     driver.refresh()
-
     await sleep(20)
 
     screenshot = driver.get_screenshot_as_png()
