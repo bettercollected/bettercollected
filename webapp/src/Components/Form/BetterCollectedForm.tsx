@@ -247,8 +247,8 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                             <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
                         </div>
                     ))}
-                    <div>
-                        {!isResponseValid && <div className="text-red-500 my-2 text-sm">*Invalid answers in one or more fields. Check and correct the highlighted entries.</div>}
+                    <div className={'mt-10'}>
+                        {!isResponseValid && <div className="text-red-500 mb-2 text-sm">*Invalid answers in one or more fields. Check and correct the highlighted entries.</div>}
                         <AppButton variant={ButtonVariant.Secondary} type="submit" disabled={!enabled}>
                             {form?.buttonText || 'Submit'}
                         </AppButton>

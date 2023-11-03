@@ -71,7 +71,7 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                 <h1 className={'text-2xl font-semibold text-black-800'}>{t('TEMPLATE.SETTINGS.TITLE')}</h1>
                 <p className={'text-sm font-normal text-black-700'}>{t('TEMPLATE.SETTINGS.DESCRIPTION')}</p>
             </div>
-            <div className={'pt-[56px] pb-8 flex flex-col w-3/4'}>
+            <div className={'pt-[56px] pb-8 flex flex-col md:w-3/4'}>
                 <h1 className={'text-base font-medium text-black-800 pb-4'}>{t('TEMPLATE.SETTINGS.VISIBILITY.TEMPLATE_VISIBILITY')}</h1>
                 <RadioGroup className="flex flex-col gap-4" value={templateVisibility}>
                     <Divider className={'text-black-300'} />
@@ -108,7 +108,7 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                     <Divider className={'text-black-200'} />
                 </RadioGroup>
             </div>
-            <div className={'flex flex-col gap-4 w-3/4'}>
+            <div className={'flex flex-col gap-4 md:w-3/4'}>
                 <h1 className={'text-base font-medium text-black-800'}>{t('TEMPLATE.DELETE_TEMPLATE')}</h1>
                 <Divider className={'text-black-200'} />
 
