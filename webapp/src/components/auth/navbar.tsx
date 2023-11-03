@@ -42,7 +42,7 @@ export function Header(props: any) {
     const isMounted = useIsMounted();
 
     const propClassNames = props?.className ?? '';
-    const navClassNames = isMounted && windowScroll.y > 10 ? 'bg-gradient-to-b from-white to-white/80 shadow-card backdrop-blur dark:from-dark dark:to-dark/80' : 'border-b-[0.5px] border-neutral-100 dark:border-neutral-700 bg-white dark:bg-dark';
+    const navClassNames = isMounted && windowScroll.y > 10 ? 'bg-white shadow-card dark:from-dark dark:to-dark/80' : 'border-b-[0.5px] border-neutral-100 dark:border-neutral-700 bg-white dark:bg-dark';
 
     return <nav className={`!fixed top-0 !z-30 border-b-[1px] border-black-400 flex w-full items-center justify-between px-5 transition-all duration-300 ltr:right-0 rtl:left-0 h-[68px] ${navClassNames} ${propClassNames}`}>{props.children}</nav>;
 }
