@@ -4,13 +4,14 @@ from http import HTTPStatus
 from typing import Optional
 
 from classy_fastapi import Routable, get, post, delete
+from common.enums.form_provider import FormProvider
+from common.models.user import User, UserLoginWithOTP
 from fastapi import Depends
 from pydantic import EmailStr
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 
 from backend.app.container import container
-from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.user_status_dto import UserStatusDto
 from backend.app.router import router
 from backend.app.services.auth_cookie_service import (
@@ -22,11 +23,8 @@ from backend.app.services.user_service import (
     get_logged_user,
     add_refresh_token_to_blacklist,
     get_access_token,
-    get_refresh_token,
+    get_refresh_token, get_api_key,
 )
-from backend.config import settings
-from common.enums.form_provider import FormProvider
-from common.models.user import User, UserLoginWithOTP
 
 log = logging.getLogger(__name__)
 
@@ -195,12 +193,8 @@ class AuthRoutes(Routable):
         self,
         request: Request,
         user: User = Depends(get_logged_user),
+        api_key: str = Depends(get_api_key)
     ):
-        if request.headers.get("api_key") != settings.temporal_settings.api_key:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                content="You are not allowed to perform this action.",
-            )
         await self.auth_service.delete_user(user=user)
         await add_refresh_token_to_blacklist(request=request)
         return "User Deleted Successfully"

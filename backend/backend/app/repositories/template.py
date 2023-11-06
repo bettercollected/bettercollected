@@ -5,7 +5,7 @@ from common.constants import MESSAGE_NOT_FOUND
 from common.models.user import User
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.template import StandardFormTemplate
+from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.schemas.template import FormTemplateDocument
 
 
@@ -74,6 +74,7 @@ class FormTemplateRepository:
         imported_template.id = None
         imported_template.imported_from = template.workspace_id
         imported_template.workspace_id = workspace_id
+        imported_template.settings = StandardTemplateSetting()
         imported_template = await imported_template.save()
         return imported_template
 

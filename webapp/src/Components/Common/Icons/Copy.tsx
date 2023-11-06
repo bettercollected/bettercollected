@@ -2,11 +2,11 @@ import React from 'react';
 
 export default function CopyIcon(props: React.SVGAttributes<any>) {
     return (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
             <path
-                d="M17.5 14H19C20.1046 14 21 13.1046 21 12V5C21 3.89543 20.1046 3 19 3H12C10.8954 3 10 3.89543 10 5V6.5M5 10H12C13.1046 10 14 10.8954 14 12V19C14 20.1046 13.1046 21 12 21H5C3.89543 21 3 20.1046 3 19V12C3 10.8954 3.89543 10 5 10Z"
+                d="M15.5 12H17C18.1046 12 19 11.1046 19 10V3C19 1.89543 18.1046 1 17 1H10C8.89543 1 8 1.89543 8 3V4.5M3 8H10C11.1046 8 12 8.89543 12 10V17C12 18.1046 11.1046 19 10 19H3C1.89543 19 1 18.1046 1 17V10C1 8.89543 1.89543 8 3 8Z"
                 stroke="currentColor"
-                strokeWidth="1.5"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
             />
