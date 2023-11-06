@@ -1,5 +1,6 @@
 import React from 'react';
 
+import Conditional from '@Components/Conditional';
 import EndAdornmentInputField from '@Components/FormBuilder/EndAdornmentInputFIeld';
 import FileUpload from '@Components/FormBuilder/FileUpload';
 import HeaderInputBlock from '@Components/FormBuilder/HeaderInputBlock';
@@ -58,6 +59,8 @@ export default function FormBuilderBlockContent({ type, position, field, id }: I
                 return <RatingField field={field} id={id} />;
             case FormBuilderTagNames.INPUT_MEDIA:
                 return <FileUpload field={field} id={id} />;
+            case FormBuilderTagNames.CONDITIONAL:
+                return <Conditional field={field} id={id} position={position} />;
             default:
                 return null;
         }
