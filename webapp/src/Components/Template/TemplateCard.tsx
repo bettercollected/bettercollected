@@ -8,7 +8,7 @@ import EditIcon from '@Components/Common/Icons/Edit';
 import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
 import SettingsIcon from '@Components/Common/Icons/Settings';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { ListItemIcon, MenuItem } from '@mui/material';
+import { CircularProgress, ListItemIcon, MenuItem } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
@@ -39,8 +39,20 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
 
     return (
         <div className={'flex flex-col gap-2 min-w-[150px] w-[150px] md:min-w-[186px] '}>
-            <div className={'h-[170px]  md:h-[192px] cursor-pointer relative border-black-200 border overflow-hidden rounded hover:shadow-hover'} onClick={handleClickCard}>
-                <Image alt={template.title} src={template.previewImage || '/images/no_preview.png'} layout={'fill'} />
+            <div
+                className={`h-[170px]  md:h-[192px] cursor-pointer relative border-black-200 border overflow-hidden rounded hover:shadow-hover ${!template.previewImage && 'flex justify-center items-center bg-gradient-to-b from-blue-400 to-blue-800 '}`}
+                onClick={handleClickCard}
+            >
+                {template?.previewImage ? (
+                    <Image alt={template.title} src={template.previewImage} layout={'fill'} />
+                ) : (
+                    <CircularProgress
+                        sx={{
+                            color: '#F2F7FF'
+                        }}
+                        size={24}
+                    />
+                )}
             </div>
             <div className="w-full flex justify-between items-start">
                 <div className="flex flex-col gap-[5px]">
