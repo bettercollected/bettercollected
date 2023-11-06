@@ -300,7 +300,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         const fields = Object.values(builderState.fields);
         const lastField = fields[fields.length - 1];
 
-        if (lastField.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT && !lastField.value) return true;
+        if (lastField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT && !lastField.value) return true;
     };
 
     return (
