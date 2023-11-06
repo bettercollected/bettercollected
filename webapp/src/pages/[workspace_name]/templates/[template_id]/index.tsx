@@ -79,7 +79,7 @@ const SingleTemplate = (props: any) => {
                 </div>
                 <div className={'flex flex-row gap-1 md:gap-4'}>
                     {data?.workspaceId === workspace.id ? (
-                        <AppButton icon={<SettingsIcon />} variant={ButtonVariant.Ghost} onClick={() => openModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', { template: data })}>
+                        <AppButton icon={<SettingsIcon className={'text-brand-500'} />} variant={ButtonVariant.Ghost} onClick={() => openModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', { template: data })}>
                             {t('SETTINGS')}
                         </AppButton>
                     ) : (
