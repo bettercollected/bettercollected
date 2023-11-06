@@ -14,7 +14,8 @@ export enum KeyType {
 export enum BlockTypes {
     INPUT_BLOCKS = 'Elements',
     LAYOUT_BLOCKS = 'Layout Blocks',
-    QUESTION_INPUT_BLOCKS = 'Elements with Label'
+    QUESTION_INPUT_BLOCKS = 'Elements with Label',
+    CONDITIONAL = 'Conditional'
 }
 
 export enum FormBuilderTagNames {
