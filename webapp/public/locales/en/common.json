@@ -822,5 +822,6 @@
       "DESCRIPTION": "You haven't selected any groups for your form. In this case, your form will be made public by default."
     },
     "ARE_YOU_SURE": "Are you sure you want to make the"
-  }
+  },
+  "CLICK_TO_COPY": "Click to Copy link"
 }
