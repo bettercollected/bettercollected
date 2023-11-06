@@ -17,7 +17,7 @@ import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addDuplicateField, setAddNewField, setDeleteField, setIdentifierField } from '@app/store/form-builder/actions';
-import { selectActiveFieldId, selectActiveFieldIndex, selectBuilderState, selectFormField, selectPreviousField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
+import { selectActiveFieldId, selectFormField, selectNextField, selectPreviousField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
@@ -35,7 +35,6 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
 
     // Redux State
     const field: IFormFieldState = useAppSelector(selectFormField(id));
-    const responseOwnerField = useAppSelector(selectResponseOwnerField);
     const activeFieldId = useAppSelector(selectActiveFieldId);
     const previousField = useAppSelector(selectPreviousField(id));
 
@@ -44,6 +43,12 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
 
     // Local State
     const [open, setOpen] = useState(false);
+
+    const nextField = useAppSelector(selectNextField(field.id));
+
+    const isFieldLabel = NonInputFormBuilderTagNames.includes(field.type) && nextField?.type?.includes('input_');
+
+    const actualFillField = isFieldLabel ? nextField : field;
 
     const duplicateField = () => {
         const newField: IFormFieldState = { ...field };
@@ -62,11 +67,6 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
     };
 
     const { openModal } = useModal();
-
-    const handleSetEmailIdentifier = (event: any, checked: boolean) => {
-        if (checked) dispatch(setIdentifierField(field?.id));
-        else dispatch(setIdentifierField(''));
-    };
 
     const hasLabelField = () => {
         if (NonInputFormBuilderTagNames.includes(field.type)) return true;
@@ -151,22 +151,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                         <span className="italic text-xs text-black-500 hidden md:flex">Ctrl/Cmd + D</span>
                     </span>
                 </MenuItem>
-                {field?.type == FormBuilderTagNames.INPUT_EMAIL && (
-                    <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="flex items-center body4 !text-black-700">
-                        <FormControlLabel
-                            slotProps={{
-                                typography: {
-                                    fontSize: 14
-                                }
-                            }}
-                            label={t('COMPONENTS.OPTIONS.IDENTIFIER_FIELD')}
-                            labelPlacement="start"
-                            className="m-0 text-xs flex items-center justify-between w-full"
-                            control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleSetEmailIdentifier} checked={responseOwnerField === field?.id} />}
-                        />
-                    </MenuItem>
-                )}
-
+                <EmailIdentifier actualIdentifierField={actualFillField} />
                 {!hasLabelField() && (
                     <>
                         <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="flex items-center body4 !text-black-700 xl:hidden hover:bg-brand-100" onClick={addFieldLabel}>
@@ -180,9 +165,41 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                         </MenuItem>
                     </>
                 )}
-
-                <FormValidations field={field} />
+                {actualFillField && <FormValidations field={actualFillField} />}
             </div>
         </MenuDropdown>
     );
 }
+
+const EmailIdentifier = ({ actualIdentifierField }: { actualIdentifierField?: IFormFieldState }) => {
+    const { t } = useBuilderTranslation();
+
+    const dispatch = useAppDispatch();
+
+    const responseOwnerField = useAppSelector(selectResponseOwnerField);
+
+    const handleSetEmailIdentifier = (event: any, checked: boolean) => {
+        if (checked) dispatch(setIdentifierField(actualIdentifierField?.id));
+        else dispatch(setIdentifierField(''));
+    };
+
+    return (
+        <>
+            {actualIdentifierField?.type === FormBuilderTagNames.INPUT_EMAIL && (
+                <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="flex items-center body4 !text-black-700">
+                    <FormControlLabel
+                        slotProps={{
+                            typography: {
+                                fontSize: 14
+                            }
+                        }}
+                        label={t('COMPONENTS.OPTIONS.IDENTIFIER_FIELD')}
+                        labelPlacement="start"
+                        className="m-0 text-xs flex items-center justify-between w-full"
+                        control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleSetEmailIdentifier} checked={responseOwnerField === actualIdentifierField?.id} />}
+                    />
+                </MenuItem>
+            )}
+        </>
+    );
+};

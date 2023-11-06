@@ -13,11 +13,11 @@ export default function StepsOption({ field }: { field: IFormFieldState }) {
     const { t } = useBuilderTranslation();
     const onStepsChange = (event: ChangeEvent<HTMLInputElement>) => {
         if (parseInt(event.target.value) > 25) return;
-        dispatch(setUpdateField({ ...field, properties: { ...field.properties, steps: parseInt(event.target.value) } }));
+        dispatch(setUpdateField({ ...field, properties: { ...field?.properties, steps: parseInt(event.target.value) } }));
     };
 
     const onBlur = (event: ChangeEvent<HTMLInputElement>) => {
-        if (!event.target.value) dispatch(setUpdateField({ ...field, properties: { ...field.properties, steps: 5 } }));
+        if (!event.target.value) dispatch(setUpdateField({ ...field, properties: { ...field?.properties, steps: 5 } }));
     };
 
     return (
