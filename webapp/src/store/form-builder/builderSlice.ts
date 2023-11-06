@@ -63,26 +63,27 @@ export const builder = createSlice({
         });
     },
     reducers: {
-        // Use this action to modify the values for:
-        // id, title, description, versions, currentVersionIndex, isFormDirty, activeFieldIndex
-        setBuilderState: (state: IBuilderState, action: { payload: Partial<IBuilderState>; type: string }) => {
-            return {
-                ...state,
-                ...action.payload
-            };
+        // addDuplicateField
+        addDuplicateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
+            // TODO: fix duplicate for shortcut keys
+            const fieldsArray = [...Object.values(state.fields)];
+            fieldsArray.splice(action?.payload?.position, 0, { ...action.payload });
+            const newFieldsMap: any = {};
+            fieldsArray.forEach((field: IFormFieldState, index: number) => {
+                newFieldsMap[field.id] = field;
+                newFieldsMap[field.id].position = index;
+                ``;
+            });
+            state.fields = newFieldsMap;
+            state.activeFieldIndex = action?.payload?.position;
         },
-        setTyping: (state: IBuilderState, action: PayloadAction<boolean>) => {
-            return {
-                ...state,
-                isTyping: action.payload
-            };
-        },
+        // setActiveChoice
         setActiveChoice: (state, action: PayloadAction<{ id: string; position: number }>) => {
             const { id, position } = action.payload;
             state.activeChoiceId = id;
             state.activeChoiceIndex = position;
         },
-        // current active/focused field
+        // setActiveField
         setActiveField: (state, action: PayloadAction<{ id: string; position: number }>) => {
             return {
                 ...state,
@@ -90,6 +91,7 @@ export const builder = createSlice({
                 activeFieldId: action.payload.id
             };
         },
+        // setAddNewChoice
         setAddNewChoice: (
             state: IBuilderState,
             action: {
@@ -120,43 +122,7 @@ export const builder = createSlice({
                 }
             };
         },
-        setDeleteChoice: (state: IBuilderState, action: { payload: string; type: string }) => {
-            const activeField = state.fields[state.activeFieldId];
-            const proxyKeys = Object.getOwnPropertyNames(activeField.properties?.choices ?? {});
-            //@ts-ignore
-            const choicesEntries = proxyKeys.map((key) => [key, activeField.properties?.choices[key]]);
-            const choices = Object.fromEntries(choicesEntries);
-            if (action.payload) delete choices[action.payload];
-            return {
-                ...state,
-                fields: {
-                    ...state.fields,
-                    [activeField.id]: {
-                        ...activeField,
-                        properties: {
-                            activeChoiceId: activeField.properties?.activeChoiceId,
-                            activeChoiceIndex: (activeField.properties?.activeChoiceIndex ?? -1) - 1,
-                            choices
-                        }
-                    }
-                }
-            };
-        },
-        setCommandMenuPosition: (state, action: { payload: 'up' | 'down' }) => {
-            if (state.menus?.commands)
-                return {
-                    ...state,
-                    menus: { ...state.menus, commands: { ...state.menus?.commands, position: action.payload } }
-                };
-        },
-        setBuilderMenuState: (state: IBuilderState, action: { payload: Partial<IBuilderMenuState>; type: string }) => {
-            const menus = { ...state.menus, ...action.payload };
-            return { ...state, menus };
-        },
-        resetBuilderMenuState: (state: IBuilderState) => {
-            const menus = { ...state.menus, ...initBuilderState.menus };
-            return { ...state, menus };
-        },
+        // setAddNewField
         setAddNewField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             const fieldsToAdd: Array<IFormFieldState> = [];
             const type = action.payload?.type;
@@ -194,48 +160,43 @@ export const builder = createSlice({
                 fields: newFieldsMap
             };
         },
-        addDuplicateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
-            // TODO: fix duplicate for shortcut keys
-            const fieldsArray = [...Object.values(state.fields)];
-            fieldsArray.splice(action?.payload?.position, 0, { ...action.payload });
-            const newFieldsMap: any = {};
-            fieldsArray.forEach((field: IFormFieldState, index: number) => {
-                newFieldsMap[field.id] = field;
-                newFieldsMap[field.id].position = index;
-                ``;
-            });
-            state.fields = newFieldsMap;
-            state.activeFieldIndex = action?.payload?.position;
+        // setBuilderMenuState
+        setBuilderMenuState: (state: IBuilderState, action: { payload: Partial<IBuilderMenuState>; type: string }) => {
+            const menus = { ...state.menus, ...action.payload };
+            return { ...state, menus };
         },
-        setUpdateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
-            return {
-                ...state,
-                isTyping: true,
-                fields: {
-                    ...state.fields,
-                    [action.payload.id]: action.payload
-                }
-            };
+        // setCommandMenuPosition
+        setCommandMenuPosition: (state, action: { payload: 'up' | 'down' }) => {
+            if (state.menus?.commands)
+                return {
+                    ...state,
+                    menus: { ...state.menus, commands: { ...state.menus?.commands, position: action.payload } }
+                };
         },
-        setUpdateCommandField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
+        // setDeleteChoice
+        setDeleteChoice: (state: IBuilderState, action: { payload: string; type: string }) => {
+            const activeField = state.fields[state.activeFieldId];
+            const proxyKeys = Object.getOwnPropertyNames(activeField.properties?.choices ?? {});
+            //@ts-ignore
+            const choicesEntries = proxyKeys.map((key) => [key, activeField.properties?.choices[key]]);
+            const choices = Object.fromEntries(choicesEntries);
+            if (action.payload) delete choices[action.payload];
             return {
                 ...state,
                 fields: {
                     ...state.fields,
-                    [action.payload.id]: action.payload
+                    [activeField.id]: {
+                        ...activeField,
+                        properties: {
+                            activeChoiceId: activeField.properties?.activeChoiceId,
+                            activeChoiceIndex: (activeField.properties?.activeChoiceIndex ?? -1) - 1,
+                            choices
+                        }
+                    }
                 }
             };
         },
-        setFields: (state: IBuilderState, action: { payload: Array<IFormFieldState>; type: string }) => {
-            const fields: Record<string, IFormFieldState> = {};
-            action.payload.forEach((field: IFormFieldState, position: number) => {
-                fields[field.id] = { ...field, position };
-            });
-            return {
-                ...state,
-                fields: fields
-            };
-        },
+        // setDeleteField
         setDeleteField: (state: IBuilderState, action: { payload: string; type: string }) => {
             const fields = { ...state.fields };
             delete fields[action.payload];
@@ -249,6 +210,7 @@ export const builder = createSlice({
             state.fields = newFieldsMap;
             state.isFormDirty = true;
         },
+        // setEditForm
         setEditForm: (state, action) => {
             const fields: any = {};
             action.payload.fields?.forEach((field: any, index: number) => {
@@ -275,6 +237,18 @@ export const builder = createSlice({
                 fields: fields
             };
         },
+        // setFields
+        setFields: (state: IBuilderState, action: { payload: Array<IFormFieldState>; type: string }) => {
+            const fields: Record<string, IFormFieldState> = {};
+            action.payload.forEach((field: IFormFieldState, position: number) => {
+                fields[field.id] = { ...field, position };
+            });
+            return {
+                ...state,
+                fields: fields
+            };
+        },
+        // setIdentifierField
         setIdentifierField: (state, action) => {
             return {
                 ...state,
@@ -283,6 +257,11 @@ export const builder = createSlice({
                 }
             };
         },
+        // setIsFormDirty
+        setIsFormDirty: (state, action: PayloadAction<boolean>) => {
+            state.isFormDirty = action.payload;
+        },
+        // setMoveField
         setMoveField: (state: IBuilderState, action: PayloadAction<{ oldIndex: number; newIndex: number }>) => {
             const { oldIndex, newIndex } = action.payload;
             const fields = { ...state.fields };
@@ -301,9 +280,77 @@ export const builder = createSlice({
 
             state.activeFieldId = Object.keys(fieldsArray).at(newIndex) ?? '';
         },
-
+        // setResetBuilderMenuState
+        resetBuilderMenuState: (state: IBuilderState) => {
+            const menus = { ...state.menus, ...initBuilderState.menus };
+            return { ...state, menus };
+        },
+        // setResetForm
         resetForm: (state) => {
             return initBuilderState;
+        },
+        // setSetTyping
+        setSetTyping: (state: IBuilderState, action: PayloadAction<boolean>) => {
+            return {
+                ...state,
+                isTyping: action.payload
+            };
+        },
+        // setUpdateCommandField
+        setUpdateCommandField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
+            return {
+                ...state,
+                fields: {
+                    ...state.fields,
+                    [action.payload.id]: action.payload
+                }
+            };
+        },
+        // setUpdateField
+        setUpdateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
+            return {
+                ...state,
+                isTyping: true,
+                fields: {
+                    ...state.fields,
+                    [action.payload.id]: action.payload
+                }
+            };
+        },
+        // setBuilderState
+        setBuilderState: (state: IBuilderState, action: { payload: Partial<IBuilderState>; type: string }) => {
+            return {
+                ...state,
+                ...action.payload
+            };
+        },
+        // setTyping
+        setTyping: (state: IBuilderState, action: PayloadAction<boolean>) => {
+            return {
+                ...state,
+                isTyping: action.payload
+            };
+        },
+        updateAction: (state: IBuilderState, action: PayloadAction<any>) => {
+            const { fieldId, actionId, data } = action.payload;
+            if (state.fields[fieldId].properties && state.fields[fieldId]?.properties?.actions) {
+                // @ts-ignore
+                state.fields[fieldId].properties.actions[actionId] = data;
+            }
+        },
+        updateConditional: (state: IBuilderState, action: PayloadAction<any>) => {
+            const { fieldId, conditionalId, data } = action.payload;
+            if (state.fields[fieldId]?.properties?.conditionals) {
+                // @ts-ignore
+                state.fields[fieldId].properties.conditionals[conditionalId] = data;
+            }
+        },
+        updateConditionalOperator: (state: IBuilderState, action: PayloadAction<any>) => {
+            const { fieldId, operator } = action.payload;
+            if (state.fields[fieldId]?.properties?.logicalOperator) {
+                // @ts-ignore
+                state.fields[fieldId].properties.logicalOperator = operator;
+            }
         }
     }
 });
