@@ -21,7 +21,7 @@ const TemplatePage = (props: any) => {
     if (p.length > 7) {
         p = p.slice(0, 7);
     }
-    const { data, isLoading } = useGetTemplatesQuery(workspace?.id);
+    const { data, isLoading } = useGetTemplatesQuery(workspace?.id, { pollingInterval: 30000 });
     return (
         <SidebarLayout boxClassName=" h-full">
             <NextSeo title={t('TEMPLATE.TEMPLATES') + ' | ' + workspace.workspaceName} noindex={false} nofollow={false} />
