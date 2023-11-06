@@ -24,7 +24,7 @@ export default function FormValidations({ field }: IIndividualFieldOptionsProps)
         event.preventDefault();
         event.stopPropagation();
 
-        const fieldValidations = { ...field.validations };
+        const fieldValidations = { ...field?.validations };
         fieldValidations.required = checked;
         dispatch(setUpdateField({ ...field, validations: fieldValidations }));
     };
@@ -41,7 +41,7 @@ export default function FormValidations({ field }: IIndividualFieldOptionsProps)
                     <StepsOption field={field} />
                     <div className="px-4 flex w-full justify-between items-center py-2">
                         <span className="text-black-700">{t('COMPONENTS.VALIDATIONS.REQUIRED')}</span>
-                        <MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleFieldRequiredChange} checked={!!field.validations?.required} />
+                        <MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleFieldRequiredChange} checked={!!field?.validations?.required} />
                     </div>
                 </>
             )}
