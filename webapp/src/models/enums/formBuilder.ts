@@ -50,6 +50,8 @@ export enum FormBuilderTagNames {
     INPUT_MATRIX = 'input_matrix',
     INPUT_MEDIA = 'input_file_upload',
 
+    CONDITIONAL = 'conditional',
+
     EMBED_IMAGE = 'embed_image',
     EMBED_VIDEO = 'embed_video',
     EMBED_AUDIO = 'embed_audio',
@@ -97,5 +99,6 @@ export const NonInputFormBuilderTagNames = [
     FormBuilderTagNames.EMBED_AUDIO,
     FormBuilderTagNames.EMBED_ANYTHING,
     FormBuilderTagNames.EMBED_CODE,
-    FormBuilderTagNames.EMBED_RECAPTCHA
+    FormBuilderTagNames.EMBED_RECAPTCHA,
+    FormBuilderTagNames.CONDITIONAL
 ];
