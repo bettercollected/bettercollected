@@ -1,6 +1,6 @@
 import React from 'react';
 
-import Conditional from '@Components/Conditional';
+import Conditional from '@Components/FormBuilder/Conditional';
 import EndAdornmentInputField from '@Components/FormBuilder/EndAdornmentInputFIeld';
 import FileUpload from '@Components/FormBuilder/FileUpload';
 import HeaderInputBlock from '@Components/FormBuilder/HeaderInputBlock';
