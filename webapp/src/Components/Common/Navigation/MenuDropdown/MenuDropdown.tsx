@@ -5,7 +5,6 @@ import Chevron from '@Components/Common/Icons/Chevron';
 import { IconButton, IconButtonPropsSizeOverrides, Menu, PaperProps, PopoverOrigin } from '@mui/material';
 import { OverridableStringUnion } from '@mui/types';
 
-
 interface IMenuDropdownProps {
     id: string;
     menuTitle: string;
@@ -27,6 +26,7 @@ interface IMenuDropdownProps {
     hasMenu?: boolean;
     tabIndex?: number;
     closeOnClick?: boolean;
+    showIconBtnEffect?: boolean;
 }
 
 const defaultPaperProps: PaperProps = {
@@ -63,7 +63,8 @@ export default function MenuDropdown({
     anchorOrigin = defaultAnchorOrigin,
     hasMenu = true,
     tabIndex = 0,
-    closeOnClick = true
+    closeOnClick = true,
+    showIconBtnEffect = false
 }: IMenuDropdownProps) {
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
@@ -91,7 +92,7 @@ export default function MenuDropdown({
             <Tooltip title={menuTitle} enterDelay={enterDelay} leaveDelay={leaveDelay} enterTouchDelay={enterTouchDelay}>
                 <IconButton
                     sx={{ padding: 1 }}
-                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex justify-between gap-2 body3 rounded hover:rounded hover:bg-brand-100 ${className}`}
+                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex justify-between gap-2 body3 rounded hover:rounded hover:bg-brand-100  ${className}`}
                     onClick={handleClick}
                     size={size}
                     tabIndex={tabIndex}
@@ -99,7 +100,7 @@ export default function MenuDropdown({
                     aria-haspopup="true"
                     aria-expanded={menuOpen ? 'true' : undefined}
                 >
-                    <span className="flex items-center gap-2">{menuContent}</span>
+                    <span className={`flex items-center gap-2 ${showIconBtnEffect && menuOpen && 'bg-black-200'}`}>{menuContent}</span>
                     {showExpandMore && (
                         <div className={`${menuOpen ? '!rotate-180' : '!-rotate-0'} transition-all duration-300`}>
                             <Chevron />

@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import CustomPopover from '@Components/Common/CustomPopover';
@@ -19,6 +20,8 @@ import Toolbar from '@mui/material/Toolbar';
 
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+import { useAppSelector } from '@app/store/hooks';
+import { selectPatchingTemplate } from '@app/store/mutations/selectors';
 
 interface IFormBuilderMenuBarProps {
     onInsert: React.MouseEventHandler<HTMLButtonElement>;
@@ -29,23 +32,32 @@ interface IFormBuilderMenuBarProps {
     onFormPublish: React.MouseEventHandler<HTMLButtonElement>;
     onClickSettings: React.MouseEventHandler<HTMLButtonElement>;
     onClickTips: React.MouseEventHandler<HTMLButtonElement>;
+    onSaveAsTemplate: React.MouseEventHandler<HTMLButtonElement>;
+    onSaveTemplate?: React.MouseEventHandler<HTMLButtonElement>;
     isUpdating?: boolean;
+    isTemplate: boolean;
 }
 
-export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormCover, onClickSettings, onClickTips, onPreview, onFormPublish }: IFormBuilderMenuBarProps) {
+export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormCover, onClickSettings, onClickTips, onPreview, onFormPublish, onSaveAsTemplate, isTemplate, onSaveTemplate }: IFormBuilderMenuBarProps) {
     const { t } = useBuilderTranslation();
+
+    const { t: translation } = useTranslation();
 
     const breakpoint = useBreakpoint();
 
     const router = useRouter();
 
+    const mutationStatus = useAppSelector((state) => state.mutationStatus);
+    // @ts-ignore
+    const loading = mutationStatus.patchTemplate === 'loading';
+
     const collapseMenu = ['2xs', 'xs', 'sm', 'md'].indexOf(breakpoint) !== -1;
 
     const optionButtonClassName =
-        'flex text-black-700  text-sm lg:text-normal justify-start px-5 !py-3 !lg:p-2 !lg:p-3 lg:!px-3 !lg:px-5 border-1   lg:w-fit w-full hover-none border-solid border-gray-500 md:gap-2 rounded-none ' + (collapseMenu ? 'h-fit' : 'h-[64px]');
+        'flex text-black-700  text-sm lg:text-normal justify-start px-5 !py-3 !lg:p-2 !lg:p-3 lg:!px-3 !lg:px-5 border-1   lg:w-fit w-full hover-none border-solid border-gray-500 md:gap-2 rounded-none ' + (collapseMenu ? 'h-fit' : 'h-[48px]');
 
     const Actions = () => (
-        <Toolbar className=" !px-0 lg:px-6 divide-y divide-black-200 lg:divide-y-0  flex flex-col lg:flex-row body4 w-full relative justify-center">
+        <Toolbar className=" !px-0 lg:px-6 divide-y divide-black-200 lg:divide-y-0  flex flex-col lg:flex-row body4 w-full relative justify-center" variant={'dense'}>
             <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             <IconButton color="inherit" className={optionButtonClassName} onClick={onAddFormLogo}>
                 <CircleOutlinedIcon />
@@ -69,6 +81,7 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
                 </IconButton> */}
             <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             {!collapseMenu && <Divider orientation="vertical" className="hidden lg:flex" flexItem />}
+
             <IconButton color="inherit" className={optionButtonClassName} onClick={onPreview}>
                 <VisibilityOutlinedIcon />
                 <span className=" text-black-700 ">{t('PREVIEW.DEFAULT')}</span>
@@ -78,16 +91,24 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
             {/*<Tooltip title={t('PUBLISH.DEFAULT')}>*/}
             {/*</Tooltip>*/}
             <Divider orientation="vertical" className="hidden lg:flex" flexItem />
-
-            <AppButton icon={<PublishIcon />} className={'absolute right-5 hidden lg:flex'} onClick={onFormPublish}>
-                {t('PUBLISH.DEFAULT')}
-            </AppButton>
+            <div className={'absolute right-10 hidden lg:flex gap-4'}>
+                {/*<AppButton variant={ButtonVariant.Secondary} onClick={onSaveAsTemplate}>*/}
+                {/*    Save as Template*/}
+                {/*</AppButton>*/}
+                {isTemplate ? (
+                    <AppButton onClick={onSaveTemplate}>{translation('TEMPLATE.BUTTONS.SAVE_TEMPLATE')}</AppButton>
+                ) : (
+                    <AppButton icon={<PublishIcon />} onClick={onFormPublish}>
+                        {t('PUBLISH.DEFAULT')}
+                    </AppButton>
+                )}
+            </div>
         </Toolbar>
     );
     return (
         <AppBar
             position="static"
-            className="border-b-[1px] !min-h-[40px]  bg-gradient-to-b from-white to-white/80 sticky items-center justify-center flex top-[68px] z-[1000] shadow-inner backdrop-blur border-black-400"
+            className="border-b-[1px] !min-h-[48px]  bg-gradient-to-b from-white to-white/80 sticky items-center justify-center flex top-[68px] z-[1000] shadow-inner backdrop-blur border-black-400"
             sx={{
                 borderRadius: 0,
                 background: 'inherit',
@@ -104,7 +125,7 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
                         }}
                     >
                         <ChevronLeft className="h-6 w-6 " />
-                        Back
+                        {translation('BUTTON.BACK')}
                     </button>
                     <CustomPopover
                         content={
@@ -117,12 +138,20 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
                             <HamburgerIcon width={24} height={24} />
                         </div>
                     </CustomPopover>
-                    <button className="text-sm text-black-700" onClick={onPreview}>
-                        Preview
-                    </button>
-                    <AppButton variant={ButtonVariant.Ghost} className={'absolute right-5 lg:hidden'} onClick={onFormPublish}>
-                        Publish Form{' '}
-                    </AppButton>
+                    {isTemplate ? (
+                        <AppButton variant={ButtonVariant.Ghost} className={'absolute right-5 lg:hidden'} onClick={onSaveTemplate}>
+                            {translation('TEMPLATE.BUTTONS.SAVE_TEMPLATE')}
+                        </AppButton>
+                    ) : (
+                        <>
+                            {/*<button className="text-sm text-black-700" onClick={onPreview}>*/}
+                            {/*    {t('PREVIEW.DEFAULT')}*/}
+                            {/*</button>*/}
+                            <AppButton variant={ButtonVariant.Ghost} className={'absolute right-5 lg:hidden'} onClick={onFormPublish}>
+                                {t('PUBLISH.DEFAULT')}
+                            </AppButton>
+                        </>
+                    )}
                 </div>
             ) : (
                 <Actions />

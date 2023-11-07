@@ -6,6 +6,7 @@ import _ from 'lodash';
 
 import DragHandleIcon from '@Components/Common/Icons/DragHandle';
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
+import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import { FormCoverComponent, FormLogoComponent } from '@Components/FormBuilder/Header';
@@ -17,6 +18,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { DragStart, DragUpdate, DropResult, ResponderProvided } from 'react-beautiful-dnd';
 import ContentEditable from 'react-contenteditable';
 import { batch } from 'react-redux';
+import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
@@ -33,6 +35,8 @@ import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { updateStatus } from '@app/store/mutations/slice';
+import { useCreateTemplateFromFormMutation, usePatchTemplateMutation } from '@app/store/template/api';
 import { usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
@@ -40,7 +44,7 @@ import { throttle } from '@app/utils/throttleUtils';
 
 import useFormBuilderState from './context';
 
-export default function FormBuilder({ workspace, _nextI18Next }: { workspace: WorkspaceDto; _nextI18Next: any }) {
+export default function FormBuilder({ workspace, _nextI18Next, isTemplate = false, templateId }: { workspace: WorkspaceDto; _nextI18Next: any; isTemplate?: boolean; templateId?: string }) {
     // Hooks
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
@@ -82,6 +86,10 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
     const onBlurCallbackRef = useRef<any>(null);
     //
 
+    // RTK
+    const [createFormAsTemplate] = useCreateTemplateFromFormMutation();
+    const [updateTemplate] = usePatchTemplateMutation();
+
     useEffect(() => {
         setShowLogo(!!builderState.logo);
         setShowCover(!!builderState.coverImage);
@@ -103,7 +111,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
 
     const onPreview = () => {
         asyncDispatch(resetBuilderMenuState()).then(() => {
-            fullScreenModal.openModal('FORM_BUILDER_PREVIEW', { publish: onFormPublish, imagesRemoved });
+            fullScreenModal.openModal('FORM_BUILDER_PREVIEW', { publish: onFormPublish, imagesRemoved, isTemplate });
         });
     };
 
@@ -158,8 +166,8 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
             responseExpiration: consentState.responseExpiration,
             responseExpirationType: consentState.responseExpirationType
         };
-        publishRequest.buttonText = builderState.buttonText;
         publishRequest.consent = consentState.consents;
+        publishRequest.buttonText = builderState.buttonText;
         if (imagesRemoved.logo) publishRequest.logo = '';
         if (imagesRemoved.cover) publishRequest.cover_image = '';
         formData.append('form_body', JSON.stringify(publishRequest));
@@ -173,15 +181,74 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
         }
     };
 
+    const onSaveTemplate = async () => {
+        dispatch(updateStatus({ endpoint: 'patchTemplate', status: 'loading' }));
+        const templateData = new FormData();
+        if (headerImages.coverImage) templateData.append('cover_image', headerImages.coverImage);
+        if (headerImages.logo) templateData.append('logo', headerImages.logo);
+        const publishRequest: any = {};
+        publishRequest.title = builderState.title;
+        publishRequest.description = builderState.description;
+        let fields: any = Object.values(builderState.fields || {});
+        fields = fields.map((field: IFormFieldState) => {
+            if (field.properties?.choices) {
+                return { ...field, properties: { ...field.properties, choices: Object.values(field.properties?.choices) } };
+            }
+            return field;
+        });
+        publishRequest.fields = fields;
+        publishRequest.buttonText = builderState.buttonText;
+        if (imagesRemoved.logo) publishRequest.logo = '';
+        if (imagesRemoved.cover) publishRequest.cover_image = '';
+        templateData.append('template_body', JSON.stringify(publishRequest));
+        const apiObj: any = { template_id: templateId, workspace_id: workspace.id, body: templateData };
+        try {
+            const response: any = await updateTemplate(apiObj);
+            if (response?.data) {
+                dispatch(updateStatus({ endpoint: 'patchTemplate', status: 'success' }));
+                toast('Successful', { type: 'success' });
+                await router.replace(`/${workspace.workspaceName}/dashboard/templates`);
+            } else {
+                dispatch(updateStatus({ endpoint: 'patchTemplate', status: 'failed' }));
+
+                toast('Error Occurred').toString(), { type: 'error' };
+            }
+        } catch (err) {
+            dispatch(updateStatus({ endpoint: 'patchTemplate', status: 'failed' }));
+
+            toast('Error Occurred').toString(), { type: 'error' };
+        }
+    };
+
+    const onSaveAsTemplate = async () => {
+        try {
+            const request = {
+                workspace_id: workspace.id,
+                form_id: form_id as string
+            };
+            const response: any = await createFormAsTemplate(request);
+            if (response?.data) {
+                toast('Created Successfully', { type: 'success' });
+                router.replace(`/${workspace.workspaceName}/dashboard/templates`);
+            } else {
+                toast('Error Occurred').toString(), { type: 'error' };
+            }
+        } catch (err) {
+            toast('Error Occurred').toString(), { type: 'error' };
+        }
+    };
+
     const saveFormDebounced = useCallback(
         _.debounce((builderState, consentState, headerImages) => onFormSave(builderState, consentState, headerImages), 2000),
         []
     );
 
     useEffect(() => {
-        setShowSaving({ status: true, text: 'Saving' });
-        saveFormDebounced(builderState, consentState, headerImages);
-    }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages, consentState, imagesRemoved]);
+        if (!isTemplate) {
+            setShowSaving({ status: true, text: 'Saving' });
+            saveFormDebounced(builderState, consentState, headerImages);
+        }
+    }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages, consentState, imagesRemoved, builderState.settings]);
 
     const openTagSelector = (event: any) => {
         const viewportHeight = window.innerHeight;
@@ -233,7 +300,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
         const fields = Object.values(builderState.fields);
         const lastField = fields[fields.length - 1];
 
-        if (lastField.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT && !lastField.value) return true;
+        if (lastField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT && !lastField.value) return true;
     };
 
     return (
@@ -247,7 +314,10 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
                 onFormPublish={onFormPublish}
                 onClickSettings={onClickSettings}
                 onClickTips={onClickTips}
+                onSaveAsTemplate={onSaveAsTemplate}
                 isUpdating={patching}
+                isTemplate={isTemplate}
+                onSaveTemplate={onSaveTemplate}
             />
             {showCover && <FormCoverComponent setIsCoverClicked={setShowCover} imagesRemoved={imagesRemoved} setImagesRemoved={setImagesRemoved} />}
             <div className="h-full w-full max-w-4xl mx-auto py-12">
@@ -333,6 +403,7 @@ export default function FormBuilder({ workspace, _nextI18Next }: { workspace: Wo
                         }}
                     />
                 </div>
+                {!builderState.isFormDirty && <BuilderTips />}
                 <AnimatePresence mode="wait" initial={false}>
                     {showSaving.status && (
                         <motion.div

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import EditIcon from '@Components/Common/Icons/Edit';
 import Pro from '@Components/Common/Icons/Pro';
 import LockIcon from '@Components/Common/Icons/lock';
@@ -13,6 +14,7 @@ import Switch from '@mui/material/Switch';
 import cn from 'classnames';
 import moment from 'moment/moment';
 import { toast } from 'react-toastify';
+import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
 import { Close } from '@app/components/icons/close';
 import { GroupIcon } from '@app/components/icons/group-icon';
@@ -59,6 +61,15 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const customDomain = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
     const clientHostUrl = `${clientHost}/${customUrl}`;
     const customDomainUrl = `${customDomain}/${customUrl}`;
+    const [_, copyToClipboard] = useCopyToClipboard();
+
+    const handleOnCopy = () => {
+        const link = (isCustomDomain ? customDomain : clientHost) + '/' + customUrl;
+        copyToClipboard(link);
+        toast(t(toastMessage.copied).toString(), {
+            type: 'info'
+        });
+    };
 
     const defaultValueForVisibility = () => {
         if (form?.settings?.hidden) return 'Private';
@@ -218,9 +229,12 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                     <FormSettingsCard className={'!space-y-0 !mt-0'}>
                         <p className="w-full body4 !text-black-700 lg:w-[564px]">{t(formPage.linksDescription)}</p>
                         <div className={'flex flex-row gap-2 items-start py-1 '}>
-                            <p className="body4 !text-black-700 mt-1 mb-11 truncate">
-                                {isCustomDomain ? customDomain : clientHost}/<span className={'text-pink-500'}>{customUrl}</span>
-                            </p>
+                            <Tooltip title={t('CLICK_TO_COPY')}>
+                                <p className="body4 !text-black-700 mt-1 mb-11 truncate cursor-pointer" onClick={handleOnCopy}>
+                                    {isCustomDomain ? customDomain : clientHost}/<span className={'text-pink-500'}>{customUrl}</span>
+                                </p>
+                            </Tooltip>
+
                             <AppButton
                                 className={'!py-0'}
                                 icon={<EditIcon className="h-6 w-6" />}

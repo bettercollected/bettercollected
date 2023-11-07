@@ -1,10 +1,17 @@
 import React, { useEffect, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
+
 import UploadIcon from '@Components/Common/Icons/FormBuilder/UploadIcon';
 import LoadingIcon from '@Components/Common/Icons/Loading';
+import PublishIcon from '@Components/Common/Icons/PublishIcon';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import ThankYouPage from '@Components/Form/ThankYouPage';
 import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
+import { toast } from 'react-toastify';
 
 import Back from '@app/components/icons/back';
 import PoweredBy from '@app/components/ui/powered-by';
@@ -13,16 +20,19 @@ import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { initFormState, selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useCreateTemplateFromFormMutation } from '@app/store/template/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import { useFullScreenModal } from '../full-screen-modal-context';
 
-export default function FormBuilderPreviewModal({ publish, isFormSubmitted = false, imagesRemoved = {} }: { publish: () => void; isFormSubmitted: boolean; imagesRemoved: any }) {
+export default function FormBuilderPreviewModal({ publish, isFormSubmitted = false, imagesRemoved = {}, isTemplate }: { publish: () => void; isFormSubmitted: boolean; imagesRemoved: any; isTemplate?: boolean }) {
     const [formToRender, setFormToRender] = useState(initFormState);
     const { closeModal } = useFullScreenModal();
     const builderState = useAppSelector(selectBuilderState);
     const consentState = useAppSelector(selectConsentState);
     const { headerImages } = useFormBuilderAtom();
+    const router = useRouter();
+    const { t } = useTranslation();
 
     const updateRequest = useAppSelector((state1) => state1.workspacesApi.mutations);
 
@@ -30,6 +40,26 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
 
     const workspace = useAppSelector(selectWorkspace);
     const form = useAppSelector(selectForm);
+
+    const [createFormAsTemplate] = useCreateTemplateFromFormMutation();
+
+    const makeTemplate = async () => {
+        try {
+            const request = {
+                workspace_id: workspace.id,
+                form_id: form.formId
+            };
+            const response: any = await createFormAsTemplate(request);
+            if (response?.data) {
+                toast('Created Successfully', { type: 'success' });
+                router.replace(`/${workspace.workspaceName}/dashboard/templates`);
+            } else {
+                toast('Error Occurred').toString(), { type: 'error' };
+            }
+        } catch (err) {
+            toast('Error Occurred').toString(), { type: 'error' };
+        }
+    };
 
     useEffect(() => {
         if (builderState) {
@@ -68,19 +98,32 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
                     }}
                 >
                     <Back />
-                    Back to Editor
+                    <span className={'hidden md:block'}>Back to Editor</span>
                 </div>
-                <div
-                    className="flex gap-2 items-center cursor-pointer"
-                    onClick={() => {
-                        publish();
-                    }}
-                >
-                    {isLoading ? <LoadingIcon /> : <UploadIcon />}
-                    Publish
-                </div>
+                {!isTemplate && (
+                    <div className={'flex flex-row gap-4'}>
+                        <AppButton variant={ButtonVariant.Secondary} onClick={makeTemplate}>
+                            {t('TEMPLATE.BUTTONS.MAKE_TEMPLATE')}
+                        </AppButton>
+                        <AppButton icon={<PublishIcon />} onClick={publish}>
+                            {t('PUBLISH_FORM')}
+                        </AppButton>
+                    </div>
+                )}
+
+                {/*<div*/}
+                {/*    className="flex gap-2 items-center cursor-pointer"*/}
+                {/*    onClick={() => {*/}
+                {/*        publish();*/}
+                {/*    }}*/}
+                {/*>*/}
+                {/*    {isLoading ? <LoadingIcon /> : <UploadIcon />}*/}
+                {/*    Publish*/}
+                {/*</div>*/}
             </div>
-            <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6">{isFormSubmitted ? <ThankYouPage isDisabled={true} /> : <BetterCollectedForm form={formToRender} enabled={true} isPreview={true} closeModal={closeModal} />}</div>
+            <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6">
+                {isFormSubmitted ? <ThankYouPage isDisabled={true} /> : <BetterCollectedForm form={formToRender} enabled={true} isPreview={true} closeModal={closeModal} isTemplate={isTemplate} />}
+            </div>
             {(!workspace?.isPro || !form?.settings?.disableBranding) && <PoweredBy isFormCreatorPortal={true} />}
         </div>
     );

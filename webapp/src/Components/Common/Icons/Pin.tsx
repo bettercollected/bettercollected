@@ -2,8 +2,8 @@ import React from 'react';
 
 export default function Pin(props: React.SVGAttributes<{}>) {
     return (
-        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-            <path d="M7.33268 8.66695L2.66602 13.3336M10.666 2.66699L13.3327 5.33366L9.99934 11.3337L4.66602 6.00033L10.666 2.66699Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+            <path d="M8 9.99997L1 17M13 1L17 5.00002L12 14L4 6.00002L13 1Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
     );
 }

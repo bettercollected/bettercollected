@@ -1,10 +1,10 @@
-import {UserStatus} from '@app/models/dtos/UserStatus';
-import {IConsentField} from '@app/store/consent/types';
-import {IFormFieldValidation} from '@app/store/form-builder/types';
+import { UserStatus } from '@app/models/dtos/UserStatus';
+import { IConsentField } from '@app/store/consent/types';
+import { IFormFieldValidation } from '@app/store/form-builder/types';
 
-import {ResponseRetentionType} from '../enums/consentEnum';
-import {FileMetadata} from '../types/fileTypes';
-import {ResponderGroupDto} from './groups';
+import { ResponseRetentionType } from '../enums/consentEnum';
+import { FileMetadata } from '../types/fileTypes';
+import { ResponderGroupDto } from './groups';
 
 export interface StandardFormFieldDto {
     id: string;
@@ -18,9 +18,9 @@ export interface StandardFormFieldDto {
     description?: string | null;
     type:
         | {
-        type: string;
-        options: Array<any>;
-    }
+              type: string;
+              options: Array<any>;
+          }
         | any;
     isMediaContent?: boolean;
     mediaContent?: boolean;
@@ -53,10 +53,10 @@ export interface StandardFormDto {
         responseExpirationType?: ResponseRetentionType;
         disableBranding: boolean;
         hidden: boolean;
-        formCloseDate?: string
+        formCloseDate?: string;
     };
     isPublished?: boolean;
-    importerDetails: UserStatus;
+    importerDetails?: UserStatus;
     consent: Array<IConsentField>;
     fields: Array<StandardFormFieldDto>;
     createdTime?: string | Date;
