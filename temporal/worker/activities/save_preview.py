@@ -22,7 +22,7 @@ async def save_preview(save_preview_params: SavePreviewParams):
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     driver = webdriver.Chrome(options=options)
-    driver.set_window_size(960, 930)
+    driver.set_window_size(640, 620)
     decrypted_token = crypto.decrypt(save_preview_params.token)
     user_token = UserTokens(**json.loads(decrypted_token))
     auth_cookie = {"name": "Authorization", "value": user_token.access_token, "domain": settings.cookie_domain}
