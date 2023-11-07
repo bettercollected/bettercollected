@@ -43,6 +43,7 @@
     "CHECK_MY_DATA": "Check my data",
     "CONTINUE": "Continue",
     "CONTINUE_WITH_GOOGLE": "Continue with Google",
+    "CONFIRM": "Confirm",
     "COPY_LINK": "Copy link",
     "CREATE_FORM": "Create Form",
     "CREATE_WORKSPACE": "Create a workspace",
@@ -499,6 +500,7 @@
     "YEARLY": "Yearly"
   },
   "PINNED_FORMS": "Pinned forms",
+  "PUBLISH_FORM": "Publish",
   "PLACEHOLDER": {
     "ENTER_CUSTOM_DOMAIN": "Enter your custom domain",
     "ENTER_WORKSPACE_HANDLE": "Enter workspace handle",
@@ -619,6 +621,42 @@
   "TERMS_OF_SERVICES": {
     "TITLE": "Terms Of Services",
     "DESCRIPTION": "Our Terms of Services establish the rules and guidelines for using our services."
+  },
+  "TEMPLATE": {
+    "TEMPLATES": "Templates",
+    "DELETE_TEMPLATE": "Delete Template",
+    "DELETE_TEMPLATE_DESCRIPTION": "Once you delete a template, it will be permanently removed, and no one with the link will be able to access it.",
+    "NOT_FOUND": {
+      "TITLE": "No templates found",
+      "DESC": "You haven’t created or imported any templates"
+    },
+    "DEFAULT": "Default",
+    "YOUR_WORKSPACE": "Your Workspace",
+    "SHOW_ALL": "Show All",
+    "ALL_TEMPLATES": "All Templates",
+    "BUTTONS": {
+      "IMPORT_TEMPLATE": "Import Template",
+      "CREATE_TEMPLATE": "Create Template",
+      "USE_TEMPLATE": "Use Template",
+      "SAVE_TEMPLATE": "Save Template",
+      "MAKE_TEMPLATE": "Make Template"
+    },
+    "CREATED": "Created",
+    "SETTINGS": {
+      "TITLE": "Settings",
+      "DESCRIPTION": "Modify template visibility to either public or private, or delete the template.",
+      "DELETE_DESCRIPTION": "Once you delete a template, it will be permanently removed, and no one with the link will be able to access it.",
+      "VISIBILITY": {
+        "TEMPLATE_VISIBILITY": "Template Visibility",
+        "PUBLIC": "Everyone with the link can use this template. You can share this template.",
+        "PRIVATE": "Only your organization can use this template. You cannot share this template."
+      }
+    },
+    "DELETE_MODAL": {
+      "HEADER": "Delete Form Template",
+      "TITLE": "Are You Sure To Delete This Template?",
+      "SUBTITLE": "Once the creator deletes your template, it will be permanently removed."
+    }
   },
   "TOAST": {
     "COPIED": "Copied!",
@@ -765,5 +803,25 @@
     "WORKSPACE_NAME_INVALID_CHARACTER": "Workspace handle must only contain lowercase letters, numbers and underscore",
     "URL": "Workspace URL"
   },
-  "WORKSPACE_HANDLE": "Workspace Handle"
+  "WORKSPACE_HANDLE": "Workspace Handle",
+  "VISIBILITY_MODAL": {
+    "TITLE": "Confirm Visibility",
+    "TEMPLATE": {
+      "TITLE": "template",
+      "DESCRIPTION_PUBLIC": "Everyone with the link can use this template. You can share this template.",
+      "DESCRIPTION_PRIVATE": "Only your organization can use this template. You cannot share this template."
+
+    },
+    "FORM":{
+      "TITLE":  "form",
+      "DESCRIPTION_PUBLIC": "Anyone with the link of your form page can access and view the form.",
+      "DESCRIPTION_PRIVATE": "No one will be able to access or view this form."
+    },
+    "GROUP": {
+      "TITLE": "No Groups Selected.",
+      "DESCRIPTION": "You haven't selected any groups for your form. In this case, your form will be made public by default."
+    },
+    "ARE_YOU_SURE": "Are you sure you want to make the"
+  },
+  "CLICK_TO_COPY": "Click to Copy link"
 }

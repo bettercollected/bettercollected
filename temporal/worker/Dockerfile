@@ -1,11 +1,13 @@
-FROM python:3.10
+FROM joyzoursky/python-chromedriver
 
-ENV VIRTUAL_ENV=/opt/venv
+ENV VIRTUAL_ENV=/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install dependencies:
-COPY ./temporal/worker/ .
+COPY ./temporal/worker/requirements.txt ./requirements.txt
 RUN pip install -r requirements.txt
+
+COPY ./temporal/worker/ .
 # Run the application:
 CMD ["python3","main.py"]

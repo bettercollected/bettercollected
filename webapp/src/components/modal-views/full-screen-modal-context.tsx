@@ -11,7 +11,8 @@ export type UPGRADE_MODAL_VIEW =
     | 'FORM_SETTINGS_FULL_MODAL_VIEW'
     | 'FORM_CREATE_SLUG_VIEW'
     | 'SELECT_GROUP_FULL_MODAL_VIEW'
-    | 'SELECT_FORM_CLOSE_DATE';
+    | 'SELECT_FORM_CLOSE_DATE'
+    | 'TEMPLATE_SETTINGS_FULL_MODAL_VIEW';
 
 const modalAtom = atom({ isOpen: false, modalProps: null, view: '' });
 

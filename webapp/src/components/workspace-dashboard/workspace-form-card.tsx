@@ -157,7 +157,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                 {!isResponderPortal && !group && (
                     <div className="hidden lg:invisible lg:group-hover:visible lg:flex gap-2 items-center">
                         {form?.isPublished && !form?.settings?.hidden && isFormOpen && (
-                            <AppButton onClick={handleShareClick} variant={ButtonVariant.Ghost} size={ButtonSize.Small} icon={<ShareIcon width={20} height={20} />}>
+                            <AppButton onClick={handleShareClick} variant={ButtonVariant.Ghost} size={ButtonSize.Small} icon={<ShareIcon width={16} height={16} />}>
                                 {t('BUTTON.SHARE')}
                             </AppButton>
                         )}
@@ -170,7 +170,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                 }}
                                 variant={ButtonVariant.Ghost}
                                 size={ButtonSize.Small}
-                                icon={<EditIcon />}
+                                icon={<EditIcon width={16} height={16} />}
                             >
                                 {t('BUTTON.EDIT')}
                             </AppButton>

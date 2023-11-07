@@ -17,6 +17,7 @@ import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdow
 import { ListItemIcon, MenuItem } from '@mui/material';
 import { toast } from 'react-toastify';
 
+import { LinkIcon } from '@app/components/icons/link-icon';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
@@ -128,7 +129,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     const menuItemPinSettings = (
         <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPinnedChange(e, currentActiveForm?.form)} disabled={!!currentActiveForm?.form?.settings?.private}>
             <ListItemIcon>
-                <Pin width={20} height={20} className="text-black-900" />
+                <Pin width={20} height={20} className="text-black-600" />
             </ListItemIcon>
             <span>{currentActiveForm?.form?.settings?.pinned ? t(formConstant.unPinForm) : t(formConstant.menu.pinForm)}</span>
         </MenuItem>
@@ -138,7 +139,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         <ActiveLink key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
             <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
                 <ListItemIcon>
-                    <Eye width={20} height={20} className="text-black-900" />
+                    <Eye width={20} height={20} className="text-black-600" />
                 </ListItemIcon>
                 {t(buttonConstant.open)}
             </MenuItem>
@@ -149,7 +150,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         <ActiveLink key={'edit'} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`}>
             <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
                 <ListItemIcon>
-                    <EditIcon width={20} height={20} className="text-black-900" />
+                    <EditIcon width={20} height={20} className="text-black-600" />
                 </ListItemIcon>
                 {t(buttonConstant.edit)}
             </MenuItem>
@@ -168,7 +169,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             }}
         >
             <ListItemIcon>
-                <CopyIcon width={20} height={20} className="text-black-900" />
+                <LinkIcon width={20} height={20} className="text-black-600" />
             </ListItemIcon>
             {t(buttonConstant.copyLink)}
         </MenuItem>
@@ -186,7 +187,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             }}
         >
             <ListItemIcon>
-                <EditIcon width={20} height={20} className="text-black-800 stroke-[1]" />
+                <EditIcon width={20} height={20} className={'text-black-600'} />
             </ListItemIcon>
             {t(buttonConstant.customizeLink)}
         </MenuItem>
@@ -241,15 +242,15 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 {form?.settings?.provider === 'self' && (
                     <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={handleDuplicateFrom}>
                         <ListItemIcon>
-                            <CopyIcon width={20} height={20} />
+                            <CopyIcon width={20} height={20} className={'text-black-600'} />
                         </ListItemIcon>
                         <span>{t('FORM_MENU.DUPLICATE_FORM')}</span>
                     </MenuItem>
                 )}
 
-                <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4">
+                <MenuItem onClick={() => openModal('DELETE_FORM_MODAL', { form: currentActiveForm?.form, redirectToDashboard })} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
                     <ListItemIcon>
-                        <DeleteIcon width={20} height={20} className="text-black-800" strokeWidth={1} />
+                        <DeleteIcon width={20} height={20} className="text-black-600" />
                     </ListItemIcon>
                     <span>{t(formConstant.menu.deleteForm)}</span>
                 </MenuItem>

@@ -32,6 +32,12 @@ const slice = createSlice({
     name: 'fillForm',
     initialState: initialState,
     reducers: {
+        setFillFormId: (state, action) => {
+            return {
+                ...state,
+                id: action.payload
+            };
+        },
         resetFillForm: () => {
             return initialState;
         },
@@ -73,7 +79,7 @@ const fillFormReducer = persistReducer(
     slice.reducer
 );
 
-export const { setDataResponseOwnerField, resetFillForm, setInvalidFields, deleteAnswer, addAnswer, addConsentAnswer } = slice.actions;
+export const { setFillFormId, setDataResponseOwnerField, resetFillForm, setInvalidFields, deleteAnswer, addAnswer, addConsentAnswer } = slice.actions;
 
 const reducerObj = { reducerPath: slice.name, reducer: fillFormReducer };
 

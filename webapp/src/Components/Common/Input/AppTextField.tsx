@@ -5,7 +5,6 @@ import cn from 'classnames';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 
-
 type AppTextFieldProps = TextFieldProps & {
     title?: string;
     required?: boolean;
@@ -16,13 +15,35 @@ type AppTextFieldProps = TextFieldProps & {
     isDisabled?: boolean;
     onClick?: () => void;
     dataTestId?: string;
+    childrenClassName?: string;
+    disabledColor?: string;
 };
 
 const Description: React.FC<React.PropsWithChildren> = ({ children }) => <p className="p2 pb-2 !text-new-black-800">{children}</p>;
 const AppTextField: React.FC<AppTextFieldProps> & {
     Description: React.FC<React.PropsWithChildren>;
 } = (props: AppTextFieldProps) => {
-    const { id, title, type = 'text', required = false, placeholder, multiline, inputProps, inputMode, className, showIcon = true, icon, children, iconPosition = 'start', isError, isDisabled, onClick, dataTestId = '', ...otherProps } = props;
+    const {
+        id,
+        title,
+        type = 'text',
+        required = false,
+        placeholder,
+        multiline,
+        inputProps,
+        inputMode,
+        className,
+        showIcon = true,
+        icon,
+        children,
+        iconPosition = 'start',
+        isError,
+        isDisabled,
+        onClick,
+        dataTestId = '',
+        disabledColor,
+        ...otherProps
+    } = props;
     const { t } = useBuilderTranslation();
 
     const getIcon = (position: 'start' | 'end') => {
@@ -86,6 +107,9 @@ const AppTextField: React.FC<AppTextFieldProps> & {
                             borderColor: '#B8E8FF',
                             boxShadow: '0px 0px 12px 0px rgba(7, 100, 235, 0.45)'
                         }
+                    },
+                    '& .MuiInputBase-input.Mui-disabled': {
+                        WebkitTextFillColor: disabledColor ? disabledColor : '#AAAAAA'
                     }
                 }}
                 required={required}

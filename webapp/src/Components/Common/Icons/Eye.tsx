@@ -2,16 +2,12 @@ import React from 'react';
 
 export default function Eye(props: React.SVGAttributes<{}>) {
     return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <svg width="20" height="14" viewBox="0 0 20 14" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+            <path d="M10 1C4.27273 1 1 7 1 7C1 7 4.27273 13 10 13C15.7273 13 19 7 19 7C19 7 15.7273 1 10 1Z" stroke="#6E6E6E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             <path
-                d="M8.00065 3.33301C3.75823 3.33301 1.33398 7.99967 1.33398 7.99967C1.33398 7.99967 3.75823 12.6663 8.00065 12.6663C12.2431 12.6663 14.6673 7.99967 14.6673 7.99967C14.6673 7.99967 12.2431 3.33301 8.00065 3.33301Z"
-                stroke="#343A40"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M8.00065 9.99967C9.10522 9.99967 10.0007 9.10424 10.0007 7.99967C10.0007 6.8951 9.10522 5.99967 8.00065 5.99967C6.89608 5.99967 6.00065 6.8951 6.00065 7.99967C6.00065 9.10424 6.89608 9.99967 8.00065 9.99967Z"
-                stroke="#343A40"
+                d="M10 9.57143C11.4912 9.57143 12.7 8.42016 12.7 7C12.7 5.57984 11.4912 4.42857 10 4.42857C8.50883 4.42857 7.3 5.57984 7.3 7C7.3 8.42016 8.50883 9.57143 10 9.57143Z"
+                stroke="currentColor"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
             />

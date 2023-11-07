@@ -59,7 +59,6 @@ async def create_form_request_body():
 
 
 class TestWorkspaceForm:
-
     def test_publishing_form(
         self,
         client: TestClient,
@@ -68,11 +67,11 @@ class TestWorkspaceForm:
         workspace_form: Coroutine[Any, Any, FormDocument],
         test_user_cookies: dict[str, str],
     ):
-        publish_form_url = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/publish"
-
-        published_form = client.post(
-            publish_form_url, cookies=test_user_cookies
+        publish_form_url = (
+            f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/publish"
         )
+
+        published_form = client.post(publish_form_url, cookies=test_user_cookies)
         actual_response = StandardFormCamelModel(**published_form.json())
         assert workspace_form.form_id == actual_response.form_id
         assert actual_response.version is not None

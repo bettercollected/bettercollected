@@ -11,6 +11,7 @@ import builder from '@app/store/form-builder/builderSlice';
 import formSlice from '@app/store/forms/slice';
 import { plansApi } from '@app/store/plans/api';
 import { providerApi } from '@app/store/providers/api';
+import { templateApi } from '@app/store/template/api';
 import joyrideSlice from '@app/store/tours/slice';
 import { workspacesApi } from '@app/store/workspaces/api';
 import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitations-api';
@@ -18,14 +19,16 @@ import workspaceSlice from '@app/store/workspaces/slice';
 
 import { consentApi } from './consent/api';
 import consentSlice from './consent/consentSlice';
+import mutationStatusSlice from './mutations/slice';
 
 // Add more middlewares here
 // const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
-const middlewares = [authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware, consentApi.middleware];
+const middlewares = [authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware, consentApi.middleware, templateApi.middleware];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
 const reducers = {
+    [mutationStatusSlice.reducerPath]: mutationStatusSlice.reducer,
     [authSlice.reducerPath]: authSlice.reducer,
     [formSlice.reducerPath]: formSlice.reducer,
     [joyrideSlice.reducerPath]: joyrideSlice.reducer,
@@ -38,7 +41,8 @@ const reducers = {
     [plansApi.reducerPath]: plansApi.reducer,
     [workspacesApi.reducerPath]: workspacesApi.reducer,
     [consentSlice.reducerPath]: consentSlice.reducer,
-    [consentApi.reducerPath]: consentApi.reducer
+    [consentApi.reducerPath]: consentApi.reducer,
+    [templateApi.reducerPath]: templateApi.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);
@@ -47,7 +51,6 @@ export const rootReducer: Reducer<RootState> = (state, action) => {
     if (action.type === RESET_STATE_ACTION_TYPE) {
         state = {} as RootState;
     }
-
     return combinedReducer(state, action);
 };
 
@@ -56,20 +59,9 @@ export const store = configureStore({
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
             serializableCheck: false
-            // serializableCheck: {
-            //     ignoredActions: [
-            //         FLUSH,
-            //         REHYDRATE,
-            //         PAUSE,
-            //         PERSIST,
-            //         PURGE,
-            //         REGISTER,
-            //     ]
-            // }
         }).concat(middlewares),
     preloadedState: {},
     devTools: !environments.IS_IN_PRODUCTION_MODE
-    // enhancers: environments.IS_IN_PRODUCTION_MODE ? [] : [monitorReducerEnhancer]
 });
 
 export const persistor = persistStore(store);

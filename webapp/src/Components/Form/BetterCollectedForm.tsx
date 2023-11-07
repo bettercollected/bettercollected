@@ -22,9 +22,9 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { ConsentAnswerDto } from '@app/store/consent/types';
-import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setInvalidFields } from '@app/store/fill-form/slice';
+import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setFillFormId, setInvalidFields } from '@app/store/fill-form/slice';
 import { FormValidationError } from '@app/store/fill-form/type';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
@@ -85,13 +85,16 @@ interface IBetterCollectedFormProps {
     isPreview?: boolean;
     closeModal?: () => void;
     isDisabled?: boolean;
+    isTemplate?: boolean;
 }
 
-export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, isPreview = false, closeModal, isDisabled = false }: IBetterCollectedFormProps) {
+export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, isPreview = false, closeModal, isDisabled = false, isTemplate = false }: IBetterCollectedFormProps) {
     const dispatch = useAppDispatch();
+    const asyncDispatch = useAppAsyncDispatch();
     const { openModal, closeModal: closeFullScreenModal } = useFullScreenModal();
     const [submitResponse] = useSubmitResponseMutation();
     const answers = useAppSelector(selectAnswers);
+    const formId = useAppSelector((state) => state.fillForm.id);
     const responseDataOwnerField = useAppSelector(selectFormResponderOwnerField);
     const invalidFields = useAppSelector(selectInvalidFields);
     const workspace = useAppSelector(selectWorkspace);
@@ -100,15 +103,16 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const [isFormSubmitted, setIsFormSubmitted] = useState(false);
 
     useEffect(() => {
-        dispatch(resetFillForm());
-
-        return () => {
-            dispatch(resetFillForm());
-        };
-    }, []);
-
-    useEffect(() => {
-        dispatch(setDataResponseOwnerField(form?.settings?.responseDataOwnerField || ''));
+        if (formId !== form.formId) {
+            resetFormFiles();
+            asyncDispatch(resetFillForm()).then(() => {
+                dispatch(setFillFormId(form.formId));
+                dispatch(setDataResponseOwnerField(form?.settings?.responseDataOwnerField || ''));
+            });
+        } else {
+            dispatch(setFillFormId(form.formId));
+            dispatch(setDataResponseOwnerField(form?.settings?.responseDataOwnerField || ''));
+        }
     }, [form]);
 
     const [isResponseValid, setResponseValid] = useState(true);
@@ -161,6 +165,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     };
     const onSubmitForm = async (event: any) => {
         event.preventDefault();
+        if (isTemplate) return;
         const invalidFields: Record<string, Array<FormValidationError>> = {};
         let isResponseValid = true;
         form?.fields.forEach((field: StandardFormFieldDto, index: number) => {
@@ -175,7 +180,6 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         if (!isResponseValid) {
             dispatch(setInvalidFields(invalidFields));
             let firstInvalidFieldId = '';
-            debugger;
             for (let field of form.fields) {
                 if (Object.keys(invalidFields).includes(field.id) && invalidFields[field.id].length > 0) {
                     firstInvalidFieldId = field.id;
@@ -199,6 +203,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         }
         openModal('CONSENT_FULL_MODAL_VIEW', { form: form, onFormSubmit: onFormSubmitCallback });
     };
+
     useEffect(() => {
         return () => {
             resetFillForm();
@@ -236,14 +241,14 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 </div>
 
                 <div className="flex flex-col w-full gap-2">
-                    {form?.fields.map((field: StandardFormFieldDto) => (
+                    {form?.fields?.map((field: StandardFormFieldDto) => (
                         <div key={field?.id} className="relative w-full" id={field?.id}>
                             {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
                             <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
                         </div>
                     ))}
-                    <div>
-                        {!isResponseValid && <div className="text-red-500 my-2 text-sm">*Invalid answers in one or more fields. Check and correct the highlighted entries.</div>}
+                    <div className={'mt-10'}>
+                        {!isResponseValid && <div className="text-red-500 mb-2 text-sm">*Invalid answers in one or more fields. Check and correct the highlighted entries.</div>}
                         <AppButton variant={ButtonVariant.Secondary} type="submit" disabled={!enabled}>
                             {form?.buttonText || 'Submit'}
                         </AppButton>

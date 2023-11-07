@@ -3,6 +3,9 @@ from pathlib import Path
 
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from common.configs.crypto import Crypto
+from common.services.http_client import HttpClient
+from common.services.jwt_service import JwtService
 from dependency_injector import containers, providers
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -14,6 +17,7 @@ from backend.app.repositories.form_response_repository import FormResponseReposi
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
+from backend.app.repositories.template import FormTemplateRepository
 from backend.app.repositories.user_tags_repository import UserTagsRepository
 from backend.app.repositories.workspace_consent_repo import WorkspaceConsentRepo
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
@@ -33,6 +37,7 @@ from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
+from backend.app.services.template_service import FormTemplateService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_consent_service import WorkspaceConsentService
@@ -42,9 +47,6 @@ from backend.app.services.workspace_responders_service import WorkspaceResponder
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
-from common.configs.crypto import Crypto
-from common.services.http_client import HttpClient
-from common.services.jwt_service import JwtService
 
 current_path = Path(os.path.abspath(os.path.dirname(__file__))).absolute()
 
@@ -236,6 +238,17 @@ class AppContainer(containers.DeclarativeContainer):
         WorkspaceConsentService,
         workspace_user_service=workspace_user_service,
         workspace_consent_repo=workspace_consent_repo,
+    )
+
+    form_template_repo = providers.Singleton(FormTemplateRepository)
+
+    form_template_service = providers.Singleton(
+        FormTemplateService,
+        workspace_user_service=workspace_user_service,
+        form_template_repo=form_template_repo,
+        workspace_form_service=workspace_form_service,
+        aws_service=aws_service,
+        temporal_service=temporal_service
     )
 
 
