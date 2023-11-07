@@ -34,7 +34,8 @@ const ConsentAutoCompleteInput = forwardRef<HTMLDivElement, ConsentAutoCompleteI
         setOptionsVisible(true);
     };
 
-    const handleCreateNew = () => {
+    const handleCreateNew = (event: any) => {
+        event.preventDefault();
         if (inputRef.current) {
             inputRef.current.blur();
         }
