@@ -94,7 +94,7 @@ export default function TemplatePage(props: any) {
                         </>
                     ) : (
                         <ActiveLink href="/login" target="_blank" referrerPolicy="no-referrer">
-                            <AppButton variant={ButtonVariant.Ghost}>Login to Use or Import template</AppButton>
+                            <AppButton>Import Template</AppButton>
                         </ActiveLink>
                     )}
                 </div>
