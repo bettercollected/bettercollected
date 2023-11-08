@@ -229,7 +229,7 @@ export const builder = createSlice({
                     const id = uuidv4();
                     actions[id] = { ...action, id, position };
                 });
-                fields[field.id] = { ...field, position: index, properties: { ...field.properties, choices: choices } };
+                fields[field.id] = { ...field, position: index, properties: { ...field.properties, choices: choices, conditions, actions } };
             });
             return {
                 ...state,
