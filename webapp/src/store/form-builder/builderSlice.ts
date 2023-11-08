@@ -340,16 +340,14 @@ export const builder = createSlice({
         },
         updateConditional: (state: IBuilderState, action: PayloadAction<any>) => {
             const { fieldId, conditionalId, data } = action.payload;
-            if (state.fields[fieldId]?.properties?.conditionals) {
-                // @ts-ignore
-                state.fields[fieldId].properties.conditionals[conditionalId] = data;
+            if (state.fields[fieldId]?.properties?.conditions) {
+                state.fields[fieldId]!.properties!.conditions![conditionalId] = data;
             }
         },
         updateConditionalOperator: (state: IBuilderState, action: PayloadAction<any>) => {
             const { fieldId, operator } = action.payload;
             if (state.fields[fieldId]?.properties?.logicalOperator) {
-                // @ts-ignore
-                state.fields[fieldId].properties.logicalOperator = operator;
+                state.fields[fieldId].properties!.logicalOperator = operator;
             }
         }
     }

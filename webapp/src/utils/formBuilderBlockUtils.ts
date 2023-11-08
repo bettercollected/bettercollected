@@ -55,8 +55,8 @@ export function contentEditableClassNames(isPlaceholder: boolean, tag: string = 
 
 export function isMultipleChoice(type?: FormBuilderTagNames): boolean {
     if (!type) return false;
-    const mulipleChoiceTypes = [FormBuilderTagNames.INPUT_CHECKBOXES, FormBuilderTagNames.INPUT_MULTIPLE_CHOICE, FormBuilderTagNames.INPUT_DROPDOWN, FormBuilderTagNames.INPUT_RANKING, FormBuilderTagNames.INPUT_MULTISELECT];
-    return mulipleChoiceTypes.includes(type);
+    const multipleChoiceTypes = [FormBuilderTagNames.INPUT_CHECKBOXES, FormBuilderTagNames.INPUT_MULTIPLE_CHOICE, FormBuilderTagNames.INPUT_DROPDOWN, FormBuilderTagNames.INPUT_RANKING, FormBuilderTagNames.INPUT_MULTISELECT];
+    return multipleChoiceTypes.includes(type);
 }
 
 export const createNewChoice = (position: number): IChoiceFieldState => {
@@ -72,3 +72,7 @@ export const createNewField = (position: number, type?: FormBuilderTagNames): IF
         position
     };
 };
+
+export function getPreviousField(fields: Array<IFormFieldState>, currentField: IFormFieldState) {
+    return fields[currentField.position - 1] || undefined;
+}

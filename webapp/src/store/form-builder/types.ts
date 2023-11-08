@@ -70,6 +70,8 @@ export enum ActionType {
 }
 
 export interface ConditionalActions {
+    id: string;
+    position: number;
     type?: ActionType;
     payload?: string[] | string;
 }
@@ -82,8 +84,8 @@ export interface IFormFieldProperties {
     choices?: Record<string, IChoiceFieldState>;
     activeChoiceId?: string;
     activeChoiceIndex?: number;
-    conditionals?: {
-        [conditionalId: string]: Conditional;
+    conditions?: {
+        [conditionId: string]: Condition;
     };
     logicalOperator?: LogicalOperator;
     actions?: {
@@ -116,11 +118,13 @@ export enum FieldType {
     MATRIX = 'matrix'
 }
 
-interface Conditional {
+interface Condition {
+    id: string;
+    position: number;
     type?: ConditionalType;
     comparison?: Comparison;
     field?: IFormFieldState;
-    conditionals?: Conditional[];
+    conditions?: Condition[];
     logicalOperator?: LogicalOperator;
     fieldType?: FieldType;
     value?: any;

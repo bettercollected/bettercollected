@@ -15,7 +15,7 @@ import { batch } from 'react-redux';
 import { useModal } from '@app/components/modal-views/context';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
-import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { FormBuilderTagNames, LabelFormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addDuplicateField, setAddNewField, setDeleteField, setIdentifierField } from '@app/store/form-builder/actions';
 import { selectActiveFieldId, selectFormField, selectNextField, selectPreviousField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
@@ -46,7 +46,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
 
     const nextField = useAppSelector(selectNextField(field.id));
 
-    const isFieldLabel = NonInputFormBuilderTagNames.includes(field.type) && nextField?.type?.includes('input_');
+    const isFieldLabel = LabelFormBuilderTagNames.includes(field.type) && nextField?.type?.includes('input_');
 
     const actualFillField = isFieldLabel ? nextField : field;
 

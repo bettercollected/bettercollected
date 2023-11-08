@@ -19,6 +19,7 @@ export const selectActiveChoiceIndex = (state: RootState) => state.builder.prese
 export const selectCoverImage = (state: RootState) => state.builder.present.coverImage;
 export const selectLogo = (state: RootState) => state.builder.present.logo;
 
+export const selectFields = (state: RootState) => state.builder.present.fields;
 export const selectResponseOwnerField = (state: RootState) => state.builder.present.settings?.responseDataOwnerField;
 
 export const selectPreviousField = (id: string) => (state: RootState) => {
