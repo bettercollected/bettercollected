@@ -103,3 +103,5 @@ export const NonInputFormBuilderTagNames = [
     FormBuilderTagNames.EMBED_RECAPTCHA,
     FormBuilderTagNames.CONDITIONAL
 ];
+
+export const LabelFormBuilderTagNames = [FormBuilderTagNames.LAYOUT_LABEL, FormBuilderTagNames.LAYOUT_HEADER3, FormBuilderTagNames.LAYOUT_HEADER4, FormBuilderTagNames.LAYOUT_HEADER2, FormBuilderTagNames.LAYOUT_HEADER1];
