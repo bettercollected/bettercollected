@@ -1,3 +1,4 @@
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
@@ -5,7 +6,7 @@ import undoable from 'redux-undo';
 import { v4 } from 'uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { IBuilderMenuState, IBuilderState, IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
+import { Condition, ConditionalActions, IBuilderMenuState, IBuilderState, IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
 import { convertProxyToObject } from '@app/utils/reduxUtils';
 
 import { getInitialPropertiesForFieldType } from './utils';
@@ -215,9 +216,18 @@ export const builder = createSlice({
             const fields: any = {};
             action.payload.fields?.forEach((field: any, index: number) => {
                 const choices: any = {};
-
+                const conditions: Record<string, Condition> = {};
+                const actions: Record<string, ConditionalActions> = {};
                 field?.properties?.choices?.map((choice: IChoiceFieldState, index: number) => {
                     choices[choice.id] = { ...choice, position: index };
+                });
+                field?.properties?.conditions?.map((condition: Condition, position: number) => {
+                    const id = uuidv4();
+                    conditions[id] = { ...condition, id, position };
+                });
+                field?.properties?.actions?.map((action: ConditionalActions, position: number) => {
+                    const id = uuidv4();
+                    actions[id] = { ...action, id, position };
                 });
                 fields[field.id] = { ...field, position: index, properties: { ...field.properties, choices: choices } };
             });
@@ -338,7 +348,14 @@ export const builder = createSlice({
                 state.fields[fieldId].properties.actions[actionId] = data;
             }
         },
-        updateConditional: (state: IBuilderState, action: PayloadAction<any>) => {
+        updateConditional: (
+            state: IBuilderState,
+            action: PayloadAction<{
+                fieldId: string;
+                conditionalId: string;
+                data: Condition;
+            }>
+        ) => {
             const { fieldId, conditionalId, data } = action.payload;
             if (state.fields[fieldId]?.properties?.conditions) {
                 state.fields[fieldId]!.properties!.conditions![conditionalId] = data;

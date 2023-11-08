@@ -118,12 +118,14 @@ export enum FieldType {
     MATRIX = 'matrix'
 }
 
-interface Condition {
+export interface Condition {
     id: string;
     position: number;
     type?: ConditionalType;
     comparison?: Comparison;
-    field?: IFormFieldState;
+    field?: {
+        id: string;
+    };
     conditions?: Condition[];
     logicalOperator?: LogicalOperator;
     fieldType?: FieldType;

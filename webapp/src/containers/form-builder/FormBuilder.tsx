@@ -157,6 +157,16 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
             if (field.properties?.choices) {
                 return { ...field, properties: { ...field.properties, choices: Object.values(field.properties?.choices) } };
             }
+            if (field?.type == FormBuilderTagNames.CONDITIONAL) {
+                return {
+                    ...field,
+                    properties: {
+                        ...field.properties,
+                        conditions: Object.values(field.properties?.conditions || {}),
+                        actions: Object.values(field.properties?.actions || {})
+                    }
+                };
+            }
             return field;
         });
         publishRequest.fields = fields;

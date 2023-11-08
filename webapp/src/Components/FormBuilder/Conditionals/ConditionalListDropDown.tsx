@@ -1,22 +1,33 @@
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 
 import { Listbox } from '@headlessui/react';
 
 import { ArrowDown } from '@app/components/icons/arrow-down';
+import { Comparison } from '@app/store/form-builder/types';
 
 interface IConditionalListDropDown<T> {
     size?: string;
     className?: string;
+    value?: T;
     defaultValue?: T;
-    items: Array<T>;
+    items?: Array<T>;
     labelPicker?: (item: T) => string;
+    onChange?: (item: T) => void;
 }
 
-const ConditionalListDropDown = ({ size = 'large', className, defaultValue, items, labelPicker }: IConditionalListDropDown<any>) => {
-    const [selectedState, setSelectedState] = useState(defaultValue);
+const ConditionalListDropDown = ({ size = 'large', className, defaultValue, value, items = [], labelPicker, onChange }: IConditionalListDropDown<any>) => {
+    const [selectedState, setSelectedState] = useState(value || defaultValue || null);
+    const handleChange = (item: any) => {
+        onChange && onChange(item);
+        setSelectedState(item);
+    };
+
+    useEffect(() => {
+        setSelectedState(value);
+    }, [value]);
 
     return (
-        <Listbox value={selectedState} onChange={setSelectedState}>
+        <Listbox value={selectedState} onChange={handleChange}>
             {({ open }) => {
                 return (
                     <div className={`relative bg-white ${size === 'small' ? 'w-[160px]' : 'w-[280px]'} ${className}`}>
@@ -27,7 +38,7 @@ const ConditionalListDropDown = ({ size = 'large', className, defaultValue, item
                             </div>
                         </Listbox.Button>
                         <Listbox.Options>
-                            <div className={'w-full mt-2 bg-white shadow-input py-2 gap-4 absolute z-10 rounded-lg'}>
+                            <div className={'w-full mt-2 bg-white shadow-input py-2 gap-4 absolute z-[100] rounded-lg'}>
                                 {items.map((state: any, index: number) => (
                                     <Listbox.Option key={index} value={state} as={Fragment}>
                                         {({ active, selected }) => (

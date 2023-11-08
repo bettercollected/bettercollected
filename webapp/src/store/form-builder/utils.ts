@@ -31,13 +31,10 @@ export function getInitialPropertiesForFieldType(type: FormBuilderTagNames) {
             const conditionalId = uuidv4();
             const actionId = uuidv4();
             return {
-                conditionals: {
+                conditions: {
                     [conditionalId]: {
                         id: conditionalId,
-                        position: 0,
-                        field: {},
-                        comparison: Comparison.IS_EQUAL,
-                        value: ''
+                        position: 0
                     }
                 },
                 actions: {

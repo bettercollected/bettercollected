@@ -1,20 +1,9 @@
-import React, { Fragment, useEffect, useState } from 'react';
-
-import _ from 'lodash';
+import React from 'react';
 
 import IfBlock from '@Components/FormBuilder/Conditionals/IfBlock';
 import ThenBlock from '@Components/FormBuilder/Conditionals/ThenBLock';
-import { FieldRequired } from '@Components/UI/FieldRequired';
-import { Combobox, Listbox } from '@headlessui/react';
-import { Star, StarBorder } from '@mui/icons-material';
 
-import { ArrowDown } from '@app/components/icons/arrow-down';
-import { FormBuilderConditionalComparison } from '@app/models/dtos/formBuilder';
-import { LabelFormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { selectFields } from '@app/store/form-builder/selectors';
 import { ConditionalActions, IFormFieldState } from '@app/store/form-builder/types';
-import { useAppSelector } from '@app/store/hooks';
-import { getPreviousField } from '@app/utils/formBuilderBlockUtils';
 
 interface IConditionalFieldProps {
     field: IFormFieldState;
@@ -23,12 +12,12 @@ interface IConditionalFieldProps {
 
 export default function Conditional({ field, id }: IConditionalFieldProps) {
     return (
-        <div tabIndex={0} id={id} className="flex flex-col gap-4 mt-6 w-fit p-4 border-2 border-dashed border-black-300 outline-none rounded-lg">
-            {Object.values(field?.properties?.conditions || {}).map((condition) => (
-                <IfBlock field={field} key={condition?.id} />
+        <div tabIndex={0} id={id} className="flex flex-col gap-4 mt-6 p-4 border-2 border-dashed border-black-300 outline-none rounded-lg w-full min-w-fit">
+            {Object.values(field?.properties?.conditions || {}).map((condition, index: number) => (
+                <IfBlock field={field} key={(condition?.id || '') + index} condition={condition} />
             ))}
-            {Object.values(field?.properties?.actions || {}).map((action: ConditionalActions) => (
-                <ThenBlock field={field} action={action} key={action?.id} />
+            {Object.values(field?.properties?.actions || {}).map((action: ConditionalActions, index: number) => (
+                <ThenBlock field={field} action={action} key={action?.id || '' + index} />
             ))}
         </div>
     );
