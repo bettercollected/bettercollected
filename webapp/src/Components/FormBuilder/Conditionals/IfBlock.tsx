@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from 'react';
 
+import DeleteIcon from '@Components/Common/Icons/Delete';
+import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
+import PlusIcon from '@Components/Common/Icons/Plus';
 import AppTextField from '@Components/Common/Input/AppTextField';
+import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import ConditionalListDropDown from '@Components/FormBuilder/Conditionals/ConditionalListDropDown';
-import { checkOrSetAlreadyCaught } from '@sentry/utils';
+import ConditionalOptionsDropdown from '@Components/FormBuilder/Conditionals/ConditionalOptionsDropdown';
+import { ListItemIcon, MenuItem } from '@mui/material';
 
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { updateConditional } from '@app/store/form-builder/actions';
@@ -98,9 +103,18 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
         }
     };
 
+    const addCondition = () => {};
+    const removeCondition = () => {};
+
     return (
         <div className={'flex flex-col gap-2 p-4 rounded-lg bg-new-white-200'}>
-            <h1 className={'text-pink-500 text-sm'}>IF</h1>
+            {condition?.position === 0 ? (
+                <h1 className={'text-pink-500 text-sm'}>IF</h1>
+            ) : (
+                <div>
+                    <select value="AND" />
+                </div>
+            )}
             <div className={'flex flex-row gap-2 '}>
                 <ConditionalListDropDown
                     value={inputFields.find((item: any) => item.fieldId === condition.field?.id) || null}
@@ -151,6 +165,7 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                         items={Object.values(selectedField?.properties?.choices || {}).map((choice) => choice.value)}
                     />
                 )}
+                <ConditionalOptionsDropdown addOption={addCondition} removeOption={removeCondition} />
             </div>
         </div>
     );
