@@ -226,7 +226,7 @@ export const builder = createSlice({
                         const id = uuidv4();
                         actions[id] = { ...action, id, position };
                     });
-                    fields[field.id] = { ...field, properties: { ...field.properties, conditions, actions } };
+                    fields[field.id] = { ...field, position: index, properties: { ...field.properties, conditions, actions } };
                 } else {
                     const choices: any = {};
                     field?.properties?.choices?.map((choice: IChoiceFieldState, index: number) => {
