@@ -226,7 +226,11 @@ export const builder = createSlice({
                         const id = uuidv4();
                         actions[id] = { ...action, id, position };
                     });
-                    fields[field.id] = { ...field, position: index, properties: { ...field.properties, conditions, actions } };
+                    fields[field.id] = {
+                        ...field,
+                        position: index,
+                        properties: { ...field.properties, conditions, actions }
+                    };
                 } else {
                     const choices: any = {};
                     field?.properties?.choices?.map((choice: IChoiceFieldState, index: number) => {
@@ -370,6 +374,20 @@ export const builder = createSlice({
             if (state.fields[fieldId]?.properties?.logicalOperator) {
                 state.fields[fieldId].properties!.logicalOperator = operator;
             }
+        },
+        addCondition: (state: IBuilderState, action) => {
+            const fieldId = action.payload;
+            const conditionId = uuidv4();
+            if (state.fields[fieldId]!.properties!.conditions)
+                state.fields[fieldId]!.properties!.conditions![conditionId] = {
+                    id: conditionId,
+                    value: '',
+                    position: Object.keys(state.fields[fieldId]?.properties?.conditions || {}).length
+                };
+        },
+        deleteCondition: (state, action) => {
+            const { fieldId, conditionId } = action.payload;
+            if (Object.keys(state.fields[fieldId]?.properties?.conditions || {}).length > 1) delete state.fields[fieldId]!.properties!.conditions![conditionId];
         }
     }
 });
