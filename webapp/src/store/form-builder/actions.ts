@@ -1,7 +1,9 @@
 import { builder } from './builderSlice';
 
 export const {
+    addCondition,
     addDuplicateField,
+    deleteCondition,
     setActiveChoice,
     setActiveField,
     setAddNewChoice,

@@ -13,9 +13,12 @@ interface IConditionalFieldProps {
 export default function Conditional({ field, id }: IConditionalFieldProps) {
     return (
         <div tabIndex={0} id={id} className="flex flex-col gap-4 mt-6 p-4 border-2 border-dashed border-black-300 outline-none rounded-lg w-full min-w-fit">
-            {Object.values(field?.properties?.conditions || {}).map((condition, index: number) => (
-                <IfBlock field={field} key={(condition?.id || '') + index} condition={condition} />
-            ))}
+            <div className="p-4 rounded-lg bg-new-white-200">
+                {Object.values(field?.properties?.conditions || {}).map((condition, index: number) => (
+                    <IfBlock field={field} key={(condition?.id || '') + index} condition={condition} />
+                ))}
+            </div>
+
             {Object.values(field?.properties?.actions || {}).map((action: ConditionalActions, index: number) => (
                 <ThenBlock field={field} action={action} key={action?.id || '' + index} />
             ))}
