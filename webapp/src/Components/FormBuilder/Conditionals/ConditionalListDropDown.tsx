@@ -3,7 +3,7 @@ import React, { Fragment, useEffect, useState } from 'react';
 import { Listbox } from '@headlessui/react';
 
 import { ArrowDown } from '@app/components/icons/arrow-down';
-import { Comparison } from '@app/store/form-builder/types';
+import TickIcon from '@app/components/icons/tick-icon';
 
 interface IConditionalListDropDown<T> {
     size?: string;
@@ -13,13 +13,21 @@ interface IConditionalListDropDown<T> {
     items?: Array<T>;
     labelPicker?: (item: T) => string;
     onChange?: (item: T) => void;
+    multiple?: boolean;
 }
 
-const ConditionalListDropDown = ({ size = 'large', className, defaultValue, value, items = [], labelPicker, onChange }: IConditionalListDropDown<any>) => {
-    const [selectedState, setSelectedState] = useState(value || defaultValue || null);
+const ConditionalListDropDown = ({ size = 'large', className, defaultValue, value, items = [], labelPicker, onChange, multiple = false }: IConditionalListDropDown<any>) => {
+    const [selectedState, setSelectedState] = useState(value || defaultValue || (multiple ? [] : null));
     const handleChange = (item: any) => {
         onChange && onChange(item);
         setSelectedState(item);
+    };
+    const displaySelectedValue = () => {
+        if (multiple) {
+            const displayValue = selectedState.map((state: any) => state.value);
+            return displayValue.length > 0 ? displayValue.join(', ') : 'Select Fields';
+        }
+        return labelPicker ? labelPicker(selectedState) : selectedState?.value;
     };
 
     useEffect(() => {
@@ -27,13 +35,13 @@ const ConditionalListDropDown = ({ size = 'large', className, defaultValue, valu
     }, [value]);
 
     return (
-        <Listbox value={selectedState} onChange={handleChange}>
+        <Listbox value={selectedState} onChange={handleChange} multiple={multiple}>
             {({ open }) => {
                 return (
                     <div className={`relative bg-white ${size === 'small' ? 'w-[160px]' : 'w-[280px]'} ${className}`}>
                         <Listbox.Button>
                             <div className={`flex justify-between border border-black-400 rounded p-2 text-sm font-normal text-black-800 ${open && 'border-black-900 '} ${size === 'small' ? 'w-[160px]' : 'w-[280px]'} `}>
-                                {labelPicker ? labelPicker(selectedState) : selectedState?.value}
+                                <div>{displaySelectedValue()}</div>
                                 <ArrowDown className={`${open ? 'rotate-180' : ''}`} />
                             </div>
                         </Listbox.Button>
@@ -43,8 +51,10 @@ const ConditionalListDropDown = ({ size = 'large', className, defaultValue, valu
                                     <Listbox.Option key={index} value={state} as={Fragment}>
                                         {({ active, selected }) => (
                                             <li className={`px-4 py-2 cursor-pointer truncate text-ellipsis text-base font-normal text-black-800 ${active ? 'bg-black-200 ' : 'bg-white text-black-800'}`}>
-                                                {' '}
-                                                {labelPicker ? labelPicker(state) : state?.value}
+                                                <div className={'flex gap-2 items-center'}>
+                                                    {multiple && <TickIcon className={`text-brand-500 h-5 w-5 ${selected ? 'visible' : 'invisible'}`} />}
+                                                    {labelPicker ? labelPicker(state) : state?.value}
+                                                </div>
                                             </li>
                                         )}
                                     </Listbox.Option>
