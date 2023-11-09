@@ -76,3 +76,7 @@ export const createNewField = (position: number, type?: FormBuilderTagNames): IF
 export function getPreviousField(fields: Array<IFormFieldState>, currentField: IFormFieldState) {
     return fields[currentField.position - 1] || undefined;
 }
+
+export function getNextField(fields: Array<IFormFieldState>, currentField: IFormFieldState) {
+    return fields[currentField.position + 1] || undefined;
+}
