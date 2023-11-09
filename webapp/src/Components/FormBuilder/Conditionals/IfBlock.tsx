@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
 import ConditionalListDropDown from '@Components/FormBuilder/Conditionals/ConditionalListDropDown';
+import { checkOrSetAlreadyCaught } from '@sentry/utils';
 
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { updateConditional } from '@app/store/form-builder/actions';
@@ -11,9 +12,14 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { getComparisonsBasedOnFieldType } from '@app/utils/conditionalUtils';
 import { getPreviousField } from '@app/utils/formBuilderBlockUtils';
 
-const ValueNotShownComparisons = [Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 const TextFieldInputValueComparisons = [Comparison.STARTS_WITH, Comparison.ENDS_WITH, Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL];
+const TextFieldValueFieldTypes = [FormBuilderTagNames.INPUT_SHORT_TEXT, FormBuilderTagNames.INPUT_LONG_TEXT, FormBuilderTagNames.INPUT_PHONE_NUMBER, FormBuilderTagNames.INPUT_NUMBER, FormBuilderTagNames.INPUT_EMAIL];
 
+const SingleOptionsValueFieldTypes = [FormBuilderTagNames.INPUT_MULTIPLE_CHOICE, FormBuilderTagNames.INPUT_DROPDOWN];
+const SingleOptionsValueComparisons = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL];
+
+const MultipleOptionsValueFieldTypes = [FormBuilderTagNames.INPUT_CHECKBOXES, FormBuilderTagNames.INPUT_MULTISELECT];
+const MultipleOptionsValueComparisons = [Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN];
 const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Condition }) => {
     const formFields = useAppSelector(selectFields);
 
@@ -22,7 +28,7 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
     const [inputFields, setInputFields] = useState<any>([]);
     const dispatch = useAppDispatch();
 
-    const selectedField = useAppSelector(selectFormField(condition?.field?.id || ''));
+    const selectedField: IFormFieldState = useAppSelector(selectFormField(condition?.field?.id || ''));
 
     useEffect(() => {
         const filteredFields: Array<any> = [];
@@ -48,7 +54,7 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
             updateConditional({
                 fieldId: field.id,
                 conditionalId: condition.id,
-                data: { ...condition, field: { id: item.fieldId } }
+                data: { ...condition, field: { id: item.fieldId }, value: '' }
             })
         );
     };
@@ -63,12 +69,22 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
         );
     };
 
-    const onValueChange = (event: any) => {
+    const onTextValueChange = (event: any) => {
         dispatch(
             updateConditional({
                 fieldId: field.id,
                 conditionalId: condition.id,
                 data: { ...condition, value: event.target.value }
+            })
+        );
+    };
+
+    const onOptionValueChange = (value: any) => {
+        dispatch(
+            updateConditional({
+                fieldId: field.id,
+                conditionalId: condition.id,
+                data: { ...condition, value }
             })
         );
     };
@@ -100,33 +116,40 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                     onChange={onComparisonChange}
                     items={getComparisonsBasedOnFieldType(selectedField?.type)}
                 />
-                {condition.comparison && !ValueNotShownComparisons.includes(condition.comparison) && (
+
+                {condition.comparison && SingleOptionsValueFieldTypes.includes(selectedField.type) && SingleOptionsValueComparisons.includes(condition.comparison) && (
                     <>
-                        {TextFieldInputValueComparisons.includes(condition.comparison) ? (
-                            <>
-                                <AppTextField
-                                    value={condition?.value || ''}
-                                    onChange={onValueChange}
-                                    placeholder="Value"
-                                    inputMode={getInputModeForType(selectedField?.type)}
-                                    inputProps={{
-                                        style: {
-                                            paddingTop: 0,
-                                            paddingBottom: 0,
-                                            height: 42,
-                                            fontSize: 16,
-                                            color: 'black',
-                                            fontWeight: 400,
-                                            content: 'none',
-                                            letterSpacing: 0
-                                        }
-                                    }}
-                                />
-                            </>
-                        ) : (
-                            <ConditionalListDropDown />
-                        )}
+                        <ConditionalListDropDown value={condition?.value} onChange={onOptionValueChange} labelPicker={(value: string) => value} items={Object.values(selectedField?.properties?.choices || {}).map((choice: any) => choice.value)} />
                     </>
+                )}
+                {condition.comparison && TextFieldValueFieldTypes.includes(selectedField?.type) && TextFieldInputValueComparisons.includes(condition.comparison) && (
+                    <AppTextField
+                        value={condition?.value || ''}
+                        onChange={onTextValueChange}
+                        placeholder="Value"
+                        inputMode={getInputModeForType(selectedField?.type)}
+                        inputProps={{
+                            style: {
+                                paddingTop: 0,
+                                paddingBottom: 0,
+                                height: 42,
+                                fontSize: 16,
+                                color: 'black',
+                                fontWeight: 400,
+                                content: 'none',
+                                letterSpacing: 0
+                            }
+                        }}
+                    />
+                )}
+                {condition.comparison && MultipleOptionsValueFieldTypes.includes(selectedField?.type) && MultipleOptionsValueComparisons.includes(condition.comparison) && (
+                    <ConditionalListDropDown
+                        multiple
+                        value={condition?.value && Array.isArray(condition?.value) ? condition.value : []}
+                        onChange={onOptionValueChange}
+                        labelPicker={(value: string) => value}
+                        items={Object.values(selectedField?.properties?.choices || {}).map((choice) => choice.value)}
+                    />
                 )}
             </div>
         </div>

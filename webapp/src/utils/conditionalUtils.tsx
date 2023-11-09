@@ -52,10 +52,18 @@ export function getComparisonsBasedOnFieldType(type?: FormBuilderTagNames) {
                 ]
             );
             break;
-        case FormBuilderTagNames.INPUT_MULTISELECT:
-        case FormBuilderTagNames.INPUT_CHECKBOXES:
         case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
         case FormBuilderTagNames.INPUT_DROPDOWN:
+            comparisons.push(
+                ...[
+                    { comparison: Comparison.IS_EQUAL, value: 'Is Equal' },
+                    { comparison: Comparison.IS_NOT_EQUAL, value: 'Is Not Equal' }
+                ]
+            );
+            break;
+
+        case FormBuilderTagNames.INPUT_MULTISELECT:
+        case FormBuilderTagNames.INPUT_CHECKBOXES:
             comparisons.push(
                 ...[
                     { comparison: Comparison.CONTAINS, value: 'Contains' },
