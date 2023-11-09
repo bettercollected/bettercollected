@@ -41,7 +41,7 @@ const ConditionalListDropDown = ({ size = 'large', className, defaultValue, valu
                     <div className={`relative bg-white ${size === 'small' ? 'w-[160px]' : 'w-[280px]'} ${className}`}>
                         <Listbox.Button>
                             <div className={`flex justify-between border border-black-400 rounded p-2 text-sm font-normal text-black-800 ${open && 'border-black-900 '} ${size === 'small' ? 'w-[160px]' : 'w-[280px]'} `}>
-                                <div>{displaySelectedValue()}</div>
+                                <div className={'w-full truncate text-start'}>{displaySelectedValue()}</div>
                                 <ArrowDown className={`${open ? 'rotate-180' : ''}`} />
                             </div>
                         </Listbox.Button>
@@ -50,7 +50,7 @@ const ConditionalListDropDown = ({ size = 'large', className, defaultValue, valu
                                 {items.map((state: any, index: number) => (
                                     <Listbox.Option key={index} value={state} as={Fragment}>
                                         {({ active, selected }) => (
-                                            <li className={`px-4 py-2 cursor-pointer truncate text-ellipsis text-base font-normal text-black-800 ${active ? 'bg-black-200 ' : 'bg-white text-black-800'}`}>
+                                            <li className={`px-4 py-2 cursor-pointer truncate text-base font-normal text-black-800 ${active ? 'bg-black-200 ' : 'bg-white text-black-800'}`}>
                                                 <div className={'flex gap-2 items-center'}>
                                                     {multiple && <TickIcon className={`text-brand-500 h-5 w-5 ${selected ? 'visible' : 'invisible'}`} />}
                                                     {labelPicker ? labelPicker(state) : state?.value}
