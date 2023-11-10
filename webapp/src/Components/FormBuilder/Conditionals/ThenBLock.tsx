@@ -157,10 +157,12 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
 
     return (
         <div className={'flex flex-col gap-2 p-4 bg-new-white-200 rounded-lg'}>
-            <h1 className={'text-pink-500 text-sm'}>THEN</h1>
-            <div className={'flex flex-row gap-2 '}>
-                <ConditionalListDropDown size={'small'} value={actions.find((state) => state.type == action.type)} onChange={onActionTypeChange} items={actions} />
-                <ConditionalListDropDown value={selectedFields} onChange={onPayloadChange} items={inputFields} multiple />
+            <h1 className={'text-pink-500 text-sm'}>{action?.position == 0 ? 'THEN' : 'AND'}</h1>
+            <div className={'flex justify-between'}>
+                <div className={'flex flex-row gap-2 '}>
+                    <ConditionalListDropDown size={'small'} value={actions.find((state) => state.type == action.type)} onChange={onActionTypeChange} items={actions} />
+                    <ConditionalListDropDown value={selectedFields} onChange={onPayloadChange} items={inputFields} multiple />
+                </div>
                 <ConditionalOptionsDropdown addOption={addCondition} removeOption={() => removeCondition(action)} text={'action'} />
             </div>
         </div>
