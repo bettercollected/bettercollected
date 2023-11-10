@@ -9,9 +9,10 @@ import { ListItemIcon, MenuItem } from '@mui/material';
 interface ConditionalOptionsDropdownProps {
     addOption: any;
     removeOption: any;
+    text: string;
 }
 
-export default function ConditionalOptionsDropdown({ addOption, removeOption }: ConditionalOptionsDropdownProps) {
+export default function ConditionalOptionsDropdown({ addOption, removeOption, text }: ConditionalOptionsDropdownProps) {
     return (
         <>
             <MenuDropdown id="Condition Actions" menuTitle="" showExpandMore={false} menuContent={<EllipsisOption />} width={210}>
@@ -19,13 +20,13 @@ export default function ConditionalOptionsDropdown({ addOption, removeOption }: 
                     <ListItemIcon>
                         <PlusIcon width={20} height={20} />
                     </ListItemIcon>
-                    Add a condition
+                    Add a {text}
                 </MenuItem>
                 <MenuItem onClick={removeOption}>
                     <ListItemIcon>
                         <DeleteIcon />
                     </ListItemIcon>
-                    Remove condition
+                    Remove {text}
                 </MenuItem>
             </MenuDropdown>
         </>
