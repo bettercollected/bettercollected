@@ -73,6 +73,14 @@ export const createNewField = (position: number, type?: FormBuilderTagNames): IF
     };
 };
 
+export const createNewAction = (actionId: string, position: number) => {
+    return {
+        position: position,
+        id: actionId,
+        payload: []
+    };
+};
+
 export function getPreviousField(fields: Array<IFormFieldState>, currentField: IFormFieldState) {
     return fields[currentField.position - 1] || undefined;
 }
