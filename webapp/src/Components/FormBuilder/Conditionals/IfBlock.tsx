@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
+import DeleteIcon from '@Components/Common/Icons/Delete';
+import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
+import PlusIcon from '@Components/Common/Icons/Plus';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import ConditionalListDropDown from '@Components/FormBuilder/Conditionals/ConditionalListDropDown';
@@ -171,7 +174,7 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                         />
                     )}
                 </div>
-                {condition?.position === Object.keys(field?.properties?.conditions || {}).length - 1 && <ConditionalOptionsDropdown addOption={addNewCondition} removeOption={removeCondition} />}
+                {condition?.position === Object.keys(field?.properties?.conditions || {}).length - 1 && <ConditionalOptionsDropdown addOption={addNewCondition} removeOption={removeCondition} text={'condition'}/>}
             </div>
         </div>
     );
