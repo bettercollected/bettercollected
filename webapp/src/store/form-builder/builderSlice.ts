@@ -387,7 +387,12 @@ export const builder = createSlice({
         },
         deleteCondition: (state, action) => {
             const { fieldId, conditionId } = action.payload;
-            if (Object.keys(state.fields[fieldId]?.properties?.conditions || {}).length > 1) delete state.fields[fieldId]!.properties!.conditions![conditionId];
+            if (Object.keys(state.fields[fieldId]?.properties?.conditions || {}).length > 1) {
+                delete state.fields[fieldId]!.properties!.conditions![conditionId];
+                Object.values(state.fields[fieldId]!.properties!.conditions || {}).map((condition: any, index: number) => {
+                    condition.position = index;
+                });
+            }
         },
         addAction: (state: IBuilderState, action) => {
             const fieldId = action.payload;
@@ -401,7 +406,12 @@ export const builder = createSlice({
         },
         deleteAction: (state, action) => {
             const { fieldId, actionId } = action.payload;
-            if (Object.keys(state.fields[fieldId]?.properties?.actions || {}).length > 1) delete state.fields[fieldId]!.properties!.actions![actionId];
+            if (Object.keys(state.fields[fieldId]?.properties?.actions || {}).length > 1) {
+                delete state.fields[fieldId]!.properties!.actions![actionId];
+                Object.values(state.fields[fieldId]!.properties!.actions || {}).map((action: any, index: number) => {
+                    action.position = index;
+                });
+            }
         },
         setLogicalOperator: (state, action) => {
             const { fieldId, logicalOperator } = action.payload;
