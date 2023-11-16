@@ -6,6 +6,7 @@ import { formConstant } from '@app/constants/locales/form';
 import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { FormValidationError } from '@app/store/fill-form/type';
+import { Comparison, Condition, LogicalOperator } from '@app/store/form-builder/types';
 
 /**
  * Validation method to check if the given value is undefined or not.
@@ -112,4 +113,51 @@ export const validateFormFieldAnswer = (field: StandardFormFieldDto, answer: Ans
 
 export const validateFormOpen = (date?: string) => {
     return !date || moment.utc(date).isAfter(moment.utc());
+};
+
+export const validateFieldConditions = (answers: Record<string, any>, field: StandardFormFieldDto): boolean => {
+    let validity = field?.properties?.logicalOperator === LogicalOperator.AND;
+    field?.properties?.conditions.forEach((condition: Condition) => {
+        if (field?.properties?.logicalOperator === LogicalOperator.AND) validity = validity && validateCondition(answers, condition);
+        else {
+            validity = validity || validateCondition(answers, condition);
+        }
+    });
+    return validity;
+};
+
+const validateCondition = (answers: Record<string, any>, condition: Condition): boolean => {
+    const fieldId: string = condition?.field?.id || '';
+    switch (condition?.comparison) {
+        case Comparison.IS_EMPTY:
+            return !answers[fieldId];
+        case Comparison.IS_NOT_EMPTY:
+            return !!answers[fieldId];
+        case Comparison.IS_NOT_EQUAL:
+            return !compareEquality(answers[fieldId], condition);
+        case Comparison.IS_EQUAL:
+            return compareEquality(answers[fieldId], condition);
+        default:
+            return false;
+    }
+};
+
+const compareEquality = (answer: any, condition: Condition): boolean => {
+    switch (condition.field?.type) {
+        case FormBuilderTagNames.INPUT_EMAIL:
+        case FormBuilderTagNames.INPUT_NUMBER:
+        case FormBuilderTagNames.INPUT_LONG_TEXT:
+        case FormBuilderTagNames.INPUT_SHORT_TEXT:
+        case FormBuilderTagNames.INPUT_DATE:
+        case FormBuilderTagNames.INPUT_PHONE_NUMBER:
+        case FormBuilderTagNames.INPUT_LINK:
+        case FormBuilderTagNames.INPUT_RATING:
+            return answer?.value === condition?.value;
+
+        case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
+        case FormBuilderTagNames.INPUT_DROPDOWN:
+            return answer?.choice?.value === condition?.value;
+        default:
+            return false;
+    }
 };

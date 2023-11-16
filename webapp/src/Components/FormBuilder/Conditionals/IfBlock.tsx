@@ -45,6 +45,7 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                     text = previousField?.value;
                 }
                 x.value = text;
+                x.type = field.type;
                 filteredFields.push(x);
             }
         });
@@ -52,11 +53,12 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
     }, [formFields]);
 
     const onConditionFieldChange = (item: any) => {
+        console.log(item);
         dispatch(
             updateConditional({
                 fieldId: field.id,
                 conditionalId: condition.id,
-                data: { ...condition, field: { id: item.fieldId }, value: '' }
+                data: { ...condition, field: { id: item.fieldId, type: item.type }, value: '' }
             })
         );
     };

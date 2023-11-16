@@ -24,11 +24,12 @@ import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { ConsentAnswerDto } from '@app/store/consent/types';
 import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setFillFormId, setInvalidFields } from '@app/store/fill-form/slice';
 import { FormValidationError } from '@app/store/fill-form/type';
+import { ActionType, Condition, ConditionalActions } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
-import { validateFormFieldAnswer } from '@app/utils/validationUtils';
+import { validateFieldConditions, validateFormFieldAnswer } from '@app/utils/validationUtils';
 
 import useFormAtom from './atom';
 
@@ -100,7 +101,58 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const workspace = useAppSelector(selectWorkspace);
     const { files, resetFormFiles } = useFormAtom();
 
+    const [updatedForm, setUpdatedForm] = useState<StandardFormDto>(form);
+
     const [isFormSubmitted, setIsFormSubmitted] = useState(false);
+
+    const conditionalFields = form?.fields?.filter((field: StandardFormFieldDto) => field?.type == FormBuilderTagNames.CONDITIONAL);
+
+    const affectingFieldIds = Array.from(new Set(conditionalFields.flatMap((field) => field?.properties?.conditions.map((condition: Condition) => condition.field?.id)).filter((id) => id !== undefined)));
+
+    useEffect(
+        () => {
+            let formToUpdate: any = { ...form };
+
+            conditionalFields?.forEach((conditionalField: StandardFormFieldDto) => {
+                if (validateFieldConditions(answers, conditionalField)) {
+                    conditionalField?.properties?.actions.forEach((action: ConditionalActions) => {
+                        switch (action?.type) {
+                            case ActionType.SHOW_FIELDS:
+                                if (Array.isArray(action?.payload)) {
+                                    action?.payload?.forEach((fieldId: string) => {
+                                        const fieldIndex = formToUpdate?.fields.findIndex((field: StandardFormFieldDto) => field.id === fieldId);
+                                        if (fieldIndex !== -1) {
+                                            // Use map to create a new array with the modified field
+                                            formToUpdate.fields = formToUpdate.fields.map((field: any, index: any) => {
+                                                return index === fieldIndex
+                                                    ? {
+                                                          ...field,
+                                                          properties: {
+                                                              ...field.properties,
+                                                              hidden: false
+                                                          }
+                                                      }
+                                                    : field;
+                                            });
+                                        }
+                                    });
+                                }
+                                break;
+                            // Handle other cases if needed
+                        }
+                    });
+                }
+            });
+
+            setUpdatedForm(formToUpdate);
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        affectingFieldIds.map((fieldId: string) => answers[fieldId])
+    );
+
+    useEffect(() => {
+        setUpdatedForm(form);
+    }, [form]);
 
     useEffect(() => {
         if (formId !== form.formId) {
@@ -168,7 +220,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         if (isTemplate) return;
         const invalidFields: Record<string, Array<FormValidationError>> = {};
         let isResponseValid = true;
-        form?.fields.forEach((field: StandardFormFieldDto, index: number) => {
+        updatedForm?.fields.forEach((field: StandardFormFieldDto, index: number) => {
             const validationErrors = validateFormFieldAnswer(field, answers[field.id]);
             if (validationErrors.length > 0) {
                 setResponseValid(false);
@@ -180,13 +232,12 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         if (!isResponseValid) {
             dispatch(setInvalidFields(invalidFields));
             let firstInvalidFieldId = '';
-            for (let field of form.fields) {
+            for (let field of updatedForm.fields) {
                 if (Object.keys(invalidFields).includes(field.id) && invalidFields[field.id].length > 0) {
                     firstInvalidFieldId = field.id;
                     break;
                 }
             }
-            console.log(firstInvalidFieldId);
             document.getElementById(firstInvalidFieldId)?.scrollIntoView({
                 behavior: 'smooth',
                 inline: 'center',
@@ -216,9 +267,9 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
     return (
         <div className="w-full bg-white">
-            {form?.coverImage && (
+            {updatedForm?.coverImage && (
                 <div className={`relative z-0 w-full flex aspect-banner-mobile lg:aspect-banner-desktop`}>
-                    <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75" />
+                    <Image layout="fill" objectFit="cover" src={updatedForm.coverImage} alt="test" className="brightness-75" />
                 </div>
             )}
             <form
@@ -230,27 +281,27 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 }}
                 onSubmit={onSubmitForm}
             >
-                {form?.logo && (
-                    <div className={`relative ${form?.coverImage ? '-top-12' : 'mt-[60px]'} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
-                        <Image height={100} width={100} objectFit="cover" src={form.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
+                {updatedForm?.logo && (
+                    <div className={`relative ${updatedForm?.coverImage ? '-top-12' : 'mt-[60px]'} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
+                        <Image height={100} width={100} objectFit="cover" src={updatedForm.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
                     </div>
                 )}
-                <div className={`mb-6 ${form?.coverImage && form?.logo ? '' : 'mt-12'}`}>
-                    <div className="text-[24px] mb-2 font-semibold text-black-900">{form?.title}</div>
-                    {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
+                <div className={`mb-6 ${updatedForm?.coverImage && updatedForm?.logo ? '' : 'mt-12'}`}>
+                    <div className="text-[24px] mb-2 font-semibold text-black-900">{updatedForm?.title}</div>
+                    {updatedForm?.description && <div className="text-[14px] text-black-700">{updatedForm?.description}</div>}
                 </div>
 
                 <div className="flex flex-col w-full gap-2">
-                    {form?.fields?.map((field: StandardFormFieldDto) => (
+                    {updatedForm?.fields?.map((field: StandardFormFieldDto) => (
                         <div key={field?.id} className="relative w-full" id={field?.id}>
-                            {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
+                            {!field?.properties?.hidden && renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
                             <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
                         </div>
                     ))}
                     <div className={'mt-10'}>
                         {!isResponseValid && <div className="text-red-500 mb-2 text-sm">*Invalid answers in one or more fields. Check and correct the highlighted entries.</div>}
                         <AppButton variant={ButtonVariant.Secondary} type="submit" disabled={!enabled}>
-                            {form?.buttonText || 'Submit'}
+                            {updatedForm?.buttonText || 'Submit'}
                         </AppButton>
                     </div>
                 </div>
