@@ -2,15 +2,14 @@ import React, { useEffect, useState } from 'react';
 
 import ConditionalListDropDown from '@Components/FormBuilder/Conditionals/ConditionalListDropDown';
 import ConditionalOptionsDropdown from '@Components/FormBuilder/Conditionals/ConditionalOptionsDropdown';
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addAction, deleteAction, setUpdateField, updateAction } from '@app/store/form-builder/actions';
+import { addAction, deleteAction, updateAction } from '@app/store/form-builder/actions';
 import { selectFields } from '@app/store/form-builder/selectors';
 import { ActionType, ConditionalActions, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { checkShowAllFields, convertFieldForConditionalDropDownState } from '@app/utils/conditionalUtils';
-import { createNewAction, getNextField, getPreviousField } from '@app/utils/formBuilderBlockUtils';
+import { getNextField, getPreviousField } from '@app/utils/formBuilderBlockUtils';
 
 const actions = [
     { type: ActionType.SHOW_FIELDS, value: 'Show Field' },
@@ -125,7 +124,7 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
         <div className={'flex flex-col gap-2 p-4 bg-new-white-200 rounded-lg'}>
             <h1 className={'text-pink-500 text-sm'}>{action?.position == 0 ? 'THEN' : 'AND'}</h1>
             <div className={'flex justify-between'}>
-                <div className={'flex flex-row gap-2 '}>
+                <div className={'flex flex-col lg:flex-row gap-2 w-full'}>
                     <ConditionalListDropDown size={'small'} value={actions.find((state) => state.type == action.type)} onChange={onActionTypeChange} items={actions} />
                     <ConditionalListDropDown value={selectedConditionalFields} onChange={onPayloadChange} items={inputFields} multiple />
                 </div>
