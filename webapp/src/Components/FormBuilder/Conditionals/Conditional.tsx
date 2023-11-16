@@ -18,10 +18,11 @@ export default function Conditional({ field, id }: IConditionalFieldProps) {
                     <IfBlock field={field} key={(condition?.id || '') + index} condition={condition} />
                 ))}
             </div>
-
-            {Object.values(field?.properties?.actions || {}).map((action: ConditionalActions, index: number) => (
-                <ThenBlock field={field} action={action} key={action?.id || '' + index} />
-            ))}
+            <div className="p-4 rounded-lg bg-new-white-200">
+                {Object.values(field?.properties?.actions || {}).map((action: ConditionalActions, index: number) => (
+                    <ThenBlock field={field} action={action} key={action?.id || '' + index} />
+                ))}
+            </div>
         </div>
     );
 }
