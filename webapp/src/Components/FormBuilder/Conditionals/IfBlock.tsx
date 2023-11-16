@@ -128,7 +128,7 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                 </>
             )}
             <div className="flex justify-between items-center w-full">
-                <div className={'flex flex-row gap-2 '}>
+                <div className={'flex flex-col lg:flex-row gap-2 w-full '}>
                     <ConditionalListDropDown
                         value={inputFields.find((item: any) => item.fieldId === condition.field?.id) || null}
                         items={inputFields}
@@ -143,42 +143,45 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                         onChange={onComparisonChange}
                         items={getComparisonsBasedOnFieldType(selectedField?.type)}
                     />
-
-                    {condition.comparison && SingleOptionsValueFieldTypes.includes(selectedField.type) && SingleOptionsValueComparisons.includes(condition.comparison) && (
-                        <>
-                            <ConditionalListDropDown value={condition?.value} onChange={onOptionValueChange} labelPicker={(value: string) => value} items={Object.values(selectedField?.properties?.choices || {}).map((choice: any) => choice.value)} />
-                        </>
-                    )}
-                    {condition.comparison && TextFieldValueFieldTypes.includes(selectedField?.type) && TextFieldInputValueComparisons.includes(condition.comparison) && (
-                        <AppTextField
-                            value={condition?.value || ''}
-                            onChange={onTextValueChange}
-                            placeholder="Value"
-                            inputMode={getInputModeForType(selectedField?.type)}
-                            inputProps={{
-                                style: {
-                                    paddingTop: 0,
-                                    paddingBottom: 0,
-                                    height: 42,
-                                    fontSize: 16,
-                                    color: 'black',
-                                    fontWeight: 400,
-                                    content: 'none',
-                                    letterSpacing: 0
-                                }
-                            }}
-                        />
-                    )}
-                    {condition.comparison && MultipleOptionsValueFieldTypes.includes(selectedField?.type) && MultipleOptionsValueComparisons.includes(condition.comparison) && (
-                        <ConditionalListDropDown
-                            multiple
-                            value={condition?.value && Array.isArray(condition?.value) ? condition.value : []}
-                            onChange={onOptionValueChange}
-                            labelPicker={(value: string) => value}
-                            items={Object.values(selectedField?.properties?.choices || {}).map((choice) => choice.value)}
-                        />
-                    )}
+                    <div className="basis-2/5">
+                        {condition.comparison && SingleOptionsValueFieldTypes.includes(selectedField.type) && SingleOptionsValueComparisons.includes(condition.comparison) && (
+                            <>
+                                <ConditionalListDropDown value={condition?.value} onChange={onOptionValueChange} labelPicker={(value: string) => value} items={Object.values(selectedField?.properties?.choices || {}).map((choice: any) => choice.value)} />
+                            </>
+                        )}
+                        {condition.comparison && TextFieldValueFieldTypes.includes(selectedField?.type) && TextFieldInputValueComparisons.includes(condition.comparison) && (
+                            <AppTextField
+                                className="basis-2/5"
+                                value={condition?.value || ''}
+                                onChange={onTextValueChange}
+                                placeholder="Value"
+                                inputMode={getInputModeForType(selectedField?.type)}
+                                inputProps={{
+                                    style: {
+                                        paddingTop: 0,
+                                        paddingBottom: 0,
+                                        height: 42,
+                                        fontSize: 16,
+                                        color: 'black',
+                                        fontWeight: 400,
+                                        content: 'none',
+                                        letterSpacing: 0
+                                    }
+                                }}
+                            />
+                        )}
+                        {condition.comparison && MultipleOptionsValueFieldTypes.includes(selectedField?.type) && MultipleOptionsValueComparisons.includes(condition.comparison) && (
+                            <ConditionalListDropDown
+                                multiple
+                                value={condition?.value && Array.isArray(condition?.value) ? condition.value : []}
+                                onChange={onOptionValueChange}
+                                labelPicker={(value: string) => value}
+                                items={Object.values(selectedField?.properties?.choices || {}).map((choice) => choice.value)}
+                            />
+                        )}
+                    </div>
                 </div>
+
                 <ConditionalOptionsDropdown showRemoveOption={Object.keys(field.properties?.conditions || {}).length > 1} addOption={addNewCondition} removeOption={removeCondition} text={'condition'} />
             </div>
         </div>

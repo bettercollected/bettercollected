@@ -38,9 +38,9 @@ const ConditionalListDropDown = ({ size = 'large', className, defaultValue, valu
         <Listbox value={selectedState} onChange={handleChange} multiple={multiple}>
             {({ open }) => {
                 return (
-                    <div className={`relative bg-white ${size === 'small' ? 'w-[160px]' : 'w-[280px]'} ${className}`}>
-                        <Listbox.Button>
-                            <div className={`flex justify-between border border-black-400 rounded p-2 text-sm font-normal text-black-800 ${open && 'border-black-900 '} ${size === 'small' ? 'w-[160px]' : 'w-[280px]'} `}>
+                    <div className={`relative bg-white w-full ${size === 'small' ? 'basis-1/3' : 'basis-2/5'} ${className || ''}`}>
+                        <Listbox.Button className="w-full">
+                            <div className={`flex justify-between border border-black-400 rounded p-2 text-sm font-normal text-black-800 ${open && 'border-black-900 '} w-full `}>
                                 <div className={'w-full truncate text-start'}>{displaySelectedValue()}</div>
                                 <ArrowDown className={`${open ? 'rotate-180' : ''}`} />
                             </div>
