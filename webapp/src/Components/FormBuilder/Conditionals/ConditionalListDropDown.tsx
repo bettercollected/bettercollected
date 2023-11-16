@@ -24,7 +24,7 @@ const ConditionalListDropDown = ({ size = 'large', className, defaultValue, valu
     };
     const displaySelectedValue = () => {
         if (multiple) {
-            const displayValue = selectedState.map((state: any) => (labelPicker ? labelPicker(state) : state?.value));
+            const displayValue = selectedState?.map((state: any) => (labelPicker ? labelPicker(state) : state?.value));
             return displayValue.length > 0 ? displayValue.join(', ') : 'Select Fields';
         }
         return labelPicker ? labelPicker(selectedState) : selectedState?.value;
