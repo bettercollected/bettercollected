@@ -128,7 +128,7 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
                     <ConditionalListDropDown size={'small'} value={actions.find((state) => state.type == action.type)} onChange={onActionTypeChange} items={actions} />
                     <ConditionalListDropDown value={selectedConditionalFields} onChange={onPayloadChange} items={inputFields} multiple />
                 </div>
-                <ConditionalOptionsDropdown addOption={handleAddAction} removeOption={() => handleRemoveAction(action)} text={'action'} />
+                <ConditionalOptionsDropdown showRemoveOption={Object.keys(field.properties?.actions || {}).length > 1} addOption={handleAddAction} removeOption={() => handleRemoveAction(action)} text={'action'} />
             </div>
         </div>
     );
