@@ -16,7 +16,7 @@ import { useModal } from '@app/components/modal-views/context';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, LabelFormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addDuplicateField, setAddNewField, setDeleteField, setIdentifierField } from '@app/store/form-builder/actions';
+import { addDuplicateField, setAddNewField, setDeleteField, setIdentifierField, setUpdateField } from '@app/store/form-builder/actions';
 import { selectActiveFieldId, selectFormField, selectNextField, selectPreviousField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -75,6 +75,14 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
 
     const addFieldLabel = () => {
         dispatch(setAddNewField(createNewField(position - 1, FormBuilderTagNames.LAYOUT_LABEL)));
+    };
+
+    const handleBlockVisibilityChange = (event: React.SyntheticEvent<Element, Event>, checked: boolean) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const fieldProperties = { ...field.properties } || {};
+        fieldProperties.hidden = checked;
+        dispatch(setUpdateField({ ...field, properties: fieldProperties }));
     };
 
     return (
@@ -165,6 +173,19 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                         </MenuItem>
                     </>
                 )}
+                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
+                    <FormControlLabel
+                        slotProps={{
+                            typography: {
+                                fontSize: 14
+                            }
+                        }}
+                        label="Hide field"
+                        labelPlacement="start"
+                        className="m-0 text-xs flex items-center justify-between w-full"
+                        control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!field?.properties?.hidden} />}
+                    />
+                </MenuItem>
                 {actualFillField && <FormValidations field={actualFillField} />}
             </div>
         </MenuDropdown>

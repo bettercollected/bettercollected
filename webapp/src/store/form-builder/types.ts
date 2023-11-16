@@ -125,6 +125,7 @@ export interface Condition {
     comparison?: Comparison;
     field?: {
         id: string;
+        type?: FormBuilderTagNames;
     };
     conditions?: Condition[];
     logicalOperator?: LogicalOperator;
