@@ -1,8 +1,10 @@
 import { builder } from './builderSlice';
 
 export const {
+    addAction,
     addCondition,
     addDuplicateField,
+    deleteAction,
     deleteCondition,
     setActiveChoice,
     setActiveField,
