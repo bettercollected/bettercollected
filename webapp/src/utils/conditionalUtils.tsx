@@ -1,5 +1,7 @@
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { Comparison } from '@app/store/form-builder/types';
+import _ from 'lodash';
+
+import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { ActionType, Comparison, ConditionalActions, IFormFieldState } from '@app/store/form-builder/types';
 
 export function getComparisonText(comparison: Comparison): string {
     switch (comparison) {
@@ -90,3 +92,25 @@ export function getComparisonsBasedOnFieldType(type?: FormBuilderTagNames) {
     }
     return comparisons;
 }
+
+const ShowAllFieldsActionType = [ActionType.HIDE_FIELDS, ActionType.SHOW_FIELDS];
+
+export const checkShowAllFields = (actionType: ActionType) => {
+    return ShowAllFieldsActionType.includes(actionType);
+};
+
+export const convertFieldForConditionalDropDownState = (field: IFormFieldState, id?: string) => {
+    let text = '';
+    const x: any = {
+        fieldId: id ? id : field.id
+    };
+    if (LabelFormBuilderTagNames.includes(field?.type) && field?.value) {
+        text = field?.value;
+    } else if (!LabelFormBuilderTagNames.includes(field?.type) && field?.properties?.placeholder) {
+        text = field?.properties?.placeholder;
+    } else {
+        text = _.startCase(field?.type.split('_').join(' '));
+    }
+    x.value = text;
+    return x;
+};
