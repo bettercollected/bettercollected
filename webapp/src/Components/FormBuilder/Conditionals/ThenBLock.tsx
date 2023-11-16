@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react';
 
-import _ from 'lodash';
-
 import ConditionalListDropDown from '@Components/FormBuilder/Conditionals/ConditionalListDropDown';
 import ConditionalOptionsDropdown from '@Components/FormBuilder/Conditionals/ConditionalOptionsDropdown';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 
-import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setUpdateField, updateAction } from '@app/store/form-builder/actions';
-import { selectBuilderState, selectFields } from '@app/store/form-builder/selectors';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { addAction, deleteAction, setUpdateField, updateAction } from '@app/store/form-builder/actions';
+import { selectFields } from '@app/store/form-builder/selectors';
 import { ActionType, ConditionalActions, IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { checkShowAllFields, convertFieldForConditionalDropDownState } from '@app/utils/conditionalUtils';
 import { createNewAction, getNextField, getPreviousField } from '@app/utils/formBuilderBlockUtils';
 
 const actions = [
@@ -24,33 +23,27 @@ const actions = [
 
 const ThenBlock = ({ field, action }: { field: IFormFieldState; action: ConditionalActions }) => {
     const formFields = useAppSelector(selectFields);
-    const state = useAppSelector(selectBuilderState);
 
     const fields = Object.values(formFields);
 
     const [inputFields, setInputFields] = useState<any>([]);
     const dispatch = useAppDispatch();
-
-    const convertFieldForConditionalDropDownState = (field: any) => {
-        let text = '';
-        const x: any = {
-            fieldId: field.id
-        };
-        if (LabelFormBuilderTagNames.includes(field?.type) && field?.value) {
-            text = field?.value;
-        } else if (!LabelFormBuilderTagNames.includes(field?.type) && field?.properties?.placeholder) {
-            text = field?.properties?.placeholder;
-        } else {
-            text = _.startCase(field?.type.split('_').join(' '));
-        }
-        x.value = text;
-        return x;
-    };
+    const shouldDisplayAllFields = checkShowAllFields(action?.type || ActionType.SHOW_FIELDS);
 
     useEffect(() => {
         const filteredFields: Array<any> = [];
         fields.forEach((field: IFormFieldState) => {
-            const convertedField = convertFieldForConditionalDropDownState(field);
+            let convertedField = {};
+            if (shouldDisplayAllFields) {
+                convertedField = convertFieldForConditionalDropDownState(field);
+            } else {
+                if (field?.type.startsWith('input_')) {
+                    const previousField = getPreviousField(fields, field);
+                    convertedField = convertFieldForConditionalDropDownState(previousField, field.id);
+                } else {
+                    return;
+                }
+            }
             if (field?.type !== FormBuilderTagNames.CONDITIONAL) {
                 filteredFields.push(convertedField);
             }
@@ -64,7 +57,6 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
         let selectedFields: Array<any> = [];
         payload.forEach((state: any) => {
             const selectedField = fields.find((field) => field.id == state.fieldId);
-
             if (selectedField?.type !== FormBuilderTagNames.CONDITIONAL) {
                 selectedFields.push(state);
             }
@@ -94,12 +86,14 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
     }
 
     const onPayloadChange = (payload: any) => {
-        const selectedFields = handleFieldSelection(payload);
         dispatch(
             updateAction({
                 fieldId: field.id,
                 actionId: action.id,
-                data: { ...action, payload: selectedFields.map((field: any) => field.fieldId) }
+                data: {
+                    ...action,
+                    payload: shouldDisplayAllFields ? handleFieldSelection(payload).map((field: any) => field.fieldId) : payload.map((field: any) => field.fieldId)
+                }
             })
         );
     };
@@ -109,50 +103,22 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
             updateAction({
                 fieldId: field.id,
                 actionId: action.id,
-                data: { ...action, type: changedActionType.type }
+                data: {
+                    ...action,
+                    type: changedActionType.type,
+                    payload: []
+                }
             })
         );
     };
 
-    const selectedFields = inputFields.filter((item: any) => field?.properties?.actions && field?.properties?.actions[action.id]?.payload?.includes(item?.fieldId));
-    const addCondition = () => {
-        if (field?.properties?.actions) {
-            const id = uuidv4();
-            const position = action.position + 1;
-            let actionsArray = Object.values(field?.properties?.actions);
-            const newAction = createNewAction(id, position);
-            actionsArray.splice(position, 0, newAction, ...actionsArray.slice(position));
-            let newActionMap: any = {};
-            actionsArray.forEach((item: any, index: number) => {
-                const action = { ...item };
-                action.position = index;
-                newActionMap[action.id] = item;
-            });
-            dispatch(
-                setUpdateField({
-                    ...field,
-                    properties: { ...field.properties, actions: newActionMap }
-                })
-            );
-        }
+    const selectedConditionalFields = inputFields.filter((item: any) => field?.properties?.actions && field?.properties?.actions[action.id]?.payload?.includes(item?.fieldId));
+
+    const handleAddAction = () => {
+        dispatch(addAction(field.id));
     };
-    const removeCondition = (action: any) => {
-        if (field?.properties?.actions) {
-            const actions = { ...field?.properties?.actions };
-            delete actions[action.id];
-            let actionsArray = Object.values(actions);
-            actionsArray.forEach((item: any, index: number) => {
-                const action = { ...item };
-                action.position = index;
-                actions[action.id] = action;
-            });
-            dispatch(
-                setUpdateField({
-                    ...field,
-                    properties: { ...field.properties, actions }
-                })
-            );
-        }
+    const handleRemoveAction = (action: any) => {
+        dispatch(deleteAction({ fieldId: field.id, actionId: action.id }));
     };
 
     return (
@@ -161,9 +127,9 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
             <div className={'flex justify-between'}>
                 <div className={'flex flex-row gap-2 '}>
                     <ConditionalListDropDown size={'small'} value={actions.find((state) => state.type == action.type)} onChange={onActionTypeChange} items={actions} />
-                    <ConditionalListDropDown value={selectedFields} onChange={onPayloadChange} items={inputFields} multiple />
+                    <ConditionalListDropDown value={selectedConditionalFields} onChange={onPayloadChange} items={inputFields} multiple />
                 </div>
-                <ConditionalOptionsDropdown addOption={addCondition} removeOption={() => removeCondition(action)} text={'action'} />
+                <ConditionalOptionsDropdown addOption={handleAddAction} removeOption={() => handleRemoveAction(action)} text={'action'} />
             </div>
         </div>
     );
