@@ -402,6 +402,10 @@ export const builder = createSlice({
         deleteAction: (state, action) => {
             const { fieldId, actionId } = action.payload;
             if (Object.keys(state.fields[fieldId]?.properties?.actions || {}).length > 1) delete state.fields[fieldId]!.properties!.actions![actionId];
+        },
+        setLogicalOperator: (state, action) => {
+            const { fieldId, logicalOperator } = action.payload;
+            state.fields[fieldId]!.properties!.logicalOperator = logicalOperator;
         }
     }
 });
