@@ -388,6 +388,20 @@ export const builder = createSlice({
         deleteCondition: (state, action) => {
             const { fieldId, conditionId } = action.payload;
             if (Object.keys(state.fields[fieldId]?.properties?.conditions || {}).length > 1) delete state.fields[fieldId]!.properties!.conditions![conditionId];
+        },
+        addAction: (state: IBuilderState, action) => {
+            const fieldId = action.payload;
+            const actionId = uuidv4();
+            if (state.fields[fieldId]!.properties!.actions)
+                state.fields[fieldId]!.properties!.actions![actionId] = {
+                    id: actionId,
+                    payload: [],
+                    position: Object.keys(state.fields[fieldId]?.properties?.actions || {}).length
+                };
+        },
+        deleteAction: (state, action) => {
+            const { fieldId, actionId } = action.payload;
+            if (Object.keys(state.fields[fieldId]?.properties?.actions || {}).length > 1) delete state.fields[fieldId]!.properties!.actions![actionId];
         }
     }
 });
