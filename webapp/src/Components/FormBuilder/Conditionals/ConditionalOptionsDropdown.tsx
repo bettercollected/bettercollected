@@ -10,9 +10,10 @@ interface ConditionalOptionsDropdownProps {
     addOption: any;
     removeOption: any;
     text: string;
+    showRemoveOption?: boolean;
 }
 
-export default function ConditionalOptionsDropdown({ addOption, removeOption, text }: ConditionalOptionsDropdownProps) {
+export default function ConditionalOptionsDropdown({ addOption, removeOption, text, showRemoveOption = true }: ConditionalOptionsDropdownProps) {
     return (
         <>
             <MenuDropdown id="Condition Actions" menuTitle="" showExpandMore={false} menuContent={<EllipsisOption />} width={210}>
@@ -22,12 +23,14 @@ export default function ConditionalOptionsDropdown({ addOption, removeOption, te
                     </ListItemIcon>
                     Add a {text}
                 </MenuItem>
-                <MenuItem onClick={removeOption}>
-                    <ListItemIcon>
-                        <DeleteIcon />
-                    </ListItemIcon>
-                    Remove {text}
-                </MenuItem>
+                {showRemoveOption && (
+                    <MenuItem onClick={removeOption}>
+                        <ListItemIcon>
+                            <DeleteIcon />
+                        </ListItemIcon>
+                        Remove {text}
+                    </MenuItem>
+                )}
             </MenuDropdown>
         </>
     );

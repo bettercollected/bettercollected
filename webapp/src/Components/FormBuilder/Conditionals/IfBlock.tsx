@@ -1,18 +1,15 @@
 import React, { useEffect, useState } from 'react';
 
-import DeleteIcon from '@Components/Common/Icons/Delete';
-import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
-import PlusIcon from '@Components/Common/Icons/Plus';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import ConditionalListDropDown from '@Components/FormBuilder/Conditionals/ConditionalListDropDown';
 import ConditionalOptionsDropdown from '@Components/FormBuilder/Conditionals/ConditionalOptionsDropdown';
-import { MenuItem, Select } from '@mui/material';
+import { MenuItem } from '@mui/material';
 
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addCondition, deleteCondition, updateConditional } from '@app/store/form-builder/actions';
+import { addCondition, deleteCondition, setLogicalOperator, updateConditional } from '@app/store/form-builder/actions';
 import { selectFields, selectFormField } from '@app/store/form-builder/selectors';
-import { Comparison, Condition, IFormFieldState } from '@app/store/form-builder/types';
+import { Comparison, Condition, IFormFieldState, LogicalOperator } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { getComparisonsBasedOnFieldType } from '@app/utils/conditionalUtils';
 import { getPreviousField } from '@app/utils/formBuilderBlockUtils';
@@ -110,17 +107,25 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
         dispatch(deleteCondition({ fieldId: field.id, conditionId: condition.id }));
     };
 
+    const onClickLogicalOperator = (logicalOperator: LogicalOperator) => {
+        dispatch(setLogicalOperator({ fieldId: field.id, logicalOperator }));
+    };
+
     return (
         <div className={'flex flex-col gap-2 '}>
             {condition?.position === 0 ? (
                 <h1 className={'text-pink-500 text-sm'}>IF</h1>
             ) : (
-                <div>
-                    <MenuDropdown showExpandMore={condition?.position === 1} id="condition operator" className="text-pink-500" menuTitle="" menuContent={<div className="text-pink-500 capitalize text-sm">{field?.properties?.logicalOperator}</div>}>
-                        <MenuItem value={'and'}>AND</MenuItem>
-                        <MenuItem value={'or'}>OR</MenuItem>
-                    </MenuDropdown>
-                </div>
+                <>
+                    {condition?.position === 1 ? (
+                        <MenuDropdown width={80} id="condition operator" className="text-pink-500 mt-2" menuTitle="" menuContent={<div className="text-pink-500 uppercase text-sm">{field?.properties?.logicalOperator}</div>}>
+                            <MenuItem onClick={() => onClickLogicalOperator(LogicalOperator.AND)}>AND</MenuItem>
+                            <MenuItem onClick={() => onClickLogicalOperator(LogicalOperator.OR)}>OR</MenuItem>
+                        </MenuDropdown>
+                    ) : (
+                        <div className="text-pink-500 uppercase p-2 mt-2 text-sm">{field?.properties?.logicalOperator}</div>
+                    )}
+                </>
             )}
             <div className="flex justify-between items-center w-full">
                 <div className={'flex flex-row gap-2 '}>
@@ -174,7 +179,7 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                         />
                     )}
                 </div>
-                {condition?.position === Object.keys(field?.properties?.conditions || {}).length - 1 && <ConditionalOptionsDropdown addOption={addNewCondition} removeOption={removeCondition} text={'condition'}/>}
+                <ConditionalOptionsDropdown showRemoveOption={Object.keys(field.properties?.conditions || {}).length > 1} addOption={addNewCondition} removeOption={removeCondition} text={'condition'} />
             </div>
         </div>
     );

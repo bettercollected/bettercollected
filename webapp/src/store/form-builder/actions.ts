@@ -21,6 +21,7 @@ export const {
     setMoveField,
     resetForm,
     setAddNewField,
+    setLogicalOperator,
     setTyping,
     setUpdateCommandField,
     setUpdateField,
