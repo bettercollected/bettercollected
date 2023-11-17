@@ -46,9 +46,9 @@ export default function FormResponsesTable({ props }: any) {
     return (
         <div className={!isSubmission ? '' : 'md:px-32 px-2'}>
             <div className="mb-12 flex flex-col lg:flex-row gap-2 lg:justify-between">
-                <div className="flex flex-col lg:gap-2">
-                    <p className="body1">{isSubmission ? `${t(formConstant.responses)} (${form.responses})` : `${t(formConstant.deletionRequests)} (${form.deletionRequests})`}</p>
-                    <p className="text-sm font-normal text-black-700 ">{t(formPage.responsesDescription)}:</p>
+                <div className="flex flex-col lg:gap-2 md:w-[660px]">
+                    <p className="body1">{isSubmission ? `${t(formConstant.responders)}` : `${t(formConstant.deletionRequests)}`}</p>
+                    <p className="text-sm font-normal text-black-700 ">{isSubmission ? t(formPage.responsesDescription) : t(formPage.deletionRequestDescription)}</p>
                 </div>
                 <div className="w-full md:w-[282px] ">
                     <SearchInput handleSearch={handleSearch} placeholder={t(formPage.searchByEmail)} className="!bg-black-300" />
