@@ -2,7 +2,7 @@ import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 
-import { IBuilderTitleAndDescriptionObj, IFormFieldProperties } from './types';
+import { Comparison, IBuilderTitleAndDescriptionObj, IFormFieldProperties, LogicalOperator } from './types';
 
 export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionObj> = [
     {
@@ -27,6 +27,25 @@ export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionOb
 
 export function getInitialPropertiesForFieldType(type: FormBuilderTagNames) {
     switch (type) {
+        case FormBuilderTagNames.CONDITIONAL:
+            const conditionalId = uuidv4();
+            const actionId = uuidv4();
+            return {
+                conditions: {
+                    [conditionalId]: {
+                        id: conditionalId,
+                        position: 0
+                    }
+                },
+                actions: {
+                    [actionId]: {
+                        position: 0,
+                        id: actionId,
+                        payload: []
+                    }
+                },
+                logicalOperator: LogicalOperator.AND
+            };
         case FormBuilderTagNames.INPUT_RATING:
             return {
                 steps: 5

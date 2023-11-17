@@ -29,6 +29,11 @@ export interface IFormBuilderSettingsState {
     responseDataOwnerField?: string;
 }
 
+export enum LogicalOperator {
+    AND = 'and',
+    OR = 'or'
+}
+
 export interface IBuilderState {
     id?: string;
     title: string;
@@ -56,6 +61,21 @@ export interface IBuilderStateProps {
     dispatch: AppDispatch;
 }
 
+export enum ActionType {
+    JUMP_TO_PAGE = 'jump_to_page',
+    CALCULATE = 'calculate',
+    REQUIRE_ANSWERS = 'require_answer',
+    SHOW_FIELDS = 'show_fields',
+    HIDE_FIELDS = 'hide_fields'
+}
+
+export interface ConditionalActions {
+    id: string;
+    position: number;
+    type?: ActionType;
+    payload?: string[] | string;
+}
+
 export interface IFormFieldProperties {
     steps?: number;
     placeholder?: string;
@@ -64,6 +84,53 @@ export interface IFormFieldProperties {
     choices?: Record<string, IChoiceFieldState>;
     activeChoiceId?: string;
     activeChoiceIndex?: number;
+    conditions?: {
+        [conditionId: string]: Condition;
+    };
+    logicalOperator?: LogicalOperator;
+    actions?: {
+        [actionId: string]: ConditionalActions;
+    };
+}
+
+export enum Comparison {
+    CONTAINS = 'contains',
+    DOES_NOT_CONTAIN = 'does_not_contain',
+    IS_EQUAL = 'is_equal',
+    IS_NOT_EQUAL = 'is_not_equal',
+    STARTS_WITH = 'starts_with',
+    ENDS_WITH = 'ends_with',
+    IS_EMPTY = 'is_empty',
+    IS_NOT_EMPTY = 'is_not_empty',
+    GREATER_THAN = 'greater_than',
+    LESS_THAN = 'less_than',
+    GREATER_THAN_EQUAL = 'greater_than_equal',
+    LESS_THAN_EQUAL = 'less_than_equal'
+}
+
+export enum ConditionalType {
+    SINGLE = 'single',
+    NESTED = 'nested'
+}
+
+export enum FieldType {
+    SINGLE = 'single',
+    MATRIX = 'matrix'
+}
+
+export interface Condition {
+    id: string;
+    position: number;
+    type?: ConditionalType;
+    comparison?: Comparison;
+    field?: {
+        id: string;
+        type?: FormBuilderTagNames;
+    };
+    conditions?: Condition[];
+    logicalOperator?: LogicalOperator;
+    fieldType?: FieldType;
+    value?: any;
 }
 
 export interface IFormFieldValidation {

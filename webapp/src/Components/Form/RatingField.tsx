@@ -9,14 +9,13 @@ import { Star, StarBorder } from '@mui/icons-material';
 import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
-
 export default function RatingField({ field, ans, enabled }: FormFieldProps) {
     const dispatch = useAppDispatch();
     const [hovered, setHovered] = useState(ans?.number || -1);
     const answer = useAppSelector(selectAnswer(field.id));
     return (
         <div className="w-fit !mb-0 gap-3 flex  flex-wrap relative">
-            {field?.validations?.required && <FieldRequired className="-right-5" />}
+            {field?.validations?.required && <FieldRequired className="-right-2" />}
 
             {_.range(field.properties?.steps || 5).map((index) => {
                 const Component = index <= hovered ? Star : StarBorder;
