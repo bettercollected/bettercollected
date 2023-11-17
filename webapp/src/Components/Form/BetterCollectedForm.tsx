@@ -112,7 +112,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const updateFormWithActions = () => {
         let formToUpdate: any = { ...form };
         const updatedForm = validateConditionsAndReturnUpdatedForm(formToUpdate, answers, conditionalFields);
-        setUpdatedForm(formToUpdate);
+        setUpdatedForm(updatedForm);
     };
 
     useEffect(

@@ -55,7 +55,6 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
     }, [formFields]);
 
     const onConditionFieldChange = (item: any) => {
-        console.log(item);
         dispatch(
             updateConditional({
                 fieldId: field.id,
