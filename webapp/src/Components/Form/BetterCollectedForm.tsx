@@ -109,42 +109,44 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
     const affectingFieldIds = Array.from(new Set(conditionalFields.flatMap((field) => field?.properties?.conditions.map((condition: Condition) => condition.field?.id)).filter((id) => id !== undefined)));
 
+    const updateFormWithActions = () => {
+        let formToUpdate: any = { ...form };
+        conditionalFields?.forEach((conditionalField: StandardFormFieldDto) => {
+            if (validateFieldConditions(answers, conditionalField)) {
+                conditionalField?.properties?.actions.forEach((action: ConditionalActions) => {
+                    switch (action?.type) {
+                        case ActionType.SHOW_FIELDS:
+                            if (Array.isArray(action?.payload)) {
+                                action?.payload?.forEach((fieldId: string) => {
+                                    const fieldIndex = formToUpdate?.fields.findIndex((field: StandardFormFieldDto) => field.id === fieldId);
+                                    if (fieldIndex !== -1) {
+                                        // Use map to create a new array with the modified field
+                                        formToUpdate.fields = formToUpdate.fields.map((field: any, index: any) => {
+                                            return index === fieldIndex
+                                                ? {
+                                                      ...field,
+                                                      properties: {
+                                                          ...field.properties,
+                                                          hidden: false
+                                                      }
+                                                  }
+                                                : field;
+                                        });
+                                    }
+                                });
+                            }
+                            break;
+                        // Handle other cases if needed
+                    }
+                });
+            }
+        });
+        setUpdatedForm(formToUpdate);
+    };
+
     useEffect(
         () => {
-            let formToUpdate: any = { ...form };
-
-            conditionalFields?.forEach((conditionalField: StandardFormFieldDto) => {
-                if (validateFieldConditions(answers, conditionalField)) {
-                    conditionalField?.properties?.actions.forEach((action: ConditionalActions) => {
-                        switch (action?.type) {
-                            case ActionType.SHOW_FIELDS:
-                                if (Array.isArray(action?.payload)) {
-                                    action?.payload?.forEach((fieldId: string) => {
-                                        const fieldIndex = formToUpdate?.fields.findIndex((field: StandardFormFieldDto) => field.id === fieldId);
-                                        if (fieldIndex !== -1) {
-                                            // Use map to create a new array with the modified field
-                                            formToUpdate.fields = formToUpdate.fields.map((field: any, index: any) => {
-                                                return index === fieldIndex
-                                                    ? {
-                                                          ...field,
-                                                          properties: {
-                                                              ...field.properties,
-                                                              hidden: false
-                                                          }
-                                                      }
-                                                    : field;
-                                            });
-                                        }
-                                    });
-                                }
-                                break;
-                            // Handle other cases if needed
-                        }
-                    });
-                }
-            });
-
-            setUpdatedForm(formToUpdate);
+            updateFormWithActions();
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         affectingFieldIds.map((fieldId: string) => answers[fieldId])
@@ -152,6 +154,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
     useEffect(() => {
         setUpdatedForm(form);
+        updateFormWithActions();
     }, [form]);
 
     useEffect(() => {
