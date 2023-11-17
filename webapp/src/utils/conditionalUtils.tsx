@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { ActionType, Comparison, ConditionalActions, IFormFieldState } from '@app/store/form-builder/types';
+import { ActionType, Comparison, IFormFieldState } from '@app/store/form-builder/types';
 
 export function getComparisonText(comparison: Comparison): string {
     switch (comparison) {
@@ -75,6 +75,7 @@ export function getComparisonsBasedOnFieldType(type?: FormBuilderTagNames) {
             break;
         case FormBuilderTagNames.INPUT_NUMBER:
         case FormBuilderTagNames.INPUT_DATE:
+        case FormBuilderTagNames.INPUT_RATING:
             comparisons.push(
                 ...[
                     { comparison: Comparison.IS_EQUAL, value: 'Is Equal' },
