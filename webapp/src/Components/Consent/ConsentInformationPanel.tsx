@@ -10,9 +10,9 @@ export default function ConsentInformationPanel() {
 
     const isMobile = useIsMobile();
 
-    const getTitleDescription = (title = '', description: string) => {
+    const getTitleDescription = (title = '', description: string, index: number = 0) => {
         return (
-            <div className="space-y-2">
+            <div className="space-y-2" key={title + index}>
                 {title.length !== 0 && <div className="h4-new">{title}</div>}
                 <p className="p2 !text-new-black-800">{description}</p>
             </div>
@@ -41,7 +41,7 @@ export default function ConsentInformationPanel() {
             </div>
             <div className="space-y-4">
                 <div className="h4-new">{consentPageInformation.importanceTitle}</div>
-                {consentPageInformation.importanceDescription.map((description) => getTitleDescription(description.title, description.description))}
+                {consentPageInformation.importanceDescription.map((description, index) => getTitleDescription(description.title, description.description, index))}
             </div>
         </div>
     );

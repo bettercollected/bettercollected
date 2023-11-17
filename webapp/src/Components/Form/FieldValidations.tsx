@@ -34,7 +34,7 @@ export default function FieldValidations({ field, inValidations }: IFieldValidat
     return (
         <div className="body4 !text-red-500 !my-2">
             {Object.values(FormValidationError).map((invalidation, index) => (
-                <>{inValidations?.includes(invalidation) && <div className="flex flex-col gap-2">*{getErrorText(field, invalidation)}</div>}</>
+                <div key={index}>{inValidations?.includes(invalidation) && <div className="flex flex-col gap-2">*{getErrorText(field, invalidation)}</div>}</div>
             ))}
         </div>
     );
