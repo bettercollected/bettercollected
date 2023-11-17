@@ -15,8 +15,10 @@ import { getComparisonsBasedOnFieldType } from '@app/utils/conditionalUtils';
 import { getPreviousField } from '@app/utils/formBuilderBlockUtils';
 
 const TextFieldInputValueComparisons = [Comparison.STARTS_WITH, Comparison.ENDS_WITH, Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL];
-const TextFieldValueFieldTypes = [FormBuilderTagNames.INPUT_SHORT_TEXT, FormBuilderTagNames.INPUT_LONG_TEXT, FormBuilderTagNames.INPUT_PHONE_NUMBER, FormBuilderTagNames.INPUT_NUMBER, FormBuilderTagNames.INPUT_EMAIL];
+const TextFieldValueFieldTypes = [FormBuilderTagNames.INPUT_SHORT_TEXT, FormBuilderTagNames.INPUT_LONG_TEXT, FormBuilderTagNames.INPUT_PHONE_NUMBER, FormBuilderTagNames.INPUT_EMAIL];
 
+const NumberFieldValueComparisons = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.GREATER_THAN, Comparison.GREATER_THAN_EQUAL, Comparison.LESS_THAN, Comparison.LESS_THAN_EQUAL];
+const NUmberFieldValueFieldTypes = [FormBuilderTagNames.INPUT_NUMBER, FormBuilderTagNames.INPUT_RATING, FormBuilderTagNames.INPUT_DATE];
 const SingleOptionsValueFieldTypes = [FormBuilderTagNames.INPUT_MULTIPLE_CHOICE, FormBuilderTagNames.INPUT_DROPDOWN];
 const SingleOptionsValueComparisons = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL];
 
@@ -96,7 +98,10 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
     const getInputModeForType = (type: FormBuilderTagNames) => {
         switch (type) {
             case FormBuilderTagNames.INPUT_NUMBER:
+            case FormBuilderTagNames.INPUT_RATING:
                 return 'numeric';
+            case FormBuilderTagNames.INPUT_DATE:
+                return 'date';
             default:
                 return 'text';
         }
@@ -151,27 +156,29 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                                 <ConditionalListDropDown value={condition?.value} onChange={onOptionValueChange} labelPicker={(value: string) => value} items={Object.values(selectedField?.properties?.choices || {}).map((choice: any) => choice.value)} />
                             </>
                         )}
-                        {condition.comparison && TextFieldValueFieldTypes.includes(selectedField?.type) && TextFieldInputValueComparisons.includes(condition.comparison) && (
-                            <AppTextField
-                                className="basis-2/5"
-                                value={condition?.value || ''}
-                                onChange={onTextValueChange}
-                                placeholder="Value"
-                                inputMode={getInputModeForType(selectedField?.type)}
-                                inputProps={{
-                                    style: {
-                                        paddingTop: 0,
-                                        paddingBottom: 0,
-                                        height: 42,
-                                        fontSize: 16,
-                                        color: 'black',
-                                        fontWeight: 400,
-                                        content: 'none',
-                                        letterSpacing: 0
-                                    }
-                                }}
-                            />
-                        )}
+                        {condition.comparison &&
+                            (TextFieldValueFieldTypes.includes(selectedField?.type) || NUmberFieldValueFieldTypes.includes(selectedField?.type)) &&
+                            (TextFieldInputValueComparisons.includes(condition.comparison) || NumberFieldValueComparisons.includes(condition.comparison)) && (
+                                <AppTextField
+                                    className="basis-2/5"
+                                    value={condition?.value || ''}
+                                    onChange={onTextValueChange}
+                                    placeholder="Value"
+                                    type={getInputModeForType(selectedField?.type)}
+                                    inputProps={{
+                                        style: {
+                                            paddingTop: 0,
+                                            paddingBottom: 0,
+                                            height: 42,
+                                            fontSize: 16,
+                                            color: 'black',
+                                            fontWeight: 400,
+                                            content: 'none',
+                                            letterSpacing: 0
+                                        }
+                                    }}
+                                />
+                            )}
                         {condition.comparison && MultipleOptionsValueFieldTypes.includes(selectedField?.type) && MultipleOptionsValueComparisons.includes(condition.comparison) && (
                             <ConditionalListDropDown
                                 multiple
