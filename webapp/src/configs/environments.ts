@@ -39,6 +39,9 @@ const environments = {
     SENTRY_AUTH_TOKEN: publicRuntimeConfig.SENTRY_AUTH_TOKEN,
     SENTRY_RELEASE: publicRuntimeConfig.SENTRY_RELEASE,
 
+    //workspaces
+    MAX_WORKSPACES: publicRuntimeConfig.MAX_WORKSPACES || 5,
+
     // Integrations enabled
     ENABLE_GOOGLE: (publicRuntimeConfig.ENABLE_GOOGLE && (publicRuntimeConfig.ENABLE_GOOGLE === 'true' || publicRuntimeConfig.ENABLE_GOOGLE === true)) ?? true,
     ENABLE_TYPEFORM: (publicRuntimeConfig.ENABLE_TYPEFORM && (publicRuntimeConfig.ENABLE_TYPEFORM === 'true' || publicRuntimeConfig.ENABLE_TYPEFORM === true)) ?? true,

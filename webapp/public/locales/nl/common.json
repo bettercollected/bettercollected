@@ -306,7 +306,7 @@
       "DESCRIPTION": "Hieronder vind je een lijst met respondenten die hebben verzocht om het verwijderen van hun ingediende reacties."
     },
     "RESPONSES": {
-      "DESCRIPTION": "Hieronder vind je een lijst met respondenten die hebben verzocht om het verwijderen van hun ingediende reacties.",
+      "DESCRIPTION": "Respondenten zijn de individuen die het formulier hebben ingevuld en ingediend. Je kunt hun ingevulde datum en tijd zien.",
       "BACK_TO_RESPONSES": "Terug naar reacties",
       "DELETE_RESPONSE": "Verwijder reactie",
       "SUBMITTED_BY": "Ingediend door",

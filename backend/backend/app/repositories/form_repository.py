@@ -200,6 +200,12 @@ class FormRepository:
                     {"$set": {"is_published": {"$gt": [{"$size": "$versions"}, 0]}}},
                 ]
             )
+
+        aggregation_pipeline.append({
+            "$sort": {
+                "created_at": -1
+            }
+        })
         return (
             await query_document.find(
                 {

@@ -15,6 +15,7 @@ import { toast } from 'react-toastify';
 
 import Back from '@app/components/icons/back';
 import PoweredBy from '@app/components/ui/powered-by';
+import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { selectConsentState } from '@app/store/consent/selectors';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
@@ -33,10 +34,6 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
     const { headerImages } = useFormBuilderAtom();
     const router = useRouter();
     const { t } = useTranslation();
-
-    const updateRequest = useAppSelector((state1) => state1.workspacesApi.mutations);
-
-    const isLoading = updateRequest && updateRequest[Object.keys(updateRequest)[Object.keys(updateRequest).length - 1]]?.status === 'pending';
 
     const workspace = useAppSelector(selectWorkspace);
     const form = useAppSelector(selectForm);
@@ -67,8 +64,18 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
             previewForm.title = builderState.title;
             previewForm.description = builderState.description;
             let fields: any = Object.values(builderState.fields);
+            // TODO: Refactor this to a function
             fields = fields.map((field: IFormFieldState) => {
-                if (field.properties?.choices) {
+                if (field?.type == FormBuilderTagNames.CONDITIONAL) {
+                    return {
+                        ...field,
+                        properties: {
+                            ...field.properties,
+                            conditions: Object.values(field.properties?.conditions || {}),
+                            actions: Object.values(field.properties?.actions || {})
+                        }
+                    };
+                } else if (field.properties?.choices) {
                     return {
                         ...field,
                         properties: { ...field.properties, choices: Object.values(field.properties?.choices) }

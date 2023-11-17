@@ -80,6 +80,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                 } else if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey && builderState.fields[builderState.activeFieldId]?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
                     eventBus.emit(EventBusEventType.FormBuilder.OpenTagSelector, event);
                 } else if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
+                    if (builderState.fields[builderState.activeFieldId].type === FormBuilderTagNames.CONDITIONAL) return;
                     if (backspaceCount === 1) {
                         event.preventDefault();
                         asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));

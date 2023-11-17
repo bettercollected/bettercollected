@@ -3,9 +3,10 @@ import _ from 'lodash';
 import moment from 'moment/moment';
 
 import { formConstant } from '@app/constants/locales/form';
-import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';
+import { AnswerDto, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { FormValidationError } from '@app/store/fill-form/type';
+import { ActionType, Comparison, Condition, ConditionalActions, LogicalOperator } from '@app/store/form-builder/types';
 
 /**
  * Validation method to check if the given value is undefined or not.
@@ -112,4 +113,108 @@ export const validateFormFieldAnswer = (field: StandardFormFieldDto, answer: Ans
 
 export const validateFormOpen = (date?: string) => {
     return !date || moment.utc(date).isAfter(moment.utc());
+};
+
+export const validateFieldConditions = (answers: Record<string, any>, field: StandardFormFieldDto): boolean => {
+    let validity = field?.properties?.logicalOperator === LogicalOperator.AND;
+    field?.properties?.conditions.forEach((condition: Condition) => {
+        if (field?.properties?.logicalOperator === LogicalOperator.AND) validity = validity && validateCondition(answers, condition);
+        else {
+            validity = validity || validateCondition(answers, condition);
+        }
+    });
+    return validity;
+};
+
+const validateCondition = (answers: Record<string, any>, condition: Condition): boolean => {
+    const fieldId: string = condition?.field?.id || '';
+    switch (condition?.comparison) {
+        case Comparison.IS_EMPTY:
+            return !answers[fieldId];
+        case Comparison.IS_NOT_EMPTY:
+            return !!answers[fieldId];
+        case Comparison.IS_NOT_EQUAL:
+            return !compareEquality(answers[fieldId], condition);
+        case Comparison.IS_EQUAL:
+            return compareEquality(answers[fieldId], condition);
+        case Comparison.CONTAINS:
+            return compareContains(answers[fieldId], condition);
+        case Comparison.DOES_NOT_CONTAIN:
+            return !compareContains(answers[fieldId], condition);
+        default:
+            return false;
+    }
+};
+
+const compareEquality = (answer: any, condition: Condition): boolean => {
+    switch (condition.field?.type) {
+        case FormBuilderTagNames.INPUT_EMAIL:
+        case FormBuilderTagNames.INPUT_NUMBER:
+        case FormBuilderTagNames.INPUT_LONG_TEXT:
+        case FormBuilderTagNames.INPUT_SHORT_TEXT:
+        case FormBuilderTagNames.INPUT_DATE:
+        case FormBuilderTagNames.INPUT_PHONE_NUMBER:
+        case FormBuilderTagNames.INPUT_LINK:
+        case FormBuilderTagNames.INPUT_RATING:
+            return answer?.value === condition?.value;
+        case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
+        case FormBuilderTagNames.INPUT_DROPDOWN:
+            return answer?.choice?.value === condition?.value;
+        default:
+            return false;
+    }
+};
+
+const compareContains = (answer: any, condition: Condition): boolean => {
+    const includesOption = (option: any) => answer?.choices?.values.includes(option);
+
+    if (condition.comparison === Comparison.CONTAINS) {
+        return Array.isArray(condition?.value) && condition.value.every(includesOption);
+    }
+
+    return Array.isArray(condition?.value) && condition?.value.some(includesOption);
+};
+
+export const validateConditionsAndReturnUpdatedForm = (formToUpdate: StandardFormDto, answers: Record<string, any>, conditionalFields: Array<StandardFormFieldDto>) => {
+    conditionalFields?.forEach((conditionalField: StandardFormFieldDto) => {
+        if (validateFieldConditions(answers, conditionalField)) {
+            conditionalField?.properties?.actions.forEach((action: ConditionalActions) => {
+                if (Array.isArray(action?.payload)) {
+                    action.payload.forEach((fieldId) => {
+                        const fieldIndex = formToUpdate?.fields.findIndex((field) => field.id === fieldId);
+                        if (fieldIndex !== -1) {
+                            formToUpdate.fields = formToUpdate.fields.map((field, index) => {
+                                if (index === fieldIndex) {
+                                    switch (action.type) {
+                                        case ActionType.SHOW_FIELDS:
+                                        case ActionType.HIDE_FIELDS:
+                                            return {
+                                                ...field,
+                                                properties: {
+                                                    ...field.properties,
+                                                    hidden: action.type === ActionType.HIDE_FIELDS
+                                                }
+                                            };
+                                        case ActionType.REQUIRE_ANSWERS:
+                                            return {
+                                                ...field,
+                                                validations: {
+                                                    ...(field?.validations || {}),
+                                                    required: true
+                                                }
+                                            };
+                                        default:
+                                            return field;
+                                    }
+                                } else {
+                                    return field;
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
+    return formToUpdate;
 };

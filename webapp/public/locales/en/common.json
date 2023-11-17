@@ -307,7 +307,7 @@
       "DESCRIPTION": "Below, you will find a list of responders who have requested the deletion of their submitted responses."
     },
     "RESPONSES": {
-      "DESCRIPTION": "Below, you will find a list of responders who have requested the deletion of their submitted responses.",
+      "DESCRIPTION": "Responders are the individuals who completed and submitted the form. You can see their responded date and time.",
       "BACK_TO_RESPONSES": "Back to responses",
       "DELETE_RESPONSE": "Delete Response",
       "SUBMITTED_BY": "Submitted by",

@@ -154,7 +154,16 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         publishRequest.description = builderState.description;
         let fields: any = Object.values(builderState.fields || {});
         fields = fields.map((field: IFormFieldState) => {
-            if (field.properties?.choices) {
+            if (field?.type == FormBuilderTagNames.CONDITIONAL) {
+                return {
+                    ...field,
+                    properties: {
+                        ...field.properties,
+                        conditions: Object.values(field.properties?.conditions || {}),
+                        actions: Object.values(field.properties?.actions || {})
+                    }
+                };
+            } else if (field.properties?.choices) {
                 return { ...field, properties: { ...field.properties, choices: Object.values(field.properties?.choices) } };
             }
             return field;

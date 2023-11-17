@@ -18,6 +18,7 @@ import LinkIcon from '@mui/icons-material/Link';
 import PermMediaIcon from '@mui/icons-material/PermMedia';
 import { List, ListSubheader, Paper } from '@mui/material';
 
+import { Logic } from '@app/components/icons/logic';
 import { BlockTypes, FormBuilderTagNames, KeyType } from '@app/models/enums/formBuilder';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { selectActiveFieldId } from '@app/store/form-builder/selectors';
@@ -263,7 +264,16 @@ export const allowedQuestionAndAnswerTags = [
     }
 ];
 
-export const allowedTags = [...allowedQuestionAndAnswerTags, ...allowedLayoutTags, ...allowedInputTags];
+export const allowedConditionalTags = [
+    {
+        id: FormBuilderTagNames.CONDITIONAL,
+        type: FormBuilderTagNames.CONDITIONAL,
+        label: 'Conditional',
+        icon: <Logic width={20} height={20} />,
+        blockType: BlockTypes.CONDITIONAL
+    }
+];
+export const allowedTags = [...allowedQuestionAndAnswerTags, ...allowedLayoutTags, ...allowedInputTags, ...allowedConditionalTags];
 
 interface IFormBuilderTagSelector extends OnlyClassNameInterface {
     closeMenu: any;
@@ -276,18 +286,19 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
     const [tagList, setTagList] = useState(allowedTags);
     const [selectedTag, setSelectedTag] = useState({ blockType: BlockTypes.QUESTION_INPUT_BLOCKS, index: 0 });
     const [command, setCommand] = useState('');
-    const [blockListTypes, setBlockListTypes] = useState<Array<BlockTypes>>([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS]);
+    const [blockListTypes, setBlockListTypes] = useState<Array<BlockTypes>>([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.CONDITIONAL]);
     const listRef: any = useRef(null);
     const activeField = useAppSelector(selectActiveFieldId);
     useEffect(() => {
         if (!searchQuery) {
-            setBlockListTypes([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.INPUT_BLOCKS]);
+            setBlockListTypes([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.CONDITIONAL]);
             setTagList(allowedTags);
         }
         if (!searchQuery || searchQuery?.includes('\n')) return; // Discard enter character in search query
         const filteredAllowedQuestionAnswerTags = allowedQuestionAndAnswerTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
         const filteredAllowedInputTags = allowedInputTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
         const filteredAllowedLayoutTags = allowedLayoutTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
+        const filteredAllowedConditionalTags = allowedConditionalTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
         const newBlockListTypes: Array<BlockTypes> = [];
         let selectedBlockType = BlockTypes.INPUT_BLOCKS;
         if (filteredAllowedQuestionAnswerTags.length > 0) {
@@ -299,8 +310,11 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
         if (filteredAllowedInputTags.length > 0) {
             newBlockListTypes.push(BlockTypes.INPUT_BLOCKS);
         }
+        if (filteredAllowedConditionalTags.length > 0) {
+            newBlockListTypes.push(BlockTypes.CONDITIONAL);
+        }
         setSelectedTag({ blockType: newBlockListTypes.length > 0 ? newBlockListTypes[0] : selectedBlockType, index: 0 });
-        setTagList([...filteredAllowedQuestionAnswerTags, ...filteredAllowedInputTags, ...filteredAllowedLayoutTags]);
+        setTagList([...filteredAllowedQuestionAnswerTags, ...filteredAllowedInputTags, ...filteredAllowedLayoutTags, ...filteredAllowedConditionalTags]);
         searchQuery && setBlockListTypes([...newBlockListTypes]);
     }, [searchQuery]);
 
@@ -435,6 +449,8 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
                 return <ElementsWithLabel />;
             case BlockTypes.LAYOUT_BLOCKS:
                 return <div className="text-[16px] px-2 text-center items-center leading-6 font-semibold">H</div>;
+            case BlockTypes.CONDITIONAL:
+                return <div className="text-[16px] px-2 text-center items-center leading-6 font-semibold">C</div>;
         }
     };
 
