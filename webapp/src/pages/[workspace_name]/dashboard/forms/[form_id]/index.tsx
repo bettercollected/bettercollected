@@ -98,7 +98,7 @@ export default function FormPage(props: any) {
             ...[
                 {
                     icon: <HistoryIcon className="h-5 w-5" />,
-                    title: t(formConstant.responses) + ' (' + form.responses + ')',
+                    title: t(formConstant.responders) + ' (' + form.responses + ')',
                     path: 'Responses'
                 },
                 {
