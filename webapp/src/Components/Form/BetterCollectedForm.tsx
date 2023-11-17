@@ -29,7 +29,7 @@ import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
-import { validateFieldConditions, validateFormFieldAnswer } from '@app/utils/validationUtils';
+import { validateConditionsAndReturnUpdatedForm, validateFieldConditions, validateFormFieldAnswer } from '@app/utils/validationUtils';
 
 import useFormAtom from './atom';
 
@@ -111,36 +111,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
     const updateFormWithActions = () => {
         let formToUpdate: any = { ...form };
-        conditionalFields?.forEach((conditionalField: StandardFormFieldDto) => {
-            if (validateFieldConditions(answers, conditionalField)) {
-                conditionalField?.properties?.actions.forEach((action: ConditionalActions) => {
-                    switch (action?.type) {
-                        case ActionType.SHOW_FIELDS:
-                            if (Array.isArray(action?.payload)) {
-                                action?.payload?.forEach((fieldId: string) => {
-                                    const fieldIndex = formToUpdate?.fields.findIndex((field: StandardFormFieldDto) => field.id === fieldId);
-                                    if (fieldIndex !== -1) {
-                                        // Use map to create a new array with the modified field
-                                        formToUpdate.fields = formToUpdate.fields.map((field: any, index: any) => {
-                                            return index === fieldIndex
-                                                ? {
-                                                      ...field,
-                                                      properties: {
-                                                          ...field.properties,
-                                                          hidden: false
-                                                      }
-                                                  }
-                                                : field;
-                                        });
-                                    }
-                                });
-                            }
-                            break;
-                        // Handle other cases if needed
-                    }
-                });
-            }
-        });
+        const updatedForm = validateConditionsAndReturnUpdatedForm(formToUpdate, answers, conditionalFields);
         setUpdatedForm(formToUpdate);
     };
 
@@ -231,9 +202,8 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             }
             invalidFields[field.id] = validationErrors;
         });
-
+        dispatch(setInvalidFields(invalidFields));
         if (!isResponseValid) {
-            dispatch(setInvalidFields(invalidFields));
             let firstInvalidFieldId = '';
             for (let field of updatedForm.fields) {
                 if (Object.keys(invalidFields).includes(field.id) && invalidFields[field.id].length > 0) {
