@@ -290,7 +290,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                     </div>
                 )}
                 <div className={`mb-6 ${updatedForm?.coverImage && updatedForm?.logo ? '' : 'mt-12'}`}>
-                    <div className="text-[24px] mb-2 font-semibold text-black-900">{updatedForm?.title}</div>
+                    <div className="text-[24px] mb-2 font-semibold text-black-900">{updatedForm?.title || 'Untitled'}</div>
                     {updatedForm?.description && <div className="text-[14px] text-black-700">{updatedForm?.description}</div>}
                 </div>
 
