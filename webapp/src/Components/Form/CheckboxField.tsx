@@ -4,7 +4,7 @@ import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import Checkbox from '@mui/material/Checkbox';
 
-import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
+import { addAnswer, deleteAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
@@ -18,6 +18,10 @@ export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
         if (answerChoices?.includes(choice?.value)) {
             const tempAnswers = [...answerChoices];
             tempAnswers.splice(answerChoices?.indexOf(choice?.value), 1);
+            if (tempAnswers.length === 0) {
+                dispatch(deleteAnswer(answer));
+                return;
+            }
             answer.choices = {
                 values: [...tempAnswers]
             };

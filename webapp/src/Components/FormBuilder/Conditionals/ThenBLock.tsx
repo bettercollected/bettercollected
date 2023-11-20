@@ -121,7 +121,7 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
     };
 
     return (
-        <div className={'flex flex-col gap-2 p-4 bg-new-white-200 rounded-lg'}>
+        <div className={'flex flex-col gap-2 bg-new-white-200 rounded-lg'}>
             <h1 className={'text-pink-500 text-sm'}>{action?.position == 0 ? 'THEN' : 'AND'}</h1>
             <div className={'flex justify-between'}>
                 <div className={'flex flex-col lg:flex-row gap-2 w-full'}>

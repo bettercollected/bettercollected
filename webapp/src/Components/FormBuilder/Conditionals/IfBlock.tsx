@@ -150,7 +150,7 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                         items={getComparisonsBasedOnFieldType(selectedField?.type)}
                     />
                     <div className="basis-2/5">
-                        {condition.comparison && SingleOptionsValueFieldTypes.includes(selectedField.type) && SingleOptionsValueComparisons.includes(condition.comparison) && (
+                        {condition.comparison && SingleOptionsValueFieldTypes.includes(selectedField?.type) && SingleOptionsValueComparisons.includes(condition.comparison) && (
                             <>
                                 <ConditionalListDropDown value={condition?.value} onChange={onOptionValueChange} labelPicker={(value: string) => value} items={Object.values(selectedField?.properties?.choices || {}).map((choice: any) => choice.value)} />
                             </>
