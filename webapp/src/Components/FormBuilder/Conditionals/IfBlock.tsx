@@ -15,10 +15,11 @@ import { getComparisonsBasedOnFieldType } from '@app/utils/conditionalUtils';
 import { getPreviousField } from '@app/utils/formBuilderBlockUtils';
 
 const TextFieldInputValueComparisons = [Comparison.STARTS_WITH, Comparison.ENDS_WITH, Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL];
-const TextFieldValueFieldTypes = [FormBuilderTagNames.INPUT_SHORT_TEXT, FormBuilderTagNames.INPUT_LONG_TEXT, FormBuilderTagNames.INPUT_PHONE_NUMBER, FormBuilderTagNames.INPUT_EMAIL];
+const TextFieldValueFieldTypes = [FormBuilderTagNames.INPUT_SHORT_TEXT, FormBuilderTagNames.INPUT_LONG_TEXT, FormBuilderTagNames.INPUT_PHONE_NUMBER, FormBuilderTagNames.INPUT_EMAIL, FormBuilderTagNames.INPUT_LINK];
 
 const NumberFieldValueComparisons = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.GREATER_THAN, Comparison.GREATER_THAN_EQUAL, Comparison.LESS_THAN, Comparison.LESS_THAN_EQUAL];
 const NUmberFieldValueFieldTypes = [FormBuilderTagNames.INPUT_NUMBER, FormBuilderTagNames.INPUT_RATING, FormBuilderTagNames.INPUT_DATE];
+
 const SingleOptionsValueFieldTypes = [FormBuilderTagNames.INPUT_MULTIPLE_CHOICE, FormBuilderTagNames.INPUT_DROPDOWN];
 const SingleOptionsValueComparisons = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL];
 
