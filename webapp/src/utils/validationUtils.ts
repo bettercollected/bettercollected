@@ -141,8 +141,33 @@ const validateCondition = (answers: Record<string, any>, condition: Condition): 
             return compareContains(answers[fieldId], condition);
         case Comparison.DOES_NOT_CONTAIN:
             return !compareContains(answers[fieldId], condition);
+        case Comparison.LESS_THAN:
+            return !compareGreaterThanEqual(answers[fieldId], condition);
+        case Comparison.LESS_THAN_EQUAL:
+            return compareLessThanEqual(answers[fieldId], condition);
+        case Comparison.GREATER_THAN:
+            return !compareLessThanEqual(answers[fieldId], condition);
+        case Comparison.GREATER_THAN_EQUAL:
+            return compareGreaterThanEqual(answers[fieldId], condition);
+
         default:
             return false;
+    }
+};
+const compareLessThanEqual = (answer: any, condition: Condition): boolean => {
+    if (condition.field?.type === FormBuilderTagNames.INPUT_DATE) {
+        return moment(answer?.value).isSameOrBefore(moment(condition.value));
+    } else {
+        return parseInt(answer?.value) <= parseInt(condition.value);
+        ``;
+    }
+};
+
+const compareGreaterThanEqual = (answer: any, condition: Condition): boolean => {
+    if (condition.field?.type === FormBuilderTagNames.INPUT_DATE) {
+        return moment(answer?.value).isSameOrAfter(moment(condition.value));
+    } else {
+        return parseInt(answer?.value) <= parseInt(condition.value);
     }
 };
 
