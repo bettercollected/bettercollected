@@ -14,7 +14,7 @@ interface ITipListProps {
 
 export const TipList = ({ className, listNumber }: ITipListProps) => {
     const isMac = typeof window !== 'undefined' ? navigator.userAgent.toUpperCase().indexOf('MAC') >= 0 : false;
-    const commandKeyString = isMac ? 'Command' : 'Ctrl';
+    const commandKeyString = !isMac ? 'Command' : 'Ctrl';
 
     const { t } = useBuilderTranslation();
 
@@ -75,7 +75,7 @@ export const TipList = ({ className, listNumber }: ITipListProps) => {
             {tips.map((tip: ITipElement, index) => {
                 return (
                     <div key={index} className={className}>
-                        <div className="flex items-center w-24 justify-end">{tip.Icon}</div>
+                        <div className="flex items-center w-32 justify-end">{tip.Icon}</div>
                         <div className="body4 flex items-center">{tip.TextComponent}</div>
                     </div>
                 );

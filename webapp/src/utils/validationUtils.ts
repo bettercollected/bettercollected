@@ -69,45 +69,48 @@ export const statusProps = (status: string, t: any) => {
         dotCName
     };
 };
-
 export const validateFormFieldAnswer = (field: StandardFormFieldDto, answer: AnswerDto) => {
-    const errors: Array<FormValidationError> = [];
-    if (!field?.properties?.hidden) {
-        if (answer) {
-            if (field?.type === FormBuilderTagNames.INPUT_SHORT_TEXT || field?.type === FormBuilderTagNames.INPUT_LONG_TEXT) {
-                if (field?.validations?.minLength && (answer?.text || '').length < field?.validations?.minLength) {
-                    errors.push(FormValidationError.INSUFFICIENT_LENGTH);
-                }
-                if (field?.validations?.maxLength && (answer?.text || '').length > field?.validations?.maxLength) {
-                    errors.push(FormValidationError.EXCEEDS_MAX_LENGTH);
-                }
-                if (field?.validations?.regex && answer?.text?.match(field?.validations?.regex || '')) {
-                    errors.push(FormValidationError.REGEX_PATTERN);
-                }
-            }
-            if (field?.type === FormBuilderTagNames.INPUT_NUMBER) {
-                if (field?.validations?.minValue && (answer?.number || 0) < field?.validations?.minValue) {
-                    errors.push(FormValidationError.INSUFFICIENT_VALUE);
-                }
-                if (field?.validations?.maxValue && (answer?.number || 0) > field?.validations?.maxValue) {
-                    errors.push(FormValidationError.EXCEEDS_MAX_VALUE);
-                }
-            }
+    const errors: FormValidationError[] = [];
 
-            if (field?.type === FormBuilderTagNames.INPUT_CHECKBOXES || field?.type === FormBuilderTagNames.INPUT_MULTISELECT) {
-                if (field?.validations?.minChoices && (answer?.choices?.values?.length || 0) < field?.validations?.minChoices) {
-                    errors.push(FormValidationError.INSUFFICIENT_CHOICES);
-                }
-                if (field?.validations?.maxChoices && (answer?.choices?.values?.length || 0) > field?.validations?.maxChoices) {
-                    errors.push(FormValidationError.INSUFFICIENT_CHOICES);
-                }
+    const { properties, type, validations } = field || {};
+    const { text, number, choices } = answer || {};
+
+    if (!properties?.hidden) {
+        if (!answer) {
+            if (validations?.required) {
+                errors.push(FormValidationError.REQUIRED);
             }
         } else {
-            if (field?.validations?.required) {
-                errors.push(FormValidationError.REQUIRED);
+            if ((type === FormBuilderTagNames.INPUT_SHORT_TEXT || type === FormBuilderTagNames.INPUT_LONG_TEXT) && text) {
+                const textLength = text.length;
+                if (validations?.minLength && textLength < validations.minLength) {
+                    errors.push(FormValidationError.INSUFFICIENT_LENGTH);
+                }
+                if (validations?.maxLength && textLength > validations.maxLength) {
+                    errors.push(FormValidationError.EXCEEDS_MAX_LENGTH);
+                }
+                if (validations?.regex && text.match(validations.regex)) {
+                    errors.push(FormValidationError.REGEX_PATTERN);
+                }
+            } else if (type === FormBuilderTagNames.INPUT_NUMBER && number !== undefined) {
+                if (validations?.minValue && number < validations.minValue) {
+                    errors.push(FormValidationError.INSUFFICIENT_VALUE);
+                }
+                if (validations?.maxValue && number > validations.maxValue) {
+                    errors.push(FormValidationError.EXCEEDS_MAX_VALUE);
+                }
+            } else if ((type === FormBuilderTagNames.INPUT_CHECKBOXES || type === FormBuilderTagNames.INPUT_MULTISELECT) && choices) {
+                const choicesLength = choices.values?.length || 0;
+                if (validations?.minChoices && choicesLength < validations.minChoices) {
+                    errors.push(FormValidationError.INSUFFICIENT_CHOICES);
+                }
+                if (validations?.maxChoices && choicesLength > validations.maxChoices) {
+                    errors.push(FormValidationError.INSUFFICIENT_CHOICES);
+                }
             }
         }
     }
+
     return errors;
 };
 
@@ -127,42 +130,92 @@ export const validateFieldConditions = (answers: Record<string, any>, field: Sta
 };
 
 const validateCondition = (answers: Record<string, any>, condition: Condition): boolean => {
-    const fieldId: string = condition?.field?.id || '';
+    const answer = answers[condition?.field?.id || ''];
     switch (condition?.comparison) {
         case Comparison.IS_EMPTY:
-            return !answers[fieldId];
+            return !answer;
         case Comparison.IS_NOT_EMPTY:
-            return !!answers[fieldId];
+            return !!answer;
         case Comparison.IS_NOT_EQUAL:
-            return !compareEquality(answers[fieldId], condition);
+            return !compareEquality(answer, condition);
         case Comparison.IS_EQUAL:
-            return compareEquality(answers[fieldId], condition);
+            return compareEquality(answer, condition);
         case Comparison.CONTAINS:
-            return compareContains(answers[fieldId], condition);
+            return compareContains(answer, condition);
         case Comparison.DOES_NOT_CONTAIN:
-            return !compareContains(answers[fieldId], condition);
+            return !compareContains(answer, condition);
+        case Comparison.LESS_THAN:
+            return answer && !compareGreaterThanEqual(answer, condition);
+        case Comparison.LESS_THAN_EQUAL:
+            return answer && compareLessThanEqual(answer, condition);
+        case Comparison.GREATER_THAN:
+            return answer && !compareLessThanEqual(answer, condition);
+        case Comparison.GREATER_THAN_EQUAL:
+            return answer && compareGreaterThanEqual(answer, condition);
+        case Comparison?.STARTS_WITH:
+            return compareStartsWith(answer, condition);
+        case Comparison.ENDS_WITH:
+            return compareEndsWith(answer, condition);
         default:
             return false;
     }
 };
 
-const compareEquality = (answer: any, condition: Condition): boolean => {
-    switch (condition.field?.type) {
-        case FormBuilderTagNames.INPUT_EMAIL:
-        case FormBuilderTagNames.INPUT_NUMBER:
-        case FormBuilderTagNames.INPUT_LONG_TEXT:
-        case FormBuilderTagNames.INPUT_SHORT_TEXT:
-        case FormBuilderTagNames.INPUT_DATE:
-        case FormBuilderTagNames.INPUT_PHONE_NUMBER:
-        case FormBuilderTagNames.INPUT_LINK:
+const getValueToCompareBasedOnFieldType = (answer: any, fieldType?: FormBuilderTagNames) => {
+    switch (fieldType) {
         case FormBuilderTagNames.INPUT_RATING:
-            return answer?.value === condition?.value;
+        case FormBuilderTagNames.INPUT_NUMBER:
+            return answer?.number;
+        case FormBuilderTagNames.INPUT_SHORT_TEXT:
+        case FormBuilderTagNames.INPUT_LONG_TEXT:
+            return answer?.text;
+        case FormBuilderTagNames.INPUT_LINK:
+            return answer?.url;
+        case FormBuilderTagNames.INPUT_EMAIL:
+            return answer?.email;
+        case FormBuilderTagNames.INPUT_DATE:
+            return answer?.date;
         case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
         case FormBuilderTagNames.INPUT_DROPDOWN:
-            return answer?.choice?.value === condition?.value;
+            return answer?.choice?.value;
+        case FormBuilderTagNames.INPUT_CHECKBOXES:
+            return answer?.choices?.values;
+        case FormBuilderTagNames.INPUT_PHONE_NUMBER:
+            return answer?.phone_number;
+
         default:
-            return false;
+            return answer?.value;
     }
+};
+
+const compareStartsWith = (answer: any, condition: Condition) => {
+    const valueToCompare = getValueToCompareBasedOnFieldType(answer, condition.field?.type);
+    return valueToCompare?.startsWith(condition?.value);
+};
+
+const compareEndsWith = (answer: any, condition: Condition) => {
+    const valueToCompare = getValueToCompareBasedOnFieldType(answer, condition.field?.type);
+    return valueToCompare?.endsWith(condition?.value);
+};
+const compareLessThanEqual = (answer: any, condition: Condition): boolean => {
+    if (condition.field?.type === FormBuilderTagNames.INPUT_DATE) {
+        return moment(answer?.date).isSameOrBefore(moment(condition.value));
+    } else {
+        return parseInt(answer?.number) <= parseInt(condition.value);
+    }
+};
+
+const compareGreaterThanEqual = (answer: any, condition: Condition): boolean => {
+    if (condition.field?.type === FormBuilderTagNames.INPUT_DATE) {
+        return moment(answer?.date).isSameOrAfter(moment(condition.value));
+    } else {
+        return parseInt(answer?.number) >= parseInt(condition.value);
+    }
+};
+
+const compareEquality = (answer: any, condition: Condition): boolean => {
+    const valueToCompare = getValueToCompareBasedOnFieldType(answer, condition?.field?.type);
+    return valueToCompare == condition?.value;
 };
 
 const compareContains = (answer: any, condition: Condition): boolean => {

@@ -25,11 +25,9 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
 
     const fields = Object.values(formFields);
 
-    const [inputFields, setInputFields] = useState<any>([]);
-    const dispatch = useAppDispatch();
     const shouldDisplayAllFields = checkShowAllFields(action?.type || ActionType.SHOW_FIELDS);
 
-    useEffect(() => {
+    const getFilteredFields = () => {
         const filteredFields: Array<any> = [];
         fields.forEach((field: IFormFieldState) => {
             let convertedField = {};
@@ -47,6 +45,14 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
                 filteredFields.push(convertedField);
             }
         });
+        return filteredFields;
+    };
+
+    const [inputFields, setInputFields] = useState<any>(getFilteredFields());
+    const dispatch = useAppDispatch();
+
+    useEffect(() => {
+        const filteredFields = getFilteredFields();
         setInputFields(filteredFields);
     }, [formFields]);
 
@@ -121,7 +127,7 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
     };
 
     return (
-        <div className={'flex flex-col gap-2 p-4 bg-new-white-200 rounded-lg'}>
+        <div className={'flex flex-col gap-2 bg-new-white-200 rounded-lg'}>
             <h1 className={'text-pink-500 text-sm'}>{action?.position == 0 ? 'THEN' : 'AND'}</h1>
             <div className={'flex justify-between'}>
                 <div className={'flex flex-col lg:flex-row gap-2 w-full'}>
@@ -133,4 +139,4 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
         </div>
     );
 };
-export default ThenBlock;
+export default React.memo(ThenBlock);
