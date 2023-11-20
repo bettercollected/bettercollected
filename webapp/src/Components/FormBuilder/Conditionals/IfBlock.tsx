@@ -29,13 +29,7 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
     const formFields = useAppSelector(selectFields);
 
     const fields = Object.values(formFields);
-
-    const [inputFields, setInputFields] = useState<any>([]);
-    const dispatch = useAppDispatch();
-
-    const selectedField: IFormFieldState = useAppSelector(selectFormField(condition?.field?.id || ''));
-
-    useEffect(() => {
+    const getFilteredInputFields = () => {
         const filteredFields: Array<any> = [];
         fields.forEach((field) => {
             if (field.type.includes('input_')) {
@@ -52,7 +46,17 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                 filteredFields.push(x);
             }
         });
-        setInputFields(filteredFields);
+        return filteredFields;
+    };
+
+    const [inputFields, setInputFields] = useState<any>(getFilteredInputFields());
+    const dispatch = useAppDispatch();
+
+    const selectedField: IFormFieldState = useAppSelector(selectFormField(condition?.field?.id || ''));
+
+    useEffect(() => {
+        const filteredFields: Array<any> = getFilteredInputFields();
+        setInputFields([...filteredFields]);
     }, [formFields]);
 
     const onConditionFieldChange = (item: any) => {
@@ -197,4 +201,4 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
     );
 };
 
-export default IfBlock;
+export default React.memo(IfBlock);

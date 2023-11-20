@@ -25,11 +25,9 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
 
     const fields = Object.values(formFields);
 
-    const [inputFields, setInputFields] = useState<any>([]);
-    const dispatch = useAppDispatch();
     const shouldDisplayAllFields = checkShowAllFields(action?.type || ActionType.SHOW_FIELDS);
 
-    useEffect(() => {
+    const getFilteredFields = () => {
         const filteredFields: Array<any> = [];
         fields.forEach((field: IFormFieldState) => {
             let convertedField = {};
@@ -47,6 +45,14 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
                 filteredFields.push(convertedField);
             }
         });
+        return filteredFields;
+    };
+
+    const [inputFields, setInputFields] = useState<any>(getFilteredFields());
+    const dispatch = useAppDispatch();
+
+    useEffect(() => {
+        const filteredFields = getFilteredFields();
         setInputFields(filteredFields);
     }, [formFields]);
 
@@ -133,4 +139,4 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
         </div>
     );
 };
-export default ThenBlock;
+export default React.memo(ThenBlock);
