@@ -10,7 +10,7 @@ import { useAppDispatch } from '@app/store/hooks';
 
 import { TipList } from './tipsList';
 
-export default function BuilderTips() {
+function BuilderTips() {
     const { t } = useBuilderTranslation();
     const { openModal } = useModal();
     const dispatch = useAppDispatch();
@@ -36,3 +36,5 @@ export default function BuilderTips() {
         </div>
     );
 }
+
+export default React.memo(BuilderTips);

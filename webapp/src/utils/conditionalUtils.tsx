@@ -45,6 +45,7 @@ export function getComparisonsBasedOnFieldType(type?: FormBuilderTagNames) {
         case FormBuilderTagNames.INPUT_LONG_TEXT:
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
         case FormBuilderTagNames.INPUT_EMAIL:
+        case FormBuilderTagNames.INPUT_LINK:
             comparisons.push(
                 ...[
                     { comparison: Comparison.IS_EQUAL, value: 'Is Equal' },
