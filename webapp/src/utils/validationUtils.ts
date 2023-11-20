@@ -156,16 +156,15 @@ const validateCondition = (answers: Record<string, any>, condition: Condition): 
 };
 const compareLessThanEqual = (answer: any, condition: Condition): boolean => {
     if (condition.field?.type === FormBuilderTagNames.INPUT_DATE) {
-        return moment(answer?.value).isSameOrBefore(moment(condition.value));
+        return moment(answer?.date).isSameOrBefore(moment(condition.value));
     } else {
-        return parseInt(answer?.value) <= parseInt(condition.value);
-        ``;
+        return parseInt(answer?.number) <= parseInt(condition.value);
     }
 };
 
 const compareGreaterThanEqual = (answer: any, condition: Condition): boolean => {
     if (condition.field?.type === FormBuilderTagNames.INPUT_DATE) {
-        return moment(answer?.value).isSameOrAfter(moment(condition.value));
+        return moment(answer?.date).isSameOrAfter(moment(condition.value));
     } else {
         return parseInt(answer?.value) <= parseInt(condition.value);
     }
@@ -174,14 +173,18 @@ const compareGreaterThanEqual = (answer: any, condition: Condition): boolean => 
 const compareEquality = (answer: any, condition: Condition): boolean => {
     switch (condition.field?.type) {
         case FormBuilderTagNames.INPUT_EMAIL:
+            return answer?.email === condition?.value;
         case FormBuilderTagNames.INPUT_NUMBER:
+        case FormBuilderTagNames.INPUT_RATING:
+            return answer?.number == condition?.value;
         case FormBuilderTagNames.INPUT_LONG_TEXT:
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
+            return answer?.text === condition?.value;
         case FormBuilderTagNames.INPUT_DATE:
+            return answer?.date === condition?.value;
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
+            return answer?.phone_number === condition?.value;
         case FormBuilderTagNames.INPUT_LINK:
-        case FormBuilderTagNames.INPUT_RATING:
-            return answer?.value === condition?.value;
         case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
         case FormBuilderTagNames.INPUT_DROPDOWN:
             return answer?.choice?.value === condition?.value;
