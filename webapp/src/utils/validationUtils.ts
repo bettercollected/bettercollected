@@ -127,32 +127,68 @@ export const validateFieldConditions = (answers: Record<string, any>, field: Sta
 };
 
 const validateCondition = (answers: Record<string, any>, condition: Condition): boolean => {
-    const fieldId: string = condition?.field?.id || '';
+    const answer = answers[condition?.field?.id || ''];
     switch (condition?.comparison) {
         case Comparison.IS_EMPTY:
-            return !answers[fieldId];
+            return !answer;
         case Comparison.IS_NOT_EMPTY:
-            return !!answers[fieldId];
+            return !!answer;
         case Comparison.IS_NOT_EQUAL:
-            return !compareEquality(answers[fieldId], condition);
+            return !compareEquality(answer, condition);
         case Comparison.IS_EQUAL:
-            return compareEquality(answers[fieldId], condition);
+            return compareEquality(answer, condition);
         case Comparison.CONTAINS:
-            return compareContains(answers[fieldId], condition);
+            return compareContains(answer, condition);
         case Comparison.DOES_NOT_CONTAIN:
-            return !compareContains(answers[fieldId], condition);
+            return !compareContains(answer, condition);
         case Comparison.LESS_THAN:
-            return !compareGreaterThanEqual(answers[fieldId], condition);
+            return !compareGreaterThanEqual(answer, condition);
         case Comparison.LESS_THAN_EQUAL:
-            return compareLessThanEqual(answers[fieldId], condition);
+            return compareLessThanEqual(answer, condition);
         case Comparison.GREATER_THAN:
-            return !compareLessThanEqual(answers[fieldId], condition);
+            return !compareLessThanEqual(answer, condition);
         case Comparison.GREATER_THAN_EQUAL:
-            return compareGreaterThanEqual(answers[fieldId], condition);
-
+            return compareGreaterThanEqual(answer, condition);
+        case Comparison?.STARTS_WITH:
+            return compareStartsWith(answer, condition);
+        case Comparison.ENDS_WITH:
+            return compareEndsWith(answer, condition);
         default:
             return false;
     }
+};
+
+const getValueToCompareBasedOnFieldType = (answer: any, fieldType?: FormBuilderTagNames) => {
+    switch (fieldType) {
+        case FormBuilderTagNames.INPUT_RATING:
+        case FormBuilderTagNames.INPUT_NUMBER:
+            return answer?.number;
+        case FormBuilderTagNames.INPUT_SHORT_TEXT:
+        case FormBuilderTagNames.INPUT_LONG_TEXT:
+            return answer?.text;
+        case FormBuilderTagNames.INPUT_LINK:
+            return answer?.link;
+        case FormBuilderTagNames.INPUT_EMAIL:
+            return answer?.email;
+        case FormBuilderTagNames.INPUT_DATE:
+            return answer?.date;
+        case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
+            return answer?.choice?.value;
+        case FormBuilderTagNames.INPUT_CHECKBOXES:
+            return answer?.choices?.values;
+        default:
+            return answer?.value;
+    }
+};
+
+const compareStartsWith = (answer: any, condition: Condition) => {
+    const valueToCompare = getValueToCompareBasedOnFieldType(answer, condition.field?.type);
+    return valueToCompare?.startsWith(condition?.value);
+};
+
+const compareEndsWith = (answer: any, condition: Condition) => {
+    const valueToCompare = getValueToCompareBasedOnFieldType(answer, condition.field?.type);
+    return valueToCompare?.endsWith(condition?.value);
 };
 const compareLessThanEqual = (answer: any, condition: Condition): boolean => {
     if (condition.field?.type === FormBuilderTagNames.INPUT_DATE) {
