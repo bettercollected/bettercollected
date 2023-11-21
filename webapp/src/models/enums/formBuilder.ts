@@ -12,9 +12,9 @@ export enum KeyType {
 }
 
 export enum BlockTypes {
-    INPUT_BLOCKS = 'Elements',
-    LAYOUT_BLOCKS = 'Layout Blocks',
-    QUESTION_INPUT_BLOCKS = 'Elements with Label',
+    INPUT_BLOCKS = 'Without Label',
+    LAYOUT_BLOCKS = 'Headings',
+    QUESTION_INPUT_BLOCKS = 'With Label',
     CONDITIONAL = 'Conditional'
 }
 
