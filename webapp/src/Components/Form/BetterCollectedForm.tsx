@@ -24,12 +24,12 @@ import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { ConsentAnswerDto } from '@app/store/consent/types';
 import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setFillFormId, setInvalidFields } from '@app/store/fill-form/slice';
 import { FormValidationError } from '@app/store/fill-form/type';
-import { ActionType, Condition, ConditionalActions } from '@app/store/form-builder/types';
+import { Condition } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
-import { validateConditionsAndReturnUpdatedForm, validateFieldConditions, validateFormFieldAnswer } from '@app/utils/validationUtils';
+import { validateConditionsAndReturnUpdatedForm, validateFormFieldAnswer } from '@app/utils/validationUtils';
 
 import useFormAtom from './atom';
 
