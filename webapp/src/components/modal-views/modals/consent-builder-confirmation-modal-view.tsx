@@ -62,7 +62,6 @@ export default function ConsentBuilderConfirmationModalView() {
                     }
                 };
                 const patchSettingsResponse = await patchFormSettings(request);
-                debugger;
             }
             const response: any = await publishForm({ workspaceId: workspace.id, formId: builderState.id });
             if (response.data) {
