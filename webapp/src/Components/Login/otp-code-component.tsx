@@ -127,7 +127,9 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
                 <p className={'hover:text-brand'}>{constants.backButtonTitle}</p>
             </div>
             <h3 className={`h4 mb-3 ${isModal ? 'mt-5' : ' mt-[44px]'}`}>{constants.verificationTitle}</h3>
-            <h5 className="body4 !text-black-800">{constants.verificationDescription}</h5>
+            <h5 className="body4 !text-black-800">
+                {constants.verificationDescription} <span className={'font-semibold text-pink'}>{props.email}</span>
+            </h5>
 
             <form onSubmit={handleOtpPost} className={`w-full ${isModal && 'mt-10'}`}>
                 <p className={`mb-[8px] text-black-900 text-md font-semibold ${!isModal && 'mt-10 '}`}>{constants.enterOtpCode}</p>
