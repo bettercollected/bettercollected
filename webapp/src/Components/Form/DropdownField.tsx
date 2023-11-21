@@ -14,9 +14,11 @@ export default function DropdownField({ field, ans, enabled }: FormFieldProps) {
     const onChange = (event: SelectChangeEvent<any>) => {
         const answer: any = {};
         answer.field = { id: field.id };
-        answer.choice = { value: event?.target?.value };
+        answer.choice = { id: event?.target?.value };
         dispatch(addAnswer(answer));
     };
+
+    const checkValue = (ans?.choice.value || '').match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
 
     return (
         <div className="relative w-fit">
@@ -39,12 +41,12 @@ export default function DropdownField({ field, ans, enabled }: FormFieldProps) {
                 }}
                 defaultValue={ans?.choice.value}
                 disabled={!enabled}
-                value={ans?.choice.value || answer?.choice?.value || ''}
+                value={ans?.choice.id || answer?.choice?.id || ans?.choice.value || answer?.choice?.value || ''}
                 onChange={onChange}
                 className="w-fit min-w-[167px] !rounded-md !border-gray-600 !mb-0 text-black-900 !bg-white"
             >
                 {field?.properties?.choices?.map((choice: any, index: number) => (
-                    <MenuItem key={choice.id} value={choice?.value} className="relative">
+                    <MenuItem key={choice.id} value={checkValue ? choice?.value : choice?.id} className="relative">
                         {choice.value}
                     </MenuItem>
                 ))}

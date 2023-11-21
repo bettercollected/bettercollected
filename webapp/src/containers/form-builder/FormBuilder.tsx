@@ -7,7 +7,6 @@ import _ from 'lodash';
 import DragHandleIcon from '@Components/Common/Icons/DragHandle';
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
 import BuilderTips from '@Components/FormBuilder/BuilderTips';
-import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import { FormCoverComponent, FormLogoComponent } from '@Components/FormBuilder/Header';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
@@ -88,7 +87,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
     //
 
     // RTK
-    const [createFormAsTemplate] = useCreateTemplateFromFormMutation();
     const [updateTemplate] = usePatchTemplateMutation();
 
     useEffect(() => {
@@ -144,6 +142,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         publishRequest.title = builderState.title;
         publishRequest.description = builderState.description;
         let fields: any = Object.values(builderState.fields || {});
+        // TODO extract this to a function
         fields = fields.map((field: IFormFieldState) => {
             if (field?.type == FormBuilderTagNames.CONDITIONAL) {
                 return {

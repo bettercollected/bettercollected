@@ -109,6 +109,7 @@ export interface AnswerDto {
     phoneNumber?: string;
     phone_number?: string;
     choice?: {
+        id?: string;
         label?: string;
         value?: string;
     };
