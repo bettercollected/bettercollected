@@ -18,6 +18,7 @@ interface IConditionalListDropDown<T> {
 
 const ConditionalListDropDown = ({ size = 'large', className, defaultValue, value, items = [], labelPicker, onChange, multiple = false }: IConditionalListDropDown<any>) => {
     const [selectedState, setSelectedState] = useState(value || defaultValue || (multiple ? [] : null));
+
     const handleChange = (item: any) => {
         onChange && onChange(item);
         // setSelectedState(item);

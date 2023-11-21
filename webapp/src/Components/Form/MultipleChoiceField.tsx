@@ -16,10 +16,13 @@ export default function MultipleChoiceField({ field, ans, enabled }: FormFieldPr
         if (enabled) {
             const answer: any = {};
             answer.field = { id: field.id };
-            answer.choice = { value: choice.value };
+            answer.choice = { value: choice.value, id: choice.id };
             dispatch(addAnswer(answer));
         }
     };
+
+    const checkValue = (ans?.choice.value || '').match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+
     return (
         <div className="!mb-0 flex flex-col gap-3">
             {(field?.properties?.choices || []).map((choice: any, index: number) => (
@@ -35,7 +38,7 @@ export default function MultipleChoiceField({ field, ans, enabled }: FormFieldPr
                         className="!p-0 !rounded-full"
                         size="medium"
                         disabled={!enabled}
-                        checked={ans?.choice?.value === choice?.value || answer?.choice?.value === choice?.value}
+                        checked={!checkValue ? ans?.choice?.id === choice?.id || answer?.choice?.id === choice?.id : ans?.choice?.value === choice?.value || answer?.choice?.value === choice?.value}
                     />
                     <label htmlFor={choice?.value} className="!ml-2 body4">
                         {choice?.value}

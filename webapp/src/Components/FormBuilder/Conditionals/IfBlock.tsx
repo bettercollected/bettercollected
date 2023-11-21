@@ -9,7 +9,7 @@ import { MenuItem } from '@mui/material';
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addCondition, deleteCondition, setLogicalOperator, updateConditional } from '@app/store/form-builder/actions';
 import { selectFields, selectFormField } from '@app/store/form-builder/selectors';
-import { Comparison, Condition, IFormFieldState, LogicalOperator } from '@app/store/form-builder/types';
+import { Comparison, Condition, IChoiceFieldState, IFormFieldState, LogicalOperator } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { getComparisonsBasedOnFieldType } from '@app/utils/conditionalUtils';
 import { getPreviousField } from '@app/utils/formBuilderBlockUtils';
@@ -94,7 +94,10 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
             updateConditional({
                 fieldId: field.id,
                 conditionalId: condition.id,
-                data: { ...condition, value }
+                data: {
+                    ...condition,
+                    value: Array.isArray(value) ? value.map((val: IChoiceFieldState) => val.id) : value?.id
+                }
             })
         );
     };
@@ -120,6 +123,14 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
 
     const onClickLogicalOperator = (logicalOperator: LogicalOperator) => {
         dispatch(setLogicalOperator({ fieldId: field.id, logicalOperator }));
+    };
+
+    const getChoicesValues = () => {
+        return Object.values(selectedField?.properties?.choices || {}).filter((choice: any) => condition?.value.includes(choice.id));
+    };
+
+    const getChoiceValue = () => {
+        return Object.values(selectedField?.properties?.choices || {}).find((choice: any) => condition?.value.includes(choice.id));
     };
 
     return (
@@ -157,7 +168,7 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                     <div className="basis-2/5">
                         {condition.comparison && SingleOptionsValueFieldTypes.includes(selectedField?.type) && SingleOptionsValueComparisons.includes(condition.comparison) && (
                             <>
-                                <ConditionalListDropDown value={condition?.value} onChange={onOptionValueChange} labelPicker={(value: string) => value} items={Object.values(selectedField?.properties?.choices || {}).map((choice: any) => choice.value)} />
+                                <ConditionalListDropDown value={getChoiceValue()} onChange={onOptionValueChange} items={Object.values(selectedField?.properties?.choices || {}).map((choice: any) => choice)} />
                             </>
                         )}
                         {condition.comparison &&
@@ -184,13 +195,7 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                                 />
                             )}
                         {condition.comparison && MultipleOptionsValueFieldTypes.includes(selectedField?.type) && MultipleOptionsValueComparisons.includes(condition.comparison) && (
-                            <ConditionalListDropDown
-                                multiple
-                                value={condition?.value && Array.isArray(condition?.value) ? condition.value : []}
-                                onChange={onOptionValueChange}
-                                labelPicker={(value: string) => value}
-                                items={Object.values(selectedField?.properties?.choices || {}).map((choice) => choice.value)}
-                            />
+                            <ConditionalListDropDown multiple value={getChoicesValues()} onChange={onOptionValueChange} items={Object.values(selectedField?.properties?.choices || {}).map((choice) => choice)} />
                         )}
                     </div>
                 </div>
