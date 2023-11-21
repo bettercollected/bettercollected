@@ -15,7 +15,6 @@ import { downloadFile, generateFileMetaData } from '@app/utils/fileUtils';
 import { FormFieldProps } from './BetterCollectedForm';
 import useFormAtom from './atom';
 
-
 export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     const [isDragging, setIsDragging] = useState(false);
     const inputFileRef = useRef<HTMLInputElement | null>(null);
@@ -79,7 +78,7 @@ export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
         return (
             <div className="flex w-full space-x-2">
                 <div className="p1 flex w-full justify-between items-center rounded bg-blue-200 py-2 px-3 cursor-pointer" onClick={downloadFormFile}>
-                    <p>{fileMetaData?.name}</p>
+                    <p className="flex-1 truncate mr-5">{fileMetaData?.name}</p>
                     <p className="text-sm">{fileMetaData?.size} MB</p>
                 </div>
 
