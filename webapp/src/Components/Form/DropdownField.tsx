@@ -18,7 +18,7 @@ export default function DropdownField({ field, ans, enabled }: FormFieldProps) {
         dispatch(addAnswer(answer));
     };
 
-    const checkValue = !(ans?.choice.value || '').match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+    const checkValue = ans?.choice?.value && !(ans?.choice.value || '').match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
 
     return (
         <div className="relative w-fit">

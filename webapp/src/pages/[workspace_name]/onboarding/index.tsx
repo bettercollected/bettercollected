@@ -5,6 +5,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
@@ -79,11 +80,9 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                     {t(localesCommon.hey)} {user?.firstName || user?.email}!
                 </p>
                 <p className="pt-2 text-black-800 text-base">{t(onBoarding.welcomeMessage)}</p>
-                {/* <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">{t(onBoarding.description)}</p> */}
-                <AppButton className="mt-12 !py-3 px-8 bg-new-blue-500 hover:bg-brand-600" onClick={increaseStep}>
+                <AppButton className="mt-12 !py-3 px-8 bg-new-blue-500 hover:bg-brand-600" size={ButtonSize.Medium} onClick={increaseStep}>
                     {t(onBoarding.addYourOrganization)}
                 </AppButton>
-                {/* <p className="body2 !text-black-600 italic">{t(onBoarding.timeMessage)}</p> */}
             </div>
         </>
     );

@@ -823,5 +823,9 @@
     },
     "ARE_YOU_SURE": "Are you sure you want to make the"
   },
-  "CLICK_TO_COPY": "Click to Copy link"
+  "CLICK_TO_COPY": "Click to Copy link",
+  "LOGO": {
+    "UPDATE": "Update New Logo",
+    "REMOVE": "Remove Logo"
+  }
 }
