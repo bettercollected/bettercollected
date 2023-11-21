@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -21,6 +22,7 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl }: IUploadLogo
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
     const logoRef = useRef<HTMLInputElement | null>(null);
+    const { t } = useTranslation();
 
     React.useEffect(() => {
         if (logoImageUrl) {
@@ -69,11 +71,9 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl }: IUploadLogo
                         />
                     </div>
 
-                    <div onClick={() => logoRef.current?.click()} className="w-full rounded py-3 px-4 h-[36px] body4 bg-black-900 font-semibold hover:opacity-80 flex justify-center items-center cursor-pointer">
-                        <span className="text-black-100 text-xs sm:text-sm">Update New Logo</span>
-                    </div>
+                    <AppButton onClick={() => logoRef.current?.click()}>{t('LOGO.UPDATE')}</AppButton>
                     <AppButton variant={ButtonVariant.Secondary} onClick={onRemoveLogo}>
-                        Remove Logo
+                        {t('LOGO.REMOVE')}
                     </AppButton>
                 </div>
             )}

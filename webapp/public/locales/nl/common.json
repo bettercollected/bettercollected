@@ -814,5 +814,9 @@
     },
     "ARE_YOU_SURE": "Weet je zeker dat je de"
   },
-  "CLICK_TO_COPY": "Klik om koppeling te kopiëren"
+  "CLICK_TO_COPY": "Klik om koppeling te kopiëren",
+  "LOGO": {
+    "UPDATE": "Bijwerken nieuw logo",
+    "REMOVE": "Logo verwijderen"
+  }
 }
