@@ -177,7 +177,7 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
                     </div>
                     <TextFieldHandler formData={formData} workspaceNameSuggestion={workspaceNameSuggestion} setFormData={setFormData} errorWorkspaceName={errorWorkspaceName} />
                     <AppTextField title="Add Your Organization Description" id="description" placeholder="Write Description" multiline value={formData.description} onChange={handleOnchange} />
-                    <AppButton className="!w-full bg-new-blue-500 !py-3 !px-8 !mt-12 hover:bg-brand-600" type="submit">
+                    <AppButton className="w-full " type="submit">
                         {t(onBoarding.addNowButton)}
                     </AppButton>
                 </form>

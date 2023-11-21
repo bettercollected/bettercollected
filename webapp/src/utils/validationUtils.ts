@@ -182,7 +182,6 @@ const getValueToCompareBasedOnFieldType = (answer: any, fieldType?: FormBuilderT
             return answer?.choices?.values;
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
             return answer?.phone_number;
-
         default:
             return answer?.value;
     }
