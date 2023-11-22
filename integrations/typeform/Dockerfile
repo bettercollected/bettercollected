@@ -31,4 +31,6 @@ WORKDIR $PYSETUP_PATH
 RUN make install
 EXPOSE 8000/tcp
 
+HEALTHCHECK CMD curl http://localhost:8000
+
 CMD ["uvicorn", "typeform.app:get_application", "--host", "0.0.0.0", "--port", "8000"]
