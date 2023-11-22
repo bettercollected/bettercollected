@@ -53,6 +53,7 @@ export default function FormPage(props: any) {
     const router = useRouter();
     const { openModal } = useModal();
     const workspace = useAppSelector(selectWorkspace);
+    const workspaceForm = useAppSelector(selectForm);
     const paramTabs = [
         {
             icon: <Preview className="h-5 w-5" />,
@@ -158,7 +159,7 @@ export default function FormPage(props: any) {
                                         className="!px-0 sm:!px-5"
                                         onClick={() =>
                                             openModal('SHARE_VIEW', {
-                                                url: getFormUrl(form, workspace),
+                                                url: getFormUrl(workspaceForm, workspace),
                                                 title: t(formConstant.shareThisForm)
                                             })
                                         }
