@@ -177,7 +177,7 @@ const getValueToCompareBasedOnFieldType = (answer: any, fieldType?: FormBuilderT
             return answer?.date;
         case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
         case FormBuilderTagNames.INPUT_DROPDOWN:
-            return answer?.choice?.id;
+            return answer?.choice?.value;
         case FormBuilderTagNames.INPUT_CHECKBOXES:
             return answer?.choices?.values;
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
