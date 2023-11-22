@@ -8,7 +8,7 @@ export interface IBuilderMenuState {
     spotlightField?: { isOpen: boolean; afterFieldUuid: string };
     commands?: { isOpen: boolean; atFieldUuid: string; position: 'up' | 'down' };
     fieldSettings?: { isOpen: boolean; atFieldUuid: string };
-    pipingFields?: { isOpen: boolean; atFieldUuid: string };
+    pipingFields?: { isOpen: boolean; atFieldUuid: string; position: 'up' | 'down'; atChar?: number };
     pipingFieldSettings?: { isOpen: boolean; uuid: string };
 }
 

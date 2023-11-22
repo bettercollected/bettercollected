@@ -429,7 +429,6 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
                     </div>
                     {typeTagList.map((tag: any, index: number) => {
                         const isSelected = selectedTag.blockType === blockType && selectedTag.index === index;
-
                         return <TagListItem key={index} tag={tag} index={index} blockType={blockType} isSelected={isSelected} handleSelection={handleSelection} setSelectedTag={setSelectedTag} />;
                     })}
                 </ul>
