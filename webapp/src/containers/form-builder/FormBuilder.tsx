@@ -39,6 +39,7 @@ import { updateStatus } from '@app/store/mutations/slice';
 import { useCreateTemplateFromFormMutation, usePatchTemplateMutation } from '@app/store/template/api';
 import { usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
+import { getTextWidth } from '@app/utils/domUtils';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
 import { throttle } from '@app/utils/throttleUtils';
 
@@ -240,7 +241,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         }
     }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages, consentState, imagesRemoved, builderState.settings]);
 
-    const openTagSelector = (event: any) => {
+    const openMenu = (event: any, menuType: string) => {
         const viewportHeight = window.innerHeight;
         const boundingRect = event.target.getBoundingClientRect();
         const bottomPosition = boundingRect.bottom ?? 0;
@@ -250,14 +251,23 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
                 isFormDirty: true,
                 menus: {
                     ...builderState.menus,
-                    commands: {
+                    [menuType]: {
                         isOpen: true,
                         atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '',
-                        position: bottomPosition + 300 > viewportHeight ? 'up' : 'down'
+                        position: bottomPosition + 300 > viewportHeight ? 'up' : 'down',
+                        atChar: getTextWidth(builderState.fields[builderState.activeFieldId].value || '')
                     }
                 }
             })
         );
+    };
+
+    const openTagSelector = (event: any) => {
+        openMenu(event, 'commands');
+    };
+
+    const openFieldSelector = (event: any) => {
+        openMenu(event, 'pipingFields');
     };
 
     useEffect(() => {
@@ -274,10 +284,12 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         // Listens events from the HOCs
         eventBus.on(EventBusEventType.FormBuilder.Preview, onPreview);
         eventBus.on(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
+        eventBus.on(EventBusEventType.FormBuilder.OpenFieldSelector, openFieldSelector);
 
         return () => {
             eventBus.removeListener(EventBusEventType.FormBuilder.Preview, onPreview);
             eventBus.removeListener(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
+            eventBus.removeListener(EventBusEventType.FormBuilder.OpenFieldSelector, openFieldSelector);
             document.removeEventListener('blur', onBlurCallback);
         };
     }, [builderState]);
