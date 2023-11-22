@@ -95,8 +95,18 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
                 return answer?.date;
             case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
             case FormBuilderTagNames.INPUT_DROPDOWN:
+                const compareValue = !answer?.choice?.value?.match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+                if (compareValue) {
+                    return inputField?.properties?.choices.find((choice: any) => choice.value === answer?.choice?.value)?.value;
+                }
                 return inputField?.properties?.choices?.find((choice: any) => choice.id === answer?.choice?.value)?.value;
             case FormBuilderTagNames.INPUT_CHECKBOXES:
+                const choicesAnswers = answer?.choices?.values;
+                const compareIds = Array.isArray(choicesAnswers) && choicesAnswers.length > 0 && choicesAnswers?.every((choice: any) => choice.match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'));
+                if (!compareIds) {
+                    const choices = inputField?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.value));
+                    return choices?.map((choice: any) => choice.value)?.join(', ');
+                }
                 const choices = inputField?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.id));
                 return choices?.map((choice: any) => choice.value)?.join(', ');
             case FormBuilderTagNames.INPUT_PHONE_NUMBER:
