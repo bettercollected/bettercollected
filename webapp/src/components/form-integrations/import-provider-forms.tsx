@@ -135,6 +135,7 @@ export default function ImportProviderForms(props: any) {
         }
         if (stepCount === 1 && provider) {
             (async () => await minifiedFormsTrigger({ provider }))();
+            selectedForm && (async () => await singleFormFromProviderTrigger({ formId: selectedForm?.formId, provider }))();
         }
         if (stepCount === 2 && provider && selectedForm) {
             (async () => await singleFormFromProviderTrigger({ formId: selectedForm?.formId, provider }))();
@@ -213,8 +214,13 @@ export default function ImportProviderForms(props: any) {
                     renderInput={(params) => <TextField {...params} label={provider === Provider.google ? t(importFormConstant.textLabel.googleForm) : t(importFormConstant.textLabel.typeform)} />}
                 />
                 <div>
-                    <AppButton isLoading={!!minifiedFormsResult?.isLoading} onClick={() => handleNext(provider)} disabled={!selectedForm} size={ButtonSize.Medium}>
-                        {t(buttonConstant.next)}
+                    <AppButton
+                        isLoading={!!minifiedFormsResult?.isLoading || !!importFormResult?.isLoading || !!singleFormFromProviderResult?.isLoading}
+                        onClick={handleImportForm}
+                        disabled={!selectedForm || !!singleFormFromProviderResult?.isLoading}
+                        size={ButtonSize.Medium}
+                    >
+                        {t(buttonConstant.importNow)}
                     </AppButton>
                 </div>
             </div>
@@ -293,7 +299,7 @@ export default function ImportProviderForms(props: any) {
                 <div className="relative flex flex-col items-center gap-7 justify-between p-4 md:p-10">
                     {stepCount === 0 && stepZeroContent}
                     {stepCount === 1 && stepOneContent}
-                    {stepCount === 2 && stepTwoContent}
+                    {/*{stepCount === 2 && stepTwoContent}*/}
                 </div>
                 <div className="cursor-pointer absolute top-3 right-3 text-gray-600 hover:text-black" onClick={() => closeModal()}>
                     <Close className="h-auto w-3 text-gray-600 dark:text-white" />
