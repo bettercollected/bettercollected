@@ -18,7 +18,6 @@ import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation } from '@app/s
 import { useAppSelector } from '@app/store/hooks';
 import { capitalize } from '@app/utils/stringUtils';
 
-
 interface OtpEmailInputPropType {
     isCreator: boolean;
     isModal?: boolean;
@@ -128,7 +127,7 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                 </>
             )}
             <p className="text-base font-semibold mb-3 mt-[44px] text-black-900">{constants.emailInputLabel}</p>
-            <AppTextField type={'email'} required={true} placeholder={constants.enterYourEmail} value={email} onChange={handleEmailInput} />
+            <AppTextField autoFocus type={'email'} required={true} placeholder={constants.enterYourEmail} value={email} onChange={handleEmailInput} />
             <AppButton type={'submit'} variant={ButtonVariant.Primary} isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={`w-full mt-6 ${isModal ? 'mb-10' : ''}`} size={ButtonSize.Medium}>
                 {constants.sendCodeButton}
             </AppButton>
