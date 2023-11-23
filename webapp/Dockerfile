@@ -34,8 +34,6 @@ USER node
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
 EXPOSE 3000
 
-HEALTHCHECK CMD curl -i http://localhost:3000
-
 CMD ["./entrypoint.sh"]
 
 # You only need to copy next.config.js if you are NOT using the default configuration
