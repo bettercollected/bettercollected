@@ -71,10 +71,14 @@ const TextFieldHandler = ({ formData, workspaceNameSuggestion, setFormData, erro
     const [handleName, setHandleName] = useState(formData.title);
 
     useEffect(() => {
-        setHandleName(formData.title.toLowerCase());
+        const title = formData.title
+            .replace(/\s/g, '')
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .toLowerCase();
+        setHandleName(title);
         setFormData({
             ...formData,
-            workspaceName: formData.title.toLowerCase()
+            workspaceName: title
         });
     }, [formData.title]);
 
@@ -94,12 +98,13 @@ const TextFieldHandler = ({ formData, workspaceNameSuggestion, setFormData, erro
                 setIsErrorWorkspaceName(false);
                 checkWorkspacename(inputText.toLowerCase());
             }
+        } else {
+            setFormData({
+                ...formData,
+                workspaceName: inputText.toLowerCase()
+            });
         }
         setHandleName(inputText.toLowerCase());
-        setFormData({
-            ...formData,
-            workspaceName: inputText.toLowerCase()
-        });
     };
 
     return (
