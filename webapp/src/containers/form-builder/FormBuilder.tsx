@@ -245,7 +245,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         const boundingRect = event.target.getBoundingClientRect();
         const bottomPosition = boundingRect.bottom ?? 0;
 
-        const handleSelection = () => {
+        const getPosition = () => {
             const selection: any = window.getSelection();
             if (selection && selection.rangeCount > 0) {
                 const range = selection.getRangeAt(0);
@@ -256,6 +256,10 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
                     }
                 }
             }
+            return {
+                top: boundingRect.top,
+                left: boundingRect.left
+            };
         };
 
         dispatch(
@@ -267,7 +271,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
                         isOpen: true,
                         atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '',
                         position: bottomPosition + 300 > viewportHeight ? 'up' : 'down',
-                        pos: handleSelection()
+                        pos: getPosition()
                     }
                 }
             })

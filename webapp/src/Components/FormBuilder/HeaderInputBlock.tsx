@@ -10,9 +10,9 @@ import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
 import useUndoRedo from '@app/lib/use-undo-redo';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setBuilderMenuState, setBuilderState, setUpdateField } from '@app/store/form-builder/actions';
-import { selectMenuState } from '@app/store/form-builder/selectors';
+import { selectFields, selectMenuState } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
-import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
+import { contentEditableClassNames, convertPlaceholderToDisplayValue, getDisplayNameForField } from '@app/utils/formBuilderBlockUtils';
 
 interface IHeaderInputBlockProps {
     field: any;
@@ -44,6 +44,9 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
     const { isUndoRedoInProgress } = useUndoRedo();
     const pipingFieldMenuState: any = useAppSelector(selectMenuState('pipingFields'));
 
+    const fieldsRecord = useAppSelector(selectFields);
+    const fields = Object.values(fieldsRecord);
+
     function convertEntitiesToNormal(inputString: string): string {
         const entityRegex = /&(#\d+|[\w]+);/g;
 
@@ -68,7 +71,7 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
 
     function convertSpanToPlaceholder(contentEditableContent: string) {
         // Create a regular expression to match the span element with a data-field-id attribute
-        const spanRegex = /<span[^>]*data-field-id="(\w+)"[^>]*>(.*?)<\/span>/g;
+        const spanRegex = /<span[^>]*data-field-id="([0-9a-fA-F-]+)"[^>]*>(.*?)<\/span>/g;
 
         // Use replace with a callback function to replace the span element with the placeholder
         const spanReplacedString = contentEditableContent.replace(spanRegex, (match, fieldId) => {
@@ -116,18 +119,19 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
     };
 
     function convertPlaceholderToSpan(inputString?: string) {
-        const placeholderRegex = /{{\s*(\w+)\s*}}/g;
+        const placeholderRegex = /{{\s*([0-9a-fA-F-]+)\s*}}/g;
 
         // Use replace with a callback function to replace the placeholder
         return inputString?.replace(placeholderRegex, (match, fieldId) => {
+            const displayName = getDisplayNameForField(fields, fieldId);
             // Replace the placeholder with a <span> element containing the field value
-            return `<span contenteditable="false" class="bg-black-300 rounded p-1" data-field-id="${fieldId}">[Some content from ${fieldId}]</span>`;
+            return `<span contenteditable="false" class="bg-black-300 rounded p-1" data-field-id="${fieldId}">@${convertPlaceholderToDisplayValue(fields, displayName)}</span>`;
         });
     }
 
     return (
         <div>
-            {pipingFieldMenuState?.isOpen && pipingFieldMenuState?.atFieldUuid === field?.id && <FormBuilderFieldSelector />}
+            {pipingFieldMenuState?.isOpen && pipingFieldMenuState?.atFieldUuid === field?.id && <FormBuilderFieldSelector field={field} />}
             <CustomContentEditable
                 type={field?.type}
                 tagName="p"

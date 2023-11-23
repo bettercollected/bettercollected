@@ -1,7 +1,7 @@
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { v4 } from 'uuid';
 
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
 
 export function extractBlockTypeNames() {}
@@ -87,4 +87,31 @@ export function getPreviousField(fields: Array<IFormFieldState>, currentField: I
 
 export function getNextField(fields: Array<IFormFieldState>, currentField: IFormFieldState) {
     return fields[currentField.position + 1] || undefined;
+}
+
+export function getDisplayNameForField(fields: Array<IFormFieldState>, fieldId: string) {
+    const currentField = fields.find((field: any) => field.id === fieldId);
+    if (currentField) {
+        const previousField = getPreviousField(fields, currentField);
+        let text = currentField.properties?.placeholder;
+        if (LabelFormBuilderTagNames.includes(previousField?.type)) {
+            text = previousField?.value;
+        }
+        return text;
+    }
+    return '';
+}
+
+export function convertPlaceholderToDisplayValue(fields: Array<IFormFieldState>, inputString?: string): string {
+    const placeholderRegex = /{{\s*([0-9a-fA-F-]+)\s*}}/g;
+
+    // Use replace with a callback function to replace the placeholder
+    let displayString = inputString?.replace(placeholderRegex, (match, fieldId) => {
+        return `@${getDisplayNameForField(fields, fieldId)}`;
+    });
+
+    if (displayString?.match(placeholderRegex)) {
+        displayString = convertPlaceholderToDisplayValue(fields, displayString);
+    }
+    return displayString || '';
 }
