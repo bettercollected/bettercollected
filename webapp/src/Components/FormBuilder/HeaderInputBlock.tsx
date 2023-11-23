@@ -1,5 +1,6 @@
-import React, { FormEvent } from 'react';
+import React from 'react';
 
+import FormBuilderFieldSelector from '@Components/FormBuilder/BuilderBlock/FormBuilderFieldSelector';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import { batch, useDispatch } from 'react-redux';
 
@@ -12,7 +13,6 @@ import { setBuilderMenuState, setBuilderState, setUpdateField } from '@app/store
 import { selectMenuState } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
-import { getLastItem } from '@app/utils/stringUtils';
 
 interface IHeaderInputBlockProps {
     field: any;
@@ -43,17 +43,62 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
     const { handleUserTypingEnd } = useUserTypingDetection();
     const { isUndoRedoInProgress } = useUndoRedo();
     const pipingFieldMenuState: any = useAppSelector(selectMenuState('pipingFields'));
+
+    function convertEntitiesToNormal(inputString: string): string {
+        const entityRegex = /&(#\d+|[\w]+);/g;
+
+        return inputString.replace(entityRegex, (match, entity) => {
+            if (entity.startsWith('#')) {
+                // Numeric ASCII code
+                const asciiCode = parseInt(entity.substring(1), 10);
+                return String.fromCharCode(asciiCode);
+            } else {
+                // Named HTML entity
+                const div = document.createElement('div');
+                div.innerHTML = `&${entity};`;
+                const textContent = div.textContent || div.innerText;
+
+                // Remove the temporary div element
+                div.remove();
+
+                return textContent;
+            }
+        });
+    }
+
+    function convertSpanToPlaceholder(contentEditableContent: string) {
+        // Create a regular expression to match the span element with a data-field-id attribute
+        const spanRegex = /<span[^>]*data-field-id="(\w+)"[^>]*>(.*?)<\/span>/g;
+
+        // Use replace with a callback function to replace the span element with the placeholder
+        const spanReplacedString = contentEditableContent.replace(spanRegex, (match, fieldId) => {
+            return `{{ ${fieldId} }}`;
+        });
+
+        return convertEntitiesToNormal(spanReplacedString);
+    }
+
+    function isAtSymbolRemoved(original: string, modified: string) {
+        const regex = /@/;
+        const originalCount = (original.match(regex) || []).length;
+        const modifiedCount = (modified.match(regex) || []).length;
+
+        return originalCount - modifiedCount === 1;
+    }
+
     const onChange = (event: any) => {
+        const value = convertSpanToPlaceholder(event?.target?.value || '');
+
         batch(() => {
             // @ts-ignore
-            if (event.nativeEvent.inputType === 'deleteContentBackward' && getLastItem(field.value ?? '') === '@') {
+            if (event.nativeEvent.inputType === 'deleteContentBackward' && isAtSymbolRemoved(field?.value, value)) {
                 dispatch(
                     setBuilderMenuState({
                         pipingFields: {
+                            ...pipingFieldMenuState,
                             isOpen: false,
                             atFieldUuid: '',
-                            position: 'down',
-                            atChar: event?.target?.innerText?.length || 0
+                            position: 'down'
                         }
                     })
                 );
@@ -63,31 +108,32 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
             dispatch(
                 setUpdateField({
                     ...field,
-                    value: event.currentTarget.innerText
+                    value: value
                 })
             );
             handleUserTypingEnd();
         });
     };
 
+    function convertPlaceholderToSpan(inputString?: string) {
+        const placeholderRegex = /{{\s*(\w+)\s*}}/g;
+
+        // Use replace with a callback function to replace the placeholder
+        return inputString?.replace(placeholderRegex, (match, fieldId) => {
+            // Replace the placeholder with a <span> element containing the field value
+            return `<span contenteditable="false" class="bg-black-300 rounded p-1" data-field-id="${fieldId}">[Some content from ${fieldId}]</span>`;
+        });
+    }
+
     return (
-        <div className="relative">
-            {pipingFieldMenuState?.isOpen && pipingFieldMenuState?.atFieldUuid === field?.id && (
-                <div
-                    style={{
-                        left: pipingFieldMenuState?.atChar
-                    }}
-                    className={`h-10 w-fit p-2 rounded absolute bg-white drop-shadow-lg top-full z-[100]`}
-                >
-                    List will be here
-                </div>
-            )}
+        <div>
+            {pipingFieldMenuState?.isOpen && pipingFieldMenuState?.atFieldUuid === field?.id && <FormBuilderFieldSelector />}
             <CustomContentEditable
                 type={field?.type}
                 tagName="p"
                 position={position}
                 id={id}
-                value={field?.value || ''}
+                value={convertPlaceholderToSpan(field?.value) || ''}
                 className={'w-full  ' + contentEditableClassNames(false, field?.type, true)}
                 onChangeCallback={onChange}
                 placeholder={t('COMPONENTS.HEADER.' + getPlaceholder(field?.type))}

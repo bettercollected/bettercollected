@@ -36,7 +36,7 @@ import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { updateStatus } from '@app/store/mutations/slice';
-import { useCreateTemplateFromFormMutation, usePatchTemplateMutation } from '@app/store/template/api';
+import { usePatchTemplateMutation } from '@app/store/template/api';
 import { usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
 import { getTextWidth } from '@app/utils/domUtils';
@@ -56,7 +56,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
     const { openModal } = useFullScreenModal();
     const { openModal: openHalfScreenModal } = useModal();
     const fullScreenModal = useFullScreenModal();
-    const modal = useModal();
 
     // Translation
     const { t } = useBuilderTranslation();
@@ -246,6 +245,19 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         const boundingRect = event.target.getBoundingClientRect();
         const bottomPosition = boundingRect.bottom ?? 0;
 
+        const handleSelection = () => {
+            const selection: any = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                if (range) {
+                    const rects = range.getClientRects();
+                    if (rects.length > 0) {
+                        return { top: rects[0].top, left: rects[0].left };
+                    }
+                }
+            }
+        };
+
         dispatch(
             setBuilderState({
                 isFormDirty: true,
@@ -255,7 +267,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
                         isOpen: true,
                         atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '',
                         position: bottomPosition + 300 > viewportHeight ? 'up' : 'down',
-                        atChar: getTextWidth(builderState.fields[builderState.activeFieldId].value || '')
+                        pos: handleSelection()
                     }
                 }
             })
