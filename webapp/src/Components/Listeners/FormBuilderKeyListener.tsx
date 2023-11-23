@@ -57,7 +57,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
 
                 if (event.key === 'Escape') {
                     dispatch(resetBuilderMenuState());
-                } else if (builderState.menus?.commands?.isOpen || fullScreenModal.isOpen || modal.isOpen || builderState.menus?.spotlightField?.isOpen) {
+                } else if (builderState.menus?.commands?.isOpen || fullScreenModal.isOpen || modal.isOpen || builderState.menus?.spotlightField?.isOpen || builderState?.menus?.pipingFields?.isOpen) {
                     return;
                 } else if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
                     event.preventDefault();
