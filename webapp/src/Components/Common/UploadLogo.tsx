@@ -70,9 +70,10 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl }: IUploadLogo
                             className="top-2 right-2 cursor-pointer p-2 h-8 w-8"
                         />
                     </div>
-
-                    <AppButton onClick={() => logoRef.current?.click()}>{t('LOGO.UPDATE')}</AppButton>
-                    <AppButton variant={ButtonVariant.Secondary} onClick={onRemoveLogo}>
+                    <label onClick={() => logoRef.current?.click()} className="w-full rounded py-3 px-4 h-[36px] body4 bg-black-900 font-semibold hover:opacity-80 flex justify-center items-center">
+                        <span className="text-black-100 text-xs sm:text-sm">{t('LOGO.UPDATE')}</span>
+                    </label>
+                    <AppButton className="!text-black-900 font-semibold !bg-black-300 hover:!bg-black-400 " onClick={onRemoveLogo}>
                         {t('LOGO.REMOVE')}
                     </AppButton>
                 </div>
