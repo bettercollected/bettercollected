@@ -1,6 +1,7 @@
 import React from 'react';
 
 import FormBuilderFieldSelector from '@Components/FormBuilder/BuilderBlock/FormBuilderFieldSelector';
+import MentionedFieldSettings from '@Components/FormBuilder/BuilderBlock/MentionedFieldSettings';
 import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import { batch, useDispatch } from 'react-redux';
 
@@ -13,6 +14,7 @@ import { setBuilderMenuState, setBuilderState, setUpdateField } from '@app/store
 import { selectFields, selectMenuState } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
 import { contentEditableClassNames, convertPlaceholderToDisplayValue, getDisplayNameForField } from '@app/utils/formBuilderBlockUtils';
+import { toEndDottedStr } from '@app/utils/stringUtils';
 
 interface IHeaderInputBlockProps {
     field: any;
@@ -43,6 +45,7 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
     const { handleUserTypingEnd } = useUserTypingDetection();
     const { isUndoRedoInProgress } = useUndoRedo();
     const pipingFieldMenuState: any = useAppSelector(selectMenuState('pipingFields'));
+    const pipingSettingsState = useAppSelector(selectMenuState('pipingFieldSettings'));
 
     const fieldsRecord = useAppSelector(selectFields);
     const fields = Object.values(fieldsRecord);
@@ -125,13 +128,17 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
         return inputString?.replace(placeholderRegex, (match, fieldId) => {
             const displayName = getDisplayNameForField(fields, fieldId);
             // Replace the placeholder with a <span> element containing the field value
-            return `<span contenteditable="false" class="bg-black-300 rounded p-1" data-field-id="${fieldId}">@${convertPlaceholderToDisplayValue(fields, displayName)}</span>`;
+            return `<span contenteditable="false" class="bg-black-300 max-w-[200px] truncate rounded p-1 cursor-pointer" data-current-field="${field.id}" data-field-id="${fieldId}">@${toEndDottedStr(
+                convertPlaceholderToDisplayValue(fields, displayName),
+                24
+            )}</span>`;
         });
     }
 
     return (
         <div>
             {pipingFieldMenuState?.isOpen && pipingFieldMenuState?.atFieldUuid === field?.id && <FormBuilderFieldSelector field={field} />}
+            {pipingSettingsState?.isOpen && pipingSettingsState?.atFieldId === field?.id && <MentionedFieldSettings field={field} />}
             <CustomContentEditable
                 type={field?.type}
                 tagName="p"

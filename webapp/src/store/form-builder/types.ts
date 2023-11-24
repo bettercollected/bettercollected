@@ -8,8 +8,19 @@ export interface IBuilderMenuState {
     spotlightField?: { isOpen: boolean; afterFieldUuid: string };
     commands?: { isOpen: boolean; atFieldUuid: string; position: 'up' | 'down' };
     fieldSettings?: { isOpen: boolean; atFieldUuid: string };
-    pipingFields?: { isOpen: boolean; atFieldUuid: string; position: 'up' | 'down'; atChar?: number; pos: { top: number; left: number } };
-    pipingFieldSettings?: { isOpen: boolean; uuid: string };
+    pipingFields?: {
+        isOpen: boolean;
+        atFieldUuid: string;
+        position: 'up' | 'down';
+        atChar?: number;
+        pos: { top: number; left: number };
+    };
+    pipingFieldSettings?: {
+        isOpen: boolean;
+        atFieldId: string;
+        mentionedFieldId: string;
+        pos: { top: number; left: number };
+    };
 }
 
 export interface IChoiceFieldState {
@@ -91,6 +102,7 @@ export interface IFormFieldProperties {
     actions?: {
         [actionId: string]: ConditionalActions;
     };
+    mentions?: Record<string, string>;
 }
 
 export enum Comparison {
