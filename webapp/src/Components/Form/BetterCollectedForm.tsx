@@ -9,6 +9,7 @@ import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
 import FieldValidations from '@Components/Form/FieldValidations';
 import FileUpload from '@Components/Form/FileUpload';
+import LayoutFields from '@Components/Form/LayoutFields';
 import LongText from '@Components/Form/LongText';
 import MultipleChoiceField from '@Components/Form/MultipleChoiceField';
 import PhoneNumber from '@Components/Form/PhoneNumber';
@@ -39,7 +40,7 @@ export interface FormFieldProps {
     enabled?: boolean;
 }
 
-const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?: any) => {
+const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?: any, fields?: Array<StandardFormFieldDto>) => {
     switch (field?.type) {
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
         case FormBuilderTagNames.LAYOUT_HEADER3:
@@ -47,7 +48,7 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
         case FormBuilderTagNames.LAYOUT_HEADER4:
         case FormBuilderTagNames.LAYOUT_HEADER2:
         case FormBuilderTagNames.LAYOUT_LABEL:
-            return <div className={contentEditableClassNames(false, field?.type, enabled) + ' mt-6 '}>{field?.value}</div>;
+            return <LayoutFields field={field} enabled={!!enabled} fields={fields} />;
         case FormBuilderTagNames.LAYOUT_MARKDOWN:
             return <MarkdownText text={field.value ?? ''} />;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
@@ -267,7 +268,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 <div className="flex flex-col w-full gap-2">
                     {updatedForm?.fields?.map((field: StandardFormFieldDto) => (
                         <div key={field?.id} className="relative w-full" id={field?.id}>
-                            {!field?.properties?.hidden && renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
+                            {!field?.properties?.hidden && renderFormField(field, enabled, response?.answers[field.id] || answers[field.id], updatedForm?.fields)}
                             <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
                         </div>
                     ))}

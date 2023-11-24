@@ -161,7 +161,7 @@ const validateCondition = (answers: Record<string, any>, condition: Condition): 
     }
 };
 
-const getValueToCompareBasedOnFieldType = (answer: any, fieldType?: FormBuilderTagNames) => {
+export const getValueToCompareBasedOnFieldType = (answer: any, fieldType?: FormBuilderTagNames) => {
     switch (fieldType) {
         case FormBuilderTagNames.INPUT_RATING:
         case FormBuilderTagNames.INPUT_NUMBER:
