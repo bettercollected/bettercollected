@@ -29,19 +29,19 @@ export function contentEditableClassNames(isPlaceholder: boolean, tag: string = 
 
     switch (tag) {
         case FormBuilderTagNames.LAYOUT_HEADER1:
-            className += ' text-[24px] font-semibold';
+            className += ' text-[32px] font-bold text-black-800';
             break;
         case FormBuilderTagNames.LAYOUT_HEADER2:
-            className += ' text-[20px] font-semibold';
+            className += ' text-[24px] font-semibold text-black-800';
             break;
         case FormBuilderTagNames.LAYOUT_HEADER3:
-            className += ' text-[18px] font-semibold';
+            className += ' text-[20px] font-semibold text-black-800';
             break;
         case FormBuilderTagNames.LAYOUT_HEADER4:
-            className += ' text-base font-semibold';
+            className += ' text-[16px] text-black-800 font-medium';
             break;
         case FormBuilderTagNames.LAYOUT_LABEL:
-            className += ' text-[14px] font-medium leading-6';
+            className += ' text-[16px] font-medium leading-normal text-black-800';
             break;
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
             className += ' text-base';

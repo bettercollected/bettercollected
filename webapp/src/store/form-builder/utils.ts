@@ -12,7 +12,7 @@ export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionOb
         key: 'title',
         position: -2,
         placeholder: 'FORM_TITLE.PLACEHOLDER',
-        className: 'font-semibold text-[24px] text-black-900'
+        className: 'font-bold text-[32px] text-black-800'
     },
     {
         id: 'item-form-description',
@@ -21,7 +21,7 @@ export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionOb
         key: 'description',
         position: -1,
         placeholder: 'FORM_DESCRIPTION.PLACEHOLDER',
-        className: 'text-[14px] text-black-700 '
+        className: 'text-[16px] font-normal text-black-700 '
     }
 ];
 
