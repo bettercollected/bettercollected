@@ -1,8 +1,10 @@
 import React from 'react';
 
+import { batch } from 'react-redux';
+
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { setUpdateField } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setUpdateField } from '@app/store/form-builder/actions';
 import { selectActiveFieldIndex, selectFields, selectMenuState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -45,12 +47,15 @@ export default function FormBuilderFieldSelector({ field }: { field: IFormFieldS
         return inputString;
     };
     const onClickField = (inputField: any) => {
-        dispatch(
-            setUpdateField({
-                ...field,
-                value: replaceLastAt(field.value || '', `{{ ${inputField.fieldId} }}`)
-            })
-        );
+        batch(() => {
+            dispatch(
+                setUpdateField({
+                    ...field,
+                    value: replaceLastAt(field.value || '', `{{ ${inputField.fieldId} }}`)
+                })
+            );
+            dispatch(resetBuilderMenuState());
+        });
     };
 
     return (

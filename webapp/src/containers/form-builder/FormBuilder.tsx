@@ -30,7 +30,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { selectConsentState } from '@app/store/consent/selectors';
-import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setFields } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderMenuState, setBuilderState, setFields } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
@@ -39,7 +39,6 @@ import { updateStatus } from '@app/store/mutations/slice';
 import { usePatchTemplateMutation } from '@app/store/template/api';
 import { usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
-import { getTextWidth } from '@app/utils/domUtils';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
 import { throttle } from '@app/utils/throttleUtils';
 
@@ -286,6 +285,24 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         openMenu(event, 'pipingFields');
     };
 
+    function onClickMentionElement(event: Event) {
+        const targetElement = event.target as HTMLElement;
+        const mentionedFieldId = targetElement.getAttribute('data-field-id');
+        const currentField = targetElement.getAttribute('data-current-field');
+
+        const boundingRect = targetElement.getBoundingClientRect();
+        dispatch(
+            setBuilderMenuState({
+                pipingFieldSettings: {
+                    isOpen: true,
+                    atFieldId: currentField || '',
+                    mentionedFieldId: mentionedFieldId || '',
+                    pos: { top: boundingRect.top, left: boundingRect.left }
+                }
+            })
+        );
+    }
+
     useEffect(() => {
         resetImages();
         return () => {
@@ -302,11 +319,18 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         eventBus.on(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
         eventBus.on(EventBusEventType.FormBuilder.OpenFieldSelector, openFieldSelector);
 
+        document.querySelectorAll('[data-field-id]').forEach((element: Element) => {
+            element.addEventListener('click', onClickMentionElement);
+        });
+
         return () => {
             eventBus.removeListener(EventBusEventType.FormBuilder.Preview, onPreview);
             eventBus.removeListener(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
             eventBus.removeListener(EventBusEventType.FormBuilder.OpenFieldSelector, openFieldSelector);
             document.removeEventListener('blur', onBlurCallback);
+            document.querySelectorAll('[data-field-id]').forEach((element: Element) => {
+                element.removeEventListener('click', onClickMentionElement);
+            });
         };
     }, [builderState]);
 
