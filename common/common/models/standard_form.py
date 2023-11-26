@@ -4,9 +4,8 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
-from pydantic import BaseModel, Field
-
 from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
+from pydantic import BaseModel, Field
 
 
 class EmbedProvider(str, enum.Enum):
@@ -273,6 +272,7 @@ class StandardFieldProperty(BaseModel):
     conditions: Optional[List[Condition]]
     logical_operator: Optional[LogicalOperator]
     update_id: Optional[str]
+    mentions: Optional[Dict[str, str]]
 
 
 class StandardFieldValidations(BaseModel):

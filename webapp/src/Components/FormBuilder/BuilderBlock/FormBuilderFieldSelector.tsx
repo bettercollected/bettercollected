@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import { batch } from 'react-redux';
 
-import { StandardFormFieldDto } from '@app/models/dtos/form';
+import useClickOutsideMenu from '@app/lib/hooks/use-click-outside-menu';
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { resetBuilderMenuState, setUpdateField } from '@app/store/form-builder/actions';
 import { selectActiveFieldIndex, selectFields, selectMenuState } from '@app/store/form-builder/selectors';
@@ -18,6 +18,8 @@ export default function FormBuilderFieldSelector({ field }: { field: IFormFieldS
     const dispatch = useAppDispatch();
     const fields = Object.values(formFields);
     const activeFieldPosition = useAppSelector(selectActiveFieldIndex);
+
+    useClickOutsideMenu('field-selector');
     const getFilteredInputFields = () => {
         const filteredFields: Array<any> = [];
         fields.forEach((field) => {
@@ -61,6 +63,7 @@ export default function FormBuilderFieldSelector({ field }: { field: IFormFieldS
     return (
         <>
             <div
+                id="field-selector"
                 style={{
                     position: 'fixed',
                     left: pipingFieldMenuState?.pos?.left,

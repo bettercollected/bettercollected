@@ -286,6 +286,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
     };
 
     function onClickMentionElement(event: Event) {
+        event.stopPropagation();
+        event.preventDefault();
         const targetElement = event.target as HTMLElement;
         const mentionedFieldId = targetElement.getAttribute('data-field-id');
         const currentField = targetElement.getAttribute('data-current-field');

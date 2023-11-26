@@ -75,6 +75,7 @@ class StandardFieldPropertyCamelModel(CamelModel):
     actions: Optional[List[ConditionalActionsCamelModel]]
     conditions: Optional[List[ConditionCamelModel]]
     logical_operator: Optional[LogicalOperator]
+    mentions: Optional[Dict[str, str]]
 
 
 class StandardFormFieldCamelModel(CamelModel):
