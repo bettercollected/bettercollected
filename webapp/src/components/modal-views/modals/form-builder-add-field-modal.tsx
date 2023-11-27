@@ -1,4 +1,4 @@
-import { allowedLayoutTags, allowedQuestionAndAnswerTags } from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
+import { allowedConditionalTags, allowedLayoutTags, allowedQuestionAndAnswerTags } from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
 import { batch } from 'react-redux';
 import { v4 } from 'uuid';
 
@@ -19,11 +19,11 @@ const Fields = [
     {
         title: 'INSERT_MENU.LAYOUTS',
         items: allowedLayoutTags
+    },
+    {
+        title: 'Advanced Fields',
+        items: allowedConditionalTags
     }
-    // {
-    //     title: 'Elements without Label',
-    //     items: allowedInputTags
-    // }
 ];
 
 export default function FormBuilderAddFieldModal({ index }: { index?: number }) {
@@ -72,7 +72,7 @@ export default function FormBuilderAddFieldModal({ index }: { index?: number }) 
                 <div key={t(fieldType.title)} className="flex flex-col">
                     <div className="body1 mb-6">{t(fieldType.title)}</div>
                     <div className="grid gap-x-12 gap-y-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-                        {fieldType.items.map((tag, index) => (
+                        {fieldType.items.map((tag: any, index: number) => (
                             <div
                                 key={tag.id}
                                 className="flex cursor-pointer hover:bg-gray-100 h-12 p-2 items-center rounded gap-2"
