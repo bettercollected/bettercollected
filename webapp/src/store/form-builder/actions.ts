@@ -27,5 +27,6 @@ export const {
     setUpdateField,
     updateAction,
     updateConditional,
-    updateConditionalOperator
+    updateConditionalOperator,
+    setUpdateVisibility
 } = builder.actions;
