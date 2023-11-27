@@ -135,9 +135,11 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
         });
     }
 
+    const searchQuery = field.value?.match(/@([^@\s]*)/)?.[1] ?? '';
+
     return (
         <div>
-            {pipingFieldMenuState?.isOpen && pipingFieldMenuState?.atFieldUuid === field?.id && <FormBuilderFieldSelector field={field} />}
+            {pipingFieldMenuState?.isOpen && pipingFieldMenuState?.atFieldUuid === field?.id && <FormBuilderFieldSelector field={field} searchQuery={searchQuery} />}
             {pipingSettingsState?.isOpen && pipingSettingsState?.atFieldId === field?.id && <MentionedFieldSettings field={field} />}
             <CustomContentEditable
                 type={field?.type}
