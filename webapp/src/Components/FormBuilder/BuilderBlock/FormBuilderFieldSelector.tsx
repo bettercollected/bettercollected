@@ -13,6 +13,7 @@ import { convertPlaceholderToDisplayValue, getPreviousField } from '@app/utils/f
 
 export default function FormBuilderFieldSelector({ field, searchQuery = '' }: { field: IFormFieldState; searchQuery: string }) {
     const pipingFieldMenuState: any = useAppSelector(selectMenuState('pipingFields'));
+    console.log(pipingFieldMenuState.atPosition);
 
     const formFields = useAppSelector(selectFields);
 
@@ -89,12 +90,16 @@ export default function FormBuilderFieldSelector({ field, searchQuery = '' }: { 
         }
         return inputString;
     };
+
+    const replaceNthAt = (inputString: string, replacement: string, nthOccurrence: number) => {
+        return inputString.replace(new RegExp('((?:[^@]*@){' + (nthOccurrence - 1) + '}[^@]*)@'), '$1' + replacement);
+    };
     const onClickField = (inputField: any) => {
         batch(() => {
             dispatch(
                 setUpdateField({
                     ...field,
-                    value: replaceLastAt(field.value || '', `{{ ${inputField.fieldId} }}`)
+                    value: replaceNthAt(field.value || '', `{{ ${inputField.fieldId} }}`, pipingFieldMenuState?.atPosition ?? 1)
                 })
             );
             dispatch(resetBuilderMenuState());

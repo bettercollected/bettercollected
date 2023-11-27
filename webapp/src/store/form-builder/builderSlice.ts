@@ -22,7 +22,7 @@ export const initBuilderState: IBuilderState = {
         spotlightField: { isOpen: false, afterFieldUuid: '' },
         commands: { isOpen: false, atFieldUuid: '', position: 'down' },
         fieldSettings: { isOpen: false, atFieldUuid: '' },
-        pipingFields: { isOpen: false, atFieldUuid: '', position: 'down', pos: { top: 0, left: 0 } },
+        pipingFields: { isOpen: false, atFieldUuid: '', position: 'down', pos: { top: 0, left: 0 }, atPosition: 0 },
         pipingFieldSettings: {
             isOpen: false,
             atFieldId: '',

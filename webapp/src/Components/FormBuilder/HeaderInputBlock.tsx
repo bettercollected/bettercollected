@@ -94,7 +94,6 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
 
     const onChange = (event: any) => {
         const value = convertSpanToPlaceholder(event?.target?.value || '');
-
         batch(() => {
             // @ts-ignore
             if (event.nativeEvent.inputType === 'deleteContentBackward' && isAtSymbolRemoved(field?.value, value)) {
